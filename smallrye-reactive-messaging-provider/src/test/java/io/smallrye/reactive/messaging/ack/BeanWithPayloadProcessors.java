@@ -5,6 +5,8 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Flow.Processor;
+import java.util.concurrent.Flow.Publisher;
 
 import javax.enterprise.context.ApplicationScoped;
 
@@ -14,10 +16,9 @@ import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.eclipse.microprofile.reactive.streams.operators.ProcessorBuilder;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
-import org.reactivestreams.Processor;
-import org.reactivestreams.Publisher;
 
 import io.smallrye.mutiny.Multi;
+import mutiny.zero.flow.adapters.AdaptersToFlow;
 
 @ApplicationScoped
 public class BeanWithPayloadProcessors extends SpiedBeanHelper {
@@ -74,10 +75,10 @@ public class BeanWithPayloadProcessors extends SpiedBeanHelper {
     @Acknowledgment(Acknowledgment.Strategy.NONE)
     @Outgoing("sink-" + NO_ACKNOWLEDGMENT)
     public Processor<String, String> processorWithNoAck() {
-        return ReactiveStreams.<String> builder()
+        return AdaptersToFlow.processor(ReactiveStreams.<String> builder()
                 .flatMap(m -> ReactiveStreams.of(m, m))
                 .peek(m -> processed(NO_ACKNOWLEDGMENT, m))
-                .buildRs();
+                .buildRs());
     }
 
     @Outgoing(NO_ACKNOWLEDGMENT)
@@ -93,10 +94,10 @@ public class BeanWithPayloadProcessors extends SpiedBeanHelper {
     @Incoming(DEFAULT_ACKNOWLEDGMENT)
     @Outgoing("sink-" + DEFAULT_ACKNOWLEDGMENT)
     public Processor<String, String> processorWithAutoAck() {
-        return ReactiveStreams.<String> builder()
+        return AdaptersToFlow.processor(ReactiveStreams.<String> builder()
                 .flatMap(m -> ReactiveStreams.of(m, m))
                 .peek(m -> processed(DEFAULT_ACKNOWLEDGMENT, m))
-                .buildRs();
+                .buildRs());
     }
 
     @Outgoing(DEFAULT_ACKNOWLEDGMENT)
@@ -113,10 +114,10 @@ public class BeanWithPayloadProcessors extends SpiedBeanHelper {
     @Acknowledgment(Acknowledgment.Strategy.PRE_PROCESSING)
     @Outgoing("sink-" + PRE_ACKNOWLEDGMENT)
     public Processor<String, String> processorWithPreAck() {
-        return ReactiveStreams.<String> builder()
+        return AdaptersToFlow.processor(ReactiveStreams.<String> builder()
                 .flatMap(m -> ReactiveStreams.of(m, m))
                 .peek(m -> processed(PRE_ACKNOWLEDGMENT, m))
-                .buildRs();
+                .buildRs());
     }
 
     @Outgoing(PRE_ACKNOWLEDGMENT)

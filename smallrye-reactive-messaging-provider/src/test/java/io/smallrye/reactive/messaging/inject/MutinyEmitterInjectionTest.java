@@ -9,6 +9,9 @@ import java.lang.annotation.Annotation;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.*;
+import java.util.concurrent.Flow.Publisher;
+import java.util.concurrent.Flow.Subscriber;
+import java.util.concurrent.Flow.Subscription;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -24,9 +27,6 @@ import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.OnOverflow;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.junit.jupiter.api.Test;
-import org.reactivestreams.Publisher;
-import org.reactivestreams.Subscriber;
-import org.reactivestreams.Subscription;
 
 import io.reactivex.subscribers.TestSubscriber;
 import io.smallrye.mutiny.Uni;
@@ -39,6 +39,7 @@ import io.smallrye.reactive.messaging.providers.extension.MutinyEmitterImpl;
 import io.vertx.core.Context;
 import io.vertx.core.Vertx;
 import io.vertx.core.impl.VertxInternal;
+import mutiny.zero.flow.adapters.AdaptersToFlow;
 
 public class MutinyEmitterInjectionTest extends WeldTestBaseWithoutTails {
 
@@ -757,10 +758,10 @@ public class MutinyEmitterInjectionTest extends WeldTestBaseWithoutTails {
         Publisher<Message<? extends String>> publisher = emitter.getPublisher();
 
         TestSubscriber<Message<? extends String>> sub1 = new TestSubscriber<>();
-        publisher.subscribe(sub1);
+        publisher.subscribe(AdaptersToFlow.subscriber(sub1));
 
         TestSubscriber<Message<? extends String>> sub2 = new TestSubscriber<>();
-        publisher.subscribe(sub2);
+        publisher.subscribe(AdaptersToFlow.subscriber(sub2));
 
         sub1.assertNoErrors();
         sub2.assertNoErrors();

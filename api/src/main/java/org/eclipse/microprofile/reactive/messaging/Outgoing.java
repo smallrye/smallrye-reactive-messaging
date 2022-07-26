@@ -22,6 +22,7 @@ import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
+import java.util.concurrent.Flow;
 
 import org.eclipse.microprofile.reactive.streams.operators.ProcessorBuilder;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
@@ -32,8 +33,8 @@ import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
  * Methods annotated with this annotation must have one of the following shapes:
  * </p>
  * <ul>
- * <li>Take zero parameters, and return a {@link PublisherBuilder}, or a {@link org.reactivestreams.Publisher}.</li>
- * <li>Take zero parameters, and return a {@link ProcessorBuilder} or a {@link org.reactivestreams.Processor}.</li>
+ * <li>Take zero parameters, and return a {@link PublisherBuilder}, or a {@link Flow.Publisher}.</li>
+ * <li>Take zero parameters, and return a {@link ProcessorBuilder} or a {@link Flow.Processor}.</li>
  * <li>Accept a single parameter, and return a {@link java.util.concurrent.CompletionStage}.</li>
  * <li>Accept a single parameter, and return any type.</li>
  * </ul>

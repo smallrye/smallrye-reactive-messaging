@@ -4,14 +4,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Flow;
 
 import javax.enterprise.context.ApplicationScoped;
 
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.junit.jupiter.api.Test;
-import org.reactivestreams.Subscriber;
-import org.reactivestreams.Subscription;
 
 import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.WeldTestBaseWithoutTails;
@@ -53,13 +52,13 @@ public class HealthWithSubscriberTest extends WeldTestBaseWithoutTails {
         }
 
         @Incoming("sink")
-        public Subscriber<String> getSubscriber() {
-            return new Subscriber<String>() {
+        public Flow.Subscriber<String> getSubscriber() {
+            return new Flow.Subscriber<String>() {
 
-                Subscription subscription;
+                Flow.Subscription subscription;
 
                 @Override
-                public void onSubscribe(Subscription s) {
+                public void onSubscribe(Flow.Subscription s) {
                     subscription = s;
                     s.request(1);
                 }

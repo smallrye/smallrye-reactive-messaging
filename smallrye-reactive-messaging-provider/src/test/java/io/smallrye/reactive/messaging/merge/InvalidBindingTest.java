@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Flow;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.spi.DeploymentException;
@@ -13,7 +14,6 @@ import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 import org.junit.jupiter.api.Test;
-import org.reactivestreams.Publisher;
 
 import io.reactivex.processors.UnicastProcessor;
 import io.smallrye.mutiny.Multi;
@@ -21,6 +21,7 @@ import io.smallrye.reactive.messaging.WeldTestBaseWithoutTails;
 import io.smallrye.reactive.messaging.annotations.Broadcast;
 import io.smallrye.reactive.messaging.annotations.Merge;
 import io.smallrye.reactive.messaging.providers.wiring.TooManyUpstreamCandidatesException;
+import mutiny.zero.flow.adapters.AdaptersToFlow;
 
 /**
  * Checks that the deployment fails when a subscriber has 2 many potential publishers and does not use the
@@ -103,8 +104,8 @@ public class InvalidBindingTest extends WeldTestBaseWithoutTails {
     public static class MyUnicastSourceBean {
 
         @Outgoing("source")
-        public Publisher<String> foo() {
-            return ReactiveStreams.of("a", "b").via(UnicastProcessor.create()).buildRs();
+        public Flow.Publisher<String> foo() {
+            return AdaptersToFlow.publisher(ReactiveStreams.of("a", "b").via(UnicastProcessor.create()).buildRs());
         }
 
     }
@@ -114,8 +115,8 @@ public class InvalidBindingTest extends WeldTestBaseWithoutTails {
 
         @Outgoing("source")
         @Broadcast(2)
-        public Publisher<String> foo() {
-            return ReactiveStreams.of("a", "b").via(UnicastProcessor.create()).buildRs();
+        public Flow.Publisher<String> foo() {
+            return AdaptersToFlow.publisher(ReactiveStreams.of("a", "b").via(UnicastProcessor.create()).buildRs());
         }
 
     }

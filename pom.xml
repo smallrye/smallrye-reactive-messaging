@@ -78,7 +78,7 @@
 
     <micrometer.version>1.9.2</micrometer.version>
 
-    <mutiny.version>1.6.0</mutiny.version>
+    <mutiny.version>2.0.0-milestone1</mutiny.version>
     <artemis.version>2.19.0</artemis.version>
 
     <jboss-log-manager.version>2.1.18.Final</jboss-log-manager.version>
@@ -90,7 +90,7 @@
 
     <smallrye-vertx-mutiny-clients.version>2.23.0</smallrye-vertx-mutiny-clients.version>
     <smallrye-reactive-converters.version>2.6.0</smallrye-reactive-converters.version>
-    <mutiny-zero-reactive-streams-junit5-tck.version>0.4.2</mutiny-zero-reactive-streams-junit5-tck.version>
+    <mutiny-zero.version>0.4.3</mutiny-zero.version>
 
     <testcontainers.version>1.17.3</testcontainers.version>
 
@@ -341,6 +341,16 @@
       <artifactId>mutiny</artifactId>
       <version>${mutiny.version}</version>
     </dependency>
+    <dependency>
+      <groupId>io.smallrye.reactive</groupId>
+      <artifactId>mutiny-zero</artifactId>
+      <version>${mutiny-zero.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.smallrye.reactive</groupId>
+      <artifactId>mutiny-zero-flow-adapters</artifactId>
+      <version>${mutiny-zero.version}</version>
+    </dependency>
 
     <!-- Test -->
     <dependency>
@@ -564,6 +574,15 @@
           <skip>${revapi.skip}</skip>
         </configuration>
       </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <configuration>
+          <release>11</release>
+        </configuration>
+      </plugin>
+
     </plugins>
   </build>
 

@@ -1,14 +1,16 @@
 package io.smallrye.reactive.messaging.inject;
 
+import java.util.concurrent.Flow.Publisher;
+
 import javax.enterprise.context.ApplicationScoped;
 
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
-import org.reactivestreams.Publisher;
 
 import io.reactivex.Flowable;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.annotations.Broadcast;
+import mutiny.zero.flow.adapters.AdaptersToFlow;
 
 @ApplicationScoped
 public class SourceBean {
@@ -16,7 +18,7 @@ public class SourceBean {
     @Outgoing("hello")
     @Broadcast
     public Publisher<String> hello() {
-        return Flowable.fromArray("h", "e", "l", "l", "o");
+        return AdaptersToFlow.publisher(Flowable.fromArray("h", "e", "l", "l", "o"));
     }
 
     @Outgoing("bonjour")

@@ -9,6 +9,9 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.Flow;
+import java.util.concurrent.Flow.Publisher;
+import java.util.concurrent.Flow.Subscription;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.enterprise.context.ApplicationScoped;
@@ -22,9 +25,6 @@ import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.junit.jupiter.api.Test;
-import org.reactivestreams.Publisher;
-import org.reactivestreams.Subscriber;
-import org.reactivestreams.Subscription;
 
 import io.smallrye.reactive.messaging.MutinyEmitter;
 import io.smallrye.reactive.messaging.WeldTestBaseWithoutTails;
@@ -189,7 +189,7 @@ public class MutinyEmitterAndAwaitInjectionTest extends WeldTestBaseWithoutTails
         assertThat(publisher).isNotNull();
         List<String> list = new ArrayList<>();
         AtomicBoolean completed = new AtomicBoolean();
-        publisher.subscribe(new Subscriber<String>() {
+        publisher.subscribe(new Flow.Subscriber<String>() {
             private Subscription subscription;
 
             @Override

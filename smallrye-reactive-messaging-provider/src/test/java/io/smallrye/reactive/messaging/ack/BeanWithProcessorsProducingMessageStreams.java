@@ -2,6 +2,7 @@ package io.smallrye.reactive.messaging.ack;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.Flow.Publisher;
 
 import javax.enterprise.context.ApplicationScoped;
 
@@ -11,9 +12,9 @@ import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
-import org.reactivestreams.Publisher;
 
 import io.smallrye.mutiny.Multi;
+import mutiny.zero.flow.adapters.AdaptersToFlow;
 
 @ApplicationScoped
 public class BeanWithProcessorsProducingMessageStreams extends SpiedBeanHelper {
@@ -82,20 +83,20 @@ public class BeanWithProcessorsProducingMessageStreams extends SpiedBeanHelper {
     @Acknowledgment(Acknowledgment.Strategy.MANUAL)
     @Outgoing("sink-" + MANUAL_ACKNOWLEDGMENT)
     public Publisher<Message<String>> processorWithAck(Message<String> input) {
-        return ReactiveStreams.of(input)
+        return AdaptersToFlow.publisher(ReactiveStreams.of(input)
                 .flatMapCompletionStage(m -> m.ack().thenApply(x -> m))
                 .flatMap(m -> ReactiveStreams.of(Message.of(m.getPayload()), Message.of(m.getPayload())))
                 .peek(i -> processed(MANUAL_ACKNOWLEDGMENT, input))
-                .buildRs();
+                .buildRs());
     }
 
     @Outgoing(MANUAL_ACKNOWLEDGMENT)
     public Publisher<Message<String>> sourceToManualAck() {
-        return ReactiveStreams.of("a", "b", "c", "d", "e")
+        return AdaptersToFlow.publisher(ReactiveStreams.of("a", "b", "c", "d", "e")
                 .map(payload -> Message.of(payload, () -> CompletableFuture.runAsync(() -> {
                     nap();
                     acknowledged(MANUAL_ACKNOWLEDGMENT, payload);
-                }))).buildRs();
+                }))).buildRs());
     }
 
     @Incoming(MANUAL_ACKNOWLEDGMENT_BUILDER)
@@ -121,10 +122,10 @@ public class BeanWithProcessorsProducingMessageStreams extends SpiedBeanHelper {
     @Acknowledgment(Acknowledgment.Strategy.NONE)
     @Outgoing("sink-" + NO_ACKNOWLEDGMENT)
     public Publisher<Message<String>> processorWithNoAck(Message<String> input) {
-        return ReactiveStreams.of(input)
+        return AdaptersToFlow.publisher(ReactiveStreams.of(input)
                 .flatMap(m -> ReactiveStreams.of(Message.of(m.getPayload()), Message.of(m.getPayload())))
                 .peek(m -> processed(NO_ACKNOWLEDGMENT, m))
-                .buildRs();
+                .buildRs());
     }
 
     @Outgoing(NO_ACKNOWLEDGMENT)
@@ -160,10 +161,10 @@ public class BeanWithProcessorsProducingMessageStreams extends SpiedBeanHelper {
     @Acknowledgment(Acknowledgment.Strategy.PRE_PROCESSING)
     @Outgoing("sink-" + PRE_ACKNOWLEDGMENT)
     public Publisher<Message<String>> processorWithPreAck(Message<String> input) {
-        return ReactiveStreams.of(input)
+        return AdaptersToFlow.publisher(ReactiveStreams.of(input)
                 .flatMap(m -> ReactiveStreams.of(Message.of(m.getPayload()), Message.of(m.getPayload())))
                 .peek(m -> processed(PRE_ACKNOWLEDGMENT, m))
-                .buildRs();
+                .buildRs());
     }
 
     @Outgoing(PRE_ACKNOWLEDGMENT)
@@ -198,11 +199,11 @@ public class BeanWithProcessorsProducingMessageStreams extends SpiedBeanHelper {
     @Incoming(DEFAULT_ACKNOWLEDGMENT)
     @Outgoing("sink-" + DEFAULT_ACKNOWLEDGMENT)
     public Publisher<Message<String>> processorWithDefaultAck(Message<String> input) {
-        return ReactiveStreams.of(input)
+        return AdaptersToFlow.publisher(ReactiveStreams.of(input)
                 .flatMap(m -> ReactiveStreams.of(Message.of(m.getPayload()), Message.of(m.getPayload())).onComplete(
                         m::ack))
                 .peek(m -> processed(DEFAULT_ACKNOWLEDGMENT, m))
-                .buildRs();
+                .buildRs());
     }
 
     @Outgoing(DEFAULT_ACKNOWLEDGMENT)

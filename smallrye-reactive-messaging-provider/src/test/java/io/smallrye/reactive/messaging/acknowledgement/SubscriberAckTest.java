@@ -7,13 +7,13 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.*;
+import java.util.concurrent.Flow.Subscriber;
 
 import javax.enterprise.context.ApplicationScoped;
 
 import org.eclipse.microprofile.reactive.messaging.*;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 import org.junit.jupiter.api.Test;
-import org.reactivestreams.Subscriber;
 
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
@@ -21,6 +21,7 @@ import io.smallrye.reactive.messaging.WeldTestBaseWithoutTails;
 import io.smallrye.reactive.messaging.annotations.Blocking;
 import io.smallrye.reactive.messaging.providers.ProcessingException;
 import io.vertx.core.impl.ConcurrentHashSet;
+import mutiny.zero.flow.adapters.AdaptersToFlow;
 
 public class SubscriberAckTest extends WeldTestBaseWithoutTails {
 
@@ -407,9 +408,9 @@ public class SubscriberAckTest extends WeldTestBaseWithoutTails {
 
         @Incoming("data")
         public Subscriber<String> consume() {
-            return ReactiveStreams.<String> builder()
+            return AdaptersToFlow.subscriber(ReactiveStreams.<String> builder()
                     .forEach(s -> list.add(s))
-                    .build();
+                    .build());
         }
 
         public List<String> list() {

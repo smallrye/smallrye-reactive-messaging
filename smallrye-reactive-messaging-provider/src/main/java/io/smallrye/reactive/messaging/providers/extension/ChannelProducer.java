@@ -7,6 +7,7 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.List;
+import java.util.concurrent.Flow;
 import java.util.stream.Collectors;
 
 import javax.enterprise.context.ApplicationScoped;
@@ -21,7 +22,6 @@ import org.eclipse.microprofile.reactive.messaging.Emitter;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
-import org.reactivestreams.Publisher;
 
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
@@ -30,6 +30,7 @@ import io.smallrye.reactive.messaging.MessageConverter;
 import io.smallrye.reactive.messaging.MutinyEmitter;
 import io.smallrye.reactive.messaging.providers.helpers.TypeUtils;
 import io.smallrye.reactive.messaging.providers.i18n.ProviderExceptions;
+import mutiny.zero.flow.adapters.AdaptersToReactiveStreams;
 
 /**
  * This component computes the <em>right</em> object to be injected into injection point using {@link Channel} and the
@@ -54,7 +55,7 @@ public class ChannelProducer {
      * @return the Multi to be injected
      */
     @Produces
-    @Typed({ Publisher.class, Multi.class })
+    @Typed({ Flow.Publisher.class, Multi.class })
     @Channel("") // Stream name is ignored during type-safe resolution
     <T> Multi<T> produceMulti(InjectionPoint injectionPoint) {
         Type first = getFirstParameter(injectionPoint.getType());
@@ -86,7 +87,7 @@ public class ChannelProducer {
      */
     @Produces
     @Deprecated
-    @Typed({ Publisher.class, Multi.class })
+    @Typed({ Flow.Publisher.class, Multi.class })
     @io.smallrye.reactive.messaging.annotations.Channel("")
     <T> Multi<T> producePublisherWithLegacyChannelAnnotation(InjectionPoint injectionPoint) {
         return produceMulti(injectionPoint);
@@ -103,7 +104,7 @@ public class ChannelProducer {
     @Channel("") // Stream name is ignored during type-safe resolution
     <T> PublisherBuilder<T> producePublisherBuilder(InjectionPoint injectionPoint) {
         Multi<Object> multi = produceMulti(injectionPoint);
-        return cast(ReactiveStreams.fromPublisher(multi));
+        return cast(ReactiveStreams.fromPublisher(AdaptersToReactiveStreams.publisher(multi)));
     }
 
     /**
@@ -168,7 +169,7 @@ public class ChannelProducer {
         String name = getChannelName(injectionPoint);
 
         return Multi.createFrom().deferred(() -> {
-            List<Publisher<? extends Message<?>>> list = channelRegistry.getPublishers(name);
+            List<Flow.Publisher<? extends Message<?>>> list = channelRegistry.getPublishers(name);
             if (list.isEmpty()) {
                 throw ex.illegalStateForStream(name, channelRegistry.getIncomingNames());
             } else if (list.size() == 1) {

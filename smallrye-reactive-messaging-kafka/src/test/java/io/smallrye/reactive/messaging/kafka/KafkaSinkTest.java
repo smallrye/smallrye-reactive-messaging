@@ -8,6 +8,8 @@ import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.Flow.Publisher;
+import java.util.concurrent.Flow.Subscriber;
 
 import javax.enterprise.context.ApplicationScoped;
 
@@ -19,8 +21,6 @@ import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
-import org.reactivestreams.Publisher;
-import org.reactivestreams.Subscriber;
 
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
@@ -33,6 +33,7 @@ import io.smallrye.reactive.messaging.kafka.companion.ConsumerTask;
 import io.smallrye.reactive.messaging.kafka.companion.KafkaCompanion;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSink;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
+import mutiny.zero.flow.adapters.AdaptersToFlow;
 
 public class KafkaSinkTest extends KafkaCompanionTestBase {
 
@@ -58,7 +59,7 @@ public class KafkaSinkTest extends KafkaCompanionTestBase {
         KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
         sink = new KafkaSink(oc, CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance());
 
-        Subscriber<? extends Message<?>> subscriber = sink.getSink().build();
+        Subscriber<? extends Message<?>> subscriber = AdaptersToFlow.subscriber(sink.getSink().build());
         Multi.createFrom().range(0, 10)
                 .map(Message::of)
                 .subscribe((Subscriber<? super Message<Integer>>) subscriber);
@@ -78,7 +79,7 @@ public class KafkaSinkTest extends KafkaCompanionTestBase {
         KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
         sink = new KafkaSink(oc, CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance());
 
-        Subscriber<? extends Message<?>> subscriber = sink.getSink().build();
+        Subscriber<? extends Message<?>> subscriber = AdaptersToFlow.subscriber(sink.getSink().build());
         Multi.createFrom().range(0, 10)
                 .map(Message::of)
                 .subscribe((Subscriber<? super Message<Integer>>) subscriber);
@@ -99,7 +100,7 @@ public class KafkaSinkTest extends KafkaCompanionTestBase {
         KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
         sink = new KafkaSink(oc, CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance());
 
-        Subscriber<? extends Message<?>> subscriber = sink.getSink().build();
+        Subscriber<? extends Message<?>> subscriber = AdaptersToFlow.subscriber(sink.getSink().build());
         Multi.createFrom().range(0, 10)
                 .map(i -> Integer.toString(i))
                 .map(Message::of)
@@ -238,7 +239,7 @@ public class KafkaSinkTest extends KafkaCompanionTestBase {
 
         List<Object> acked = new CopyOnWriteArrayList<>();
         List<Object> nacked = new CopyOnWriteArrayList<>();
-        Subscriber subscriber = sink.getSink().build();
+        Subscriber subscriber = AdaptersToFlow.subscriber(sink.getSink().build());
         Multi.createFrom().range(0, 6)
                 .map(i -> {
                     if (i == 3 || i == 5) {
@@ -279,7 +280,7 @@ public class KafkaSinkTest extends KafkaCompanionTestBase {
         KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
         sink = new KafkaSink(oc, CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance());
 
-        Subscriber subscriber = sink.getSink().build();
+        Subscriber subscriber = AdaptersToFlow.subscriber(sink.getSink().build());
         Multi.createFrom().range(0, 5)
                 .map(i -> {
                     if (i == 3 || i == 5) {

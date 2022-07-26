@@ -8,6 +8,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.Flow;
+import java.util.concurrent.Flow.Subscription;
 import java.util.concurrent.TimeUnit;
 
 import javax.enterprise.context.ApplicationScoped;
@@ -20,8 +22,6 @@ import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.junit.jupiter.api.Test;
-import org.reactivestreams.Subscriber;
-import org.reactivestreams.Subscription;
 
 import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.annotations.Blocking;
@@ -131,7 +131,7 @@ public class SourceBackPressureWithBrokerTest extends KafkaCompanionTestBase {
         Multi<Message<String>> stream;
 
         public void run() {
-            stream.subscribe().withSubscriber(new Subscriber<Message<String>>() {
+            stream.subscribe().withSubscriber(new Flow.Subscriber<Message<String>>() {
                 @Override
                 public void onSubscribe(Subscription s) {
                     subscription = s;

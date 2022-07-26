@@ -35,6 +35,11 @@
       <artifactId>jakarta.annotation-api</artifactId>
     </dependency>
     <dependency>
+      <groupId>io.smallrye.reactive</groupId>
+      <artifactId>mutiny-zero-flow-adapters</artifactId>
+      <version>${mutiny-zero.version}</version>
+    </dependency>
+    <dependency>
       <groupId>org.eclipse.microprofile.metrics</groupId>
       <artifactId>microprofile-metrics-api</artifactId>
       <optional>true</optional>

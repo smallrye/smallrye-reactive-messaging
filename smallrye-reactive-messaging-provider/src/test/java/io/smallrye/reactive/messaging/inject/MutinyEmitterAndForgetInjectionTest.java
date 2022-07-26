@@ -5,6 +5,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.Flow;
+import java.util.concurrent.Flow.Publisher;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.enterprise.context.ApplicationScoped;
@@ -19,9 +21,6 @@ import org.jboss.logmanager.Level;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
-import org.reactivestreams.Publisher;
-import org.reactivestreams.Subscriber;
-import org.reactivestreams.Subscription;
 
 import io.smallrye.reactive.messaging.MutinyEmitter;
 import io.smallrye.reactive.messaging.WeldTestBaseWithoutTails;
@@ -127,11 +126,11 @@ public class MutinyEmitterAndForgetInjectionTest extends WeldTestBaseWithoutTail
         assertThat(publisher).isNotNull();
         List<String> list = new ArrayList<>();
         AtomicBoolean completed = new AtomicBoolean();
-        publisher.subscribe(new Subscriber<String>() {
-            private Subscription subscription;
+        publisher.subscribe(new Flow.Subscriber<String>() {
+            private Flow.Subscription subscription;
 
             @Override
-            public void onSubscribe(Subscription subscription) {
+            public void onSubscribe(Flow.Subscription subscription) {
                 this.subscription = subscription;
                 subscription.request(1);
             }

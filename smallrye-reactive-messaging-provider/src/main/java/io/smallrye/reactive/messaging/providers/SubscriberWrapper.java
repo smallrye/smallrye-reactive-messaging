@@ -2,17 +2,15 @@ package io.smallrye.reactive.messaging.providers;
 
 import java.util.Objects;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.Flow;
+import java.util.concurrent.Flow.Subscriber;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
-import org.reactivestreams.Processor;
-import org.reactivestreams.Subscriber;
-import org.reactivestreams.Subscription;
-
 import io.smallrye.mutiny.helpers.Subscriptions;
 
-public class SubscriberWrapper<I, T> implements Processor<T, T> {
+public class SubscriberWrapper<I, T> implements Flow.Processor<T, T> {
 
     /**
      * The subscriber provided by the user.
@@ -20,7 +18,7 @@ public class SubscriberWrapper<I, T> implements Processor<T, T> {
     private final Subscriber<I> delegate;
     private final BiFunction<T, Throwable, CompletionStage<Void>> postAck;
 
-    private final AtomicReference<Subscription> upstream = new AtomicReference<>();
+    private final AtomicReference<Flow.Subscription> upstream = new AtomicReference<>();
 
     private final Function<T, I> mapper;
 
@@ -38,7 +36,7 @@ public class SubscriberWrapper<I, T> implements Processor<T, T> {
      */
     @Override
     public void subscribe(Subscriber<? super T> s) {
-        s.onSubscribe(new Subscription() {
+        s.onSubscribe(new Flow.Subscription() {
             @Override
             public void request(long n) {
                 // ignore requests
@@ -47,7 +45,7 @@ public class SubscriberWrapper<I, T> implements Processor<T, T> {
             @Override
             public void cancel() {
                 // cancel subscription upstream
-                Subscription subscription = upstream.getAndSet(Subscriptions.CANCELLED);
+                Flow.Subscription subscription = upstream.getAndSet(Subscriptions.CANCELLED);
                 if (subscription != null) {
                     subscription.cancel();
                 }
@@ -61,14 +59,14 @@ public class SubscriberWrapper<I, T> implements Processor<T, T> {
      * @param s the subscription
      */
     @Override
-    public void onSubscribe(Subscription s) {
+    public void onSubscribe(Flow.Subscription s) {
 
         if (!upstream.compareAndSet(null, s)) {
             throw new IllegalStateException("We already received a subscription");
         }
 
         // Pass the subscription to the user subscriber.
-        delegate.onSubscribe(new Subscription() {
+        delegate.onSubscribe(new Flow.Subscription() {
             @Override
             public void request(long n) {
                 s.request(n);
@@ -76,7 +74,7 @@ public class SubscriberWrapper<I, T> implements Processor<T, T> {
 
             @Override
             public void cancel() {
-                Subscription subscription = upstream.getAndSet(Subscriptions.CANCELLED);
+                Flow.Subscription subscription = upstream.getAndSet(Subscriptions.CANCELLED);
                 if (subscription != null) {
                     subscription.cancel();
                 }

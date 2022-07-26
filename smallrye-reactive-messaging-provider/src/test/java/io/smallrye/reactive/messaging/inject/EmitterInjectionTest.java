@@ -8,10 +8,9 @@ import static org.awaitility.Awaitility.await;
 import java.lang.annotation.Annotation;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
-import java.util.concurrent.CompletionStage;
-import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.*;
+import java.util.concurrent.Flow.Publisher;
+import java.util.concurrent.Flow.Subscription;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.enterprise.context.ApplicationScoped;
@@ -21,9 +20,6 @@ import javax.inject.Inject;
 import org.eclipse.microprofile.reactive.messaging.*;
 import org.eclipse.microprofile.reactive.messaging.Acknowledgment.Strategy;
 import org.junit.jupiter.api.Test;
-import org.reactivestreams.Publisher;
-import org.reactivestreams.Subscriber;
-import org.reactivestreams.Subscription;
 
 import io.reactivex.subscribers.TestSubscriber;
 import io.smallrye.reactive.messaging.EmitterConfiguration;
@@ -31,6 +27,7 @@ import io.smallrye.reactive.messaging.WeldTestBaseWithoutTails;
 import io.smallrye.reactive.messaging.annotations.Merge;
 import io.smallrye.reactive.messaging.providers.DefaultEmitterConfiguration;
 import io.smallrye.reactive.messaging.providers.extension.EmitterImpl;
+import mutiny.zero.flow.adapters.AdaptersToFlow;
 
 public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
 
@@ -177,7 +174,7 @@ public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
         assertThat(publisher).isNotNull();
         List<String> list = new ArrayList<>();
         AtomicBoolean completed = new AtomicBoolean();
-        publisher.subscribe(new Subscriber<String>() {
+        publisher.subscribe(new Flow.Subscriber<String>() {
             private Subscription subscription;
 
             @Override
@@ -672,10 +669,10 @@ public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
         Publisher<Message<? extends String>> publisher = emitter.getPublisher();
 
         TestSubscriber<Message<? extends String>> sub1 = new TestSubscriber<>();
-        publisher.subscribe(sub1);
+        publisher.subscribe(AdaptersToFlow.subscriber(sub1));
 
         TestSubscriber<Message<? extends String>> sub2 = new TestSubscriber<>();
-        publisher.subscribe(sub2);
+        publisher.subscribe(AdaptersToFlow.subscriber(sub2));
 
         sub1.assertNoErrors();
         sub2.assertNoErrors();

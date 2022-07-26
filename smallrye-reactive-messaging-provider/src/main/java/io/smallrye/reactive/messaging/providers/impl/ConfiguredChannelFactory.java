@@ -4,6 +4,8 @@ import static io.smallrye.reactive.messaging.providers.i18n.ProviderExceptions.e
 import static io.smallrye.reactive.messaging.providers.i18n.ProviderLogging.log;
 
 import java.util.*;
+import java.util.concurrent.Flow.Publisher;
+import java.util.concurrent.Flow.Subscriber;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Any;
@@ -13,8 +15,6 @@ import javax.inject.Inject;
 import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.spi.*;
-import org.reactivestreams.Publisher;
-import org.reactivestreams.Subscriber;
 
 import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.ChannelRegistar;

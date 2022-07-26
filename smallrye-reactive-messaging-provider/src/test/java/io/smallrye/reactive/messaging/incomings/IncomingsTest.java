@@ -6,6 +6,7 @@ import static org.awaitility.Awaitility.await;
 
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.Flow.Publisher;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.spi.DeploymentException;
@@ -14,9 +15,8 @@ import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
-import org.reactivestreams.Publisher;
 
-import io.reactivex.Flowable;
+import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.WeldTestBaseWithoutTails;
 import io.smallrye.reactive.messaging.annotations.Incomings;
 import io.smallrye.reactive.messaging.annotations.Merge;
@@ -163,7 +163,7 @@ public class IncomingsTest extends WeldTestBaseWithoutTails {
 
         @Outgoing("a")
         public Publisher<String> produce() {
-            return Flowable.just("a", "b", "c");
+            return Multi.createFrom().items("a", "b", "c");
         }
 
     }
@@ -173,7 +173,7 @@ public class IncomingsTest extends WeldTestBaseWithoutTails {
 
         @Outgoing("b")
         public Publisher<String> produce() {
-            return Flowable.just("d", "e", "f");
+            return Multi.createFrom().items("d", "e", "f");
         }
 
     }
@@ -183,7 +183,7 @@ public class IncomingsTest extends WeldTestBaseWithoutTails {
 
         @Outgoing("b")
         public Publisher<String> produce() {
-            return Flowable.just("g", "h");
+            return Multi.createFrom().items("g", "h");
         }
 
     }

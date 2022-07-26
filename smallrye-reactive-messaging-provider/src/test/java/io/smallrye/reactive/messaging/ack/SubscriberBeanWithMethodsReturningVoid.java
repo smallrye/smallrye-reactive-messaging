@@ -1,6 +1,7 @@
 package io.smallrye.reactive.messaging.ack;
 
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.Flow.Publisher;
 
 import javax.enterprise.context.ApplicationScoped;
 
@@ -8,7 +9,6 @@ import org.eclipse.microprofile.reactive.messaging.Acknowledgment;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
-import org.reactivestreams.Publisher;
 
 /**
  * It is not supported to return `void` or an object (that it not a CompletionStage) when consuming a Message. So, we are

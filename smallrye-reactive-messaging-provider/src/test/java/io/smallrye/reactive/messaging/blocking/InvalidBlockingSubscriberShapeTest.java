@@ -4,11 +4,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionStage;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.*;
 
 import javax.annotation.PreDestroy;
 import javax.enterprise.context.ApplicationScoped;
@@ -18,11 +14,11 @@ import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 import org.junit.jupiter.api.Test;
-import org.reactivestreams.Subscriber;
 
 import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.WeldTestBaseWithoutTails;
 import io.smallrye.reactive.messaging.annotations.Blocking;
+import mutiny.zero.flow.adapters.AdaptersToFlow;
 
 public class InvalidBlockingSubscriberShapeTest extends WeldTestBaseWithoutTails {
     @Test
@@ -37,9 +33,9 @@ public class InvalidBlockingSubscriberShapeTest extends WeldTestBaseWithoutTails
 
         @Blocking
         @Incoming("count")
-        public Subscriber<Message<String>> create() {
-            return ReactiveStreams.<Message<String>> builder().forEach(m -> list.add(m.getPayload()))
-                    .build();
+        public Flow.Subscriber<Message<String>> create() {
+            return AdaptersToFlow.subscriber(ReactiveStreams.<Message<String>> builder().forEach(m -> list.add(m.getPayload()))
+                    .build());
         }
     }
 
@@ -55,8 +51,8 @@ public class InvalidBlockingSubscriberShapeTest extends WeldTestBaseWithoutTails
 
         @Blocking
         @Incoming("count")
-        public Subscriber<String> create() {
-            return ReactiveStreams.<String> builder().forEach(m -> list.add(m)).build();
+        public Flow.Subscriber<String> create() {
+            return AdaptersToFlow.subscriber(ReactiveStreams.<String> builder().forEach(m -> list.add(m)).build());
         }
     }
 
@@ -70,9 +66,9 @@ public class InvalidBlockingSubscriberShapeTest extends WeldTestBaseWithoutTails
     public static class BeanReturningASubscriberOfMessagesButDiscarding {
         @Blocking
         @Incoming("subscriber")
-        public Subscriber<Message<String>> create() {
-            return ReactiveStreams.<Message<String>> builder()
-                    .ignore().build();
+        public Flow.Subscriber<Message<String>> create() {
+            return AdaptersToFlow.subscriber(ReactiveStreams.<Message<String>> builder()
+                    .ignore().build());
         }
     }
 

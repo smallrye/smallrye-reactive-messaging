@@ -5,25 +5,17 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Spliterator;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
-import org.reactivestreams.Subscriber;
-import org.reactivestreams.Subscription;
-
 import io.smallrye.mutiny.subscription.MultiSubscriber;
 
 /**
- * A {@link io.smallrye.mutiny.Multi} {@link Subscriber} for testing purposes.
+ * A {@link io.smallrye.mutiny.Multi} {@link Flow.Subscriber} for testing purposes.
  *
  * @param <T> the type of the records
  */
@@ -42,7 +34,7 @@ class RecordsSubscriber<T, SELF extends RecordsSubscriber<T, SELF>> implements M
     /**
      * The subscription received from upstream.
      */
-    private final AtomicReference<Subscription> subscription = new AtomicReference<>();
+    private final AtomicReference<Flow.Subscription> subscription = new AtomicReference<>();
 
     /**
      * The number of requested records.
@@ -468,7 +460,7 @@ class RecordsSubscriber<T, SELF extends RecordsSubscriber<T, SELF>> implements M
     }
 
     @Override
-    public void onSubscribe(Subscription s) {
+    public void onSubscribe(Flow.Subscription s) {
         if (subscription.compareAndSet(null, s)) {
             if (requested.get() > 0) {
                 s.request(requested.get());

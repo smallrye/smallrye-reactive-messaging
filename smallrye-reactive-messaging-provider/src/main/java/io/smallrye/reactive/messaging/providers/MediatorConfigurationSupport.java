@@ -6,6 +6,9 @@ import static io.smallrye.reactive.messaging.providers.i18n.ProviderLogging.log;
 import java.lang.reflect.Type;
 import java.util.List;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.Flow;
+import java.util.concurrent.Flow.Processor;
+import java.util.concurrent.Flow.Subscriber;
 import java.util.function.Supplier;
 
 import org.eclipse.microprofile.reactive.messaging.Acknowledgment;
@@ -13,9 +16,6 @@ import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.streams.operators.ProcessorBuilder;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
-import org.reactivestreams.Processor;
-import org.reactivestreams.Publisher;
-import org.reactivestreams.Subscriber;
 
 import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.MediatorConfiguration;
@@ -57,14 +57,14 @@ public class MediatorConfigurationSupport {
     }
 
     private boolean isPublisherOrPublisherBuilder(Class<?> returnType) {
-        return ClassUtils.isAssignable(returnType, Publisher.class)
+        return ClassUtils.isAssignable(returnType, Flow.Publisher.class)
                 || ClassUtils.isAssignable(returnType, PublisherBuilder.class);
     }
 
     private boolean isConsumingAPublisherOrAPublisherBuilder(Class<?>[] parameterTypes) {
         if (parameterTypes.length >= 1) {
             Class<?> type = parameterTypes[0];
-            return ClassUtils.isAssignable(type, Publisher.class) || ClassUtils
+            return ClassUtils.isAssignable(type, Flow.Publisher.class) || ClassUtils
                     .isAssignable(type, PublisherBuilder.class);
         }
         return false;
@@ -235,7 +235,7 @@ public class MediatorConfigurationSupport {
             throw ex.definitionNoParametersExpected("@Outgoing", methodAsString);
         }
 
-        if (ClassUtils.isAssignable(returnType, Publisher.class)) {
+        if (ClassUtils.isAssignable(returnType, Flow.Publisher.class)) {
             GenericTypeAssignable.Result assignableToMessageCheck = returnTypeAssignable.check(Message.class, 0);
             if (assignableToMessageCheck == GenericTypeAssignable.Result.NotGeneric) {
                 throw ex.definitionMustDeclareParam("@Outgoing", methodAsString, "Publisher");
@@ -353,7 +353,7 @@ public class MediatorConfigurationSupport {
 
             useBuilderTypes = ClassUtils.isAssignable(returnType, ProcessorBuilder.class);
 
-        } else if (ClassUtils.isAssignable(returnType, Publisher.class)
+        } else if (ClassUtils.isAssignable(returnType, Flow.Publisher.class)
                 || ClassUtils.isAssignable(returnType, PublisherBuilder.class)) {
             // Case 5, 6, 7, 8
             if (parameterTypes.length != 1) {

@@ -4,6 +4,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.Flow.Processor;
+import java.util.concurrent.Flow.Publisher;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.spi.DeploymentException;
@@ -15,14 +17,13 @@ import org.eclipse.microprofile.reactive.streams.operators.ProcessorBuilder;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 import org.junit.jupiter.api.Test;
-import org.reactivestreams.Processor;
-import org.reactivestreams.Publisher;
 
 import io.reactivex.Flowable;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.WeldTestBaseWithoutTails;
 import io.smallrye.reactive.messaging.annotations.Blocking;
+import mutiny.zero.flow.adapters.AdaptersToFlow;
 
 public class InvalidBlockingProcessorShapeTest extends WeldTestBaseWithoutTails {
     @Test
@@ -135,13 +136,13 @@ public class InvalidBlockingProcessorShapeTest extends WeldTestBaseWithoutTails 
         @Incoming("count")
         @Outgoing("sink")
         public Processor<Message<Integer>, Message<String>> process() {
-            return ReactiveStreams.<Message<Integer>> builder()
+            return AdaptersToFlow.processor(ReactiveStreams.<Message<Integer>> builder()
                     .map(Message::getPayload)
                     .map(i -> i + 1)
                     .flatMapRsPublisher(i -> Flowable.just(i, i))
                     .map(i -> Integer.toString(i))
                     .map(Message::of)
-                    .buildRs();
+                    .buildRs());
         }
     }
 
@@ -178,11 +179,11 @@ public class InvalidBlockingProcessorShapeTest extends WeldTestBaseWithoutTails 
         @Incoming("count")
         @Outgoing("sink")
         public Processor<Integer, String> process() {
-            return ReactiveStreams.<Integer> builder()
+            return AdaptersToFlow.processor(ReactiveStreams.<Integer> builder()
                     .map(i -> i + 1)
                     .flatMapRsPublisher(i -> Flowable.just(i, i))
                     .map(i -> Integer.toString(i))
-                    .buildRs();
+                    .buildRs());
         }
     }
 
@@ -217,13 +218,13 @@ public class InvalidBlockingProcessorShapeTest extends WeldTestBaseWithoutTails 
         @Incoming("count")
         @Outgoing("sink")
         public Publisher<Message<String>> process(Message<Integer> message) {
-            return ReactiveStreams.of(message)
+            return AdaptersToFlow.publisher(ReactiveStreams.of(message)
                     .map(Message::getPayload)
                     .map(i -> i + 1)
                     .flatMapRsPublisher(i -> Flowable.just(i, i))
                     .map(i -> Integer.toString(i))
                     .map(Message::of)
-                    .buildRs();
+                    .buildRs());
         }
     }
 
@@ -239,11 +240,11 @@ public class InvalidBlockingProcessorShapeTest extends WeldTestBaseWithoutTails 
         @Incoming("count")
         @Outgoing("sink")
         public Publisher<String> process(Integer payload) {
-            return ReactiveStreams.of(payload)
+            return AdaptersToFlow.publisher(ReactiveStreams.of(payload)
                     .map(i -> i + 1)
                     .flatMapRsPublisher(i -> Flowable.just(i, i))
                     .map(i -> Integer.toString(i))
-                    .buildRs();
+                    .buildRs());
         }
     }
 
@@ -300,10 +301,10 @@ public class InvalidBlockingProcessorShapeTest extends WeldTestBaseWithoutTails 
         @Outgoing("sink")
         public Multi<String> process(Integer payload) {
             return Multi.createFrom().publisher(
-                    ReactiveStreams.of(payload)
+                    AdaptersToFlow.publisher(ReactiveStreams.of(payload)
                             .map(i -> i + 1)
                             .flatMapRsPublisher(i -> Flowable.just(i, i))
-                            .map(i -> Integer.toString(i)).buildRs());
+                            .map(i -> Integer.toString(i)).buildRs()));
         }
     }
 
@@ -320,12 +321,12 @@ public class InvalidBlockingProcessorShapeTest extends WeldTestBaseWithoutTails 
         @Outgoing("sink")
         public Multi<Message<String>> process(Message<Integer> message) {
             return Multi.createFrom().publisher(
-                    ReactiveStreams.of(message)
+                    AdaptersToFlow.publisher(ReactiveStreams.of(message)
                             .map(Message::getPayload)
                             .map(i -> i + 1)
                             .flatMapRsPublisher(i -> Flowable.just(i, i))
                             .map(i -> Integer.toString(i))
-                            .map(Message::of).buildRs());
+                            .map(Message::of).buildRs()));
         }
     }
 }

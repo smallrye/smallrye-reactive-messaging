@@ -6,6 +6,7 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.*;
+import java.util.concurrent.Flow.Publisher;
 
 import javax.enterprise.event.Observes;
 import javax.enterprise.inject.Instance;
@@ -14,7 +15,6 @@ import javax.inject.Inject;
 
 import org.eclipse.microprofile.reactive.messaging.*;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
-import org.reactivestreams.Publisher;
 
 import io.smallrye.reactive.messaging.EmitterConfiguration;
 import io.smallrye.reactive.messaging.EmitterFactory;

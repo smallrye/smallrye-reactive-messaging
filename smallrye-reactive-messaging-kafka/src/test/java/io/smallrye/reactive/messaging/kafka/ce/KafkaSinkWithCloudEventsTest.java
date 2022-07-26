@@ -7,6 +7,7 @@ import static org.awaitility.Awaitility.await;
 import java.net.URI;
 import java.time.ZonedDateTime;
 import java.util.UUID;
+import java.util.concurrent.Flow.Subscriber;
 
 import javax.enterprise.context.ApplicationScoped;
 
@@ -19,7 +20,6 @@ import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
-import org.reactivestreams.Subscriber;
 
 import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.ce.OutgoingCloudEventMetadata;

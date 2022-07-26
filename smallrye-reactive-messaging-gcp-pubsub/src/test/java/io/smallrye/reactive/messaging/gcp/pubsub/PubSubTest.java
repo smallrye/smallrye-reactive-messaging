@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 import java.lang.annotation.Annotation;
+import java.util.concurrent.Flow;
 
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.spi.Connector;
@@ -14,7 +15,6 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
-import org.reactivestreams.Subscriber;
 
 import com.google.pubsub.v1.ProjectTopicName;
 import com.google.pubsub.v1.TopicName;
@@ -73,7 +73,7 @@ public class PubSubTest extends PubSubTestBase {
         final SubscriberBuilder<? extends Message<?>, Void> subscriber = createSinkSubscriber(topic);
         Multi.createFrom().item(message)
                 .map(Message::of)
-                .subscribe((Subscriber<Message<String>>) subscriber.build());
+                .subscribe((Flow.Subscriber<Message<String>>) subscriber.build());
     }
 
     private SubscriberBuilder<? extends Message<?>, Void> createSinkSubscriber(final String topic) {

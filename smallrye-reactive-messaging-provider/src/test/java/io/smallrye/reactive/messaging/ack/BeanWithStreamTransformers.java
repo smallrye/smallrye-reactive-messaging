@@ -2,6 +2,7 @@ package io.smallrye.reactive.messaging.ack;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.Flow.Publisher;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.enterprise.context.ApplicationScoped;
@@ -12,9 +13,10 @@ import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
-import org.reactivestreams.Publisher;
 
 import io.smallrye.mutiny.Multi;
+import mutiny.zero.flow.adapters.AdaptersToFlow;
+import mutiny.zero.flow.adapters.AdaptersToReactiveStreams;
 
 @ApplicationScoped
 public class BeanWithStreamTransformers extends SpiedBeanHelper {
@@ -126,10 +128,10 @@ public class BeanWithStreamTransformers extends SpiedBeanHelper {
     @Acknowledgment(Acknowledgment.Strategy.NONE)
     @Outgoing("sink-" + NO_ACKNOWLEDGMENT)
     public Publisher<Message<String>> processorWithNoAck(Publisher<Message<String>> input) {
-        return ReactiveStreams.fromPublisher(input)
+        return AdaptersToFlow.publisher(ReactiveStreams.fromPublisher(AdaptersToReactiveStreams.publisher(input))
                 .flatMap(m -> ReactiveStreams.of(Message.of(m.getPayload()), Message.of(m.getPayload())))
                 .peek(m -> processed(NO_ACKNOWLEDGMENT, m.getPayload()))
-                .buildRs();
+                .buildRs());
     }
 
     @Outgoing(NO_ACKNOWLEDGMENT)
@@ -165,20 +167,20 @@ public class BeanWithStreamTransformers extends SpiedBeanHelper {
     @Acknowledgment(Acknowledgment.Strategy.MANUAL)
     @Outgoing("sink-" + MANUAL_ACKNOWLEDGMENT)
     public Publisher<Message<String>> processorWithAck(Publisher<Message<String>> input) {
-        return ReactiveStreams.fromPublisher(input)
+        return AdaptersToFlow.publisher(ReactiveStreams.fromPublisher(AdaptersToReactiveStreams.publisher(input))
                 .flatMapCompletionStage(m -> m.ack().thenApply(x -> m))
                 .flatMap(m -> ReactiveStreams.of(Message.of(m.getPayload()), Message.of(m.getPayload())))
                 .peek(m -> processed(MANUAL_ACKNOWLEDGMENT, m.getPayload()))
-                .buildRs();
+                .buildRs());
     }
 
     @Outgoing(MANUAL_ACKNOWLEDGMENT)
     public Publisher<Message<String>> sourceToManualAck() {
-        return ReactiveStreams.of("a", "b", "c", "d", "e")
+        return AdaptersToFlow.publisher(ReactiveStreams.of("a", "b", "c", "d", "e")
                 .map(payload -> Message.of(payload, () -> CompletableFuture.runAsync(() -> {
                     nap();
                     acknowledged(MANUAL_ACKNOWLEDGMENT, payload);
-                }))).buildRs();
+                }))).buildRs());
     }
 
     @Incoming(MANUAL_ACKNOWLEDGMENT_BUILDER)
@@ -193,21 +195,21 @@ public class BeanWithStreamTransformers extends SpiedBeanHelper {
 
     @Outgoing(MANUAL_ACKNOWLEDGMENT_BUILDER)
     public Publisher<Message<String>> sourceToManualAckBuilder() {
-        return ReactiveStreams.of("a", "b", "c", "d", "e")
+        return AdaptersToFlow.publisher(ReactiveStreams.of("a", "b", "c", "d", "e")
                 .map(payload -> Message.of(payload, () -> CompletableFuture.runAsync(() -> {
                     nap();
                     acknowledged(MANUAL_ACKNOWLEDGMENT_BUILDER, payload);
-                }))).buildRs();
+                }))).buildRs());
     }
 
     @Incoming(PRE_ACKNOWLEDGMENT)
     @Acknowledgment(Acknowledgment.Strategy.PRE_PROCESSING)
     @Outgoing("sink-" + PRE_ACKNOWLEDGMENT)
     public Publisher<Message<String>> processorWitPreAck(Publisher<Message<String>> input) {
-        return ReactiveStreams.fromPublisher(input)
+        return AdaptersToFlow.publisher(ReactiveStreams.fromPublisher(AdaptersToReactiveStreams.publisher(input))
                 .flatMap(m -> ReactiveStreams.of(Message.of(m.getPayload()), Message.of(m.getPayload())))
                 .peek(m -> processed(PRE_ACKNOWLEDGMENT, m.getPayload()))
-                .buildRs();
+                .buildRs());
     }
 
     @Outgoing(PRE_ACKNOWLEDGMENT)
@@ -242,7 +244,7 @@ public class BeanWithStreamTransformers extends SpiedBeanHelper {
     @Incoming(DEFAULT_ACKNOWLEDGMENT)
     @Outgoing("sink-" + DEFAULT_ACKNOWLEDGMENT)
     public Publisher<Message<String>> processorWithDefAck(Publisher<Message<String>> input) {
-        return ReactiveStreams.fromPublisher(input)
+        return AdaptersToFlow.publisher(ReactiveStreams.fromPublisher(AdaptersToReactiveStreams.publisher(input))
                 .flatMap(m -> {
                     AtomicInteger counter = new AtomicInteger();
                     return ReactiveStreams.of(Message.of(m.getPayload(), () -> {
@@ -260,7 +262,7 @@ public class BeanWithStreamTransformers extends SpiedBeanHelper {
                     }));
                 })
                 .peek(m -> processed(DEFAULT_ACKNOWLEDGMENT, m.getPayload()))
-                .buildRs();
+                .buildRs());
     }
 
     @Outgoing(DEFAULT_ACKNOWLEDGMENT)
@@ -311,10 +313,10 @@ public class BeanWithStreamTransformers extends SpiedBeanHelper {
     @Acknowledgment(Acknowledgment.Strategy.NONE)
     @Outgoing("sink-" + PAYLOAD_NO_ACKNOWLEDGMENT)
     public Publisher<String> processorWithNoAckMessage(Publisher<String> input) {
-        return ReactiveStreams.fromPublisher(input)
+        return AdaptersToFlow.publisher(ReactiveStreams.fromPublisher(AdaptersToReactiveStreams.publisher(input))
                 .flatMap(p -> ReactiveStreams.of(p, p))
                 .peek(m -> processed(PAYLOAD_NO_ACKNOWLEDGMENT, m))
-                .buildRs();
+                .buildRs());
     }
 
     @Outgoing(PAYLOAD_NO_ACKNOWLEDGMENT)
@@ -349,10 +351,10 @@ public class BeanWithStreamTransformers extends SpiedBeanHelper {
     @Incoming(PAYLOAD_DEFAULT_ACKNOWLEDGMENT)
     @Outgoing("sink-" + PAYLOAD_DEFAULT_ACKNOWLEDGMENT)
     public Publisher<String> processorWithDefPayloadAck(Publisher<String> input) {
-        return ReactiveStreams.fromPublisher(input)
+        return AdaptersToFlow.publisher(ReactiveStreams.fromPublisher(AdaptersToReactiveStreams.publisher(input))
                 .flatMap(p -> ReactiveStreams.of(p, p))
                 .peek(m -> processed(PAYLOAD_DEFAULT_ACKNOWLEDGMENT, m))
-                .buildRs();
+                .buildRs());
     }
 
     @Outgoing(PAYLOAD_DEFAULT_ACKNOWLEDGMENT)
@@ -387,10 +389,10 @@ public class BeanWithStreamTransformers extends SpiedBeanHelper {
     @Acknowledgment(Acknowledgment.Strategy.PRE_PROCESSING)
     @Outgoing("sink-" + PAYLOAD_PRE_ACKNOWLEDGMENT)
     public Publisher<String> processorWithPrePayloadAck(Publisher<String> input) {
-        return ReactiveStreams.fromPublisher(input)
+        return AdaptersToFlow.publisher(ReactiveStreams.fromPublisher(AdaptersToReactiveStreams.publisher(input))
                 .flatMap(p -> ReactiveStreams.of(p, p))
                 .peek(m -> processed(PAYLOAD_PRE_ACKNOWLEDGMENT, m))
-                .buildRs();
+                .buildRs());
     }
 
     @Outgoing(PAYLOAD_PRE_ACKNOWLEDGMENT)

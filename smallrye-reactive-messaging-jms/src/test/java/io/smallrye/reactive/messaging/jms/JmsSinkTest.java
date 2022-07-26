@@ -22,6 +22,7 @@ import io.smallrye.mutiny.helpers.Subscriptions;
 import io.smallrye.reactive.messaging.json.JsonMapping;
 import io.smallrye.reactive.messaging.support.JmsTestBase;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
+import mutiny.zero.flow.adapters.AdaptersToReactiveStreams;
 
 @SuppressWarnings("ConstantConditions")
 public class JmsSinkTest extends JmsTestBase {
@@ -57,7 +58,7 @@ public class JmsSinkTest extends JmsTestBase {
         JmsSink sink = new JmsSink(jms, new JmsConnectorOutgoingConfiguration(config), jsonMapping, executor);
         MyJmsClient client = new MyJmsClient(jms.createQueue("queue-one"));
         subscriber = sink.getSink().build();
-        subscriber.onSubscribe(new Subscriptions.EmptySubscription());
+        subscriber.onSubscribe(AdaptersToReactiveStreams.subscription(new Subscriptions.EmptySubscription()));
         AtomicBoolean acked = new AtomicBoolean();
         subscriber.onNext(Message.of("hello",
                 () -> CompletableFuture.runAsync(() -> acked.set(true))));
@@ -77,7 +78,7 @@ public class JmsSinkTest extends JmsTestBase {
         MyJmsClient client1 = new MyJmsClient(jms.createTopic("my-topic"));
         MyJmsClient client2 = new MyJmsClient(jms.createTopic("my-topic"));
         subscriber = sink.getSink().build();
-        subscriber.onSubscribe(new Subscriptions.EmptySubscription());
+        subscriber.onSubscribe(AdaptersToReactiveStreams.subscription(new Subscriptions.EmptySubscription()));
         AtomicBoolean acked = new AtomicBoolean();
         subscriber.onNext(Message.of("hello",
                 () -> CompletableFuture.runAsync(() -> acked.set(true))));
@@ -99,7 +100,7 @@ public class JmsSinkTest extends JmsTestBase {
         JmsSink sink = new JmsSink(jms, new JmsConnectorOutgoingConfiguration(config), jsonMapping, executor);
         MyJmsClient client = new MyJmsClient(jms.createQueue("queue-one"));
         subscriber = sink.getSink().build();
-        subscriber.onSubscribe(new Subscriptions.EmptySubscription());
+        subscriber.onSubscribe(AdaptersToReactiveStreams.subscription(new Subscriptions.EmptySubscription()));
         AtomicBoolean acked = new AtomicBoolean();
         subscriber.onNext(Message.of("hello",
                 () -> CompletableFuture.runAsync(() -> acked.set(true))));
@@ -123,7 +124,7 @@ public class JmsSinkTest extends JmsTestBase {
         JmsSink sink = new JmsSink(jms, new JmsConnectorOutgoingConfiguration(config), jsonMapping, executor);
         MyJmsClient client = new MyJmsClient(jms.createQueue("queue-one"));
         subscriber = sink.getSink().build();
-        subscriber.onSubscribe(new Subscriptions.EmptySubscription());
+        subscriber.onSubscribe(AdaptersToReactiveStreams.subscription(new Subscriptions.EmptySubscription()));
         AtomicBoolean acked = new AtomicBoolean();
         subscriber.onNext(Message.of("hello",
                 () -> CompletableFuture.runAsync(() -> acked.set(true))));
@@ -147,7 +148,7 @@ public class JmsSinkTest extends JmsTestBase {
         JmsSink sink = new JmsSink(jms, new JmsConnectorOutgoingConfiguration(config), jsonMapping, executor);
         MyJmsClient client = new MyJmsClient(jms.createQueue("queue-one"));
         subscriber = sink.getSink().build();
-        subscriber.onSubscribe(new Subscriptions.EmptySubscription());
+        subscriber.onSubscribe(AdaptersToReactiveStreams.subscription(new Subscriptions.EmptySubscription()));
         AtomicBoolean acked = new AtomicBoolean();
         subscriber.onNext(Message.of("hello",
                 () -> CompletableFuture.runAsync(() -> acked.set(true))));
@@ -169,7 +170,7 @@ public class JmsSinkTest extends JmsTestBase {
         JmsSink sink = new JmsSink(jms, new JmsConnectorOutgoingConfiguration(config), jsonMapping, executor);
         MyJmsClient client = new MyJmsClient(jms.createQueue("queue-one"));
         subscriber = sink.getSink().build();
-        subscriber.onSubscribe(new Subscriptions.EmptySubscription());
+        subscriber.onSubscribe(AdaptersToReactiveStreams.subscription(new Subscriptions.EmptySubscription()));
         AtomicBoolean acked = new AtomicBoolean();
         subscriber.onNext(Message.of("hello",
                 () -> CompletableFuture.runAsync(() -> acked.set(true))));
@@ -193,7 +194,7 @@ public class JmsSinkTest extends JmsTestBase {
         JmsSink sink = new JmsSink(jms, new JmsConnectorOutgoingConfiguration(config), jsonMapping, executor);
         MyJmsClient client = new MyJmsClient(jms.createQueue("queue-one"));
         subscriber = sink.getSink().build();
-        subscriber.onSubscribe(new Subscriptions.EmptySubscription());
+        subscriber.onSubscribe(AdaptersToReactiveStreams.subscription(new Subscriptions.EmptySubscription()));
         AtomicBoolean acked = new AtomicBoolean();
         subscriber.onNext(Message.of("hello",
                 () -> CompletableFuture.runAsync(() -> acked.set(true))));
@@ -227,7 +228,7 @@ public class JmsSinkTest extends JmsTestBase {
         JmsSink sink = new JmsSink(jms, new JmsConnectorOutgoingConfiguration(config), jsonMapping, executor);
         MyJmsClient client = new MyJmsClient(jms.createQueue("queue-one"));
         subscriber = sink.getSink().build();
-        subscriber.onSubscribe(new Subscriptions.EmptySubscription());
+        subscriber.onSubscribe(AdaptersToReactiveStreams.subscription(new Subscriptions.EmptySubscription()));
         AtomicBoolean acked = new AtomicBoolean();
         Message<String> hello = Message.of("hello",
                 () -> CompletableFuture.runAsync(() -> acked.set(true)));

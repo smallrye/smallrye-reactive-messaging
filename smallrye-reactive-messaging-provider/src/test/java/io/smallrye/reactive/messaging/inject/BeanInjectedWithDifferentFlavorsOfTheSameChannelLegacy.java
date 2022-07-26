@@ -2,13 +2,13 @@ package io.smallrye.reactive.messaging.inject;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.concurrent.Flow.Publisher;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
-import org.reactivestreams.Publisher;
 
 import io.smallrye.reactive.messaging.annotations.Channel;
 

@@ -2,6 +2,7 @@ package io.smallrye.reactive.messaging.ack;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.Flow.Publisher;
 
 import javax.enterprise.context.ApplicationScoped;
 
@@ -10,11 +11,11 @@ import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
-import org.reactivestreams.Publisher;
 
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.annotations.Merge;
+import mutiny.zero.flow.adapters.AdaptersToFlow;
 
 @ApplicationScoped
 public class BeanWithProcessorsManipulatingMessages extends SpiedBeanHelper {
@@ -51,11 +52,11 @@ public class BeanWithProcessorsManipulatingMessages extends SpiedBeanHelper {
 
     @Outgoing(MANUAL_ACKNOWLEDGMENT_CS)
     public Publisher<Message<String>> sourceToManualAck() {
-        return ReactiveStreams.of("a", "b", "c", "d", "e")
+        return AdaptersToFlow.publisher(ReactiveStreams.of("a", "b", "c", "d", "e")
                 .map(payload -> Message.of(payload, () -> CompletableFuture.runAsync(() -> {
                     nap();
                     acknowledged(MANUAL_ACKNOWLEDGMENT_CS, payload);
-                }))).buildRs();
+                }))).buildRs());
     }
 
     @Incoming(MANUAL_ACKNOWLEDGMENT_UNI)
@@ -69,11 +70,11 @@ public class BeanWithProcessorsManipulatingMessages extends SpiedBeanHelper {
 
     @Outgoing(MANUAL_ACKNOWLEDGMENT_UNI)
     public Publisher<Message<String>> sourceToManualAckUni() {
-        return ReactiveStreams.of("a", "b", "c", "d", "e")
+        return AdaptersToFlow.publisher(ReactiveStreams.of("a", "b", "c", "d", "e")
                 .map(payload -> Message.of(payload, () -> CompletableFuture.runAsync(() -> {
                     nap();
                     acknowledged(MANUAL_ACKNOWLEDGMENT_UNI, payload);
-                }))).buildRs();
+                }))).buildRs());
     }
 
     @Incoming(NO_ACKNOWLEDGMENT)

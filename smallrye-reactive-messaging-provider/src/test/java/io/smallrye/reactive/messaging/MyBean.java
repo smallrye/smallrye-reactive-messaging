@@ -2,6 +2,8 @@ package io.smallrye.reactive.messaging;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Flow;
+import java.util.concurrent.Flow.Publisher;
 
 import javax.enterprise.context.ApplicationScoped;
 
@@ -10,10 +12,9 @@ import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
-import org.reactivestreams.Publisher;
-import org.reactivestreams.Subscriber;
 
 import io.smallrye.mutiny.Multi;
+import mutiny.zero.flow.adapters.AdaptersToFlow;
 
 @ApplicationScoped
 public class MyBean {
@@ -41,7 +42,8 @@ public class MyBean {
     }
 
     @Incoming("my-output")
-    Subscriber<Message<String>> output() {
-        return ReactiveStreams.<Message<String>> builder().forEach(s -> COLLECTOR.add(s.getPayload())).build();
+    Flow.Subscriber<Message<String>> output() {
+        return AdaptersToFlow
+                .subscriber(ReactiveStreams.<Message<String>> builder().forEach(s -> COLLECTOR.add(s.getPayload())).build());
     }
 }

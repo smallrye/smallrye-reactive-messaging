@@ -4,11 +4,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 import java.util.List;
+import java.util.concurrent.Flow.Publisher;
 import java.util.stream.Collectors;
 
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.junit.jupiter.api.Test;
-import org.reactivestreams.Publisher;
 
 import io.smallrye.reactive.messaging.PublisherShapeTest;
 import io.smallrye.reactive.messaging.WeldTestBaseWithoutTails;

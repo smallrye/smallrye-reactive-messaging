@@ -19,6 +19,7 @@
 package org.eclipse.microprofile.reactive.messaging;
 
 import java.lang.annotation.*;
+import java.util.concurrent.Flow;
 
 import org.eclipse.microprofile.reactive.streams.operators.ProcessorBuilder;
 import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
@@ -32,8 +33,8 @@ import io.smallrye.reactive.messaging.annotations.Incomings;
  * Methods annotated with this annotation must have one of the following shapes:
  * </p>
  * <ul>
- * <li>Take zero parameters, and return a {@link SubscriberBuilder} or a {@link org.reactivestreams.Subscriber}.</li>
- * <li>Take zero parameters, and return a {@link ProcessorBuilder} or a {@link org.reactivestreams.Processor}.</li>
+ * <li>Take zero parameters, and return a {@link SubscriberBuilder} or a {@link Flow.Subscriber}.</li>
+ * <li>Take zero parameters, and return a {@link ProcessorBuilder} or a {@link Flow.Processor}.</li>
  * <li>Accept a single parameter, and return a {@link java.util.concurrent.CompletionStage}.</li>
  * <li>Accept a single parameter, and return {@code void}.</li>
  * <li>Accept a single parameter, and return <em>any</em> type.</li>

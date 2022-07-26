@@ -1,5 +1,8 @@
 package io.smallrye.reactive.messaging.ack;
 
+import java.util.concurrent.Flow.Publisher;
+import java.util.concurrent.Flow.Subscriber;
+
 import javax.enterprise.context.ApplicationScoped;
 
 import org.eclipse.microprofile.reactive.messaging.Acknowledgment;
@@ -7,8 +10,8 @@ import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
-import org.reactivestreams.Publisher;
-import org.reactivestreams.Subscriber;
+
+import mutiny.zero.flow.adapters.AdaptersToFlow;
 
 @ApplicationScoped
 public class SubscriberBeanWithMethodsReturningSubscribers extends SpiedBeanHelper {
@@ -27,13 +30,13 @@ public class SubscriberBeanWithMethodsReturningSubscribers extends SpiedBeanHelp
     @Incoming(MANUAL_ACKNOWLEDGMENT_MESSAGE)
     @Acknowledgment(Acknowledgment.Strategy.MANUAL)
     public Subscriber<Message<String>> subWithAckWithMessage() {
-        return ReactiveStreams.<Message<String>> builder()
+        return AdaptersToFlow.subscriber(ReactiveStreams.<Message<String>> builder()
                 .flatMapCompletionStage(m -> m.ack().thenApply(x -> m))
                 .forEach(m -> {
                     processed(MANUAL_ACKNOWLEDGMENT_MESSAGE, m.getPayload());
                     microNap();
                 })
-                .build();
+                .build());
     }
 
     @Outgoing(MANUAL_ACKNOWLEDGMENT_MESSAGE)
@@ -44,12 +47,12 @@ public class SubscriberBeanWithMethodsReturningSubscribers extends SpiedBeanHelp
     @Incoming(NO_ACKNOWLEDGMENT_MESSAGE)
     @Acknowledgment(Acknowledgment.Strategy.NONE)
     public Subscriber<Message<String>> subWithNoAckWithMessage() {
-        return ReactiveStreams.<Message<String>> builder()
+        return AdaptersToFlow.subscriber(ReactiveStreams.<Message<String>> builder()
                 .forEach(m -> {
                     processed(NO_ACKNOWLEDGMENT_MESSAGE, m.getPayload());
                     microNap();
                 })
-                .build();
+                .build());
     }
 
     @Outgoing(NO_ACKNOWLEDGMENT_MESSAGE)
@@ -60,12 +63,12 @@ public class SubscriberBeanWithMethodsReturningSubscribers extends SpiedBeanHelp
     @Incoming(NO_ACKNOWLEDGMENT_PAYLOAD)
     @Acknowledgment(Acknowledgment.Strategy.NONE)
     public Subscriber<String> subWithNoAckWithPayload() {
-        return ReactiveStreams.<String> builder()
+        return AdaptersToFlow.subscriber(ReactiveStreams.<String> builder()
                 .forEach(m -> {
                     processed(NO_ACKNOWLEDGMENT_PAYLOAD, m);
                     microNap();
                 })
-                .build();
+                .build());
     }
 
     @Outgoing(NO_ACKNOWLEDGMENT_PAYLOAD)
@@ -76,12 +79,12 @@ public class SubscriberBeanWithMethodsReturningSubscribers extends SpiedBeanHelp
     @Incoming(PRE_PROCESSING_ACK_MESSAGE)
     @Acknowledgment(Acknowledgment.Strategy.PRE_PROCESSING)
     public Subscriber<String> subWithPreAckWithMessage() {
-        return ReactiveStreams.<String> builder()
+        return AdaptersToFlow.subscriber(ReactiveStreams.<String> builder()
                 .forEach(m -> {
                     microNap();
                     processed(PRE_PROCESSING_ACK_MESSAGE, m);
                 })
-                .build();
+                .build());
     }
 
     @Outgoing(PRE_PROCESSING_ACK_MESSAGE)
@@ -92,12 +95,12 @@ public class SubscriberBeanWithMethodsReturningSubscribers extends SpiedBeanHelp
     @Incoming(PRE_PROCESSING_ACK_PAYLOAD)
     @Acknowledgment(Acknowledgment.Strategy.PRE_PROCESSING)
     public Subscriber<String> subWithPreAckWithPayload() {
-        return ReactiveStreams.<String> builder()
+        return AdaptersToFlow.subscriber(ReactiveStreams.<String> builder()
                 .forEach(m -> {
                     microNap();
                     processed(PRE_PROCESSING_ACK_PAYLOAD, m);
                 })
-                .build();
+                .build());
     }
 
     @Outgoing(PRE_PROCESSING_ACK_PAYLOAD)
@@ -107,12 +110,12 @@ public class SubscriberBeanWithMethodsReturningSubscribers extends SpiedBeanHelp
 
     @Incoming(DEFAULT_PROCESSING_ACK_PAYLOAD)
     public Subscriber<String> subWithDefaultAckWithPayload() {
-        return ReactiveStreams.<String> builder()
+        return AdaptersToFlow.subscriber(ReactiveStreams.<String> builder()
                 .forEach(m -> {
                     processed(DEFAULT_PROCESSING_ACK_PAYLOAD, m);
                     microNap();
                 })
-                .build();
+                .build());
     }
 
     @Outgoing(DEFAULT_PROCESSING_ACK_PAYLOAD)
@@ -122,13 +125,13 @@ public class SubscriberBeanWithMethodsReturningSubscribers extends SpiedBeanHelp
 
     @Incoming(DEFAULT_PROCESSING_ACK_MESSAGE)
     public Subscriber<Message<String>> subWithDefaultAckWithMessage() {
-        return ReactiveStreams.<Message<String>> builder()
+        return AdaptersToFlow.subscriber(ReactiveStreams.<Message<String>> builder()
                 .forEach(m -> {
                     m.ack().thenAccept(x -> {
                         processed(DEFAULT_PROCESSING_ACK_MESSAGE, m.getPayload());
                     });
                 })
-                .build();
+                .build());
     }
 
     @Outgoing(DEFAULT_PROCESSING_ACK_MESSAGE)

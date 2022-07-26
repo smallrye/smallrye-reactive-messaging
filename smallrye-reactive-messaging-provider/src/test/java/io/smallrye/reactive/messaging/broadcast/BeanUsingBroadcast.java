@@ -2,15 +2,16 @@ package io.smallrye.reactive.messaging.broadcast;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Flow;
 
 import javax.enterprise.context.ApplicationScoped;
 
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
-import org.reactivestreams.Publisher;
 
 import io.smallrye.reactive.messaging.annotations.Broadcast;
+import mutiny.zero.flow.adapters.AdaptersToFlow;
 
 @ApplicationScoped
 public class BeanUsingBroadcast {
@@ -24,8 +25,8 @@ public class BeanUsingBroadcast {
     }
 
     @Outgoing("X")
-    public Publisher<String> x() {
-        return ReactiveStreams.of("a", "b", "c", "d").buildRs();
+    public Flow.Publisher<String> x() {
+        return AdaptersToFlow.publisher(ReactiveStreams.of("a", "b", "c", "d").buildRs());
     }
 
     @Outgoing("Y")

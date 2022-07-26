@@ -56,6 +56,7 @@ import io.smallrye.reactive.messaging.kafka.api.OutgoingKafkaRecordMetadata;
 import io.smallrye.reactive.messaging.kafka.health.KafkaSinkHealth;
 import io.smallrye.reactive.messaging.kafka.impl.ce.KafkaCloudEventHelper;
 import io.smallrye.reactive.messaging.kafka.tracing.HeaderInjectAdapter;
+import mutiny.zero.flow.adapters.AdaptersToReactiveStreams;
 
 public class KafkaSink {
 
@@ -132,7 +133,7 @@ public class KafkaSink {
         processor = new KafkaSenderProcessor(requests, waitForWriteCompletion,
                 writeMessageToKafka());
         subscriber = ReactiveStreams.<Message<?>> builder()
-                .via(processor)
+                .via(AdaptersToReactiveStreams.processor(processor))
                 .onError(f -> {
                     log.unableToDispatch(f);
                     reportFailure(f);

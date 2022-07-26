@@ -6,6 +6,8 @@ import static org.awaitility.Awaitility.await;
 import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.Flow;
+import java.util.concurrent.Flow.Subscriber;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.enterprise.context.ApplicationScoped;
@@ -13,8 +15,6 @@ import javax.enterprise.context.ApplicationScoped;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.junit.jupiter.api.Test;
-import org.reactivestreams.Subscriber;
-import org.reactivestreams.Subscription;
 
 public class RequestProtocolTest extends WeldTestBaseWithoutTails {
 
@@ -46,7 +46,7 @@ public class RequestProtocolTest extends WeldTestBaseWithoutTails {
     static class GeneratorApp {
 
         final AtomicInteger count = new AtomicInteger();
-        Subscription subscription;
+        Flow.Subscription subscription;
         final List<Integer> list = new CopyOnWriteArrayList<>();
 
         @Outgoing("foo")
@@ -63,7 +63,7 @@ public class RequestProtocolTest extends WeldTestBaseWithoutTails {
         Subscriber<Integer> consume() {
             return new Subscriber<Integer>() {
                 @Override
-                public void onSubscribe(Subscription s) {
+                public void onSubscribe(Flow.Subscription s) {
                     subscription = s;
                 }
 
@@ -84,7 +84,7 @@ public class RequestProtocolTest extends WeldTestBaseWithoutTails {
             };
         }
 
-        public Subscription subscription() {
+        public Flow.Subscription subscription() {
             return subscription;
         }
 

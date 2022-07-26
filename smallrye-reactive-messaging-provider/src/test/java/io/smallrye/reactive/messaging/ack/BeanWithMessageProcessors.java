@@ -5,6 +5,8 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Flow.Processor;
+import java.util.concurrent.Flow.Publisher;
 
 import javax.enterprise.context.ApplicationScoped;
 
@@ -15,10 +17,9 @@ import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.eclipse.microprofile.reactive.streams.operators.ProcessorBuilder;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
-import org.reactivestreams.Processor;
-import org.reactivestreams.Publisher;
 
 import io.smallrye.mutiny.Multi;
+import mutiny.zero.flow.adapters.AdaptersToFlow;
 
 @ApplicationScoped
 public class BeanWithMessageProcessors extends SpiedBeanHelper {
@@ -90,30 +91,30 @@ public class BeanWithMessageProcessors extends SpiedBeanHelper {
     @Acknowledgment(Acknowledgment.Strategy.MANUAL)
     @Outgoing("sink-" + MANUAL_ACKNOWLEDGMENT)
     public Processor<Message<String>, Message<String>> processorWithAck() {
-        return ReactiveStreams.<Message<String>> builder()
+        return AdaptersToFlow.processor(ReactiveStreams.<Message<String>> builder()
                 .flatMapCompletionStage(m -> m.ack().thenApply(x -> m))
                 .flatMap(m -> ReactiveStreams.of(Message.of(m.getPayload()), Message.of(m.getPayload())))
                 .peek(m -> processed(MANUAL_ACKNOWLEDGMENT, m))
-                .buildRs();
+                .buildRs());
     }
 
     @Outgoing(MANUAL_ACKNOWLEDGMENT)
     public Publisher<Message<String>> sourceToManualAck() {
-        return ReactiveStreams.of("a", "b", "c", "d", "e")
+        return AdaptersToFlow.publisher(ReactiveStreams.of("a", "b", "c", "d", "e")
                 .map(payload -> Message.of(payload, () -> CompletableFuture.runAsync(() -> {
                     nap();
                     acknowledged(MANUAL_ACKNOWLEDGMENT, payload);
-                }))).buildRs();
+                }))).buildRs());
     }
 
     @Incoming(NO_ACKNOWLEDGMENT)
     @Acknowledgment(Acknowledgment.Strategy.NONE)
     @Outgoing("sink-" + NO_ACKNOWLEDGMENT)
     public Processor<Message<String>, Message<String>> processorWithNoAck() {
-        return ReactiveStreams.<Message<String>> builder()
+        return AdaptersToFlow.processor(ReactiveStreams.<Message<String>> builder()
                 .flatMap(m -> ReactiveStreams.of(Message.of(m.getPayload()), Message.of(m.getPayload())))
                 .peek(m -> processed(NO_ACKNOWLEDGMENT, m))
-                .buildRs();
+                .buildRs());
     }
 
     @Outgoing(NO_ACKNOWLEDGMENT)
@@ -129,11 +130,11 @@ public class BeanWithMessageProcessors extends SpiedBeanHelper {
     @Incoming(DEFAULT_ACKNOWLEDGMENT)
     @Outgoing("sink-" + DEFAULT_ACKNOWLEDGMENT)
     public Processor<Message<String>, Message<String>> processorWithAutoAck() {
-        return ReactiveStreams.<Message<String>> builder()
+        return AdaptersToFlow.processor(ReactiveStreams.<Message<String>> builder()
                 .flatMap(m -> ReactiveStreams.of(Message.of(m.getPayload()), Message.of(m.getPayload())).onComplete(
                         m::ack))
                 .peek(m -> processed(DEFAULT_ACKNOWLEDGMENT, m))
-                .buildRs();
+                .buildRs());
     }
 
     @Outgoing(DEFAULT_ACKNOWLEDGMENT)
@@ -150,10 +151,10 @@ public class BeanWithMessageProcessors extends SpiedBeanHelper {
     @Acknowledgment(Acknowledgment.Strategy.PRE_PROCESSING)
     @Outgoing("sink-" + PRE_ACKNOWLEDGMENT)
     public Processor<Message<String>, Message<String>> processorWithPreAck() {
-        return ReactiveStreams.<Message<String>> builder()
+        return AdaptersToFlow.processor(ReactiveStreams.<Message<String>> builder()
                 .flatMap(m -> ReactiveStreams.of(Message.of(m.getPayload()), Message.of(m.getPayload())))
                 .peek(m -> processed(PRE_ACKNOWLEDGMENT, m))
-                .buildRs();
+                .buildRs());
     }
 
     @Outgoing(PRE_ACKNOWLEDGMENT)

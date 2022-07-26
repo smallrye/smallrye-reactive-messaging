@@ -2,10 +2,7 @@ package io.smallrye.reactive.messaging.blocking;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionStage;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.annotation.PreDestroy;
@@ -17,13 +14,13 @@ import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 import org.junit.jupiter.api.Test;
-import org.reactivestreams.Publisher;
 
 import io.reactivex.Flowable;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.WeldTestBaseWithoutTails;
 import io.smallrye.reactive.messaging.annotations.Blocking;
+import mutiny.zero.flow.adapters.AdaptersToFlow;
 
 public class InvalidBlockingPublisherShapeTest extends WeldTestBaseWithoutTails {
     @Test
@@ -36,8 +33,8 @@ public class InvalidBlockingPublisherShapeTest extends WeldTestBaseWithoutTails 
     public static class BeanReturningAPublisherOfMessages {
         @Blocking
         @Outgoing("sink")
-        public Publisher<Message<String>> create() {
-            return ReactiveStreams.of("a", "b", "c").map(Message::of).buildRs();
+        public Flow.Publisher<Message<String>> create() {
+            return AdaptersToFlow.publisher(ReactiveStreams.of("a", "b", "c").map(Message::of).buildRs());
         }
     }
 
@@ -52,7 +49,8 @@ public class InvalidBlockingPublisherShapeTest extends WeldTestBaseWithoutTails 
         @Blocking
         @Outgoing("sink")
         public Multi<Message<String>> publisher() {
-            return Multi.createFrom().range(1, 11).flatMap(i -> Flowable.just(i, i)).map(i -> Integer.toString(i))
+            return Multi.createFrom().range(1, 11).flatMap(i -> AdaptersToFlow.publisher(Flowable.just(i, i)))
+                    .map(i -> Integer.toString(i))
                     .map(Message::of);
         }
     }
@@ -68,7 +66,8 @@ public class InvalidBlockingPublisherShapeTest extends WeldTestBaseWithoutTails 
         @Blocking
         @Outgoing("sink")
         public Multi<String> publisher() {
-            return Multi.createFrom().range(1, 11).flatMap(i -> Flowable.just(i, i)).map(i -> Integer.toString(i));
+            return Multi.createFrom().range(1, 11).flatMap(i -> AdaptersToFlow.publisher(Flowable.just(i, i)))
+                    .map(i -> Integer.toString(i));
         }
     }
 
@@ -82,8 +81,9 @@ public class InvalidBlockingPublisherShapeTest extends WeldTestBaseWithoutTails 
     public static class BeanProducingPayloadAsPublisher {
         @Blocking
         @Outgoing("sink")
-        public Publisher<String> publisher() {
-            return Flowable.range(1, 10).flatMap(i -> Flowable.just(i, i)).map(i -> Integer.toString(i));
+        public Flow.Publisher<String> publisher() {
+            return AdaptersToFlow
+                    .publisher(Flowable.range(1, 10).flatMap(i -> Flowable.just(i, i)).map(i -> Integer.toString(i)));
         }
     }
 
