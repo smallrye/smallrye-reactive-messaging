@@ -23,6 +23,7 @@ import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.WeldTestBaseWithoutTails;
 import io.smallrye.reactive.messaging.annotations.Blocking;
+import mutiny.zero.flow.adapters.AdaptersToFlow;
 
 public class InvalidBlockingProcessorShapeTest extends WeldTestBaseWithoutTails {
     @Test
@@ -300,10 +301,10 @@ public class InvalidBlockingProcessorShapeTest extends WeldTestBaseWithoutTails 
         @Outgoing("sink")
         public Multi<String> process(Integer payload) {
             return Multi.createFrom().publisher(
-                    ReactiveStreams.of(payload)
+                    AdaptersToFlow.publisher(ReactiveStreams.of(payload)
                             .map(i -> i + 1)
                             .flatMapRsPublisher(i -> Flowable.just(i, i))
-                            .map(i -> Integer.toString(i)).buildRs());
+                            .map(i -> Integer.toString(i)).buildRs()));
         }
     }
 
@@ -320,12 +321,12 @@ public class InvalidBlockingProcessorShapeTest extends WeldTestBaseWithoutTails 
         @Outgoing("sink")
         public Multi<Message<String>> process(Message<Integer> message) {
             return Multi.createFrom().publisher(
-                    ReactiveStreams.of(message)
+                    AdaptersToFlow.publisher(ReactiveStreams.of(message)
                             .map(Message::getPayload)
                             .map(i -> i + 1)
                             .flatMapRsPublisher(i -> Flowable.just(i, i))
                             .map(i -> Integer.toString(i))
-                            .map(Message::of).buildRs());
+                            .map(Message::of).buildRs()));
         }
     }
 }

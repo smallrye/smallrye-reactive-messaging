@@ -5,18 +5,19 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 import java.util.*;
+import java.util.concurrent.Flow;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 import org.eclipse.microprofile.reactive.messaging.Message;
-import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.jboss.weld.environment.se.Weld;
 import org.jboss.weld.environment.se.WeldContainer;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
+import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 
 @Disabled("does not work on CI - must be investigated")
@@ -47,8 +48,8 @@ public class SecureMqttSourceTest extends SecureMqttTestBase {
                 null);
 
         List<MqttMessage<?>> messages = new ArrayList<>();
-        PublisherBuilder<MqttMessage<?>> stream = source.getSource();
-        stream.forEach(messages::add).run();
+        Flow.Publisher<? extends MqttMessage<?>> stream = source.getSource();
+        Multi.createFrom().publisher(stream).subscribe().with(messages::add);
         awaitUntilReady(source);
         pause();
         AtomicInteger counter = new AtomicInteger();

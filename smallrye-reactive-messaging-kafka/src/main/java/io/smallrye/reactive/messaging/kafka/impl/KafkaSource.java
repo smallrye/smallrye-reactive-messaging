@@ -168,7 +168,7 @@ public class KafkaSource<K, V> {
                 IncomingKafkaRecord<K, V> record = new IncomingKafkaRecord<>(rec, channel, index, commitHandler,
                         failureHandler, isCloudEventEnabled, isTracingEnabled);
                 return commitHandler.received(record);
-            }).concatenate(false);
+            }).concatenate();
 
             if (config.getTracingEnabled()) {
                 incomingMulti = incomingMulti.onItem().invoke(record -> incomingTrace(record, false));
@@ -198,7 +198,7 @@ public class KafkaSource<K, V> {
                 IncomingKafkaRecordBatch<K, V> batch = new IncomingKafkaRecordBatch<>(rec, channel, index,
                         commitHandler, failureHandler, isCloudEventEnabled, isTracingEnabled);
                 return receiveBatchRecord(batch);
-            }).concatenate(false);
+            }).concatenate();
 
             if (config.getTracingEnabled()) {
                 incomingMulti = incomingMulti.onItem().invoke(this::incomingTrace);

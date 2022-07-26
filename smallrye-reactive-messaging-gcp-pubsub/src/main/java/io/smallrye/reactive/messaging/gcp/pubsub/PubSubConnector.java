@@ -18,11 +18,6 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.spi.Connector;
 import org.eclipse.microprofile.reactive.messaging.spi.ConnectorFactory;
-import org.eclipse.microprofile.reactive.messaging.spi.IncomingConnectorFactory;
-import org.eclipse.microprofile.reactive.messaging.spi.OutgoingConnectorFactory;
-import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
-import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
-import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 
 import com.google.api.gax.rpc.AlreadyExistsException;
 import com.google.api.gax.rpc.NotFoundException;
@@ -35,10 +30,14 @@ import com.google.pubsub.v1.PushConfig;
 import com.google.pubsub.v1.TopicName;
 
 import io.smallrye.mutiny.Multi;
+import io.smallrye.mutiny.Uni;
+import io.smallrye.reactive.messaging.connector.InboundConnector;
+import io.smallrye.reactive.messaging.connector.OutboundConnector;
+import io.smallrye.reactive.messaging.providers.helpers.MultiUtils;
 
 @ApplicationScoped
 @Connector(PubSubConnector.CONNECTOR_NAME)
-public class PubSubConnector implements IncomingConnectorFactory, OutgoingConnectorFactory {
+public class PubSubConnector implements InboundConnector, OutboundConnector {
 
     static final String CONNECTOR_NAME = "smallrye-gcp-pubsub";
 
@@ -80,36 +79,34 @@ public class PubSubConnector implements IncomingConnectorFactory, OutgoingConnec
     }
 
     @Override
-    public PublisherBuilder<? extends Message<?>> getPublisherBuilder(final Config config) {
+    public Flow.Publisher<? extends Message<?>> getPublisher(final Config config) {
         final PubSubConfig pubSubConfig = new PubSubConfig(getProjectId(config), getTopic(config), getCredentialPath(config),
                 getSubscription(config), mockPubSubTopics, host.orElse(null), port.orElse(null));
 
-        return ReactiveStreams.fromCompletionStage(CompletableFuture.supplyAsync(() -> {
+        return Multi.createFrom().uni(Uni.createFrom().completionStage(CompletableFuture.supplyAsync(() -> {
             if (isUseAdminClient(config)) {
                 log.adminClientEnabled();
                 createTopic(pubSubConfig);
                 createSubscription(pubSubConfig);
             }
             return pubSubConfig;
-        }, executorService))
-                .flatMapRsPublisher(
-                        cfg -> Multi.createFrom().emitter(new PubSubSource(cfg, pubSubManager)));
+        }, executorService))).onItem()
+                .transformToMultiAndConcatenate(cfg -> Multi.createFrom().emitter(new PubSubSource(cfg, pubSubManager)));
     }
 
     @Override
-    public SubscriberBuilder<? extends Message<?>, Void> getSubscriberBuilder(final Config config) {
+    public Flow.Subscriber<? extends Message<?>> getSubscriber(final Config config) {
         final PubSubConfig pubSubConfig = new PubSubConfig(getProjectId(config), getTopic(config), getCredentialPath(config),
                 mockPubSubTopics, host.orElse(null), port.orElse(null));
 
-        return ReactiveStreams.<Message<?>> builder()
-                .flatMapCompletionStage(message -> CompletableFuture.supplyAsync(() -> {
+        return MultiUtils.via(m -> m.onItem()
+                .transformToUniAndConcatenate(message -> Uni.createFrom().completionStage(CompletableFuture.supplyAsync(() -> {
                     if (isUseAdminClient(config)) {
                         log.adminClientEnabled();
                         createTopic(pubSubConfig);
                     }
                     return await(pubSubManager.publisher(pubSubConfig).publish(buildMessage(message)));
-                }, executorService))
-                .ignore();
+                }, executorService))));
     }
 
     private String getProjectId(Config config) {

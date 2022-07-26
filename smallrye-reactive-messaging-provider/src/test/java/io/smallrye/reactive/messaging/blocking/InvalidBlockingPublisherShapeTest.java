@@ -24,6 +24,7 @@ import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.WeldTestBaseWithoutTails;
 import io.smallrye.reactive.messaging.annotations.Blocking;
+import mutiny.zero.flow.adapters.AdaptersToFlow;
 
 public class InvalidBlockingPublisherShapeTest extends WeldTestBaseWithoutTails {
     @Test
@@ -52,7 +53,8 @@ public class InvalidBlockingPublisherShapeTest extends WeldTestBaseWithoutTails 
         @Blocking
         @Outgoing("sink")
         public Multi<Message<String>> publisher() {
-            return Multi.createFrom().range(1, 11).flatMap(i -> Flowable.just(i, i)).map(i -> Integer.toString(i))
+            return Multi.createFrom().range(1, 11).flatMap(i -> AdaptersToFlow.publisher(Flowable.just(i, i)))
+                    .map(i -> Integer.toString(i))
                     .map(Message::of);
         }
     }
@@ -68,7 +70,8 @@ public class InvalidBlockingPublisherShapeTest extends WeldTestBaseWithoutTails 
         @Blocking
         @Outgoing("sink")
         public Multi<String> publisher() {
-            return Multi.createFrom().range(1, 11).flatMap(i -> Flowable.just(i, i)).map(i -> Integer.toString(i));
+            return Multi.createFrom().range(1, 11).flatMap(i -> AdaptersToFlow.publisher(Flowable.just(i, i)))
+                    .map(i -> Integer.toString(i));
         }
     }
 
