@@ -10,6 +10,7 @@ import static java.time.Duration.ofSeconds;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.Flow;
 import java.util.stream.Collectors;
 
 import javax.annotation.PostConstruct;
@@ -30,7 +31,6 @@ import org.eclipse.microprofile.reactive.messaging.spi.OutgoingConnectorFactory;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
-import org.reactivestreams.Subscription;
 
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.impl.CredentialsProvider;
@@ -59,6 +59,7 @@ import io.vertx.mutiny.rabbitmq.RabbitMQPublisher;
 import io.vertx.rabbitmq.QueueOptions;
 import io.vertx.rabbitmq.RabbitMQOptions;
 import io.vertx.rabbitmq.RabbitMQPublisherOptions;
+import mutiny.zero.flow.adapters.AdaptersToReactiveStreams;
 
 @ApplicationScoped
 @Connector(RabbitMQConnector.CONNECTOR_NAME)
@@ -155,7 +156,7 @@ public class RabbitMQConnector implements IncomingConnectorFactory, OutgoingConn
     private final Map<String, ChannelStatus> outgoingChannelStatus = new ConcurrentHashMap<>();
 
     // The list of RabbitMQMessageSender's currently managed by this connector
-    private final List<Subscription> subscriptions = new CopyOnWriteArrayList<>();
+    private final List<Flow.Subscription> subscriptions = new CopyOnWriteArrayList<>();
 
     @Inject
     ExecutionHolder executionHolder;
@@ -250,7 +251,7 @@ public class RabbitMQConnector implements IncomingConnectorFactory, OutgoingConn
             multi = multi.broadcast().toAllSubscribers();
         }
 
-        return ReactiveStreams.fromPublisher(multi.plug(ContextOperator::apply));
+        return ReactiveStreams.fromPublisher(AdaptersToReactiveStreams.publisher(multi.plug(ContextOperator::apply)));
     }
 
     private Uni<RabbitMQConsumer> createConsumer(RabbitMQConnectorIncomingConfiguration ic, RabbitMQClient client) {
@@ -364,7 +365,7 @@ public class RabbitMQConnector implements IncomingConnectorFactory, OutgoingConn
 
         // Return a SubscriberBuilder
         return ReactiveStreams.<Message<?>> builder()
-                .via(processor)
+                .via(AdaptersToReactiveStreams.processor(processor))
                 .onError(t -> {
                     log.error(oc.getChannel(), t);
                     outgoingChannelStatus.put(oc.getChannel(), ChannelStatus.NOT_CONNECTED);
@@ -407,7 +408,7 @@ public class RabbitMQConnector implements IncomingConnectorFactory, OutgoingConn
      */
     public void terminate(
             @SuppressWarnings("unused") @Observes(notifyObserver = Reception.IF_EXISTS) @Priority(50) @BeforeDestroyed(ApplicationScoped.class) Object ignored) {
-        subscriptions.forEach(Subscription::cancel);
+        subscriptions.forEach(Flow.Subscription::cancel);
         clients.forEach(RabbitMQClient::stopAndForget);
         clients.clear();
     }

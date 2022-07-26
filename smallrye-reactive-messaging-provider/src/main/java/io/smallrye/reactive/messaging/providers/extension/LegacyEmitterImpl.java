@@ -2,8 +2,9 @@ package io.smallrye.reactive.messaging.providers.extension;
 
 import static io.smallrye.reactive.messaging.providers.i18n.ProviderExceptions.ex;
 
+import java.util.concurrent.Flow.Publisher;
+
 import org.eclipse.microprofile.reactive.messaging.Message;
-import org.reactivestreams.Publisher;
 
 import io.smallrye.reactive.messaging.MessagePublisherProvider;
 import io.smallrye.reactive.messaging.annotations.Emitter;

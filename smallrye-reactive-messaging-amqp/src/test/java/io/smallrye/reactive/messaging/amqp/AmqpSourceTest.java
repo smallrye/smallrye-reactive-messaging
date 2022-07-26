@@ -7,6 +7,8 @@ import static org.eclipse.microprofile.reactive.messaging.spi.ConnectorFactory.C
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Flow;
+import java.util.concurrent.Flow.Subscriber;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -27,15 +29,14 @@ import org.jboss.weld.environment.se.WeldContainer;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
-import org.reactivestreams.Publisher;
-import org.reactivestreams.Subscriber;
-import org.reactivestreams.Subscription;
 
 import io.smallrye.common.constraint.NotNull;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
+import mutiny.zero.flow.adapters.AdaptersToFlow;
+import mutiny.zero.flow.adapters.AdaptersToReactiveStreams;
 
 public class AmqpSourceTest extends AmqpTestBase {
 
@@ -93,7 +94,7 @@ public class AmqpSourceTest extends AmqpTestBase {
 
         List<Message<Integer>> messages = new ArrayList<>();
 
-        builder.buildRs().subscribe(createSubscriber(messages, new AtomicBoolean()));
+        builder.buildRs().subscribe(AdaptersToReactiveStreams.subscriber(createSubscriber(messages, new AtomicBoolean())));
 
         await().atMost(5, TimeUnit.SECONDS).until(() -> messages.size() >= 10);
         assertThat(messages.stream()
@@ -123,10 +124,10 @@ public class AmqpSourceTest extends AmqpTestBase {
     private <T, O> Subscriber<T> createSubscriber(List<Message<O>> messages, AtomicBoolean opened) {
         //noinspection ReactiveStreamsSubscriberImplementation
         return new Subscriber<T>() {
-            Subscription sub;
+            Flow.Subscription sub;
 
             @Override
-            public void onSubscribe(Subscription s) {
+            public void onSubscribe(Flow.Subscription s) {
                 this.sub = s;
                 sub.request(5);
                 opened.set(true);
@@ -173,7 +174,7 @@ public class AmqpSourceTest extends AmqpTestBase {
         provider = new AmqpConnector();
         provider.setup(executionHolder);
         PublisherBuilder<? extends Message<?>> builder = provider.getPublisherBuilder(new MapBasedConfig(config));
-        Publisher<? extends Message<?>> rs = builder.buildRs();
+        Flow.Publisher<? extends Message<?>> rs = AdaptersToFlow.publisher(builder.buildRs());
 
         List<Message<Integer>> messages1 = new ArrayList<>();
         List<Message<Integer>> messages2 = new ArrayList<>();
@@ -288,7 +289,7 @@ public class AmqpSourceTest extends AmqpTestBase {
         List<Message<byte[]>> messages = new ArrayList<>();
         PublisherBuilder<? extends Message<?>> builder = provider.getPublisherBuilder(new MapBasedConfig(config));
 
-        builder.to(createSubscriber(messages, new AtomicBoolean())).run();
+        builder.to(AdaptersToReactiveStreams.subscriber(createSubscriber(messages, new AtomicBoolean()))).run();
 
         await().atMost(6, TimeUnit.SECONDS).until(() -> !messages.isEmpty());
 
@@ -330,7 +331,7 @@ public class AmqpSourceTest extends AmqpTestBase {
         List<Message<byte[]>> messages = new ArrayList<>();
         PublisherBuilder<? extends Message<?>> builder = provider.getPublisherBuilder(new MapBasedConfig(config));
 
-        builder.to(createSubscriber(messages, new AtomicBoolean())).run();
+        builder.to(AdaptersToReactiveStreams.subscriber(createSubscriber(messages, new AtomicBoolean()))).run();
 
         await().atMost(6, TimeUnit.SECONDS).until(() -> !messages.isEmpty());
 
@@ -378,7 +379,7 @@ public class AmqpSourceTest extends AmqpTestBase {
         List<Message<JsonObject>> messages = new ArrayList<>();
         PublisherBuilder<? extends Message<?>> builder = provider.getPublisherBuilder(new MapBasedConfig(config));
 
-        builder.to(createSubscriber(messages, new AtomicBoolean())).run();
+        builder.to(AdaptersToReactiveStreams.subscriber(createSubscriber(messages, new AtomicBoolean()))).run();
 
         await().atMost(6, TimeUnit.SECONDS).until(() -> !messages.isEmpty());
 
@@ -426,7 +427,7 @@ public class AmqpSourceTest extends AmqpTestBase {
         List<Message<JsonArray>> messages = new ArrayList<>();
         PublisherBuilder<? extends Message<?>> builder = provider.getPublisherBuilder(new MapBasedConfig(config));
 
-        builder.to(createSubscriber(messages, new AtomicBoolean())).run();
+        builder.to(AdaptersToReactiveStreams.subscriber(createSubscriber(messages, new AtomicBoolean()))).run();
 
         await().atMost(6, TimeUnit.SECONDS).until(() -> !messages.isEmpty());
 
@@ -473,7 +474,7 @@ public class AmqpSourceTest extends AmqpTestBase {
         List<Message<List<String>>> messages = new ArrayList<>();
         PublisherBuilder<? extends Message<?>> builder = provider.getPublisherBuilder(new MapBasedConfig(config));
 
-        builder.to(createSubscriber(messages, new AtomicBoolean())).run();
+        builder.to(AdaptersToReactiveStreams.subscriber(createSubscriber(messages, new AtomicBoolean()))).run();
 
         await().atMost(6, TimeUnit.SECONDS).until(() -> !messages.isEmpty());
 
@@ -520,7 +521,7 @@ public class AmqpSourceTest extends AmqpTestBase {
         List<Message<List<String>>> messages = new ArrayList<>();
         PublisherBuilder<? extends Message<?>> builder = provider.getPublisherBuilder(new MapBasedConfig(config));
 
-        builder.to(createSubscriber(messages, new AtomicBoolean())).run();
+        builder.to(AdaptersToReactiveStreams.subscriber(createSubscriber(messages, new AtomicBoolean()))).run();
 
         await().atMost(6, TimeUnit.SECONDS).until(() -> !messages.isEmpty());
 

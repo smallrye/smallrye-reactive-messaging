@@ -25,6 +25,7 @@ import org.reactivestreams.Subscriber;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 import io.vertx.core.Vertx;
+import mutiny.zero.flow.adapters.AdaptersToFlow;
 
 public class AmqpCreditTest extends AmqpTestBase {
 
@@ -56,7 +57,7 @@ public class AmqpCreditTest extends AmqpTestBase {
         //noinspection unchecked
         Multi.createFrom().range(0, msgCount)
                 .map(Message::of)
-                .subscribe((Subscriber<? super Message<Integer>>) sink.build());
+                .subscribe(AdaptersToFlow.subscriber((Subscriber<? super Message<Integer>>) sink.build()));
 
         assertThat(msgsReceived.await(20, TimeUnit.SECONDS))
                 .withFailMessage("Sent %s msgs but %s remain outstanding", msgCount, msgsReceived.getCount()).isTrue();

@@ -15,6 +15,7 @@ import io.smallrye.reactive.messaging.mqtt.session.RequestedQoS;
 import io.smallrye.reactive.messaging.providers.locals.ContextOperator;
 import io.vertx.mutiny.core.Vertx;
 import io.vertx.mutiny.mqtt.messages.MqttPublishMessage;
+import mutiny.zero.flow.adapters.AdaptersToReactiveStreams;
 
 public class MqttSource {
 
@@ -47,7 +48,7 @@ public class MqttSource {
                 .onComplete(outcome -> log.info("Subscription outcome: " + outcome))
                 .onSuccess(ignore -> ready.set(true));
 
-        this.source = ReactiveStreams.fromPublisher(
+        this.source = ReactiveStreams.fromPublisher(AdaptersToReactiveStreams.publisher(
                 holder.stream()
                         .select().where(m -> matches(topic, m))
                         .onItem().transform(m -> new ReceivingMqttMessage(m, onNack))
@@ -68,7 +69,7 @@ public class MqttSource {
                             else
                                 return Uni.createFrom().voidItem();
                         }).plug(ContextOperator::apply)
-                        .onFailure().invoke(log::unableToConnectToBroker));
+                        .onFailure().invoke(log::unableToConnectToBroker)));
     }
 
     /**
