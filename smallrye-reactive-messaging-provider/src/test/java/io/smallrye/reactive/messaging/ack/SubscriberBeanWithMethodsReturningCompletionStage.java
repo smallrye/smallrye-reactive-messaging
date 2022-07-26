@@ -2,6 +2,7 @@ package io.smallrye.reactive.messaging.ack;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.Flow;
 
 import jakarta.enterprise.context.ApplicationScoped;
 
@@ -9,7 +10,6 @@ import org.eclipse.microprofile.reactive.messaging.Acknowledgment;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
-import org.reactivestreams.Publisher;
 
 @ApplicationScoped
 public class SubscriberBeanWithMethodsReturningCompletionStage extends SpiedBeanHelper {
@@ -36,7 +36,7 @@ public class SubscriberBeanWithMethodsReturningCompletionStage extends SpiedBean
     }
 
     @Outgoing(MANUAL_ACKNOWLEDGMENT)
-    public Publisher<Message<String>> sourceToManualAck() {
+    public Flow.Publisher<Message<String>> sourceToManualAck() {
         return source(MANUAL_ACKNOWLEDGMENT);
     }
 
@@ -48,7 +48,7 @@ public class SubscriberBeanWithMethodsReturningCompletionStage extends SpiedBean
     }
 
     @Outgoing(NO_ACKNOWLEDGMENT_MESSAGE)
-    public Publisher<Message<String>> sourceToNoAckMessage() {
+    public Flow.Publisher<Message<String>> sourceToNoAckMessage() {
         return source(NO_ACKNOWLEDGMENT_MESSAGE);
     }
 
@@ -60,7 +60,7 @@ public class SubscriberBeanWithMethodsReturningCompletionStage extends SpiedBean
     }
 
     @Outgoing(NO_ACKNOWLEDGMENT_PAYLOAD)
-    public Publisher<Message<String>> sourceToNoAckPayload() {
+    public Flow.Publisher<Message<String>> sourceToNoAckPayload() {
         return source(NO_ACKNOWLEDGMENT_PAYLOAD);
     }
 
@@ -71,7 +71,7 @@ public class SubscriberBeanWithMethodsReturningCompletionStage extends SpiedBean
     }
 
     @Outgoing(PRE_PROCESSING_ACKNOWLEDGMENT_MESSAGE)
-    public Publisher<Message<String>> sourceToPrePocessingMessage() {
+    public Flow.Publisher<Message<String>> sourceToPrePocessingMessage() {
         return source(PRE_PROCESSING_ACKNOWLEDGMENT_MESSAGE);
     }
 
@@ -82,7 +82,7 @@ public class SubscriberBeanWithMethodsReturningCompletionStage extends SpiedBean
     }
 
     @Outgoing(PRE_PROCESSING_ACKNOWLEDGMENT_PAYLOAD)
-    public Publisher<Message<String>> sourceToPrePocessingPayload() {
+    public Flow.Publisher<Message<String>> sourceToPrePocessingPayload() {
         return source(PRE_PROCESSING_ACKNOWLEDGMENT_PAYLOAD);
     }
 
@@ -93,7 +93,7 @@ public class SubscriberBeanWithMethodsReturningCompletionStage extends SpiedBean
     }
 
     @Outgoing(POST_PROCESSING_ACKNOWLEDGMENT_MESSAGE)
-    public Publisher<Message<String>> sourceToPostPocessingMessage() {
+    public Flow.Publisher<Message<String>> sourceToPostPocessingMessage() {
         return source(POST_PROCESSING_ACKNOWLEDGMENT_MESSAGE);
     }
 
@@ -104,7 +104,7 @@ public class SubscriberBeanWithMethodsReturningCompletionStage extends SpiedBean
     }
 
     @Outgoing(POST_PROCESSING_ACKNOWLEDGMENT_PAYLOAD)
-    public Publisher<Message<String>> sourceToPostPocessingPayload() {
+    public Flow.Publisher<Message<String>> sourceToPostPocessingPayload() {
         return source(POST_PROCESSING_ACKNOWLEDGMENT_PAYLOAD);
     }
 
@@ -116,7 +116,7 @@ public class SubscriberBeanWithMethodsReturningCompletionStage extends SpiedBean
     }
 
     @Outgoing(DEFAULT_PROCESSING_ACKNOWLEDGMENT_MESSAGE)
-    public Publisher<Message<String>> sourceToDefaultProcessingMessage() {
+    public Flow.Publisher<Message<String>> sourceToDefaultProcessingMessage() {
         return source(DEFAULT_PROCESSING_ACKNOWLEDGMENT_MESSAGE);
     }
 
@@ -127,7 +127,7 @@ public class SubscriberBeanWithMethodsReturningCompletionStage extends SpiedBean
     }
 
     @Outgoing(DEFAULT_PROCESSING_ACKNOWLEDGMENT_PAYLOAD)
-    public Publisher<Message<String>> defaultToPostProcessingPayload() {
+    public Flow.Publisher<Message<String>> defaultToPostProcessingPayload() {
         return source(DEFAULT_PROCESSING_ACKNOWLEDGMENT_PAYLOAD);
     }
 

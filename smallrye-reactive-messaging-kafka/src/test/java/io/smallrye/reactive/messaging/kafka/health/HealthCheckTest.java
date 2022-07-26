@@ -5,6 +5,7 @@ import static org.awaitility.Awaitility.await;
 
 import java.time.Duration;
 import java.util.UUID;
+import java.util.concurrent.Flow;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -16,7 +17,6 @@ import org.apache.kafka.common.serialization.IntegerSerializer;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.reactive.messaging.*;
 import org.junit.jupiter.api.Test;
-import org.reactivestreams.Publisher;
 
 import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.health.HealthReport;
@@ -204,7 +204,7 @@ public class HealthCheckTest extends KafkaCompanionTestBase {
         }
 
         @Outgoing("data")
-        public Publisher<Integer> source() {
+        public Flow.Publisher<Integer> source() {
             return Multi.createFrom().range(0, 10);
         }
 

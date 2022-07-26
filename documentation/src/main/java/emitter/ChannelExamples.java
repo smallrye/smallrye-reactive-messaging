@@ -1,10 +1,11 @@
 package emitter;
 
+import java.util.concurrent.Flow.Publisher;
+
 import jakarta.inject.Inject;
 
 import org.eclipse.microprofile.reactive.messaging.Channel;
 import org.eclipse.microprofile.reactive.messaging.Message;
-import org.reactivestreams.Publisher;
 
 import io.smallrye.mutiny.Multi;
 

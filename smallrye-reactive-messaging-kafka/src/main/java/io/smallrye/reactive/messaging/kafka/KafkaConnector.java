@@ -5,6 +5,7 @@ import static io.smallrye.reactive.messaging.kafka.i18n.KafkaLogging.log;
 
 import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.Flow.Publisher;
 import java.util.stream.Collectors;
 
 import jakarta.annotation.PostConstruct;
@@ -25,7 +26,6 @@ import org.eclipse.microprofile.reactive.messaging.spi.OutgoingConnectorFactory;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
-import org.reactivestreams.Publisher;
 
 import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.opentelemetry.api.trace.Tracer;
@@ -42,6 +42,7 @@ import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
 import io.smallrye.reactive.messaging.kafka.impl.TopicPartitions;
 import io.smallrye.reactive.messaging.providers.connectors.ExecutionHolder;
 import io.vertx.mutiny.core.Vertx;
+import mutiny.zero.flow.adapters.AdaptersToReactiveStreams;
 
 @ApplicationScoped
 @Connector(KafkaConnector.CONNECTOR_NAME)
@@ -207,9 +208,10 @@ public class KafkaConnector implements IncomingConnectorFactory, OutgoingConnect
                 stream = source.getBatchStream();
             }
             if (broadcast) {
-                return ReactiveStreams.fromPublisher(stream.broadcast().toAllSubscribers());
+                return ReactiveStreams
+                        .fromPublisher(AdaptersToReactiveStreams.publisher(stream.broadcast().toAllSubscribers()));
             } else {
-                return ReactiveStreams.fromPublisher(stream);
+                return ReactiveStreams.fromPublisher(AdaptersToReactiveStreams.publisher(stream));
             }
         }
 
@@ -235,9 +237,9 @@ public class KafkaConnector implements IncomingConnectorFactory, OutgoingConnect
                 .streams(streams.toArray(new Publisher[0]));
         boolean broadcast = ic.getBroadcast();
         if (broadcast) {
-            return ReactiveStreams.fromPublisher(multi.broadcast().toAllSubscribers());
+            return ReactiveStreams.fromPublisher(AdaptersToReactiveStreams.publisher(multi.broadcast().toAllSubscribers()));
         } else {
-            return ReactiveStreams.fromPublisher(multi);
+            return ReactiveStreams.fromPublisher(AdaptersToReactiveStreams.publisher(multi));
         }
     }
 

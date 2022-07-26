@@ -7,6 +7,7 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.List;
+import java.util.concurrent.Flow;
 import java.util.stream.Collectors;
 
 import jakarta.enterprise.context.ApplicationScoped;
@@ -30,6 +31,7 @@ import io.smallrye.reactive.messaging.MessageConverter;
 import io.smallrye.reactive.messaging.MutinyEmitter;
 import io.smallrye.reactive.messaging.providers.helpers.TypeUtils;
 import io.smallrye.reactive.messaging.providers.i18n.ProviderExceptions;
+import mutiny.zero.flow.adapters.AdaptersToReactiveStreams;
 
 /**
  * This component computes the <em>right</em> object to be injected into injection point using {@link Channel} and the
@@ -54,7 +56,7 @@ public class ChannelProducer {
      * @return the Multi to be injected
      */
     @Produces
-    @Typed({ Publisher.class, Multi.class })
+    @Typed({ Flow.Publisher.class, Multi.class })
     @Channel("") // Stream name is ignored during type-safe resolution
     <T> Multi<T> produceMulti(InjectionPoint injectionPoint) {
         Type first = getFirstParameter(injectionPoint.getType());
@@ -77,6 +79,36 @@ public class ChannelProducer {
      * Injects {@code Multi<Message<X>>} and {@code Multi<X>}. It also matches the injection of
      * {@code Publisher<Message<X>>} and {@code Publisher<X>}.
      *
+     * @param injectionPoint the injection point
+     * @param <T> the first generic parameter (either Message or X)
+     * @return the Multi to be injected
+     */
+    @Produces
+    @Typed({ Publisher.class })
+    @Channel("") // Stream name is ignored during type-safe resolution
+    <T> Publisher<T> producePublisher(InjectionPoint injectionPoint) {
+        Type first = getFirstParameter(injectionPoint.getType());
+        if (TypeUtils.isAssignable(first, Message.class)) {
+            Type payloadType = getPayloadParameterFromMessageType(first);
+            if (payloadType == null) {
+                return cast(AdaptersToReactiveStreams.publisher(getPublisher(injectionPoint)));
+            } else {
+                return cast(AdaptersToReactiveStreams
+                        .publisher(convert(getPublisher(injectionPoint), converters, getRawTypeIfParameterized(payloadType))));
+            }
+        } else {
+            return cast(AdaptersToReactiveStreams
+                    .publisher(convert(getPublisher(injectionPoint), converters, getRawTypeIfParameterized(first))
+                            .onItem().call(m -> Uni.createFrom().completionStage(m.ack()))
+                            .onItem().transform(Message::getPayload)
+                            .broadcast().toAllSubscribers()));
+        }
+    }
+
+    /**
+     * Injects {@code Multi<Message<X>>} and {@code Multi<X>}. It also matches the injection of
+     * {@code Publisher<Message<X>>} and {@code Publisher<X>}.
+     *
      * NOTE: this injection point is about the deprecated {@link io.smallrye.reactive.messaging.annotations.Channel} annotation.
      *
      * @param injectionPoint the injection point
@@ -86,10 +118,29 @@ public class ChannelProducer {
      */
     @Produces
     @Deprecated
-    @Typed({ Publisher.class, Multi.class })
+    @Typed({ Flow.Publisher.class, Multi.class })
     @io.smallrye.reactive.messaging.annotations.Channel("")
-    <T> Multi<T> producePublisherWithLegacyChannelAnnotation(InjectionPoint injectionPoint) {
+    <T> Multi<T> produceMultiWithLegacyChannelAnnotation(InjectionPoint injectionPoint) {
         return produceMulti(injectionPoint);
+    }
+
+    /**
+     * Injects {@code Multi<Message<X>>} and {@code Multi<X>}. It also matches the injection of
+     * {@code Publisher<Message<X>>} and {@code Publisher<X>}.
+     *
+     * NOTE: this injection point is about the deprecated {@link io.smallrye.reactive.messaging.annotations.Channel} annotation.
+     *
+     * @param injectionPoint the injection point
+     * @param <T> the first generic parameter (either Message or X)
+     * @return the stream to be injected
+     * @deprecated Use {@link Channel} instead.
+     */
+    @Produces
+    @Deprecated
+    @Typed({ Publisher.class })
+    @io.smallrye.reactive.messaging.annotations.Channel("")
+    <T> Publisher<T> producePublisherWithLegacyChannelAnnotation(InjectionPoint injectionPoint) {
+        return producePublisher(injectionPoint);
     }
 
     /**
@@ -103,7 +154,7 @@ public class ChannelProducer {
     @Channel("") // Stream name is ignored during type-safe resolution
     <T> PublisherBuilder<T> producePublisherBuilder(InjectionPoint injectionPoint) {
         Multi<Object> multi = produceMulti(injectionPoint);
-        return cast(ReactiveStreams.fromPublisher(multi));
+        return cast(ReactiveStreams.fromPublisher(AdaptersToReactiveStreams.publisher(multi)));
     }
 
     /**
@@ -168,7 +219,7 @@ public class ChannelProducer {
         String name = getChannelName(injectionPoint);
 
         return Multi.createFrom().deferred(() -> {
-            List<Publisher<? extends Message<?>>> list = channelRegistry.getPublishers(name);
+            List<Flow.Publisher<? extends Message<?>>> list = channelRegistry.getPublishers(name);
             if (list.isEmpty()) {
                 throw ex.illegalStateForStream(name, channelRegistry.getIncomingNames());
             } else if (list.size() == 1) {

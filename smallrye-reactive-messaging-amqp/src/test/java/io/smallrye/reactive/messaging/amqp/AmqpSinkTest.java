@@ -36,6 +36,7 @@ import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.mutiny.core.buffer.Buffer;
+import mutiny.zero.flow.adapters.AdaptersToFlow;
 
 public class AmqpSinkTest extends AmqpTestBase {
 
@@ -80,7 +81,7 @@ public class AmqpSinkTest extends AmqpTestBase {
         //noinspection unchecked
         Multi.createFrom().range(0, msgCount)
                 .map(Message::of)
-                .subscribe((Subscriber<? super Message<Integer>>) sink.build());
+                .subscribe(AdaptersToFlow.subscriber((Subscriber<? super Message<Integer>>) sink.build()));
 
         assertThat(msgsReceived.await(6, TimeUnit.SECONDS)).isTrue();
 
@@ -114,7 +115,7 @@ public class AmqpSinkTest extends AmqpTestBase {
         //noinspection unchecked
         Multi.createFrom().range(0, 10)
                 .map(Message::of)
-                .subscribe((Subscriber<? super Message<Integer>>) sink.build());
+                .subscribe(AdaptersToFlow.subscriber((Subscriber<? super Message<Integer>>) sink.build()));
 
         assertThat(msgsReceived.await(6, TimeUnit.SECONDS)).isTrue();
 
@@ -148,7 +149,7 @@ public class AmqpSinkTest extends AmqpTestBase {
         Multi.createFrom().range(0, 10)
                 .map(i -> Integer.toString(i))
                 .map(Message::of)
-                .subscribe((Subscriber<? super Message<String>>) sink.build());
+                .subscribe(AdaptersToFlow.subscriber((Subscriber<? super Message<String>>) sink.build()));
 
         assertThat(msgsReceived.await(6, TimeUnit.SECONDS)).isTrue();
 
@@ -232,7 +233,7 @@ public class AmqpSinkTest extends AmqpTestBase {
                     return p;
                 })
                 .map(Message::of)
-                .subscribe((Subscriber<? super Message<Person>>) sink.build());
+                .subscribe(AdaptersToFlow.subscriber((Subscriber<? super Message<Person>>) sink.build()));
 
         assertThat(msgsReceived.await(6, TimeUnit.SECONDS)).isTrue();
 
@@ -296,7 +297,7 @@ public class AmqpSinkTest extends AmqpTestBase {
                     nack.incrementAndGet();
                     return CompletableFuture.completedFuture(null);
                 }))
-                .subscribe((Subscriber<? super Message<Person>>) sink.build());
+                .subscribe(AdaptersToFlow.subscriber((Subscriber<? super Message<Person>>) sink.build()));
 
         assertThat(msgsReceived.await(6, TimeUnit.SECONDS)).isTrue();
         await().until(() -> nack.get() == 5);
@@ -335,7 +336,7 @@ public class AmqpSinkTest extends AmqpTestBase {
         Multi.createFrom().range(0, 10)
                 .map(i -> new JsonObject().put(ID, HELLO + i))
                 .map(Message::of)
-                .subscribe((Subscriber<? super Message<?>>) sink.build());
+                .subscribe(AdaptersToFlow.subscriber((Subscriber<? super Message<?>>) sink.build()));
 
         assertThat(msgsReceived.await(6, TimeUnit.SECONDS)).isTrue();
 
@@ -373,7 +374,7 @@ public class AmqpSinkTest extends AmqpTestBase {
         Multi.createFrom().range(0, 10)
                 .map(i -> new JsonArray().add(HELLO + i).add(FOO))
                 .map(Message::of)
-                .subscribe((Subscriber<? super Message<?>>) sink.build());
+                .subscribe(AdaptersToFlow.subscriber((Subscriber<? super Message<?>>) sink.build()));
 
         assertThat(msgsReceived.await(6, TimeUnit.SECONDS)).isTrue();
 
@@ -417,7 +418,7 @@ public class AmqpSinkTest extends AmqpTestBase {
                     return res;
                 })
                 .map(Message::of)
-                .subscribe((Subscriber<? super Message<?>>) sink.build());
+                .subscribe(AdaptersToFlow.subscriber((Subscriber<? super Message<?>>) sink.build()));
 
         assertThat(msgsReceived.await(6, TimeUnit.SECONDS)).isTrue();
 
@@ -455,7 +456,7 @@ public class AmqpSinkTest extends AmqpTestBase {
         Multi.createFrom().range(0, 10)
                 .map(i -> new JsonObject().put(ID, HELLO + i).toBuffer())
                 .map(Message::of)
-                .subscribe((Subscriber<? super Message<?>>) sink.build());
+                .subscribe(AdaptersToFlow.subscriber((Subscriber<? super Message<?>>) sink.build()));
 
         assertThat(msgsReceived.await(6, TimeUnit.SECONDS)).isTrue();
 
@@ -492,7 +493,7 @@ public class AmqpSinkTest extends AmqpTestBase {
         Multi.createFrom().range(0, 10)
                 .map(i -> new Buffer(new JsonObject().put(ID, HELLO + i).toBuffer()))
                 .map(Message::of)
-                .subscribe((Subscriber<? super Message<?>>) sink.build());
+                .subscribe(AdaptersToFlow.subscriber((Subscriber<? super Message<?>>) sink.build()));
 
         assertThat(msgsReceived.await(6, TimeUnit.SECONDS)).isTrue();
 
@@ -529,7 +530,7 @@ public class AmqpSinkTest extends AmqpTestBase {
         Multi.createFrom().range(0, 10)
                 .map(i -> new JsonObject().put(ID, HELLO + i).toBuffer().getBytes())
                 .map(Message::of)
-                .subscribe((Subscriber<? super Message<?>>) sink.build());
+                .subscribe(AdaptersToFlow.subscriber((Subscriber<? super Message<?>>) sink.build()));
 
         assertThat(msgsReceived.await(6, TimeUnit.SECONDS)).isTrue();
 
@@ -700,7 +701,7 @@ public class AmqpSinkTest extends AmqpTestBase {
                         .withBody(HELLO + v)
                         .withSubject("foo")
                         .build())
-                .subscribe((Subscriber<? super Message<?>>) sink.build());
+                .subscribe(AdaptersToFlow.subscriber((Subscriber<? super Message<?>>) sink.build()));
 
         assertThat(msgsReceived.await(6, TimeUnit.SECONDS)).isTrue();
 
@@ -744,7 +745,7 @@ public class AmqpSinkTest extends AmqpTestBase {
                         .withSubject("foo")
                         .withAddress("unused")
                         .build())
-                .subscribe((Subscriber<? super AmqpMessage<String>>) sink.build());
+                .subscribe(AdaptersToFlow.subscriber((Subscriber<? super AmqpMessage<String>>) sink.build()));
 
         assertThat(msgsReceived.await(6, TimeUnit.SECONDS)).isTrue();
 
@@ -793,7 +794,7 @@ public class AmqpSinkTest extends AmqpTestBase {
                     message.setSubject("bar");
                     return Message.of(message);
                 })
-                .subscribe((Subscriber<? super Message<?>>) sink.build());
+                .subscribe(AdaptersToFlow.subscriber((Subscriber<? super Message<?>>) sink.build()));
 
         assertThat(msgsReceived.await(6, TimeUnit.SECONDS)).isTrue();
 
@@ -836,7 +837,8 @@ public class AmqpSinkTest extends AmqpTestBase {
                         .subject("bar")
                         .build())
                 .map(Message::of)
-                .subscribe((Subscriber<? super Message<io.vertx.mutiny.amqp.AmqpMessage>>) sink.build());
+                .subscribe(AdaptersToFlow
+                        .subscriber((Subscriber<? super Message<io.vertx.mutiny.amqp.AmqpMessage>>) sink.build()));
 
         assertThat(msgsReceived.await(6, TimeUnit.SECONDS)).isTrue();
 
@@ -880,7 +882,7 @@ public class AmqpSinkTest extends AmqpTestBase {
                             .subject("baz");
                     return Message.of(builder.build());
                 })
-                .subscribe((Subscriber<? super Message<?>>) sink.build());
+                .subscribe(AdaptersToFlow.subscriber((Subscriber<? super Message<?>>) sink.build()));
 
         assertThat(msgsReceived.await(6, TimeUnit.SECONDS)).isTrue();
 
@@ -924,7 +926,7 @@ public class AmqpSinkTest extends AmqpTestBase {
                             .contentType("text/plain");
                     return Message.of(builder.build());
                 })
-                .subscribe((Subscriber<? super Message<?>>) sink.build());
+                .subscribe(AdaptersToFlow.subscriber((Subscriber<? super Message<?>>) sink.build()));
 
         assertThat(msgsReceived.await(6, TimeUnit.SECONDS)).isTrue();
 
@@ -965,7 +967,7 @@ public class AmqpSinkTest extends AmqpTestBase {
         //noinspection unchecked
         Multi.createFrom().range(0, 10)
                 .map(v -> AmqpMessage.<String> builder().withBody(HELLO + v).withSubject("foo").build())
-                .subscribe((Subscriber<? super AmqpMessage<String>>) sink.build());
+                .subscribe(AdaptersToFlow.subscriber((Subscriber<? super AmqpMessage<String>>) sink.build()));
 
         assertThat(msgsReceived.await(6, TimeUnit.SECONDS)).isTrue();
 
@@ -1021,7 +1023,7 @@ public class AmqpSinkTest extends AmqpTestBase {
                         .withApplicationProperties(new JsonObject().put("key", "value"))
                         .withFooter("my-trailer", "hello-footer")
                         .build()))
-                .subscribe((Subscriber<? super Message<Integer>>) sink.build());
+                .subscribe(AdaptersToFlow.subscriber((Subscriber<? super Message<Integer>>) sink.build()));
 
         assertThat(msgsReceived.await(6, TimeUnit.SECONDS)).isTrue();
 
@@ -1099,7 +1101,7 @@ public class AmqpSinkTest extends AmqpTestBase {
                         .withApplicationProperties(new JsonObject().put("key", "value"))
                         .withFooter("my-trailer", "hello-footer")
                         .build()))
-                .subscribe((Subscriber<? super Message<Integer>>) sink.build());
+                .subscribe(AdaptersToFlow.subscriber((Subscriber<? super Message<Integer>>) sink.build()));
 
         assertThat(msgsReceived.await(6, TimeUnit.SECONDS)).isTrue();
 
@@ -1178,7 +1180,7 @@ public class AmqpSinkTest extends AmqpTestBase {
                         .withApplicationProperties(new JsonObject().put("key", "value"))
                         .withFooter("my-trailer", "hello-footer")
                         .build()))
-                .subscribe((Subscriber<? super Message<Integer>>) sink.build());
+                .subscribe(AdaptersToFlow.subscriber((Subscriber<? super Message<Integer>>) sink.build()));
 
         assertThat(msgsReceived.await(6, TimeUnit.SECONDS)).isTrue();
 
@@ -1239,7 +1241,7 @@ public class AmqpSinkTest extends AmqpTestBase {
         //noinspection unchecked
         Multi.createFrom().range(0, 10)
                 .map(Message::of)
-                .subscribe((Subscriber<? super Message<Integer>>) sink.build());
+                .subscribe(AdaptersToFlow.subscriber((Subscriber<? super Message<Integer>>) sink.build()));
 
         assertThat(msgsReceived.await(6, TimeUnit.SECONDS)).isTrue();
 
