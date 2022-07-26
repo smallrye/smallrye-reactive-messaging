@@ -35,6 +35,7 @@ import com.google.pubsub.v1.PushConfig;
 import com.google.pubsub.v1.TopicName;
 
 import io.smallrye.mutiny.Multi;
+import mutiny.zero.flow.adapters.AdaptersToReactiveStreams;
 
 @ApplicationScoped
 @Connector(PubSubConnector.CONNECTOR_NAME)
@@ -93,7 +94,8 @@ public class PubSubConnector implements IncomingConnectorFactory, OutgoingConnec
             return pubSubConfig;
         }, executorService))
                 .flatMapRsPublisher(
-                        cfg -> Multi.createFrom().emitter(new PubSubSource(cfg, pubSubManager)));
+                        cfg -> AdaptersToReactiveStreams.publisher(
+                                Multi.createFrom().emitter(new PubSubSource(cfg, pubSubManager))));
     }
 
     @Override

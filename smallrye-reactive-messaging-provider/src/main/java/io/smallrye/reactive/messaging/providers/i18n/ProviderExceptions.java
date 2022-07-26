@@ -74,7 +74,7 @@ public interface ProviderExceptions {
     @Message(id = 14, value = "%s")
     WeavingException weavingForIncoming(List<String> incoming, @Cause Throwable cause);
 
-    @Message(id = 15, value = "Invalid return type: %s - expected a Subscriber or a SubscriberBuilder")
+    @Message(id = 15, value = "Invalid return type: %s - expected a Flow.Subscriber, org.reactivestreams.Subscriber or a SubscriberBuilder")
     IllegalStateException illegalStateExceptionForSubscriberOrSubscriberBuilder(String resultClassName);
 
     @Message(id = 16, value = "Failed to create Worker for %s")

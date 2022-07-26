@@ -30,6 +30,8 @@ public interface MediatorConfiguration {
 
     Production production();
 
+    boolean usesReactiveStreams();
+
     boolean usesBuilderTypes();
 
     Acknowledgment.Strategy getAcknowledgment();

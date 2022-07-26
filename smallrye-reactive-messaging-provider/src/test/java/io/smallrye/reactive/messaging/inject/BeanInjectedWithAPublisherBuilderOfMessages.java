@@ -10,6 +10,7 @@ import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 
 import io.smallrye.mutiny.Multi;
+import mutiny.zero.flow.adapters.AdaptersToFlow;
 
 @ApplicationScoped
 public class BeanInjectedWithAPublisherBuilderOfMessages {
@@ -27,7 +28,7 @@ public class BeanInjectedWithAPublisherBuilderOfMessages {
 
     public List<String> consume() {
         return Multi.createBy().concatenating()
-                .streams(constructor.buildRs(), field.buildRs())
+                .streams(AdaptersToFlow.publisher(constructor.buildRs()), AdaptersToFlow.publisher(field.buildRs()))
                 .map(Message::getPayload)
                 .collect().asList()
                 .await().indefinitely();

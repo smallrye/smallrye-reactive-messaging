@@ -7,6 +7,7 @@ import org.eclipse.microprofile.reactive.messaging.Outgoing;
 
 import io.reactivex.Flowable;
 import io.smallrye.mutiny.Multi;
+import mutiny.zero.flow.adapters.AdaptersToFlow;
 
 @ApplicationScoped
 public class BeanConsumingItemAsMultiAndPublishingItemAsMulti {
@@ -16,7 +17,7 @@ public class BeanConsumingItemAsMultiAndPublishingItemAsMulti {
     public Multi<String> process(Multi<Integer> source) {
         return source
                 .map(i -> i + 1)
-                .flatMap(i -> Flowable.just(i, i))
+                .flatMap(i -> AdaptersToFlow.publisher(Flowable.just(i, i)))
                 .map(i -> Integer.toString(i));
     }
 
