@@ -3,13 +3,11 @@ package io.smallrye.reactive.messaging.mqtt;
 import static io.smallrye.reactive.messaging.mqtt.i18n.MqttExceptions.ex;
 import static io.smallrye.reactive.messaging.mqtt.i18n.MqttLogging.log;
 
+import java.util.concurrent.Flow;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Pattern;
 
 import javax.enterprise.inject.Instance;
-
-import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
-import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 
 import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.mqtt.internal.MqttHelpers;
@@ -20,7 +18,7 @@ import io.vertx.mutiny.core.Vertx;
 
 public class MqttSource {
 
-    private final PublisherBuilder<MqttMessage<?>> source;
+    private final Flow.Publisher<ReceivingMqttMessage> source;
     private final AtomicBoolean ready = new AtomicBoolean();
     private final Pattern pattern;
 
@@ -50,28 +48,27 @@ public class MqttSource {
                 .onComplete(outcome -> log.info("Subscription outcome: " + outcome))
                 .onSuccess(ignore -> ready.set(true));
 
-        this.source = ReactiveStreams.fromPublisher(
-                holder.stream()
-                        .select().where(m -> MqttTopicHelper.matches(topic, pattern, m))
-                        .onItem().transform(m -> new ReceivingMqttMessage(m, onNack))
-                        .stage(multi -> {
-                            if (broadcast) {
-                                return multi.broadcast().toAllSubscribers();
-                            }
-                            return multi;
-                        })
-                        .onOverflow().buffer(config.getBufferSize())
-                        .onCancellation().call(() -> {
-                            ready.set(false);
-                            if (config.getUnsubscribeOnDisconnection())
-                                return Uni
-                                        .createFrom()
-                                        .completionStage(holder.getClient()
-                                                .unsubscribe(topic).toCompletionStage());
-                            else
-                                return Uni.createFrom().voidItem();
-                        })
-                        .onFailure().invoke(log::unableToConnectToBroker));
+        this.source = holder.stream()
+                .select().where(m -> MqttTopicHelper.matches(topic, pattern, m))
+                .onItem().transform(m -> new ReceivingMqttMessage(m, onNack))
+                .stage(multi -> {
+                    if (broadcast) {
+                        return multi.broadcast().toAllSubscribers();
+                    }
+                    return multi;
+                })
+                .onOverflow().buffer(config.getBufferSize())
+                .onCancellation().call(() -> {
+                    ready.set(false);
+                    if (config.getUnsubscribeOnDisconnection())
+                        return Uni
+                                .createFrom()
+                                .completionStage(holder.getClient()
+                                        .unsubscribe(topic).toCompletionStage());
+                    else
+                        return Uni.createFrom().voidItem();
+                })
+                .onFailure().invoke(log::unableToConnectToBroker);
     }
 
     private MqttFailureHandler createFailureHandler(MqttFailureHandler.Strategy strategy, String channel) {
@@ -85,7 +82,7 @@ public class MqttSource {
         }
     }
 
-    PublisherBuilder<MqttMessage<?>> getSource() {
+    Flow.Publisher<ReceivingMqttMessage> getSource() {
         return source;
     }
 

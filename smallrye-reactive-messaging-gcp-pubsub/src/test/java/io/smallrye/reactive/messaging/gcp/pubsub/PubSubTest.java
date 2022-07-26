@@ -4,17 +4,16 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 import java.lang.annotation.Annotation;
+import java.util.concurrent.Flow;
 
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.spi.Connector;
-import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 import org.jboss.weld.environment.se.Weld;
 import org.jboss.weld.environment.se.WeldContainer;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
-import org.reactivestreams.Subscriber;
 
 import com.google.pubsub.v1.ProjectTopicName;
 import com.google.pubsub.v1.TopicName;
@@ -70,18 +69,18 @@ public class PubSubTest extends PubSubTestBase {
 
     @SuppressWarnings("unchecked")
     private void send(final String message, final String topic) {
-        final SubscriberBuilder<? extends Message<?>, Void> subscriber = createSinkSubscriber(topic);
+        final Flow.Subscriber<? extends Message<?>> subscriber = createSinkSubscriber(topic);
         Multi.createFrom().item(message)
                 .map(Message::of)
-                .subscribe((Subscriber<Message<String>>) subscriber.build());
+                .subscribe((Flow.Subscriber<Message<String>>) subscriber);
     }
 
-    private SubscriberBuilder<? extends Message<?>, Void> createSinkSubscriber(final String topic) {
+    private Flow.Subscriber<? extends Message<?>> createSinkSubscriber(final String topic) {
         final MapBasedConfig config = createSourceConfig(topic, null, PUBSUB_CONTAINER.getFirstMappedPort());
         config.put("topic", topic);
         config.write();
 
-        return getConnector().getSubscriberBuilder(config);
+        return getConnector().getSubscriber(config);
     }
 
     private PubSubConnector getConnector() {

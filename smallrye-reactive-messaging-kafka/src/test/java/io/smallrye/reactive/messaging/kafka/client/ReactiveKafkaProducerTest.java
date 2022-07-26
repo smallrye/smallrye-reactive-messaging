@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.Flow;
 import java.util.concurrent.ThreadLocalRandom;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -132,7 +133,7 @@ public class ReactiveKafkaProducerTest extends ClientTestBase {
 
         Thread actualProducer = new Thread(() -> {
             Multi<Message<?>> merge = Multi.createBy().merging().streams(multis);
-            Subscriber<Message<?>> subscriber = (Subscriber<Message<?>>) createSink().getSink();
+            Flow.Subscriber<Message<?>> subscriber = (Flow.Subscriber<Message<?>>) createSink().getSink();
             merge.subscribe().withSubscriber(subscriber);
         });
         threads.add(actualProducer);
@@ -225,7 +226,7 @@ public class ReactiveKafkaProducerTest extends ClientTestBase {
                 emitter.complete();
             });
 
-            Subscriber<Message<?>> subscriber = (Subscriber<Message<?>>) createSink().getSink();
+            Flow.Subscriber<Message<?>> subscriber = (Flow.Subscriber<Message<?>>) createSink().getSink();
             stream.subscribe().withSubscriber(subscriber);
         }
     }

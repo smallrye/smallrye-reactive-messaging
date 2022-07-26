@@ -5,6 +5,7 @@ import static io.smallrye.reactive.messaging.providers.i18n.ProviderMessages.msg
 
 import java.util.Objects;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.Flow;
 import java.util.function.Function;
 
 import org.eclipse.microprofile.reactive.messaging.Message;
@@ -16,16 +17,15 @@ import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.MediatorConfiguration;
 import io.smallrye.reactive.messaging.Shape;
 import io.smallrye.reactive.messaging.providers.helpers.MultiUtils;
+import mutiny.zero.flow.adapters.AdaptersToFlow;
 
 public class PublisherMediator extends AbstractMediator {
 
     private Multi<? extends Message<?>> publisher;
 
     // Supported signatures:
-    // 1. Publisher<Message<O>> method()
-    // 2. Publisher<O> method()
-    // 3. PublisherBuilder<Message<O>> method()
-    // 4. PublisherBuilder<O> method()
+    // 1. Flow.Publisher<Message<O>> method(), Publisher<Message<O>>, PublisherBuilder<Message<O>>
+    // 2. Flow.Publisher<O> method(), Publisher<O>, PublisherBuilder<O>
     // 5. O method() O cannot be Void
     // 6. Message<O> method()
     // 7. CompletionStage<O> method()
@@ -62,16 +62,20 @@ public class PublisherMediator extends AbstractMediator {
     public void initialize(Object bean) {
         super.initialize(bean);
         switch (configuration.production()) {
-            case STREAM_OF_MESSAGE: // 1, 3
+            case STREAM_OF_MESSAGE: // 1
                 if (configuration.usesBuilderTypes()) {
                     produceAPublisherBuilderOfMessages();
+                } else if (configuration.usesReactiveStreams()) {
+                    produceAReactiveStreamsPublisherOfMessages();
                 } else {
                     produceAPublisherOfMessages();
                 }
                 break;
-            case STREAM_OF_PAYLOAD: // 2, 4
+            case STREAM_OF_PAYLOAD: // 2
                 if (configuration.usesBuilderTypes()) {
                     produceAPublisherBuilderOfPayloads();
+                } else if (configuration.usesReactiveStreams()) {
+                    produceAReactiveStreamsPublisherOfPayloads();
                 } else {
                     produceAPublisherOfPayloads();
                 }
@@ -103,21 +107,32 @@ public class PublisherMediator extends AbstractMediator {
 
     private void produceAPublisherBuilderOfMessages() {
         PublisherBuilder<Message<?>> builder = invoke();
-        this.publisher = decorate(MultiUtils.publisher(builder.buildRs()));
+        this.publisher = decorate(MultiUtils.publisher(AdaptersToFlow.publisher(builder.buildRs())));
     }
 
     private <P> void produceAPublisherBuilderOfPayloads() {
         PublisherBuilder<P> builder = invoke();
-        this.publisher = decorate(MultiUtils.publisher(builder.map(Message::of).buildRs()));
+        this.publisher = decorate(MultiUtils.publisher(AdaptersToFlow.publisher(builder.map(Message::of).buildRs())));
     }
 
     private void produceAPublisherOfMessages() {
-        this.publisher = MultiUtils.publisher(invoke());
+        Flow.Publisher<Message<?>> pub = invoke();
+        this.publisher = MultiUtils.publisher(pub);
+    }
+
+    private void produceAReactiveStreamsPublisherOfMessages() {
+        Publisher<Message<?>> pub = invoke();
+        this.publisher = MultiUtils.publisher(AdaptersToFlow.publisher(pub));
     }
 
     private <P> void produceAPublisherOfPayloads() {
-        Publisher<P> pub = invoke();
+        Flow.Publisher<P> pub = invoke();
         this.publisher = decorate(MultiUtils.publisher(pub).map(Message::of));
+    }
+
+    private <P> void produceAReactiveStreamsPublisherOfPayloads() {
+        Publisher<P> pub = invoke();
+        this.publisher = decorate(Multi.createFrom().publisher(AdaptersToFlow.publisher(pub)).map(Message::of));
     }
 
     private void produceIndividualMessages() {

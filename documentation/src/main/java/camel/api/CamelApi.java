@@ -1,6 +1,8 @@
 package camel.api;
 
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.Flow.Publisher;
+import java.util.concurrent.Flow.Subscriber;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
@@ -11,8 +13,8 @@ import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.component.reactive.streams.api.CamelReactiveStreamsService;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
-import org.reactivestreams.Publisher;
-import org.reactivestreams.Subscriber;
+
+import mutiny.zero.flow.adapters.AdaptersToFlow;
 
 public class CamelApi {
 
@@ -24,7 +26,7 @@ public class CamelApi {
     // <source>
     @Outgoing("camel")
     public Publisher<Exchange> retrieveDataFromCamelRoute() {
-        return reactiveStreamsService.from("seda:camel");
+        return AdaptersToFlow.publisher(reactiveStreamsService.from("seda:camel"));
     }
     // </source>
 
@@ -36,7 +38,7 @@ public class CamelApi {
 
         @Outgoing("sink")
         public Publisher<String> getDataFromCamelRoute() {
-            return reactiveStreamsService.fromStream("my-stream", String.class);
+            return AdaptersToFlow.publisher(reactiveStreamsService.fromStream("my-stream", String.class));
         }
 
         @Override
@@ -51,8 +53,8 @@ public class CamelApi {
     // <sink>
     @Incoming("to-camel")
     public Subscriber<String> sendDataToCamelRoute() {
-        return reactiveStreamsService.subscriber("file:./target?fileName=values.txt&fileExist=append",
-                String.class);
+        return AdaptersToFlow.subscriber(reactiveStreamsService.subscriber("file:./target?fileName=values.txt&fileExist=append",
+                String.class));
     }
     // </sink>
 

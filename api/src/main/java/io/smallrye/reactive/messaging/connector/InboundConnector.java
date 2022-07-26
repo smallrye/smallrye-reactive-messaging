@@ -1,12 +1,12 @@
 package io.smallrye.reactive.messaging.connector;
 
 import java.util.NoSuchElementException;
+import java.util.concurrent.Flow;
 
 import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.spi.Connector;
 import org.eclipse.microprofile.reactive.messaging.spi.ConnectorFactory;
-import org.reactivestreams.Publisher;
 
 /**
  * SPI used to implement a connector managing a source of messages for a specific <em>transport</em>. For example, to
@@ -85,7 +85,7 @@ import org.reactivestreams.Publisher;
  * This class is specific to SmallRye and is uses internally instead of
  * {@link org.eclipse.microprofile.reactive.messaging.spi.IncomingConnectorFactory}.
  * Instead of a {@link org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder}, it returns a
- * {@link org.reactivestreams.Publisher}.
+ * {@link Flow.Publisher}.
  */
 public interface InboundConnector extends ConnectorFactory {
 
@@ -100,10 +100,10 @@ public interface InboundConnector extends ConnectorFactory {
      *
      * @param config the configuration, must not be {@code null}, must contain the {@link #CHANNEL_NAME_ATTRIBUTE}
      *        attribute.
-     * @return the created {@link org.reactivestreams.Publisher}, will not be {@code null}.
+     * @return the created {@link Flow.Publisher}, will not be {@code null}.
      * @throws IllegalArgumentException if the configuration is invalid.
      * @throws NoSuchElementException if the configuration does not contain an expected attribute.
      */
-    Publisher<? extends Message<?>> getPublisher(Config config);
+    Flow.Publisher<? extends Message<?>> getPublisher(Config config);
 
 }
