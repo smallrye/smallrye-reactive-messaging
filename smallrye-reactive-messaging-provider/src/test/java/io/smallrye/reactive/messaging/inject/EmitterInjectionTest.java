@@ -12,6 +12,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.Flow;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import jakarta.enterprise.context.ApplicationScoped;
@@ -31,6 +32,7 @@ import io.smallrye.reactive.messaging.WeldTestBaseWithoutTails;
 import io.smallrye.reactive.messaging.annotations.Merge;
 import io.smallrye.reactive.messaging.providers.DefaultEmitterConfiguration;
 import io.smallrye.reactive.messaging.providers.extension.EmitterImpl;
+import mutiny.zero.flow.adapters.AdaptersToFlow;
 
 public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
 
@@ -669,13 +671,13 @@ public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
         };
         EmitterConfiguration config = new DefaultEmitterConfiguration("my-channel", EMITTER, overflow, null);
         EmitterImpl<String> emitter = new EmitterImpl<>(config, 128);
-        Publisher<Message<? extends String>> publisher = emitter.getPublisher();
+        Flow.Publisher<Message<? extends String>> publisher = emitter.getPublisher();
 
         TestSubscriber<Message<? extends String>> sub1 = new TestSubscriber<>();
-        publisher.subscribe(sub1);
+        publisher.subscribe(AdaptersToFlow.subscriber(sub1));
 
         TestSubscriber<Message<? extends String>> sub2 = new TestSubscriber<>();
-        publisher.subscribe(sub2);
+        publisher.subscribe(AdaptersToFlow.subscriber(sub2));
 
         sub1.assertNoErrors();
         sub2.assertNoErrors();

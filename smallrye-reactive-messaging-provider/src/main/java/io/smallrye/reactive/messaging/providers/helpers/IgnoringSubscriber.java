@@ -1,8 +1,9 @@
 package io.smallrye.reactive.messaging.providers.helpers;
 
+import java.util.concurrent.Flow;
+import java.util.concurrent.Flow.Subscriber;
+
 import org.eclipse.microprofile.reactive.messaging.Message;
-import org.reactivestreams.Subscriber;
-import org.reactivestreams.Subscription;
 
 public class IgnoringSubscriber implements Subscriber<Message<?>> {
 
@@ -13,7 +14,7 @@ public class IgnoringSubscriber implements Subscriber<Message<?>> {
     }
 
     @Override
-    public void onSubscribe(Subscription subscription) {
+    public void onSubscribe(Flow.Subscription subscription) {
         subscription.request(Long.MAX_VALUE);
     }
 

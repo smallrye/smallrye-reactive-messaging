@@ -5,6 +5,7 @@ import static io.smallrye.reactive.messaging.providers.i18n.ProviderExceptions.e
 import static io.smallrye.reactive.messaging.providers.i18n.ProviderLogging.log;
 
 import java.util.*;
+import java.util.concurrent.Flow;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Any;
@@ -14,8 +15,6 @@ import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.spi.*;
-import org.reactivestreams.Publisher;
-import org.reactivestreams.Subscriber;
 
 import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.ChannelRegistar;
@@ -161,7 +160,7 @@ public class ConfiguredChannelFactory implements ChannelRegistar {
         return config.getValue("connector", String.class);
     }
 
-    private Publisher<? extends Message<?>> createPublisher(String name, Config config) {
+    private Flow.Publisher<? extends Message<?>> createPublisher(String name, Config config) {
         // Extract the type and throw an exception if missing
         String connector = getConnectorAttribute(config);
 
@@ -179,7 +178,7 @@ public class ConfiguredChannelFactory implements ChannelRegistar {
         return publisher;
     }
 
-    private Subscriber<? extends Message<?>> createSubscriber(String name, Config config) {
+    private Flow.Subscriber<? extends Message<?>> createSubscriber(String name, Config config) {
         // Extract the type and throw an exception if missing
         String connector = getConnectorAttribute(config);
 

@@ -2,6 +2,7 @@ package io.smallrye.reactive.messaging.ack;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.Flow;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import jakarta.enterprise.context.ApplicationScoped;
@@ -133,7 +134,7 @@ public class BeanWithStreamTransformers extends SpiedBeanHelper {
     }
 
     @Outgoing(NO_ACKNOWLEDGMENT)
-    public Publisher<Message<String>> sourceToNoAck() {
+    public Flow.Publisher<Message<String>> sourceToNoAck() {
         return Multi.createFrom().items("a", "b", "c", "d", "e")
                 .map(payload -> Message.of(payload, () -> {
                     nap();
@@ -152,7 +153,7 @@ public class BeanWithStreamTransformers extends SpiedBeanHelper {
     }
 
     @Outgoing(NO_ACKNOWLEDGMENT_BUILDER)
-    public Publisher<Message<String>> sourceToNoAckWithBuilder() {
+    public Flow.Publisher<Message<String>> sourceToNoAckWithBuilder() {
         return Multi.createFrom().items("a", "b", "c", "d", "e")
                 .map(payload -> Message.of(payload, () -> {
                     nap();
@@ -211,7 +212,7 @@ public class BeanWithStreamTransformers extends SpiedBeanHelper {
     }
 
     @Outgoing(PRE_ACKNOWLEDGMENT)
-    public Publisher<Message<String>> sourceToPreAck() {
+    public Flow.Publisher<Message<String>> sourceToPreAck() {
         return Multi.createFrom().items("a", "b", "c", "d", "e")
                 .map(payload -> Message.of(payload, () -> {
                     nap();
@@ -230,7 +231,7 @@ public class BeanWithStreamTransformers extends SpiedBeanHelper {
     }
 
     @Outgoing(PRE_ACKNOWLEDGMENT_BUILDER)
-    public Publisher<Message<String>> sourceToPreAckWithBuilder() {
+    public Flow.Publisher<Message<String>> sourceToPreAckWithBuilder() {
         return Multi.createFrom().items("a", "b", "c", "d", "e")
                 .map(payload -> Message.of(payload, () -> {
                     nap();
@@ -264,7 +265,7 @@ public class BeanWithStreamTransformers extends SpiedBeanHelper {
     }
 
     @Outgoing(DEFAULT_ACKNOWLEDGMENT)
-    public Publisher<Message<String>> sourceToDefAck() {
+    public Flow.Publisher<Message<String>> sourceToDefAck() {
         return Multi.createFrom().items("a", "b", "c", "d", "e")
                 .map(payload -> Message.of(payload, () -> {
                     nap();
@@ -298,7 +299,7 @@ public class BeanWithStreamTransformers extends SpiedBeanHelper {
     }
 
     @Outgoing(DEFAULT_ACKNOWLEDGMENT_BUILDER)
-    public Publisher<Message<String>> sourceToDefaultAckWithBuilder() {
+    public Flow.Publisher<Message<String>> sourceToDefaultAckWithBuilder() {
         return Multi.createFrom().items("a", "b", "c", "d", "e")
                 .map(payload -> Message.of(payload, () -> {
                     nap();
@@ -318,7 +319,7 @@ public class BeanWithStreamTransformers extends SpiedBeanHelper {
     }
 
     @Outgoing(PAYLOAD_NO_ACKNOWLEDGMENT)
-    public Publisher<Message<String>> sourceToNoAckMessage() {
+    public Flow.Publisher<Message<String>> sourceToNoAckMessage() {
         return Multi.createFrom().items("a", "b", "c", "d", "e")
                 .map(payload -> Message.of(payload, () -> {
                     nap();
@@ -337,7 +338,7 @@ public class BeanWithStreamTransformers extends SpiedBeanHelper {
     }
 
     @Outgoing(PAYLOAD_NO_ACKNOWLEDGMENT_BUILDER)
-    public Publisher<Message<String>> sourceToNoAckWithMessageBuilder() {
+    public Flow.Publisher<Message<String>> sourceToNoAckWithMessageBuilder() {
         return Multi.createFrom().items("a", "b", "c", "d", "e")
                 .map(payload -> Message.of(payload, () -> {
                     nap();
@@ -356,7 +357,7 @@ public class BeanWithStreamTransformers extends SpiedBeanHelper {
     }
 
     @Outgoing(PAYLOAD_DEFAULT_ACKNOWLEDGMENT)
-    public Publisher<Message<String>> sourceToPayloadDefAck() {
+    public Flow.Publisher<Message<String>> sourceToPayloadDefAck() {
         return Multi.createFrom().items("a", "b", "c", "d", "e")
                 .map(payload -> Message.of(payload, () -> {
                     nap();
@@ -374,7 +375,7 @@ public class BeanWithStreamTransformers extends SpiedBeanHelper {
     }
 
     @Outgoing(PAYLOAD_DEFAULT_ACKNOWLEDGMENT_BUILDER)
-    public Publisher<Message<String>> sourceToDefaultWithPayloadAckWithBuilder() {
+    public Flow.Publisher<Message<String>> sourceToDefaultWithPayloadAckWithBuilder() {
         return Multi.createFrom().items("a", "b", "c", "d", "e")
                 .map(payload -> Message.of(payload, () -> {
                     nap();
@@ -394,7 +395,7 @@ public class BeanWithStreamTransformers extends SpiedBeanHelper {
     }
 
     @Outgoing(PAYLOAD_PRE_ACKNOWLEDGMENT)
-    public Publisher<Message<String>> sourceToPayloadPreAck() {
+    public Flow.Publisher<Message<String>> sourceToPayloadPreAck() {
         return Multi.createFrom().items("a", "b", "c", "d", "e")
                 .map(payload -> Message.of(payload, () -> {
                     nap();
@@ -413,7 +414,7 @@ public class BeanWithStreamTransformers extends SpiedBeanHelper {
     }
 
     @Outgoing(PAYLOAD_PRE_ACKNOWLEDGMENT_BUILDER)
-    public Publisher<Message<String>> sourceToPreWithPayloadAckWithBuilder() {
+    public Flow.Publisher<Message<String>> sourceToPreWithPayloadAckWithBuilder() {
         return Multi.createFrom().items("a", "b", "c", "d", "e")
                 .map(payload -> Message.of(payload, () -> {
                     nap();

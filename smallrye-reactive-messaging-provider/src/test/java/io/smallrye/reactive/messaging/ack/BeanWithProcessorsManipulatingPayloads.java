@@ -2,6 +2,7 @@ package io.smallrye.reactive.messaging.ack;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.Flow;
 
 import jakarta.enterprise.context.ApplicationScoped;
 
@@ -9,7 +10,6 @@ import org.eclipse.microprofile.reactive.messaging.Acknowledgment;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
-import org.reactivestreams.Publisher;
 
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
@@ -114,7 +114,7 @@ public class BeanWithProcessorsManipulatingPayloads extends SpiedBeanHelper {
     }
 
     @Outgoing(NO_ACKNOWLEDGMENT)
-    public Publisher<Message<String>> sourceToNoAck() {
+    public Flow.Publisher<Message<String>> sourceToNoAck() {
         return Multi.createFrom().items("a", "b", "c", "d", "e")
                 .map(payload -> Message.of(payload, () -> {
                     nap();
@@ -135,7 +135,7 @@ public class BeanWithProcessorsManipulatingPayloads extends SpiedBeanHelper {
     }
 
     @Outgoing(NO_ACKNOWLEDGMENT_CS)
-    public Publisher<Message<String>> sourceToNoAckCS() {
+    public Flow.Publisher<Message<String>> sourceToNoAckCS() {
         return Multi.createFrom().items("a", "b", "c", "d", "e")
                 .map(payload -> Message.of(payload, () -> {
                     nap();
@@ -155,7 +155,7 @@ public class BeanWithProcessorsManipulatingPayloads extends SpiedBeanHelper {
     }
 
     @Outgoing(NO_ACKNOWLEDGMENT_UNI)
-    public Publisher<Message<String>> sourceToNoAckUni() {
+    public Flow.Publisher<Message<String>> sourceToNoAckUni() {
         return Multi.createFrom().items("a", "b", "c", "d", "e")
                 .map(payload -> Message.of(payload, () -> {
                     nap();
@@ -173,7 +173,7 @@ public class BeanWithProcessorsManipulatingPayloads extends SpiedBeanHelper {
     }
 
     @Outgoing(PRE_ACKNOWLEDGMENT)
-    public Publisher<Message<String>> sourceToPreAck() {
+    public Flow.Publisher<Message<String>> sourceToPreAck() {
         return Multi.createFrom().items("a", "b", "c", "d", "e")
                 .map(payload -> Message.of(payload, () -> {
                     nap();
@@ -191,7 +191,7 @@ public class BeanWithProcessorsManipulatingPayloads extends SpiedBeanHelper {
     }
 
     @Outgoing(PRE_ACKNOWLEDGMENT_CS)
-    public Publisher<Message<String>> sourceToPreAckCS() {
+    public Flow.Publisher<Message<String>> sourceToPreAckCS() {
         return Multi.createFrom().items("a", "b", "c", "d", "e")
                 .map(payload -> Message.of(payload, () -> {
                     nap();
@@ -209,7 +209,7 @@ public class BeanWithProcessorsManipulatingPayloads extends SpiedBeanHelper {
     }
 
     @Outgoing(PRE_ACKNOWLEDGMENT_UNI)
-    public Publisher<Message<String>> sourceToPreAckUNI() {
+    public Flow.Publisher<Message<String>> sourceToPreAckUNI() {
         return Multi.createFrom().items("a", "b", "c", "d", "e")
                 .map(payload -> Message.of(payload, () -> {
                     nap();
@@ -227,7 +227,7 @@ public class BeanWithProcessorsManipulatingPayloads extends SpiedBeanHelper {
     }
 
     @Outgoing(POST_ACKNOWLEDGMENT)
-    public Publisher<Message<String>> sourceToPostAck() {
+    public Flow.Publisher<Message<String>> sourceToPostAck() {
         return Multi.createFrom().items("a", "b", "c", "d", "e")
                 .map(payload -> Message.of(payload, () -> {
                     nap();
@@ -245,7 +245,7 @@ public class BeanWithProcessorsManipulatingPayloads extends SpiedBeanHelper {
     }
 
     @Outgoing(POST_ACKNOWLEDGMENT_CS)
-    public Publisher<Message<String>> sourceToPostCSAck() {
+    public Flow.Publisher<Message<String>> sourceToPostCSAck() {
         return Multi.createFrom().items("a", "b", "c", "d", "e")
                 .map(payload -> Message.of(payload, () -> {
                     nap();
@@ -263,7 +263,7 @@ public class BeanWithProcessorsManipulatingPayloads extends SpiedBeanHelper {
     }
 
     @Outgoing(POST_ACKNOWLEDGMENT_UNI)
-    public Publisher<Message<String>> sourceToPostUNIAck() {
+    public Flow.Publisher<Message<String>> sourceToPostUNIAck() {
         return Multi.createFrom().items("a", "b", "c", "d", "e")
                 .map(payload -> Message.of(payload, () -> {
                     nap();
@@ -280,7 +280,7 @@ public class BeanWithProcessorsManipulatingPayloads extends SpiedBeanHelper {
     }
 
     @Outgoing(DEFAULT_ACKNOWLEDGMENT)
-    public Publisher<Message<String>> sourceToDefaultAck() {
+    public Flow.Publisher<Message<String>> sourceToDefaultAck() {
         return Multi.createFrom().items("a", "b", "c", "d", "e")
                 .map(payload -> Message.of(payload, () -> {
                     nap();
@@ -297,7 +297,7 @@ public class BeanWithProcessorsManipulatingPayloads extends SpiedBeanHelper {
     }
 
     @Outgoing(DEFAULT_ACKNOWLEDGMENT_CS)
-    public Publisher<Message<String>> sourceToDefaultAckCS() {
+    public Flow.Publisher<Message<String>> sourceToDefaultAckCS() {
         return Multi.createFrom().items("a", "b", "c", "d", "e")
                 .map(payload -> Message.of(payload, () -> {
                     nap();
@@ -314,7 +314,7 @@ public class BeanWithProcessorsManipulatingPayloads extends SpiedBeanHelper {
     }
 
     @Outgoing(DEFAULT_ACKNOWLEDGMENT_UNI)
-    public Publisher<Message<String>> sourceToDefaultAckUNI() {
+    public Flow.Publisher<Message<String>> sourceToDefaultAckUNI() {
         return Multi.createFrom().items("a", "b", "c", "d", "e")
                 .map(payload -> Message.of(payload, () -> {
                     nap();

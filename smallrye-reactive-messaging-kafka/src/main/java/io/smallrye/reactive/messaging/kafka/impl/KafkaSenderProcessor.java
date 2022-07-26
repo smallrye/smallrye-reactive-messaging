@@ -2,13 +2,13 @@ package io.smallrye.reactive.messaging.kafka.impl;
 
 import static io.smallrye.reactive.messaging.kafka.i18n.KafkaExceptions.ex;
 
+import java.util.concurrent.Flow.Processor;
+import java.util.concurrent.Flow.Subscriber;
+import java.util.concurrent.Flow.Subscription;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 
 import org.eclipse.microprofile.reactive.messaging.Message;
-import org.reactivestreams.Processor;
-import org.reactivestreams.Subscriber;
-import org.reactivestreams.Subscription;
 
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.helpers.Subscriptions;

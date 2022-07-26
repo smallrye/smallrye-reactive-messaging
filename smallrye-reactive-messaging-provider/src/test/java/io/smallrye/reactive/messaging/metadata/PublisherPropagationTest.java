@@ -3,13 +3,14 @@ package io.smallrye.reactive.messaging.metadata;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
+import java.util.concurrent.Flow;
+
 import jakarta.enterprise.context.ApplicationScoped;
 
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.junit.jupiter.api.Test;
-import org.reactivestreams.Publisher;
 
 import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.WeldTestBaseWithoutTails;
@@ -39,7 +40,7 @@ public class PublisherPropagationTest extends WeldTestBaseWithoutTails {
     public static class ProcessorReturningPublisherOfPayload {
         @Incoming("source")
         @Outgoing("intermediate")
-        public Publisher<String> process(String payload) {
+        public Flow.Publisher<String> process(String payload) {
             return Multi.createFrom().items(payload, payload);
         }
 
@@ -49,7 +50,7 @@ public class PublisherPropagationTest extends WeldTestBaseWithoutTails {
     public static class ProcessorRetuningPublisherOfMessage {
         @Incoming("intermediate")
         @Outgoing("sink")
-        public Publisher<Message<String>> process(Message<String> input) {
+        public Flow.Publisher<Message<String>> process(Message<String> input) {
             return Multi.createFrom().items(
                     input.withMetadata(input.getMetadata().with(new MessageTest.MyMetadata<>("hello"))),
                     input.withMetadata(input.getMetadata().with(new MessageTest.MyMetadata<>("hello"))));

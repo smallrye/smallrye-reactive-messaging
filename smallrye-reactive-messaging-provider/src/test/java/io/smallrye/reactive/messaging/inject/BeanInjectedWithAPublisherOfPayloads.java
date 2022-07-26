@@ -1,12 +1,12 @@
 package io.smallrye.reactive.messaging.inject;
 
 import java.util.List;
+import java.util.concurrent.Flow.Publisher;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
 import org.eclipse.microprofile.reactive.messaging.Channel;
-import org.reactivestreams.Publisher;
 
 import io.smallrye.mutiny.Multi;
 

@@ -1,5 +1,7 @@
 package io.smallrye.reactive.messaging.ack;
 
+import java.util.concurrent.Flow;
+
 import jakarta.enterprise.context.ApplicationScoped;
 
 import org.eclipse.microprofile.reactive.messaging.Acknowledgment;
@@ -7,7 +9,6 @@ import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
-import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
 
 @ApplicationScoped
@@ -37,7 +38,7 @@ public class SubscriberBeanWithMethodsReturningSubscribers extends SpiedBeanHelp
     }
 
     @Outgoing(MANUAL_ACKNOWLEDGMENT_MESSAGE)
-    public Publisher<Message<String>> sourceToManualAckWithMessage() {
+    public Flow.Publisher<Message<String>> sourceToManualAckWithMessage() {
         return source(MANUAL_ACKNOWLEDGMENT_MESSAGE);
     }
 
@@ -53,7 +54,7 @@ public class SubscriberBeanWithMethodsReturningSubscribers extends SpiedBeanHelp
     }
 
     @Outgoing(NO_ACKNOWLEDGMENT_MESSAGE)
-    public Publisher<Message<String>> sourceToNoAckWithMessage() {
+    public Flow.Publisher<Message<String>> sourceToNoAckWithMessage() {
         return source(NO_ACKNOWLEDGMENT_MESSAGE);
     }
 
@@ -69,7 +70,7 @@ public class SubscriberBeanWithMethodsReturningSubscribers extends SpiedBeanHelp
     }
 
     @Outgoing(NO_ACKNOWLEDGMENT_PAYLOAD)
-    public Publisher<Message<String>> sourceToNoAckWithPayload() {
+    public Flow.Publisher<Message<String>> sourceToNoAckWithPayload() {
         return source(NO_ACKNOWLEDGMENT_PAYLOAD);
     }
 
@@ -85,7 +86,7 @@ public class SubscriberBeanWithMethodsReturningSubscribers extends SpiedBeanHelp
     }
 
     @Outgoing(PRE_PROCESSING_ACK_MESSAGE)
-    public Publisher<Message<String>> sourceToPreAckWithMessage() {
+    public Flow.Publisher<Message<String>> sourceToPreAckWithMessage() {
         return source(PRE_PROCESSING_ACK_MESSAGE);
     }
 
@@ -101,7 +102,7 @@ public class SubscriberBeanWithMethodsReturningSubscribers extends SpiedBeanHelp
     }
 
     @Outgoing(PRE_PROCESSING_ACK_PAYLOAD)
-    public Publisher<Message<String>> sourceToPreAckWithPayload() {
+    public Flow.Publisher<Message<String>> sourceToPreAckWithPayload() {
         return source(PRE_PROCESSING_ACK_PAYLOAD);
     }
 
@@ -116,7 +117,7 @@ public class SubscriberBeanWithMethodsReturningSubscribers extends SpiedBeanHelp
     }
 
     @Outgoing(DEFAULT_PROCESSING_ACK_PAYLOAD)
-    public Publisher<Message<String>> sourceToDefaultAckWithPayload() {
+    public Flow.Publisher<Message<String>> sourceToDefaultAckWithPayload() {
         return source(DEFAULT_PROCESSING_ACK_PAYLOAD);
     }
 
@@ -132,7 +133,7 @@ public class SubscriberBeanWithMethodsReturningSubscribers extends SpiedBeanHelp
     }
 
     @Outgoing(DEFAULT_PROCESSING_ACK_MESSAGE)
-    public Publisher<Message<String>> sourceToDefaultAckWithMessage() {
+    public Flow.Publisher<Message<String>> sourceToDefaultAckWithMessage() {
         return source(DEFAULT_PROCESSING_ACK_MESSAGE);
     }
 

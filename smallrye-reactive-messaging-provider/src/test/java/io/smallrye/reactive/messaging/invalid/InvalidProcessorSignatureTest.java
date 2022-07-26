@@ -5,6 +5,7 @@ import static org.awaitility.Awaitility.await;
 
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.Flow;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.spi.DeploymentException;
@@ -15,7 +16,6 @@ import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 import org.junit.jupiter.api.Test;
-import org.reactivestreams.Publisher;
 
 import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.WeldTestBaseWithoutTails;
@@ -175,7 +175,7 @@ public class InvalidProcessorSignatureTest extends WeldTestBaseWithoutTails {
     public static class PayloadToPayloads {
         @Incoming("i")
         @Outgoing("o")
-        public Publisher<String> consume(String i) {
+        public Flow.Publisher<String> consume(String i) {
             return Multi.createFrom().item(i);
         }
     }
@@ -193,7 +193,7 @@ public class InvalidProcessorSignatureTest extends WeldTestBaseWithoutTails {
     public static class PayloadToMessages {
         @Incoming("i")
         @Outgoing("o")
-        public Publisher<Message<String>> consume(String i) {
+        public Flow.Publisher<Message<String>> consume(String i) {
             return Multi.createFrom().item(Message.of(i));
         }
     }
@@ -211,7 +211,7 @@ public class InvalidProcessorSignatureTest extends WeldTestBaseWithoutTails {
     public static class MessageToMessages {
         @Incoming("i")
         @Outgoing("o")
-        public Publisher<Message<String>> consume(Message<String> i) {
+        public Flow.Publisher<Message<String>> consume(Message<String> i) {
             return Multi.createFrom().item(i.withPayload(i.getPayload().toLowerCase()));
         }
     }
@@ -229,7 +229,7 @@ public class InvalidProcessorSignatureTest extends WeldTestBaseWithoutTails {
     public static class MessageToPayloads {
         @Incoming("i")
         @Outgoing("o")
-        public Publisher<String> consume(Message<String> i) {
+        public Flow.Publisher<String> consume(Message<String> i) {
             return Multi.createFrom().item(i.getPayload());
         }
     }

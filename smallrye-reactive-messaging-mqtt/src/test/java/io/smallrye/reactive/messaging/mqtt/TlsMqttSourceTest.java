@@ -3,16 +3,21 @@ package io.smallrye.reactive.messaging.mqtt;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.Flow;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 import org.eclipse.microprofile.reactive.messaging.Message;
-import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
+import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 
 public class TlsMqttSourceTest extends TlsMqttTestBase {
@@ -41,8 +46,8 @@ public class TlsMqttSourceTest extends TlsMqttTestBase {
                 null);
 
         List<MqttMessage<?>> messages = new ArrayList<>();
-        PublisherBuilder<MqttMessage<?>> stream = source.getSource();
-        stream.forEach(messages::add).run();
+        Flow.Publisher<? extends MqttMessage<?>> stream = source.getSource();
+        Multi.createFrom().publisher(stream).subscribe().with(messages::add);
         awaitUntilReady(source);
         pause();
         AtomicInteger counter = new AtomicInteger();

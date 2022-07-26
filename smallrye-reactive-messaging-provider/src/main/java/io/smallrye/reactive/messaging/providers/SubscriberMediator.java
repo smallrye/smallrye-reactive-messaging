@@ -5,6 +5,7 @@ import static io.smallrye.reactive.messaging.providers.i18n.ProviderLogging.log;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.Flow;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -13,7 +14,6 @@ import org.eclipse.microprofile.reactive.messaging.Acknowledgment;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 import org.reactivestreams.Subscriber;
-import org.reactivestreams.Subscription;
 
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
@@ -24,18 +24,19 @@ import io.smallrye.reactive.messaging.Shape;
 import io.smallrye.reactive.messaging.providers.helpers.ClassUtils;
 import io.smallrye.reactive.messaging.providers.helpers.IgnoringSubscriber;
 import io.smallrye.reactive.messaging.providers.helpers.MultiUtils;
+import mutiny.zero.flow.adapters.AdaptersToFlow;
 
 public class SubscriberMediator extends AbstractMediator {
 
     private Multi<? extends Message<?>> source;
-    private Subscriber<Message<?>> subscriber;
+    private Flow.Subscriber<Message<?>> subscriber;
 
     private Function<Multi<? extends Message<?>>, Multi<? extends Message<?>>> function;
 
     /**
      * Keep track of the subscription to cancel it once the scope is terminated.
      */
-    private final AtomicReference<Subscription> subscription = new AtomicReference<>();
+    private final AtomicReference<Flow.Subscription> subscription = new AtomicReference<>();
 
     // Supported signatures:
     // 1. Subscriber<Message<I>> method()
@@ -81,7 +82,7 @@ public class SubscriberMediator extends AbstractMediator {
     }
 
     @Override
-    public Subscriber<Message<?>> getComputedSubscriber() {
+    public Flow.Subscriber<Message<?>> getComputedSubscriber() {
         return subscriber;
     }
 
@@ -103,12 +104,12 @@ public class SubscriberMediator extends AbstractMediator {
         assert this.subscriber != null;
 
         AtomicReference<Throwable> syncErrorCatcher = new AtomicReference<>();
-        Subscriber<Message<?>> delegate = this.subscriber;
-        Subscriber<Message<?>> delegating = new MultiSubscriber<Message<?>>() {
+        Flow.Subscriber<Message<?>> delegate = this.subscriber;
+        Flow.Subscriber<Message<?>> delegating = new MultiSubscriber<Message<?>>() {
             @Override
-            public void onSubscribe(Subscription s) {
+            public void onSubscribe(Flow.Subscription s) {
                 subscription.set(s);
-                delegate.onSubscribe(new Subscription() {
+                delegate.onSubscribe(new Flow.Subscription() {
                     @Override
                     public void request(long n) {
                         s.request(n);
@@ -278,16 +279,18 @@ public class SubscriberMediator extends AbstractMediator {
     @SuppressWarnings("unchecked")
     private void processMethodReturningASubscriber() {
         Object result = invoke();
-        if (!(result instanceof Subscriber) && !(result instanceof SubscriberBuilder)) {
+        if (!(result instanceof Flow.Subscriber) && !(result instanceof SubscriberBuilder) && !(result instanceof Subscriber)) {
             throw ex.illegalStateExceptionForSubscriberOrSubscriberBuilder(result.getClass().getName());
         }
 
         if (configuration.consumption() == MediatorConfiguration.Consumption.STREAM_OF_PAYLOAD) {
-            Subscriber<Object> userSubscriber;
-            if (result instanceof Subscriber) {
-                userSubscriber = (Subscriber<Object>) result;
+            Flow.Subscriber<Object> userSubscriber;
+            if (result instanceof Flow.Subscriber) {
+                userSubscriber = (Flow.Subscriber<Object>) result;
+            } else if (result instanceof Subscriber) {
+                userSubscriber = AdaptersToFlow.subscriber((Subscriber<Object>) result);
             } else {
-                userSubscriber = ((SubscriberBuilder<Object, Void>) result).build();
+                userSubscriber = AdaptersToFlow.subscriber(((SubscriberBuilder<Object, Void>) result).build());
             }
 
             SubscriberWrapper<?, Message<?>> wrapper = new SubscriberWrapper<>(userSubscriber, Message::getPayload,
@@ -312,11 +315,13 @@ public class SubscriberMediator extends AbstractMediator {
             this.function = upstream -> MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration);
             this.subscriber = wrapper;
         } else {
-            Subscriber<Message<?>> sub;
-            if (result instanceof Subscriber) {
-                sub = (Subscriber<Message<?>>) result;
+            Flow.Subscriber<Message<?>> sub;
+            if (result instanceof Flow.Subscriber) {
+                sub = (Flow.Subscriber<Message<?>>) result;
+            } else if (result instanceof Subscriber) {
+                sub = AdaptersToFlow.subscriber((Subscriber<Message<?>>) result);
             } else {
-                sub = ((SubscriberBuilder<Message<?>, Void>) result).build();
+                sub = AdaptersToFlow.subscriber(((SubscriberBuilder<Message<?>, Void>) result).build());
             }
             this.function = upstream -> MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration);
             this.subscriber = sub;

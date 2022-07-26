@@ -3,15 +3,13 @@ package io.smallrye.reactive.messaging.mqtt;
 import static io.smallrye.reactive.messaging.mqtt.i18n.MqttLogging.log;
 
 import java.util.Optional;
+import java.util.concurrent.Flow;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 import jakarta.enterprise.inject.Instance;
 
 import org.eclipse.microprofile.reactive.messaging.Message;
-import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
-import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
-import org.reactivestreams.Subscriber;
 
 import io.netty.handler.codec.mqtt.MqttQoS;
 import io.smallrye.mutiny.Uni;
@@ -35,7 +33,7 @@ public class MqttSink {
     private final int qos;
     private final boolean healthEnabled;
 
-    private final SubscriberBuilder<? extends Message<?>, Void> sink;
+    private final Flow.Subscriber<? extends Message<?>> sink;
 
     private final AtomicBoolean started = new AtomicBoolean();
     private final AtomicBoolean alive = new AtomicBoolean();
@@ -51,7 +49,7 @@ public class MqttSink {
         qos = config.getQos();
         healthEnabled = config.getHealthEnabled();
 
-        Subscriber<? extends Message<?>> subscriber = MultiUtils.via(m -> m.onSubscription()
+        sink = MultiUtils.via(m -> m.onSubscription()
                 .call(() -> {
                     Clients.ClientHolder client = reference.get();
                     if (client == null) {
@@ -75,7 +73,6 @@ public class MqttSink {
                     alive.set(false);
                     log.errorWhileSendingMessageToBroker(e);
                 }));
-        sink = ReactiveStreams.fromSubscriber(subscriber);
     }
 
     private Uni<? extends Message<?>> send(Message<?> msg) {
@@ -138,7 +135,7 @@ public class MqttSink {
         return new Buffer(Json.encodeToBuffer(payload));
     }
 
-    public SubscriberBuilder<? extends Message<?>, Void> getSink() {
+    public Flow.Subscriber<? extends Message<?>> getSink() {
         return sink;
     }
 

@@ -4,13 +4,13 @@ import static io.smallrye.reactive.messaging.rabbitmq.i18n.RabbitMQExceptions.ex
 import static java.time.Duration.ofSeconds;
 
 import java.util.Optional;
+import java.util.concurrent.Flow;
+import java.util.concurrent.Flow.Processor;
+import java.util.concurrent.Flow.Subscriber;
+import java.util.concurrent.Flow.Subscription;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.eclipse.microprofile.reactive.messaging.Message;
-import org.reactivestreams.Processor;
-import org.reactivestreams.Publisher;
-import org.reactivestreams.Subscriber;
-import org.reactivestreams.Subscription;
 
 import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.opentelemetry.instrumentation.api.instrumenter.Instrumenter;
@@ -89,18 +89,18 @@ public class RabbitMQMessageSender implements Processor<Message<?>, Message<?>>,
     /* ----------------------------------------------------- */
 
     /**
-     * Request {@link Publisher} to start streaming data.
+     * Request {@link Flow.Publisher} to start streaming data.
      * <p>
      * This is a "factory method" and can be called multiple times, each time starting a new {@link Subscription}.
      * <p>
      * Each {@link Subscription} will work for only a single {@link Subscriber}.
      * <p>
-     * A {@link Subscriber} should only subscribe once to a single {@link Publisher}.
+     * A {@link Subscriber} should only subscribe once to a single {@link Flow.Publisher}.
      * <p>
-     * If the {@link Publisher} rejects the subscription attempt or otherwise fails it will
+     * If the {@link Flow.Publisher} rejects the subscription attempt or otherwise fails it will
      * signal the error via {@link Subscriber#onError}.
      *
-     * @param subscriber the {@link Subscriber} that will consume signals from this {@link Publisher}
+     * @param subscriber the {@link Subscriber} that will consume signals from this {@link Flow.Publisher}
      */
     @Override
     public void subscribe(
@@ -119,14 +119,14 @@ public class RabbitMQMessageSender implements Processor<Message<?>, Message<?>>,
     /* ----------------------------------------------------- */
 
     /**
-     * Invoked after calling {@link Publisher#subscribe(Subscriber)}.
+     * Invoked after calling {@link Flow.Publisher#subscribe(Subscriber)}.
      * <p>
      * No data will start flowing until {@link Subscription#request(long)} is invoked.
      * <p>
      * It is the responsibility of this {@link Subscriber} instance to call {@link Subscription#request(long)} whenever more
      * data is wanted.
      * <p>
-     * The {@link Publisher} will send notifications only in response to {@link Subscription#request(long)}.
+     * The {@link Flow.Publisher} will send notifications only in response to {@link Subscription#request(long)}.
      *
      * @param subscription
      *        {@link Subscription} that allows requesting data via {@link Subscription#request(long)}
@@ -147,7 +147,7 @@ public class RabbitMQMessageSender implements Processor<Message<?>, Message<?>>,
     }
 
     /**
-     * Data notification sent by the {@link Publisher} in response to requests to {@link Subscription#request(long)}.
+     * Data notification sent by the {@link Flow.Publisher} in response to requests to {@link Subscription#request(long)}.
      *
      * @param message the element signaled
      */
@@ -219,21 +219,22 @@ public class RabbitMQMessageSender implements Processor<Message<?>, Message<?>>,
     /* ----------------------------------------------------- */
 
     /**
-     * No events will be sent by a {@link Publisher} until demand is signaled via this method.
+     * No events will be sent by a {@link Flow.Publisher} until demand is signaled via this method.
      * <p>
      * It can be called however often and whenever needed—but if the outstanding cumulative demand ever becomes Long.MAX_VALUE
      * or more,
-     * it may be treated by the {@link Publisher} as "effectively unbounded".
+     * it may be treated by the {@link Flow.Publisher} as "effectively unbounded".
      * <p>
-     * Whatever has been requested can be sent by the {@link Publisher} so only signal demand for what can be safely handled.
+     * Whatever has been requested can be sent by the {@link Flow.Publisher} so only signal demand for what can be safely
+     * handled.
      * <p>
-     * A {@link Publisher} can send less than is requested if the stream ends but
+     * A {@link Flow.Publisher} can send less than is requested if the stream ends but
      * then must emit either {@link Subscriber#onError(Throwable)} or {@link Subscriber#onComplete()}.
      * <p>
      * <strong>Note that this method is expected to be called only once on a given sender.</strong>
      * </p>
      *
-     * @param l the strictly positive number of elements to requests to the upstream {@link Publisher}
+     * @param l the strictly positive number of elements to requests to the upstream {@link Flow.Publisher}
      */
     @Override
     public void request(long l) {
@@ -244,7 +245,7 @@ public class RabbitMQMessageSender implements Processor<Message<?>, Message<?>>,
     }
 
     /**
-     * Request the {@link Publisher} to stop sending data and clean up resources.
+     * Request the {@link Flow.Publisher} to stop sending data and clean up resources.
      * <p>
      * Data may still be sent to meet previously signalled demand after calling cancel.
      */
