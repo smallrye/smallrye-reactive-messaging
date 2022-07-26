@@ -7,6 +7,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.Flow;
 import java.util.stream.Collectors;
 
 import jakarta.enterprise.context.ApplicationScoped;
@@ -15,7 +16,6 @@ import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.junit.jupiter.api.*;
-import org.reactivestreams.Publisher;
 
 import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.WeldTestBaseWithoutTails;
@@ -235,7 +235,7 @@ class BlockingSubscriberTest extends WeldTestBaseWithoutTails {
     @ApplicationScoped
     public static class ProduceIn {
         @Outgoing("in")
-        public Publisher<String> produce() {
+        public Flow.Publisher<String> produce() {
             return Multi.createFrom().items("a", "b", "c", "d", "e", "f");
         }
     }

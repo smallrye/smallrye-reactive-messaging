@@ -6,6 +6,7 @@ import static org.awaitility.Awaitility.await;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.Flow;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.se.SeContainer;
@@ -14,7 +15,6 @@ import jakarta.enterprise.inject.spi.DeploymentException;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.junit.jupiter.api.Test;
-import org.reactivestreams.Subscriber;
 
 import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.beans.*;
@@ -151,7 +151,7 @@ public class SubscriberShapeTest extends WeldTestBaseWithoutTails {
 
     private void assertThatSubscriberWasPublished(SeContainer container) {
         assertThat(registry(container).getOutgoingNames()).contains("subscriber");
-        List<Subscriber<? extends Message<?>>> subscriber = registry(container).getSubscribers("subscriber");
+        List<Flow.Subscriber<? extends Message<?>>> subscriber = registry(container).getSubscribers("subscriber");
         assertThat(subscriber).isNotEmpty();
     }
 }

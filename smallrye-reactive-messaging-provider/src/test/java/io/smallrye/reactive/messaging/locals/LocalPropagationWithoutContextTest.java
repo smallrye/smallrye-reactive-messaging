@@ -5,6 +5,7 @@ import static org.awaitility.Awaitility.await;
 
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.Flow;
 import java.util.concurrent.TimeUnit;
 
 import jakarta.enterprise.context.ApplicationScoped;
@@ -18,7 +19,6 @@ import org.eclipse.microprofile.reactive.messaging.spi.Connector;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.RepeatedTest;
-import org.reactivestreams.Publisher;
 
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
@@ -53,7 +53,7 @@ public class LocalPropagationWithoutContextTest extends WeldTestBaseWithoutTails
     public static class ConnectorEmittingDirectly implements InboundConnector {
 
         @Override
-        public Publisher<? extends Message<?>> getPublisher(Config config) {
+        public Flow.Publisher<? extends Message<?>> getPublisher(Config config) {
             return Multi.createFrom().items(1, 2, 3, 4, 5)
                     .map(Message::of)
                     .onItem().transformToUniAndConcatenate(i -> Uni.createFrom().emitter(e -> e.complete(i)));

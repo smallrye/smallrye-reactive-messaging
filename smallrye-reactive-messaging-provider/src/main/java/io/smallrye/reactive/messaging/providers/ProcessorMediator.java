@@ -7,13 +7,13 @@ import static io.smallrye.reactive.messaging.providers.i18n.ProviderMessages.msg
 
 import java.util.Objects;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.Flow;
 import java.util.function.Function;
 
 import org.eclipse.microprofile.reactive.messaging.Acknowledgment;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.streams.operators.ProcessorBuilder;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
-import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 import org.reactivestreams.Processor;
 import org.reactivestreams.Publisher;
 
@@ -23,6 +23,7 @@ import io.smallrye.reactive.messaging.MediatorConfiguration;
 import io.smallrye.reactive.messaging.Shape;
 import io.smallrye.reactive.messaging.providers.helpers.ClassUtils;
 import io.smallrye.reactive.messaging.providers.helpers.MultiUtils;
+import mutiny.zero.flow.adapters.AdaptersToFlow;
 
 public class ProcessorMediator extends AbstractMediator {
 
@@ -72,15 +73,11 @@ public class ProcessorMediator extends AbstractMediator {
     public void initialize(Object bean) {
         super.initialize(bean);
         // Supported signatures:
-        // 1.  Processor<Message<I>, Message<O>> method()
-        // 2.  Processor<I, O> method()
-        // 3.  ProcessorBuilder<Message<I>, Message<O>> method()
-        // 4.  ProcessorBuilder<I, O> method()
+        // 1.  Flow.Processor<Message<I>, Message<O>>, Processor<Message<I>, Message<O>>, ProcessorBuilder<Message<I>, Message<O>> method()
+        // 2.  Flow.Processor<I, O>, Processor<I, O>, ProcessorBuilder<I, O> method()
 
-        // 5.  Publisher<Message<O>> method(Message<I> msg)
-        // 6.  Publisher<O> method(I payload)
-        // 7.  PublisherBuilder<Message<O>> method(Message<I> msg)
-        // 8.  PublisherBuilder<O> method(I payload)
+        // 5.  Flow.Publisher<Message<O>>, Publisher<Message<O>>, PublisherBuilder<Message<O>> method(Message<I> msg)
+        // 6.  Flow.Publisher<O>, Publisher<O>, PublisherBuilder<O> method(I payload)
 
         // 9. Message<O> method(Message<I> msg)
         // 10. O method(I payload)
@@ -90,21 +87,23 @@ public class ProcessorMediator extends AbstractMediator {
         // IMPORTANT When returning a Publisher or a PublisherBuilder, you can't mix payloads and messages
         switch (configuration.production()) {
             case STREAM_OF_MESSAGE:
-                // Case 1, 3, 5, 7
-                if (isReturningAProcessorOrAProcessorBuilder()) {
+                // Case 1, 5
+                if (isReturningAProcessorOrAReactiveStreamsProcessorOrAProcessorBuilder()) {
+                    // Case 1
                     if (configuration.usesBuilderTypes()) {
-                        // Case 3
                         processMethodReturningAProcessorBuilderOfMessages();
+                    } else if (configuration.usesReactiveStreams()) {
+                        processMethodReturningAReactiveStreamsProcessorOfMessages();
                     } else {
-                        // Case 1
                         processMethodReturningAProcessorOfMessages();
                     }
-                } else if (isReturningAPublisherOrAPublisherBuilder()) {
+                } else if (isReturningAPublisherOrAReactiveStreamsPublisherOrAPublisherBuilder()) {
+                    // Case 5
                     if (configuration.usesBuilderTypes()) {
-                        // Case 7
                         processMethodReturningAPublisherBuilderOfMessageAndConsumingMessages();
+                    } else if (configuration.usesReactiveStreams()) {
+                        processMethodReturningAReactiveStreamsPublisherOfMessageAndConsumingMessages();
                     } else {
-                        // Case 5
                         processMethodReturningAPublisherOfMessageAndConsumingMessages();
                     }
                 } else {
@@ -112,23 +111,23 @@ public class ProcessorMediator extends AbstractMediator {
                 }
                 break;
             case STREAM_OF_PAYLOAD:
-                // Case 2, 4, 6, 8
-                if (isReturningAProcessorOrAProcessorBuilder()) {
-                    // Case 2, 4
+                // Case 2, 6
+                if (isReturningAProcessorOrAReactiveStreamsProcessorOrAProcessorBuilder()) {
+                    // Case 2
                     if (configuration.usesBuilderTypes()) {
-                        // Case 4
                         processMethodReturningAProcessorBuilderOfPayloads();
+                    } else if (configuration.usesReactiveStreams()) {
+                        processMethodReturningAReactiveStreamsProcessorOfPayloads();
                     } else {
-                        // Case 2
                         processMethodReturningAProcessorOfPayloads();
                     }
-                } else if (isReturningAPublisherOrAPublisherBuilder()) {
-                    // Case 6, 8
+                } else if (isReturningAPublisherOrAReactiveStreamsPublisherOrAPublisherBuilder()) {
+                    // Case 6
                     if (configuration.usesBuilderTypes()) {
-                        // Case 8
                         processMethodReturningAPublisherBuilderOfPayloadsAndConsumingPayloads();
+                    } else if (configuration.usesReactiveStreams()) {
+                        processMethodReturningAReactiveStreamsPublisherOfPayloadsAndConsumingPayloads();
                     } else {
-                        // Case 6
                         processMethodReturningAPublisherOfPayloadsAndConsumingPayloads();
                     }
                 } else {
@@ -167,13 +166,21 @@ public class ProcessorMediator extends AbstractMediator {
     @SuppressWarnings("unchecked")
     private void processMethodReturningAPublisherBuilderOfMessageAndConsumingMessages() {
         this.mapper = upstream -> MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration)
-                .onItem().transformToMultiAndConcatenate(msg -> ((PublisherBuilder<Message<?>>) invoke(msg)).buildRs());
+                .onItem().transformToMultiAndConcatenate(
+                        msg -> AdaptersToFlow.publisher(((PublisherBuilder<Message<?>>) invoke(msg)).buildRs()));
+    }
+
+    @SuppressWarnings("unchecked")
+    private void processMethodReturningAReactiveStreamsPublisherOfMessageAndConsumingMessages() {
+        this.mapper = upstream -> MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration)
+                .onItem().transformToMultiAndConcatenate(
+                        msg -> AdaptersToFlow.publisher((Publisher<Message<?>>) invoke(msg)));
     }
 
     @SuppressWarnings("unchecked")
     private void processMethodReturningAPublisherOfMessageAndConsumingMessages() {
         this.mapper = upstream -> MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration)
-                .onItem().transformToMultiAndConcatenate(msg -> ((Publisher<Message<?>>) invoke(msg)));
+                .onItem().transformToMultiAndConcatenate(msg -> (Flow.Publisher<Message<?>>) invoke(msg));
     }
 
     private void processMethodReturningAProcessorBuilderOfMessages() {
@@ -182,32 +189,27 @@ public class ProcessorMediator extends AbstractMediator {
 
         this.mapper = upstream -> {
             Multi<? extends Message<?>> multi = MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration);
-            // TODO Add a via to MultiUtils
-            return Multi.createFrom().publisher(ReactiveStreams.fromPublisher(multi).via(builder).buildRs());
+            return MultiUtils.via(multi, AdaptersToFlow.processor(builder.buildRs()));
         };
     }
 
-    private void processMethodReturningAProcessorOfMessages() {
+    private void processMethodReturningAReactiveStreamsProcessorOfMessages() {
         Processor<Message<?>, Message<?>> result = Objects.requireNonNull(invoke(),
                 msg.methodReturnedNull(configuration.methodAsString()));
 
         this.mapper = upstream -> {
             Multi<? extends Message<?>> multi = MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration);
-            // TODO Add a via to MultiUtils
-            return Multi.createFrom().publisher(ReactiveStreams.fromPublisher(multi).via(result).buildRs());
+            return MultiUtils.via(multi, AdaptersToFlow.processor(result));
         };
     }
 
-    @SuppressWarnings({ "unchecked", "rawtypes" })
-    private void processMethodReturningAProcessorOfPayloads() {
-        Processor returnedProcessor = invoke();
-        Objects.requireNonNull(returnedProcessor, msg.methodReturnedNull(configuration.methodAsString()));
+    private void processMethodReturningAProcessorOfMessages() {
+        Flow.Processor<Message<?>, Message<?>> result = Objects.requireNonNull(invoke(),
+                msg.methodReturnedNull(configuration.methodAsString()));
+
         this.mapper = upstream -> {
-            Multi<?> multi = MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration)
-                    .onItem().transform(Message::getPayload);
-            // TODO Add a via to MultiUtils
-            return Multi.createFrom().publisher(ReactiveStreams.fromPublisher(multi).via(returnedProcessor).buildRs())
-                    .onItem().transform(Message::of);
+            Multi<? extends Message<?>> multi = MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration);
+            return MultiUtils.via(multi, result);
         };
     }
 
@@ -219,8 +221,31 @@ public class ProcessorMediator extends AbstractMediator {
         this.mapper = upstream -> {
             Multi<?> multi = MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration)
                     .onItem().transform(Message::getPayload);
-            // TODO Add a via to MultiUtils
-            return Multi.createFrom().publisher(ReactiveStreams.fromPublisher(multi).via(returnedProcessorBuilder).buildRs())
+            return MultiUtils.via(multi, AdaptersToFlow.processor(returnedProcessorBuilder.buildRs()))
+                    .onItem().transform(Message::of);
+        };
+    }
+
+    @SuppressWarnings({ "unchecked", "rawtypes" })
+    private void processMethodReturningAReactiveStreamsProcessorOfPayloads() {
+        Processor returnedProcessor = invoke();
+        Objects.requireNonNull(returnedProcessor, msg.methodReturnedNull(configuration.methodAsString()));
+        this.mapper = upstream -> {
+            Multi<?> multi = MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration)
+                    .onItem().transform(Message::getPayload);
+            return MultiUtils.via(multi, AdaptersToFlow.processor(returnedProcessor))
+                    .onItem().transform(Message::of);
+        };
+    }
+
+    @SuppressWarnings({ "unchecked", "rawtypes" })
+    private void processMethodReturningAProcessorOfPayloads() {
+        Flow.Processor returnedProcessor = invoke();
+        Objects.requireNonNull(returnedProcessor, msg.methodReturnedNull(configuration.methodAsString()));
+        this.mapper = upstream -> {
+            Multi<?> multi = MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration)
+                    .onItem().transform(Message::getPayload);
+            return MultiUtils.via(multi, returnedProcessor)
                     .onItem().transform(Message::of);
         };
     }
@@ -230,7 +255,19 @@ public class ProcessorMediator extends AbstractMediator {
             Multi<? extends Message<?>> multi = MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration);
             return multi.onItem().transformToMultiAndConcatenate(message -> {
                 PublisherBuilder<?> pb = invoke(message.getPayload());
-                return MultiUtils.publisher(pb.buildRs())
+                return MultiUtils.publisher(AdaptersToFlow.publisher(pb.buildRs()))
+                        .onItem().transform(payload -> Message.of(payload, message.getMetadata()));
+                // TODO We can handle post-acknowledgement here. -> onCompletion
+            });
+        };
+    }
+
+    private void processMethodReturningAReactiveStreamsPublisherOfPayloadsAndConsumingPayloads() {
+        this.mapper = upstream -> {
+            Multi<? extends Message<?>> multi = MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration);
+            return multi.onItem().transformToMultiAndConcatenate(message -> {
+                Publisher<?> pb = invoke(message.getPayload());
+                return MultiUtils.publisher(AdaptersToFlow.publisher(pb))
                         .onItem().transform(payload -> Message.of(payload, message.getMetadata()));
                 // TODO We can handle post-acknowledgement here. -> onCompletion
             });
@@ -241,7 +278,7 @@ public class ProcessorMediator extends AbstractMediator {
         this.mapper = upstream -> {
             Multi<? extends Message<?>> multi = MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration);
             return multi.onItem().transformToMultiAndConcatenate(message -> {
-                Publisher<?> pub = invoke(message.getPayload());
+                Flow.Publisher<?> pub = invoke(message.getPayload());
                 return MultiUtils.publisher(pub)
                         .onItem().transform(payload -> Message.of(payload, message.getMetadata()));
                 // TODO We can handle post-acknowledgement here. -> onCompletion
@@ -315,7 +352,7 @@ public class ProcessorMediator extends AbstractMediator {
         }
     }
 
-    private Publisher<? extends Message<Object>> handleSkip(Message<Object> m) {
+    private Flow.Publisher<? extends Message<Object>> handleSkip(Message<Object> m) {
         if (m == null) { // If message is null, skip.
             return Multi.createFrom().empty();
         } else {
@@ -396,15 +433,17 @@ public class ProcessorMediator extends AbstractMediator {
                                 .onItem().transformToMulti(this::handleSkip));
     }
 
-    private boolean isReturningAPublisherOrAPublisherBuilder() {
+    private boolean isReturningAPublisherOrAReactiveStreamsPublisherOrAPublisherBuilder() {
         Class<?> returnType = configuration.getReturnType();
-        return ClassUtils.isAssignable(returnType, Publisher.class)
+        return ClassUtils.isAssignable(returnType, Flow.Publisher.class)
+                || ClassUtils.isAssignable(returnType, Publisher.class)
                 || ClassUtils.isAssignable(returnType, PublisherBuilder.class);
     }
 
-    private boolean isReturningAProcessorOrAProcessorBuilder() {
+    private boolean isReturningAProcessorOrAReactiveStreamsProcessorOrAProcessorBuilder() {
         Class<?> returnType = configuration.getReturnType();
-        return ClassUtils.isAssignable(returnType, Processor.class)
+        return ClassUtils.isAssignable(returnType, Flow.Processor.class)
+                || ClassUtils.isAssignable(returnType, Processor.class)
                 || ClassUtils.isAssignable(returnType, ProcessorBuilder.class);
     }
 

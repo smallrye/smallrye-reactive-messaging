@@ -5,6 +5,8 @@ import static io.smallrye.reactive.messaging.kafka.i18n.KafkaLogging.log;
 
 import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.Flow;
+import java.util.concurrent.Flow.Publisher;
 import java.util.stream.Collectors;
 
 import jakarta.annotation.PostConstruct;
@@ -20,8 +22,6 @@ import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.spi.Connector;
-import org.reactivestreams.Publisher;
-import org.reactivestreams.Subscriber;
 
 import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.opentelemetry.api.trace.Tracer;
@@ -169,7 +169,7 @@ public class KafkaConnector implements InboundConnector, OutboundConnector, Heal
     }
 
     @Override
-    public Publisher<? extends Message<?>> getPublisher(Config config) {
+    public Flow.Publisher<? extends Message<?>> getPublisher(Config config) {
         Config channelConfiguration = ConfigHelper.retrieveChannelConfiguration(configurations, config);
 
         KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(channelConfiguration);
@@ -240,7 +240,7 @@ public class KafkaConnector implements InboundConnector, OutboundConnector, Heal
     }
 
     @Override
-    public Subscriber<? extends Message<?>> getSubscriber(Config config) {
+    public Flow.Subscriber<? extends Message<?>> getSubscriber(Config config) {
         Config channelConfiguration = ConfigHelper.retrieveChannelConfiguration(configurations, config);
 
         KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(channelConfiguration);

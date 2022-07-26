@@ -8,6 +8,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.Flow.Processor;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
@@ -22,10 +23,10 @@ import org.eclipse.microprofile.reactive.messaging.spi.OutgoingConnectorFactory;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
-import org.reactivestreams.Processor;
 
 import io.smallrye.mutiny.operators.multi.processors.BroadcastProcessor;
 import io.smallrye.mutiny.operators.multi.processors.UnicastProcessor;
+import mutiny.zero.flow.adapters.AdaptersToReactiveStreams;
 
 /**
  * An implementation of connector used for testing applications without having to use external broker.
@@ -221,7 +222,7 @@ public class InMemoryConnector implements IncomingConnectorFactory, OutgoingConn
             } else {
                 processor = UnicastProcessor.create();
             }
-            this.source = ReactiveStreams.fromPublisher(processor);
+            this.source = ReactiveStreams.fromPublisher(AdaptersToReactiveStreams.publisher(processor));
         }
 
         @Override

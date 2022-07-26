@@ -1,6 +1,7 @@
 package io.smallrye.reactive.messaging.ack;
 
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.Flow;
 
 import jakarta.enterprise.context.ApplicationScoped;
 
@@ -8,7 +9,6 @@ import org.eclipse.microprofile.reactive.messaging.Acknowledgment;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
-import org.reactivestreams.Publisher;
 
 /**
  * It is not supported to return `void` or an object (that it not a CompletionStage) when consuming a Message. So, we are
@@ -34,7 +34,7 @@ public class SubscriberBeanWithMethodsReturningVoid extends SpiedBeanHelper {
     }
 
     @Outgoing(MANUAL_ACKNOWLEDGMENT)
-    public Publisher<Message<String>> sourceToManualAck() {
+    public Flow.Publisher<Message<String>> sourceToManualAck() {
         return source(MANUAL_ACKNOWLEDGMENT);
     }
 
@@ -45,7 +45,7 @@ public class SubscriberBeanWithMethodsReturningVoid extends SpiedBeanHelper {
     }
 
     @Outgoing(NO_ACKNOWLEDGMENT)
-    public Publisher<Message<String>> sourceToNoAck() {
+    public Flow.Publisher<Message<String>> sourceToNoAck() {
         return source(NO_ACKNOWLEDGMENT);
     }
 
@@ -55,7 +55,7 @@ public class SubscriberBeanWithMethodsReturningVoid extends SpiedBeanHelper {
     }
 
     @Outgoing(DEFAULT_ACKNOWLEDGMENT)
-    public Publisher<Message<String>> sourceToAutoAck() {
+    public Flow.Publisher<Message<String>> sourceToAutoAck() {
         return source(DEFAULT_ACKNOWLEDGMENT);
     }
 
@@ -66,7 +66,7 @@ public class SubscriberBeanWithMethodsReturningVoid extends SpiedBeanHelper {
     }
 
     @Outgoing(PRE_PROCESSING_ACKNOWLEDGMENT)
-    public Publisher<Message<String>> sourceToPreAck() {
+    public Flow.Publisher<Message<String>> sourceToPreAck() {
         return source(PRE_PROCESSING_ACKNOWLEDGMENT);
     }
 
@@ -77,7 +77,7 @@ public class SubscriberBeanWithMethodsReturningVoid extends SpiedBeanHelper {
     }
 
     @Outgoing(POST_PROCESSING_ACKNOWLEDGMENT)
-    public Publisher<Message<String>> sourceToPostAck() {
+    public Flow.Publisher<Message<String>> sourceToPostAck() {
         return source(POST_PROCESSING_ACKNOWLEDGMENT);
     }
 

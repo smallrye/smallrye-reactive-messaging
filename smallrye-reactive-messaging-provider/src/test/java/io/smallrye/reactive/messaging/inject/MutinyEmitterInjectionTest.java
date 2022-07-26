@@ -39,6 +39,7 @@ import io.smallrye.reactive.messaging.providers.extension.MutinyEmitterImpl;
 import io.vertx.core.Context;
 import io.vertx.core.Vertx;
 import io.vertx.core.impl.VertxInternal;
+import mutiny.zero.flow.adapters.AdaptersToFlow;
 
 public class MutinyEmitterInjectionTest extends WeldTestBaseWithoutTails {
 
@@ -753,13 +754,13 @@ public class MutinyEmitterInjectionTest extends WeldTestBaseWithoutTails {
         };
         EmitterConfiguration config = new DefaultEmitterConfiguration("my-channel", MUTINY_EMITTER, overflow, null);
         MutinyEmitterImpl<String> emitter = new MutinyEmitterImpl<>(config, 128);
-        Publisher<Message<? extends String>> publisher = emitter.getPublisher();
+        Flow.Publisher<Message<? extends String>> publisher = emitter.getPublisher();
 
         TestSubscriber<Message<? extends String>> sub1 = new TestSubscriber<>();
-        publisher.subscribe(sub1);
+        publisher.subscribe(AdaptersToFlow.subscriber(sub1));
 
         TestSubscriber<Message<? extends String>> sub2 = new TestSubscriber<>();
-        publisher.subscribe(sub2);
+        publisher.subscribe(AdaptersToFlow.subscriber(sub2));
 
         sub1.assertNoErrors();
         sub2.assertNoErrors();

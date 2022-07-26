@@ -2,6 +2,7 @@ package io.smallrye.reactive.messaging.mqtt;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Flow.Publisher;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -10,7 +11,6 @@ import org.eclipse.microprofile.reactive.messaging.Channel;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
-import org.reactivestreams.Publisher;
 
 import io.netty.handler.codec.mqtt.MqttQoS;
 import io.smallrye.mutiny.Multi;

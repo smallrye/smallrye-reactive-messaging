@@ -13,7 +13,6 @@ import jakarta.jms.*;
 
 import org.apache.activemq.artemis.jms.client.ActiveMQJMSConnectionFactory;
 import org.eclipse.microprofile.reactive.messaging.Message;
-import org.eclipse.microprofile.reactive.streams.operators.CompletionSubscriber;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -30,7 +29,7 @@ public class JmsSinkTest extends JmsTestBase {
     private ActiveMQJMSConnectionFactory factory;
     private JsonMapping jsonMapping;
     private ExecutorService executor;
-    private CompletionSubscriber<org.eclipse.microprofile.reactive.messaging.Message<?>, Void> subscriber;
+    private Flow.Subscriber<org.eclipse.microprofile.reactive.messaging.Message<?>> subscriber;
 
     @BeforeEach
     public void init() {
@@ -56,7 +55,7 @@ public class JmsSinkTest extends JmsTestBase {
                 .with("channel-name", "jms");
         JmsSink sink = new JmsSink(jms, new JmsConnectorOutgoingConfiguration(config), jsonMapping, executor);
         MyJmsClient client = new MyJmsClient(jms.createQueue("queue-one"));
-        subscriber = sink.getSink().build();
+        subscriber = sink.getSink();
         subscriber.onSubscribe(new Subscriptions.EmptySubscription());
         AtomicBoolean acked = new AtomicBoolean();
         subscriber.onNext(Message.of("hello",
@@ -76,7 +75,7 @@ public class JmsSinkTest extends JmsTestBase {
         JmsSink sink = new JmsSink(jms, new JmsConnectorOutgoingConfiguration(config), jsonMapping, executor);
         MyJmsClient client1 = new MyJmsClient(jms.createTopic("my-topic"));
         MyJmsClient client2 = new MyJmsClient(jms.createTopic("my-topic"));
-        subscriber = sink.getSink().build();
+        subscriber = sink.getSink();
         subscriber.onSubscribe(new Subscriptions.EmptySubscription());
         AtomicBoolean acked = new AtomicBoolean();
         subscriber.onNext(Message.of("hello",
@@ -98,7 +97,7 @@ public class JmsSinkTest extends JmsTestBase {
                 .with("channel-name", "jms");
         JmsSink sink = new JmsSink(jms, new JmsConnectorOutgoingConfiguration(config), jsonMapping, executor);
         MyJmsClient client = new MyJmsClient(jms.createQueue("queue-one"));
-        subscriber = sink.getSink().build();
+        subscriber = sink.getSink();
         subscriber.onSubscribe(new Subscriptions.EmptySubscription());
         AtomicBoolean acked = new AtomicBoolean();
         subscriber.onNext(Message.of("hello",
@@ -122,7 +121,7 @@ public class JmsSinkTest extends JmsTestBase {
                 .with("channel-name", "jms");
         JmsSink sink = new JmsSink(jms, new JmsConnectorOutgoingConfiguration(config), jsonMapping, executor);
         MyJmsClient client = new MyJmsClient(jms.createQueue("queue-one"));
-        subscriber = sink.getSink().build();
+        subscriber = sink.getSink();
         subscriber.onSubscribe(new Subscriptions.EmptySubscription());
         AtomicBoolean acked = new AtomicBoolean();
         subscriber.onNext(Message.of("hello",
@@ -146,7 +145,7 @@ public class JmsSinkTest extends JmsTestBase {
                 .with("channel-name", "jms");
         JmsSink sink = new JmsSink(jms, new JmsConnectorOutgoingConfiguration(config), jsonMapping, executor);
         MyJmsClient client = new MyJmsClient(jms.createQueue("queue-one"));
-        subscriber = sink.getSink().build();
+        subscriber = sink.getSink();
         subscriber.onSubscribe(new Subscriptions.EmptySubscription());
         AtomicBoolean acked = new AtomicBoolean();
         subscriber.onNext(Message.of("hello",
@@ -168,7 +167,7 @@ public class JmsSinkTest extends JmsTestBase {
                 .with("channel-name", "jms");
         JmsSink sink = new JmsSink(jms, new JmsConnectorOutgoingConfiguration(config), jsonMapping, executor);
         MyJmsClient client = new MyJmsClient(jms.createQueue("queue-one"));
-        subscriber = sink.getSink().build();
+        subscriber = sink.getSink();
         subscriber.onSubscribe(new Subscriptions.EmptySubscription());
         AtomicBoolean acked = new AtomicBoolean();
         subscriber.onNext(Message.of("hello",
@@ -192,7 +191,7 @@ public class JmsSinkTest extends JmsTestBase {
                 .with("channel-name", "jms");
         JmsSink sink = new JmsSink(jms, new JmsConnectorOutgoingConfiguration(config), jsonMapping, executor);
         MyJmsClient client = new MyJmsClient(jms.createQueue("queue-one"));
-        subscriber = sink.getSink().build();
+        subscriber = sink.getSink();
         subscriber.onSubscribe(new Subscriptions.EmptySubscription());
         AtomicBoolean acked = new AtomicBoolean();
         subscriber.onNext(Message.of("hello",
@@ -226,7 +225,7 @@ public class JmsSinkTest extends JmsTestBase {
                 .with("ttl", 10000L);
         JmsSink sink = new JmsSink(jms, new JmsConnectorOutgoingConfiguration(config), jsonMapping, executor);
         MyJmsClient client = new MyJmsClient(jms.createQueue("queue-one"));
-        subscriber = sink.getSink().build();
+        subscriber = sink.getSink();
         subscriber.onSubscribe(new Subscriptions.EmptySubscription());
         AtomicBoolean acked = new AtomicBoolean();
         Message<String> hello = Message.of("hello",

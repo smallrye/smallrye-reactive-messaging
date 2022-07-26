@@ -1,27 +1,27 @@
 package io.smallrye.reactive.messaging.inject;
 
 import java.util.List;
+import java.util.concurrent.Flow;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
 import org.eclipse.microprofile.reactive.messaging.Channel;
 import org.eclipse.microprofile.reactive.messaging.Message;
-import org.reactivestreams.Publisher;
 
 import io.smallrye.mutiny.Multi;
 
 @ApplicationScoped
 public class BeanInjectedWithAPublisherOfMessages {
 
-    private final Publisher<Message<String>> constructor;
+    private final Flow.Publisher<Message<String>> constructor;
 
     @Inject
     @Channel("hello")
-    private Publisher<Message<String>> field;
+    private Flow.Publisher<Message<String>> field;
 
     @Inject
-    public BeanInjectedWithAPublisherOfMessages(@Channel("bonjour") Publisher<Message<String>> constructor) {
+    public BeanInjectedWithAPublisherOfMessages(@Channel("bonjour") Flow.Publisher<Message<String>> constructor) {
         this.constructor = constructor;
     }
 

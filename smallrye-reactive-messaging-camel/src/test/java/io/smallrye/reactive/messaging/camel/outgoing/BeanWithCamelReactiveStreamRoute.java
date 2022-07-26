@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.Flow;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -13,7 +14,8 @@ import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.component.reactive.streams.api.CamelReactiveStreamsService;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
-import org.reactivestreams.Publisher;
+
+import mutiny.zero.flow.adapters.AdaptersToFlow;
 
 @ApplicationScoped
 public class BeanWithCamelReactiveStreamRoute extends RouteBuilder {
@@ -36,8 +38,8 @@ public class BeanWithCamelReactiveStreamRoute extends RouteBuilder {
     }
 
     @Outgoing("camel")
-    public Publisher<Exchange> source() {
-        return camel.fromStream("my-stream");
+    public Flow.Publisher<Exchange> source() {
+        return AdaptersToFlow.publisher(camel.fromStream("my-stream"));
     }
 
     public List<String> values() {

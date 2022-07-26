@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Flow;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -16,11 +17,9 @@ import org.apache.qpid.proton.amqp.messaging.AmqpValue;
 import org.apache.qpid.proton.amqp.messaging.Section;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.spi.ConnectorFactory;
-import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
-import org.reactivestreams.Subscriber;
 
 import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
@@ -51,12 +50,12 @@ public class AmqpCreditTest extends AmqpTestBase {
 
         server = setupMockServer(msgCount, msgsReceived, payloadsReceived, executionHolder.vertx().getDelegate());
 
-        SubscriberBuilder<? extends Message<?>, Void> sink = createProviderAndSink(UUID.randomUUID().toString(),
+        Flow.Subscriber<? extends Message<?>> sink = createProviderAndSink(UUID.randomUUID().toString(),
                 server.actualPort());
         //noinspection unchecked
         Multi.createFrom().range(0, msgCount)
                 .map(Message::of)
-                .subscribe((Subscriber<? super Message<Integer>>) sink.build());
+                .subscribe((Flow.Subscriber<? super Message<Integer>>) sink);
 
         assertThat(msgsReceived.await(20, TimeUnit.SECONDS))
                 .withFailMessage("Sent %s msgs but %s remain outstanding", msgCount, msgsReceived.getCount()).isTrue();
@@ -64,7 +63,7 @@ public class AmqpCreditTest extends AmqpTestBase {
         assertThat(payloadsReceived).containsAll(expectedPayloads);
     }
 
-    private SubscriberBuilder<? extends Message<?>, Void> createProviderAndSink(String topic, int port) {
+    private Flow.Subscriber<? extends Message<?>> createProviderAndSink(String topic, int port) {
         Map<String, Object> config = new HashMap<>();
         config.put(ConnectorFactory.CHANNEL_NAME_ATTRIBUTE, topic);
         config.put("address", topic);
@@ -76,7 +75,7 @@ public class AmqpCreditTest extends AmqpTestBase {
         this.provider = new AmqpConnector();
         provider.setup(executionHolder);
 
-        return provider.getSubscriberBuilder(new MapBasedConfig(config));
+        return provider.getSubscriber(new MapBasedConfig(config));
     }
 
     private MockServer setupMockServer(int msgCount, CountDownLatch latch, List<Object> payloads, Vertx vertx)

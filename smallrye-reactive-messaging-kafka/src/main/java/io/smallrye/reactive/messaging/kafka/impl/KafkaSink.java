@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.Flow;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -28,7 +29,6 @@ import org.apache.kafka.common.errors.UnknownServerException;
 import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.eclipse.microprofile.reactive.messaging.Message;
-import org.reactivestreams.Subscriber;
 
 import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.OutgoingMessageMetadata;
@@ -52,7 +52,7 @@ public class KafkaSink {
     private final int partition;
     private final String topic;
     private final String key;
-    private final Subscriber<? extends Message<?>> subscriber;
+    private final Flow.Subscriber<? extends Message<?>> subscriber;
 
     private final long retries;
     private final int deliveryTimeoutMs;
@@ -307,7 +307,7 @@ public class KafkaSink {
         return key;
     }
 
-    public Subscriber<? extends Message<?>> getSink() {
+    public Flow.Subscriber<? extends Message<?>> getSink() {
         return subscriber;
     }
 

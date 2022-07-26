@@ -3,6 +3,7 @@ package io.smallrye.reactive.messaging;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.Flow;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
@@ -12,7 +13,6 @@ import jakarta.enterprise.context.ApplicationScoped;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
-import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
 
@@ -52,7 +52,7 @@ public class MyCollector {
     }
 
     @Outgoing("count")
-    public Publisher<Message<Integer>> source() {
+    public Flow.Publisher<Message<Integer>> source() {
         return Multi.createFrom().range(0, 10)
                 .map(Message::of);
     }

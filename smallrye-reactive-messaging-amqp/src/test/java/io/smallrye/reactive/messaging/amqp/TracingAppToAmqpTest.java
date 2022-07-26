@@ -5,6 +5,7 @@ import static org.awaitility.Awaitility.await;
 
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.Flow;
 import java.util.stream.Collectors;
 
 import jakarta.enterprise.context.ApplicationScoped;
@@ -17,7 +18,6 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.reactivestreams.Publisher;
 
 import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.opentelemetry.api.trace.Span;
@@ -136,7 +136,7 @@ public class TracingAppToAmqpTest extends AmqpBrokerTestBase {
     public static class MyAppGeneratingData {
 
         @Outgoing("amqp")
-        public Publisher<Integer> source() {
+        public Flow.Publisher<Integer> source() {
             return Multi.createFrom().range(0, 10);
         }
     }

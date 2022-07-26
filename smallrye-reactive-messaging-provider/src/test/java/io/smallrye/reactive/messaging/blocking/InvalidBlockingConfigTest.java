@@ -2,13 +2,14 @@ package io.smallrye.reactive.messaging.blocking;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.util.concurrent.Flow;
+
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.spi.DeploymentException;
 
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.junit.jupiter.api.Test;
-import org.reactivestreams.Publisher;
 
 import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.WeldTestBaseWithoutTails;
@@ -45,7 +46,7 @@ public class InvalidBlockingConfigTest extends WeldTestBaseWithoutTails {
     @ApplicationScoped
     public static class ProduceIn {
         @Outgoing("in")
-        public Publisher<String> produce() {
+        public Flow.Publisher<String> produce() {
             return Multi.createFrom().items("a", "b", "c");
         }
     }

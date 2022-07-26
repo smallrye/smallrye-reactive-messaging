@@ -10,6 +10,7 @@ import static java.time.Duration.ofSeconds;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.Flow;
 import java.util.stream.Collectors;
 
 import jakarta.annotation.PostConstruct;
@@ -26,11 +27,7 @@ import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.spi.Connector;
 import org.eclipse.microprofile.reactive.messaging.spi.IncomingConnectorFactory;
-import org.eclipse.microprofile.reactive.messaging.spi.OutgoingConnectorFactory;
-import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
-import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
-import org.reactivestreams.Subscription;
 
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.impl.CredentialsProvider;
@@ -39,9 +36,12 @@ import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.tuples.Tuple2;
 import io.smallrye.reactive.messaging.annotations.ConnectorAttribute;
+import io.smallrye.reactive.messaging.connector.InboundConnector;
+import io.smallrye.reactive.messaging.connector.OutboundConnector;
 import io.smallrye.reactive.messaging.health.HealthReport;
 import io.smallrye.reactive.messaging.health.HealthReporter;
 import io.smallrye.reactive.messaging.providers.connectors.ExecutionHolder;
+import io.smallrye.reactive.messaging.providers.helpers.MultiUtils;
 import io.smallrye.reactive.messaging.rabbitmq.ack.RabbitMQAck;
 import io.smallrye.reactive.messaging.rabbitmq.ack.RabbitMQAckHandler;
 import io.smallrye.reactive.messaging.rabbitmq.ack.RabbitMQAutoAck;
@@ -137,7 +137,7 @@ import io.vertx.rabbitmq.RabbitMQPublisherOptions;
 @ConnectorAttribute(name = "tracing.enabled", direction = INCOMING_AND_OUTGOING, description = "Whether tracing is enabled (default) or disabled", type = "boolean", defaultValue = "true")
 @ConnectorAttribute(name = "tracing.attribute-headers", direction = INCOMING_AND_OUTGOING, description = "A comma-separated list of headers that should be recorded as span attributes. Relevant only if tracing.enabled=true", type = "string", defaultValue = "")
 
-public class RabbitMQConnector implements IncomingConnectorFactory, OutgoingConnectorFactory, HealthReporter {
+public class RabbitMQConnector implements InboundConnector, OutboundConnector, HealthReporter {
     public static final String CONNECTOR_NAME = "smallrye-rabbitmq";
 
     private enum ChannelStatus {
@@ -155,7 +155,7 @@ public class RabbitMQConnector implements IncomingConnectorFactory, OutgoingConn
     private final Map<String, ChannelStatus> outgoingChannelStatus = new ConcurrentHashMap<>();
 
     // The list of RabbitMQMessageSender's currently managed by this connector
-    private final List<Subscription> subscriptions = new CopyOnWriteArrayList<>();
+    private final List<Flow.Subscription> subscriptions = new CopyOnWriteArrayList<>();
 
     @Inject
     ExecutionHolder executionHolder;
@@ -209,12 +209,12 @@ public class RabbitMQConnector implements IncomingConnectorFactory, OutgoingConn
      *
      * @param config the configuration, must not be {@code null}, must contain the {@link #CHANNEL_NAME_ATTRIBUTE}
      *        attribute.
-     * @return the created {@link PublisherBuilder}, will not be {@code null}.
+     * @return the created {@link Flow.Publisher}, will not be {@code null}.
      * @throws IllegalArgumentException if the configuration is invalid.
      * @throws NoSuchElementException if the configuration does not contain an expected attribute.
      */
     @Override
-    public PublisherBuilder<? extends Message<?>> getPublisherBuilder(final Config config) {
+    public Flow.Publisher<? extends Message<?>> getPublisher(final Config config) {
         final RabbitMQConnectorIncomingConfiguration ic = new RabbitMQConnectorIncomingConfiguration(config);
         incomingChannelStatus.put(ic.getChannel(), ChannelStatus.INITIALISING);
 
@@ -250,7 +250,7 @@ public class RabbitMQConnector implements IncomingConnectorFactory, OutgoingConn
             multi = multi.broadcast().toAllSubscribers();
         }
 
-        return ReactiveStreams.fromPublisher(multi);
+        return multi;
     }
 
     private Uni<RabbitMQConsumer> createConsumer(RabbitMQConnectorIncomingConfiguration ic, RabbitMQClient client) {
@@ -327,7 +327,7 @@ public class RabbitMQConnector implements IncomingConnectorFactory, OutgoingConn
      * @throws NoSuchElementException if the configuration does not contain an expected attribute.
      */
     @Override
-    public SubscriberBuilder<? extends Message<?>, Void> getSubscriberBuilder(final Config config) {
+    public Flow.Subscriber<? extends Message<?>> getSubscriber(final Config config) {
         final RabbitMQConnectorOutgoingConfiguration oc = new RabbitMQConnectorOutgoingConfiguration(config);
         outgoingChannelStatus.put(oc.getChannel(), ChannelStatus.INITIALISING);
 
@@ -363,13 +363,10 @@ public class RabbitMQConnector implements IncomingConnectorFactory, OutgoingConn
         subscriptions.add(processor);
 
         // Return a SubscriberBuilder
-        return ReactiveStreams.<Message<?>> builder()
-                .via(processor)
-                .onError(t -> {
-                    log.error(oc.getChannel(), t);
-                    outgoingChannelStatus.put(oc.getChannel(), ChannelStatus.NOT_CONNECTED);
-                })
-                .ignore();
+        return MultiUtils.via(processor, m -> m.onFailure().invoke(t -> {
+            log.error(oc.getChannel(), t);
+            outgoingChannelStatus.put(oc.getChannel(), ChannelStatus.NOT_CONNECTED);
+        }));
     }
 
     @Override
@@ -407,7 +404,7 @@ public class RabbitMQConnector implements IncomingConnectorFactory, OutgoingConn
      */
     public void terminate(
             @SuppressWarnings("unused") @Observes(notifyObserver = Reception.IF_EXISTS) @Priority(50) @BeforeDestroyed(ApplicationScoped.class) Object ignored) {
-        subscriptions.forEach(Subscription::cancel);
+        subscriptions.forEach(Flow.Subscription::cancel);
         clients.forEach(RabbitMQClient::stopAndForget);
         clients.clear();
     }

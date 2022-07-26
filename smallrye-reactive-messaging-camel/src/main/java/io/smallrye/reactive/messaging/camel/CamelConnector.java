@@ -4,6 +4,8 @@ import static io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Dire
 import static io.smallrye.reactive.messaging.camel.i18n.CamelExceptions.ex;
 import static io.smallrye.reactive.messaging.camel.i18n.CamelLogging.log;
 
+import java.util.concurrent.Flow;
+
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Produces;
 import jakarta.inject.Inject;
@@ -24,10 +26,11 @@ import org.eclipse.microprofile.reactive.messaging.spi.OutgoingConnectorFactory;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
-import org.reactivestreams.Publisher;
 
 import io.smallrye.reactive.messaging.annotations.ConnectorAttribute;
 import io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Direction;
+import mutiny.zero.flow.adapters.AdaptersToFlow;
+import mutiny.zero.flow.adapters.AdaptersToReactiveStreams;
 
 @ApplicationScoped
 @Connector(CamelConnector.CONNECTOR_NAME)
@@ -87,18 +90,18 @@ public class CamelConnector implements IncomingConnectorFactory, OutgoingConnect
         CamelFailureHandler.Strategy strategy = CamelFailureHandler.Strategy.from(ic.getFailureStrategy());
         CamelFailureHandler onNack = createFailureHandler(strategy, ic.getChannel());
 
-        Publisher<Exchange> publisher;
+        Flow.Publisher<Exchange> publisher;
         if (name.startsWith(REACTIVE_STREAMS_SCHEME)) {
             // The endpoint is a reactive streams.
             name = name.substring(REACTIVE_STREAMS_SCHEME.length());
             log.creatingPublisherFromStream(name);
-            publisher = getCamelReactive().fromStream(name);
+            publisher = AdaptersToFlow.publisher(getCamelReactive().fromStream(name));
         } else {
             log.creatingPublisherFromEndpoint(name);
-            publisher = getCamelReactive().from(name);
+            publisher = AdaptersToFlow.publisher(getCamelReactive().from(name));
         }
 
-        return ReactiveStreams.fromPublisher(publisher)
+        return ReactiveStreams.fromPublisher(AdaptersToReactiveStreams.publisher(publisher))
                 .map(ex -> new CamelMessage<>(ex, onNack));
     }
 

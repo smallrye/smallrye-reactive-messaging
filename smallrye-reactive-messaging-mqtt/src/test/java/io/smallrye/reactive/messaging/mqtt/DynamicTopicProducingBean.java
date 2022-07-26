@@ -2,6 +2,7 @@ package io.smallrye.reactive.messaging.mqtt;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Flow;
 
 import jakarta.enterprise.context.ApplicationScoped;
 
@@ -9,7 +10,6 @@ import org.eclipse.microprofile.reactive.messaging.Acknowledgment;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
-import org.reactivestreams.Publisher;
 
 import io.netty.handler.codec.mqtt.MqttQoS;
 import io.smallrye.mutiny.Multi;
@@ -29,7 +29,7 @@ public class DynamicTopicProducingBean {
     }
 
     @Outgoing("dyn-data")
-    public Publisher<Integer> source() {
+    public Flow.Publisher<Integer> source() {
         return Multi.createFrom().range(0, 10);
     }
 
