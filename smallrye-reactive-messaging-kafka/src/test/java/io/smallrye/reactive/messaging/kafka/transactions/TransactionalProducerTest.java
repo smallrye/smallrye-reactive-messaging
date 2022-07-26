@@ -154,7 +154,9 @@ public class TransactionalProducerTest extends KafkaCompanionTestBase {
 
         Assertions.assertThatThrownBy(() -> {
             application.produceInTransaction(numberOfRecords, (e) -> {
-                e.markForAbort();
+                if (!e.isMarkedForAbort()) {
+                    e.markForAbort();
+                }
                 return Uni.createFrom().voidItem();
             }).await().indefinitely();
         }).isInstanceOf(TransactionAbortedException.class);
@@ -177,7 +179,7 @@ public class TransactionalProducerTest extends KafkaCompanionTestBase {
                 Function<TransactionalEmitter<Integer>, Uni<Void>> failingSupplier) {
             return transaction.withTransaction(emitter -> {
                 for (int i = 0; i < numberOfRecords; i++) {
-                    emitter.send(KafkaRecord.of("" + i % 10, i));
+                    emitter.send(i);
                 }
                 return failingSupplier.apply(emitter);
             });

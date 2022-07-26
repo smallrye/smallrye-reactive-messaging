@@ -173,7 +173,8 @@ public class ReactiveKafkaProducer<K, V> implements io.smallrye.reactive.messagi
     @Override
     @CheckReturnValue
     public Uni<Void> abortTransaction() {
-        return runOnSendingThread((Consumer<Producer<K, V>>) Producer::abortTransaction);
+        return runOnSendingThread((Consumer<Producer<K, V>>) Producer::abortTransaction)
+                .onItem().invoke(() -> log.transactionAborted(clientId, channel));
     }
 
     @Override

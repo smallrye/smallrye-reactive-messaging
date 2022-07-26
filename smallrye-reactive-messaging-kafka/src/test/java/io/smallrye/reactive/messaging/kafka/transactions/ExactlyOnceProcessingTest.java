@@ -1,6 +1,7 @@
 package io.smallrye.reactive.messaging.kafka.transactions;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
 
 import java.time.Duration;
 import java.util.List;
@@ -20,7 +21,6 @@ import org.apache.kafka.common.serialization.IntegerSerializer;
 import org.eclipse.microprofile.reactive.messaging.Channel;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.OnOverflow;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import io.smallrye.mutiny.Uni;
@@ -28,6 +28,7 @@ import io.smallrye.reactive.messaging.kafka.KafkaRecord;
 import io.smallrye.reactive.messaging.kafka.base.KafkaCompanionTestBase;
 import io.smallrye.reactive.messaging.kafka.base.KafkaMapBasedConfig;
 import io.smallrye.reactive.messaging.kafka.companion.ConsumerTask;
+import io.smallrye.reactive.messaging.providers.extension.HealthCenter;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 
 public class ExactlyOnceProcessingTest extends KafkaCompanionTestBase {
@@ -101,32 +102,18 @@ public class ExactlyOnceProcessingTest extends KafkaCompanionTestBase {
     }
 
     @Test
-    @Disabled
     void testExactlyOnceProcessorWithProcessingErrorWithMultiplePartitions() {
         inTopic = companion.topics().createAndWait(Uuid.randomUuid().toString(), 3);
         outTopic = companion.topics().createAndWait(Uuid.randomUuid().toString(), 3);
         int numberOfRecords = 10;
         MapBasedConfig config = new MapBasedConfig(producerConfig());
         config.putAll(consumerConfig().with("partitions", 3));
-        ExactlyOnceProcessorWithProcessingError application = runApplication(config,
-                ExactlyOnceProcessorWithProcessingError.class);
+        runApplication(config, ExactlyOnceProcessorWithProcessingError.class);
 
         companion.produceIntegers().usingGenerator(i -> new ProducerRecord<>(inTopic, i % 3, "k" + i, i), numberOfRecords);
 
-        List<ConsumerRecord<String, Integer>> committed = companion.consumeIntegers()
-                .withProp(ConsumerConfig.ISOLATION_LEVEL_CONFIG, "read_committed")
-                .fromTopics(outTopic, numberOfRecords)
-                .awaitCompletion(Duration.ofMinutes(1))
-                .getRecords();
-
-        assertThat(committed)
-                .extracting(ConsumerRecord::value)
-                .containsAll(IntStream.range(0, numberOfRecords).boxed().collect(Collectors.toList()))
-                .doesNotHaveDuplicates();
-
-        assertThat(application.getProcessed())
-                .containsAll(IntStream.range(0, numberOfRecords).boxed().collect(Collectors.toList()))
-                .doesNotHaveDuplicates();
+        HealthCenter healthCenter = get(HealthCenter.class);
+        await().until(() -> !healthCenter.getLiveness().isOk());
     }
 
     private KafkaMapBasedConfig producerConfig() {

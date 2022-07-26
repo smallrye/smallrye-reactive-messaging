@@ -11,8 +11,12 @@ import java.util.UUID;
 import javax.enterprise.context.ApplicationScoped;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.common.header.internals.RecordHeader;
+import org.apache.kafka.common.header.internals.RecordHeaders;
 import org.apache.kafka.common.serialization.DoubleSerializer;
+import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Message;
@@ -56,30 +60,31 @@ public class KafkaSinkWithCloudEventsTest extends KafkaCompanionTestBase {
         KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
         sink = new KafkaSink(oc, CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance());
 
-        ConsumerTask<String, String> records = companion.consumeStrings().fromTopics(topic);
+        try (ConsumerTask<String, String> records = companion.consumeStrings().fromTopics(topic)) {
 
-        Message<?> message = Message.of("hello").addMetadata(OutgoingCloudEventMetadata.builder()
-                .withSource(URI.create("test://test"))
-                .withType("type")
-                .withId("some id")
-                .build());
+            Message<?> message = Message.of("hello").addMetadata(OutgoingCloudEventMetadata.builder()
+                    .withSource(URI.create("test://test"))
+                    .withType("type")
+                    .withId("some id")
+                    .build());
 
-        Multi.createFrom().<Message<?>> item(message)
-                .subscribe().withSubscriber((Subscriber) sink.getSink().build());
+            Multi.createFrom().<Message<?>> item(message)
+                    .subscribe().withSubscriber((Subscriber) sink.getSink().build());
 
-        await().until(() -> records.count() == 1);
+            await().until(() -> records.count() == 1);
 
-        ConsumerRecord<String, String> record = records.getRecords().get(0);
-        assertThat(record.topic()).isEqualTo(topic);
-        assertThat(record.key()).isNull();
-        assertThat(record.headers())
-                .contains(new RecordHeader("content-type", "application/cloudevents+json; charset=UTF-8".getBytes()));
-        JsonObject json = new JsonObject(record.value());
-        assertThat(json.getString("specversion")).isEqualTo("1.0");
-        assertThat(json.getString("type")).isEqualTo("type");
-        assertThat(json.getString("source")).isEqualTo("test://test");
-        assertThat(json.getString("id")).isEqualTo("some id");
-        assertThat(json.getString("data")).isEqualTo("hello");
+            ConsumerRecord<String, String> record = records.getRecords().get(0);
+            assertThat(record.topic()).isEqualTo(topic);
+            assertThat(record.key()).isNull();
+            assertThat(record.headers())
+                    .contains(new RecordHeader("content-type", "application/cloudevents+json; charset=UTF-8".getBytes()));
+            JsonObject json = new JsonObject(record.value());
+            assertThat(json.getString("specversion")).isEqualTo("1.0");
+            assertThat(json.getString("type")).isEqualTo("type");
+            assertThat(json.getString("source")).isEqualTo("test://test");
+            assertThat(json.getString("id")).isEqualTo("some id");
+            assertThat(json.getString("data")).isEqualTo("hello");
+        }
     }
 
     public static class Pet {
@@ -98,34 +103,35 @@ public class KafkaSinkWithCloudEventsTest extends KafkaCompanionTestBase {
         KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
         sink = new KafkaSink(oc, CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance());
 
-        ConsumerTask<String, String> records = companion.consumeStrings().fromTopics(topic);
+        try (ConsumerTask<String, String> records = companion.consumeStrings().fromTopics(topic)) {
 
-        Pet neo = new Pet();
-        neo.name = "neo";
-        neo.kind = "rabbit";
-        Message<?> message = Message.of(neo).addMetadata(OutgoingCloudEventMetadata.builder()
-                .withSource(URI.create("test://test"))
-                .withType("type")
-                .withId("some id")
-                .build());
+            Pet neo = new Pet();
+            neo.name = "neo";
+            neo.kind = "rabbit";
+            Message<?> message = Message.of(neo).addMetadata(OutgoingCloudEventMetadata.builder()
+                    .withSource(URI.create("test://test"))
+                    .withType("type")
+                    .withId("some id")
+                    .build());
 
-        Multi.createFrom().<Message<?>> item(message)
-                .subscribe().withSubscriber((Subscriber) sink.getSink().build());
+            Multi.createFrom().<Message<?>> item(message)
+                    .subscribe().withSubscriber((Subscriber) sink.getSink().build());
 
-        await().until(() -> records.count() == 1);
+            await().until(() -> records.count() == 1);
 
-        ConsumerRecord<String, String> record = records.getRecords().get(0);
-        assertThat(record.topic()).isEqualTo(topic);
-        assertThat(record.key()).isNull();
-        assertThat(record.headers())
-                .contains(new RecordHeader("content-type", "application/cloudevents+json; charset=UTF-8".getBytes()));
-        JsonObject json = new JsonObject(record.value());
-        assertThat(json.getString("specversion")).isEqualTo("1.0");
-        assertThat(json.getString("type")).isEqualTo("type");
-        assertThat(json.getString("source")).isEqualTo("test://test");
-        assertThat(json.getString("id")).isEqualTo("some id");
-        assertThat(json.getJsonObject("data").getString("name")).isEqualTo("neo");
-        assertThat(json.getJsonObject("data").getString("kind")).isEqualTo("rabbit");
+            ConsumerRecord<String, String> record = records.getRecords().get(0);
+            assertThat(record.topic()).isEqualTo(topic);
+            assertThat(record.key()).isNull();
+            assertThat(record.headers())
+                    .contains(new RecordHeader("content-type", "application/cloudevents+json; charset=UTF-8".getBytes()));
+            JsonObject json = new JsonObject(record.value());
+            assertThat(json.getString("specversion")).isEqualTo("1.0");
+            assertThat(json.getString("type")).isEqualTo("type");
+            assertThat(json.getString("source")).isEqualTo("test://test");
+            assertThat(json.getString("id")).isEqualTo("some id");
+            assertThat(json.getJsonObject("data").getString("name")).isEqualTo("neo");
+            assertThat(json.getJsonObject("data").getString("kind")).isEqualTo("rabbit");
+        }
     }
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
@@ -139,36 +145,37 @@ public class KafkaSinkWithCloudEventsTest extends KafkaCompanionTestBase {
         KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
         sink = new KafkaSink(oc, CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance());
 
-        ConsumerTask<String, String> records = companion.consumeStrings().fromTopics(topic);
+        try (ConsumerTask<String, String> records = companion.consumeStrings().fromTopics(topic)) {
 
-        ZonedDateTime time = ZonedDateTime.now();
+            ZonedDateTime time = ZonedDateTime.now();
 
-        Message<?> message = Message.of("").addMetadata(OutgoingCloudEventMetadata.builder()
-                .withSource(URI.create("test://test"))
-                .withType("type")
-                .withId("some id")
-                .withSubject("subject")
-                .withTimestamp(time)
-                .build());
+            Message<?> message = Message.of("").addMetadata(OutgoingCloudEventMetadata.builder()
+                    .withSource(URI.create("test://test"))
+                    .withType("type")
+                    .withId("some id")
+                    .withSubject("subject")
+                    .withTimestamp(time)
+                    .build());
 
-        Multi.createFrom().<Message<?>> item(message)
-                .subscribe().withSubscriber((Subscriber) sink.getSink().build());
+            Multi.createFrom().<Message<?>> item(message)
+                    .subscribe().withSubscriber((Subscriber) sink.getSink().build());
 
-        await().until(() -> records.count() == 1);
+            await().until(() -> records.count() == 1);
 
-        ConsumerRecord<String, String> record = records.getRecords().get(0);
-        assertThat(record.topic()).isEqualTo(topic);
-        assertThat(record.key()).isNull();
-        assertThat(record.headers())
-                .contains(new RecordHeader("content-type", "application/cloudevents+json; charset=UTF-8".getBytes()));
-        JsonObject json = new JsonObject(record.value());
-        assertThat(json.getString("specversion")).isEqualTo("1.0");
-        assertThat(json.getString("type")).isEqualTo("type");
-        assertThat(json.getString("source")).isEqualTo("test://test");
-        assertThat(json.getString("id")).isEqualTo("some id");
-        assertThat(json.getString("subject")).isEqualTo("subject");
-        assertThat(json.getInstant("time")).isNotNull();
-        assertThat(json.getInstant("time").getEpochSecond()).isEqualTo(time.toEpochSecond());
+            ConsumerRecord<String, String> record = records.getRecords().get(0);
+            assertThat(record.topic()).isEqualTo(topic);
+            assertThat(record.key()).isNull();
+            assertThat(record.headers())
+                    .contains(new RecordHeader("content-type", "application/cloudevents+json; charset=UTF-8".getBytes()));
+            JsonObject json = new JsonObject(record.value());
+            assertThat(json.getString("specversion")).isEqualTo("1.0");
+            assertThat(json.getString("type")).isEqualTo("type");
+            assertThat(json.getString("source")).isEqualTo("test://test");
+            assertThat(json.getString("id")).isEqualTo("some id");
+            assertThat(json.getString("subject")).isEqualTo("subject");
+            assertThat(json.getInstant("time")).isNotNull();
+            assertThat(json.getInstant("time").getEpochSecond()).isEqualTo(time.toEpochSecond());
+        }
     }
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
@@ -228,32 +235,33 @@ public class KafkaSinkWithCloudEventsTest extends KafkaCompanionTestBase {
         KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
         sink = new KafkaSink(oc, CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance());
 
-        ConsumerTask<String, String> records = companion.consumeStrings().fromTopics(topic);
+        try (ConsumerTask<String, String> records = companion.consumeStrings().fromTopics(topic)) {
 
-        Message<?> message = Message.of("hello").addMetadata(OutgoingCloudEventMetadata.builder()
-                .withSource(URI.create("test://test"))
-                .withType("type")
-                .withId("some id")
-                .withExtension("partitionkey", "my-key")
-                .build());
+            Message<?> message = Message.of("hello").addMetadata(OutgoingCloudEventMetadata.builder()
+                    .withSource(URI.create("test://test"))
+                    .withType("type")
+                    .withId("some id")
+                    .withExtension("partitionkey", "my-key")
+                    .build());
 
-        Multi.createFrom().<Message<?>> item(message)
-                .subscribe().withSubscriber((Subscriber) sink.getSink().build());
+            Multi.createFrom().<Message<?>> item(message)
+                    .subscribe().withSubscriber((Subscriber) sink.getSink().build());
 
-        await().until(() -> records.count() == 1);
+            await().until(() -> records.count() == 1);
 
-        ConsumerRecord<String, String> record = records.getRecords().get(0);
-        assertThat(record.topic()).isEqualTo(topic);
-        assertThat(record.key()).isEqualTo("my-key");
-        assertThat(record.headers())
-                .contains(new RecordHeader("content-type", "application/cloudevents+json; charset=UTF-8".getBytes()));
-        JsonObject json = new JsonObject(record.value());
-        assertThat(json.getString("specversion")).isEqualTo("1.0");
-        assertThat(json.getString("type")).isEqualTo("type");
-        assertThat(json.getString("source")).isEqualTo("test://test");
-        assertThat(json.getString("id")).isEqualTo("some id");
-        assertThat(json.getString("partitionkey")).isEqualTo("my-key"); // Rule 3.1 - partitionkey must be kept
-        assertThat(json.getString("data")).isEqualTo("hello");
+            ConsumerRecord<String, String> record = records.getRecords().get(0);
+            assertThat(record.topic()).isEqualTo(topic);
+            assertThat(record.key()).isEqualTo("my-key");
+            assertThat(record.headers())
+                    .contains(new RecordHeader("content-type", "application/cloudevents+json; charset=UTF-8".getBytes()));
+            JsonObject json = new JsonObject(record.value());
+            assertThat(json.getString("specversion")).isEqualTo("1.0");
+            assertThat(json.getString("type")).isEqualTo("type");
+            assertThat(json.getString("source")).isEqualTo("test://test");
+            assertThat(json.getString("id")).isEqualTo("some id");
+            assertThat(json.getString("partitionkey")).isEqualTo("my-key"); // Rule 3.1 - partitionkey must be kept
+            assertThat(json.getString("data")).isEqualTo("hello");
+        }
     }
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
@@ -269,28 +277,29 @@ public class KafkaSinkWithCloudEventsTest extends KafkaCompanionTestBase {
         KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
         sink = new KafkaSink(oc, CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance());
 
-        ConsumerTask<String, String> records = companion.consumeStrings().fromTopics(topic);
+        try (ConsumerTask<String, String> records = companion.consumeStrings().fromTopics(topic)) {
 
-        Message<?> message = Message.of("hello!").addMetadata(OutgoingCloudEventMetadata.builder()
-                .withId("some id")
-                .build());
+            Message<?> message = Message.of("hello!").addMetadata(OutgoingCloudEventMetadata.builder()
+                    .withId("some id")
+                    .build());
 
-        Multi.createFrom().<Message<?>> item(message)
-                .subscribe().withSubscriber((Subscriber) sink.getSink().build());
+            Multi.createFrom().<Message<?>> item(message)
+                    .subscribe().withSubscriber((Subscriber) sink.getSink().build());
 
-        await().until(() -> records.count() == 1);
+            await().until(() -> records.count() == 1);
 
-        ConsumerRecord<String, String> record = records.getRecords().get(0);
-        assertThat(record.topic()).isEqualTo(topic);
-        assertThat(record.key()).isNull();
-        assertThat(record.headers())
-                .contains(new RecordHeader("content-type", "application/cloudevents+json; charset=UTF-8".getBytes()));
-        JsonObject json = new JsonObject(record.value());
-        assertThat(json.getString("specversion")).isEqualTo("1.0");
-        assertThat(json.getString("type")).isEqualTo("my type");
-        assertThat(json.getString("source")).isEqualTo("http://acme.org");
-        assertThat(json.getString("id")).isEqualTo("some id");
-        assertThat(json.getString("data")).isEqualTo("hello!");
+            ConsumerRecord<String, String> record = records.getRecords().get(0);
+            assertThat(record.topic()).isEqualTo(topic);
+            assertThat(record.key()).isNull();
+            assertThat(record.headers())
+                    .contains(new RecordHeader("content-type", "application/cloudevents+json; charset=UTF-8".getBytes()));
+            JsonObject json = new JsonObject(record.value());
+            assertThat(json.getString("specversion")).isEqualTo("1.0");
+            assertThat(json.getString("type")).isEqualTo("my type");
+            assertThat(json.getString("source")).isEqualTo("http://acme.org");
+            assertThat(json.getString("id")).isEqualTo("some id");
+            assertThat(json.getString("data")).isEqualTo("hello!");
+        }
     }
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
@@ -306,26 +315,27 @@ public class KafkaSinkWithCloudEventsTest extends KafkaCompanionTestBase {
         KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
         sink = new KafkaSink(oc, CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance());
 
-        ConsumerTask<String, String> records = companion.consumeStrings().fromTopics(topic);
+        try (ConsumerTask<String, String> records = companion.consumeStrings().fromTopics(topic)) {
 
-        Message<?> message = Message.of("hello!");
+            Message<?> message = Message.of("hello!");
 
-        Multi.createFrom().<Message<?>> item(message)
-                .subscribe().withSubscriber((Subscriber) sink.getSink().build());
+            Multi.createFrom().<Message<?>> item(message)
+                    .subscribe().withSubscriber((Subscriber) sink.getSink().build());
 
-        await().until(() -> records.getRecords().size() == 1);
+            await().until(() -> records.getRecords().size() == 1);
 
-        ConsumerRecord<String, String> record = records.getRecords().get(0);
-        assertThat(record.topic()).isEqualTo(topic);
-        assertThat(record.key()).isNull();
-        assertThat(record.headers())
-                .contains(new RecordHeader("content-type", "application/cloudevents+json; charset=UTF-8".getBytes()));
-        JsonObject json = new JsonObject(record.value());
-        assertThat(json.getString("specversion")).isEqualTo("1.0");
-        assertThat(json.getString("type")).isEqualTo("my type");
-        assertThat(json.getString("source")).isEqualTo("http://acme.org");
-        assertThat(json.getString("id")).isNotNull();
-        assertThat(json.getString("data")).isEqualTo("hello!");
+            ConsumerRecord<String, String> record = records.getRecords().get(0);
+            assertThat(record.topic()).isEqualTo(topic);
+            assertThat(record.key()).isNull();
+            assertThat(record.headers())
+                    .contains(new RecordHeader("content-type", "application/cloudevents+json; charset=UTF-8".getBytes()));
+            JsonObject json = new JsonObject(record.value());
+            assertThat(json.getString("specversion")).isEqualTo("1.0");
+            assertThat(json.getString("type")).isEqualTo("my type");
+            assertThat(json.getString("source")).isEqualTo("http://acme.org");
+            assertThat(json.getString("id")).isNotNull();
+            assertThat(json.getString("data")).isEqualTo("hello!");
+        }
     }
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
@@ -339,34 +349,35 @@ public class KafkaSinkWithCloudEventsTest extends KafkaCompanionTestBase {
         KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
         sink = new KafkaSink(oc, CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance());
 
-        ConsumerTask<String, String> records = companion.consumeStrings().fromTopics(topic);
+        try (ConsumerTask<String, String> records = companion.consumeStrings().fromTopics(topic)) {
 
-        Message<?> message = Message.of("hello").addMetadata(OutgoingCloudEventMetadata.builder()
-                .withSource(URI.create("test://test"))
-                .withType("type")
-                .withId("some id")
-                .withExtension("ext", 123)
-                .withExtension("ext2", "dddd")
-                .build());
+            Message<?> message = Message.of("hello").addMetadata(OutgoingCloudEventMetadata.builder()
+                    .withSource(URI.create("test://test"))
+                    .withType("type")
+                    .withId("some id")
+                    .withExtension("ext", 123)
+                    .withExtension("ext2", "dddd")
+                    .build());
 
-        Multi.createFrom().<Message<?>> item(message)
-                .subscribe().withSubscriber((Subscriber) sink.getSink().build());
+            Multi.createFrom().<Message<?>> item(message)
+                    .subscribe().withSubscriber((Subscriber) sink.getSink().build());
 
-        await().until(() -> records.getRecords().size() == 1);
+            await().until(() -> records.getRecords().size() == 1);
 
-        ConsumerRecord<String, String> record = records.getRecords().get(0);
-        assertThat(record.topic()).isEqualTo(topic);
-        assertThat(record.key()).isNull();
-        assertThat(record.headers())
-                .contains(new RecordHeader("content-type", "application/cloudevents+json; charset=UTF-8".getBytes()));
-        JsonObject json = new JsonObject(record.value());
-        assertThat(json.getString("specversion")).isEqualTo("1.0");
-        assertThat(json.getString("type")).isEqualTo("type");
-        assertThat(json.getString("source")).isEqualTo("test://test");
-        assertThat(json.getString("id")).isEqualTo("some id");
-        assertThat(json.getString("ext2")).isEqualTo("dddd");
-        assertThat(json.getInteger("ext")).isEqualTo(123);
-        assertThat(json.getString("data")).isEqualTo("hello");
+            ConsumerRecord<String, String> record = records.getRecords().get(0);
+            assertThat(record.topic()).isEqualTo(topic);
+            assertThat(record.key()).isNull();
+            assertThat(record.headers())
+                    .contains(new RecordHeader("content-type", "application/cloudevents+json; charset=UTF-8".getBytes()));
+            JsonObject json = new JsonObject(record.value());
+            assertThat(json.getString("specversion")).isEqualTo("1.0");
+            assertThat(json.getString("type")).isEqualTo("type");
+            assertThat(json.getString("source")).isEqualTo("test://test");
+            assertThat(json.getString("id")).isEqualTo("some id");
+            assertThat(json.getString("ext2")).isEqualTo("dddd");
+            assertThat(json.getInteger("ext")).isEqualTo(123);
+            assertThat(json.getString("data")).isEqualTo("hello");
+        }
     }
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
@@ -379,29 +390,30 @@ public class KafkaSinkWithCloudEventsTest extends KafkaCompanionTestBase {
         KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
         sink = new KafkaSink(oc, CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance());
 
-        ConsumerTask<String, String> records = companion.consumeStrings().fromTopics(topic);
+        try (ConsumerTask<String, String> records = companion.consumeStrings().fromTopics(topic)) {
 
-        Message<?> message = Message.of("hello").addMetadata(OutgoingCloudEventMetadata.builder()
-                .withSource(URI.create("test://test"))
-                .withType("type")
-                .withId("some id")
-                .build());
+            Message<?> message = Message.of("hello").addMetadata(OutgoingCloudEventMetadata.builder()
+                    .withSource(URI.create("test://test"))
+                    .withType("type")
+                    .withId("some id")
+                    .build());
 
-        Multi.createFrom().<Message<?>> item(message)
-                .subscribe().withSubscriber((Subscriber) sink.getSink().build());
+            Multi.createFrom().<Message<?>> item(message)
+                    .subscribe().withSubscriber((Subscriber) sink.getSink().build());
 
-        await().until(() -> records.getRecords().size() == 1);
+            await().until(() -> records.getRecords().size() == 1);
 
-        ConsumerRecord<String, String> record = records.getRecords().get(0);
-        assertThat(record.topic()).isEqualTo(topic);
-        assertThat(record.key()).isNull();
-        assertThat(record.headers())
-                .contains(
-                        new RecordHeader("ce_specversion", "1.0".getBytes()),
-                        new RecordHeader("ce_type", "type".getBytes()),
-                        new RecordHeader("ce_source", "test://test".getBytes()),
-                        new RecordHeader("ce_id", "some id".getBytes()));
-        assertThat(record.value()).isEqualTo("hello");
+            ConsumerRecord<String, String> record = records.getRecords().get(0);
+            assertThat(record.topic()).isEqualTo(topic);
+            assertThat(record.key()).isNull();
+            assertThat(record.headers())
+                    .contains(
+                            new RecordHeader("ce_specversion", "1.0".getBytes()),
+                            new RecordHeader("ce_type", "type".getBytes()),
+                            new RecordHeader("ce_source", "test://test".getBytes()),
+                            new RecordHeader("ce_id", "some id".getBytes()));
+            assertThat(record.value()).isEqualTo("hello");
+        }
     }
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
@@ -414,33 +426,34 @@ public class KafkaSinkWithCloudEventsTest extends KafkaCompanionTestBase {
         KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
         sink = new KafkaSink(oc, CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance());
 
-        ConsumerTask<String, String> records = companion.consumeStrings().fromTopics(topic);
+        try (ConsumerTask<String, String> records = companion.consumeStrings().fromTopics(topic)) {
 
-        Message<?> message = Message.of("hello").addMetadata(OutgoingCloudEventMetadata.builder()
-                .withSource(URI.create("test://test"))
-                .withType("type")
-                .withId("some id")
-                .withDataContentType("text/plain")
-                .build());
+            Message<?> message = Message.of("hello").addMetadata(OutgoingCloudEventMetadata.builder()
+                    .withSource(URI.create("test://test"))
+                    .withType("type")
+                    .withId("some id")
+                    .withDataContentType("text/plain")
+                    .build());
 
-        Multi.createFrom().<Message<?>> item(message)
-                .subscribe().withSubscriber((Subscriber) sink.getSink().build());
+            Multi.createFrom().<Message<?>> item(message)
+                    .subscribe().withSubscriber((Subscriber) sink.getSink().build());
 
-        await().until(() -> records.getRecords().size() == 1);
+            await().until(() -> records.getRecords().size() == 1);
 
-        ConsumerRecord<String, String> record = records.getRecords().get(0);
-        assertThat(record.topic()).isEqualTo(topic);
-        assertThat(record.key()).isNull();
-        assertThat(record.headers())
-                .contains(
-                        new RecordHeader("ce_specversion", "1.0".getBytes()),
-                        new RecordHeader("ce_type", "type".getBytes()),
-                        // Rules 3.2.1
-                        new RecordHeader("ce_datacontenttype", "text/plain".getBytes()),
-                        new RecordHeader("content-type", "text/plain".getBytes()),
-                        new RecordHeader("ce_source", "test://test".getBytes()),
-                        new RecordHeader("ce_id", "some id".getBytes()));
-        assertThat(record.value()).isEqualTo("hello");
+            ConsumerRecord<String, String> record = records.getRecords().get(0);
+            assertThat(record.topic()).isEqualTo(topic);
+            assertThat(record.key()).isNull();
+            assertThat(record.headers())
+                    .contains(
+                            new RecordHeader("ce_specversion", "1.0".getBytes()),
+                            new RecordHeader("ce_type", "type".getBytes()),
+                            // Rules 3.2.1
+                            new RecordHeader("ce_datacontenttype", "text/plain".getBytes()),
+                            new RecordHeader("content-type", "text/plain".getBytes()),
+                            new RecordHeader("ce_source", "test://test".getBytes()),
+                            new RecordHeader("ce_id", "some id".getBytes()));
+            assertThat(record.value()).isEqualTo("hello");
+        }
     }
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
@@ -453,31 +466,32 @@ public class KafkaSinkWithCloudEventsTest extends KafkaCompanionTestBase {
         KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
         sink = new KafkaSink(oc, CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance());
 
-        ConsumerTask<String, String> records = companion.consumeStrings().fromTopics(topic);
+        try (ConsumerTask<String, String> records = companion.consumeStrings().fromTopics(topic)) {
 
-        Message<?> message = Message.of("hello").addMetadata(OutgoingCloudEventMetadata.builder()
-                .withSource(URI.create("test://test"))
-                .withType("type")
-                .withId("some id")
-                .withExtension("partitionkey", "my-key")
-                .build());
+            Message<?> message = Message.of("hello").addMetadata(OutgoingCloudEventMetadata.builder()
+                    .withSource(URI.create("test://test"))
+                    .withType("type")
+                    .withId("some id")
+                    .withExtension("partitionkey", "my-key")
+                    .build());
 
-        Multi.createFrom().<Message<?>> item(message)
-                .subscribe().withSubscriber((Subscriber) sink.getSink().build());
+            Multi.createFrom().<Message<?>> item(message)
+                    .subscribe().withSubscriber((Subscriber) sink.getSink().build());
 
-        await().until(() -> records.getRecords().size() == 1);
+            await().until(() -> records.getRecords().size() == 1);
 
-        ConsumerRecord<String, String> record = records.getRecords().get(0);
-        assertThat(record.topic()).isEqualTo(topic);
-        assertThat(record.key()).isEqualTo("my-key");
-        assertThat(record.headers())
-                .contains(
-                        new RecordHeader("ce_specversion", "1.0".getBytes()),
-                        new RecordHeader("ce_type", "type".getBytes()),
-                        new RecordHeader("ce_source", "test://test".getBytes()),
-                        new RecordHeader("ce_partitionkey", "my-key".getBytes()),
-                        new RecordHeader("ce_id", "some id".getBytes()));
-        assertThat(record.value()).isEqualTo("hello");
+            ConsumerRecord<String, String> record = records.getRecords().get(0);
+            assertThat(record.topic()).isEqualTo(topic);
+            assertThat(record.key()).isEqualTo("my-key");
+            assertThat(record.headers())
+                    .contains(
+                            new RecordHeader("ce_specversion", "1.0".getBytes()),
+                            new RecordHeader("ce_type", "type".getBytes()),
+                            new RecordHeader("ce_source", "test://test".getBytes()),
+                            new RecordHeader("ce_partitionkey", "my-key".getBytes()),
+                            new RecordHeader("ce_id", "some id".getBytes()));
+            assertThat(record.value()).isEqualTo("hello");
+        }
     }
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
@@ -493,27 +507,28 @@ public class KafkaSinkWithCloudEventsTest extends KafkaCompanionTestBase {
         KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
         sink = new KafkaSink(oc, CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance());
 
-        ConsumerTask<String, String> records = companion.consumeStrings().fromTopics(topic);
+        try (ConsumerTask<String, String> records = companion.consumeStrings().fromTopics(topic)) {
 
-        Message<?> message = Message.of("hello!").addMetadata(OutgoingCloudEventMetadata.builder()
-                .withId("some id")
-                .build());
+            Message<?> message = Message.of("hello!").addMetadata(OutgoingCloudEventMetadata.builder()
+                    .withId("some id")
+                    .build());
 
-        Multi.createFrom().<Message<?>> item(message)
-                .subscribe().withSubscriber((Subscriber) sink.getSink().build());
+            Multi.createFrom().<Message<?>> item(message)
+                    .subscribe().withSubscriber((Subscriber) sink.getSink().build());
 
-        await().until(() -> records.getRecords().size() == 1);
+            await().until(() -> records.getRecords().size() == 1);
 
-        ConsumerRecord<String, String> record = records.getRecords().get(0);
-        assertThat(record.topic()).isEqualTo(topic);
-        assertThat(record.key()).isEqualTo("my-key");
-        assertThat(record.headers())
-                .contains(
-                        new RecordHeader("ce_specversion", "1.0".getBytes()),
-                        new RecordHeader("ce_type", "my type".getBytes()),
-                        new RecordHeader("ce_source", "http://acme.org".getBytes()),
-                        new RecordHeader("ce_id", "some id".getBytes()));
-        assertThat(record.value()).isEqualTo("hello!");
+            ConsumerRecord<String, String> record = records.getRecords().get(0);
+            assertThat(record.topic()).isEqualTo(topic);
+            assertThat(record.key()).isEqualTo("my-key");
+            assertThat(record.headers())
+                    .contains(
+                            new RecordHeader("ce_specversion", "1.0".getBytes()),
+                            new RecordHeader("ce_type", "my type".getBytes()),
+                            new RecordHeader("ce_source", "http://acme.org".getBytes()),
+                            new RecordHeader("ce_id", "some id".getBytes()));
+            assertThat(record.value()).isEqualTo("hello!");
+        }
     }
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
@@ -529,25 +544,26 @@ public class KafkaSinkWithCloudEventsTest extends KafkaCompanionTestBase {
         KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
         sink = new KafkaSink(oc, CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance());
 
-        ConsumerTask<String, String> records = companion.consumeStrings().fromTopics(topic);
+        try (ConsumerTask<String, String> records = companion.consumeStrings().fromTopics(topic)) {
 
-        Message<?> message = Message.of("hello!");
+            Message<?> message = Message.of("hello!");
 
-        Multi.createFrom().<Message<?>> item(message)
-                .subscribe().withSubscriber((Subscriber) sink.getSink().build());
+            Multi.createFrom().<Message<?>> item(message)
+                    .subscribe().withSubscriber((Subscriber) sink.getSink().build());
 
-        await().until(() -> records.getRecords().size() == 1);
+            await().until(() -> records.getRecords().size() == 1);
 
-        ConsumerRecord<String, String> record = records.getRecords().get(0);
-        assertThat(record.topic()).isEqualTo(topic);
-        assertThat(record.key()).isEqualTo("my-key");
-        assertThat(record.headers())
-                .contains(
-                        new RecordHeader("ce_specversion", "1.0".getBytes()),
-                        new RecordHeader("ce_type", "my type".getBytes()),
-                        new RecordHeader("ce_source", "http://acme.org".getBytes()));
-        assertThat(record.headers().lastHeader("ce_id")).isNotNull();
-        assertThat(record.value()).isEqualTo("hello!");
+            ConsumerRecord<String, String> record = records.getRecords().get(0);
+            assertThat(record.topic()).isEqualTo(topic);
+            assertThat(record.key()).isEqualTo("my-key");
+            assertThat(record.headers())
+                    .contains(
+                            new RecordHeader("ce_specversion", "1.0".getBytes()),
+                            new RecordHeader("ce_type", "my type".getBytes()),
+                            new RecordHeader("ce_source", "http://acme.org".getBytes()));
+            assertThat(record.headers().lastHeader("ce_id")).isNotNull();
+            assertThat(record.value()).isEqualTo("hello!");
+        }
     }
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
@@ -594,23 +610,24 @@ public class KafkaSinkWithCloudEventsTest extends KafkaCompanionTestBase {
         KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
         sink = new KafkaSink(oc, CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance());
 
-        ConsumerTask<String, String> records = companion.consumeStrings().fromTopics(topic);
+        try (ConsumerTask<String, String> records = companion.consumeStrings().fromTopics(topic)) {
 
-        Message<?> message = Message.of("hello!").addMetadata(OutgoingCloudEventMetadata.builder()
-                .withId("some id")
-                .build());
+            Message<?> message = Message.of("hello!").addMetadata(OutgoingCloudEventMetadata.builder()
+                    .withId("some id")
+                    .build());
 
-        Multi.createFrom().<Message<?>> item(message)
-                .subscribe().withSubscriber((Subscriber) sink.getSink().build());
+            Multi.createFrom().<Message<?>> item(message)
+                    .subscribe().withSubscriber((Subscriber) sink.getSink().build());
 
-        await().until(() -> records.getRecords().size() == 1);
+            await().until(() -> records.getRecords().size() == 1);
 
-        ConsumerRecord<String, String> record = records.getRecords().get(0);
-        assertThat(record.topic()).isEqualTo(topic);
-        assertThat(record.key()).isEqualTo("my-key");
-        assertThat(record.headers().lastHeader("ce_specversion")).isNull();
-        assertThat(record.headers().lastHeader("ce_id")).isNull();
-        assertThat(record.value()).isEqualTo("hello!");
+            ConsumerRecord<String, String> record = records.getRecords().get(0);
+            assertThat(record.topic()).isEqualTo(topic);
+            assertThat(record.key()).isEqualTo("my-key");
+            assertThat(record.headers().lastHeader("ce_specversion")).isNull();
+            assertThat(record.headers().lastHeader("ce_id")).isNull();
+            assertThat(record.value()).isEqualTo("hello!");
+        }
     }
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
@@ -623,127 +640,165 @@ public class KafkaSinkWithCloudEventsTest extends KafkaCompanionTestBase {
         KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
         sink = new KafkaSink(oc, CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance());
 
-        ConsumerTask<String, String> records = companion.consumeStrings().fromTopics(topic);
+        try (ConsumerTask<String, String> records = companion.consumeStrings().fromTopics(topic)) {
 
-        Message<?> message = Message.of("hello").addMetadata(OutgoingCloudEventMetadata.builder()
-                .withSource(URI.create("test://test"))
-                .withType("type")
-                .withId("some id")
-                .withExtension("ext", 124)
-                .withExtension("ext2", "bonjour")
-                .build());
+            Message<?> message = Message.of("hello").addMetadata(OutgoingCloudEventMetadata.builder()
+                    .withSource(URI.create("test://test"))
+                    .withType("type")
+                    .withId("some id")
+                    .withExtension("ext", 124)
+                    .withExtension("ext2", "bonjour")
+                    .build());
 
-        Multi.createFrom().<Message<?>> item(message)
-                .subscribe().withSubscriber((Subscriber) sink.getSink().build());
+            Multi.createFrom().<Message<?>> item(message)
+                    .subscribe().withSubscriber((Subscriber) sink.getSink().build());
 
-        await().until(() -> records.getRecords().size() == 1);
+            await().until(() -> records.getRecords().size() == 1);
 
-        ConsumerRecord<String, String> record = records.getRecords().get(0);
-        assertThat(record.topic()).isEqualTo(topic);
-        assertThat(record.key()).isNull();
-        assertThat(record.headers())
-                .contains(
-                        new RecordHeader("ce_specversion", "1.0".getBytes()),
-                        new RecordHeader("ce_type", "type".getBytes()),
-                        new RecordHeader("ce_source", "test://test".getBytes()),
-                        new RecordHeader("ce_id", "some id".getBytes()),
-                        new RecordHeader("ce_ext", "124".getBytes()),
-                        new RecordHeader("ce_ext2", "bonjour".getBytes()));
-        assertThat(record.value()).isEqualTo("hello");
+            ConsumerRecord<String, String> record = records.getRecords().get(0);
+            assertThat(record.topic()).isEqualTo(topic);
+            assertThat(record.key()).isNull();
+            assertThat(record.headers())
+                    .contains(
+                            new RecordHeader("ce_specversion", "1.0".getBytes()),
+                            new RecordHeader("ce_type", "type".getBytes()),
+                            new RecordHeader("ce_source", "test://test".getBytes()),
+                            new RecordHeader("ce_id", "some id".getBytes()),
+                            new RecordHeader("ce_ext", "124".getBytes()),
+                            new RecordHeader("ce_ext2", "bonjour".getBytes()));
+            assertThat(record.value()).isEqualTo("hello");
+        }
     }
 
     @Test
     public void testSendingStructuredCloudEventFromBean() {
-        ConsumerTask<String, String> records = companion.consumeStrings().fromTopics(topic);
+        try (ConsumerTask<String, String> records = companion.consumeStrings().fromTopics(topic)) {
 
-        addBeans(Source.class, Processing.class, Sender.class);
-        runApplication(getConfigToSendStructuredCloudEvents());
+            addBeans(Source.class, Processing.class, Sender.class);
+            runApplication(getConfigToSendStructuredCloudEvents());
 
-        await().until(() -> records.getRecords().size() >= 10);
+            await().until(() -> records.getRecords().size() >= 10);
 
-        assertThat(records.getRecords()).allSatisfy(record -> {
-            assertThat(record.topic()).isEqualTo(topic);
-            assertThat(record.key()).isNull();
-            assertThat(record.headers())
-                    .contains(new RecordHeader("content-type", "application/cloudevents+json; charset=UTF-8".getBytes()));
-            JsonObject json = new JsonObject(record.value());
-            assertThat(json.getString("specversion")).isEqualTo("1.0");
-            assertThat(json.getString("type")).isEqualTo("greeting");
-            assertThat(json.getString("source")).isEqualTo("source://me");
-            assertThat(json.getString("id")).startsWith("id-hello-");
-            assertThat(json.getString("data")).startsWith("hello-");
-        });
+            assertThat(records.getRecords()).allSatisfy(record -> {
+                assertThat(record.topic()).isEqualTo(topic);
+                assertThat(record.key()).isNull();
+                assertThat(record.headers())
+                        .contains(new RecordHeader("content-type", "application/cloudevents+json; charset=UTF-8".getBytes()));
+                JsonObject json = new JsonObject(record.value());
+                assertThat(json.getString("specversion")).isEqualTo("1.0");
+                assertThat(json.getString("type")).isEqualTo("greeting");
+                assertThat(json.getString("source")).isEqualTo("source://me");
+                assertThat(json.getString("id")).startsWith("id-hello-");
+                assertThat(json.getString("data")).startsWith("hello-");
+            });
+        }
     }
 
     @Test
     public void testSendingBinaryCloudEventFromBean() {
-        ConsumerTask<String, String> records = companion.consumeStrings().fromTopics(topic);
+        try (ConsumerTask<String, String> records = companion.consumeStrings().fromTopics(topic)) {
+            addBeans(Source.class, Processing.class, Sender.class);
+            runApplication(getConfigToSendBinaryCloudEvents());
 
-        addBeans(Source.class, Processing.class, Sender.class);
-        runApplication(getConfigToSendBinaryCloudEvents());
+            await().until(() -> records.getRecords().size() >= 10);
 
-        await().until(() -> records.getRecords().size() >= 10);
+            assertThat(records.getRecords()).allSatisfy(record -> {
+                assertThat(record.topic()).isEqualTo(topic);
+                assertThat(record.key()).isNull();
+                assertThat(record.headers())
+                        .contains(
+                                new RecordHeader("ce_specversion", "1.0".getBytes()),
+                                new RecordHeader("ce_type", "greeting".getBytes()),
+                                new RecordHeader("ce_source", "source://me".getBytes()));
+                assertThat(record.value()).startsWith("hello-");
+                assertThat(new String(record.headers().lastHeader("ce_id").value())).startsWith("id-hello-");
+            });
+        }
+    }
 
-        assertThat(records.getRecords()).allSatisfy(record -> {
-            assertThat(record.topic()).isEqualTo(topic);
-            assertThat(record.key()).isNull();
-            assertThat(record.headers())
-                    .contains(
-                            new RecordHeader("ce_specversion", "1.0".getBytes()),
-                            new RecordHeader("ce_type", "greeting".getBytes()),
-                            new RecordHeader("ce_source", "source://me".getBytes()));
-            assertThat(record.value()).startsWith("hello-");
-            assertThat(new String(record.headers().lastHeader("ce_id").value())).startsWith("id-hello-");
-        });
+    @Test
+    public void testPropagatingIncomingHeadersWithBinaryCloudEventFromBean() {
+        String sourceTopic = topic + "-source";
+        Headers kafkaHeaders = new RecordHeaders();
+        kafkaHeaders.add(new RecordHeader("propagated-key", "propagated-value".getBytes()));
+
+        companion.produceStrings().fromRecords(
+                new ProducerRecord<>(sourceTopic, 0, "k", "hello-1", kafkaHeaders),
+                new ProducerRecord<>(sourceTopic, 0, "k", "hello-2", kafkaHeaders),
+                new ProducerRecord<>(sourceTopic, 0, "k", "hello-3", kafkaHeaders),
+                new ProducerRecord<>(sourceTopic, 0, "k", "hello-4", kafkaHeaders),
+                new ProducerRecord<>(sourceTopic, 0, "k", "hello-5", kafkaHeaders)).awaitCompletion();
+
+        try (ConsumerTask<String, String> records = companion.consumeStrings().fromTopics(topic)) {
+            addBeans(Forwarder.class);
+            runApplication(getConfigToForwardBinaryCloudEvents(sourceTopic));
+
+            await().until(() -> records.getRecords().size() >= 5);
+
+            assertThat(records.getRecords()).allSatisfy(record -> {
+                assertThat(record.topic()).isEqualTo(topic);
+                assertThat(record.key()).isNull();
+                assertThat(record.headers())
+                        .contains(
+                                new RecordHeader("ce_specversion", "1.0".getBytes()),
+                                new RecordHeader("ce_type", "greeting".getBytes()),
+                                new RecordHeader("ce_source", "source://me".getBytes()),
+                                new RecordHeader("propagated-key", "propagated-value".getBytes()));
+                assertThat(record.value()).startsWith("hello-");
+                assertThat(new String(record.headers().lastHeader("ce_id").value())).startsWith("id-hello-");
+            });
+        }
     }
 
     @Test
     public void testSendingBinaryCloudEventFromBeanWithDefault() {
-        ConsumerTask<String, String> records = companion.consumeStrings().fromTopics(topic);
+        try (ConsumerTask<String, String> records = companion.consumeStrings().fromTopics(topic)) {
 
-        addBeans(Source.class, ConsumptionConsumerRebalanceListener.class);
-        runApplication(getConfigToSendBinaryCloudEventsWithDefault());
+            addBeans(Source.class, ConsumptionConsumerRebalanceListener.class);
+            runApplication(getConfigToSendBinaryCloudEventsWithDefault());
 
-        await().until(() -> records.getRecords().size() >= 10);
+            await().until(() -> records.getRecords().size() >= 10);
 
-        assertThat(records.getRecords()).allSatisfy(record -> {
-            assertThat(record.topic()).isEqualTo(topic);
-            assertThat(record.key()).isNull();
-            assertThat(record.headers())
-                    .contains(
-                            new RecordHeader("ce_specversion", "1.0".getBytes()),
-                            new RecordHeader("ce_type", "greetings".getBytes()),
-                            new RecordHeader("ce_source", "source://me".getBytes()),
-                            new RecordHeader("ce_subject", "test".getBytes()));
-            assertThat(record.value()).startsWith("hello-");
-            assertThat(new String(record.headers().lastHeader("ce_id").value())).isNotNull();
-            assertThat(new String(record.headers().lastHeader("ce_time").value())).isNotNull();
-        });
+            assertThat(records.getRecords()).allSatisfy(record -> {
+                assertThat(record.topic()).isEqualTo(topic);
+                assertThat(record.key()).isNull();
+                assertThat(record.headers())
+                        .contains(
+                                new RecordHeader("ce_specversion", "1.0".getBytes()),
+                                new RecordHeader("ce_type", "greetings".getBytes()),
+                                new RecordHeader("ce_source", "source://me".getBytes()),
+                                new RecordHeader("ce_subject", "test".getBytes()));
+                assertThat(record.value()).startsWith("hello-");
+                assertThat(new String(record.headers().lastHeader("ce_id").value())).isNotNull();
+                assertThat(new String(record.headers().lastHeader("ce_time").value())).isNotNull();
+            });
+        }
     }
 
     @Test
     public void testSendingStructuredCloudEventFromBeanWithDefault() {
-        ConsumerTask<String, String> records = companion.consumeStrings().fromTopics(topic);
+        try (ConsumerTask<String, String> records = companion.consumeStrings().fromTopics(topic)) {
 
-        addBeans(Source.class, ConsumptionConsumerRebalanceListener.class);
-        runApplication(getConfigToSendStructuredCloudEventsWithDefault());
+            addBeans(Source.class, ConsumptionConsumerRebalanceListener.class);
+            runApplication(getConfigToSendStructuredCloudEventsWithDefault());
 
-        await().until(() -> records.getRecords().size() >= 10);
+            await().until(() -> records.getRecords().size() >= 10);
 
-        assertThat(records.getRecords()).allSatisfy(record -> {
-            assertThat(record.topic()).isEqualTo(topic);
-            assertThat(record.key()).isNull();
-            assertThat(record.headers())
-                    .contains(new RecordHeader("content-type", "application/cloudevents+json; charset=UTF-8".getBytes()));
-            JsonObject json = new JsonObject(record.value());
-            assertThat(json.getString("specversion")).isEqualTo("1.0");
-            assertThat(json.getString("type")).isEqualTo("greetings");
-            assertThat(json.getString("source")).isEqualTo("source://me");
-            assertThat(json.getString("subject")).isEqualTo("test");
-            assertThat(json.getString("id")).isNotNull();
-            assertThat(json.getInstant("time")).isNotNull();
-            assertThat(json.getString("data")).startsWith("hello-");
-        });
+            assertThat(records.getRecords()).allSatisfy(record -> {
+                assertThat(record.topic()).isEqualTo(topic);
+                assertThat(record.key()).isNull();
+                assertThat(record.headers())
+                        .contains(new RecordHeader("content-type", "application/cloudevents+json; charset=UTF-8".getBytes()));
+                JsonObject json = new JsonObject(record.value());
+                assertThat(json.getString("specversion")).isEqualTo("1.0");
+                assertThat(json.getString("type")).isEqualTo("greetings");
+                assertThat(json.getString("source")).isEqualTo("source://me");
+                assertThat(json.getString("subject")).isEqualTo("test");
+                assertThat(json.getString("id")).isNotNull();
+                assertThat(json.getInstant("time")).isNotNull();
+                assertThat(json.getString("data")).startsWith("hello-");
+            });
+        }
     }
 
     private KafkaMapBasedConfig getConfigToSendStructuredCloudEvents() {
@@ -758,6 +813,18 @@ public class KafkaSinkWithCloudEventsTest extends KafkaCompanionTestBase {
         KafkaMapBasedConfig config = kafkaConfig("mp.messaging.outgoing.kafka");
         config.put("value.serializer", StringSerializer.class.getName());
         config.put("topic", topic);
+        return config;
+    }
+
+    private KafkaMapBasedConfig getConfigToForwardBinaryCloudEvents(String sourceTopic) {
+        KafkaMapBasedConfig config = kafkaConfig("mp.messaging.incoming.source");
+        config.put("value.deserializer", StringDeserializer.class.getName());
+        config.put("topic", sourceTopic);
+        config.put("auto.offset.reset", "earliest");
+        config.withPrefix("mp.messaging.outgoing.kafka");
+        config.put("value.serializer", StringSerializer.class.getName());
+        config.put("topic", topic);
+        config.put("propagate-headers", "propagated-key");
         return config;
     }
 
@@ -826,6 +893,21 @@ public class KafkaSinkWithCloudEventsTest extends KafkaCompanionTestBase {
                     .orElseThrow(() -> new IllegalStateException("Expected metadata to be present"));
 
             return in.addMetadata(OutgoingCloudEventMetadata.from(metadata)
+                    .withSource(URI.create("source://me"))
+                    .withSubject("test")
+                    .build());
+        }
+    }
+
+    @ApplicationScoped
+    public static class Forwarder {
+
+        @Incoming("source")
+        @Outgoing("kafka")
+        public Message<String> forward(Message<String> in) {
+            return in.addMetadata(OutgoingCloudEventMetadata.builder()
+                    .withId("id-" + in.getPayload())
+                    .withType("greeting")
                     .withSource(URI.create("source://me"))
                     .withSubject("test")
                     .build());

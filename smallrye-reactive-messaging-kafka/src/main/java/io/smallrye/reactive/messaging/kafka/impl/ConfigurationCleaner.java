@@ -2,8 +2,6 @@ package io.smallrye.reactive.messaging.kafka.impl;
 
 import java.util.*;
 
-import io.vertx.core.json.JsonObject;
-
 public class ConfigurationCleaner {
 
     private static final List<String> COMMON = Arrays.asList(
@@ -74,16 +72,6 @@ public class ConfigurationCleaner {
 
     private ConfigurationCleaner() {
         // Avoid direct instantiation
-    }
-
-    public static JsonObject cleanupProducerConfiguration(JsonObject json) {
-        for (String key : COMMON) {
-            json.remove(key);
-        }
-        for (String key : PRODUCER) {
-            json.remove(key);
-        }
-        return json;
     }
 
     public static void cleanupProducerConfiguration(Map<String, ?> json) {

@@ -73,7 +73,7 @@ public class SerializerWrapper<T> implements Serializer<T> {
                 return serializationFailureHandler.decorateSerialization(Uni.createFrom().item(serialize),
                         topic, this.handleKeys, delegate.getClass().getName(), data, headers);
             } catch (Exception e) {
-                KafkaLogging.log.deserializationFailureHandlerFailure(serializationFailureHandler.toString(), e);
+                KafkaLogging.log.serializationFailureHandlerFailure(serializationFailureHandler.toString(), e);
                 throw e;
             }
         } else {

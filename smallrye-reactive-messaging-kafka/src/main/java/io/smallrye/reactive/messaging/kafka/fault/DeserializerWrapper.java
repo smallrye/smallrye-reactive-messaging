@@ -106,6 +106,7 @@ public class DeserializerWrapper<T> implements Deserializer<T> {
                 return deserialize.get();
             } catch (Exception e) {
                 if (failOnDeserializationErrorWithoutHandler) {
+                    KafkaLogging.log.unableToDeserializeMessage(topic, e);
                     source.reportFailure(e, true);
                     if (e instanceof KafkaException) {
                         throw (KafkaException) e;

@@ -21,6 +21,7 @@ import io.smallrye.reactive.messaging.kafka.Record;
 import io.smallrye.reactive.messaging.kafka.base.JsonObjectSerde;
 import io.smallrye.reactive.messaging.kafka.base.KafkaCompanionTestBase;
 import io.smallrye.reactive.messaging.kafka.converters.RecordConverter;
+import io.smallrye.reactive.messaging.providers.extension.HealthCenter;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 import io.vertx.core.json.JsonObject;
 
@@ -152,6 +153,28 @@ public class DeserializationFailureHandlerTest extends KafkaCompanionTestBase {
         assertThat(sink.list().get(0).value().getInteger("retry")).isEqualTo(2);
     }
 
+    @Test
+    void testWhenFailureHandlerThrowsError() {
+        MapBasedConfig config = kafkaConfig("mp.messaging.incoming.kafka")
+                .with("topic", topic)
+                .with("auto.offset.reset", "earliest")
+                .with("health-enabled", true)
+                .with("value.deserializer", JsonObjectSerde.JsonObjectDeserializer.class.getName())
+                .with("key.deserializer", JsonObjectSerde.JsonObjectDeserializer.class.getName())
+                .with("value-deserialization-failure-handler", "failing-failure-handler");
+
+        addBeans(FailingDeserializationFailureHandler.class, RecordConverter.class);
+        MySink sink = runApplication(config, MySink.class);
+
+        // Fail for value
+        JsonObject key = new JsonObject().put("key", "key");
+        companion.produce(JsonObject.class, Double.class).fromRecords(new ProducerRecord<>(topic, key, 698745231.56));
+
+        // Wait for failure report
+        HealthCenter healthCenter = get(HealthCenter.class);
+        await().until(() -> !healthCenter.getLiveness().isOk());
+    }
+
     @ApplicationScoped
     public static class MySink {
         List<Record<JsonObject, JsonObject>> list = new ArrayList<>();
@@ -204,6 +227,17 @@ public class DeserializationFailureHandlerTest extends KafkaCompanionTestBase {
                     .onFailure(throwable -> retryCount.get() > 1)
                     .recoverWithItem(() -> new JsonObject().put("retry", retryCount.get()))
                     .await().indefinitely();
+        }
+    }
+
+    @ApplicationScoped
+    @Identifier("failing-failure-handler")
+    public static class FailingDeserializationFailureHandler implements DeserializationFailureHandler<JsonObject> {
+
+        @Override
+        public JsonObject decorateDeserialization(Uni<JsonObject> deserialization, String topic, boolean isKey,
+                String deserializer, byte[] data, Headers headers) {
+            throw new IllegalArgumentException("boom");
         }
     }
 }
