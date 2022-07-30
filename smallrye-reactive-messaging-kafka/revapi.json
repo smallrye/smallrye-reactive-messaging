@@ -31,24 +31,46 @@
             "minCriticality": "documented",
             "differences": [
                 {
-                    "ignore": true,
                     "code": "java.method.numberOfParametersChanged",
                     "old": "method void io.smallrye.reactive.messaging.kafka.IncomingKafkaRecord<K, T>::<init>(org.apache.kafka.clients.consumer.ConsumerRecord<K, T>, java.lang.String, io.smallrye.reactive.messaging.kafka.commit.KafkaCommitHandler, io.smallrye.reactive.messaging.kafka.fault.KafkaFailureHandler, boolean, boolean)",
                     "new": "method void io.smallrye.reactive.messaging.kafka.IncomingKafkaRecord<K, T>::<init>(org.apache.kafka.clients.consumer.ConsumerRecord<K, T>, java.lang.String, int, io.smallrye.reactive.messaging.kafka.commit.KafkaCommitHandler, io.smallrye.reactive.messaging.kafka.fault.KafkaFailureHandler, boolean, boolean)",
-                    "justification": "ADD YOUR EXPLANATION FOR THE NECESSITY OF THIS CHANGE"
+                    "justification": "Consumer index added to IncomingKafkaRecord constructor"
                 },
                 {
-                    "ignore": true,
                     "code": "java.method.numberOfParametersChanged",
                     "old": "method void io.smallrye.reactive.messaging.kafka.IncomingKafkaRecordBatch<K, T>::<init>(org.apache.kafka.clients.consumer.ConsumerRecords<K, T>, java.lang.String, io.smallrye.reactive.messaging.kafka.commit.KafkaCommitHandler, io.smallrye.reactive.messaging.kafka.fault.KafkaFailureHandler, boolean, boolean)",
                     "new": "method void io.smallrye.reactive.messaging.kafka.IncomingKafkaRecordBatch<K, T>::<init>(org.apache.kafka.clients.consumer.ConsumerRecords<K, T>, java.lang.String, int, io.smallrye.reactive.messaging.kafka.commit.KafkaCommitHandler, io.smallrye.reactive.messaging.kafka.fault.KafkaFailureHandler, boolean, boolean)",
-                    "justification": "ADD YOUR EXPLANATION FOR THE NECESSITY OF THIS CHANGE"
+                    "justification": "Consumer index added to IncomingKafkaRecordBatch constructor"
                 },
                 {
-                    "ignore": true,
                     "code": "java.method.addedToInterface",
                     "new": "method <K, V> java.util.List<io.smallrye.reactive.messaging.kafka.KafkaConsumer<K, V>> io.smallrye.reactive.messaging.kafka.KafkaClientService::getConsumers(java.lang.String)",
-                    "justification": "ADD YOUR EXPLANATION FOR THE NECESSITY OF THIS CHANGE"
+                    "justification": "Added getConsumers method which returns the list of consumers for a given channel"
+                },
+                {
+                    "code": "java.method.addedToInterface",
+                    "new": "method io.smallrye.mutiny.Uni<java.lang.Void> io.smallrye.reactive.messaging.kafka.KafkaConsumer<K, V>::commitAsync(java.util.Map<org.apache.kafka.common.TopicPartition, org.apache.kafka.clients.consumer.OffsetAndMetadata>)",
+                    "justification": "Added to KafkaConsumer interface"
+                },
+                {
+                    "code": "java.method.addedToInterface",
+                    "new": "method java.util.Map<java.lang.String, ?> io.smallrye.reactive.messaging.kafka.KafkaConsumer<K, V>::configuration()",
+                    "justification": "Added to KafkaConsumer interface"
+                },
+                {
+                    "code": "java.method.addedToInterface",
+                    "new": "method void io.smallrye.reactive.messaging.kafka.KafkaProducer<K, V>::close()",
+                    "justification": "Added to KafkaProducer interface"
+                },
+                {
+                    "code": "java.method.addedToInterface",
+                    "new": "method java.util.Map<java.lang.String, ?> io.smallrye.reactive.messaging.kafka.KafkaProducer<K, V>::configuration()",
+                    "justification": "Added to KafkaProducer interface"
+                },
+                {
+                    "code": "java.method.removed",
+                    "old": "method void io.smallrye.reactive.messaging.kafka.IncomingKafkaRecord<K, T>::injectTracingMetadata(io.smallrye.reactive.messaging.TracingMetadata)",
+                    "justification": "Method replaced by injectMetadata on IncomingKafkaRecord"
                 }
             ]
         }

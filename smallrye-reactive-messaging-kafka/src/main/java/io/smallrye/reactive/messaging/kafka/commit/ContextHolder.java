@@ -4,8 +4,8 @@ import java.util.concurrent.*;
 
 import org.apache.kafka.common.errors.InterruptException;
 
-import io.vertx.core.Context;
-import io.vertx.core.Vertx;
+import io.vertx.mutiny.core.Context;
+import io.vertx.mutiny.core.Vertx;
 
 /**
  * A class holding a vert.x context to make sure methods are always run from the same one.
@@ -25,8 +25,16 @@ public class ContextHolder {
         this.context = context;
     }
 
+    public void capture(io.vertx.core.Context context) {
+        this.context = Context.newInstance(context);
+    }
+
     public Context getContext() {
         return context;
+    }
+
+    public int getTimeoutInMillis() {
+        return timeout;
     }
 
     public void runOnContext(Runnable runnable) {
@@ -35,7 +43,7 @@ public class ContextHolder {
         if (Vertx.currentContext() == context && Context.isOnEventLoopThread()) {
             runnable.run();
         } else {
-            context.runOnContext(x -> runnable.run());
+            context.runOnContext(runnable::run);
         }
     }
 

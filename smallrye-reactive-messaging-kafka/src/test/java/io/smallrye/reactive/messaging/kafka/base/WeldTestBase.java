@@ -1,5 +1,6 @@
 package io.smallrye.reactive.messaging.kafka.base;
 
+import javax.enterprise.inject.Instance;
 import javax.enterprise.inject.spi.BeanManager;
 
 import org.eclipse.microprofile.config.ConfigProvider;
@@ -13,7 +14,14 @@ import io.smallrye.config.SmallRyeConfigProviderResolver;
 import io.smallrye.config.inject.ConfigExtension;
 import io.smallrye.reactive.messaging.kafka.KafkaCDIEvents;
 import io.smallrye.reactive.messaging.kafka.KafkaConnector;
+import io.smallrye.reactive.messaging.kafka.commit.KafkaCommitHandler;
+import io.smallrye.reactive.messaging.kafka.commit.KafkaIgnoreCommit;
+import io.smallrye.reactive.messaging.kafka.commit.KafkaLatestCommit;
 import io.smallrye.reactive.messaging.kafka.commit.KafkaThrottledLatestProcessedCommit;
+import io.smallrye.reactive.messaging.kafka.fault.KafkaDeadLetterQueue;
+import io.smallrye.reactive.messaging.kafka.fault.KafkaFailStop;
+import io.smallrye.reactive.messaging.kafka.fault.KafkaFailureHandler;
+import io.smallrye.reactive.messaging.kafka.fault.KafkaIgnoreFailure;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaClientServiceImpl;
 import io.smallrye.reactive.messaging.kafka.transactions.KafkaTransactionsFactory;
 import io.smallrye.reactive.messaging.providers.MediatorFactory;
@@ -36,6 +44,16 @@ import io.smallrye.reactive.messaging.providers.wiring.Wiring;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 
 public class WeldTestBase {
+
+    public static Instance<KafkaCommitHandler.Factory> commitHandlerFactories = new MultipleInstance<>(
+            new KafkaThrottledLatestProcessedCommit.Factory(),
+            new KafkaLatestCommit.Factory(),
+            new KafkaIgnoreCommit.Factory());
+
+    public static Instance<KafkaFailureHandler.Factory> failureHandlerFactories = new MultipleInstance<>(
+            new KafkaFailStop.Factory(),
+            new KafkaDeadLetterQueue.Factory(),
+            new KafkaIgnoreFailure.Factory());
 
     protected Weld weld;
     protected WeldContainer container;
@@ -65,6 +83,12 @@ public class WeldTestBase {
         weld.addBeanClass(LegacyEmitterFactoryImpl.class);
         weld.addBeanClass(KafkaTransactionsFactory.class);
 
+        weld.addBeanClass(KafkaThrottledLatestProcessedCommit.Factory.class);
+        weld.addBeanClass(KafkaLatestCommit.Factory.class);
+        weld.addBeanClass(KafkaIgnoreCommit.Factory.class);
+        weld.addBeanClass(KafkaFailStop.Factory.class);
+        weld.addBeanClass(KafkaIgnoreFailure.Factory.class);
+        weld.addBeanClass(KafkaDeadLetterQueue.Factory.class);
         weld.addBeanClass(KafkaCDIEvents.class);
         weld.addBeanClass(KafkaConnector.class);
         weld.addBeanClass(KafkaClientServiceImpl.class);
@@ -144,4 +168,5 @@ public class WeldTestBase {
     public boolean isAlive() {
         return getHealth().getLiveness().isOk();
     }
+
 }

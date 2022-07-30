@@ -1,5 +1,8 @@
 package io.smallrye.reactive.messaging.kafka.client;
 
+import static io.smallrye.reactive.messaging.kafka.base.WeldTestBase.commitHandlerFactories;
+import static io.smallrye.reactive.messaging.kafka.base.WeldTestBase.failureHandlerFactories;
+
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
@@ -117,7 +120,8 @@ public class KafkaClientReactiveStreamsPublisherTest
         MapBasedConfig config = createConsumerConfig(groupId)
                 .put("topic", topic);
 
-        source = new KafkaSource<>(vertx, groupId, new KafkaConnectorIncomingConfiguration(config),
+        source = new KafkaSource<>(vertx, groupId, new KafkaConnectorIncomingConfiguration(config), commitHandlerFactories,
+                failureHandlerFactories,
                 UnsatisfiedInstance.instance(),
                 CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), 0);
 

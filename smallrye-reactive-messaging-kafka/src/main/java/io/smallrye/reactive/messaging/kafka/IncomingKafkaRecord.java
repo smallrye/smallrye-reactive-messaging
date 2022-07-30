@@ -139,16 +139,16 @@ public class IncomingKafkaRecord<K, T> implements KafkaRecord<K, T> {
 
     @Override
     public CompletionStage<Void> ack() {
-        return commitHandler.handle(this);
+        return commitHandler.handle(this).subscribeAsCompletionStage();
     }
 
     @Override
     public CompletionStage<Void> nack(Throwable reason, Metadata metadata) {
-        return onNack.handle(this, reason, metadata);
+        return onNack.handle(this, reason, metadata).subscribeAsCompletionStage();
     }
 
-    public synchronized void injectTracingMetadata(TracingMetadata tracingMetadata) {
-        metadata = metadata.with(tracingMetadata);
+    public synchronized void injectMetadata(Object metadata) {
+        this.metadata = this.metadata.with(metadata);
     }
 
 }

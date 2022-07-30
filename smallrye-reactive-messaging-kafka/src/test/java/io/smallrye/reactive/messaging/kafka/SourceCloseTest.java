@@ -48,10 +48,12 @@ public class SourceCloseTest extends KafkaCompanionTestBase {
         List<Integer> list = new ArrayList<>();
 
         KafkaSource<String, Integer> source1 = new KafkaSource<>(vertx, groupId,
-                new KafkaConnectorIncomingConfiguration(config1), UnsatisfiedInstance.instance(),
+                new KafkaConnectorIncomingConfiguration(config1), commitHandlerFactories, failureHandlerFactories,
+                UnsatisfiedInstance.instance(),
                 CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), 0);
         KafkaSource<String, Integer> source2 = new KafkaSource<>(vertx, groupId,
-                new KafkaConnectorIncomingConfiguration(config2), UnsatisfiedInstance.instance(),
+                new KafkaConnectorIncomingConfiguration(config2), commitHandlerFactories, failureHandlerFactories,
+                UnsatisfiedInstance.instance(),
                 CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), 0);
 
         source1.getStream()

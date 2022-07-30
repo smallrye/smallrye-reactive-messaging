@@ -25,6 +25,11 @@ import io.smallrye.mutiny.Uni;
 public interface KafkaConsumer<K, V> {
 
     /**
+     * @return Kafka consumer configuration
+     */
+    Map<String, ?> configuration();
+
+    /**
      * Runs an action on the polling thread.
      * <p>
      * The action is a function taking as parameter the {@link Consumer} and that returns a result (potentially {@code null}).
@@ -110,6 +115,14 @@ public interface KafkaConsumer<K, V> {
     @CheckReturnValue
     Uni<Void> commit(
             Map<TopicPartition, OffsetAndMetadata> map);
+
+    /**
+     * Commits the offsets asynchronously
+     *
+     * @param map the map of topic/partition -> offset to commit
+     * @return the Uni emitting {@code null} when the commit has been executed.
+     */
+    Uni<Void> commitAsync(Map<TopicPartition, OffsetAndMetadata> map);
 
     /**
      * Retrieves the next positions for each assigned topic/partitions

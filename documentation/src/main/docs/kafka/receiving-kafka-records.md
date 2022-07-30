@@ -220,6 +220,31 @@ If the instance is present, the following properties will be used:
 -   headers; combined with the original record’s headers, as well as the
     `dead-letter-*` headers described above
 
+## Custom commit and failure strategies
+
+In addition to provided strategies, it is possible to implement custom
+commit and failure strategies and configure Kafka channels with them.
+
+For example, for a custom commit strategy, implement the
+{{ javadoc('io.smallrye.reactive.messaging.kafka.commit.KafkaCommitHandler', False, 'io.smallrye.reactive/smallrye-reactive-messaging-kafka') }} interface,
+and provide a managed bean implementing the `KafkaCommitHandler.Factory` interface,
+identified using `@Identifier` qualifier.
+
+``` java
+{{ insert('kafka/inbound/KafkaCustomCommit.java') }}
+```
+
+Finally, to use the custom commit strategy,
+set the `commit-strategy` attribute to the identifier of the commit handler factory:
+`mp.messaging.incoming.$channel.commit-strategy=custom`.
+Similarly, custom failure strategies can be configured using `failure-strategy` attribute.
+
+!!!note
+    If the custom strategy implementation inherits
+    {{ javadoc('io.smallrye.reactive.messaging.kafka.commit.ContextHolder', False, 'io.smallrye.reactive/smallrye-reactive-messaging-kafka') }} class it can access the
+    Vert.x event-loop context created for the Kafka consumer
+
+
 ## Retrying processing
 
 You can combine Reactive Messaging with [SmallRye Fault

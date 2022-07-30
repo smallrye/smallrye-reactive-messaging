@@ -1,36 +1,58 @@
 package io.smallrye.reactive.messaging.kafka.fault;
 
-import static io.smallrye.reactive.messaging.kafka.i18n.KafkaExceptions.ex;
-
-import java.util.concurrent.CompletionStage;
+import java.util.function.BiConsumer;
 
 import org.eclipse.microprofile.reactive.messaging.Metadata;
 
+import io.smallrye.common.annotation.Experimental;
+import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.kafka.IncomingKafkaRecord;
+import io.smallrye.reactive.messaging.kafka.KafkaConnectorIncomingConfiguration;
+import io.smallrye.reactive.messaging.kafka.KafkaConsumer;
+import io.vertx.mutiny.core.Vertx;
 
+/**
+ * Kafka Failure handling strategy
+ */
+@Experimental("Experimental API")
 public interface KafkaFailureHandler {
 
-    enum Strategy {
-        FAIL,
-        IGNORE,
-        DEAD_LETTER_QUEUE;
+    /**
+     * Identifiers of default failure strategies
+     */
+    interface Strategy {
+        String FAIL = "fail";
+        String IGNORE = "ignore";
+        String DEAD_LETTER_QUEUE = "dead-letter-queue";
 
-        public static Strategy from(String s) {
-            if (s == null || s.equalsIgnoreCase("fail")) {
-                return FAIL;
-            }
-            if (s.equalsIgnoreCase("ignore")) {
-                return IGNORE;
-            }
-            if (s.equalsIgnoreCase("dead-letter-queue")) {
-                return DEAD_LETTER_QUEUE;
-            }
-            throw ex.illegalArgumentUnknownFailureStrategy(s);
-        }
     }
 
-    <K, V> CompletionStage<Void> handle(IncomingKafkaRecord<K, V> record, Throwable reason, Metadata metadata);
+    /**
+     * Factory interface for {@link KafkaFailureHandler}
+     */
+    interface Factory {
+        KafkaFailureHandler crate(
+                KafkaConnectorIncomingConfiguration config,
+                Vertx vertx,
+                KafkaConsumer<?, ?> consumer,
+                BiConsumer<Throwable, Boolean> reportFailure);
+    }
 
+    /**
+     * Handle message negative-acknowledgment
+     *
+     * @param record incoming Kafka record
+     * @param reason nack reason
+     * @param metadata associated metadata with negative-acknowledgment
+     * @param <K> type of record key
+     * @param <V> type of record value
+     * @return a completion stage completed when the message is negative-acknowledgement has completed.
+     */
+    <K, V> Uni<Void> handle(IncomingKafkaRecord<K, V> record, Throwable reason, Metadata metadata);
+
+    /**
+     * Called on channel shutdown
+     */
     default void terminate() {
         // do nothing by default
     }

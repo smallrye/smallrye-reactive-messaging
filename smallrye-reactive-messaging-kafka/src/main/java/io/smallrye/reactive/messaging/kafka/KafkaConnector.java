@@ -34,7 +34,9 @@ import io.smallrye.reactive.messaging.annotations.ConnectorAttribute;
 import io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Direction;
 import io.smallrye.reactive.messaging.health.HealthReport;
 import io.smallrye.reactive.messaging.health.HealthReporter;
+import io.smallrye.reactive.messaging.kafka.commit.KafkaCommitHandler;
 import io.smallrye.reactive.messaging.kafka.commit.KafkaThrottledLatestProcessedCommit;
+import io.smallrye.reactive.messaging.kafka.fault.KafkaFailureHandler;
 import io.smallrye.reactive.messaging.kafka.impl.ConfigHelper;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSink;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
@@ -131,6 +133,14 @@ public class KafkaConnector implements IncomingConnectorFactory, OutgoingConnect
     Instance<SerializationFailureHandler<?>> serializationFailureHandlers;
 
     @Inject
+    @Any
+    Instance<KafkaCommitHandler.Factory> commitHandlerFactories;
+
+    @Inject
+    @Any
+    Instance<KafkaFailureHandler.Factory> failureHandlerFactories;
+
+    @Inject
     KafkaCDIEvents kafkaCDIEvents;
 
     private final List<KafkaSource<?, ?>> sources = new CopyOnWriteArrayList<>();
@@ -179,7 +189,9 @@ public class KafkaConnector implements IncomingConnectorFactory, OutgoingConnect
         });
 
         if (partitions == 1) {
-            KafkaSource<Object, Object> source = new KafkaSource<>(vertx, group, ic, consumerRebalanceListeners,
+            KafkaSource<Object, Object> source = new KafkaSource<>(vertx, group, ic,
+                    commitHandlerFactories, failureHandlerFactories,
+                    consumerRebalanceListeners,
                     kafkaCDIEvents, deserializationFailureHandlers, -1);
             sources.add(source);
             boolean broadcast = ic.getBroadcast();
@@ -199,7 +211,9 @@ public class KafkaConnector implements IncomingConnectorFactory, OutgoingConnect
         // create an instance of source per partitions.
         List<Publisher<? extends Message<?>>> streams = new ArrayList<>();
         for (int i = 0; i < partitions; i++) {
-            KafkaSource<Object, Object> source = new KafkaSource<>(vertx, group, ic, consumerRebalanceListeners,
+            KafkaSource<Object, Object> source = new KafkaSource<>(vertx, group, ic,
+                    commitHandlerFactories, failureHandlerFactories,
+                    consumerRebalanceListeners,
                     kafkaCDIEvents, deserializationFailureHandlers, i);
             sources.add(source);
             if (!ic.getBatch()) {

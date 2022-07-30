@@ -9,7 +9,6 @@ import static org.mockito.Mockito.when;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -22,6 +21,7 @@ import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
+import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.kafka.api.IncomingKafkaRecordMetadata;
 import io.smallrye.reactive.messaging.kafka.commit.KafkaCommitHandler;
 import io.smallrye.reactive.messaging.kafka.commit.KafkaIgnoreCommit;
@@ -43,8 +43,8 @@ public class KafkaRecordBatchTest {
     @BeforeEach
     void setupRecords() {
         MockitoAnnotations.openMocks(this);
-        when(commitHandler.handle(any())).thenReturn(CompletableFuture.completedFuture(null));
-        when(onNack.handle(any(), any(), any())).thenReturn(CompletableFuture.completedFuture(null));
+        when(commitHandler.handle(any())).thenReturn(Uni.createFrom().voidItem());
+        when(onNack.handle(any(), any(), any())).thenReturn(Uni.createFrom().voidItem());
 
         HashMap<TopicPartition, List<ConsumerRecord<String, Integer>>> consumerRecords = new HashMap<>();
         consumerRecords.put(new TopicPartition("t", 1),

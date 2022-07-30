@@ -2,33 +2,47 @@ package io.smallrye.reactive.messaging.kafka.fault;
 
 import static io.smallrye.reactive.messaging.kafka.i18n.KafkaLogging.log;
 
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionStage;
+import java.util.function.BiConsumer;
+
+import javax.enterprise.context.ApplicationScoped;
 
 import org.eclipse.microprofile.reactive.messaging.Metadata;
 
+import io.smallrye.common.annotation.Identifier;
+import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.kafka.IncomingKafkaRecord;
-import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
+import io.smallrye.reactive.messaging.kafka.KafkaConnectorIncomingConfiguration;
+import io.smallrye.reactive.messaging.kafka.KafkaConsumer;
+import io.vertx.mutiny.core.Vertx;
 
 public class KafkaFailStop implements KafkaFailureHandler {
 
     private final String channel;
-    private final KafkaSource<?, ?> source;
+    private final BiConsumer<Throwable, Boolean> reportFailure;
 
-    public <K, V> KafkaFailStop(String channel, KafkaSource<?, ?> source) {
+    @ApplicationScoped
+    @Identifier(Strategy.FAIL)
+    public static class Factory implements KafkaFailureHandler.Factory {
+
+        @Override
+        public KafkaFailureHandler crate(KafkaConnectorIncomingConfiguration config, Vertx vertx, KafkaConsumer<?, ?> consumer,
+                BiConsumer<Throwable, Boolean> reportFailure) {
+            return new KafkaFailStop(config.getChannel(), reportFailure);
+        }
+    }
+
+    public <K, V> KafkaFailStop(String channel, BiConsumer<Throwable, Boolean> reportFailure) {
         this.channel = channel;
-        this.source = source;
+        this.reportFailure = reportFailure;
     }
 
     @Override
-    public <K, V> CompletionStage<Void> handle(
+    public <K, V> Uni<Void> handle(
             IncomingKafkaRecord<K, V> record, Throwable reason, Metadata metadata) {
         // We don't commit, we just fail and stop the client.
         log.messageNackedFailStop(channel);
-        CompletableFuture<Void> future = new CompletableFuture<>();
-        future.completeExceptionally(reason);
         // report failure to the connector for health check
-        source.reportFailure(reason, true);
-        return future;
+        reportFailure.accept(reason, true);
+        return Uni.createFrom().failure(reason);
     }
 }
