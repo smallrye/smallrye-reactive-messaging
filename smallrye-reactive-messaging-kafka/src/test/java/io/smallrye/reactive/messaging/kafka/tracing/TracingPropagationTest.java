@@ -52,6 +52,7 @@ import io.smallrye.reactive.messaging.kafka.base.KafkaCompanionTestBase;
 import io.smallrye.reactive.messaging.kafka.base.KafkaMapBasedConfig;
 import io.smallrye.reactive.messaging.kafka.companion.ConsumerTask;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
+import mutiny.zero.flow.adapters.AdaptersToReactiveStreams;
 
 public class TracingPropagationTest extends KafkaCompanionTestBase {
 
@@ -355,7 +356,7 @@ public class TracingPropagationTest extends KafkaCompanionTestBase {
 
         @Outgoing("kafka")
         public Publisher<Integer> source() {
-            return Multi.createFrom().range(0, 10);
+            return AdaptersToReactiveStreams.publisher(Multi.createFrom().range(0, 10));
         }
     }
 

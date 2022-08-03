@@ -16,6 +16,7 @@ import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.MediatorConfiguration;
 import io.smallrye.reactive.messaging.Shape;
 import io.smallrye.reactive.messaging.providers.helpers.MultiUtils;
+import mutiny.zero.flow.adapters.AdaptersToFlow;
 
 public class PublisherMediator extends AbstractMediator {
 
@@ -103,12 +104,12 @@ public class PublisherMediator extends AbstractMediator {
 
     private void produceAPublisherBuilderOfMessages() {
         PublisherBuilder<Message<?>> builder = invoke();
-        this.publisher = decorate(Multi.createFrom().publisher(builder.buildRs()));
+        this.publisher = decorate(Multi.createFrom().publisher(AdaptersToFlow.publisher(builder.buildRs())));
     }
 
     private <P> void produceAPublisherBuilderOfPayloads() {
         PublisherBuilder<P> builder = invoke();
-        this.publisher = decorate(Multi.createFrom().publisher(builder.map(Message::of).buildRs()));
+        this.publisher = decorate(Multi.createFrom().publisher(AdaptersToFlow.publisher(builder.map(Message::of).buildRs())));
     }
 
     private void produceAPublisherOfMessages() {
@@ -117,7 +118,7 @@ public class PublisherMediator extends AbstractMediator {
 
     private <P> void produceAPublisherOfPayloads() {
         Publisher<P> pub = invoke();
-        this.publisher = decorate(Multi.createFrom().publisher(pub).map(Message::of));
+        this.publisher = decorate(Multi.createFrom().publisher(AdaptersToFlow.publisher(pub)).map(Message::of));
     }
 
     private void produceIndividualMessages() {

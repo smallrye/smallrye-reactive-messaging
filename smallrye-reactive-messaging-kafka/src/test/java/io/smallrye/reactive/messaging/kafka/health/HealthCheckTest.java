@@ -26,6 +26,7 @@ import io.smallrye.reactive.messaging.kafka.base.KafkaMapBasedConfig;
 import io.smallrye.reactive.messaging.kafka.companion.ConsumerTask;
 import io.smallrye.reactive.messaging.kafka.companion.ProducerTask;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
+import mutiny.zero.flow.adapters.AdaptersToReactiveStreams;
 
 public class HealthCheckTest extends KafkaCompanionTestBase {
 
@@ -205,7 +206,7 @@ public class HealthCheckTest extends KafkaCompanionTestBase {
 
         @Outgoing("data")
         public Publisher<Integer> source() {
-            return Multi.createFrom().range(0, 10);
+            return AdaptersToReactiveStreams.publisher(Multi.createFrom().range(0, 10));
         }
 
     }

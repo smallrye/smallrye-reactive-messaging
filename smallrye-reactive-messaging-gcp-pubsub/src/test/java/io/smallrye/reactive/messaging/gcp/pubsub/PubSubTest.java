@@ -21,6 +21,7 @@ import com.google.pubsub.v1.TopicName;
 
 import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
+import mutiny.zero.flow.adapters.AdaptersToFlow;
 
 public class PubSubTest extends PubSubTestBase {
 
@@ -73,7 +74,7 @@ public class PubSubTest extends PubSubTestBase {
         final SubscriberBuilder<? extends Message<?>, Void> subscriber = createSinkSubscriber(topic);
         Multi.createFrom().item(message)
                 .map(Message::of)
-                .subscribe((Subscriber<Message<String>>) subscriber.build());
+                .subscribe(AdaptersToFlow.subscriber((Subscriber<Message<String>>) subscriber.build()));
     }
 
     private SubscriberBuilder<? extends Message<?>, Void> createSinkSubscriber(final String topic) {

@@ -13,6 +13,7 @@ import org.reactivestreams.Publisher;
 
 import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.WeldTestBaseWithoutTails;
+import mutiny.zero.flow.adapters.AdaptersToReactiveStreams;
 
 public class PublisherPropagationTest extends WeldTestBaseWithoutTails {
 
@@ -40,7 +41,7 @@ public class PublisherPropagationTest extends WeldTestBaseWithoutTails {
         @Incoming("source")
         @Outgoing("intermediate")
         public Publisher<String> process(String payload) {
-            return Multi.createFrom().items(payload, payload);
+            return AdaptersToReactiveStreams.publisher(Multi.createFrom().items(payload, payload));
         }
 
     }
@@ -50,9 +51,9 @@ public class PublisherPropagationTest extends WeldTestBaseWithoutTails {
         @Incoming("intermediate")
         @Outgoing("sink")
         public Publisher<Message<String>> process(Message<String> input) {
-            return Multi.createFrom().items(
+            return AdaptersToReactiveStreams.publisher(Multi.createFrom().items(
                     input.withMetadata(input.getMetadata().with(new MessageTest.MyMetadata<>("hello"))),
-                    input.withMetadata(input.getMetadata().with(new MessageTest.MyMetadata<>("hello"))));
+                    input.withMetadata(input.getMetadata().with(new MessageTest.MyMetadata<>("hello")))));
         }
     }
 

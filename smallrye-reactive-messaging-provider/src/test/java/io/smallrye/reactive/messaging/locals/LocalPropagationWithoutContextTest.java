@@ -25,6 +25,7 @@ import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.WeldTestBaseWithoutTails;
 import io.smallrye.reactive.messaging.connector.InboundConnector;
 import io.vertx.mutiny.core.Vertx;
+import mutiny.zero.flow.adapters.AdaptersToReactiveStreams;
 
 public class LocalPropagationWithoutContextTest extends WeldTestBaseWithoutTails {
 
@@ -54,9 +55,9 @@ public class LocalPropagationWithoutContextTest extends WeldTestBaseWithoutTails
 
         @Override
         public Publisher<? extends Message<?>> getPublisher(Config config) {
-            return Multi.createFrom().items(1, 2, 3, 4, 5)
+            return AdaptersToReactiveStreams.publisher(Multi.createFrom().items(1, 2, 3, 4, 5)
                     .map(Message::of)
-                    .onItem().transformToUniAndConcatenate(i -> Uni.createFrom().emitter(e -> e.complete(i)));
+                    .onItem().transformToUniAndConcatenate(i -> Uni.createFrom().emitter(e -> e.complete(i))));
         }
     }
 

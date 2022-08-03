@@ -19,6 +19,7 @@ import org.reactivestreams.Publisher;
 
 import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.beans.*;
+import mutiny.zero.flow.adapters.AdaptersToFlow;
 
 public class PublisherShapeTest extends WeldTestBaseWithoutTails {
 
@@ -208,7 +209,7 @@ public class PublisherShapeTest extends WeldTestBaseWithoutTails {
         assertThat(registry(container).getIncomingNames()).contains("producer");
         List<Publisher<? extends Message<?>>> producer = registry(container).getPublishers("producer");
         assertThat(producer).isNotEmpty();
-        List<String> list = Multi.createFrom().publisher(producer.get(0)).map(Message::getPayload)
+        List<String> list = Multi.createFrom().publisher(AdaptersToFlow.publisher(producer.get(0))).map(Message::getPayload)
                 .map(i -> (String) i)
                 .collect().asList()
                 .await().indefinitely();

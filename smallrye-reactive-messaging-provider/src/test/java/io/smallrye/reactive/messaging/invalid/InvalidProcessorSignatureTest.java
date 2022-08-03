@@ -19,6 +19,7 @@ import org.reactivestreams.Publisher;
 
 import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.WeldTestBaseWithoutTails;
+import mutiny.zero.flow.adapters.AdaptersToReactiveStreams;
 
 public class InvalidProcessorSignatureTest extends WeldTestBaseWithoutTails {
 
@@ -176,7 +177,7 @@ public class InvalidProcessorSignatureTest extends WeldTestBaseWithoutTails {
         @Incoming("i")
         @Outgoing("o")
         public Publisher<String> consume(String i) {
-            return Multi.createFrom().item(i);
+            return AdaptersToReactiveStreams.publisher(Multi.createFrom().item(i));
         }
     }
 
@@ -194,7 +195,7 @@ public class InvalidProcessorSignatureTest extends WeldTestBaseWithoutTails {
         @Incoming("i")
         @Outgoing("o")
         public Publisher<Message<String>> consume(String i) {
-            return Multi.createFrom().item(Message.of(i));
+            return AdaptersToReactiveStreams.publisher(Multi.createFrom().item(Message.of(i)));
         }
     }
 
@@ -212,7 +213,7 @@ public class InvalidProcessorSignatureTest extends WeldTestBaseWithoutTails {
         @Incoming("i")
         @Outgoing("o")
         public Publisher<Message<String>> consume(Message<String> i) {
-            return Multi.createFrom().item(i.withPayload(i.getPayload().toLowerCase()));
+            return AdaptersToReactiveStreams.publisher(Multi.createFrom().item(i.withPayload(i.getPayload().toLowerCase())));
         }
     }
 
@@ -230,7 +231,7 @@ public class InvalidProcessorSignatureTest extends WeldTestBaseWithoutTails {
         @Incoming("i")
         @Outgoing("o")
         public Publisher<String> consume(Message<String> i) {
-            return Multi.createFrom().item(i.getPayload());
+            return AdaptersToReactiveStreams.publisher(Multi.createFrom().item(i.getPayload()));
         }
     }
 

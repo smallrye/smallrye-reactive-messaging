@@ -17,6 +17,7 @@ import io.smallrye.mutiny.operators.AbstractMulti;
 import io.smallrye.mutiny.subscription.MultiSubscriber;
 import io.smallrye.reactive.messaging.kafka.KafkaConnectorIncomingConfiguration;
 import io.vertx.core.Context;
+import mutiny.zero.flow.adapters.AdaptersToFlow;
 
 public class KafkaRecordStream<K, V> extends AbstractMulti<ConsumerRecord<K, V>> {
 
@@ -41,7 +42,7 @@ public class KafkaRecordStream<K, V> extends AbstractMulti<ConsumerRecord<K, V>>
         KafkaRecordStreamSubscription<K, V, ConsumerRecord<K, V>> subscription = new KafkaRecordStreamSubscription<>(
                 client, config, subscriber, context, maxPollRecords, (cr, q) -> q.addAll(cr));
         subscriptions.add(subscription);
-        subscriber.onSubscribe(subscription);
+        subscriber.onSubscribe(AdaptersToFlow.subscription(subscription));
     }
 
     void removeFromQueueRecordsFromTopicPartitions(Collection<TopicPartition> revokedPartitions) {

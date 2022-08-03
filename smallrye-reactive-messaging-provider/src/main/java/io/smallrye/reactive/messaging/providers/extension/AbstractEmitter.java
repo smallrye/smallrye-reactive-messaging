@@ -16,6 +16,7 @@ import io.smallrye.reactive.messaging.EmitterConfiguration;
 import io.smallrye.reactive.messaging.MessagePublisherProvider;
 import io.smallrye.reactive.messaging.providers.helpers.BroadcastHelper;
 import io.smallrye.reactive.messaging.providers.helpers.NoStackTraceException;
+import mutiny.zero.flow.adapters.AdaptersToReactiveStreams;
 
 public abstract class AbstractEmitter<T> implements MessagePublisherProvider<T> {
     public static final NoStackTraceException NO_SUBSCRIBER_EXCEPTION = new NoStackTraceException(
@@ -138,7 +139,7 @@ public abstract class AbstractEmitter<T> implements MessagePublisherProvider<T> 
 
     @Override
     public Publisher<Message<? extends T>> getPublisher() {
-        return publisher;
+        return AdaptersToReactiveStreams.publisher(publisher);
     }
 
     protected synchronized void emit(Message<? extends T> message) {

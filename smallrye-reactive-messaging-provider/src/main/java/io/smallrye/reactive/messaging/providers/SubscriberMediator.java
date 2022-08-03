@@ -22,6 +22,7 @@ import io.smallrye.reactive.messaging.Shape;
 import io.smallrye.reactive.messaging.providers.helpers.ClassUtils;
 import io.smallrye.reactive.messaging.providers.helpers.IgnoringSubscriber;
 import io.smallrye.reactive.messaging.providers.helpers.MultiUtils;
+import mutiny.zero.flow.adapters.AdaptersToFlow;
 
 public class SubscriberMediator extends AbstractMediator {
 
@@ -142,7 +143,7 @@ public class SubscriberMediator extends AbstractMediator {
             }
         };
 
-        function.apply(this.source).subscribe(delegating);
+        function.apply(this.source).subscribe(AdaptersToFlow.subscriber(delegating));
         // Check if a synchronous error has been caught
         Throwable throwable = syncErrorCatcher.get();
         if (throwable != null) {

@@ -14,6 +14,7 @@ import org.reactivestreams.Publisher;
 
 import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.WeldTestBaseWithoutTails;
+import mutiny.zero.flow.adapters.AdaptersToReactiveStreams;
 
 public class SimplePropagationTest extends WeldTestBaseWithoutTails {
 
@@ -85,8 +86,8 @@ public class SimplePropagationTest extends WeldTestBaseWithoutTails {
 
         @Outgoing("source")
         public Publisher<Message<String>> source() {
-            return Multi.createFrom().range(1, 11)
-                    .map(i -> Message.of(Integer.toString(i), Metadata.of(new CounterMetadata(i), new MsgMetadata("foo"))));
+            return AdaptersToReactiveStreams.publisher(Multi.createFrom().range(1, 11)
+                    .map(i -> Message.of(Integer.toString(i), Metadata.of(new CounterMetadata(i), new MsgMetadata("foo")))));
         }
 
     }

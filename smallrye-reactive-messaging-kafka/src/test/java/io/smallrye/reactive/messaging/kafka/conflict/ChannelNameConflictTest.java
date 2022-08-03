@@ -17,6 +17,7 @@ import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.annotations.Merge;
 import io.smallrye.reactive.messaging.kafka.base.KafkaCompanionTestBase;
 import io.smallrye.reactive.messaging.kafka.base.KafkaMapBasedConfig;
+import mutiny.zero.flow.adapters.AdaptersToReactiveStreams;
 
 /**
  * Reproducer for https://github.com/smallrye/smallrye-reactive-messaging/issues/373.
@@ -44,7 +45,7 @@ public class ChannelNameConflictTest extends KafkaCompanionTestBase {
 
         @Outgoing("my-topic")
         public Publisher<String> publisher() {
-            return Multi.createFrom().item("0");
+            return AdaptersToReactiveStreams.publisher(Multi.createFrom().item("0"));
         }
 
         private final List<String> list = new CopyOnWriteArrayList<>();

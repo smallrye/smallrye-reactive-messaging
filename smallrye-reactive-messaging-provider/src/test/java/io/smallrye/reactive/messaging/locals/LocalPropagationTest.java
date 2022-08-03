@@ -35,6 +35,7 @@ import io.smallrye.reactive.messaging.providers.locals.ContextAwareMessage;
 import io.smallrye.reactive.messaging.providers.locals.LocalContextMetadata;
 import io.vertx.core.impl.ConcurrentHashSet;
 import io.vertx.mutiny.core.Context;
+import mutiny.zero.flow.adapters.AdaptersToReactiveStreams;
 
 public class LocalPropagationTest extends WeldTestBaseWithoutTails {
 
@@ -170,11 +171,11 @@ public class LocalPropagationTest extends WeldTestBaseWithoutTails {
         @Override
         public Publisher<? extends Message<?>> getPublisher(Config config) {
             Context context = executionHolder.vertx().getOrCreateContext();
-            return Multi.createFrom().items(1, 2, 3, 4, 5)
+            return AdaptersToReactiveStreams.publisher(Multi.createFrom().items(1, 2, 3, 4, 5)
                     .onItem()
                     .transformToUniAndConcatenate(i -> Uni.createFrom().emitter(e -> context.runOnContext(() -> e.complete(i))))
                     .map(Message::of)
-                    .map(ContextAwareMessage::withContextMetadata);
+                    .map(ContextAwareMessage::withContextMetadata));
         }
     }
 

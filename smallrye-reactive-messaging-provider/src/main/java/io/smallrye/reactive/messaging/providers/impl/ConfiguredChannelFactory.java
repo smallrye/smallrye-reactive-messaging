@@ -22,6 +22,8 @@ import io.smallrye.reactive.messaging.ChannelRegistry;
 import io.smallrye.reactive.messaging.connector.InboundConnector;
 import io.smallrye.reactive.messaging.connector.OutboundConnector;
 import io.smallrye.reactive.messaging.providers.PublisherDecorator;
+import mutiny.zero.flow.adapters.AdaptersToFlow;
+import mutiny.zero.flow.adapters.AdaptersToReactiveStreams;
 
 /**
  * Look for stream factories and get instances.
@@ -168,13 +170,14 @@ public class ConfiguredChannelFactory implements ChannelRegistar {
             throw ex.illegalArgumentUnknownConnector(name);
         }
 
-        Multi<? extends Message<?>> publisher = Multi.createFrom().publisher(inboundConnector.getPublisher(config));
+        Multi<? extends Message<?>> publisher = Multi.createFrom()
+                .publisher(AdaptersToFlow.publisher(inboundConnector.getPublisher(config)));
 
         for (PublisherDecorator decorator : publisherDecoratorInstance) {
             publisher = decorator.decorate(Multi.createFrom().publisher(publisher), name);
         }
 
-        return publisher;
+        return AdaptersToReactiveStreams.publisher(publisher);
     }
 
     private Subscriber<? extends Message<?>> createSubscriber(String name, Config config) {

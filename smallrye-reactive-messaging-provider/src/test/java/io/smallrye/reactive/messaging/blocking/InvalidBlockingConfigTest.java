@@ -13,6 +13,7 @@ import org.reactivestreams.Publisher;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.WeldTestBaseWithoutTails;
 import io.smallrye.reactive.messaging.annotations.Blocking;
+import mutiny.zero.flow.adapters.AdaptersToReactiveStreams;
 
 public class InvalidBlockingConfigTest extends WeldTestBaseWithoutTails {
     @Test
@@ -46,7 +47,7 @@ public class InvalidBlockingConfigTest extends WeldTestBaseWithoutTails {
     public static class ProduceIn {
         @Outgoing("in")
         public Publisher<String> produce() {
-            return Multi.createFrom().items("a", "b", "c");
+            return AdaptersToReactiveStreams.publisher(Multi.createFrom().items("a", "b", "c"));
         }
     }
 

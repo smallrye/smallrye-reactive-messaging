@@ -9,6 +9,8 @@ import org.reactivestreams.Publisher;
 
 import io.reactivex.Flowable;
 import io.smallrye.mutiny.Multi;
+import mutiny.zero.flow.adapters.AdaptersToFlow;
+import mutiny.zero.flow.adapters.AdaptersToReactiveStreams;
 
 @ApplicationScoped
 public class BeanConsumingMsgAsMultiAndPublishingMsgAsPublisher {
@@ -16,12 +18,12 @@ public class BeanConsumingMsgAsMultiAndPublishingMsgAsPublisher {
     @Incoming("count")
     @Outgoing("sink")
     public Publisher<Message<String>> process(Multi<Message<Integer>> source) {
-        return source
+        return AdaptersToReactiveStreams.publisher(source
                 .map(Message::getPayload)
                 .map(i -> i + 1)
-                .flatMap(i -> Flowable.just(i, i))
+                .flatMap(i -> AdaptersToFlow.publisher(Flowable.just(i, i)))
                 .map(i -> Integer.toString(i))
-                .map(Message::of);
+                .map(Message::of));
     }
 
 }

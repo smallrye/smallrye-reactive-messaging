@@ -13,6 +13,7 @@ import org.reactivestreams.Publisher;
 
 import io.netty.handler.codec.mqtt.MqttQoS;
 import io.smallrye.mutiny.Multi;
+import mutiny.zero.flow.adapters.AdaptersToReactiveStreams;
 
 @ApplicationScoped
 public class DynamicTopicProducingBean {
@@ -30,7 +31,7 @@ public class DynamicTopicProducingBean {
 
     @Outgoing("dyn-data")
     public Publisher<Integer> source() {
-        return Multi.createFrom().range(0, 10);
+        return AdaptersToReactiveStreams.publisher(Multi.createFrom().range(0, 10));
     }
 
     public List<String> getTopics() {

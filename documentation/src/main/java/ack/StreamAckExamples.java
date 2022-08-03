@@ -1,5 +1,7 @@
 package ack;
 
+import java.util.concurrent.Flow;
+
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
@@ -12,7 +14,7 @@ public class StreamAckExamples {
     // <message>
     @Incoming("in")
     @Outgoing("out")
-    public Publisher<Message<String>> transform(Multi<Message<String>> stream) {
+    public Flow.Publisher<Message<String>> transform(Multi<Message<String>> stream) {
         return stream
                 .map(message -> message.withPayload(message.getPayload().toUpperCase()));
     }
@@ -21,7 +23,7 @@ public class StreamAckExamples {
     // <payload>
     @Incoming("in")
     @Outgoing("out")
-    public Publisher<String> transformPayload(Multi<String> stream) {
+    public Flow.Publisher<String> transformPayload(Multi<String> stream) {
         return stream
                 // The incoming messages are already acknowledged
                 .map(String::toUpperCase);

@@ -15,6 +15,7 @@ import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 import org.reactivestreams.Publisher;
 
 import io.smallrye.mutiny.Multi;
+import mutiny.zero.flow.adapters.AdaptersToReactiveStreams;
 
 @ApplicationScoped
 public class BeanWithStreamTransformers extends SpiedBeanHelper {
@@ -134,12 +135,12 @@ public class BeanWithStreamTransformers extends SpiedBeanHelper {
 
     @Outgoing(NO_ACKNOWLEDGMENT)
     public Publisher<Message<String>> sourceToNoAck() {
-        return Multi.createFrom().items("a", "b", "c", "d", "e")
+        return AdaptersToReactiveStreams.publisher(Multi.createFrom().items("a", "b", "c", "d", "e")
                 .map(payload -> Message.of(payload, () -> {
                     nap();
                     acknowledged(NO_ACKNOWLEDGMENT, payload);
                     return CompletableFuture.completedFuture(null);
-                }));
+                })));
     }
 
     @Incoming(NO_ACKNOWLEDGMENT_BUILDER)
@@ -153,12 +154,12 @@ public class BeanWithStreamTransformers extends SpiedBeanHelper {
 
     @Outgoing(NO_ACKNOWLEDGMENT_BUILDER)
     public Publisher<Message<String>> sourceToNoAckWithBuilder() {
-        return Multi.createFrom().items("a", "b", "c", "d", "e")
+        return AdaptersToReactiveStreams.publisher(Multi.createFrom().items("a", "b", "c", "d", "e")
                 .map(payload -> Message.of(payload, () -> {
                     nap();
                     acknowledged(NO_ACKNOWLEDGMENT_BUILDER, payload);
                     return CompletableFuture.completedFuture(null);
-                }));
+                })));
     }
 
     @Incoming(MANUAL_ACKNOWLEDGMENT)
@@ -212,12 +213,12 @@ public class BeanWithStreamTransformers extends SpiedBeanHelper {
 
     @Outgoing(PRE_ACKNOWLEDGMENT)
     public Publisher<Message<String>> sourceToPreAck() {
-        return Multi.createFrom().items("a", "b", "c", "d", "e")
+        return AdaptersToReactiveStreams.publisher(Multi.createFrom().items("a", "b", "c", "d", "e")
                 .map(payload -> Message.of(payload, () -> {
                     nap();
                     acknowledged(PRE_ACKNOWLEDGMENT, payload);
                     return CompletableFuture.completedFuture(null);
-                }));
+                })));
     }
 
     @Incoming(PRE_ACKNOWLEDGMENT_BUILDER)
@@ -231,12 +232,12 @@ public class BeanWithStreamTransformers extends SpiedBeanHelper {
 
     @Outgoing(PRE_ACKNOWLEDGMENT_BUILDER)
     public Publisher<Message<String>> sourceToPreAckWithBuilder() {
-        return Multi.createFrom().items("a", "b", "c", "d", "e")
+        return AdaptersToReactiveStreams.publisher(Multi.createFrom().items("a", "b", "c", "d", "e")
                 .map(payload -> Message.of(payload, () -> {
                     nap();
                     acknowledged(PRE_ACKNOWLEDGMENT_BUILDER, payload);
                     return CompletableFuture.completedFuture(null);
-                }));
+                })));
     }
 
     @Incoming(DEFAULT_ACKNOWLEDGMENT)
@@ -265,12 +266,12 @@ public class BeanWithStreamTransformers extends SpiedBeanHelper {
 
     @Outgoing(DEFAULT_ACKNOWLEDGMENT)
     public Publisher<Message<String>> sourceToDefAck() {
-        return Multi.createFrom().items("a", "b", "c", "d", "e")
+        return AdaptersToReactiveStreams.publisher(Multi.createFrom().items("a", "b", "c", "d", "e")
                 .map(payload -> Message.of(payload, () -> {
                     nap();
                     acknowledged(DEFAULT_ACKNOWLEDGMENT, payload);
                     return CompletableFuture.completedFuture(null);
-                }));
+                })));
     }
 
     @Incoming(DEFAULT_ACKNOWLEDGMENT_BUILDER)
@@ -299,12 +300,12 @@ public class BeanWithStreamTransformers extends SpiedBeanHelper {
 
     @Outgoing(DEFAULT_ACKNOWLEDGMENT_BUILDER)
     public Publisher<Message<String>> sourceToDefaultAckWithBuilder() {
-        return Multi.createFrom().items("a", "b", "c", "d", "e")
+        return AdaptersToReactiveStreams.publisher(Multi.createFrom().items("a", "b", "c", "d", "e")
                 .map(payload -> Message.of(payload, () -> {
                     nap();
                     acknowledged(DEFAULT_ACKNOWLEDGMENT_BUILDER, payload);
                     return CompletableFuture.completedFuture(null);
-                }));
+                })));
     }
 
     @Incoming(PAYLOAD_NO_ACKNOWLEDGMENT)
@@ -319,12 +320,12 @@ public class BeanWithStreamTransformers extends SpiedBeanHelper {
 
     @Outgoing(PAYLOAD_NO_ACKNOWLEDGMENT)
     public Publisher<Message<String>> sourceToNoAckMessage() {
-        return Multi.createFrom().items("a", "b", "c", "d", "e")
+        return AdaptersToReactiveStreams.publisher(Multi.createFrom().items("a", "b", "c", "d", "e")
                 .map(payload -> Message.of(payload, () -> {
                     nap();
                     acknowledged(PAYLOAD_NO_ACKNOWLEDGMENT, payload);
                     return CompletableFuture.completedFuture(null);
-                }));
+                })));
     }
 
     @Incoming(PAYLOAD_NO_ACKNOWLEDGMENT_BUILDER)
@@ -338,12 +339,12 @@ public class BeanWithStreamTransformers extends SpiedBeanHelper {
 
     @Outgoing(PAYLOAD_NO_ACKNOWLEDGMENT_BUILDER)
     public Publisher<Message<String>> sourceToNoAckWithMessageBuilder() {
-        return Multi.createFrom().items("a", "b", "c", "d", "e")
+        return AdaptersToReactiveStreams.publisher(Multi.createFrom().items("a", "b", "c", "d", "e")
                 .map(payload -> Message.of(payload, () -> {
                     nap();
                     acknowledged(PAYLOAD_NO_ACKNOWLEDGMENT_BUILDER, payload);
                     return CompletableFuture.completedFuture(null);
-                }));
+                })));
     }
 
     @Incoming(PAYLOAD_DEFAULT_ACKNOWLEDGMENT)
@@ -357,12 +358,12 @@ public class BeanWithStreamTransformers extends SpiedBeanHelper {
 
     @Outgoing(PAYLOAD_DEFAULT_ACKNOWLEDGMENT)
     public Publisher<Message<String>> sourceToPayloadDefAck() {
-        return Multi.createFrom().items("a", "b", "c", "d", "e")
+        return AdaptersToReactiveStreams.publisher(Multi.createFrom().items("a", "b", "c", "d", "e")
                 .map(payload -> Message.of(payload, () -> {
                     nap();
                     acknowledged(PAYLOAD_DEFAULT_ACKNOWLEDGMENT, payload);
                     return CompletableFuture.completedFuture(null);
-                }));
+                })));
     }
 
     @Incoming(PAYLOAD_DEFAULT_ACKNOWLEDGMENT_BUILDER)
@@ -375,12 +376,12 @@ public class BeanWithStreamTransformers extends SpiedBeanHelper {
 
     @Outgoing(PAYLOAD_DEFAULT_ACKNOWLEDGMENT_BUILDER)
     public Publisher<Message<String>> sourceToDefaultWithPayloadAckWithBuilder() {
-        return Multi.createFrom().items("a", "b", "c", "d", "e")
+        return AdaptersToReactiveStreams.publisher(Multi.createFrom().items("a", "b", "c", "d", "e")
                 .map(payload -> Message.of(payload, () -> {
                     nap();
                     acknowledged(PAYLOAD_DEFAULT_ACKNOWLEDGMENT_BUILDER, payload);
                     return CompletableFuture.completedFuture(null);
-                }));
+                })));
     }
 
     @Incoming(PAYLOAD_PRE_ACKNOWLEDGMENT)
@@ -395,12 +396,12 @@ public class BeanWithStreamTransformers extends SpiedBeanHelper {
 
     @Outgoing(PAYLOAD_PRE_ACKNOWLEDGMENT)
     public Publisher<Message<String>> sourceToPayloadPreAck() {
-        return Multi.createFrom().items("a", "b", "c", "d", "e")
+        return AdaptersToReactiveStreams.publisher(Multi.createFrom().items("a", "b", "c", "d", "e")
                 .map(payload -> Message.of(payload, () -> {
                     nap();
                     acknowledged(PAYLOAD_PRE_ACKNOWLEDGMENT, payload);
                     return CompletableFuture.completedFuture(null);
-                }));
+                })));
     }
 
     @Incoming(PAYLOAD_PRE_ACKNOWLEDGMENT_BUILDER)
@@ -414,12 +415,12 @@ public class BeanWithStreamTransformers extends SpiedBeanHelper {
 
     @Outgoing(PAYLOAD_PRE_ACKNOWLEDGMENT_BUILDER)
     public Publisher<Message<String>> sourceToPreWithPayloadAckWithBuilder() {
-        return Multi.createFrom().items("a", "b", "c", "d", "e")
+        return AdaptersToReactiveStreams.publisher(Multi.createFrom().items("a", "b", "c", "d", "e")
                 .map(payload -> Message.of(payload, () -> {
                     nap();
                     acknowledged(PAYLOAD_PRE_ACKNOWLEDGMENT_BUILDER, payload);
                     return CompletableFuture.completedFuture(null);
-                }));
+                })));
     }
 
 }

@@ -32,6 +32,8 @@ import io.smallrye.reactive.messaging.amqp.tracing.HeaderInjectAdapter;
 import io.smallrye.reactive.messaging.ce.OutgoingCloudEventMetadata;
 import io.vertx.amqp.impl.AmqpMessageImpl;
 import io.vertx.mutiny.amqp.AmqpSender;
+import mutiny.zero.flow.adapters.AdaptersToFlow;
+import mutiny.zero.flow.adapters.AdaptersToReactiveStreams;
 
 public class AmqpCreditBasedSender implements Processor<Message<?>, Message<?>>, Subscription {
 
@@ -85,7 +87,7 @@ public class AmqpCreditBasedSender implements Processor<Message<?>, Message<?>>,
     public void subscribe(
             Subscriber<? super Message<?>> subscriber) {
         if (!downstream.compareAndSet(null, subscriber)) {
-            Subscriptions.fail(subscriber, ex.illegalStateOnlyOneSubscriberAllowed());
+            Subscriptions.fail(AdaptersToFlow.subscriber(subscriber), ex.illegalStateOnlyOneSubscriberAllowed());
         } else {
             if (upstream.get() != null) {
                 subscriber.onSubscribe(this);
@@ -138,7 +140,7 @@ public class AmqpCreditBasedSender implements Processor<Message<?>, Message<?>>,
         } else {
             Subscriber<? super Message<?>> subscriber = downstream.get();
             if (subscriber != null) {
-                subscriber.onSubscribe(Subscriptions.CANCELLED);
+                subscriber.onSubscribe(AdaptersToReactiveStreams.subscription(Subscriptions.CANCELLED));
             }
         }
     }
@@ -228,7 +230,7 @@ public class AmqpCreditBasedSender implements Processor<Message<?>, Message<?>>,
 
     @Override
     public void onError(Throwable throwable) {
-        Subscription sub = upstream.getAndSet(Subscriptions.CANCELLED);
+        Subscription sub = upstream.getAndSet(AdaptersToReactiveStreams.subscription(Subscriptions.CANCELLED));
         Subscriber<? super Message<?>> subscriber = this.downstream.get();
         if (sub != null && sub != Subscriptions.CANCELLED && subscriber != null) {
             subscriber.onError(throwable);
@@ -237,7 +239,7 @@ public class AmqpCreditBasedSender implements Processor<Message<?>, Message<?>>,
 
     @Override
     public void onComplete() {
-        Subscription sub = upstream.getAndSet(Subscriptions.CANCELLED);
+        Subscription sub = upstream.getAndSet(AdaptersToReactiveStreams.subscription(Subscriptions.CANCELLED));
         Subscriber<? super Message<?>> subscriber = this.downstream.get();
         if (sub != null && sub != Subscriptions.CANCELLED && subscriber != null) {
             subscriber.onComplete();
@@ -259,7 +261,7 @@ public class AmqpCreditBasedSender implements Processor<Message<?>, Message<?>>,
 
     @Override
     public void cancel() {
-        Subscription sub = upstream.getAndSet(Subscriptions.CANCELLED);
+        Subscription sub = upstream.getAndSet(AdaptersToReactiveStreams.subscription(Subscriptions.CANCELLED));
         if (sub != null && sub != Subscriptions.CANCELLED) {
             sub.cancel();
         }

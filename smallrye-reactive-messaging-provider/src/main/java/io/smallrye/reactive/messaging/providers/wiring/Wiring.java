@@ -24,6 +24,8 @@ import io.smallrye.reactive.messaging.annotations.Merge;
 import io.smallrye.reactive.messaging.providers.AbstractMediator;
 import io.smallrye.reactive.messaging.providers.extension.*;
 import io.smallrye.reactive.messaging.providers.i18n.ProviderLogging;
+import mutiny.zero.flow.adapters.AdaptersToFlow;
+import mutiny.zero.flow.adapters.AdaptersToReactiveStreams;
 
 @ApplicationScoped
 public class Wiring {
@@ -355,13 +357,14 @@ public class Wiring {
             List<Publisher<? extends Message<?>>> publishers = registry.getPublishers(name);
             Multi<? extends Message<?>> merged;
             if (publishers.size() == 1) {
-                merged = Multi.createFrom().publisher(publishers.get(0));
+                merged = Multi.createFrom().publisher(AdaptersToFlow.publisher(publishers.get(0)));
             } else {
-                merged = Multi.createBy().merging().streams(publishers.stream().map(p -> p).collect(Collectors.toList()));
+                merged = Multi.createBy().merging()
+                        .streams(publishers.stream().map(AdaptersToFlow::publisher).collect(Collectors.toList()));
             }
             // TODO Improve this.
             Subscriber connector = registry.getSubscribers(name).get(0);
-            merged.subscribe().withSubscriber(connector);
+            merged.subscribe().withSubscriber(AdaptersToFlow.subscriber(connector));
         }
 
         @Override
@@ -530,7 +533,8 @@ public class Wiring {
         @Override
         public void materialize(ChannelRegistry registry) {
             AbstractMediator mediator = manager.createMediator(configuration);
-            registry.register(configuration.getOutgoing(), mediator.getStream(), broadcast());
+            registry.register(configuration.getOutgoing(), AdaptersToReactiveStreams.publisher(mediator.getStream()),
+                    broadcast());
         }
 
         @Override
@@ -598,15 +602,15 @@ public class Wiring {
             }
 
             if (publishers.size() == 1) {
-                aggregates = Multi.createFrom().publisher(publishers.get(0));
+                aggregates = Multi.createFrom().publisher(AdaptersToFlow.publisher(publishers.get(0)));
             } else if (concat) {
                 aggregates = Multi.createBy().concatenating()
-                        .streams(publishers.stream().map(p -> p).collect(Collectors.toList()));
+                        .streams(publishers.stream().map(AdaptersToFlow::publisher).collect(Collectors.toList()));
             } else if (one) {
-                aggregates = Multi.createFrom().publisher(publishers.get(0));
+                aggregates = Multi.createFrom().publisher(AdaptersToFlow.publisher(publishers.get(0)));
             } else {
                 aggregates = Multi.createBy().merging()
-                        .streams(publishers.stream().map(p -> p).collect(Collectors.toList()));
+                        .streams(publishers.stream().map(AdaptersToFlow::publisher).collect(Collectors.toList()));
             }
 
             mediator.connectToUpstream(aggregates);
@@ -742,20 +746,20 @@ public class Wiring {
                 publishers.addAll(registry.getPublishers(channel));
             }
             if (publishers.size() == 1) {
-                aggregates = Multi.createFrom().publisher(publishers.get(0));
+                aggregates = Multi.createFrom().publisher(AdaptersToFlow.publisher(publishers.get(0)));
             } else if (concat) {
                 aggregates = Multi.createBy().concatenating()
-                        .streams(publishers.stream().map(p -> p).collect(Collectors.toList()));
+                        .streams(publishers.stream().map(AdaptersToFlow::publisher).collect(Collectors.toList()));
             } else if (one) {
-                aggregates = Multi.createFrom().publisher(publishers.get(0));
+                aggregates = Multi.createFrom().publisher(AdaptersToFlow.publisher(publishers.get(0)));
             } else {
                 aggregates = Multi.createBy().merging()
-                        .streams(publishers.stream().map(p -> p).collect(Collectors.toList()));
+                        .streams(publishers.stream().map(AdaptersToFlow::publisher).collect(Collectors.toList()));
             }
 
             mediator.connectToUpstream(aggregates);
 
-            registry.register(getOutgoingChannel(), mediator.getStream(), merge());
+            registry.register(getOutgoingChannel(), AdaptersToReactiveStreams.publisher(mediator.getStream()), merge());
         }
 
         @Override

@@ -58,6 +58,7 @@ import io.vertx.mutiny.rabbitmq.RabbitMQPublisher;
 import io.vertx.rabbitmq.QueueOptions;
 import io.vertx.rabbitmq.RabbitMQOptions;
 import io.vertx.rabbitmq.RabbitMQPublisherOptions;
+import mutiny.zero.flow.adapters.AdaptersToReactiveStreams;
 
 @ApplicationScoped
 @Connector(RabbitMQConnector.CONNECTOR_NAME)
@@ -245,7 +246,7 @@ public class RabbitMQConnector implements IncomingConnectorFactory, OutgoingConn
             multi = multi.broadcast().toAllSubscribers();
         }
 
-        return ReactiveStreams.fromPublisher(multi);
+        return ReactiveStreams.fromPublisher(AdaptersToReactiveStreams.publisher(multi));
     }
 
     private Uni<RabbitMQConsumer> createConsumer(RabbitMQConnectorIncomingConfiguration ic, RabbitMQClient client) {

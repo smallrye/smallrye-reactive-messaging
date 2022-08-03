@@ -14,6 +14,7 @@ import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
 
 import io.smallrye.mutiny.Multi;
+import mutiny.zero.flow.adapters.AdaptersToReactiveStreams;
 
 @ApplicationScoped
 public class MyBean {
@@ -37,7 +38,7 @@ public class MyBean {
 
     @Outgoing("my-dummy-stream")
     Publisher<Message<String>> stream() {
-        return Multi.createFrom().items("foo", "bar").map(Message::of);
+        return AdaptersToReactiveStreams.publisher(Multi.createFrom().items("foo", "bar").map(Message::of));
     }
 
     @Incoming("my-output")

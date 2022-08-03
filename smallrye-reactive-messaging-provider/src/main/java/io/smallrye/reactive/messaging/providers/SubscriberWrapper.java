@@ -11,6 +11,7 @@ import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
 
 import io.smallrye.mutiny.helpers.Subscriptions;
+import mutiny.zero.flow.adapters.AdaptersToReactiveStreams;
 
 public class SubscriberWrapper<I, T> implements Processor<T, T> {
 
@@ -47,7 +48,7 @@ public class SubscriberWrapper<I, T> implements Processor<T, T> {
             @Override
             public void cancel() {
                 // cancel subscription upstream
-                Subscription subscription = upstream.getAndSet(Subscriptions.CANCELLED);
+                Subscription subscription = upstream.getAndSet(AdaptersToReactiveStreams.subscription(Subscriptions.CANCELLED));
                 if (subscription != null) {
                     subscription.cancel();
                 }
@@ -76,7 +77,7 @@ public class SubscriberWrapper<I, T> implements Processor<T, T> {
 
             @Override
             public void cancel() {
-                Subscription subscription = upstream.getAndSet(Subscriptions.CANCELLED);
+                Subscription subscription = upstream.getAndSet(AdaptersToReactiveStreams.subscription(Subscriptions.CANCELLED));
                 if (subscription != null) {
                     subscription.cancel();
                 }

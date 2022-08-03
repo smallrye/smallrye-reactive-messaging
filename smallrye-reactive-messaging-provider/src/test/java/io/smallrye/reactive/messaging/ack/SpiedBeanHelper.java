@@ -16,6 +16,7 @@ import org.eclipse.microprofile.reactive.messaging.Message;
 import org.reactivestreams.Publisher;
 
 import io.smallrye.mutiny.Multi;
+import mutiny.zero.flow.adapters.AdaptersToReactiveStreams;
 
 public class SpiedBeanHelper {
 
@@ -48,12 +49,12 @@ public class SpiedBeanHelper {
     }
 
     protected Publisher<Message<String>> source(String id) {
-        return Multi.createFrom().items("a", "b", "c", "d", "e")
+        return AdaptersToReactiveStreams.publisher(Multi.createFrom().items("a", "b", "c", "d", "e")
                 .map(payload -> Message.of(payload, () -> CompletableFuture.runAsync(() -> {
                     nap();
                     acknowledged(id, payload);
                     nap();
-                }, executor)));
+                }, executor))));
     }
 
     public List<String> received(String key) {

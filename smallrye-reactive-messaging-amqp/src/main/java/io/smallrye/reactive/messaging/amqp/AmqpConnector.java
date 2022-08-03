@@ -66,6 +66,7 @@ import io.vertx.mutiny.amqp.AmqpReceiver;
 import io.vertx.mutiny.amqp.AmqpSender;
 import io.vertx.mutiny.core.Vertx;
 import io.vertx.proton.ProtonSender;
+import mutiny.zero.flow.adapters.AdaptersToReactiveStreams;
 
 @ApplicationScoped
 @Connector(AmqpConnector.CONNECTOR_NAME)
@@ -246,7 +247,7 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
             multi = multi.broadcast().toAllSubscribers();
         }
 
-        return ReactiveStreams.fromPublisher(multi);
+        return ReactiveStreams.fromPublisher(AdaptersToReactiveStreams.publisher(multi));
     }
 
     @Override

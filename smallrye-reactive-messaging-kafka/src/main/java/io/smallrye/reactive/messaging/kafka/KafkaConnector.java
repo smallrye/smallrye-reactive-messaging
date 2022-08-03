@@ -5,6 +5,7 @@ import static io.smallrye.reactive.messaging.kafka.i18n.KafkaLogging.log;
 
 import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.Flow;
 import java.util.stream.Collectors;
 
 import javax.annotation.PostConstruct;
@@ -40,6 +41,7 @@ import io.smallrye.reactive.messaging.kafka.impl.KafkaSink;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
 import io.smallrye.reactive.messaging.providers.connectors.ExecutionHolder;
 import io.vertx.mutiny.core.Vertx;
+import mutiny.zero.flow.adapters.AdaptersToReactiveStreams;
 
 @ApplicationScoped
 @Connector(KafkaConnector.CONNECTOR_NAME)
@@ -190,14 +192,15 @@ public class KafkaConnector implements IncomingConnectorFactory, OutgoingConnect
                 stream = source.getBatchStream();
             }
             if (broadcast) {
-                return ReactiveStreams.fromPublisher(stream.broadcast().toAllSubscribers());
+                return ReactiveStreams
+                        .fromPublisher(AdaptersToReactiveStreams.publisher(stream.broadcast().toAllSubscribers()));
             } else {
-                return ReactiveStreams.fromPublisher(stream);
+                return ReactiveStreams.fromPublisher(AdaptersToReactiveStreams.publisher(stream));
             }
         }
 
         // create an instance of source per partitions.
-        List<Publisher<? extends Message<?>>> streams = new ArrayList<>();
+        List<Flow.Publisher<? extends Message<?>>> streams = new ArrayList<>();
         for (int i = 0; i < partitions; i++) {
             KafkaSource<Object, Object> source = new KafkaSource<>(vertx, group, ic, consumerRebalanceListeners,
                     kafkaCDIEvents, deserializationFailureHandlers, i);
@@ -213,12 +216,12 @@ public class KafkaConnector implements IncomingConnectorFactory, OutgoingConnect
         Multi<? extends Message<?>> multi = Multi.createBy().merging()
                 .withRequests(ic.getRequests())
                 .withConcurrency(partitions)
-                .streams(streams.toArray(new Publisher[0]));
+                .streams(streams.toArray(new Flow.Publisher[0]));
         boolean broadcast = ic.getBroadcast();
         if (broadcast) {
-            return ReactiveStreams.fromPublisher(multi.broadcast().toAllSubscribers());
+            return ReactiveStreams.fromPublisher(AdaptersToReactiveStreams.publisher(multi.broadcast().toAllSubscribers()));
         } else {
-            return ReactiveStreams.fromPublisher(multi);
+            return ReactiveStreams.fromPublisher(AdaptersToReactiveStreams.publisher(multi));
         }
     }
 

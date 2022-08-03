@@ -20,6 +20,8 @@ import io.smallrye.mutiny.tuples.Tuple2;
 import io.smallrye.reactive.messaging.rabbitmq.i18n.RabbitMQExceptions;
 import io.smallrye.reactive.messaging.rabbitmq.i18n.RabbitMQLogging;
 import io.vertx.mutiny.rabbitmq.RabbitMQPublisher;
+import mutiny.zero.flow.adapters.AdaptersToFlow;
+import mutiny.zero.flow.adapters.AdaptersToReactiveStreams;
 
 /**
  * An implementation of {@link Processor} and {@link Subscription} that is responsible for sending
@@ -85,7 +87,8 @@ public class RabbitMQMessageSender implements Processor<Message<?>, Message<?>>,
     public void subscribe(
             final Subscriber<? super Message<?>> subscriber) {
         if (!downstream.compareAndSet(null, subscriber)) {
-            Subscriptions.fail(subscriber, RabbitMQExceptions.ex.illegalStateOnlyOneSubscriberAllowed());
+            Subscriptions.fail(AdaptersToFlow.subscriber(subscriber),
+                    RabbitMQExceptions.ex.illegalStateOnlyOneSubscriberAllowed());
         } else {
             if (upstream.get() != null) {
                 subscriber.onSubscribe(this);
@@ -120,7 +123,7 @@ public class RabbitMQMessageSender implements Processor<Message<?>, Message<?>>,
         } else {
             Subscriber<? super Message<?>> subscriber = downstream.get();
             if (subscriber != null) {
-                subscriber.onSubscribe(Subscriptions.CANCELLED);
+                subscriber.onSubscribe(AdaptersToReactiveStreams.subscription(Subscriptions.CANCELLED));
             }
         }
     }
@@ -172,7 +175,7 @@ public class RabbitMQMessageSender implements Processor<Message<?>, Message<?>>,
      */
     @Override
     public void onError(Throwable t) {
-        Subscription sub = upstream.getAndSet(Subscriptions.CANCELLED);
+        Subscription sub = upstream.getAndSet(AdaptersToReactiveStreams.subscription(Subscriptions.CANCELLED));
         Subscriber<? super Message<?>> subscriber = this.downstream.get();
         if (sub != null && sub != Subscriptions.CANCELLED && subscriber != null) {
             subscriber.onError(t);
@@ -186,7 +189,7 @@ public class RabbitMQMessageSender implements Processor<Message<?>, Message<?>>,
      */
     @Override
     public void onComplete() {
-        Subscription sub = upstream.getAndSet(Subscriptions.CANCELLED);
+        Subscription sub = upstream.getAndSet(AdaptersToReactiveStreams.subscription(Subscriptions.CANCELLED));
         Subscriber<? super Message<?>> subscriber = this.downstream.get();
         if (sub != null && sub != Subscriptions.CANCELLED && subscriber != null) {
             subscriber.onComplete();
@@ -229,7 +232,7 @@ public class RabbitMQMessageSender implements Processor<Message<?>, Message<?>>,
      */
     @Override
     public void cancel() {
-        Subscription sub = upstream.getAndSet(Subscriptions.CANCELLED);
+        Subscription sub = upstream.getAndSet(AdaptersToReactiveStreams.subscription(Subscriptions.CANCELLED));
         if (sub != null && sub != Subscriptions.CANCELLED) {
             sub.cancel();
         }

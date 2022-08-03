@@ -35,6 +35,7 @@ import io.opentelemetry.sdk.trace.samplers.Sampler;
 import io.smallrye.config.SmallRyeConfigProviderResolver;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
+import mutiny.zero.flow.adapters.AdaptersToReactiveStreams;
 
 public class TracingAppToAmqpTest extends AmqpBrokerTestBase {
 
@@ -137,7 +138,7 @@ public class TracingAppToAmqpTest extends AmqpBrokerTestBase {
 
         @Outgoing("amqp")
         public Publisher<Integer> source() {
-            return Multi.createFrom().range(0, 10);
+            return AdaptersToReactiveStreams.publisher(Multi.createFrom().range(0, 10));
         }
     }
 

@@ -2,6 +2,7 @@ package generation;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.Flow;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.eclipse.microprofile.reactive.messaging.Message;
@@ -52,7 +53,7 @@ public class GenerationExamples {
     // </message-uni>
 
     // <message-stream>
-    public Publisher<Message<String>> generateMessageStream() {
+    public Flow.Publisher<Message<String>> generateMessageStream() {
         Multi<String> multi = reactiveClient.getStream();
         return multi.map(Message::of);
     }

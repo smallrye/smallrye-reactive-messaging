@@ -12,6 +12,8 @@ import org.reactivestreams.Subscription;
 
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.helpers.Subscriptions;
+import mutiny.zero.flow.adapters.AdaptersToFlow;
+import mutiny.zero.flow.adapters.AdaptersToReactiveStreams;
 
 class KafkaSenderProcessor
         implements Processor<Message<?>, Message<?>>, Subscription {
@@ -32,7 +34,7 @@ class KafkaSenderProcessor
     public void subscribe(
             Subscriber<? super Message<?>> subscriber) {
         if (!downstream.compareAndSet(null, subscriber)) {
-            Subscriptions.fail(subscriber, ex.illegalStateOnlyOneSubscriber());
+            Subscriptions.fail(AdaptersToFlow.subscriber(subscriber), ex.illegalStateOnlyOneSubscriber());
         } else {
             if (subscription.get() != null) {
                 subscriber.onSubscribe(this);
@@ -50,7 +52,7 @@ class KafkaSenderProcessor
         } else {
             Subscriber<? super Message<?>> subscriber = downstream.get();
             if (subscriber != null) {
-                subscriber.onSubscribe(Subscriptions.CANCELLED);
+                subscriber.onSubscribe(AdaptersToReactiveStreams.subscription(Subscriptions.CANCELLED));
             }
         }
     }
@@ -80,7 +82,8 @@ class KafkaSenderProcessor
 
     @Override
     public void cancel() {
-        Subscription s = KafkaSenderProcessor.this.subscription.getAndSet(Subscriptions.CANCELLED);
+        Subscription s = KafkaSenderProcessor.this.subscription
+                .getAndSet(AdaptersToReactiveStreams.subscription(Subscriptions.CANCELLED));
         if (s != null) {
             s.cancel();
         }

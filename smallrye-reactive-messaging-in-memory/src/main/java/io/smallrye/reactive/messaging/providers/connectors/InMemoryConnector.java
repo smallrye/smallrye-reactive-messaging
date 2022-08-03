@@ -26,6 +26,7 @@ import org.reactivestreams.Processor;
 
 import io.smallrye.mutiny.operators.multi.processors.BroadcastProcessor;
 import io.smallrye.mutiny.operators.multi.processors.UnicastProcessor;
+import mutiny.zero.flow.adapters.AdaptersToReactiveStreams;
 
 /**
  * An implementation of connector used for testing applications without having to use external broker.
@@ -217,9 +218,9 @@ public class InMemoryConnector implements IncomingConnectorFactory, OutgoingConn
         private InMemorySourceImpl(String name, boolean broadcast) {
             this.name = name;
             if (broadcast) {
-                processor = BroadcastProcessor.create();
+                processor = AdaptersToReactiveStreams.processor(BroadcastProcessor.create());
             } else {
-                processor = UnicastProcessor.create();
+                processor = AdaptersToReactiveStreams.processor(UnicastProcessor.create());
             }
             this.source = ReactiveStreams.fromPublisher(processor);
         }

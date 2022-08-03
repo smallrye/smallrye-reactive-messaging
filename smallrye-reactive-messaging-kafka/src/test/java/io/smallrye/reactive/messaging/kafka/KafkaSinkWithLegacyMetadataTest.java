@@ -8,6 +8,7 @@ import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.Flow;
 
 import javax.enterprise.context.ApplicationScoped;
 
@@ -32,6 +33,8 @@ import io.smallrye.reactive.messaging.kafka.companion.ConsumerTask;
 import io.smallrye.reactive.messaging.kafka.companion.KafkaCompanion;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSink;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
+import mutiny.zero.flow.adapters.AdaptersToFlow;
+import mutiny.zero.flow.adapters.AdaptersToReactiveStreams;
 
 /**
  * Duplicate of {@link KafkaSinkTest} - delete once we remove the legacy
@@ -63,10 +66,10 @@ public class KafkaSinkWithLegacyMetadataTest extends KafkaCompanionTestBase {
         KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
         sink = new KafkaSink(oc, CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance());
 
-        Subscriber<? extends Message<?>> subscriber = sink.getSink().build();
+        Flow.Subscriber<? extends Message<?>> subscriber = AdaptersToFlow.subscriber(sink.getSink().build());
         Multi.createFrom().range(0, 10)
                 .map(Message::of)
-                .subscribe((Subscriber<? super Message<Integer>>) subscriber);
+                .subscribe((Flow.Subscriber<? super Message<Integer>>) subscriber);
 
         assertThat(consumed.awaitCompletion(Duration.ofMinutes(1)).count()).isEqualTo(10);
     }
@@ -83,10 +86,10 @@ public class KafkaSinkWithLegacyMetadataTest extends KafkaCompanionTestBase {
         KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
         sink = new KafkaSink(oc, CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance());
 
-        Subscriber<? extends Message<?>> subscriber = sink.getSink().build();
+        Flow.Subscriber<? extends Message<?>> subscriber = AdaptersToFlow.subscriber(sink.getSink().build());
         Multi.createFrom().range(0, 10)
                 .map(Message::of)
-                .subscribe((Subscriber<? super Message<Integer>>) subscriber);
+                .subscribe((Flow.Subscriber<? super Message<Integer>>) subscriber);
 
         assertThat(consumed.awaitCompletion(Duration.ofMinutes(1)).count()).isEqualTo(10);
     }
@@ -104,11 +107,11 @@ public class KafkaSinkWithLegacyMetadataTest extends KafkaCompanionTestBase {
         KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
         sink = new KafkaSink(oc, CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance());
 
-        Subscriber<? extends Message<?>> subscriber = sink.getSink().build();
+        Flow.Subscriber<? extends Message<?>> subscriber = AdaptersToFlow.subscriber(sink.getSink().build());
         Multi.createFrom().range(0, 10)
                 .map(i -> Integer.toString(i))
                 .map(Message::of)
-                .subscribe((Subscriber<? super Message<String>>) subscriber);
+                .subscribe((Flow.Subscriber<? super Message<String>>) subscriber);
 
         assertThat(consumed.awaitCompletion(Duration.ofMinutes(1)).count()).isEqualTo(10);
     }
@@ -244,7 +247,7 @@ public class KafkaSinkWithLegacyMetadataTest extends KafkaCompanionTestBase {
 
         List<Object> acked = new CopyOnWriteArrayList<>();
         List<Object> nacked = new CopyOnWriteArrayList<>();
-        Subscriber subscriber = sink.getSink().build();
+        Flow.Subscriber subscriber = AdaptersToFlow.subscriber(sink.getSink().build());
         Multi.createFrom().range(0, 6)
                 .map(i -> {
                     if (i == 3 || i == 5) {
@@ -285,7 +288,7 @@ public class KafkaSinkWithLegacyMetadataTest extends KafkaCompanionTestBase {
         KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
         sink = new KafkaSink(oc, CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance());
 
-        Subscriber subscriber = sink.getSink().build();
+        Flow.Subscriber subscriber = AdaptersToFlow.subscriber(sink.getSink().build());
         Multi.createFrom().range(0, 5)
                 .map(i -> {
                     if (i == 3 || i == 5) {
@@ -443,7 +446,7 @@ public class KafkaSinkWithLegacyMetadataTest extends KafkaCompanionTestBase {
 
         @Outgoing("data")
         public Publisher<Integer> source() {
-            return Multi.createFrom().range(0, 10);
+            return AdaptersToReactiveStreams.publisher(Multi.createFrom().range(0, 10));
         }
 
     }
@@ -459,7 +462,7 @@ public class KafkaSinkWithLegacyMetadataTest extends KafkaCompanionTestBase {
 
         @Outgoing("data")
         public Publisher<Integer> source() {
-            return Multi.createFrom().range(0, 10);
+            return AdaptersToReactiveStreams.publisher(Multi.createFrom().range(0, 10));
         }
 
     }
@@ -475,7 +478,7 @@ public class KafkaSinkWithLegacyMetadataTest extends KafkaCompanionTestBase {
 
         @Outgoing("data")
         public Publisher<Integer> source() {
-            return Multi.createFrom().range(0, 10);
+            return AdaptersToReactiveStreams.publisher(Multi.createFrom().range(0, 10));
         }
 
     }
@@ -492,7 +495,7 @@ public class KafkaSinkWithLegacyMetadataTest extends KafkaCompanionTestBase {
 
         @Outgoing("data")
         public Publisher<Integer> source() {
-            return Multi.createFrom().range(0, 10);
+            return AdaptersToReactiveStreams.publisher(Multi.createFrom().range(0, 10));
         }
 
     }
@@ -515,7 +518,7 @@ public class KafkaSinkWithLegacyMetadataTest extends KafkaCompanionTestBase {
 
         @Outgoing("data")
         public Publisher<Integer> source() {
-            return Multi.createFrom().range(0, 10);
+            return AdaptersToReactiveStreams.publisher(Multi.createFrom().range(0, 10));
         }
 
     }
@@ -525,13 +528,13 @@ public class KafkaSinkWithLegacyMetadataTest extends KafkaCompanionTestBase {
 
         @Outgoing("data")
         public Publisher<Integer> source() {
-            return Multi.createFrom().range(0, 10);
+            return AdaptersToReactiveStreams.publisher(Multi.createFrom().range(0, 10));
         }
 
         @Outgoing("data")
         public Publisher<Integer> source2() {
-            return Multi.createFrom().range(10, 20)
-                    .onItem().call(x -> Uni.createFrom().voidItem().onItem().delayIt().by(Duration.ofMillis(20)));
+            return AdaptersToReactiveStreams.publisher(Multi.createFrom().range(10, 20)
+                    .onItem().call(x -> Uni.createFrom().voidItem().onItem().delayIt().by(Duration.ofMillis(20))));
         }
 
     }

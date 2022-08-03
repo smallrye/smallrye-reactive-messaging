@@ -11,6 +11,7 @@ import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.reactivestreams.Publisher;
 
 import io.smallrye.mutiny.Multi;
+import mutiny.zero.flow.adapters.AdaptersToReactiveStreams;
 
 @ApplicationScoped
 public class ProducingKafkaMessageBean {
@@ -30,7 +31,7 @@ public class ProducingKafkaMessageBean {
 
     @Outgoing("data")
     public Publisher<Integer> source() {
-        return Multi.createFrom().range(0, 10);
+        return AdaptersToReactiveStreams.publisher(Multi.createFrom().range(0, 10));
     }
 
 }

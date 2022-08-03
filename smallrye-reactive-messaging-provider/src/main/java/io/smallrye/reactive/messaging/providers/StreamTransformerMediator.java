@@ -5,6 +5,7 @@ import static io.smallrye.reactive.messaging.providers.i18n.ProviderMessages.msg
 
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.Flow;
 import java.util.function.Function;
 
 import org.eclipse.microprofile.reactive.messaging.Message;
@@ -17,6 +18,8 @@ import io.smallrye.reactive.converters.ReactiveTypeConverter;
 import io.smallrye.reactive.converters.Registry;
 import io.smallrye.reactive.messaging.MediatorConfiguration;
 import io.smallrye.reactive.messaging.providers.helpers.MultiUtils;
+import mutiny.zero.flow.adapters.AdaptersToFlow;
+import mutiny.zero.flow.adapters.AdaptersToReactiveStreams;
 
 public class StreamTransformerMediator extends AbstractMediator {
 
@@ -94,10 +97,11 @@ public class StreamTransformerMediator extends AbstractMediator {
     private void processMethodConsumingAPublisherBuilderOfMessages() {
         function = upstream -> {
             Multi<? extends Message<?>> multi = MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration);
-            PublisherBuilder<? extends Message<?>> argument = ReactiveStreams.fromPublisher(multi);
+            PublisherBuilder<? extends Message<?>> argument = ReactiveStreams
+                    .fromPublisher(AdaptersToReactiveStreams.publisher(multi));
             PublisherBuilder<Message<?>> result = invoke(argument);
             Objects.requireNonNull(result, msg.methodReturnedNull(configuration.methodAsString()));
-            return Multi.createFrom().publisher(result.buildRs());
+            return Multi.createFrom().publisher(AdaptersToFlow.publisher(result.buildRs()));
         };
     }
 
@@ -107,7 +111,7 @@ public class StreamTransformerMediator extends AbstractMediator {
             Publisher<? extends Message<?>> argument = convertToDesiredPublisherType(multi);
             Publisher<Message<?>> result = invoke(argument);
             Objects.requireNonNull(result, msg.methodReturnedNull(configuration.methodAsString()));
-            return Multi.createFrom().publisher(result);
+            return Multi.createFrom().publisher(AdaptersToFlow.publisher(result));
         };
     }
 
@@ -115,21 +119,21 @@ public class StreamTransformerMediator extends AbstractMediator {
     private <T> Publisher<T> convertToDesiredPublisherType(Multi<T> multi) {
         Class<?> parameterType = configuration.getParameterTypes()[0];
         Optional<? extends ReactiveTypeConverter<?>> converter = Registry.lookup(parameterType);
-        Publisher<T> argument = multi;
+        Flow.Publisher<T> argument = multi;
         if (converter.isPresent()) {
-            argument = (Publisher<T>) converter.get().fromPublisher(multi);
+            argument = (Flow.Publisher<T>) converter.get().fromFlowPublisher(multi);
         }
-        return argument;
+        return AdaptersToReactiveStreams.publisher(argument);
     }
 
     private void processMethodConsumingAPublisherBuilderOfPayload() {
         function = upstream -> {
             Multi<?> multi = MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration)
                     .onItem().transform(Message::getPayload);
-            PublisherBuilder<?> argument = ReactiveStreams.fromPublisher(multi);
+            PublisherBuilder<?> argument = ReactiveStreams.fromPublisher(AdaptersToReactiveStreams.publisher(multi));
             PublisherBuilder<Object> result = invoke(argument);
             Objects.requireNonNull(result, msg.methodReturnedNull(configuration.methodAsString()));
-            return Multi.createFrom().publisher(result.buildRs())
+            return Multi.createFrom().publisher(AdaptersToFlow.publisher(result.buildRs()))
                     .onItem().transform(Message::of);
         };
     }
@@ -141,7 +145,7 @@ public class StreamTransformerMediator extends AbstractMediator {
             Publisher<?> argument = convertToDesiredPublisherType(multi);
             Publisher<Object> result = invoke(argument);
             Objects.requireNonNull(result, msg.methodReturnedNull(configuration.methodAsString()));
-            return Multi.createFrom().publisher(result)
+            return Multi.createFrom().publisher(AdaptersToFlow.publisher(result))
                     .onItem().transform(Message::of);
         };
     }

@@ -17,6 +17,7 @@ import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
 
 import io.smallrye.mutiny.Multi;
+import mutiny.zero.flow.adapters.AdaptersToReactiveStreams;
 
 @ApplicationScoped
 public class MyCollector {
@@ -53,8 +54,8 @@ public class MyCollector {
 
     @Outgoing("count")
     public Publisher<Message<Integer>> source() {
-        return Multi.createFrom().range(0, 10)
-                .map(Message::of);
+        return AdaptersToReactiveStreams.publisher(Multi.createFrom().range(0, 10)
+                .map(Message::of));
     }
 
     public List<String> payloads() {

@@ -8,6 +8,8 @@ import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 import org.reactivestreams.Publisher;
 
 import io.smallrye.mutiny.Multi;
+import mutiny.zero.flow.adapters.AdaptersToFlow;
+import mutiny.zero.flow.adapters.AdaptersToReactiveStreams;
 
 @ApplicationScoped
 public class SourceOnly {
@@ -15,10 +17,10 @@ public class SourceOnly {
     @SuppressWarnings("unchecked")
     @Outgoing("count")
     public Publisher<Message<String>> source() {
-        return Multi.createFrom().range(1, 11)
+        return AdaptersToReactiveStreams.publisher(Multi.createFrom().range(1, 11)
                 .map(i -> Integer.toString(i))
                 .map(Message::of)
-                .concatMap(m -> ReactiveStreams.of(m, m).buildRs());
+                .concatMap(m -> AdaptersToFlow.publisher(ReactiveStreams.of(m, m).buildRs())));
     }
 
 }

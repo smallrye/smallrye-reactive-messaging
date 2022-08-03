@@ -21,6 +21,7 @@ import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.WeldTestBaseWithoutTails;
 import io.smallrye.reactive.messaging.annotations.Blocking;
 import io.smallrye.reactive.messaging.blocking.beans.*;
+import mutiny.zero.flow.adapters.AdaptersToReactiveStreams;
 
 class BlockingSubscriberTest extends WeldTestBaseWithoutTails {
 
@@ -236,7 +237,7 @@ class BlockingSubscriberTest extends WeldTestBaseWithoutTails {
     public static class ProduceIn {
         @Outgoing("in")
         public Publisher<String> produce() {
-            return Multi.createFrom().items("a", "b", "c", "d", "e", "f");
+            return AdaptersToReactiveStreams.publisher(Multi.createFrom().items("a", "b", "c", "d", "e", "f"));
         }
     }
 

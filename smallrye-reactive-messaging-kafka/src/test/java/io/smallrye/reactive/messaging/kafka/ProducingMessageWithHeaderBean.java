@@ -12,6 +12,7 @@ import org.reactivestreams.Publisher;
 
 import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.kafka.api.OutgoingKafkaRecordMetadata;
+import mutiny.zero.flow.adapters.AdaptersToReactiveStreams;
 
 @ApplicationScoped
 public class ProducingMessageWithHeaderBean {
@@ -35,7 +36,7 @@ public class ProducingMessageWithHeaderBean {
 
     @Outgoing("data")
     public Publisher<Integer> source() {
-        return Multi.createFrom().range(0, 10);
+        return AdaptersToReactiveStreams.publisher(Multi.createFrom().range(0, 10));
     }
 
 }

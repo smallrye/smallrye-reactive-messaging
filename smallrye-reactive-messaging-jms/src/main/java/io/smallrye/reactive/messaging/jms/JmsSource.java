@@ -20,6 +20,8 @@ import org.reactivestreams.Subscription;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.helpers.Subscriptions;
 import io.smallrye.reactive.messaging.json.JsonMapping;
+import mutiny.zero.flow.adapters.AdaptersToFlow;
+import mutiny.zero.flow.adapters.AdaptersToReactiveStreams;
 
 class JmsSource {
 
@@ -51,10 +53,10 @@ class JmsSource {
         if (!broadcast) {
             source = ReactiveStreams.fromPublisher(publisher).map(m -> new IncomingJmsMessage<>(m, executor, jsonMapping));
         } else {
-            source = ReactiveStreams.fromPublisher(
-                    Multi.createFrom().publisher(publisher)
+            source = ReactiveStreams.fromPublisher(AdaptersToReactiveStreams.publisher(
+                    Multi.createFrom().publisher(AdaptersToFlow.publisher(publisher))
                             .map(m -> new IncomingJmsMessage<>(m, executor, jsonMapping))
-                            .broadcast().toAllSubscribers());
+                            .broadcast().toAllSubscribers()));
         }
     }
 
@@ -109,7 +111,7 @@ class JmsSource {
             if (downstream.compareAndSet(null, s)) {
                 s.onSubscribe(this);
             } else {
-                Subscriptions.fail(s, ex.illegalStateAlreadySubscriber());
+                Subscriptions.fail(AdaptersToFlow.subscriber(s), ex.illegalStateAlreadySubscriber());
             }
         }
 
