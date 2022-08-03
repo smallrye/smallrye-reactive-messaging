@@ -3,7 +3,6 @@ package io.smallrye.reactive.messaging.rabbitmq;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
@@ -101,6 +100,8 @@ class RabbitMQTest extends RabbitMQBrokerTestBase {
         final boolean queueExclusive = true;
         final boolean queueAutoDelete = true;
         final long queueTtl = 10000L;
+        final String queueType = "classic";
+        final String queueMode = "default";
 
         final String routingKeys = "urgent, normal";
 
@@ -119,6 +120,8 @@ class RabbitMQTest extends RabbitMQBrokerTestBase {
                 .put("mp.messaging.incoming.data.queue.auto-delete", queueAutoDelete)
                 .put("mp.messaging.incoming.data.queue.declare", true)
                 .put("mp.messaging.incoming.data.queue.ttl", queueTtl)
+                .put("mp.messaging.incoming.data.queue.x-queue-type", queueType)
+                .put("mp.messaging.incoming.data.queue.x-queue-mode", queueMode)
                 .put("mp.messaging.incoming.data.queue.single-active-consumer", true)
                 .put("mp.messaging.incoming.data.routing-keys", routingKeys)
                 .put("mp.messaging.incoming.data.connector", RabbitMQConnector.CONNECTOR_NAME)
@@ -149,6 +152,7 @@ class RabbitMQTest extends RabbitMQBrokerTestBase {
         assertThat(queue.getBoolean("auto_delete")).isEqualTo(queueAutoDelete);
         assertThat(queue.getBoolean("durable")).isEqualTo(queueDurable);
         assertThat(queue.getBoolean("exclusive")).isEqualTo(queueExclusive);
+        assertThat(queue.getString("type")).isEqualTo(queueType);
 
         // verify bindings
         final JsonObject queueArguments = queue.getJsonObject("arguments");
@@ -156,6 +160,8 @@ class RabbitMQTest extends RabbitMQBrokerTestBase {
         assertThat(queueArguments.getString("x-dead-letter-exchange")).isNull();
         assertThat(queueArguments.getString("x-dead-letter-routing-key")).isNull();
         assertThat(queueArguments.getLong("x-message-ttl")).isEqualTo(queueTtl);
+        assertThat(queueArguments.getString("x-queue-type")).isEqualTo(queueType);
+        assertThat(queueArguments.getString("x-queue-mode")).isEqualTo(queueMode);
         assertThat(queueArguments.getBoolean("x-single-active-consumer")).isEqualTo(true);
 
         final JsonArray queueBindings = usage.getBindings(exchangeName, queueName);
@@ -203,6 +209,8 @@ class RabbitMQTest extends RabbitMQBrokerTestBase {
         final String dlxName = "dlxIncomingDeclareTest";
         final String dlxType = "topic";
         final String dlxRoutingKey = "failure";
+        final String dlqQueueType = "classic";
+        final String dlqQueueMode = "default";
 
         final String routingKeys = "urgent, normal";
 
@@ -228,6 +236,8 @@ class RabbitMQTest extends RabbitMQBrokerTestBase {
                 .put("mp.messaging.incoming.data.dead-letter-exchange-type", dlxType)
                 .put("mp.messaging.incoming.data.dead-letter-routing-key", dlxRoutingKey)
                 .put("mp.messaging.incoming.data.dlx.declare", true)
+                .put("mp.messaging.incoming.data.dead-letter-queue-type", dlqQueueType)
+                .put("mp.messaging.incoming.data.dead-letter-queue-mode", dlqQueueMode)
                 .put("mp.messaging.incoming.data.connector", RabbitMQConnector.CONNECTOR_NAME)
                 .put("mp.messaging.incoming.data.host", host)
                 .put("mp.messaging.incoming.data.port", port)
@@ -281,7 +291,9 @@ class RabbitMQTest extends RabbitMQBrokerTestBase {
         assertThat(dlq.getBoolean("exclusive")).isFalse();
 
         final JsonObject dlqArguments = dlq.getJsonObject("arguments");
-        assertThat(dlqArguments.fieldNames()).isEqualTo(Collections.emptySet());
+        assertThat(dlqArguments.fieldNames()).isNotNull();
+        assertThat(dlqArguments.getString("x-queue-type")).isEqualTo(dlqQueueType);
+        assertThat(dlqArguments.getString("x-queue-mode")).isEqualTo(dlqQueueMode);
 
         // verify bindings
         final JsonArray queueBindings = usage.getBindings(exchangeName, queueName);
