@@ -21,6 +21,7 @@ import org.junit.jupiter.api.BeforeEach;
 import io.smallrye.config.SmallRyeConfigProviderResolver;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.providers.MediatorFactory;
+import io.smallrye.reactive.messaging.providers.OutgoingInterceptorDecorator;
 import io.smallrye.reactive.messaging.providers.connectors.ExecutionHolder;
 import io.smallrye.reactive.messaging.providers.connectors.MyDummyConnector;
 import io.smallrye.reactive.messaging.providers.connectors.WorkerPoolRegistry;
@@ -117,6 +118,7 @@ public class WeldTestBaseWithoutTails {
                 EmitterFactoryImpl.class,
                 MutinyEmitterFactoryImpl.class,
                 LegacyEmitterFactoryImpl.class,
+                OutgoingInterceptorDecorator.class,
 
                 // SmallRye config
                 io.smallrye.config.inject.ConfigProducer.class);

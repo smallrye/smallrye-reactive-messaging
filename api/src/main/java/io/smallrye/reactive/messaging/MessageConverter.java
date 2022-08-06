@@ -13,7 +13,8 @@ import io.smallrye.common.annotation.Experimental;
  * To register a converter, expose a, generally {@code ApplicationScoped} bean, implementing this interface.
  * <p>
  * When multiple converters are available, implementation should override the {@link #getPriority()} method.
- * The default priority is {@link #CONVERTER_DEFAULT_PRIORITY}. Converters with higher priority are executed first.
+ * Converters with higher priority (lesser value) are executed first.
+ * The default priority is {@link #CONVERTER_DEFAULT_PRIORITY}.
  */
 @Experimental("SmallRye only feature")
 public interface MessageConverter extends Prioritized {

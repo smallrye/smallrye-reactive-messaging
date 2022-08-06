@@ -5,14 +5,14 @@ import javax.enterprise.context.ApplicationScoped;
 import org.eclipse.microprofile.reactive.messaging.Message;
 
 import io.smallrye.mutiny.Multi;
-import io.smallrye.reactive.messaging.providers.PublisherDecorator;
+import io.smallrye.reactive.messaging.PublisherDecorator;
 
 @ApplicationScoped
 public class AppendingDecorator implements PublisherDecorator {
 
     @Override
     public Multi<? extends Message<?>> decorate(Multi<? extends Message<?>> publisher,
-            String channelName) {
+            String channelName, boolean isConnector) {
         return publisher.map(m -> this.appendString(m, channelName));
     }
 

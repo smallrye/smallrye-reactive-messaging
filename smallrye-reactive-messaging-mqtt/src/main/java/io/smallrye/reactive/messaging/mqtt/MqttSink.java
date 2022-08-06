@@ -14,6 +14,7 @@ import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 import io.netty.handler.codec.mqtt.MqttQoS;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.vertx.AsyncResultUni;
+import io.smallrye.reactive.messaging.OutgoingMessageMetadata;
 import io.smallrye.reactive.messaging.mqtt.session.MqttClientSession;
 import io.smallrye.reactive.messaging.mqtt.session.MqttClientSessionOptions;
 import io.vertx.core.json.Json;
@@ -91,6 +92,7 @@ public class MqttSink {
                     if (f != null) {
                         return Uni.createFrom().completionStage(msg.nack(f).thenApply(x -> msg));
                     } else {
+                        OutgoingMessageMetadata.setResultOnMessage(msg, s);
                         return Uni.createFrom().completionStage(msg.ack().thenApply(x -> msg));
                     }
                 })

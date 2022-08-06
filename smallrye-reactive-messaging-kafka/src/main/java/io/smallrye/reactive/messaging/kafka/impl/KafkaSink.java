@@ -39,6 +39,7 @@ import io.opentelemetry.context.Context;
 import io.opentelemetry.context.Scope;
 import io.opentelemetry.semconv.trace.attributes.SemanticAttributes;
 import io.smallrye.mutiny.Uni;
+import io.smallrye.reactive.messaging.OutgoingMessageMetadata;
 import io.smallrye.reactive.messaging.TracingMetadata;
 import io.smallrye.reactive.messaging.ce.OutgoingCloudEventMetadata;
 import io.smallrye.reactive.messaging.health.HealthReport;
@@ -199,7 +200,8 @@ public class KafkaSink {
                 @SuppressWarnings({ "unchecked", "rawtypes" })
                 Uni<RecordMetadata> sendUni = client.send((ProducerRecord) record);
 
-                Uni<Void> uni = sendUni.onItem().transformToUni(ignored -> {
+                Uni<Void> uni = sendUni.onItem().transformToUni(recordMetadata -> {
+                    OutgoingMessageMetadata.setResultOnMessage(message, recordMetadata);
                     log.successfullyToTopic(message, record.topic());
                     return Uni.createFrom().completionStage(message.ack());
                 });

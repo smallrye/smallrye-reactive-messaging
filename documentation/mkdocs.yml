@@ -19,6 +19,7 @@ nav:
             - 'Method Signatures': concepts/signatures.md
             - 'Skipping Messages': concepts/skipping.md
             - 'Message Converters': concepts/converters.md
+            - 'Channel Decorators': concepts/decorators.md
             - 'Broadcast' : concepts/broadcast.md
             - 'Merge channels' : concepts/merge.md
             - '@Incomings' : concepts/incomings.md

@@ -1,5 +1,6 @@
 package io.smallrye.reactive.messaging.providers;
 
+import static io.smallrye.reactive.messaging.providers.helpers.CDIUtils.getSortedInstances;
 import static io.smallrye.reactive.messaging.providers.i18n.ProviderExceptions.ex;
 import static io.smallrye.reactive.messaging.providers.i18n.ProviderLogging.log;
 import static io.smallrye.reactive.messaging.providers.i18n.ProviderMessages.msg;
@@ -21,6 +22,8 @@ import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.Invoker;
 import io.smallrye.reactive.messaging.MediatorConfiguration;
 import io.smallrye.reactive.messaging.MessageConverter;
+import io.smallrye.reactive.messaging.PublisherDecorator;
+import io.smallrye.reactive.messaging.SubscriberDecorator;
 import io.smallrye.reactive.messaging.providers.connectors.WorkerPoolRegistry;
 import io.smallrye.reactive.messaging.providers.extension.HealthCenter;
 import io.smallrye.reactive.messaging.providers.helpers.BroadcastHelper;
@@ -35,6 +38,8 @@ public abstract class AbstractMediator {
     protected WorkerPoolRegistry workerPoolRegistry;
     private Invoker invoker;
     private Instance<PublisherDecorator> decorators;
+
+    private Instance<SubscriberDecorator> subscriberDecorators;
     protected HealthCenter health;
     private Instance<MessageConverter> converters;
 
@@ -48,6 +53,10 @@ public abstract class AbstractMediator {
 
     public void setDecorators(Instance<PublisherDecorator> decorators) {
         this.decorators = decorators;
+    }
+
+    public void setSubscriberDecorators(Instance<SubscriberDecorator> decorators) {
+        this.subscriberDecorators = decorators;
     }
 
     public void setConverters(Instance<MessageConverter> converters) {
@@ -175,8 +184,8 @@ public abstract class AbstractMediator {
             return null;
         }
 
-        for (PublisherDecorator decorator : decorators) {
-            input = decorator.decorate(input, getConfiguration().getOutgoing());
+        for (PublisherDecorator decorator : getSortedInstances(decorators)) {
+            input = decorator.decorate(input, getConfiguration().getOutgoing(), false);
         }
 
         if (configuration.getBroadcast()) {
@@ -184,6 +193,17 @@ public abstract class AbstractMediator {
         } else {
             return input;
         }
+    }
+
+    public Multi<? extends Message<?>> decorateSubscriberSource(Multi<? extends Message<?>> input) {
+        if (input == null) {
+            return null;
+        }
+
+        for (SubscriberDecorator decorator : getSortedInstances(subscriberDecorators)) {
+            input = decorator.decorate(input, configuration.getIncoming(), false);
+        }
+        return input;
     }
 
     public void setHealth(HealthCenter health) {

@@ -1,5 +1,6 @@
 package io.smallrye.reactive.messaging.providers.impl;
 
+import static io.smallrye.reactive.messaging.providers.helpers.CDIUtils.getSortedInstances;
 import static io.smallrye.reactive.messaging.providers.i18n.ProviderExceptions.ex;
 import static io.smallrye.reactive.messaging.providers.i18n.ProviderLogging.log;
 
@@ -19,9 +20,9 @@ import org.reactivestreams.Subscriber;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.ChannelRegistar;
 import io.smallrye.reactive.messaging.ChannelRegistry;
+import io.smallrye.reactive.messaging.PublisherDecorator;
 import io.smallrye.reactive.messaging.connector.InboundConnector;
 import io.smallrye.reactive.messaging.connector.OutboundConnector;
-import io.smallrye.reactive.messaging.providers.PublisherDecorator;
 
 /**
  * Look for stream factories and get instances.
@@ -170,8 +171,8 @@ public class ConfiguredChannelFactory implements ChannelRegistar {
 
         Multi<? extends Message<?>> publisher = Multi.createFrom().publisher(inboundConnector.getPublisher(config));
 
-        for (PublisherDecorator decorator : publisherDecoratorInstance) {
-            publisher = decorator.decorate(Multi.createFrom().publisher(publisher), name);
+        for (PublisherDecorator decorator : getSortedInstances(publisherDecoratorInstance)) {
+            publisher = decorator.decorate(publisher, name, true);
         }
 
         return publisher;
