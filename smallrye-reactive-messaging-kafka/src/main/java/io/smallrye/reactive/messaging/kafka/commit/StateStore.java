@@ -6,6 +6,9 @@ import java.util.function.Supplier;
 
 import org.apache.kafka.common.TopicPartition;
 import org.eclipse.microprofile.reactive.messaging.Message;
+import org.jboss.logging.Logger;
+
+import io.smallrye.reactive.messaging.kafka.i18n.KafkaLogging;
 
 /**
  * State store metadata type for injecting state store interactions into received messages.
@@ -29,6 +32,9 @@ import org.eclipse.microprofile.reactive.messaging.Message;
  * @param <T> type of the processing state
  */
 public class StateStore<T> {
+
+    protected KafkaLogging log = Logger.getMessageLogger(KafkaLogging.class, "io.smallrye.reactive.messaging.kafka");
+
     private final TopicPartition topicPartition;
     private final long recordOffset;
     private final Supplier<ProcessingState<T>> currentSupplier;
@@ -86,7 +92,15 @@ public class StateStore<T> {
     }
 
     public T transformAndStoreLocal(T initialState, Function<T, T> transformation) {
-        return storeLocal(transformation.apply(getCurrent().map(ProcessingState::getState).orElse(initialState)));
+        Optional<ProcessingState<T>> current = getCurrent();
+        ProcessingState<T> processingState = current.orElse(new ProcessingState<>(initialState, 0L));
+        if (recordOffset >= processingState.getOffset()) {
+            return storeLocal(transformation.apply(processingState.getState()));
+        } else {
+            log.debugf("Skipping transformation on %s:%d, latest processing state offset %d",
+                    topicPartition, recordOffset, processingState.getOffset());
+            return processingState.getState();
+        }
     }
 
     public T storeOnAck(T state, long offset) {
@@ -99,6 +113,14 @@ public class StateStore<T> {
     }
 
     public T transformAndStoreOnAck(T initialState, Function<T, T> transformation) {
-        return storeOnAck(transformation.apply(getCurrent().map(ProcessingState::getState).orElse(initialState)));
+        Optional<ProcessingState<T>> current = getCurrent();
+        ProcessingState<T> processingState = current.orElse(new ProcessingState<>(initialState, 0L));
+        if (recordOffset >= processingState.getOffset()) {
+            return storeOnAck(transformation.apply(processingState.getState()));
+        } else {
+            log.debugf("Skipping transformation on %s:%d, latest processing state offset %d",
+                    topicPartition, recordOffset, processingState.getOffset());
+            return processingState.getState();
+        }
     }
 }
