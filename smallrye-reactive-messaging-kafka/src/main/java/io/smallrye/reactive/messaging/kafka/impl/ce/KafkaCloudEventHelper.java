@@ -135,13 +135,16 @@ public class KafkaCloudEventHelper {
             ConsumerRecord<?, T> record) {
         DefaultCloudEventMetadataBuilder<T> builder = new DefaultCloudEventMetadataBuilder<>();
 
-        // Build a map containing all the headers
+        // Build a map containing all the headers, expect null values
         // We remove the entry at each access to filter out extension attribute.
         Map<String, String> headers = new HashMap<>();
         record.headers().forEach(kh -> {
-            String key = kh.key();
-            String value = new String(kh.value(), StandardCharsets.UTF_8); // Rules 3.2.3 - Force UTF-8
-            headers.put(key, value);
+            // null values from arbitrary headers could break the UTF-8 conversion
+            if (kh.value() != null) {
+                String key = kh.key();
+                String value = new String(kh.value(), StandardCharsets.UTF_8); // Rules 3.2.3 - Force UTF-8
+                headers.put(key, value);
+            }
         });
 
         // Required
