@@ -212,13 +212,14 @@ class RecordsSubscriber<T, SELF extends RecordsSubscriber<T, SELF>> implements M
      * @return this {@link RecordsSubscriber}
      */
     public SELF awaitNextRecords(int number, int request, Duration duration) {
-        if (hasCompleted() || getFailure() != null) {
-            if (hasCompleted()) {
-                throw new AssertionError("Expecting a next records, but a completion event has already being received");
-            } else {
-                throw new AssertionError(
-                        "Expecting a next records, but a failure event has already being received: " + getFailure());
-            }
+        if (hasCompleted()) {
+            throw new AssertionError("Expecting a next records, but a completion event has already been received");
+        }
+
+        if (getFailure() != null) {
+            throw new AssertionError(
+                    "Expecting a next records, but a failure event has already been received: " + getFailure(),
+                    getFailure());
         }
 
         awaitNextRecordEvents(number, request, duration);
@@ -258,13 +259,20 @@ class RecordsSubscriber<T, SELF extends RecordsSubscriber<T, SELF>> implements M
                     "Expected the number of records to be " + number + ", but it's already " + receivedCount);
         }
 
-        if (isCancelled() || hasCompleted() || getFailure() != null) {
+        if (isCancelled() || hasCompleted()) {
             if (receivedCount != number) {
                 throw new AssertionError(
                         "Expected the number of records to be " + number + ", but received " + receivedCount
                                 + " and we received a terminal event already");
             }
             return self();
+        }
+
+        if (getFailure() != null) {
+            throw new AssertionError(
+                    "Expected the number of records to be " + number + ", but a failure event has already been received: "
+                            + getFailure(),
+                    getFailure());
         }
 
         awaitRecordEvents(number, duration);
@@ -384,8 +392,8 @@ class RecordsSubscriber<T, SELF extends RecordsSubscriber<T, SELF>> implements M
             } else {
                 throw new AssertionError(
                         "Expected " + number + " records, but received a failure event while waiting: " + getFailure()
-                                + ". Only "
-                                + received + " record(s) have been received.");
+                                + ". Only " + received + " record(s) have been received.",
+                        getFailure());
             }
         } catch (TimeoutException e) {
             // Timeout
@@ -421,7 +429,8 @@ class RecordsSubscriber<T, SELF extends RecordsSubscriber<T, SELF>> implements M
             } else if (getFailure() != null) {
                 throw new AssertionError(
                         "Expected " + expected + " records, but received a failure event while waiting: " + getFailure()
-                                + ". Only " + receivedCount + " records have been received.");
+                                + ". Only " + receivedCount + " records have been received.",
+                        getFailure());
             } else {
                 throw new AssertionError(
                         "Expected " + expected + " records.  Only " + receivedCount + " records have been received.");
