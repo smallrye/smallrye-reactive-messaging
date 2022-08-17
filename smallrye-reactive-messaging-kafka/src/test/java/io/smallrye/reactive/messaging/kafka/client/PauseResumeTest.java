@@ -52,67 +52,6 @@ public class PauseResumeTest extends WeldTestBase {
     }
 
     @Test
-    void testPauseResumeWithRequests() {
-        MapBasedConfig config = commonConfiguration()
-                .with(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, 1)
-                .with("client.id", UUID.randomUUID().toString());
-        String group = UUID.randomUUID().toString();
-        source = new KafkaSource<>(vertx, group,
-                new KafkaConnectorIncomingConfiguration(config), getConsumerRebalanceListeners(),
-                CountKafkaCdiEvents.noCdiEvents, getDeserializationFailureHandlers(), -1);
-        injectMockConsumer(source, consumer);
-
-        AssertSubscriber<IncomingKafkaRecord<String, String>> subscriber = source.getStream()
-                .subscribe().withSubscriber(AssertSubscriber.create(1));
-
-        TopicPartition tp0 = new TopicPartition(TOPIC, 0);
-        TopicPartition tp1 = new TopicPartition(TOPIC, 1);
-        TopicPartition tp2 = new TopicPartition(TOPIC, 2);
-        Map<TopicPartition, Long> beginning = new HashMap<>();
-        beginning.put(tp0, 0L);
-        beginning.put(tp1, 0L);
-        beginning.put(tp2, 0L);
-        consumer.updateBeginningOffsets(beginning);
-
-        consumer.schedulePollTask(() -> {
-            consumer.rebalance(Arrays.asList(tp0, tp1, tp2));
-            consumer.addRecord(new ConsumerRecord<>(TOPIC, 0, 0, "k", "v0"));
-            consumer.addRecord(new ConsumerRecord<>(TOPIC, 0, 1, "k", "v1"));
-            consumer.addRecord(new ConsumerRecord<>(TOPIC, 0, 2, "k", "v2"));
-        });
-
-        // two messages in the buffer, first one is delivered
-        await().until(() -> subscriber.getItems().size() == 1);
-
-        // request 1, delivered one more record
-        subscriber.request(1);
-        await().until(() -> subscriber.getItems().size() == 2);
-
-        // 1 <= 1 (halfBufferSize) -> resumed
-        await().until(() -> consumer.paused().isEmpty());
-
-        // request 1, delivered last record
-        subscriber.request(1);
-        await().until(() -> subscriber.getItems().size() == 3);
-
-        consumer.schedulePollTask(() -> {
-            consumer.addRecord(new ConsumerRecord<>(TOPIC, 0, 3, "k", "v0"));
-            consumer.addRecord(new ConsumerRecord<>(TOPIC, 0, 4, "k", "v1"));
-            consumer.addRecord(new ConsumerRecord<>(TOPIC, 0, 5, "k", "v2"));
-        });
-        // 2 messages in the buffer
-
-        // 2 >= 2 (maxBufferSize) -> paused
-        await().until(() -> !consumer.paused().isEmpty());
-
-        subscriber.request(2);
-        await().until(() -> subscriber.getItems().size() == 5);
-
-        // 1 <= 1 (halfBufferSize) -> resumed
-        await().until(() -> consumer.paused().isEmpty());
-    }
-
-    @Test
     void testPauseResumeBuffer() {
         MapBasedConfig config = commonConfiguration()
                 .with(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, 10)
