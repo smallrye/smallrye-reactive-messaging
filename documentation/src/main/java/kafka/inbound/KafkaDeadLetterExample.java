@@ -22,7 +22,8 @@ public class KafkaDeadLetterExample {
                 OutgoingKafkaRecordMetadata.builder()
                         .withKey("failed-record")
                         .withHeaders(new RecordHeaders()
-                                .add("my-header", "my-header-value".getBytes(StandardCharsets.UTF_8)))));
+                                .add("my-header", "my-header-value".getBytes(StandardCharsets.UTF_8)))
+                        .build()));
     }
     // </code>
 
