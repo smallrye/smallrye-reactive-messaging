@@ -1,5 +1,7 @@
 package io.smallrye.reactive.messaging.kafka.companion;
 
+import static io.smallrye.mutiny.helpers.test.AssertSubscriber.DEFAULT_TIMEOUT;
+
 import java.time.Duration;
 import java.util.Iterator;
 import java.util.List;
@@ -11,11 +13,12 @@ import java.util.stream.Collectors;
 import org.apache.kafka.common.TopicPartition;
 
 import io.smallrye.mutiny.Multi;
+import io.smallrye.mutiny.helpers.test.AssertSubscriber;
 
 /**
  * Abstract task for consuming or producing Kafka records provided by the given {@link Multi}
  * <p>
- * This class leverages {@link RecordsSubscriber} to subscribe itself to the given multi.
+ * This class leverages {@link AssertSubscriber} to subscribe itself to the given multi.
  *
  * @param <T> the type of items
  * @param <SELF> the reference to self type
@@ -28,9 +31,9 @@ public abstract class KafkaTask<T, SELF extends KafkaTask<T, SELF>> implements I
     private final Multi<T> multi;
 
     /**
-     * The {@link RecordsSubscriber} for controlled subscription
+     * The {@link AssertSubscriber} for controlled subscription
      */
-    private final RecordsSubscriber<T, ?> subscriber;
+    private final AssertSubscriber<T> subscriber;
 
     /**
      * Create a new {@link KafkaTask}
@@ -40,7 +43,7 @@ public abstract class KafkaTask<T, SELF extends KafkaTask<T, SELF>> implements I
     public KafkaTask(Multi<T> multi) {
         super();
         this.multi = multi;
-        this.subscriber = new RecordsSubscriber<>(Long.MAX_VALUE);
+        this.subscriber = AssertSubscriber.create(Long.MAX_VALUE);
         this.multi.subscribe(subscriber);
     }
 
@@ -66,21 +69,26 @@ public abstract class KafkaTask<T, SELF extends KafkaTask<T, SELF>> implements I
      * @return get the number of records received.
      */
     public long count() {
-        return subscriber.count();
+        return subscriber.getItems().size();
     }
 
     /**
      * @return get the first record received, potentially {@code null} if no records have been received.
      */
     public T getFirstRecord() {
-        return subscriber.getFirstRecord();
+        List<T> records = subscriber.getItems();
+        if (records.isEmpty()) {
+            return null;
+        } else {
+            return records.get(0);
+        }
     }
 
     /**
      * @return get the last record received, potentially {@code null} if no records have been received.
      */
     public T getLastRecord() {
-        return subscriber.getLastRecord();
+        return subscriber.getLastItem();
     }
 
     /**
@@ -89,71 +97,97 @@ public abstract class KafkaTask<T, SELF extends KafkaTask<T, SELF>> implements I
      * @return the list
      */
     public List<T> getRecords() {
-        return subscriber.getRecords();
+        return subscriber.getItems();
+    }
+
+    private void throwFailureForCause(Runnable runnable) {
+        try {
+            runnable.run();
+        } catch (AssertionError e) {
+            if (subscriber.getFailure() != null) {
+                throw new AssertionError(e.getMessage(), e);
+            } else {
+                throw e;
+            }
+        }
     }
 
     /**
-     * Delegates to {@link RecordsSubscriber#awaitNextRecord()}
+     * Delegates to {@link AssertSubscriber#awaitNextItem()}
      *
      * @return self
      */
     public SELF awaitNextRecord() {
-        subscriber.awaitNextRecord();
-        return self();
+        return awaitNextRecord(DEFAULT_TIMEOUT);
     }
 
     /**
-     * Delegates to {@link RecordsSubscriber#awaitNextRecord(Duration)}
+     * Delegates to {@link AssertSubscriber#awaitNextItem(Duration)}
      *
      * @return self
      */
     public SELF awaitNextRecord(Duration duration) {
-        subscriber.awaitNextRecord(duration);
+        throwFailureForCause(() -> subscriber.awaitNextItem(duration));
         return self();
     }
 
     /**
-     * Delegates to {@link RecordsSubscriber#awaitNextRecords(int)}
+     * Delegates to {@link AssertSubscriber#awaitNextItems(int)}
      *
      * @return self
      */
     public SELF awaitNextRecords(int number) {
-        subscriber.awaitNextRecords(number);
-        return self();
+        return awaitNextRecords(number, DEFAULT_TIMEOUT);
     }
 
     /**
-     * Delegates to {@link RecordsSubscriber#awaitNextRecords(int, Duration)}
+     * Delegates to {@link AssertSubscriber#awaitNextItems(int, Duration)}
      *
      * @return self
      */
     public SELF awaitNextRecords(int number, Duration duration) {
-        subscriber.awaitNextRecords(number, duration);
+        throwFailureForCause(() -> subscriber.awaitNextItems(number, duration));
         return self();
     }
 
     /**
-     * Delegates to {@link RecordsSubscriber#awaitRecords(int)}
+     * Delegates to {@link AssertSubscriber#awaitItems(int)}
      *
      * @return self
      */
     public SELF awaitRecords(int number) {
-        subscriber.awaitRecords(number);
-        return self();
+        return awaitRecords(number, DEFAULT_TIMEOUT);
     }
 
     /**
-     * Delegates to {@link RecordsSubscriber#awaitRecords(int, Duration)}
+     * Delegates to {@link AssertSubscriber#awaitItems(int, Duration)}
      *
      * @return self
      */
     public SELF awaitRecords(int number, Duration duration) {
-        subscriber.awaitRecords(number, duration);
+        throwFailureForCause(() -> subscriber.awaitItems(number, duration));
         return self();
     }
 
     /**
-     * Delegates to {@link RecordsSubscriber#awaitCompletion()}
+     * Assert no records were received during the given duration
+     *
+     * @return self
+     */
+    public SELF awaitNoRecords(Duration duration) {
+        try {
+            awaitNextRecord(duration);
+            throw new AssertionError("Received a record while expecting no records.");
+        } catch (AssertionError e) {
+            int size = subscriber.getItems().size();
+            if (size != 0) {
+                throw new AssertionError("Received " + size + " record(s) while expecting no records.");
+            }
+            return self();
+        }
+    }
+
+    /**
      *
      * @return self
      */
@@ -163,7 +197,7 @@ public abstract class KafkaTask<T, SELF extends KafkaTask<T, SELF>> implements I
     }
 
     /**
-     * Delegates to {@link RecordsSubscriber#awaitCompletion(Duration)}
+     * Delegates to {@link AssertSubscriber#awaitCompletion(Duration)}
      *
      * @return self
      */
@@ -173,23 +207,32 @@ public abstract class KafkaTask<T, SELF extends KafkaTask<T, SELF>> implements I
     }
 
     /**
-     * Delegates to {@link RecordsSubscriber#awaitCompletion(BiConsumer)}
+     *
+     * See {@link #awaitCompletion(BiConsumer, Duration)}
      *
      * @return self
      */
     public SELF awaitCompletion(BiConsumer<Throwable, Boolean> assertion) {
-        subscriber.awaitCompletion(assertion);
-        return self();
+        return awaitCompletion(assertion, DEFAULT_TIMEOUT);
     }
 
     /**
-     * Delegates to {@link RecordsSubscriber#awaitCompletion(BiConsumer, Duration)}
+     * Delegates to {@link AssertSubscriber#awaitCompletion()}
      *
      * @return self
      */
     public SELF awaitCompletion(BiConsumer<Throwable, Boolean> assertion, Duration duration) {
-        subscriber.awaitCompletion(assertion, duration);
-        return self();
+        try {
+            subscriber.awaitCompletion(duration);
+        } catch (AssertionError maybe) {
+            subscriber.assertTerminated();
+        }
+        try {
+            assertion.accept(subscriber.getFailure(), subscriber.isCancelled());
+            return self();
+        } catch (AssertionError e) {
+            throw new AssertionError("Received a failure or cancellation event, but did not pass the validation: " + e, e);
+        }
     }
 
     /**
@@ -199,6 +242,7 @@ public abstract class KafkaTask<T, SELF extends KafkaTask<T, SELF>> implements I
      */
     public SELF stop() {
         subscriber.cancel();
+        subscriber.onComplete();
         return self();
     }
 
@@ -208,7 +252,7 @@ public abstract class KafkaTask<T, SELF extends KafkaTask<T, SELF>> implements I
     }
 
     public long firstOffset() {
-        T firstRecord = subscriber.getFirstRecord();
+        T firstRecord = getFirstRecord();
         if (firstRecord == null) {
             return -1;
         }
@@ -216,7 +260,7 @@ public abstract class KafkaTask<T, SELF extends KafkaTask<T, SELF>> implements I
     }
 
     public long lastOffset() {
-        T lastRecord = subscriber.getLastRecord();
+        T lastRecord = getLastRecord();
         if (lastRecord == null) {
             return -1;
         }
@@ -224,7 +268,7 @@ public abstract class KafkaTask<T, SELF extends KafkaTask<T, SELF>> implements I
     }
 
     public Map<TopicPartition, List<T>> byTopicPartition() {
-        return subscriber.getRecords().stream().collect(Collectors.groupingBy(this::topicPartition));
+        return getRecords().stream().collect(Collectors.groupingBy(this::topicPartition));
     }
 
     protected abstract long offset(T record);

@@ -23,6 +23,7 @@ import java.util.function.Predicate;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.RecordsToDelete;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.clients.consumer.OffsetResetStrategy;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
@@ -33,6 +34,8 @@ import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.common.serialization.Serializer;
+import org.apache.kafka.common.serialization.StringDeserializer;
+import org.apache.kafka.common.serialization.StringSerializer;
 
 import io.smallrye.common.annotation.Experimental;
 import io.smallrye.mutiny.Multi;
@@ -205,10 +208,24 @@ public class KafkaCompanion implements AutoCloseable {
     }
 
     public <K, V> ConsumerBuilder<K, V> consumeWithDeserializers(
-            Class<? extends Deserializer<?>> keyDeserType,
-            Class<? extends Deserializer<?>> valueDeserType) {
-        ConsumerBuilder<K, V> builder = new ConsumerBuilder<>(getConsumerProperties(), kafkaApiTimeout, keyDeserType,
-                valueDeserType);
+            Class<? extends Deserializer<?>> valueDeserializerClassName) {
+        return consumeWithDeserializers(valueDeserializerClassName.getName());
+    }
+
+    public <K, V> ConsumerBuilder<K, V> consumeWithDeserializers(
+            Class<? extends Deserializer<?>> keyDeserializerClassName,
+            Class<? extends Deserializer<?>> valueDeserializerClassName) {
+        return consumeWithDeserializers(keyDeserializerClassName.getName(), valueDeserializerClassName.getName());
+    }
+
+    public <K, V> ConsumerBuilder<K, V> consumeWithDeserializers(String valueDeserializerClassName) {
+        return consumeWithDeserializers(StringDeserializer.class.getName(), valueDeserializerClassName);
+    }
+
+    public <K, V> ConsumerBuilder<K, V> consumeWithDeserializers(
+            String keyDeserializerClassName, String valueDeserializerClassName) {
+        ConsumerBuilder<K, V> builder = new ConsumerBuilder<>(getConsumerProperties(), kafkaApiTimeout,
+                keyDeserializerClassName, valueDeserializerClassName);
         registerOnClose(builder::close);
         return builder;
     }
@@ -261,8 +278,22 @@ public class KafkaCompanion implements AutoCloseable {
     public <K, V> ProducerBuilder<K, V> produceWithSerializers(
             Class<? extends Serializer<?>> keySerializerType,
             Class<? extends Serializer<?>> valueSerializerType) {
-        ProducerBuilder<K, V> builder = new ProducerBuilder<>(getProducerProperties(), kafkaApiTimeout, keySerializerType,
-                valueSerializerType);
+        return produceWithSerializers(keySerializerType.getName(), valueSerializerType.getName());
+    }
+
+    public <K, V> ProducerBuilder<K, V> produceWithSerializers(Class<? extends Serializer<?>> valueSerializerType) {
+        return produceWithSerializers(valueSerializerType.getName());
+    }
+
+    public <K, V> ProducerBuilder<K, V> produceWithSerializers(String valueSerializerClassName) {
+        return produceWithSerializers(StringSerializer.class.getName(), valueSerializerClassName);
+    }
+
+    public <K, V> ProducerBuilder<K, V> produceWithSerializers(
+            String keySerializerClassName,
+            String valueSerializerClassName) {
+        ProducerBuilder<K, V> builder = new ProducerBuilder<>(getProducerProperties(), kafkaApiTimeout,
+                keySerializerClassName, valueSerializerClassName);
         registerOnClose(builder::close);
         return builder;
     }
@@ -321,7 +352,8 @@ public class KafkaCompanion implements AutoCloseable {
             if (throwable == null) {
                 try {
                     // LOG commit
-                    kafkaProducer.sendOffsetsToTransaction(consumer.position(), consumer.groupMetadata());
+                    Map<TopicPartition, OffsetAndMetadata> position = consumer.position();
+                    kafkaProducer.sendOffsetsToTransaction(position, consumer.unwrap().groupMetadata());
                     kafkaProducer.commitTransaction();
                 } catch (Throwable e) {
                     // LOG error
@@ -334,9 +366,13 @@ public class KafkaCompanion implements AutoCloseable {
                 consumer.resetToLastCommittedPositions();
             }
         });
-        return new ProducerTask(consumer.processBatch(topics,
-                records -> builder.getProduceMulti(Multi.createFrom().iterable(records).onItem().transform(process)))
-                .onTermination().invoke(builder::close));
+        return new ProducerTask(consumer.processBatch(topics, records -> {
+            if (records.isEmpty()) {
+                return Multi.createFrom().empty();
+            } else {
+                return builder.getProduceMulti(Multi.createFrom().iterable(records).onItem().transform(process));
+            }
+        }).onTermination().invoke(builder::close));
     }
 
     private <K, V> void registerOnClose(Runnable action) {

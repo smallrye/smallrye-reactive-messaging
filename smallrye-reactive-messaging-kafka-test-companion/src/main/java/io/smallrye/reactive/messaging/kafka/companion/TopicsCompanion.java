@@ -9,7 +9,9 @@ import java.util.stream.Collectors;
 
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.NewTopic;
+import org.apache.kafka.clients.admin.RecordsToDelete;
 import org.apache.kafka.clients.admin.TopicDescription;
+import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.TopicPartitionInfo;
 
 import io.smallrye.mutiny.Uni;
@@ -62,9 +64,7 @@ public class TopicsCompanion {
      * @return the name of the created topic
      */
     public String createAndWait(String topic, int partition) {
-        create(topic, partition);
-        waitForTopic(topic).await().atMost(kafkaApiTimeout);
-        return topic;
+        return createAndWait(topic, partition, kafkaApiTimeout).name();
     }
 
     /**
@@ -146,6 +146,20 @@ public class TopicsCompanion {
             return describeAll();
         }
         return toUni(adminClient.describeTopics(Arrays.asList(topics)).allTopicNames()).await().atMost(kafkaApiTimeout);
+    }
+
+    /**
+     * Deletes records from given topics
+     *
+     * @param topics the topic names to clear
+     */
+    public void clear(String... topics) {
+        toUni(adminClient.describeTopics(Arrays.asList(topics)).allTopicNames())
+                .map(m -> m.values().stream()
+                        .flatMap(t -> t.partitions().stream().map(p -> new TopicPartition(t.name(), p.partition())))
+                        .collect(Collectors.toMap(t -> t, t -> RecordsToDelete.beforeOffset(-1))))
+                .chain(m -> toUni(adminClient.deleteRecords(m).all()))
+                .await().atMost(kafkaApiTimeout);
     }
 
     /**

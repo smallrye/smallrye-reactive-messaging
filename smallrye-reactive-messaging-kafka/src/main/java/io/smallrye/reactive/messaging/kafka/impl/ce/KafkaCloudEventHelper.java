@@ -12,7 +12,7 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.time.temporal.ChronoField;
 import java.util.*;
-import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.ProducerRecord;
@@ -30,6 +30,7 @@ import io.smallrye.reactive.messaging.kafka.IncomingKafkaCloudEventMetadata;
 import io.smallrye.reactive.messaging.kafka.Record;
 import io.smallrye.reactive.messaging.kafka.api.IncomingKafkaRecordMetadata;
 import io.smallrye.reactive.messaging.kafka.api.OutgoingKafkaRecordMetadata;
+import io.smallrye.reactive.messaging.kafka.impl.KafkaRecordHelper;
 import io.smallrye.reactive.messaging.kafka.impl.RuntimeKafkaSinkConfiguration;
 import io.vertx.core.json.JsonObject;
 import io.vertx.mutiny.core.buffer.Buffer;
@@ -214,7 +215,7 @@ public class KafkaCloudEventHelper {
         Integer partition = getPartition(outgoingMetadata, configuration);
         Object key = getKey(message, outgoingMetadata, ceMetadata, configuration);
         Long timestamp = getTimestamp(outgoingMetadata);
-        List<Header> headers = getHeaders(outgoingMetadata, incomingMetadata, configuration);
+        Headers headers = KafkaRecordHelper.getHeaders(outgoingMetadata, incomingMetadata, configuration);
         Optional<String> subject = getSubject(ceMetadata, configuration);
         Optional<String> contentType = getDataContentType(ceMetadata, configuration);
         Optional<URI> schema = getDataSchema(ceMetadata, configuration);
@@ -322,30 +323,6 @@ public class KafkaCloudEventHelper {
         return configuration.getCloudEventsDataContentType();
     }
 
-    private static List<Header> getHeaders(OutgoingKafkaRecordMetadata<?> outgoingMetadata,
-            IncomingKafkaRecordMetadata<?, ?> incomingMetadata, RuntimeKafkaSinkConfiguration configuration) {
-        List<Header> headers = new ArrayList<>();
-
-        // First incoming headers, so that they can be overridden by outgoing headers
-        if (!isNotBlank(configuration.getPropagateHeaders()) && incomingMetadata != null
-                && incomingMetadata.getHeaders() != null) {
-            Set<String> headersToPropagate = Arrays.stream(configuration.getPropagateHeaders().split(","))
-                    .map(String::trim)
-                    .collect(Collectors.toSet());
-
-            for (Header header : incomingMetadata.getHeaders()) {
-                if (headersToPropagate.contains(header.key())) {
-                    headers.add(header);
-                }
-            }
-        }
-
-        if (outgoingMetadata != null && outgoingMetadata.getHeaders() != null) {
-            outgoingMetadata.getHeaders().forEach(headers::add);
-        }
-        return headers;
-    }
-
     private static Long getTimestamp(OutgoingKafkaRecordMetadata<?> metadata) {
         long timestamp = -1;
         if (metadata != null && metadata.getTimestamp() != null) {
@@ -401,7 +378,7 @@ public class KafkaCloudEventHelper {
         Integer partition = getPartition(outgoingMetadata, configuration);
         Object key = getKey(message, outgoingMetadata, ceMetadata, configuration);
         Long timestamp = getTimestamp(outgoingMetadata);
-        List<Header> headers = getHeaders(outgoingMetadata, incomingMetadata, configuration);
+        Headers headers = KafkaRecordHelper.getHeaders(outgoingMetadata, incomingMetadata, configuration);
         String source = getSource(ceMetadata, configuration);
         String type = getType(ceMetadata, configuration);
         Optional<String> subject = getSubject(ceMetadata, configuration);
@@ -409,7 +386,8 @@ public class KafkaCloudEventHelper {
         Optional<URI> schema = getDataSchema(ceMetadata, configuration);
 
         // if headers does not contain a "content-type" header add one
-        Optional<Header> contentType = headers.stream().filter(h -> h.key().equalsIgnoreCase(KAFKA_HEADER_CONTENT_TYPE))
+        Optional<Header> contentType = StreamSupport.stream(headers.spliterator(), false)
+                .filter(h -> h.key().equalsIgnoreCase(KAFKA_HEADER_CONTENT_TYPE))
                 .findFirst();
         if (!contentType.isPresent()) {
             headers.add(new RecordHeader(KAFKA_HEADER_CONTENT_TYPE, STRUCTURED_CONTENT_TYPE.getBytes()));
@@ -482,10 +460,6 @@ public class KafkaCloudEventHelper {
         }
         return null;
 
-    }
-
-    public static boolean isNotBlank(String s) {
-        return s != null && !s.trim().isEmpty();
     }
 
 }

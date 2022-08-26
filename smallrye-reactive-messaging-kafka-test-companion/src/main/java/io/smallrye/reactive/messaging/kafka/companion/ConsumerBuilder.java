@@ -153,15 +153,15 @@ public class ConsumerBuilder<K, V> implements ConsumerRebalanceListener, Closeab
      *
      * @param props the initial properties for consumer creation
      * @param kafkaApiTimeout the timeout for api calls to Kafka
-     * @param keyDeserType the deserializer class for record keys
-     * @param valueDeserType the deserializer class for record values
+     * @param keyDeserializerType the deserializer class name for record keys
+     * @param valueDeserializerType the deserializer class name for record values
      */
     public ConsumerBuilder(Map<String, Object> props, Duration kafkaApiTimeout,
-            Class<? extends Deserializer<?>> keyDeserType, Class<? extends Deserializer<?>> valueDeserType) {
+            String keyDeserializerType, String valueDeserializerType) {
         this.props = props;
         this.kafkaApiTimeout = kafkaApiTimeout;
-        props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, keyDeserType.getName());
-        props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, valueDeserType.getName());
+        props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, keyDeserializerType);
+        props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, valueDeserializerType);
         this.consumerCreator = KafkaConsumer::new;
     }
 
@@ -408,7 +408,7 @@ public class ConsumerBuilder<K, V> implements ConsumerRebalanceListener, Closeab
     private Map<TopicPartition, OffsetAndMetadata> getOffsetMapFromConsumerRecord(ConsumerRecord<?, ?> consumerRecord) {
         Map<TopicPartition, OffsetAndMetadata> map = new HashMap<>();
         map.put(new TopicPartition(consumerRecord.topic(), consumerRecord.partition()),
-                new OffsetAndMetadata(consumerRecord.offset()));
+                new OffsetAndMetadata(consumerRecord.offset() + 1));
         return map;
     }
 

@@ -261,7 +261,11 @@ public interface KafkaLogging extends BasicLogger {
     @Message(id = 18261, value = "Unable to initialize transactions for producer from channel %s.")
     void unableToInitializeProducer(String channel, @Cause Throwable t);
 
-    @LogMessage(level = Logger.Level.ERROR)
+    @LogMessage(level = Logger.Level.WARN)
     @Message(id = 18262, value = "Aborting transaction for producer id %s in channel %s.")
-    void transactionAborted(String producerId, String channel, @Cause Throwable t);
+    void transactionAborted(String producerId, String channel);
+
+    @LogMessage(level = Logger.Level.FATAL)
+    @Message(id = 18263, value = "The serialization failure handler `%s` throws an exception")
+    void serializationFailureHandlerFailure(String instance, @Cause Throwable t);
 }

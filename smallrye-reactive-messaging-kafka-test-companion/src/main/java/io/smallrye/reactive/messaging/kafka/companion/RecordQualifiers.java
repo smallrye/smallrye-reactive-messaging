@@ -1,6 +1,7 @@
 package io.smallrye.reactive.messaging.kafka.companion;
 
 import java.time.Duration;
+import java.util.Objects;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.Consumer;
@@ -22,13 +23,13 @@ public class RecordQualifiers {
         return m -> {
             Multi<T> input = m;
             if (first != null) {
-                input = input.select().first(first);
+                input = input.plug(until(first));
             }
             if (duration != null) {
-                input = input.select().first(duration);
+                input = input.plug(until(duration));
             }
             if (untilPredicate != null) {
-                input = input.select().first(untilPredicate.negate());
+                input = input.plug(until(untilPredicate));
             }
             return input;
         };
@@ -47,19 +48,17 @@ public class RecordQualifiers {
     }
 
     public static <T> Function<Multi<T>, Multi<T>> withCallback(Consumer<T> callback, int parallelism) {
+        Objects.requireNonNull(callback, "callback function");
         return m -> {
-            if (callback != null) {
-                if (parallelism > 1) {
-                    return Multi.createFrom()
-                            .resource(() -> Executors.newFixedThreadPool(parallelism),
-                                    e -> m.onItem().transformToUniAndMerge(
-                                            cr -> Uni.createFrom().item(cr).invoke(callback).runSubscriptionOn(e)))
-                            .withFinalizer(ExecutorService::shutdown);
-                } else {
-                    return m.onItem().invoke(callback);
-                }
+            if (parallelism > 1) {
+                return Multi.createFrom()
+                        .resource(() -> Executors.newFixedThreadPool(parallelism),
+                                e -> m.onItem().transformToUniAndMerge(
+                                        cr -> Uni.createFrom().item(cr).invoke(callback).runSubscriptionOn(e)))
+                        .withFinalizer(ExecutorService::shutdown);
+            } else {
+                return m.onItem().invoke(callback);
             }
-            return m;
         };
     }
 

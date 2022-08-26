@@ -78,11 +78,11 @@ public class BatchConsumerTest extends KafkaCompanionTestBase {
 
         companion.produceStrings().usingGenerator(i -> new ProducerRecord<>(newTopic, "k-" + i, "v-" + i), 10);
 
-        await().until(() -> bean.metadata().stream().mapToInt(m -> m.getRecords().count()).sum() == 10);
+        await().until(() -> bean.metadata().stream().mapToInt(m -> m.count()).sum() == 10);
 
         Map<TopicPartition, List<ConsumerRecord<String, String>>> records = new HashMap<>();
         for (IncomingKafkaRecordBatchMetadata<String, String> metadata : bean.metadata()) {
-            for (TopicPartition partition : metadata.getRecords().partitions()) {
+            for (TopicPartition partition : metadata.partitions()) {
                 List<ConsumerRecord<String, String>> list = records.computeIfAbsent(partition, p -> new ArrayList<>());
                 list.addAll(metadata.getRecords().records(partition));
             }

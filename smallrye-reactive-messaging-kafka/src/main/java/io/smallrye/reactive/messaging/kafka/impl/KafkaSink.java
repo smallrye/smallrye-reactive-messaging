@@ -7,7 +7,6 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -26,16 +25,13 @@ import org.apache.kafka.common.errors.RecordTooLargeException;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.errors.TransactionAbortedException;
 import org.apache.kafka.common.errors.UnknownServerException;
-import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.header.Headers;
-import org.apache.kafka.common.header.internals.RecordHeaders;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 
 import io.opentelemetry.api.GlobalOpenTelemetry;
-import io.opentelemetry.api.internal.StringUtils;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.SpanBuilder;
 import io.opentelemetry.api.trace.SpanKind;
@@ -270,24 +266,7 @@ public class KafkaSink {
             actualTimestamp = (om.getTimestamp() != null) ? om.getTimestamp().toEpochMilli() : -1;
         }
 
-        Headers kafkaHeaders = new RecordHeaders();
-        if (!StringUtils.isNullOrEmpty(this.runtimeConfiguration.getPropagateHeaders()) && im != null
-                && im.getHeaders() != null) {
-            Set<String> configuredHeaders = Arrays.stream(this.runtimeConfiguration.getPropagateHeaders().split(","))
-                    .map(String::trim)
-                    .collect(Collectors.toSet());
-            Iterator<Header> iterator = im.getHeaders().iterator();
-            while (iterator.hasNext()) {
-                Header header = iterator.next();
-                if (configuredHeaders.contains(header.key())) {
-                    kafkaHeaders.add(header);
-                }
-            }
-        }
-        // add outgoing metadata headers, and override incoming headers if needed
-        if (om != null && om.getHeaders() != null) {
-            om.getHeaders().forEach(kafkaHeaders::add);
-        }
+        Headers kafkaHeaders = KafkaRecordHelper.getHeaders(om, im, runtimeConfiguration);
         createOutgoingTrace(message, actualTopic, actualPartition, kafkaHeaders);
         Object payload = message.getPayload();
         if (payload instanceof Record) {

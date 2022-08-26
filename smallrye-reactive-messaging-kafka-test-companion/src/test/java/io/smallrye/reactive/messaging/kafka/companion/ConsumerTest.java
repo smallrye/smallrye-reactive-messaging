@@ -2,6 +2,7 @@ package io.smallrye.reactive.messaging.kafka.companion;
 
 import static io.smallrye.reactive.messaging.kafka.companion.KafkaCompanion.record;
 import static io.smallrye.reactive.messaging.kafka.companion.KafkaCompanion.tp;
+import static io.smallrye.reactive.messaging.kafka.companion.RecordQualifiers.until;
 import static io.smallrye.reactive.messaging.kafka.companion.RecordQualifiers.withCallback;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -40,11 +41,14 @@ public class ConsumerTest extends KafkaCompanionTestBase {
                 record(topic2, 2),
                 record(topic3, 3)).awaitCompletion();
 
-        List<ConsumerRecord<String, Integer>> records = companion.consumeIntegers()
+        ConsumerTask<String, Integer> task = companion.consumeIntegers()
                 .fromTopics(new HashSet<>(Arrays.asList(topic1, topic2, topic3)), 3)
-                .awaitCompletion().getRecords();
+                .awaitCompletion();
 
-        assertThat(records).hasSize(3).allSatisfy(cr -> assertThat(cr.offset()).isEqualTo(0L));
+        assertThat(task.getRecords()).hasSize(3).allSatisfy(cr -> assertThat(cr.offset()).isEqualTo(0L));
+
+        Map<TopicPartition, List<ConsumerRecord<String, Integer>>> records = task.byTopicPartition();
+        assertThat(records).containsOnlyKeys(tp(topic1, 0), tp(topic2, 0), tp(topic3, 0));
     }
 
     @Test
@@ -59,6 +63,42 @@ public class ConsumerTest extends KafkaCompanionTestBase {
         }
 
         assertThat(records.get()).isEqualTo(1000);
+    }
+
+    @Test
+    void testConsumeWithCallback() {
+        companion.produceIntegers().usingGenerator(i -> record(topic, i), 10)
+                .awaitCompletion();
+
+        AtomicInteger records = new AtomicInteger();
+        try (ConsumerTask<String, Integer> task = companion.consumeIntegers()
+                .fromTopics(topic, withCallback(cr -> records.incrementAndGet()))) {
+            await().until(() -> task.count() == 10);
+        }
+
+        assertThat(records.get()).isEqualTo(10);
+    }
+
+    @Test
+    void testConsumeUntilPredicate() {
+        companion.produceIntegers().usingGenerator(i -> record(topic, i), 10)
+                .awaitCompletion();
+
+        try (ConsumerTask<String, Integer> task = companion.consumeIntegers()
+                .fromTopics(topic, until(cr -> cr.value() == 5))) {
+            await().until(() -> task.count() == 5);
+        }
+    }
+
+    @Test
+    void testConsumeUntil() {
+        companion.produceIntegers().usingGenerator(i -> record(topic, i), 10)
+                .awaitCompletion();
+
+        try (ConsumerTask<String, Integer> task = companion.consumeIntegers()
+                .fromTopics(topic, until(5L, Duration.ofSeconds(100), cr -> cr.value() == 8))) {
+            await().until(() -> task.count() == 5);
+        }
     }
 
     @Test
@@ -90,6 +130,24 @@ public class ConsumerTest extends KafkaCompanionTestBase {
         offsets.put(new TopicPartition(topic, 0), 80L);
         ConsumerTask<String, String> records = companion.consumeStrings()
                 .withGroupId("new-group")
+                .fromOffsets(offsets);
+
+        records.awaitRecords(20).stop();
+
+        assertThat(records.count()).isEqualTo(20);
+        assertThat(records.firstOffset()).isEqualTo(80L);
+        assertThat(records.getLastRecord().offset()).isEqualTo(99L);
+    }
+
+    @Test
+    void testConsumeFromOffsetsWithDuration() {
+        companion.produceStrings().usingGenerator(i -> new ProducerRecord<>(topic, "t" + i), 100)
+                .awaitCompletion();
+
+        Map<TopicPartition, Long> offsets = new HashMap<>();
+        offsets.put(new TopicPartition(topic, 0), 80L);
+        ConsumerTask<String, String> records = companion.consumeStrings()
+                .withGroupId("new-group")
                 .fromOffsets(offsets, Duration.ofSeconds(5))
                 .awaitCompletion();
 
@@ -108,7 +166,7 @@ public class ConsumerTest extends KafkaCompanionTestBase {
 
         consumer.fromTopics(topic, 108).awaitCompletion();
 
-        await().untilAsserted(() -> assertThat(consumer.committed(tp(topic, 0)).offset()).isEqualTo(100L));
+        await().untilAsserted(() -> assertThat(consumer.committed(tp(topic, 0)).offset()).isEqualTo(101L));
     }
 
     @Test
@@ -131,7 +189,11 @@ public class ConsumerTest extends KafkaCompanionTestBase {
 
         await().untilAsserted(() -> assertThat(commits.size()).isEqualTo(11));
 
-        await().untilAsserted(() -> assertThat(consumer.committed(tp(topic, 0)).offset()).isEqualTo(100L));
+        await().untilAsserted(() -> {
+            TopicPartition tp = tp(topic, 0);
+            OffsetAndMetadata actual = consumer.committed(new TopicPartition[] { tp }).get(tp);
+            assertThat(actual.offset()).isEqualTo(100L);
+        });
     }
 
     @Test
@@ -142,9 +204,11 @@ public class ConsumerTest extends KafkaCompanionTestBase {
         ConsumerBuilder<String, String> consumer = companion.consumeStrings()
                 .withCommitSyncWhen(cr -> cr.offset() % 10 == 0);
 
-        consumer.fromTopics(topic, 108).awaitCompletion();
+        ConsumerTask<String, String> task = consumer.fromTopics(topic, Duration.ofSeconds(5));
 
-        await().untilAsserted(() -> assertThat(consumer.committed(tp(topic, 0)).offset()).isEqualTo(100L));
+        await().untilAsserted(() -> assertThat(consumer.committed().get(tp(topic, 0)).offset()).isEqualTo(101L));
+
+        task.awaitCompletion();
     }
 
     @Test
@@ -213,7 +277,7 @@ public class ConsumerTest extends KafkaCompanionTestBase {
                     .isGreaterThanOrEqualTo(100L));
 
             records.awaitRecords(200);
-            await().untilAsserted(() -> assertThat(consumer.committed(tp(topic, 0)).offset()).isEqualTo(199L));
+            await().untilAsserted(() -> assertThat(consumer.committed(tp(topic, 0)).offset()).isEqualTo(200L));
         }
     }
 
@@ -227,11 +291,12 @@ public class ConsumerTest extends KafkaCompanionTestBase {
         companion.produceStrings().usingGenerator(i -> record(topic, "v-" + i), 400);
 
         assertThat(records.awaitCompletion().count()).isEqualTo(100);
-        await().untilAsserted(() -> assertThat(consumer.committed(tp(topic, 0)).offset()).isEqualTo(99L));
+        await().untilAsserted(() -> assertThat(consumer.committed(tp(topic, 0)).offset()).isEqualTo(100L));
 
         ConsumerTask<String, String> records2 = consumer.fromTopics(topic, 300);
 
         assertThat(records2.awaitCompletion().count()).isEqualTo(300);
+        await().untilAsserted(() -> assertThat(consumer.committed(tp(topic, 0)).offset()).isEqualTo(400L));
     }
 
     @Test
@@ -311,4 +376,16 @@ public class ConsumerTest extends KafkaCompanionTestBase {
                 .extracting(OffsetAndMetadata::offset).isEqualTo(0L));
 
     }
+
+    @Test
+    void testAwaitNoRecords() {
+        try (ConsumerTask<String, String> task = companion.consumeStrings().fromTopics(topic)) {
+            assertThat(task.awaitNoRecords(Duration.ofSeconds(2)).count()).isZero();
+            companion.produceStrings().fromRecords(new ProducerRecord<>(topic, "value"));
+            assertThatThrownBy(() -> task.awaitNoRecords(Duration.ofSeconds(5)))
+                    .isInstanceOf(AssertionError.class)
+                    .hasMessageContaining("expecting no records");
+        }
+    }
+
 }

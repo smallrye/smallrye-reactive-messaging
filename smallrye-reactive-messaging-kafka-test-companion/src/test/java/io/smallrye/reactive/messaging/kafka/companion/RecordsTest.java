@@ -2,7 +2,8 @@ package io.smallrye.reactive.messaging.kafka.companion;
 
 import static io.smallrye.reactive.messaging.kafka.companion.KafkaCompanion.tp;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
-import static org.awaitility.Awaitility.await;
+
+import java.time.Duration;
 
 import org.apache.kafka.clients.admin.OffsetSpec;
 import org.apache.kafka.clients.producer.ProducerRecord;
@@ -13,7 +14,7 @@ import io.smallrye.reactive.messaging.kafka.companion.test.KafkaCompanionTestBas
 public class RecordsTest extends KafkaCompanionTestBase {
 
     @Test
-    void testDeleteRecords() throws InterruptedException {
+    void testDeleteRecords() {
         companion.produceIntegers().usingGenerator(i -> new ProducerRecord<>(topic, i), 100)
                 .awaitCompletion();
 
@@ -23,9 +24,24 @@ public class RecordsTest extends KafkaCompanionTestBase {
         companion.deleteRecords(tp(topic, 0), offset);
 
         ConsumerTask<String, Integer> records = companion.consumeIntegers().fromTopics(topic, 100);
-        Thread.sleep(2000);
-        await().until(() -> records.count() == 0);
+        records.awaitNoRecords(Duration.ofSeconds(2));
+        // Deleting records doesn't clear offsets
+        assertThat(companion.offsets().get(tp(topic, 0), OffsetSpec.latest()).offset()).isEqualTo(100L);
+    }
 
+    @Test
+    void testClearRecords() {
+        companion.produceIntegers().usingGenerator(i -> new ProducerRecord<>(topic, i), 100)
+                .awaitCompletion();
+
+        assertThat(companion.consumeIntegers().fromTopics(topic, 100).awaitCompletion().count()).isEqualTo(100L);
+
+        assertThat(companion.offsets().get(tp(topic, 0), OffsetSpec.latest()).offset()).isEqualTo(100L);
+
+        companion.topics().clear(topic);
+
+        companion.consumeIntegers().fromTopics(topic).awaitNoRecords(Duration.ofSeconds(2));
+        // Deleting records doesn't clear offsets
         assertThat(companion.offsets().get(tp(topic, 0), OffsetSpec.latest()).offset()).isEqualTo(100L);
     }
 }

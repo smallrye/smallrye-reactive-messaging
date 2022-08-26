@@ -3,6 +3,7 @@ package io.smallrye.reactive.messaging.kafka.serde;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
+import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -22,6 +23,7 @@ import io.smallrye.reactive.messaging.kafka.Record;
 import io.smallrye.reactive.messaging.kafka.SerializationFailureHandler;
 import io.smallrye.reactive.messaging.kafka.base.JsonObjectSerde;
 import io.smallrye.reactive.messaging.kafka.base.KafkaCompanionTestBase;
+import io.smallrye.reactive.messaging.kafka.companion.ConsumerBuilder;
 import io.smallrye.reactive.messaging.kafka.companion.ConsumerTask;
 import io.smallrye.reactive.messaging.kafka.converters.RecordConverter;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
@@ -117,6 +119,26 @@ class SerializationFailureHandlerTest extends KafkaCompanionTestBase {
                 });
     }
 
+    @Test
+    void testWhenValueFailureHandlerThrowsError() {
+        MapBasedConfig config = kafkaConfig("mp.messaging.outgoing.kafka")
+                .with("topic", topic)
+                .with("health-enabled", false)
+                .with("key.serializer", StringSerializer.class.getName())
+                .with("value.serializer", DoubleSerializer.class.getName())
+                .with("value-serialization-failure-handler", "failing-failure-handler");
+
+        addBeans(RecordConverter.class, FailingSerializerFailureHandler.class);
+
+        runApplication(config, MySource.class);
+
+        try (ConsumerBuilder<String, JsonObject> consumer = companion.consume(JsonObject.class);
+                ConsumerTask<String, JsonObject> consumerTask = consumer.fromTopics(topic)) {
+            await().until(() -> !consumer.currentAssignment().isEmpty());
+            await().atMost(Duration.ofSeconds(3)).until(() -> consumerTask.getRecords().isEmpty());
+        }
+    }
+
     @ApplicationScoped
     public static class MySource {
         @Outgoing("kafka")
@@ -172,6 +194,16 @@ class SerializationFailureHandlerTest extends KafkaCompanionTestBase {
                         return doubleSer.serialize(topic, 0.0);
                     })
                     .await().indefinitely();
+        }
+    }
+
+    @Identifier("failing-failure-handler")
+    public static class FailingSerializerFailureHandler implements SerializationFailureHandler<Object> {
+
+        @Override
+        public byte[] decorateSerialization(Uni<byte[]> serialization, String topic, boolean isKey, String serializer,
+                Object data, Headers headers) {
+            throw new IllegalArgumentException("boom");
         }
     }
 
