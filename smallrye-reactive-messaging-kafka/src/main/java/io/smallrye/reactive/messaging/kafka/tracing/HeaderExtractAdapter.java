@@ -34,6 +34,10 @@ public class HeaderExtractAdapter implements TextMapGetter<Headers> {
         if (header == null) {
             return null;
         }
-        return new String(header.value(), StandardCharsets.UTF_8);
+        byte[] headerValue = header.value();
+        if (headerValue == null) {
+            return null;
+        }
+        return new String(headerValue, StandardCharsets.UTF_8);
     }
 }
