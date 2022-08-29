@@ -258,7 +258,7 @@ public interface KafkaLogging extends BasicLogger {
     void unableToSerializeMessage(String topic, @Cause Throwable t);
 
     @LogMessage(level = Logger.Level.ERROR)
-    @Message(id = 18261, value = "Unable to initialize transactions for producer from channel %s.")
+    @Message(id = 18261, value = "Unable to initialize producer from channel %s.")
     void unableToInitializeProducer(String channel, @Cause Throwable t);
 
     @LogMessage(level = Logger.Level.WARN)

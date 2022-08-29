@@ -56,6 +56,7 @@ public class BatchCommitStrategiesTest extends WeldTestBase {
     @Test
     void testLatestCommitStrategy() {
         MapBasedConfig config = commonConfiguration()
+                .with("lazy-client", true)
                 .with("commit-strategy", "latest")
                 .with("client.id", UUID.randomUUID().toString());
         String group = UUID.randomUUID().toString();
@@ -136,6 +137,7 @@ public class BatchCommitStrategiesTest extends WeldTestBase {
     @Test
     void testThrottledStrategy() {
         MapBasedConfig config = commonConfiguration()
+                .with("lazy-client", true)
                 .with("commit-strategy", "throttled")
                 .with("auto.commit.interval.ms", 100);
         String group = UUID.randomUUID().toString();
@@ -190,6 +192,7 @@ public class BatchCommitStrategiesTest extends WeldTestBase {
     @RepeatedTest(10)
     void testThrottledStrategyWithManyRecords() {
         MapBasedConfig config = commonConfiguration()
+                .with("lazy-client", true)
                 .with("client.id", UUID.randomUUID().toString())
                 .with("commit-strategy", "throttled")
                 .with("auto.offset.reset", "earliest")
@@ -278,6 +281,7 @@ public class BatchCommitStrategiesTest extends WeldTestBase {
     @Test
     void testThrottledStrategyWithTooManyUnackedMessages() {
         MapBasedConfig config = commonConfiguration()
+                .with("lazy-client", true)
                 .with("client.id", UUID.randomUUID().toString())
                 .with("commit-strategy", "throttled")
                 .with("auto.offset.reset", "earliest")
@@ -349,6 +353,7 @@ public class BatchCommitStrategiesTest extends WeldTestBase {
         addBeans(NamedRebalanceListener.class);
         MapBasedConfig config = commonConfiguration();
         config
+                .with("lazy-client", true)
                 .with("consumer-rebalance-listener.name", "mine")
                 .with("client.id", UUID.randomUUID().toString());
         String group = UUID.randomUUID().toString();

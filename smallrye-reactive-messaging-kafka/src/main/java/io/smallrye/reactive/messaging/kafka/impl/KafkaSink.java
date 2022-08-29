@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
@@ -71,28 +72,26 @@ public class KafkaSink {
 
     public KafkaSink(KafkaConnectorOutgoingConfiguration config, KafkaCDIEvents kafkaCDIEvents,
             Instance<SerializationFailureHandler<?>> serializationFailureHandlers) {
-        isTracingEnabled = config.getTracingEnabled();
+        this.isTracingEnabled = config.getTracingEnabled();
+        this.partition = config.getPartition();
+        this.retries = config.getRetries();
+        this.topic = config.getTopic().orElseGet(config::getChannel);
+        this.key = config.getKey().orElse(null);
+        this.channel = config.getChannel();
 
-        this.client = new ReactiveKafkaProducer<>(config, serializationFailureHandlers, this::reportFailure);
+        this.client = new ReactiveKafkaProducer<>(config, serializationFailureHandlers, this::reportFailure,
+                (p, c) -> {
+                    log.connectedToKafka(getClientId(c), config.getBootstrapServers(), topic);
+                    // fire producer event (e.g. bind metrics)
+                    kafkaCDIEvents.producer().fire(p);
+                });
 
-        // fire producer event (e.g. bind metrics)
-        kafkaCDIEvents.producer().fire(client.unwrap());
-
-        partition = config.getPartition();
-        retries = config.getRetries();
-        int defaultDeliveryTimeoutMs = (Integer) ProducerConfig.configDef().defaultValues()
-                .get(ProducerConfig.DELIVERY_TIMEOUT_MS_CONFIG);
-        String deliveryTimeoutString = client.get(ProducerConfig.DELIVERY_TIMEOUT_MS_CONFIG);
-        deliveryTimeoutMs = deliveryTimeoutString != null ? Integer.parseInt(deliveryTimeoutString) : defaultDeliveryTimeoutMs;
-        topic = config.getTopic().orElseGet(config::getChannel);
-        key = config.getKey().orElse(null);
-        writeCloudEvents = config.getCloudEvents();
-        writeAsBinaryCloudEvent = config.getCloudEventsMode().equalsIgnoreCase("binary");
+        this.writeCloudEvents = config.getCloudEvents();
+        this.writeAsBinaryCloudEvent = config.getCloudEventsMode().equalsIgnoreCase("binary");
         boolean waitForWriteCompletion = config.getWaitForWriteCompletion();
         this.mandatoryCloudEventAttributeSet = config.getCloudEventsType().isPresent()
                 && config.getCloudEventsSource().isPresent();
-        this.channel = config.getChannel();
-
+        this.deliveryTimeoutMs = getDeliveryTimeoutMs(client.configuration());
         this.runtimeConfiguration = RuntimeKafkaSinkConfiguration.buildFromConfiguration(config);
 
         // Validate the serializer for structured Cloud Events
@@ -108,7 +107,7 @@ public class KafkaSink {
         this.isHealthEnabled = config.getHealthEnabled();
         this.isHealthReadinessEnabled = config.getHealthReadinessEnabled();
         if (isHealthEnabled) {
-            this.health = new KafkaSinkHealth(config, client.configuration(), client.unwrap());
+            this.health = new KafkaSinkHealth(config, client.configuration(), client);
         } else {
             this.health = null;
         }
@@ -117,9 +116,9 @@ public class KafkaSink {
         if (requests <= 0) {
             requests = Long.MAX_VALUE;
         }
-        processor = new KafkaSenderProcessor(requests, waitForWriteCompletion,
+        this.processor = new KafkaSenderProcessor(requests, waitForWriteCompletion,
                 writeMessageToKafka());
-        subscriber = ReactiveStreams.<Message<?>> builder()
+        this.subscriber = ReactiveStreams.<Message<?>> builder()
                 .via(processor)
                 .onError(f -> {
                     log.unableToDispatch(f);
@@ -127,8 +126,17 @@ public class KafkaSink {
                 })
                 .ignore();
 
-        log.connectedToKafka(client.getClientId(), config.getBootstrapServers(), topic);
+    }
 
+    private static String getClientId(Map<String, Object> config) {
+        return (String) config.get(ProducerConfig.CLIENT_ID_CONFIG);
+    }
+
+    private static int getDeliveryTimeoutMs(Map<String, ?> config) {
+        int defaultDeliveryTimeoutMs = (Integer) ProducerConfig.configDef().defaultValues()
+                .get(ProducerConfig.DELIVERY_TIMEOUT_MS_CONFIG);
+        String deliveryTimeoutString = (String) config.get(ProducerConfig.DELIVERY_TIMEOUT_MS_CONFIG);
+        return deliveryTimeoutString != null ? Integer.parseInt(deliveryTimeoutString) : defaultDeliveryTimeoutMs;
     }
 
     private synchronized void reportFailure(Throwable failure) {

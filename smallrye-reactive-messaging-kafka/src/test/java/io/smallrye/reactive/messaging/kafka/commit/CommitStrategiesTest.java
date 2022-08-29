@@ -59,8 +59,10 @@ public class CommitStrategiesTest extends WeldTestBase {
     @Test
     void testLatestCommitStrategy() {
         String group = UUID.randomUUID().toString();
-        MapBasedConfig config = commonConfiguration().with("commit-strategy", "latest").with("client.id",
-                UUID.randomUUID().toString());
+        MapBasedConfig config = commonConfiguration()
+                .with("commit-strategy", "latest")
+                .with("lazy-client", true)
+                .with("client.id", UUID.randomUUID().toString());
         source = new KafkaSource<>(vertx, group,
                 new KafkaConnectorIncomingConfiguration(config), commitHandlerFactories, failureHandlerFactories,
                 getConsumerRebalanceListeners(),
@@ -161,6 +163,7 @@ public class CommitStrategiesTest extends WeldTestBase {
     @Test
     void testThrottledStrategy() {
         MapBasedConfig config = commonConfiguration()
+                .with("lazy-client", true)
                 .with("commit-strategy", "throttled")
                 .with("auto.commit.interval.ms", 100);
         String group = UUID.randomUUID().toString();
@@ -225,6 +228,7 @@ public class CommitStrategiesTest extends WeldTestBase {
     @RepeatedTest(10)
     void testThrottledStrategyWithManyRecords() {
         MapBasedConfig config = commonConfiguration()
+                .with("lazy-client", true)
                 .with("client.id", UUID.randomUUID().toString())
                 .with("commit-strategy", "throttled")
                 .with("auto.offset.reset", "earliest")
@@ -305,6 +309,7 @@ public class CommitStrategiesTest extends WeldTestBase {
     @Test
     void testThrottledStrategyWithTooManyUnackedMessages() throws Exception {
         MapBasedConfig config = commonConfiguration()
+                .with("lazy-client", true)
                 .with("client.id", UUID.randomUUID().toString())
                 .with("commit-strategy", "throttled")
                 .with("auto.offset.reset", "earliest")
@@ -408,6 +413,7 @@ public class CommitStrategiesTest extends WeldTestBase {
         addBeans(NamedRebalanceListener.class);
         MapBasedConfig config = commonConfiguration();
         config
+                .with("lazy-client", true)
                 .with("consumer-rebalance-listener.name", "mine")
                 .with("client.id", UUID.randomUUID().toString());
         String group = UUID.randomUUID().toString();
