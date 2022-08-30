@@ -1,0 +1,103 @@
+From 6dd150334e612d2044d058bf660efa427f3a4caa Mon Sep 17 00:00:00 2001
+From: Clement Escoffier <clement@apache.org>
+Date: Tue, 30 Aug 2022 11:18:23 +0200
+Subject: [PATCH] Emitter - Change failure handling when using the default
+ overflow strategy
+
+This is due to https://github.com/eclipse/microprofile-reactive-messaging/pull/149.
+---
+ .../providers/extension/AbstractEmitter.java       | 14 ++++++--------
+ .../inject/MutinyEmitterInjectionTest.java         |  1 -
+ .../overflow/DefaultOverflowStrategyTest.java      |  3 +--
+ .../LegacyDefaultOverflowStrategyTest.java         |  3 +--
+ 4 files changed, 8 insertions(+), 13 deletions(-)
+
+diff --git a/smallrye-reactive-messaging-provider/src/main/java/io/smallrye/reactive/messaging/providers/extension/AbstractEmitter.java b/smallrye-reactive-messaging-provider/src/main/java/io/smallrye/reactive/messaging/providers/extension/AbstractEmitter.java
+index 956de4a45..faaacff5b 100644
+--- a/smallrye-reactive-messaging-provider/src/main/java/io/smallrye/reactive/messaging/providers/extension/AbstractEmitter.java
++++ b/smallrye-reactive-messaging-provider/src/main/java/io/smallrye/reactive/messaging/providers/extension/AbstractEmitter.java
+@@ -43,14 +43,9 @@ public abstract class AbstractEmitter<T> implements MessagePublisherProvider<T>
+             }
+         };
+ 
+-        Multi<Message<? extends T>> tempPublisher;
+-        if (config.overflowBufferStrategy() == null) {
+-            Multi<Message<? extends T>> multi = Multi.createFrom().emitter(deferred, BackPressureStrategy.BUFFER);
+-            tempPublisher = getPublisherUsingBufferStrategy(defaultBufferSize, multi);
+-        } else {
+-            tempPublisher = getPublisherForStrategy(config.overflowBufferStrategy(), config.overflowBufferSize(),
+-                    defaultBufferSize, deferred);
+-        }
++        Multi<Message<? extends T>> tempPublisher = getPublisherForStrategy(config.overflowBufferStrategy(),
++                config.overflowBufferSize(),
++                defaultBufferSize, deferred);
+ 
+         if (config.broadcast()) {
+             publisher = (Multi<Message<? extends T>>) BroadcastHelper
+@@ -90,6 +85,9 @@ public abstract class AbstractEmitter<T> implements MessagePublisherProvider<T>
+     Multi<Message<? extends T>> getPublisherForStrategy(OnOverflow.Strategy overFlowStrategy, long bufferSize,
+             long defaultBufferSize,
+             Consumer<MultiEmitter<? super Message<? extends T>>> deferred) {
++        if (overFlowStrategy == null) {
++            overFlowStrategy = OnOverflow.Strategy.BUFFER;
++        }
+         switch (overFlowStrategy) {
+             case BUFFER:
+                 if (bufferSize > 0) {
+diff --git a/smallrye-reactive-messaging-provider/src/test/java/io/smallrye/reactive/messaging/inject/MutinyEmitterInjectionTest.java b/smallrye-reactive-messaging-provider/src/test/java/io/smallrye/reactive/messaging/inject/MutinyEmitterInjectionTest.java
+index 8c319dca9..bf6c52997 100644
+--- a/smallrye-reactive-messaging-provider/src/test/java/io/smallrye/reactive/messaging/inject/MutinyEmitterInjectionTest.java
++++ b/smallrye-reactive-messaging-provider/src/test/java/io/smallrye/reactive/messaging/inject/MutinyEmitterInjectionTest.java
+@@ -68,7 +68,6 @@ public class MutinyEmitterInjectionTest extends WeldTestBaseWithoutTails {
+ 
+         await().until(() -> bean.list().size() == 3);
+         assertThat(bean.list()).containsExactly("a", "b", "c");
+-        assertThat(bean.emitter().isCancelled()).isTrue();
+         assertThat(bean.emitter().hasRequests()).isFalse();
+     }
+ 
+diff --git a/smallrye-reactive-messaging-provider/src/test/java/io/smallrye/reactive/messaging/inject/overflow/DefaultOverflowStrategyTest.java b/smallrye-reactive-messaging-provider/src/test/java/io/smallrye/reactive/messaging/inject/overflow/DefaultOverflowStrategyTest.java
+index d2233e6d7..c9c58d0ec 100644
+--- a/smallrye-reactive-messaging-provider/src/test/java/io/smallrye/reactive/messaging/inject/overflow/DefaultOverflowStrategyTest.java
++++ b/smallrye-reactive-messaging-provider/src/test/java/io/smallrye/reactive/messaging/inject/overflow/DefaultOverflowStrategyTest.java
+@@ -23,7 +23,6 @@ import org.junit.jupiter.api.Test;
+ import io.reactivex.Flowable;
+ import io.reactivex.Scheduler;
+ import io.reactivex.schedulers.Schedulers;
+-import io.smallrye.mutiny.subscription.BackPressureFailure;
+ import io.smallrye.reactive.messaging.WeldTestBaseWithoutTails;
+ 
+ public class DefaultOverflowStrategyTest extends WeldTestBaseWithoutTails {
+@@ -58,7 +57,7 @@ public class DefaultOverflowStrategyTest extends WeldTestBaseWithoutTails {
+         await().until(() -> bean.exception() != null);
+         assertThat(bean.output()).doesNotContain("999");
+         assertThat(bean.output()).hasSizeBetween(0, 998);
+-        assertThat(bean.failure()).isNotNull().isInstanceOf(BackPressureFailure.class);
++        assertThat(bean.exception()).isNotNull().isInstanceOf(IllegalStateException.class);
+     }
+ 
+     @ApplicationScoped
+diff --git a/smallrye-reactive-messaging-provider/src/test/java/io/smallrye/reactive/messaging/inject/overflow/LegacyDefaultOverflowStrategyTest.java b/smallrye-reactive-messaging-provider/src/test/java/io/smallrye/reactive/messaging/inject/overflow/LegacyDefaultOverflowStrategyTest.java
+index 89fabfa43..148798712 100644
+--- a/smallrye-reactive-messaging-provider/src/test/java/io/smallrye/reactive/messaging/inject/overflow/LegacyDefaultOverflowStrategyTest.java
++++ b/smallrye-reactive-messaging-provider/src/test/java/io/smallrye/reactive/messaging/inject/overflow/LegacyDefaultOverflowStrategyTest.java
+@@ -21,7 +21,6 @@ import org.junit.jupiter.api.Test;
+ import io.reactivex.Flowable;
+ import io.reactivex.Scheduler;
+ import io.reactivex.schedulers.Schedulers;
+-import io.smallrye.mutiny.subscription.BackPressureFailure;
+ import io.smallrye.reactive.messaging.WeldTestBaseWithoutTails;
+ import io.smallrye.reactive.messaging.annotations.Channel;
+ import io.smallrye.reactive.messaging.annotations.Emitter;
+@@ -58,7 +57,7 @@ public class LegacyDefaultOverflowStrategyTest extends WeldTestBaseWithoutTails
+         await().until(() -> bean.exception() != null);
+         assertThat(bean.output()).doesNotContain("999");
+         assertThat(bean.output()).hasSizeLessThan(999);
+-        assertThat(bean.failure()).isNotNull().isInstanceOf(BackPressureFailure.class);
++        assertThat(bean.exception()).isNotNull().isInstanceOf(IllegalStateException.class);
+     }
+ 
+     @SuppressWarnings("deprecation")
+-- 
+2.37.0
+
