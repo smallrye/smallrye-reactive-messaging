@@ -4,6 +4,5 @@ attributes:
     weld-version: '${weld.version}'
     smallrye-config-version: '${smallrye-config.version}'
     mutiny-version: '${mutiny.version}'
-    camel-version: '${camel.version}'
     spec-version: '${microprofile-reactive-messaging.version}'
 
