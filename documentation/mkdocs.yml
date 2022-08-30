@@ -57,13 +57,6 @@ nav:
         - 'Client Customization' : rabbitmq/rabbitmq-client-customization.md
         - 'Connecting to managed instances' : rabbitmq/rabbitmq-cloud.md
 
-  - Apache Camel:
-       -  camel/camel.md
-       -  'Receiving messages from Camel': camel/receiving-messages-from-camel.md
-       -  'Sending messages to Camel': camel/sending-messages-to-camel.md
-       -  'Implementing Camel processor': camel/camel-processor.md
-       -  'Using existing Camel routes': camel/using-existing-routes.md
-
   - JMS:
         - jms/jms.md
         - 'Receiving JMS messages' : jms/receiving-jms-messages.md
