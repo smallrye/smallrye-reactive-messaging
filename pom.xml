@@ -136,6 +136,7 @@
     <module>examples/kafka-quickstart-kotlin</module>
     <module>examples/mqtt-quickstart</module>
     <module>examples/amqp-quickstart</module>
+    <module>examples/rabbitmq-quickstart</module>
 
     <module>smallrye-connector-attribute-processor</module>
 
