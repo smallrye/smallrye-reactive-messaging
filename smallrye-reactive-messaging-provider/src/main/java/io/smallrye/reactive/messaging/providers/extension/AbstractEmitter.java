@@ -43,14 +43,9 @@ public abstract class AbstractEmitter<T> implements MessagePublisherProvider<T> 
             }
         };
 
-        Multi<Message<? extends T>> tempPublisher;
-        if (config.overflowBufferStrategy() == null) {
-            Multi<Message<? extends T>> multi = Multi.createFrom().emitter(deferred, BackPressureStrategy.BUFFER);
-            tempPublisher = getPublisherUsingBufferStrategy(defaultBufferSize, multi);
-        } else {
-            tempPublisher = getPublisherForStrategy(config.overflowBufferStrategy(), config.overflowBufferSize(),
-                    defaultBufferSize, deferred);
-        }
+        Multi<Message<? extends T>> tempPublisher = getPublisherForStrategy(config.overflowBufferStrategy(),
+                config.overflowBufferSize(),
+                defaultBufferSize, deferred);
 
         if (config.broadcast()) {
             publisher = (Multi<Message<? extends T>>) BroadcastHelper
@@ -90,6 +85,9 @@ public abstract class AbstractEmitter<T> implements MessagePublisherProvider<T> 
     Multi<Message<? extends T>> getPublisherForStrategy(OnOverflow.Strategy overFlowStrategy, long bufferSize,
             long defaultBufferSize,
             Consumer<MultiEmitter<? super Message<? extends T>>> deferred) {
+        if (overFlowStrategy == null) {
+            overFlowStrategy = OnOverflow.Strategy.BUFFER;
+        }
         switch (overFlowStrategy) {
             case BUFFER:
                 if (bufferSize > 0) {
