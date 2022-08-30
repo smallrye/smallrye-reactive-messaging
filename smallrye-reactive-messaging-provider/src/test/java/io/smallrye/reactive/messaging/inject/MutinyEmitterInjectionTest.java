@@ -68,7 +68,6 @@ public class MutinyEmitterInjectionTest extends WeldTestBaseWithoutTails {
 
         await().until(() -> bean.list().size() == 3);
         assertThat(bean.list()).containsExactly("a", "b", "c");
-        assertThat(bean.emitter().isCancelled()).isTrue();
         assertThat(bean.emitter().hasRequests()).isFalse();
     }
 
