@@ -62,7 +62,8 @@ public class CommitStrategiesTest extends WeldTestBase {
         MapBasedConfig config = commonConfiguration().with("commit-strategy", "latest").with("client.id",
                 UUID.randomUUID().toString());
         source = new KafkaSource<>(vertx, group,
-                new KafkaConnectorIncomingConfiguration(config), getConsumerRebalanceListeners(),
+                new KafkaConnectorIncomingConfiguration(config), commitHandlerFactories, failureHandlerFactories,
+                getConsumerRebalanceListeners(),
                 CountKafkaCdiEvents.noCdiEvents, getDeserializationFailureHandlers(), -1);
         injectMockConsumer(source, consumer);
 
@@ -164,7 +165,8 @@ public class CommitStrategiesTest extends WeldTestBase {
                 .with("auto.commit.interval.ms", 100);
         String group = UUID.randomUUID().toString();
         source = new KafkaSource<>(vertx, group,
-                new KafkaConnectorIncomingConfiguration(config), getConsumerRebalanceListeners(),
+                new KafkaConnectorIncomingConfiguration(config), commitHandlerFactories, failureHandlerFactories,
+                getConsumerRebalanceListeners(),
                 CountKafkaCdiEvents.noCdiEvents, getDeserializationFailureHandlers(), -1);
         injectMockConsumer(source, consumer);
 
@@ -229,7 +231,8 @@ public class CommitStrategiesTest extends WeldTestBase {
                 .with("auto.commit.interval.ms", 100);
         String group = UUID.randomUUID().toString();
         source = new KafkaSource<>(vertx, group,
-                new KafkaConnectorIncomingConfiguration(config), getConsumerRebalanceListeners(),
+                new KafkaConnectorIncomingConfiguration(config), commitHandlerFactories, failureHandlerFactories,
+                getConsumerRebalanceListeners(),
                 CountKafkaCdiEvents.noCdiEvents, getDeserializationFailureHandlers(), -1);
         injectMockConsumer(source, consumer);
 
@@ -310,7 +313,8 @@ public class CommitStrategiesTest extends WeldTestBase {
                 .with("auto.commit.interval.ms", 100);
         String group = UUID.randomUUID().toString();
         source = new KafkaSource<>(vertx, group,
-                new KafkaConnectorIncomingConfiguration(config), getConsumerRebalanceListeners(),
+                new KafkaConnectorIncomingConfiguration(config), commitHandlerFactories, failureHandlerFactories,
+                getConsumerRebalanceListeners(),
                 CountKafkaCdiEvents.noCdiEvents, getDeserializationFailureHandlers(), -1);
         injectMockConsumer(source, consumer);
 
@@ -378,7 +382,8 @@ public class CommitStrategiesTest extends WeldTestBase {
         String group = UUID.randomUUID().toString();
         assertThatThrownBy(() -> {
             source = new KafkaSource<>(vertx, group,
-                    new KafkaConnectorIncomingConfiguration(config), getConsumerRebalanceListeners(),
+                    new KafkaConnectorIncomingConfiguration(config), commitHandlerFactories, failureHandlerFactories,
+                    getConsumerRebalanceListeners(),
                     CountKafkaCdiEvents.noCdiEvents, getDeserializationFailureHandlers(), -1);
         }).isInstanceOf(UnsatisfiedResolutionException.class);
     }
@@ -392,7 +397,8 @@ public class CommitStrategiesTest extends WeldTestBase {
                 .with("client.id", UUID.randomUUID().toString());
         String group = UUID.randomUUID().toString();
         assertThatThrownBy(() -> source = new KafkaSource<>(vertx, group,
-                new KafkaConnectorIncomingConfiguration(config), getConsumerRebalanceListeners(),
+                new KafkaConnectorIncomingConfiguration(config), commitHandlerFactories, failureHandlerFactories,
+                getConsumerRebalanceListeners(),
                 CountKafkaCdiEvents.noCdiEvents, getDeserializationFailureHandlers(), -1))
                         .isInstanceOf(AmbiguousResolutionException.class).hasMessageContaining("mine");
     }
@@ -406,7 +412,8 @@ public class CommitStrategiesTest extends WeldTestBase {
                 .with("client.id", UUID.randomUUID().toString());
         String group = UUID.randomUUID().toString();
         source = new KafkaSource<>(vertx, group,
-                new KafkaConnectorIncomingConfiguration(config), getConsumerRebalanceListeners(),
+                new KafkaConnectorIncomingConfiguration(config), commitHandlerFactories, failureHandlerFactories,
+                getConsumerRebalanceListeners(),
                 CountKafkaCdiEvents.noCdiEvents, getDeserializationFailureHandlers(), -1);
 
         injectMockConsumer(source, consumer);

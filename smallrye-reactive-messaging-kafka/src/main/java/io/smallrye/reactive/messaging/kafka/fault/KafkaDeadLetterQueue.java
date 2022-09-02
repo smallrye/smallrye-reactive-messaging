@@ -11,19 +11,26 @@ import static org.apache.kafka.clients.producer.ProducerConfig.VALUE_SERIALIZER_
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.CompletionStage;
+import java.util.function.BiConsumer;
+
+import javax.enterprise.context.ApplicationScoped;
+import javax.inject.Inject;
 
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.eclipse.microprofile.reactive.messaging.Metadata;
 
+import io.smallrye.common.annotation.Identifier;
+import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.kafka.IncomingKafkaRecord;
 import io.smallrye.reactive.messaging.kafka.KafkaCDIEvents;
 import io.smallrye.reactive.messaging.kafka.KafkaConnectorIncomingConfiguration;
+import io.smallrye.reactive.messaging.kafka.KafkaConsumer;
+import io.smallrye.reactive.messaging.kafka.KafkaProducer;
 import io.smallrye.reactive.messaging.kafka.api.OutgoingKafkaRecordMetadata;
 import io.smallrye.reactive.messaging.kafka.impl.ConfigurationCleaner;
-import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
 import io.smallrye.reactive.messaging.kafka.impl.ReactiveKafkaProducer;
+import io.vertx.mutiny.core.Vertx;
 
 @SuppressWarnings({ "rawtypes", "unchecked" })
 public class KafkaDeadLetterQueue implements KafkaFailureHandler {
@@ -35,50 +42,62 @@ public class KafkaDeadLetterQueue implements KafkaFailureHandler {
     public static final String DEAD_LETTER_PARTITION = "dead-letter-partition";
 
     private final String channel;
-    private final ReactiveKafkaProducer producer;
+    private final KafkaProducer producer;
     private final String topic;
-    private final KafkaSource<?, ?> source;
+    private final BiConsumer<Throwable, Boolean> reportFailure;
 
-    public KafkaDeadLetterQueue(String channel, String topic, ReactiveKafkaProducer producer, KafkaSource<?, ?> source) {
+    public KafkaDeadLetterQueue(String channel, String topic, KafkaProducer producer,
+            BiConsumer<Throwable, Boolean> reportFailure) {
         this.channel = channel;
         this.topic = topic;
         this.producer = producer;
-        this.source = source;
+        this.reportFailure = reportFailure;
     }
 
-    public static KafkaFailureHandler create(Map<String, ?> kafkaConfiguration,
-            KafkaConnectorIncomingConfiguration conf, KafkaSource<?, ?> source, KafkaCDIEvents kafkaCDIEvents) {
-        Map<String, String> deadQueueProducerConfig = new HashMap<>();
-        kafkaConfiguration.forEach((key, value) -> deadQueueProducerConfig.put(key, (String) value));
-        String keyDeserializer = deadQueueProducerConfig.remove(KEY_DESERIALIZER_CLASS_CONFIG);
-        String valueDeserializer = deadQueueProducerConfig.remove(VALUE_DESERIALIZER_CLASS_CONFIG);
+    @ApplicationScoped
+    @Identifier(Strategy.DEAD_LETTER_QUEUE)
+    public static class Factory implements KafkaFailureHandler.Factory {
 
-        // We need to remove consumer interceptor
-        deadQueueProducerConfig.remove(INTERCEPTOR_CLASSES_CONFIG);
+        @Inject
+        KafkaCDIEvents kafkaCDIEvents;
 
-        deadQueueProducerConfig.put(KEY_SERIALIZER_CLASS_CONFIG,
-                conf.getDeadLetterQueueKeySerializer().orElse(getMirrorSerializer(keyDeserializer)));
-        deadQueueProducerConfig.put(VALUE_SERIALIZER_CLASS_CONFIG,
-                conf.getDeadLetterQueueValueSerializer().orElse(getMirrorSerializer(valueDeserializer)));
-        deadQueueProducerConfig.put(CLIENT_ID_CONFIG,
-                conf.getDeadLetterQueueProducerClientId()
-                        .orElse("kafka-dead-letter-topic-producer-" + kafkaConfiguration.get(CLIENT_ID_CONFIG)));
+        @Override
+        public KafkaFailureHandler crate(KafkaConnectorIncomingConfiguration config,
+                Vertx vertx,
+                KafkaConsumer<?, ?> consumer,
+                BiConsumer<Throwable, Boolean> reportFailure) {
+            Map<String, String> deadQueueProducerConfig = new HashMap<>();
+            Map<String, ?> kafkaConfiguration = consumer.configuration();
+            kafkaConfiguration.forEach((key, value) -> deadQueueProducerConfig.put(key, (String) value));
+            String keyDeserializer = deadQueueProducerConfig.remove(KEY_DESERIALIZER_CLASS_CONFIG);
+            String valueDeserializer = deadQueueProducerConfig.remove(VALUE_DESERIALIZER_CLASS_CONFIG);
 
-        ConfigurationCleaner.cleanupProducerConfiguration(deadQueueProducerConfig);
-        String deadQueueTopic = conf.getDeadLetterQueueTopic().orElse("dead-letter-topic-" + conf.getChannel());
+            // We need to remove consumer interceptor
+            deadQueueProducerConfig.remove(INTERCEPTOR_CLASSES_CONFIG);
 
-        log.deadLetterConfig(deadQueueTopic,
-                deadQueueProducerConfig.get(KEY_SERIALIZER_CLASS_CONFIG),
-                deadQueueProducerConfig.get(VALUE_SERIALIZER_CLASS_CONFIG));
+            deadQueueProducerConfig.put(KEY_SERIALIZER_CLASS_CONFIG,
+                    config.getDeadLetterQueueKeySerializer().orElse(getMirrorSerializer(keyDeserializer)));
+            deadQueueProducerConfig.put(VALUE_SERIALIZER_CLASS_CONFIG,
+                    config.getDeadLetterQueueValueSerializer().orElse(getMirrorSerializer(valueDeserializer)));
+            deadQueueProducerConfig.put(CLIENT_ID_CONFIG,
+                    config.getDeadLetterQueueProducerClientId()
+                            .orElse("kafka-dead-letter-topic-producer-" + kafkaConfiguration.get(CLIENT_ID_CONFIG)));
 
-        ReactiveKafkaProducer<Object, Object> producer = new ReactiveKafkaProducer(deadQueueProducerConfig,
-                deadQueueTopic, 10000, null, null);
+            ConfigurationCleaner.cleanupProducerConfiguration(deadQueueProducerConfig);
+            String deadQueueTopic = config.getDeadLetterQueueTopic().orElse("dead-letter-topic-" + config.getChannel());
 
-        // fire producer event (e.g. bind metrics)
-        kafkaCDIEvents.producer().fire(producer.unwrap());
+            log.deadLetterConfig(deadQueueTopic,
+                    deadQueueProducerConfig.get(KEY_SERIALIZER_CLASS_CONFIG),
+                    deadQueueProducerConfig.get(VALUE_SERIALIZER_CLASS_CONFIG));
 
-        return new KafkaDeadLetterQueue(conf.getChannel(), deadQueueTopic, producer, source);
+            ReactiveKafkaProducer<Object, Object> producer = new ReactiveKafkaProducer(deadQueueProducerConfig,
+                    deadQueueTopic, 10000, null, null);
 
+            // fire producer event (e.g. bind metrics)
+            kafkaCDIEvents.producer().fire(producer.unwrap());
+
+            return new KafkaDeadLetterQueue(config.getChannel(), deadQueueTopic, producer, reportFailure);
+        }
     }
 
     private static String getMirrorSerializer(String deserializer) {
@@ -98,7 +117,7 @@ public class KafkaDeadLetterQueue implements KafkaFailureHandler {
     }
 
     @Override
-    public <K, V> CompletionStage<Void> handle(IncomingKafkaRecord<K, V> record, Throwable reason, Metadata metadata) {
+    public <K, V> Uni<Void> handle(IncomingKafkaRecord<K, V> record, Throwable reason, Metadata metadata) {
 
         OutgoingKafkaRecordMetadata<K> outgoing = metadata != null
                 ? metadata.get(OutgoingKafkaRecordMetadata.class).orElse(null)
@@ -134,10 +153,9 @@ public class KafkaDeadLetterQueue implements KafkaFailureHandler {
         }
         log.messageNackedDeadLetter(channel, topic);
         return producer.send(dead)
-                .onFailure().invoke(t -> source.reportFailure((Throwable) t, true))
+                .onFailure().invoke(t -> reportFailure.accept((Throwable) t, true))
                 .onItem().ignore().andContinueWithNull()
-                .subscribeAsCompletionStage()
-                .thenCompose(m -> record.ack());
+                .chain(() -> Uni.createFrom().completionStage(record.ack()));
     }
 
     void addHeader(ProducerRecord<?, ?> record, String key, String value) {

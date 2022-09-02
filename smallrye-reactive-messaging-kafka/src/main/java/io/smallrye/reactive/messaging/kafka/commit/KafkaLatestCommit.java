@@ -4,16 +4,19 @@ import static io.smallrye.reactive.messaging.kafka.i18n.KafkaLogging.log;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionStage;
+import java.util.function.BiConsumer;
+
+import javax.enterprise.context.ApplicationScoped;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
 
+import io.smallrye.common.annotation.Identifier;
+import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.kafka.IncomingKafkaRecord;
 import io.smallrye.reactive.messaging.kafka.KafkaConnectorIncomingConfiguration;
-import io.smallrye.reactive.messaging.kafka.impl.ReactiveKafkaConsumer;
+import io.smallrye.reactive.messaging.kafka.KafkaConsumer;
 import io.vertx.mutiny.core.Vertx;
 
 /**
@@ -30,7 +33,7 @@ import io.vertx.mutiny.core.Vertx;
  */
 public class KafkaLatestCommit extends ContextHolder implements KafkaCommitHandler {
 
-    private final ReactiveKafkaConsumer<?, ?> consumer;
+    private KafkaConsumer<?, ?> consumer;
 
     /**
      * Stores the last offset for each topic/partition.
@@ -38,15 +41,29 @@ public class KafkaLatestCommit extends ContextHolder implements KafkaCommitHandl
      */
     private final Map<TopicPartition, Long> offsets = new HashMap<>();
 
+    @ApplicationScoped
+    @Identifier(Strategy.LATEST)
+    public static class Factory implements KafkaCommitHandler.Factory {
+
+        @Override
+        public KafkaLatestCommit create(
+                KafkaConnectorIncomingConfiguration config,
+                Vertx vertx,
+                KafkaConsumer<?, ?> consumer,
+                BiConsumer<Throwable, Boolean> reportFailure) {
+            return new KafkaLatestCommit(vertx, config, consumer);
+        }
+    }
+
     public KafkaLatestCommit(Vertx vertx, KafkaConnectorIncomingConfiguration configuration,
-            ReactiveKafkaConsumer<?, ?> consumer) {
-        super(vertx.getDelegate(), configuration.config()
+            KafkaConsumer<?, ?> consumer) {
+        super(vertx, configuration.config()
                 .getOptionalValue(ConsumerConfig.DEFAULT_API_TIMEOUT_MS_CONFIG, Integer.class).orElse(60000));
         this.consumer = consumer;
     }
 
     @Override
-    public <K, V> CompletionStage<Void> handle(IncomingKafkaRecord<K, V> record) {
+    public <K, V> Uni<Void> handle(IncomingKafkaRecord<K, V> record) {
         runOnContext(() -> {
             Map<TopicPartition, OffsetAndMetadata> map = new HashMap<>();
             TopicPartition key = new TopicPartition(record.getTopic(), record.getPartition());
@@ -60,6 +77,6 @@ public class KafkaLatestCommit extends ContextHolder implements KafkaCommitHandl
                         }, throwable -> log.failedToCommitAsync(key, record.getOffset() + 1));
             }
         });
-        return CompletableFuture.completedFuture(null);
+        return Uni.createFrom().voidItem();
     }
 }

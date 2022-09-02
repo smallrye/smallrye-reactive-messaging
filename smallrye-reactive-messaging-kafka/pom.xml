@@ -119,6 +119,12 @@
       <version>${project.version}</version>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>io.smallrye.reactive</groupId>
+      <artifactId>smallrye-mutiny-vertx-redis-client</artifactId>
+      <version>${smallrye-vertx-mutiny-clients.version}</version>
+      <scope>test</scope>
+    </dependency>
 
     <!-- Ensure log4j1 log backend with slf4j -->
     <dependency>

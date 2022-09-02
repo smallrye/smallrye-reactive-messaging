@@ -247,10 +247,12 @@ public class ReactiveKafkaProducer<K, V> implements io.smallrye.reactive.messagi
         return producer;
     }
 
+    @Override
     public Map<String, ?> configuration() {
         return kafkaConfiguration;
     }
 
+    @Override
     public void close() {
         if (closed.compareAndSet(false, true)) {
             int timeout = this.closetimeout;

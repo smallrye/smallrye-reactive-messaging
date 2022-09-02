@@ -72,7 +72,7 @@ public class KafkaSourceBatchWithCloudEventsTest extends KafkaCompanionTestBase 
         config.put("value.deserializer", JsonObjectSerde.JsonObjectDeserializer.class.getName());
         config.put("channel-name", topic);
         KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
-        source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
+        source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic, commitHandlerFactories, failureHandlerFactories,
                 UnsatisfiedInstance.instance(), CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), -1);
 
         List<Message<?>> messages = new ArrayList<>();
@@ -126,7 +126,7 @@ public class KafkaSourceBatchWithCloudEventsTest extends KafkaCompanionTestBase 
         config.put("value.deserializer", BufferSerde.BufferDeserializer.class.getName());
         config.put("channel-name", topic);
         KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
-        source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
+        source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic, commitHandlerFactories, failureHandlerFactories,
                 UnsatisfiedInstance.instance(), CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), -1);
 
         List<Message<?>> messages = new ArrayList<>();
@@ -159,7 +159,7 @@ public class KafkaSourceBatchWithCloudEventsTest extends KafkaCompanionTestBase 
         config.put("value.deserializer", StringDeserializer.class.getName());
         config.put("channel-name", topic);
         KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
-        source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
+        source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic, commitHandlerFactories, failureHandlerFactories,
                 UnsatisfiedInstance.instance(), CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), -1);
 
         List<Message<?>> messages = new ArrayList<>();
@@ -305,7 +305,7 @@ public class KafkaSourceBatchWithCloudEventsTest extends KafkaCompanionTestBase 
         config.put("channel-name", topic);
         config.put("cloud-events", false);
         KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
-        source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
+        source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic, commitHandlerFactories, failureHandlerFactories,
                 UnsatisfiedInstance.instance(), CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), -1);
 
         List<Message<?>> messages = new ArrayList<>();
@@ -343,7 +343,7 @@ public class KafkaSourceBatchWithCloudEventsTest extends KafkaCompanionTestBase 
         config.put("channel-name", topic);
         config.put("cloud-events", false);
         KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
-        source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
+        source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic, commitHandlerFactories, failureHandlerFactories,
                 UnsatisfiedInstance.instance(), CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), -1);
 
         List<Message<?>> messages = new ArrayList<>();
@@ -385,7 +385,7 @@ public class KafkaSourceBatchWithCloudEventsTest extends KafkaCompanionTestBase 
         config.put("value.deserializer", StringDeserializer.class.getName());
         config.put("channel-name", topic);
         KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
-        source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
+        source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic, commitHandlerFactories, failureHandlerFactories,
                 UnsatisfiedInstance.instance(), CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), -1);
 
         List<Message<?>> messages = new ArrayList<>();

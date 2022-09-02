@@ -22,16 +22,14 @@ import io.opentelemetry.api.trace.SpanBuilder;
 import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.context.Context;
 import io.opentelemetry.semconv.trace.attributes.SemanticAttributes;
+import io.smallrye.common.annotation.Identifier;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.TracingMetadata;
 import io.smallrye.reactive.messaging.health.HealthReport;
 import io.smallrye.reactive.messaging.kafka.*;
 import io.smallrye.reactive.messaging.kafka.commit.*;
-import io.smallrye.reactive.messaging.kafka.fault.KafkaDeadLetterQueue;
-import io.smallrye.reactive.messaging.kafka.fault.KafkaFailStop;
 import io.smallrye.reactive.messaging.kafka.fault.KafkaFailureHandler;
-import io.smallrye.reactive.messaging.kafka.fault.KafkaIgnoreFailure;
 import io.smallrye.reactive.messaging.kafka.health.KafkaSourceHealth;
 import io.vertx.core.impl.EventLoopContext;
 import io.vertx.core.impl.VertxInternal;
@@ -54,6 +52,8 @@ public class KafkaSource<K, V> {
     private final KafkaSourceHealth health;
 
     private final String group;
+    private final Instance<KafkaCommitHandler.Factory> commitHandlerFactory;
+    private final Instance<KafkaFailureHandler.Factory> failureHandlerFactories;
     private final int index;
     private final Instance<DeserializationFailureHandler<?>> deserializationFailureHandlers;
     private final Instance<KafkaConsumerRebalanceListener> consumerRebalanceListeners;
@@ -63,12 +63,16 @@ public class KafkaSource<K, V> {
     public KafkaSource(Vertx vertx,
             String consumerGroup,
             KafkaConnectorIncomingConfiguration config,
+            Instance<KafkaCommitHandler.Factory> commitHandlerFactories,
+            Instance<KafkaFailureHandler.Factory> failureHandlerFactories,
             Instance<KafkaConsumerRebalanceListener> consumerRebalanceListeners,
             KafkaCDIEvents kafkaCDIEvents,
             Instance<DeserializationFailureHandler<?>> deserializationFailureHandlers,
             int index) {
 
         this.group = consumerGroup;
+        this.commitHandlerFactory = commitHandlerFactories;
+        this.failureHandlerFactories = failureHandlerFactories;
         this.index = index;
         this.deserializationFailureHandlers = deserializationFailureHandlers;
         this.consumerRebalanceListeners = consumerRebalanceListeners;
@@ -96,11 +100,11 @@ public class KafkaSource<K, V> {
         String commitStrategy = config
                 .getCommitStrategy()
                 .orElse(Boolean.parseBoolean(client.get(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG))
-                        ? KafkaCommitHandler.Strategy.IGNORE.name()
-                        : KafkaCommitHandler.Strategy.THROTTLED.name());
+                        ? KafkaCommitHandler.Strategy.IGNORE
+                        : KafkaCommitHandler.Strategy.THROTTLED);
 
-        commitHandler = createCommitHandler(vertx, client, consumerGroup, config, commitStrategy);
-        failureHandler = createFailureHandler(config, client.configuration(), kafkaCDIEvents);
+        commitHandler = createCommitHandler(vertx, commitStrategy);
+        failureHandler = createFailureHandler(vertx);
         if (configuration.getHealthEnabled()) {
             health = new KafkaSourceHealth(this, configuration, client);
         } else {
@@ -118,6 +122,9 @@ public class KafkaSource<K, V> {
 
         if (commitHandler instanceof ContextHolder) {
             ((ContextHolder) commitHandler).capture(context);
+        }
+        if (failureHandler instanceof ContextHolder) {
+            ((ContextHolder) failureHandler).capture(context);
         }
         this.client.setRebalanceListener();
 
@@ -274,7 +281,7 @@ public class KafkaSource<K, V> {
                 span.makeCurrent();
             }
 
-            kafkaRecord.injectTracingMetadata(tracingMetadata.withSpan(span));
+            kafkaRecord.injectMetadata(tracingMetadata.withSpan(span));
 
             span.end();
         }
@@ -314,42 +321,26 @@ public class KafkaSource<K, V> {
         return Uni.combine().all().unis(records).combinedWith(ignored -> batch);
     }
 
-    private KafkaFailureHandler createFailureHandler(KafkaConnectorIncomingConfiguration config,
-            Map<String, ?> kafkaConfiguration, KafkaCDIEvents kafkaCDIEvents) {
-        String strategy = config.getFailureStrategy();
-        KafkaFailureHandler.Strategy actualStrategy = KafkaFailureHandler.Strategy.from(strategy);
-        switch (actualStrategy) {
-            case FAIL:
-                return new KafkaFailStop(config.getChannel(), this);
-            case IGNORE:
-                return new KafkaIgnoreFailure(config.getChannel());
-            case DEAD_LETTER_QUEUE:
-                return KafkaDeadLetterQueue.create(kafkaConfiguration, config, this, kafkaCDIEvents);
-            default:
-                throw ex.illegalArgumentInvalidFailureStrategy(strategy);
+    private KafkaFailureHandler createFailureHandler(Vertx vertx) {
+        String strategy = configuration.getFailureStrategy();
+        Instance<KafkaFailureHandler.Factory> failureHandlerFactory = failureHandlerFactories
+                .select(Identifier.Literal.of(strategy));
+        if (failureHandlerFactory.isResolvable()) {
+            return failureHandlerFactory.get().crate(configuration, vertx, client, this::reportFailure);
+        } else {
+            throw ex.illegalArgumentInvalidFailureStrategy(strategy);
         }
 
     }
 
-    private KafkaCommitHandler createCommitHandler(
-            Vertx vertx,
-            ReactiveKafkaConsumer<K, V> consumer,
-            String group,
-            KafkaConnectorIncomingConfiguration config,
-            String strategy) {
-        KafkaCommitHandler.Strategy actualStrategy = KafkaCommitHandler.Strategy.from(strategy);
-        switch (actualStrategy) {
-            case LATEST:
-                log.commitStrategyForChannel("latest", config.getChannel());
-                return new KafkaLatestCommit(vertx, configuration, consumer);
-            case IGNORE:
-                log.commitStrategyForChannel("ignore", config.getChannel());
-                return new KafkaIgnoreCommit();
-            case THROTTLED:
-                log.commitStrategyForChannel("throttled", config.getChannel());
-                return KafkaThrottledLatestProcessedCommit.create(vertx, consumer, group, config, this);
-            default:
-                throw ex.illegalArgumentInvalidCommitStrategy(strategy);
+    private KafkaCommitHandler createCommitHandler(Vertx vertx, String strategy) {
+        Instance<KafkaCommitHandler.Factory> possibleCommitHandler = commitHandlerFactory
+                .select(Identifier.Literal.of(strategy));
+        if (possibleCommitHandler.isResolvable()) {
+            log.commitStrategyForChannel(strategy, configuration.getChannel());
+            return possibleCommitHandler.get().create(configuration, vertx, client, this::reportFailure);
+        } else {
+            throw ex.illegalArgumentInvalidCommitStrategy(strategy);
         }
     }
 

@@ -1,9 +1,15 @@
 package io.smallrye.reactive.messaging.kafka.commit;
 
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionStage;
+import java.util.function.BiConsumer;
 
+import javax.enterprise.context.ApplicationScoped;
+
+import io.smallrye.common.annotation.Identifier;
+import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.kafka.IncomingKafkaRecord;
+import io.smallrye.reactive.messaging.kafka.KafkaConnectorIncomingConfiguration;
+import io.smallrye.reactive.messaging.kafka.KafkaConsumer;
+import io.vertx.mutiny.core.Vertx;
 
 /**
  * Ignores an ACK and does not commit any offsets.
@@ -16,8 +22,22 @@ import io.smallrye.reactive.messaging.kafka.IncomingKafkaRecord;
  */
 public class KafkaIgnoreCommit implements KafkaCommitHandler {
 
+    @ApplicationScoped
+    @Identifier(Strategy.IGNORE)
+    public static class Factory implements KafkaCommitHandler.Factory {
+
+        @Override
+        public KafkaIgnoreCommit create(
+                KafkaConnectorIncomingConfiguration config,
+                Vertx vertx,
+                KafkaConsumer<?, ?> consumer,
+                BiConsumer<Throwable, Boolean> reportFailure) {
+            return new KafkaIgnoreCommit();
+        }
+    }
+
     @Override
-    public <K, V> CompletionStage<Void> handle(IncomingKafkaRecord<K, V> record) {
-        return CompletableFuture.completedFuture(null);
+    public <K, V> Uni<Void> handle(IncomingKafkaRecord<K, V> record) {
+        return Uni.createFrom().voidItem();
     }
 }

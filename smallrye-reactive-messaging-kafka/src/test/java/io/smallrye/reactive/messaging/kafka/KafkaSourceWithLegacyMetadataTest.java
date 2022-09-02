@@ -39,9 +39,12 @@ import io.smallrye.reactive.messaging.health.HealthReport;
 import io.smallrye.reactive.messaging.kafka.api.KafkaMetadataUtil;
 import io.smallrye.reactive.messaging.kafka.base.KafkaCompanionTestBase;
 import io.smallrye.reactive.messaging.kafka.base.KafkaMapBasedConfig;
+import io.smallrye.reactive.messaging.kafka.base.SingletonInstance;
 import io.smallrye.reactive.messaging.kafka.base.UnsatisfiedInstance;
+import io.smallrye.reactive.messaging.kafka.commit.KafkaThrottledLatestProcessedCommit;
 import io.smallrye.reactive.messaging.kafka.companion.KafkaCompanion;
 import io.smallrye.reactive.messaging.kafka.companion.test.KafkaBrokerExtension;
+import io.smallrye.reactive.messaging.kafka.fault.KafkaFailStop;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
 import io.smallrye.reactive.messaging.providers.connectors.ExecutionHolder;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
@@ -74,7 +77,7 @@ public class KafkaSourceWithLegacyMetadataTest extends KafkaCompanionTestBase {
         MapBasedConfig config = newCommonConfigForSource()
                 .with("value.deserializer", IntegerDeserializer.class.getName());
         KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
-        source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
+        source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic, commitHandlerFactories, failureHandlerFactories,
                 UnsatisfiedInstance.instance(), CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), -1);
 
         List<Message<?>> messages = new ArrayList<>();
@@ -96,7 +99,7 @@ public class KafkaSourceWithLegacyMetadataTest extends KafkaCompanionTestBase {
 
         companion.topics().createAndWait(topic, 3);
         KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
-        source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
+        source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic, commitHandlerFactories, failureHandlerFactories,
                 UnsatisfiedInstance.instance(), CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), -1);
 
         List<Message<?>> messages = new ArrayList<>();
@@ -118,7 +121,7 @@ public class KafkaSourceWithLegacyMetadataTest extends KafkaCompanionTestBase {
         MapBasedConfig config = newCommonConfigForSource()
                 .with("value.deserializer", IntegerDeserializer.class.getName());
         KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
-        source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
+        source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic, commitHandlerFactories, failureHandlerFactories,
                 UnsatisfiedInstance.instance(), CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), -1);
 
         List<KafkaRecord> messages = new ArrayList<>();
@@ -145,6 +148,9 @@ public class KafkaSourceWithLegacyMetadataTest extends KafkaCompanionTestBase {
         connector.executionHolder = new ExecutionHolder(vertx);
         connector.configurations = UnsatisfiedInstance.instance();
         connector.consumerRebalanceListeners = UnsatisfiedInstance.instance();
+        connector.commitHandlerFactories = new SingletonInstance<>("throttled",
+                new KafkaThrottledLatestProcessedCommit.Factory());
+        connector.failureHandlerFactories = new SingletonInstance<>("fail", new KafkaFailStop.Factory());
         connector.kafkaCDIEvents = testEvents;
         connector.init();
 
@@ -184,6 +190,9 @@ public class KafkaSourceWithLegacyMetadataTest extends KafkaCompanionTestBase {
         connector.configurations = UnsatisfiedInstance.instance();
         connector.consumerRebalanceListeners = UnsatisfiedInstance.instance();
         connector.kafkaCDIEvents = new CountKafkaCdiEvents();
+        connector.commitHandlerFactories = new SingletonInstance<>("throttled",
+                new KafkaThrottledLatestProcessedCommit.Factory());
+        connector.failureHandlerFactories = new SingletonInstance<>("fail", new KafkaFailStop.Factory());
         connector.init();
 
         PublisherBuilder<? extends KafkaRecord> builder = (PublisherBuilder<? extends KafkaRecord>) connector
@@ -223,7 +232,7 @@ public class KafkaSourceWithLegacyMetadataTest extends KafkaCompanionTestBase {
             KafkaCompanion kafkaCompanion = new KafkaCompanion(kafka.getBootstrapServers());
 
             KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
-            source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
+            source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic, commitHandlerFactories, failureHandlerFactories,
                     UnsatisfiedInstance.instance(), CountKafkaCdiEvents.noCdiEvents,
                     UnsatisfiedInstance.instance(), -1);
             List<KafkaRecord> messages1 = new ArrayList<>();
@@ -484,7 +493,7 @@ public class KafkaSourceWithLegacyMetadataTest extends KafkaCompanionTestBase {
         MapBasedConfig config = newCommonConfigForSource()
                 .with("value.deserializer", IntegerDeserializer.class.getName());
         KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
-        source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
+        source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic, commitHandlerFactories, failureHandlerFactories,
                 UnsatisfiedInstance.instance(), CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), -1);
 
         List<Message<?>> messages = new ArrayList<>();
@@ -549,7 +558,7 @@ public class KafkaSourceWithLegacyMetadataTest extends KafkaCompanionTestBase {
                 .with("sasl.jaas.config", "") //optional configuration
                 .with("sasl.mechanism", ""); //optional configuration
         KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
-        source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
+        source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic, commitHandlerFactories, failureHandlerFactories,
                 UnsatisfiedInstance.instance(), CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), -1);
 
         List<Message<?>> messages = new ArrayList<>();

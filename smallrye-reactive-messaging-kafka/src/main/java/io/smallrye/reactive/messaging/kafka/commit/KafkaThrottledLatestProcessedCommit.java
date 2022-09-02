@@ -5,17 +5,20 @@ import static io.smallrye.reactive.messaging.kafka.i18n.KafkaLogging.log;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.BiConsumer;
+
+import javax.enterprise.context.ApplicationScoped;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
 
+import io.smallrye.common.annotation.Identifier;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.tuples.Tuple2;
 import io.smallrye.reactive.messaging.kafka.IncomingKafkaRecord;
 import io.smallrye.reactive.messaging.kafka.KafkaConnectorIncomingConfiguration;
-import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
-import io.smallrye.reactive.messaging.kafka.impl.ReactiveKafkaConsumer;
+import io.smallrye.reactive.messaging.kafka.KafkaConsumer;
 import io.vertx.core.impl.NoStackTraceThrowable;
 import io.vertx.mutiny.core.Vertx;
 
@@ -43,56 +46,60 @@ public class KafkaThrottledLatestProcessedCommit extends ContextHolder implement
     private final Map<TopicPartition, OffsetStore> offsetStores = new HashMap<>();
 
     private final String groupId;
-    private final ReactiveKafkaConsumer<?, ?> consumer;
-    private final KafkaSource<?, ?> source;
+    private final KafkaConsumer<?, ?> consumer;
+    private final BiConsumer<Throwable, Boolean> reportFailure;
     private final int unprocessedRecordMaxAge;
     private final int autoCommitInterval;
     private volatile long timerId = -1;
     private final Collection<TopicPartition> assignments = Collections.newSetFromMap(new ConcurrentHashMap<>());
 
+    @ApplicationScoped
+    @Identifier(Strategy.THROTTLED)
+    public static class Factory implements KafkaCommitHandler.Factory {
+
+        @Override
+        public KafkaThrottledLatestProcessedCommit create(
+                KafkaConnectorIncomingConfiguration config,
+                Vertx vertx,
+                KafkaConsumer<?, ?> consumer,
+                BiConsumer<Throwable, Boolean> reportFailure) {
+            String groupId = (String) consumer.configuration().get(ConsumerConfig.GROUP_ID_CONFIG);
+            int unprocessedRecordMaxAge = config.getThrottledUnprocessedRecordMaxAgeMs();
+            int autoCommitInterval = config.config()
+                    .getOptionalValue(ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG, Integer.class)
+                    .orElse(5000);
+            int defaultTimeout = config.config()
+                    .getOptionalValue(ConsumerConfig.DEFAULT_API_TIMEOUT_MS_CONFIG, Integer.class)
+                    .orElse(60000);
+            log.settingCommitInterval(groupId, autoCommitInterval);
+            if (unprocessedRecordMaxAge <= 0) {
+                log.disableThrottledCommitStrategyHealthCheck(groupId);
+            } else {
+                log.setThrottledCommitStrategyReceivedRecordMaxAge(groupId, unprocessedRecordMaxAge);
+            }
+            return new KafkaThrottledLatestProcessedCommit(groupId, vertx, consumer, reportFailure, unprocessedRecordMaxAge,
+                    autoCommitInterval, defaultTimeout);
+        }
+    }
+
     private KafkaThrottledLatestProcessedCommit(
             String groupId,
             Vertx vertx,
-            ReactiveKafkaConsumer<?, ?> consumer,
-            KafkaSource<?, ?> source,
+            KafkaConsumer<?, ?> consumer,
+            BiConsumer<Throwable, Boolean> reportFailure,
             int unprocessedRecordMaxAge,
             int autoCommitInterval,
             int defaultTimeout) {
-        super(vertx.getDelegate(), defaultTimeout);
+        super(vertx, defaultTimeout);
         this.groupId = groupId;
         this.consumer = consumer;
-        this.source = source;
+        this.reportFailure = reportFailure;
         this.unprocessedRecordMaxAge = unprocessedRecordMaxAge;
         this.autoCommitInterval = autoCommitInterval;
     }
 
     public static void clearCache() {
         TOPIC_PARTITIONS_CACHE.clear();
-    }
-
-    public static KafkaThrottledLatestProcessedCommit create(
-            Vertx vertx,
-            ReactiveKafkaConsumer<?, ?> consumer,
-            String groupId,
-            KafkaConnectorIncomingConfiguration config,
-            KafkaSource<?, ?> source) {
-
-        int unprocessedRecordMaxAge = config.getThrottledUnprocessedRecordMaxAgeMs();
-        int autoCommitInterval = config.config()
-                .getOptionalValue(ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG, Integer.class)
-                .orElse(5000);
-        int defaultTimeout = config.config()
-                .getOptionalValue(ConsumerConfig.DEFAULT_API_TIMEOUT_MS_CONFIG, Integer.class)
-                .orElse(60000);
-        log.settingCommitInterval(groupId, autoCommitInterval);
-        if (unprocessedRecordMaxAge <= 0) {
-            log.disableThrottledCommitStrategyHealthCheck(groupId);
-        } else {
-            log.setThrottledCommitStrategyReceivedRecordMaxAge(groupId, unprocessedRecordMaxAge);
-        }
-        return new KafkaThrottledLatestProcessedCommit(groupId, vertx, consumer, source, unprocessedRecordMaxAge,
-                autoCommitInterval, defaultTimeout);
-
     }
 
     private <K, V> TopicPartition getTopicPartition(IncomingKafkaRecord<K, V> record) {
@@ -196,7 +203,7 @@ public class KafkaThrottledLatestProcessedCommit extends ContextHolder implement
         Uni<OffsetStore> uni;
         if (offsetStore == null) {
             uni = consumer.committed(recordsTopicPartition)
-                    .emitOn(runnable -> context.runOnContext(x -> runnable.run())) // Switch back to event loop
+                    .emitOn(this::runOnContext) // Switch back to event loop
                     .onItem().transform(offsets -> {
                         OffsetAndMetadata lastCommitted = offsets.get(recordsTopicPartition);
                         OffsetStore store = new OffsetStore(recordsTopicPartition, unprocessedRecordMaxAge,
@@ -250,11 +257,8 @@ public class KafkaThrottledLatestProcessedCommit extends ContextHolder implement
      * @return a completion stage indicating when the commit complete
      */
     @Override
-    public <K, V> CompletionStage<Void> handle(final IncomingKafkaRecord<K, V> record) {
-        CompletableFuture<Void> future = new CompletableFuture<>();
-        // Be sure to run on the right context. The context has been store during the message reception
-        // or partition assignment.
-        runOnContext(() -> {
+    public <K, V> Uni<Void> handle(final IncomingKafkaRecord<K, V> record) {
+        return Uni.createFrom().item(() -> {
             TopicPartition topicPartition = getTopicPartition(record);
             OffsetStore store = offsetStores
                     .get(topicPartition);
@@ -270,10 +274,11 @@ public class KafkaThrottledLatestProcessedCommit extends ContextHolder implement
                 log.acknowledgementFromRevokedTopicPartition(
                         record.getOffset(), topicPartition, groupId, assignments);
             }
-            future.complete(null);
-        });
-        return future;
-
+            return null;
+        }).replaceWithVoid()
+                // Be sure to run on the right context. The context has been store during the message reception
+                // or partition assignment.
+                .runSubscriptionOn(this::runOnContext);
     }
 
     /**
@@ -313,7 +318,7 @@ public class KafkaThrottledLatestProcessedCommit extends ContextHolder implement
                                 millis / 1000,
                                 store.receivedOffsets.size(),
                                 lastOffset);
-                        this.source.reportFailure(exception, true);
+                        this.reportFailure.accept(exception, true);
                     }
                 }
             }

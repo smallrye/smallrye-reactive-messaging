@@ -55,7 +55,9 @@ public class RebalanceTest extends WeldTestBase {
                 .with("auto.offset.reset", "earliest")
                 .with("auto.commit.interval.ms", 100);
         source = new KafkaSource<>(vertx, group,
-                new KafkaConnectorIncomingConfiguration(config), getConsumerRebalanceListeners(),
+                new KafkaConnectorIncomingConfiguration(config),
+                commitHandlerFactories, failureHandlerFactories,
+                getConsumerRebalanceListeners(),
                 CountKafkaCdiEvents.noCdiEvents, getDeserializationFailureHandlers(), -1);
         injectMockConsumer(source, consumer);
 

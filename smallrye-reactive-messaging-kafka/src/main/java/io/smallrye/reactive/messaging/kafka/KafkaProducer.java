@@ -33,6 +33,12 @@ import io.smallrye.mutiny.Uni;
  * @param <V> the type of value
  */
 public interface KafkaProducer<K, V> {
+
+    /**
+     * @return Kafka producer configuration
+     */
+    Map<String, ?> configuration();
+
     /**
      * Runs an action on the sending thread.
      * <p>
@@ -123,4 +129,9 @@ public interface KafkaProducer<K, V> {
      * @return the underlying producer. Be aware that to use it you needs to be on the sending thread.
      */
     Producer<K, V> unwrap();
+
+    /**
+     * Close the producer client
+     */
+    void close();
 }

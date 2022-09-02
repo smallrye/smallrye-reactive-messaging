@@ -99,7 +99,8 @@ public class ClientTestBase extends KafkaCompanionTestBase {
         SingletonInstance<KafkaConsumerRebalanceListener> listeners = new SingletonInstance<>(groupId,
                 getKafkaConsumerRebalanceListenerAwaitingAssignation());
 
-        source = new KafkaSource<>(vertx, groupId, new KafkaConnectorIncomingConfiguration(config),
+        source = new KafkaSource<>(vertx, groupId, new KafkaConnectorIncomingConfiguration(config), commitHandlerFactories,
+                failureHandlerFactories,
                 listeners, CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), 0);
         return source;
     }
@@ -112,7 +113,8 @@ public class ClientTestBase extends KafkaCompanionTestBase {
         SingletonInstance<KafkaConsumerRebalanceListener> listeners = new SingletonInstance<>(groupId,
                 getKafkaConsumerRebalanceListenerAwaitingAssignationAndSeekToBeginning());
 
-        source = new KafkaSource<>(vertx, groupId, new KafkaConnectorIncomingConfiguration(config),
+        source = new KafkaSource<>(vertx, groupId, new KafkaConnectorIncomingConfiguration(config), commitHandlerFactories,
+                failureHandlerFactories,
                 listeners, CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), 0);
         return source;
     }
@@ -126,6 +128,7 @@ public class ClientTestBase extends KafkaCompanionTestBase {
                 getKafkaConsumerRebalanceListenerAwaitingAssignationAndSeekToEnd());
 
         source = new KafkaSource<>(vertx, groupId, new KafkaConnectorIncomingConfiguration(config),
+                commitHandlerFactories, failureHandlerFactories,
                 listeners, CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), 0);
         return source;
     }
@@ -139,6 +142,7 @@ public class ClientTestBase extends KafkaCompanionTestBase {
                 getKafkaConsumerRebalanceListenerAwaitingAssignationAndSeekToOffset());
 
         source = new KafkaSource<>(vertx, groupId, new KafkaConnectorIncomingConfiguration(config),
+                commitHandlerFactories, failureHandlerFactories,
                 listeners, CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), 0);
         return source;
     }

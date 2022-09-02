@@ -207,6 +207,7 @@ public class ReactiveKafkaConsumerTest extends ClientTestBase {
                 getKafkaConsumerRebalanceListenerAwaitingAssignation());
 
         source = new KafkaSource<>(vertx, groupId, new KafkaConnectorIncomingConfiguration(config),
+                commitHandlerFactories, failureHandlerFactories,
                 listeners, CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), 0);
 
         AssertSubscriber<IncomingKafkaRecord<Integer, String>> subscriber = source.getStream()
@@ -389,7 +390,8 @@ public class ReactiveKafkaConsumerTest extends ClientTestBase {
         // The rebalance will split the partitions between the 2 sources, but both will restaert from offset 0, as nothing
         // has been acked.
         KafkaSource<Integer, String> source2 = new KafkaSource<>(vertx, groupId,
-                new KafkaConnectorIncomingConfiguration(config2), UnsatisfiedInstance.instance(),
+                new KafkaConnectorIncomingConfiguration(config2), commitHandlerFactories, failureHandlerFactories,
+                UnsatisfiedInstance.instance(),
                 CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), 3);
         source2.getStream()
                 .invoke(i -> {
