@@ -13,8 +13,8 @@ import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.Metrics;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import io.smallrye.reactive.messaging.MyCollector;
+import io.smallrye.reactive.messaging.PublisherDecorator;
 import io.smallrye.reactive.messaging.WeldTestBase;
-import io.smallrye.reactive.messaging.providers.PublisherDecorator;
 
 public class MicrometerDecoratorTest extends WeldTestBase {
 

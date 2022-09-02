@@ -38,6 +38,21 @@
             "new": "parameter void io.smallrye.reactive.messaging.providers.wiring.Wiring::prepare(boolean, io.smallrye.reactive.messaging.ChannelRegistry, ===java.util.List<io.smallrye.reactive.messaging.EmitterConfiguration>===, java.util.List<io.smallrye.reactive.messaging.providers.extension.ChannelConfiguration>, java.util.List<io.smallrye.reactive.messaging.MediatorConfiguration>)",
             "parameterIndex": "2",
             "justification": "EmitterConfiguration moved to api module"
+        },
+        {
+            "ignore": true,
+            "code": "java.method.numberOfParametersChanged",
+            "old": "method io.smallrye.mutiny.Multi<? extends org.eclipse.microprofile.reactive.messaging.Message<?>> io.smallrye.reactive.messaging.providers.locals.ContextDecorator::decorate(io.smallrye.mutiny.Multi<? extends org.eclipse.microprofile.reactive.messaging.Message<?>>, java.lang.String)",
+            "new": "method io.smallrye.mutiny.Multi<? extends org.eclipse.microprofile.reactive.messaging.Message<?>> io.smallrye.reactive.messaging.providers.locals.ContextDecorator::decorate(io.smallrye.mutiny.Multi<? extends org.eclipse.microprofile.reactive.messaging.Message<?>>, java.lang.String, boolean)",
+            "justification": "PublisherDecorator adds 3rd parameter boolean isConnector"
+        },
+        {
+            "ignore": true,
+            "code": "java.class.noLongerImplementsInterface",
+            "old": "class io.smallrye.reactive.messaging.providers.locals.ContextDecorator",
+            "new": "class io.smallrye.reactive.messaging.providers.locals.ContextDecorator",
+            "interface": "io.smallrye.reactive.messaging.providers.PublisherDecorator",
+            "justification": "PublisherDecorator moved to api module"
         }
     ]
   }

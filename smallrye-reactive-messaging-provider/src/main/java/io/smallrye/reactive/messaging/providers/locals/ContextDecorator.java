@@ -12,14 +12,25 @@ import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.operators.MultiOperator;
 import io.smallrye.mutiny.operators.multi.MultiOperatorProcessor;
 import io.smallrye.mutiny.subscription.MultiSubscriber;
-import io.smallrye.reactive.messaging.providers.PublisherDecorator;
+import io.smallrye.reactive.messaging.PublisherDecorator;
 import io.vertx.core.Context;
 import io.vertx.core.Vertx;
 
+/**
+ * Decorator to dispatch messages on the Vert.x context attached to the message via {@link LocalContextMetadata}.
+ * Low priority to be called before other decorators.
+ */
 @ApplicationScoped
 public class ContextDecorator implements PublisherDecorator {
+
     @Override
-    public Multi<? extends Message<?>> decorate(Multi<? extends Message<?>> publisher, String channelName) {
+    public int getPriority() {
+        return 0;
+    }
+
+    @Override
+    public Multi<? extends Message<?>> decorate(Multi<? extends Message<?>> publisher, String channelName,
+            boolean isConnector) {
         return publisher
                 .plug(upstream -> new ContextMulti((Multi<Message<?>>) upstream));
     }

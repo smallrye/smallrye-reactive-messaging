@@ -17,10 +17,11 @@ import org.eclipse.microprofile.reactive.messaging.Outgoing;
 
 import io.smallrye.reactive.messaging.*;
 import io.smallrye.reactive.messaging.EmitterConfiguration;
+import io.smallrye.reactive.messaging.PublisherDecorator;
+import io.smallrye.reactive.messaging.SubscriberDecorator;
 import io.smallrye.reactive.messaging.annotations.Incomings;
 import io.smallrye.reactive.messaging.providers.AbstractMediator;
 import io.smallrye.reactive.messaging.providers.MediatorFactory;
-import io.smallrye.reactive.messaging.providers.PublisherDecorator;
 import io.smallrye.reactive.messaging.providers.connectors.WorkerPoolRegistry;
 import io.smallrye.reactive.messaging.providers.wiring.Graph;
 import io.smallrye.reactive.messaging.providers.wiring.Wiring;
@@ -47,6 +48,10 @@ public class MediatorManager {
     @Inject
     // @Any would only be needed if we wanted to allow implementations with qualifiers
     Instance<PublisherDecorator> decorators;
+
+    @Inject
+    // @Any would only be needed if we wanted to allow implementations with qualifiers
+    Instance<SubscriberDecorator> subscriberDecorators;
 
     @Inject
     // @Any would only be needed if we wanted to allow implementations with qualifiers
@@ -89,7 +94,7 @@ public class MediatorManager {
 
     /**
      * This method is used in the Quarkus extension.
-     * 
+     *
      * @param beanClass the bean class
      * @param bean the bean instance
      * @param <T> the type.
@@ -162,6 +167,7 @@ public class MediatorManager {
     public AbstractMediator createMediator(MediatorConfiguration configuration) {
         AbstractMediator mediator = mediatorFactory.create(configuration);
         mediator.setDecorators(decorators);
+        mediator.setSubscriberDecorators(subscriberDecorators);
         mediator.setConverters(converters);
         mediator.setHealth(health);
         mediator.setWorkerPoolRegistry(workerPoolRegistry);

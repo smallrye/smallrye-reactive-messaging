@@ -1,5 +1,7 @@
 package io.smallrye.reactive.messaging.providers.wiring;
 
+import static io.smallrye.reactive.messaging.providers.helpers.CDIUtils.getSortedInstances;
+
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -19,6 +21,7 @@ import io.smallrye.reactive.messaging.EmitterConfiguration;
 import io.smallrye.reactive.messaging.EmitterFactory;
 import io.smallrye.reactive.messaging.MediatorConfiguration;
 import io.smallrye.reactive.messaging.MessagePublisherProvider;
+import io.smallrye.reactive.messaging.SubscriberDecorator;
 import io.smallrye.reactive.messaging.annotations.EmitterFactoryFor;
 import io.smallrye.reactive.messaging.annotations.Merge;
 import io.smallrye.reactive.messaging.providers.AbstractMediator;
@@ -45,6 +48,10 @@ public class Wiring {
     @Any
     @Inject
     Instance<EmitterFactory<?>> emitterFactories;
+
+    @Any
+    @Inject
+    Instance<SubscriberDecorator> subscriberDecorators;
 
     private final List<Component> components;
 
@@ -85,7 +92,7 @@ public class Wiring {
         }
 
         for (Map.Entry<String, Boolean> entry : registry.getOutgoingChannels().entrySet()) {
-            components.add(new OutgoingConnectorComponent(entry.getKey(), entry.getValue()));
+            components.add(new OutgoingConnectorComponent(entry.getKey(), subscriberDecorators, entry.getValue()));
         }
     }
 
@@ -317,10 +324,12 @@ public class Wiring {
 
         private final String name;
         private final Set<Component> upstreams = new LinkedHashSet<>();
+        private final Instance<SubscriberDecorator> subscriberDecorators;
         private final boolean merge;
 
-        public OutgoingConnectorComponent(String name, boolean merge) {
+        public OutgoingConnectorComponent(String name, Instance<SubscriberDecorator> subscriberDecorators, boolean merge) {
             this.name = name;
+            this.subscriberDecorators = subscriberDecorators;
             this.merge = merge;
         }
 
@@ -361,6 +370,9 @@ public class Wiring {
             }
             // TODO Improve this.
             Subscriber connector = registry.getSubscribers(name).get(0);
+            for (SubscriberDecorator decorator : getSortedInstances(subscriberDecorators)) {
+                merged = decorator.decorate(merged, Collections.singletonList(name), true);
+            }
             merged.subscribe().withSubscriber(connector);
         }
 

@@ -11,7 +11,7 @@ import org.eclipse.microprofile.reactive.messaging.Message;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.Metrics;
 import io.smallrye.mutiny.Multi;
-import io.smallrye.reactive.messaging.providers.PublisherDecorator;
+import io.smallrye.reactive.messaging.PublisherDecorator;
 
 @ApplicationScoped
 public class MicrometerDecorator implements PublisherDecorator {
@@ -22,7 +22,7 @@ public class MicrometerDecorator implements PublisherDecorator {
 
     @Override
     public Multi<? extends Message<?>> decorate(Multi<? extends Message<?>> publisher,
-            String channelName) {
+            String channelName, boolean isConnector) {
         if (enabled) {
             return publisher.invoke(incrementCount(channelName));
         } else {

@@ -2,6 +2,7 @@ package io.smallrye.reactive.messaging.providers.connectors;
 
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ExecutionException;
 
 import javax.enterprise.context.ApplicationScoped;
 
@@ -15,6 +16,7 @@ import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 
 import io.reactivex.Flowable;
+import io.smallrye.reactive.messaging.OutgoingMessageMetadata;
 
 @ApplicationScoped
 @Connector("dummy")
@@ -37,6 +39,18 @@ public class MyDummyConnector implements IncomingConnectorFactory, OutgoingConne
         this.configs.add(config);
         return ReactiveStreams.<Message<?>> builder()
                 .peek(x -> list.add(x.getPayload().toString()))
+                .peek(x -> x.getMetadata(OutgoingMessageMetadata.class).ifPresent(m -> m.setResult(x.getPayload())))
+                .peek(x -> {
+                    try {
+                        x.ack().toCompletableFuture().get();
+                    } catch (InterruptedException | ExecutionException e) {
+                        try {
+                            x.nack(e).toCompletableFuture().get();
+                        } catch (InterruptedException | ExecutionException ex) {
+                            throw new RuntimeException(ex);
+                        }
+                    }
+                })
                 .onComplete(() -> completed = true)
                 .ignore();
     }

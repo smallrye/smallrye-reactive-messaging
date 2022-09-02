@@ -142,7 +142,8 @@ public class SubscriberMediator extends AbstractMediator {
             }
         };
 
-        function.apply(this.source).subscribe(delegating);
+        Multi<? extends Message<?>> subscriberSource = decorateSubscriberSource(this.source);
+        function.apply(subscriberSource).subscribe(delegating);
         // Check if a synchronous error has been caught
         Throwable throwable = syncErrorCatcher.get();
         if (throwable != null) {

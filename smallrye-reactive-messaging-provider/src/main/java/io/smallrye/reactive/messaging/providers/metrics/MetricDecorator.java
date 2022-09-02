@@ -15,7 +15,7 @@ import org.eclipse.microprofile.metrics.annotation.RegistryType;
 import org.eclipse.microprofile.reactive.messaging.Message;
 
 import io.smallrye.mutiny.Multi;
-import io.smallrye.reactive.messaging.providers.PublisherDecorator;
+import io.smallrye.reactive.messaging.PublisherDecorator;
 
 @ApplicationScoped
 public class MetricDecorator implements PublisherDecorator {
@@ -35,7 +35,7 @@ public class MetricDecorator implements PublisherDecorator {
 
     @Override
     public Multi<? extends Message<?>> decorate(Multi<? extends Message<?>> publisher,
-            String channelName) {
+            String channelName, boolean isConnector) {
         if (enabled && registry != null) {
             return publisher.invoke(incrementCount(channelName));
         } else {

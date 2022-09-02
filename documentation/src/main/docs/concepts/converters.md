@@ -36,4 +36,4 @@ message is passed as received.
 If multiple suitable converters are present, implementations should
 override the `getPriority` method returning the priority. The default
 priority is `100`. The converter lookup invokes converters with higher
-priority first.
+priority (from the least value to the greatest) first.
