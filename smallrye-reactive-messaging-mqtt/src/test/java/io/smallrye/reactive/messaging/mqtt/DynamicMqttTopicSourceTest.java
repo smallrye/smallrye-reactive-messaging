@@ -21,6 +21,7 @@ import org.eclipse.microprofile.reactive.messaging.spi.ConnectorLiteral;
 import org.jboss.weld.environment.se.Weld;
 import org.jboss.weld.environment.se.WeldContainer;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import io.netty.handler.codec.mqtt.MqttQoS;
@@ -178,5 +179,12 @@ public class DynamicMqttTopicSourceTest extends MqttTestBase {
             return messages;
         }
 
+    }
+
+    @Test
+    public void testTopicWithSharedSubscription() {
+        String topicRegex = "$share/group/$app/hello/#";
+        String replacedRegex = MqttHelpers.rebuildMatchesWithSharedSubscription(topicRegex);
+        Assertions.assertEquals("$app/hello/#", replacedRegex);
     }
 }

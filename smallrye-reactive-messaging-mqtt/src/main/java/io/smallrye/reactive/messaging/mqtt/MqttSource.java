@@ -31,7 +31,8 @@ public class MqttSource {
         MqttFailureHandler onNack = createFailureHandler(strategy, config.getChannel());
 
         if (topic.contains("#") || topic.contains("+")) {
-            String replace = escapeTopicSpecialWord(topic).replace("+", "[^/]+")
+            String replace = escapeTopicSpecialWord(MqttHelpers.rebuildMatchesWithSharedSubscription(topic))
+                    .replace("+", "[^/]+")
                     .replace("#", ".+");
             pattern = Pattern.compile(replace);
         } else {

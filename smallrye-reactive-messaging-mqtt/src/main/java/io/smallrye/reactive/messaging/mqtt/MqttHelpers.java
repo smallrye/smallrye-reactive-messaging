@@ -2,6 +2,7 @@ package io.smallrye.reactive.messaging.mqtt;
 
 import java.time.Duration;
 import java.util.Optional;
+import java.util.regex.Pattern;
 
 import io.smallrye.reactive.messaging.mqtt.session.ConstantReconnectDelayOptions;
 import io.smallrye.reactive.messaging.mqtt.session.MqttClientSessionOptions;
@@ -130,6 +131,18 @@ public class MqttHelpers {
         ConstantReconnectDelayOptions options = new ConstantReconnectDelayOptions();
         options.setDelay(Duration.ofSeconds(config.getReconnectIntervalSeconds()));
         return options;
+    }
+
+    /**
+     * If topic starts with shared subscription like `$share/group/....`
+     * we need to remove it `$share/group/` prefix
+     */
+    public static String rebuildMatchesWithSharedSubscription(String topic) {
+        if (Pattern.matches("^\\$share/((?!/).)*/.*", topic)) {
+            return topic.replaceAll("^\\$share/((?!/).)*/", "");
+        } else {
+            return topic;
+        }
     }
 
 }
