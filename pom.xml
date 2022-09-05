@@ -70,7 +70,7 @@
     <microprofile-health-api.version>3.1</microprofile-health-api.version>
 
     <smallrye-config.version>2.11.1</smallrye-config.version>
-    <smallrye-metrics.version>3.0.5</smallrye-metrics.version>
+    <smallrye-metrics.version>4.0.0</smallrye-metrics.version>
     <smallrye-common.version>1.13.0</smallrye-common.version>
     <smallrye-health.version>3.2.1</smallrye-health.version>
     <smallrye-testing.version>1.0.0</smallrye-testing.version>
