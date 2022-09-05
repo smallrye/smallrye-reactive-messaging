@@ -1,0 +1,744 @@
+From bb446f667f9a3f0899d09d8329871f7316f8ca0f Mon Sep 17 00:00:00 2001
+From: Clement Escoffier <clement@apache.org>
+Date: Tue, 30 Aug 2022 11:22:16 +0200
+Subject: [PATCH] Remove camel from the documentation (until Camel switches to
+ jakarta)
+
+---
+ documentation/mkdocs.yml                      |  7 --
+ documentation/pom.xml                         | 11 ---
+ .../src/main/docs/camel/camel-processor.md    | 31 --------
+ documentation/src/main/docs/camel/camel.md    | 64 ---------------
+ .../camel/receiving-messages-from-camel.md    | 78 -------------------
+ .../docs/camel/sending-messages-to-camel.md   | 65 ----------------
+ .../main/docs/camel/using-existing-routes.md  | 52 -------------
+ .../src/main/docs/concepts/logging.md         |  1 -
+ .../src/main/java/camel/api/CamelApi.java     | 69 ----------------
+ .../java/camel/inbound/CamelFileConsumer.java | 20 -----
+ .../inbound/CamelFileMessageConsumer.java     | 23 ------
+ .../inbound/IncomingCamelMetadataExample.java | 29 -------
+ .../CamelOutboundMetadataExample.java         | 31 --------
+ .../outbound/CamelPriceMessageProducer.java   | 27 -------
+ .../camel/outbound/CamelPriceProducer.java    | 26 -------
+ .../java/camel/processor/CamelProcessor.java  | 18 -----
+ documentation/src/main/macros/docissimo.py    |  3 +-
+ .../src/main/resources/attributes.yaml        |  1 -
+ 18 files changed, 1 insertion(+), 555 deletions(-)
+ delete mode 100644 documentation/src/main/docs/camel/camel-processor.md
+ delete mode 100644 documentation/src/main/docs/camel/camel.md
+ delete mode 100644 documentation/src/main/docs/camel/receiving-messages-from-camel.md
+ delete mode 100644 documentation/src/main/docs/camel/sending-messages-to-camel.md
+ delete mode 100644 documentation/src/main/docs/camel/using-existing-routes.md
+ delete mode 100644 documentation/src/main/java/camel/api/CamelApi.java
+ delete mode 100644 documentation/src/main/java/camel/inbound/CamelFileConsumer.java
+ delete mode 100644 documentation/src/main/java/camel/inbound/CamelFileMessageConsumer.java
+ delete mode 100644 documentation/src/main/java/camel/inbound/IncomingCamelMetadataExample.java
+ delete mode 100644 documentation/src/main/java/camel/outbound/CamelOutboundMetadataExample.java
+ delete mode 100644 documentation/src/main/java/camel/outbound/CamelPriceMessageProducer.java
+ delete mode 100644 documentation/src/main/java/camel/outbound/CamelPriceProducer.java
+ delete mode 100644 documentation/src/main/java/camel/processor/CamelProcessor.java
+
+diff --git a/documentation/mkdocs.yml b/documentation/mkdocs.yml
+index fafc124d0..32a2741df 100644
+--- a/documentation/mkdocs.yml
++++ b/documentation/mkdocs.yml
+@@ -56,13 +56,6 @@ nav:
+         - 'Client Customization' : rabbitmq/rabbitmq-client-customization.md
+         - 'Connecting to managed instances' : rabbitmq/rabbitmq-cloud.md
+ 
+-  - Apache Camel:
+-       -  camel/camel.md
+-       -  'Receiving messages from Camel': camel/receiving-messages-from-camel.md
+-       -  'Sending messages to Camel': camel/sending-messages-to-camel.md
+-       -  'Implementing Camel processor': camel/camel-processor.md
+-       -  'Using existing Camel routes': camel/using-existing-routes.md
+-
+   - JMS:
+         - jms/jms.md
+         - 'Receiving JMS messages' : jms/receiving-jms-messages.md
+diff --git a/documentation/pom.xml b/documentation/pom.xml
+index 4ab79b07d..8d993e9f9 100644
+--- a/documentation/pom.xml
++++ b/documentation/pom.xml
+@@ -44,11 +44,6 @@
+       <artifactId>smallrye-reactive-messaging-amqp</artifactId>
+       <version>${project.version}</version>
+     </dependency>
+-    <dependency>
+-      <groupId>io.smallrye.reactive</groupId>
+-      <artifactId>smallrye-reactive-messaging-camel</artifactId>
+-      <version>${project.version}</version>
+-    </dependency>
+     <dependency>
+       <groupId>io.smallrye.reactive</groupId>
+       <artifactId>smallrye-reactive-messaging-jms</artifactId>
+@@ -75,12 +70,6 @@
+       <version>${project.version}</version>
+     </dependency>
+ 
+-    <dependency>
+-      <groupId>org.apache.camel</groupId>
+-      <artifactId>camel-file</artifactId>
+-      <version>${camel.version}</version>
+-    </dependency>
+-
+     <dependency>
+       <groupId>org.junit.jupiter</groupId>
+       <artifactId>junit-jupiter-api</artifactId>
+diff --git a/documentation/src/main/docs/camel/camel-processor.md b/documentation/src/main/docs/camel/camel-processor.md
+deleted file mode 100644
+index 53676a336..000000000
+--- a/documentation/src/main/docs/camel/camel-processor.md
++++ /dev/null
+@@ -1,31 +0,0 @@
+-# The processor pattern using Camel
+-
+-Using the processor pattern, you can consume on a channel using a Camel
+-component, and produce on a channel using another Camel component. In
+-that case, the headers present in the incoming metadata will be
+-forwarded in the outgoing metadata.
+-
+-## Example
+-
+-Let’s imagine you want to read messages from a Nats subject, process it
+-and produce a message on a Kafka topic.
+-
+-```properties
+-mp.messaging.incoming.mynatssubject.connector=smallrye-camel # <1>
+-mp.messaging.incoming.mynatssubject.endpoint-uri=nats:mynatssubject # <2>
+-mp.messaging.outgoing.mykafkatopic.connector=smallrye-camel # <3>
+-mp.messaging.outgoing.mykafkatopic.endpoint-uri=kafka:mykafkatopic# <4>
+-
+-camel.component.nats.servers=127.0.0.1:5555 # <5>
+-camel.component.kafka.brokers=127.0.0.1:9092 # <6>
+-```
+-1.  Sets the connector for the `mynatssubject` channel
+-2.  Configures the `endpoint-uri` for nats subject
+-3.  Sets the connector for the `mykafkatopic` channel
+-4.  Configures the `endpoint-uri` for the kafka topic
+-5.  Sets the URL of the nats server to use
+-6.  Sets the URL of a kafka broker to use
+-
+-``` java
+-{{ insert('camel/processor/CamelProcessor.java') }}
+-```
+diff --git a/documentation/src/main/docs/camel/camel.md b/documentation/src/main/docs/camel/camel.md
+deleted file mode 100644
+index 547d5e901..000000000
+--- a/documentation/src/main/docs/camel/camel.md
++++ /dev/null
+@@ -1,64 +0,0 @@
+-# Apache Camel Connector
+-
+-The Camel connector adds support for Apache Camel to Reactive Messaging.
+-
+-[Camel](https://camel.apache.org/) is an open source integration
+-framework let you integrate various systems consuming or producing data.
+-Camel implements the Enterprise Integration Patterns and provides
+-several hundred of components used to access databases, message queues,
+-APIs or basically [anything under the
+-sun](https://camel.apache.org/components/latest/).
+-
+-## Introduction
+-
+-Camel is not a messaging broker. But, it allows your Reactive Messaging
+-application to retrieve data from almost anything and send data to
+-almost anything.
+-
+-So if you want to send Reactive Messaging `Message` to Telegram or
+-retrieve data from Salesforce or SAP, this is the connector you need.
+-
+-One of the Camel cornerstone is the `endpoint` and its `uri` encoding
+-the connection to an external system. For example,
+-`file:orders/?delete=true&charset=utf-8` instructs Camel to read the
+-files from the `orders` directory. URI format and parameters are listed
+-on the component documentation, such as the [File
+-component](https://camel.apache.org/components/latest/file-component.html).
+-
+-## Using the camel connector
+-
+-To you the camel Connector, add the following dependency to your
+-project:
+-
+-``` xml
+-<dependency>
+-  <groupId>io.smallrye.reactive</groupId>
+-  <artifactId>smallrye-reactive-messaging-camel</artifactId>
+-  <version>{{ attributes['project-version'] }}</version>
+-</dependency>
+-```
+-
+-You will also need the dependency of the Camel component you are using.
+-For example, if you want to process files, you would need to add the
+-Camel File Component artifact:
+-
+-``` xml
+-<dependency>
+-  <groupId>org.apache.camel</groupId>
+-  <artifactId>camel-file</artifactId>
+-  <version>{{ attributes['camel-version'] }}</version>
+-</dependency>
+-```
+-
+-The connector name is: `smallrye-camel`.
+-
+-So, to indicate that a channel is managed by this connector you need:
+-
+-```
+-# Inbound
+-mp.messaging.incoming.[channel-name].connector=smallrye-camel
+-
+-# Outbound
+-mp.messaging.outgoing.[channel-name].connector=smallrye-camel
+-```
+-
+diff --git a/documentation/src/main/docs/camel/receiving-messages-from-camel.md b/documentation/src/main/docs/camel/receiving-messages-from-camel.md
+deleted file mode 100644
+index 379e6f18d..000000000
+--- a/documentation/src/main/docs/camel/receiving-messages-from-camel.md
++++ /dev/null
+@@ -1,78 +0,0 @@
+-# Retrieving data using Camel
+-
+-Camel provides many components. To keep this documentation focused on
+-the integration with Camel, we use the [File
+-component](https://camel.apache.org/components/latest/file-component.html).
+-This component let use read files from a directory. So the connector
+-configured with this component creates a `Message` for each file located
+-in the directory. As soon as a file is dropped in the directory, a new
+-`Message` is created.
+-
+-## Example
+-
+-Let’s imagine you want to read the files from the `orders` directory and
+-send them to the `files` channel. Configuring the Camel connector to
+-gets the *file* from this directory only requires 2 properties:
+-
+-```properties
+-mp.messaging.incoming.files.connector=smallrye-camel # <1>
+-mp.messaging.incoming.files.endpoint-uri=file:orders/?delete=true&charset=utf-8 # <2>
+-```
+-1.  Sets the connector for the `files` channel
+-2.  Configures the `endpoint-uri`
+-
+-Then, your application receives `Message<GenericFile<File>>`.
+-
+-!!!note
+-    The Camel File component produces
+-    `org.apache.camel.component.file.GenericFile` instances. You can
+-    retrieve the actual `File` using `getFile()`.
+-
+-You can consume the payload directly:
+-
+-``` java
+-{{ insert('camel/inbound/CamelFileConsumer.java') }}
+-```
+-
+-You can also retrieve the `Message<GenericFile<File>>`:
+-
+-``` java
+-{{ insert('camel/inbound/CamelFileMessageConsumer.java') }}
+-```
+-
+-## Deserialization
+-
+-Each Camel component is producing specific objects. As we have seen, the
+-File component produces `GenericFile`.
+-
+-Refer to the component documentation to check which type is produced.
+-
+-## Inbound Metadata
+-
+-Messages coming from Camel contains an instance of
+-{{ javadoc('io.smallrye.reactive.messaging.camel.IncomingExchangeMetadata', False, 'io.smallrye.reactive/smallrye-reactive-messaging-camel') }}
+-in the metadata.
+-
+-``` java
+-{{ insert('camel/inbound/IncomingCamelMetadataExample.java') }}
+-```
+-
+-This object lets you retrieve the Camel `Exchange`.
+-
+-## Failure Management
+-
+-If a message produced from a Camel exchange is *nacked*, a failure
+-strategy is applied. The Camel connector supports 3 strategies:
+-
+--   `fail` - fail the application, no more MQTT messages will be
+-    processed. (default) The offset of the record that has not been
+-    processed correctly is not committed.
+--   `ignore` - the failure is logged, but the processing continue.
+-
+-In both cases, the `exchange` is marked as rollback only and the nack
+-reason is attached to the exchange.
+-
+-## Configuration Reference
+-
+-
+-{{ insert('../../../target/connectors/smallrye-camel-incoming.md') }}
+diff --git a/documentation/src/main/docs/camel/sending-messages-to-camel.md b/documentation/src/main/docs/camel/sending-messages-to-camel.md
+deleted file mode 100644
+index ccd20ad03..000000000
+--- a/documentation/src/main/docs/camel/sending-messages-to-camel.md
++++ /dev/null
+@@ -1,65 +0,0 @@
+-# Sending data with Camel
+-
+-You can use the Camel connector to send data to almost any type of
+-system.
+-
+-To keep this document focused on the Camel connector, we use the Camel
+-File component. However, the connector can be used with any Camel
+-component.
+-
+-## Example
+-
+-Let’s imagine you want to write generated prices into files. Configure
+-your application to write the messages from the `prices` channel into a
+-files as follows:
+-
+-```properties
+-mp.messaging.outgoing.prices.connector=smallrye-camel # <1>
+-mp.messaging.outgoing.prices.endpoint-uri=file:prices/?fileName=${date:now:yyyyMMddssSS}.txt&charset=utf-8 # <2>
+-```
+-1.  Sets the connector for the `prices` channel
+-2.  Configure the `endpoint-uri` to write into files in the `prices`
+-    directory
+-
+-!!!important
+-    Depending on your implementation of MicroProfile Reactive Messaging, the
+-    `$` may need to be escaped as follows: `$${...}`
+-
+-Then, your application must send `Message<String>` to the `prices`
+-channel. It can use `String` payloads as in the following snippet:
+-
+-``` java
+-{{ insert('camel/outbound/CamelPriceProducer.java') }}
+-```
+-
+-Or, you can send `Message<Double>`:
+-
+-``` java
+-{{ insert('camel/outbound/CamelPriceMessageProducer.java') }}
+-```
+-
+-## Serialization
+-
+-The serialization is handled by the Camel component. Refer to the Camel
+-documentation to check which payload type is supported by the component.
+-
+-## Outbound Metadata
+-
+-When sending `Messages`, you can add an instance
+-of {{ javadoc('io.smallrye.reactive.messaging.camel.OutgoingExchangeMetadata', False, 'io.smallrye.reactive/smallrye-reactive-messaging-camel') }}
+-to the message metadata. You can then influence how the outbound Camel
+-`Exchange` is created, for example by adding properties:
+-
+-``` java
+-{{ insert('camel/outbound/CamelOutboundMetadataExample.java', 'code') }}
+-```
+-
+-## Acknowledgement
+-
+-The incoming messages are acknowledged when the underlying Camel
+-exchange completes. If the exchange fails, the message is nacked.
+-
+-## Configuration Reference
+-
+-{{ insert('../../../target/connectors/smallrye-camel-outgoing.md') }}
+-
+diff --git a/documentation/src/main/docs/camel/using-existing-routes.md b/documentation/src/main/docs/camel/using-existing-routes.md
+deleted file mode 100644
+index e4893557e..000000000
+--- a/documentation/src/main/docs/camel/using-existing-routes.md
++++ /dev/null
+@@ -1,52 +0,0 @@
+-# Using the Camel API
+-
+-The Camel connector is based on the [Reactive Streams
+-support](https://camel.apache.org/components/latest/reactive-streams-component.html)
+-from Camel. If you have an application already using the Camel API
+-(routes, `from`...), you can integrate it with Reactive Messaging.
+-
+-## Getting the CamelReactiveStreamsService
+-
+-Once you add the Camel connector to your application, you can retrieve
+-the
+-`org.apache.camel.component.reactive.streams.api.CamelReactiveStreamsService`
+-object:
+-
+-``` java
+-{{ insert('camel/api/CamelApi.java', 'reactive') }}
+-```
+-
+-This `CamelReactiveStreamsService` lets you create `Publisher` and
+-`Subscriber` instances from existing routes.
+-
+-## Using Camel Route with @Outgoing
+-
+-If you have an existing Camel route, you can transform it as a
+-`Publisher` using the `CamelReactiveStreamsService`. Then, you can
+-return this `Publisher` from a method annotated with `@Outgoing`:
+-
+-``` java
+-{{ insert('camel/api/CamelApi.java', 'source') }}
+-```
+-
+-You can also use `RouteBuilder`:
+-
+-``` java
+-{{ insert('camel/api/CamelApi.java', 'source-route-builder') }}
+-```
+-
+-# Using Camel Route with @Incoming
+-
+-If you have an existing Camel route, you can transform it as a
+-`Subscriber` using the `CamelReactiveStreamsService`. Then, you can
+-return this `Subscriber` from a method annotated with `@Incoming`:
+-
+-``` java
+-{{ insert('camel/api/CamelApi.java', 'sink') }}
+-```
+-
+-You can also use a producer:
+-
+-``` java
+-{{ insert('camel/api/CamelApi.java', 'producer') }}
+-```
+diff --git a/documentation/src/main/docs/concepts/logging.md b/documentation/src/main/docs/concepts/logging.md
+index 5279efe2a..ec959f49d 100644
+--- a/documentation/src/main/docs/concepts/logging.md
++++ b/documentation/src/main/docs/concepts/logging.md
+@@ -50,7 +50,6 @@ Reactive Messaging:
+ | `io.smallrye.reactive.messaging.kafka`       | This category contains all the messages generated by the Kafka Connector.         |
+ | `io.smallrye.reactive.messaging.amqp`        | This category contains all the messages generated by the AMQP Connector.          |
+ | `io.smallrye.reactive.messaging.jms`         | This category contains all the messages generated by the JMS Connector.           |
+-| `io.smallrye.reactive.messaging.camel`       | This category contains all the messages generated by the Camel Connector.         |
+ | `io.smallrye.reactive.messaging.mqtt`        | This category contains all the messages generated by the MQTT (Client) Connector. |
+ | `io.smallrye.reactive.messaging.mqtt-server` | This category contains all the messages generated by the MQTT (Server) Connector. |
+ 
+diff --git a/documentation/src/main/java/camel/api/CamelApi.java b/documentation/src/main/java/camel/api/CamelApi.java
+deleted file mode 100644
+index 51e0532d7..000000000
+--- a/documentation/src/main/java/camel/api/CamelApi.java
++++ /dev/null
+@@ -1,69 +0,0 @@
+-package camel.api;
+-
+-import java.util.concurrent.CompletionStage;
+-
+-import jakarta.enterprise.context.ApplicationScoped;
+-import jakarta.inject.Inject;
+-
+-import org.apache.camel.CamelContext;
+-import org.apache.camel.Exchange;
+-import org.apache.camel.builder.RouteBuilder;
+-import org.apache.camel.component.reactive.streams.api.CamelReactiveStreamsService;
+-import org.eclipse.microprofile.reactive.messaging.Incoming;
+-import org.eclipse.microprofile.reactive.messaging.Outgoing;
+-import org.reactivestreams.Publisher;
+-import org.reactivestreams.Subscriber;
+-
+-public class CamelApi {
+-
+-    // <reactive>
+-    @Inject
+-    CamelReactiveStreamsService reactiveStreamsService;
+-    // </reactive>
+-
+-    // <source>
+-    @Outgoing("camel")
+-    public Publisher<Exchange> retrieveDataFromCamelRoute() {
+-        return reactiveStreamsService.from("seda:camel");
+-    }
+-    // </source>
+-
+-    // <source-route-builder>
+-    @ApplicationScoped
+-    static class MyRouteBuilder extends RouteBuilder {
+-        @Inject
+-        CamelReactiveStreamsService reactiveStreamsService;
+-
+-        @Outgoing("sink")
+-        public Publisher<String> getDataFromCamelRoute() {
+-            return reactiveStreamsService.fromStream("my-stream", String.class);
+-        }
+-
+-        @Override
+-        public void configure() {
+-            from("seda:camel").process(
+-                    exchange -> exchange.getMessage().setBody(exchange.getIn().getBody(String.class).toUpperCase()))
+-                    .to("reactive-streams:my-stream");
+-        }
+-    }
+-    // </source-route-builder>
+-
+-    // <sink>
+-    @Incoming("to-camel")
+-    public Subscriber<String> sendDataToCamelRoute() {
+-        return reactiveStreamsService.subscriber("file:./target?fileName=values.txt&fileExist=append",
+-                String.class);
+-    }
+-    // </sink>
+-
+-    // <producer>
+-    @Inject
+-    CamelContext camel;
+-
+-    @Incoming("to-camel")
+-    public CompletionStage<Void> sink(String value) {
+-        return camel.createProducerTemplate()
+-                .asyncSendBody("file:./target?fileName=values.txt&fileExist=append", value).thenApply(x -> null);
+-    }
+-    // </producer>
+-}
+diff --git a/documentation/src/main/java/camel/inbound/CamelFileConsumer.java b/documentation/src/main/java/camel/inbound/CamelFileConsumer.java
+deleted file mode 100644
+index 21c206129..000000000
+--- a/documentation/src/main/java/camel/inbound/CamelFileConsumer.java
++++ /dev/null
+@@ -1,20 +0,0 @@
+-package camel.inbound;
+-
+-import java.io.File;
+-
+-import jakarta.enterprise.context.ApplicationScoped;
+-
+-import org.apache.camel.component.file.GenericFile;
+-import org.eclipse.microprofile.reactive.messaging.Incoming;
+-
+-@ApplicationScoped
+-public class CamelFileConsumer {
+-
+-    @Incoming("files")
+-    public void consume(GenericFile<File> gf) {
+-        File file = gf.getFile();
+-        // process the file
+-
+-    }
+-
+-}
+diff --git a/documentation/src/main/java/camel/inbound/CamelFileMessageConsumer.java b/documentation/src/main/java/camel/inbound/CamelFileMessageConsumer.java
+deleted file mode 100644
+index 56cbc8559..000000000
+--- a/documentation/src/main/java/camel/inbound/CamelFileMessageConsumer.java
++++ /dev/null
+@@ -1,23 +0,0 @@
+-package camel.inbound;
+-
+-import java.io.File;
+-import java.util.concurrent.CompletionStage;
+-
+-import jakarta.enterprise.context.ApplicationScoped;
+-
+-import org.apache.camel.component.file.GenericFile;
+-import org.eclipse.microprofile.reactive.messaging.Incoming;
+-import org.eclipse.microprofile.reactive.messaging.Message;
+-
+-@ApplicationScoped
+-public class CamelFileMessageConsumer {
+-
+-    @Incoming("files")
+-    public CompletionStage<Void> consume(Message<GenericFile<File>> msg) {
+-        File file = msg.getPayload().getFile();
+-        // process the file
+-
+-        return msg.ack();
+-    }
+-
+-}
+diff --git a/documentation/src/main/java/camel/inbound/IncomingCamelMetadataExample.java b/documentation/src/main/java/camel/inbound/IncomingCamelMetadataExample.java
+deleted file mode 100644
+index 63f0a4f3d..000000000
+--- a/documentation/src/main/java/camel/inbound/IncomingCamelMetadataExample.java
++++ /dev/null
+@@ -1,29 +0,0 @@
+-package camel.inbound;
+-
+-import java.io.File;
+-import java.util.Optional;
+-import java.util.concurrent.CompletionStage;
+-
+-import jakarta.enterprise.context.ApplicationScoped;
+-
+-import org.apache.camel.Exchange;
+-import org.apache.camel.component.file.GenericFile;
+-import org.eclipse.microprofile.reactive.messaging.Incoming;
+-import org.eclipse.microprofile.reactive.messaging.Message;
+-
+-import io.smallrye.reactive.messaging.camel.IncomingExchangeMetadata;
+-
+-@ApplicationScoped
+-public class IncomingCamelMetadataExample {
+-
+-    @Incoming("files")
+-    public CompletionStage<Void> consume(Message<GenericFile<File>> msg) {
+-        Optional<IncomingExchangeMetadata> metadata = msg.getMetadata(IncomingExchangeMetadata.class);
+-        if (metadata.isPresent()) {
+-            // Retrieve the camel exchange:
+-            Exchange exchange = metadata.get().getExchange();
+-        }
+-        return msg.ack();
+-    }
+-
+-}
+diff --git a/documentation/src/main/java/camel/outbound/CamelOutboundMetadataExample.java b/documentation/src/main/java/camel/outbound/CamelOutboundMetadataExample.java
+deleted file mode 100644
+index f0d3b80c3..000000000
+--- a/documentation/src/main/java/camel/outbound/CamelOutboundMetadataExample.java
++++ /dev/null
+@@ -1,31 +0,0 @@
+-package camel.outbound;
+-
+-import java.time.Duration;
+-import java.util.Random;
+-
+-import jakarta.enterprise.context.ApplicationScoped;
+-
+-import org.eclipse.microprofile.reactive.messaging.Message;
+-import org.eclipse.microprofile.reactive.messaging.Outgoing;
+-
+-import io.smallrye.mutiny.Multi;
+-import io.smallrye.reactive.messaging.camel.OutgoingExchangeMetadata;
+-
+-@ApplicationScoped
+-public class CamelOutboundMetadataExample {
+-
+-    private Random random = new Random();
+-
+-    @Outgoing("prices")
+-    public Multi<Message<String>> generate() {
+-        // <code>
+-        return Multi.createFrom().ticks().every(Duration.ofSeconds(1))
+-                .map(x -> random.nextDouble())
+-                .map(p -> Double.toString(p))
+-                .map(s -> Message.of(s)
+-                        .addMetadata(new OutgoingExchangeMetadata()
+-                                .putProperty("my-property", "my-value")));
+-        // </code>
+-    }
+-
+-}
+diff --git a/documentation/src/main/java/camel/outbound/CamelPriceMessageProducer.java b/documentation/src/main/java/camel/outbound/CamelPriceMessageProducer.java
+deleted file mode 100644
+index 5a0202608..000000000
+--- a/documentation/src/main/java/camel/outbound/CamelPriceMessageProducer.java
++++ /dev/null
+@@ -1,27 +0,0 @@
+-package camel.outbound;
+-
+-import java.time.Duration;
+-import java.util.Random;
+-
+-import jakarta.enterprise.context.ApplicationScoped;
+-
+-import org.eclipse.microprofile.reactive.messaging.Message;
+-import org.eclipse.microprofile.reactive.messaging.Outgoing;
+-
+-import io.smallrye.mutiny.Multi;
+-
+-@ApplicationScoped
+-public class CamelPriceMessageProducer {
+-
+-    private Random random = new Random();
+-
+-    @Outgoing("prices")
+-    public Multi<Message<String>> generate() {
+-        // Build an infinite stream of random prices
+-        return Multi.createFrom().ticks().every(Duration.ofSeconds(1))
+-                .map(x -> random.nextDouble())
+-                .map(p -> Double.toString(p))
+-                .map(Message::of);
+-    }
+-
+-}
+diff --git a/documentation/src/main/java/camel/outbound/CamelPriceProducer.java b/documentation/src/main/java/camel/outbound/CamelPriceProducer.java
+deleted file mode 100644
+index 30392e08e..000000000
+--- a/documentation/src/main/java/camel/outbound/CamelPriceProducer.java
++++ /dev/null
+@@ -1,26 +0,0 @@
+-package camel.outbound;
+-
+-import java.time.Duration;
+-import java.util.Random;
+-
+-import jakarta.enterprise.context.ApplicationScoped;
+-
+-import org.eclipse.microprofile.reactive.messaging.Outgoing;
+-
+-import io.smallrye.mutiny.Multi;
+-
+-@ApplicationScoped
+-public class CamelPriceProducer {
+-
+-    private Random random = new Random();
+-
+-    @Outgoing("prices")
+-    public Multi<String> generate() {
+-        // Build an infinite stream of random prices
+-        return Multi.createFrom().ticks().every(Duration.ofSeconds(1))
+-                .onOverflow().drop()
+-                .map(x -> random.nextDouble())
+-                .map(p -> Double.toString(p));
+-    }
+-
+-}
+diff --git a/documentation/src/main/java/camel/processor/CamelProcessor.java b/documentation/src/main/java/camel/processor/CamelProcessor.java
+deleted file mode 100644
+index 434b12911..000000000
+--- a/documentation/src/main/java/camel/processor/CamelProcessor.java
++++ /dev/null
+@@ -1,18 +0,0 @@
+-package camel.processor;
+-
+-import jakarta.enterprise.context.ApplicationScoped;
+-
+-import org.eclipse.microprofile.reactive.messaging.Incoming;
+-import org.eclipse.microprofile.reactive.messaging.Outgoing;
+-
+-@ApplicationScoped
+-public class CamelProcessor {
+-
+-    @Incoming("mynatssubject")
+-    @Outgoing("mykafkatopic")
+-    public byte[] process(byte[] message) {
+-        // do some logic
+-        return message;
+-    }
+-
+-}
+diff --git a/documentation/src/main/macros/docissimo.py b/documentation/src/main/macros/docissimo.py
+index 78bf6955b..f69dc84d7 100644
+--- a/documentation/src/main/macros/docissimo.py
++++ b/documentation/src/main/macros/docissimo.py
+@@ -12,14 +12,13 @@ For example, if the imported file contains:
+ ```
+ attributes:
+   versions:
+-    camel: 3.13.0
+     spec: 2.0.1
+     mutiny: 1.1.2
+   project-version: '3.14.0-SNAPSHOT'
+   smallrye-config-version: '2.7.0'
+ ```
+ 
+-You can access values using `{{ attributes.versions.camel}}` or `{{ attributes['project-version'] }}`.
++You can access values using `{{ attributes.versions.spec}}` or `{{ attributes['project-version'] }}`.
+ 
+ The loaded file is `docs/variables.yaml` by default. The location can be configured in the `mkdocs.yml` file with:
+ 
+diff --git a/documentation/src/main/resources/attributes.yaml b/documentation/src/main/resources/attributes.yaml
+index 3f556408c..9c3d9aecd 100644
+--- a/documentation/src/main/resources/attributes.yaml
++++ b/documentation/src/main/resources/attributes.yaml
+@@ -4,6 +4,5 @@ attributes:
+     weld-version: '${weld.version}'
+     smallrye-config-version: '${smallrye-config.version}'
+     mutiny-version: '${mutiny.version}'
+-    camel-version: '${camel.version}'
+     spec-version: '${microprofile-reactive-messaging.version}'
+ 
+-- 
+2.37.0
+

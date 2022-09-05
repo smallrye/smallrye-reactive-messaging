@@ -8,7 +8,7 @@ find . -type f -name 'pom.xml' -exec sed -i '' 's/smallrye-parent/smallrye-jakar
 
 # move versions that support jakarta
 mvn versions:set-property -Dproperty=weld.version -DnewVersion=4.0.3.Final
-mvn versions:set-property -Dproperty=microprofile-reactive-messaging.version -DnewVersion=3.0-RC2
+mvn versions:set-property -Dproperty=microprofile-reactive-messaging.version -DnewVersion=3.0-RC3
 mvn versions:set-property -Dproperty=microprofile-reactive-streams.version -DnewVersion=3.0-RC1
 mvn versions:set-property -Dproperty=microprofile-config.version -DnewVersion=3.0.1
 mvn versions:set-property -Dproperty=microprofile-metrics-api.version -DnewVersion=4.0.1
@@ -47,4 +47,5 @@ find . -type f -name '*.md' -exec sed -i '' 's/jakarta.lang./javax.lang./g' {} +
 find . -type f -name '*.md' -exec sed -i '' 's/jakarta.tools./javax.tools./g' {} +
 find . -type f -name '*.md' -exec sed -i '' 's/jakarta.annotation.processing./javax.annotation.processing./g' {} +
 
-
+# apply patches
+git apply jakarta/*.diff
