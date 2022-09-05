@@ -106,7 +106,7 @@
 
     <nats-embedded.version>2.1.0</nats-embedded.version>
     <slf4j-log4j12.version>1.7.33</slf4j-log4j12.version>
-    <opencsv.version>5.6</opencsv.version>
+    <opencsv.version>5.7.0</opencsv.version>
     <strimzi-test-container.version>0.102.0</strimzi-test-container.version>
 
     <revapi-maven-plugin.version>0.14.7</revapi-maven-plugin.version>
