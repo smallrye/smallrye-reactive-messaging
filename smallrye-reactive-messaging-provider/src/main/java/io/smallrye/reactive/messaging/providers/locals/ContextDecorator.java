@@ -14,7 +14,6 @@ import io.smallrye.mutiny.operators.multi.MultiOperatorProcessor;
 import io.smallrye.mutiny.subscription.MultiSubscriber;
 import io.smallrye.reactive.messaging.PublisherDecorator;
 import io.vertx.core.Context;
-import io.vertx.core.Vertx;
 
 /**
  * Decorator to dispatch messages on the Vert.x context attached to the message via {@link LocalContextMetadata}.
@@ -80,32 +79,20 @@ public class ContextDecorator implements PublisherDecorator {
                     // It's not the case when using multiple Kafka partitions, however this root context is only
                     // used for completion and failure event. As these are terminal events it should not matter.
                     ROOT_CONTEXT_UPDATER.compareAndSet(this, null, VertxContext.getRootContext(context));
-
-                    if (Vertx.currentContext() == context) {
-                        // We are on the right context, immediate call
-                        super.onItem(item);
-                    } else {
-                        // Submit the emission on the message context
-                        context.runOnContext(ignored -> super.onItem(item));
-                    }
-                } else {
-                    // No stored context, immediate call
-                    super.onItem(item);
                 }
+                // HACK trampoline on message context makes the context-propagation leak its context.
+                // LocalContextMetadata.invokeOnMessageContext still ensures that methods are invoked on duplicated context
+                // immediate call
+                super.onItem(item);
             }
 
             @Override
             public void request(long numberOfItems) {
-                Context context = Vertx.currentContext();
-                if (context != null) {
-                    super.request(numberOfItems);
+                Context root = ROOT_CONTEXT_UPDATER.get(this);
+                if (root != null) {
+                    root.runOnContext(x -> super.request(numberOfItems));
                 } else {
-                    Context root = ROOT_CONTEXT_UPDATER.get(this);
-                    if (root != null) {
-                        root.runOnContext(x -> super.request(numberOfItems));
-                    } else {
-                        super.request(numberOfItems);
-                    }
+                    super.request(numberOfItems);
                 }
             }
 
