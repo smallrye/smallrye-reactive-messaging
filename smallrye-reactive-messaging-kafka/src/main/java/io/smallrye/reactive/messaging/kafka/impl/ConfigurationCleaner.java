@@ -33,6 +33,7 @@ public class ConfigurationCleaner {
             "cloud-events-insert-timestamp",
             "cloud-events-mode",
             "propagate-record-key",
+            "propagate-headers",
             "key-serialization-failure-handler",
             "value-serialization-failure-handler",
             "merge",
@@ -65,6 +66,8 @@ public class ConfigurationCleaner {
             "value-deserialization-failure-handler",
             "fail-on-deserialization-failure",
             "graceful-shutdown",
+            "poll-timeout",
+            "pause-if-no-requests",
 
             // Remove most common attributes, may have been configured from the default config
             "key.serializer",

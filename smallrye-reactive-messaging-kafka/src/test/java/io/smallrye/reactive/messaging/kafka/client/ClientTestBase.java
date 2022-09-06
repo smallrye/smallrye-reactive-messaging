@@ -237,7 +237,9 @@ public class ClientTestBase extends KafkaCompanionTestBase {
     }
 
     void sendMessages(Stream<? extends ProducerRecord<Integer, String>> records) throws Exception {
-        try (KafkaProducer<Integer, String> producer = new KafkaProducer<>(producerProps())) {
+        Map<String, Object> configs = producerProps();
+        ConfigurationCleaner.cleanupProducerConfiguration(configs);
+        try (KafkaProducer<Integer, String> producer = new KafkaProducer<>(configs)) {
             List<Future<?>> futures = records.map(producer::send).collect(Collectors.toList());
 
             for (Future<?> future : futures) {
