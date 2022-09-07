@@ -380,6 +380,7 @@ public class KafkaSourceTest extends KafkaCompanionTestBase {
     }
 
     @Test
+    @Tag(TestTags.FLAKY)
     public void testABeanConsumingTheKafkaMessagesWithPartitions() {
         companion.topics().createAndWait(topic, 2, Duration.ofMinutes(1));
         // Verify the creation of the topic

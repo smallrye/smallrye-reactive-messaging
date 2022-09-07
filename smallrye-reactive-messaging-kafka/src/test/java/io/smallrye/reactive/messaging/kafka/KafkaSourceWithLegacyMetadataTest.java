@@ -383,6 +383,7 @@ public class KafkaSourceWithLegacyMetadataTest extends KafkaCompanionTestBase {
     }
 
     @Test
+    @Tag(TestTags.FLAKY)
     public void testABeanConsumingTheKafkaMessagesWithPartitions() {
         companion.topics().create("legacy-data-2", 2);
         ConsumptionBean bean = run(

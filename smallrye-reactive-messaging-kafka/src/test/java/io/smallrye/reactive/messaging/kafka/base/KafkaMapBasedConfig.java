@@ -36,7 +36,9 @@ public class KafkaMapBasedConfig extends MapBasedConfig {
             this.put("bootstrap.servers", bootstrapServers);
         }
         this.put("connector", KafkaConnector.CONNECTOR_NAME);
-        this.put("graceful-shutdown", false);
+        if (prefix.contains("incoming")) {
+            this.put("graceful-shutdown", false);
+        }
         if (!tracing) {
             this.put("tracing-enabled", false);
         }
