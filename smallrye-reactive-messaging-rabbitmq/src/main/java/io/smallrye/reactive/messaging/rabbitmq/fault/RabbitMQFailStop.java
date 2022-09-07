@@ -17,7 +17,7 @@ public class RabbitMQFailStop implements RabbitMQFailureHandler {
 
     /**
      * Constructor.
-     * 
+     *
      * @param channel the channel
      */
     public RabbitMQFailStop(RabbitMQConnector connector, String channel) {
@@ -30,6 +30,6 @@ public class RabbitMQFailStop implements RabbitMQFailureHandler {
         // We mark the message as rejected and fail.
         RabbitMQLogging.log.nackedFailMessage(channel);
         connector.reportIncomingFailure(channel, reason);
-        return ConnectionHolder.runOnContextAndReportFailure(context, reason, () -> msg.rejectMessage(reason));
+        return ConnectionHolder.runOnContextAndReportFailure(context, reason, msg, (m) -> m.rejectMessage(reason));
     }
 }

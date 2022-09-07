@@ -20,6 +20,6 @@ public class AmqpRelease implements AmqpFailureHandler {
     public <V> CompletionStage<Void> handle(AmqpMessage<V> msg, Context context, Throwable reason) {
         log.nackedReleaseMessage(channel);
         log.fullIgnoredFailure(reason);
-        return ConnectionHolder.runOnContext(context, () -> msg.getAmqpMessage().released());
+        return ConnectionHolder.runOnContext(context, msg, io.vertx.mutiny.amqp.AmqpMessage::released);
     }
 }

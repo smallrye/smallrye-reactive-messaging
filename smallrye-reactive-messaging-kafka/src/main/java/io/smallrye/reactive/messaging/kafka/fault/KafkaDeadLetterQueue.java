@@ -155,7 +155,8 @@ public class KafkaDeadLetterQueue implements KafkaFailureHandler {
         return producer.send(dead)
                 .onFailure().invoke(t -> reportFailure.accept((Throwable) t, true))
                 .onItem().ignore().andContinueWithNull()
-                .chain(() -> Uni.createFrom().completionStage(record.ack()));
+                .chain(() -> Uni.createFrom().completionStage(record.ack()))
+                .emitOn(record::runOnMessageContext);
     }
 
     void addHeader(ProducerRecord<?, ?> record, String key, String value) {

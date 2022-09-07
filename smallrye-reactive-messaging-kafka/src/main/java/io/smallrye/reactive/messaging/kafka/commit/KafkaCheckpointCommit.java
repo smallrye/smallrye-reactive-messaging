@@ -81,6 +81,8 @@ public abstract class KafkaCheckpointCommit extends ContextHolder implements Kaf
                     .emitOn(this::runOnContext) // state map is accessed on the captured context
                     .onItem().invoke(s -> processingStateMap.put(tp, s))
                     .chain(s -> persist ? persistProcessingState(tp, newState) : Uni.createFrom().voidItem())
+                    .emitOn(this::runOnContext)
+                    .emitOn(record::runOnMessageContext)
                     .replaceWithVoid();
         }
         return Uni.createFrom().voidItem();

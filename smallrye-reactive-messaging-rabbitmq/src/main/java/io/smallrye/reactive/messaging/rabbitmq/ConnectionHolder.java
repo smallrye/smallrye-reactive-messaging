@@ -3,13 +3,14 @@ package io.smallrye.reactive.messaging.rabbitmq;
 import static io.smallrye.reactive.messaging.rabbitmq.i18n.RabbitMQExceptions.ex;
 import static io.smallrye.reactive.messaging.rabbitmq.i18n.RabbitMQLogging.log;
 
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 import io.smallrye.common.annotation.CheckReturnValue;
 import io.smallrye.mutiny.Uni;
+import io.smallrye.reactive.messaging.providers.helpers.VertxContext;
 import io.vertx.mutiny.core.Context;
 import io.vertx.mutiny.core.Vertx;
 import io.vertx.mutiny.rabbitmq.RabbitMQClient;
@@ -60,33 +61,20 @@ public class ConnectionHolder {
 
     }
 
-    public static CompletionStage<Void> runOnContext(Context context, Runnable runnable) {
-        CompletableFuture<Void> future = new CompletableFuture<>();
-        if (Vertx.currentContext() == context) {
-            runnable.run();
-            future.complete(null);
-        } else {
-            context.runOnContext(() -> {
-                runnable.run();
-                future.complete(null);
-            });
-        }
-        return future;
+    public static CompletionStage<Void> runOnContext(Context context, IncomingRabbitMQMessage<?> msg,
+            Consumer<IncomingRabbitMQMessage<?>> handle) {
+        return VertxContext.runOnContext(context.getDelegate(), f -> {
+            handle.accept(msg);
+            msg.runOnMessageContext(() -> f.complete(null));
+        });
     }
 
-    public static CompletionStage<Void> runOnContextAndReportFailure(Context context, Throwable reason,
-            Runnable runnable) {
-        CompletableFuture<Void> future = new CompletableFuture<>();
-        if (Vertx.currentContext() == context) {
-            runnable.run();
-            future.completeExceptionally(reason);
-        } else {
-            context.runOnContext(() -> {
-                runnable.run();
-                future.completeExceptionally(reason);
-            });
-        }
-        return future;
+    public static CompletionStage<Void> runOnContextAndReportFailure(Context context,
+            Throwable reason, IncomingRabbitMQMessage<?> msg, Consumer<IncomingRabbitMQMessage<?>> handle) {
+        return VertxContext.runOnContext(context.getDelegate(), f -> {
+            handle.accept(msg);
+            msg.runOnMessageContext(() -> f.completeExceptionally(reason));
+        });
     }
 
     public Context getContext() {

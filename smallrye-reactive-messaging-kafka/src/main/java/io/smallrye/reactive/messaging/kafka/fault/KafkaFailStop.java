@@ -43,6 +43,7 @@ public class KafkaFailStop implements KafkaFailureHandler {
         log.messageNackedFailStop(channel);
         // report failure to the connector for health check
         reportFailure.accept(reason, true);
-        return Uni.createFrom().failure(reason);
+        return Uni.createFrom().<Void> failure(reason)
+                .emitOn(record::runOnMessageContext);
     }
 }

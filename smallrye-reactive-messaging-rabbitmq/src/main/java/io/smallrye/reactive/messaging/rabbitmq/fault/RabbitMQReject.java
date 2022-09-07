@@ -13,7 +13,7 @@ public class RabbitMQReject implements RabbitMQFailureHandler {
 
     /**
      * Constructor.
-     * 
+     *
      * @param channel the channel
      */
     public RabbitMQReject(String channel) {
@@ -25,6 +25,6 @@ public class RabbitMQReject implements RabbitMQFailureHandler {
         // We mark the message as rejected and fail.
         log.nackedIgnoreMessage(channel);
         log.fullIgnoredFailure(reason);
-        return ConnectionHolder.runOnContext(context, () -> msg.rejectMessage(reason));
+        return ConnectionHolder.runOnContext(context, msg, m -> m.rejectMessage(reason));
     }
 }

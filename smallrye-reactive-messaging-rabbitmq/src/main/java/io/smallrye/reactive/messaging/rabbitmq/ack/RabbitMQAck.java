@@ -15,7 +15,7 @@ public class RabbitMQAck implements RabbitMQAckHandler {
 
     /**
      * Constructor.
-     * 
+     *
      * @param channel the channel on which acks are issued
      */
     public RabbitMQAck(String channel) {
@@ -25,6 +25,6 @@ public class RabbitMQAck implements RabbitMQAckHandler {
     @Override
     public <V> CompletionStage<Void> handle(final IncomingRabbitMQMessage<V> msg, final Context context) {
         RabbitMQLogging.log.ackMessage(channel);
-        return ConnectionHolder.runOnContext(context, msg::acknowledgeMessage);
+        return ConnectionHolder.runOnContext(context, msg, IncomingRabbitMQMessage::acknowledgeMessage);
     }
 }

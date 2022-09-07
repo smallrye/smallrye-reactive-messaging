@@ -28,6 +28,6 @@ public class AmqpModifiedFailedAndUndeliverableHere implements AmqpFailureHandle
     public <V> CompletionStage<Void> handle(AmqpMessage<V> msg, Context context, Throwable reason) {
         log.nackedModifiedFailedMessageAndUndeliverableHere(channel);
         log.fullIgnoredFailure(reason);
-        return ConnectionHolder.runOnContext(context, () -> msg.getAmqpMessage().modified(true, true));
+        return ConnectionHolder.runOnContext(context, msg, m -> m.modified(true, true));
     }
 }

@@ -19,6 +19,7 @@ import io.smallrye.mutiny.tuples.Tuple2;
 import io.smallrye.reactive.messaging.kafka.IncomingKafkaRecord;
 import io.smallrye.reactive.messaging.kafka.KafkaConnectorIncomingConfiguration;
 import io.smallrye.reactive.messaging.kafka.KafkaConsumer;
+import io.smallrye.reactive.messaging.providers.helpers.VertxContext;
 import io.vertx.core.impl.NoStackTraceThrowable;
 import io.vertx.mutiny.core.Vertx;
 
@@ -258,7 +259,7 @@ public class KafkaThrottledLatestProcessedCommit extends ContextHolder implement
      */
     @Override
     public <K, V> Uni<Void> handle(final IncomingKafkaRecord<K, V> record) {
-        return Uni.createFrom().item(() -> {
+        return Uni.createFrom().completionStage(VertxContext.runOnContext(context.getDelegate(), f -> {
             TopicPartition topicPartition = getTopicPartition(record);
             OffsetStore store = offsetStores
                     .get(topicPartition);
@@ -274,11 +275,8 @@ public class KafkaThrottledLatestProcessedCommit extends ContextHolder implement
                 log.acknowledgementFromRevokedTopicPartition(
                         record.getOffset(), topicPartition, groupId, assignments);
             }
-            return null;
-        }).replaceWithVoid()
-                // Be sure to run on the right context. The context has been store during the message reception
-                // or partition assignment.
-                .runSubscriptionOn(this::runOnContext);
+            record.runOnMessageContext(() -> f.complete(null));
+        }));
     }
 
     /**

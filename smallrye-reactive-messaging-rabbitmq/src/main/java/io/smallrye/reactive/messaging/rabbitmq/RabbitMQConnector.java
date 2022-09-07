@@ -400,7 +400,7 @@ public class RabbitMQConnector implements IncomingConnectorFactory, OutgoingConn
     public void terminate(
             @SuppressWarnings("unused") @Observes(notifyObserver = Reception.IF_EXISTS) @Priority(50) @BeforeDestroyed(ApplicationScoped.class) Object ignored) {
         subscriptions.forEach(Subscription::cancel);
-        clients.forEach(RabbitMQClient::stopAndAwait);
+        clients.forEach(RabbitMQClient::stopAndForget);
         clients.clear();
     }
 

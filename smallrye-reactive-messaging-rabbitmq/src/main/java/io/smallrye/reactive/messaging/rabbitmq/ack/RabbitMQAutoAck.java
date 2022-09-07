@@ -1,6 +1,5 @@
 package io.smallrye.reactive.messaging.rabbitmq.ack;
 
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
 import io.smallrye.reactive.messaging.rabbitmq.ConnectionHolder;
@@ -16,7 +15,7 @@ public class RabbitMQAutoAck implements RabbitMQAckHandler {
 
     /**
      * Constructor.
-     * 
+     *
      * @param channel the channel on which acks are issued
      */
     public RabbitMQAutoAck(String channel) {
@@ -26,6 +25,7 @@ public class RabbitMQAutoAck implements RabbitMQAckHandler {
     @Override
     public <V> CompletionStage<Void> handle(final IncomingRabbitMQMessage<V> msg, final Context context) {
         RabbitMQLogging.log.ackAutoMessage(channel);
-        return ConnectionHolder.runOnContext(context, () -> new CompletableFuture<>());
+        return ConnectionHolder.runOnContext(context, msg, ignored -> {
+        });
     }
 }
