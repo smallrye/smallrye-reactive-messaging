@@ -51,56 +51,88 @@ public class AmqpClientHelper {
 
         // We must merge the channel config and the AMQP Client options.
         // In case of conflict, use the channel config.
-        AmqpClientOptions clientOptions = getOptions(config);
-        AmqpClientOptions completeOptions = options.get();
-        mergeTo(clientOptions, completeOptions);
-        return AmqpClient.create(vertx, completeOptions);
+        AmqpClientOptions customizerOptions = options.get();
+        merge(customizerOptions, config);
+        return AmqpClient.create(vertx, customizerOptions);
+    }
+
+    /**
+     * Checks whether the given attribute is set in the channel configuration.
+     * It does not check for aliases or into the global connector configuration.
+     *
+     * @param attribute the attribute
+     * @param configuration the configuration object
+     * @return {@code true} is the given attribute is configured in the channel configuration
+     */
+    static boolean isSetInChannelConfiguration(String attribute, AmqpConnectorCommonConfiguration configuration) {
+        return configuration.config().getConfigValue(attribute).getRawValue() != null;
     }
 
     /**
      * Merges the values from {@code channel} (the channel configuration), into the {@code custom}.
      * Values from {@code channel} replaces the values from {@code custom}.
      *
-     * @param channel the channel configuration
      * @param custom the custom configuration
+     * @param config the common configuration
      */
-    static void mergeTo(AmqpClientOptions channel, AmqpClientOptions custom) {
-        String username = channel.getUsername();
-        String password = channel.getPassword();
-        String host = channel.getHost();
-        int port = channel.getPort();
-        boolean useSsl = channel.isSsl();
-        int reconnectAttempts = channel.getReconnectAttempts();
-        long reconnectInterval = channel.getReconnectInterval();
-        int connectTimeout = channel.getConnectTimeout();
+    static void merge(AmqpClientOptions custom, AmqpConnectorCommonConfiguration config) {
+        AmqpClientOptions channel = getOptionsFromChannel(config);
+        String hostFromChannel = channel.getHost();
+        int portFromChannel = channel.getPort();
 
-        if (username != null) {
+        if (isSetInChannelConfiguration("username", config)) {
             custom.setUsername(channel.getUsername());
         }
-        if (password != null) {
+
+        // If the username is not set, use the one from the channel (alias or connector config)
+        if (custom.getUsername() == null) {
+            custom.setUsername(channel.getUsername());
+        }
+
+        if (isSetInChannelConfiguration("password", config)) {
             custom.setPassword(channel.getPassword());
         }
-        if (host != null) {
+
+        // If the password is not set, use the one from the channel (alias or connector config)
+        if (custom.getPassword() == null) {
+            custom.setPassword(channel.getPassword());
+        }
+
+        if (isSetInChannelConfiguration("host", config)) {
+            custom.setHost(hostFromChannel);
+        }
+
+        // If the host is not set, use the one from the channel (alias or connector config)
+        if (custom.getHost() == null) {
             custom.setHost(channel.getHost());
         }
-        if (port > 0) {
-            custom.setPort(channel.getPort());
+
+        if (isSetInChannelConfiguration("port", config)) {
+            custom.setPort(portFromChannel);
         }
-        if (useSsl) {
+
+        // custom.getPort() will return a value (might be the default port, or not, or the default port as set by the user)
+        // the channel port may be set (using the alias or connector config)
+        // we can compare, but we cannot decide which one is going to be used.
+        // so, we use the one from the customizer except is explicitly set on the channel.
+        // The same apply for ssl, reconnect-attempts, reconnect-interval and connect-timeout.
+
+        if (isSetInChannelConfiguration("use-ssl", config)) {
             custom.setSsl(channel.isSsl());
         }
-        if (reconnectAttempts > 0) {
+
+        if (isSetInChannelConfiguration("reconnect-attempts", config)) {
             custom.setReconnectAttempts(channel.getReconnectAttempts());
         }
-        if (reconnectInterval > 0) {
+        if (isSetInChannelConfiguration("reconnect-interval", config)) {
             custom.setReconnectInterval(channel.getReconnectInterval());
         }
-        if (connectTimeout > 0) {
+        if (isSetInChannelConfiguration("connect-timeout", config)) {
             custom.setConnectTimeout(channel.getConnectTimeout());
         }
     }
 
-    static AmqpClientOptions getOptions(AmqpConnectorCommonConfiguration config) {
+    static AmqpClientOptions getOptionsFromChannel(AmqpConnectorCommonConfiguration config) {
         String username = config.getUsername().orElse(null);
         String password = config.getPassword().orElse(null);
         String host = config.getHost();
@@ -133,7 +165,7 @@ public class AmqpClientHelper {
 
     static AmqpClient getClient(Vertx vertx, AmqpConnectorCommonConfiguration config) {
         try {
-            AmqpClientOptions options = getOptions(config);
+            AmqpClientOptions options = getOptionsFromChannel(config);
             return AmqpClient.create(vertx, options);
         } catch (Exception e) {
             log.unableToCreateClient(e);
