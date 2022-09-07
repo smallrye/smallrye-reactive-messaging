@@ -23,11 +23,12 @@ public class AmqpBrokerTestBase {
     protected final static int port = 5672;
     protected final static String username = "artemis";
     protected final static String password = "artemis";
+
     protected AmqpUsage usage;
 
     @BeforeAll
     public static void startBroker() {
-        broker.start();
+        broker.start(port);
         System.setProperty("amqp-host", host);
         System.setProperty("amqp-port", Integer.toString(port));
         System.setProperty("amqp-user", username);

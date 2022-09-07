@@ -7,6 +7,8 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.activemq.artemis.core.config.Configuration;
+import org.apache.activemq.artemis.core.config.impl.ConfigurationImpl;
 import org.apache.activemq.artemis.core.security.CheckType;
 import org.apache.activemq.artemis.core.security.Role;
 import org.apache.activemq.artemis.core.server.embedded.EmbeddedActiveMQ;
@@ -17,10 +19,19 @@ public class AmqpBroker {
     static EmbeddedActiveMQ server;
     static AmqpBroker instance;
 
-    public Map<String, String> start() {
+    public Map<String, String> start(int port) {
         instance = this;
         try {
             server = new EmbeddedActiveMQ();
+            Configuration config = new ConfigurationImpl();
+            config.setPagingDirectory("target/data/paging");
+            config.setBindingsDirectory("target/data/bindings");
+            config.setJournalDirectory("target/data/journal");
+            config.setLargeMessagesDirectory("target/data/large-messages");
+            config.addAcceptorConfiguration("in-vm", "vm://0");
+            config.addAcceptorConfiguration("tcp", "tcp://127.0.0.1:" + port);
+
+            server.setConfiguration(config);
             server.setSecurityManager(new ActiveMQSecurityManager() {
                 @Override
                 public boolean validateUser(String username, String password) {
