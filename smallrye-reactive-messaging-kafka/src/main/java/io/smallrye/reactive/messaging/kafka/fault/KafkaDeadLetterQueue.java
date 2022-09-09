@@ -62,7 +62,7 @@ public class KafkaDeadLetterQueue implements KafkaFailureHandler {
         KafkaCDIEvents kafkaCDIEvents;
 
         @Override
-        public KafkaFailureHandler crate(KafkaConnectorIncomingConfiguration config,
+        public KafkaFailureHandler create(KafkaConnectorIncomingConfiguration config,
                 Vertx vertx,
                 KafkaConsumer<?, ?> consumer,
                 BiConsumer<Throwable, Boolean> reportFailure) {

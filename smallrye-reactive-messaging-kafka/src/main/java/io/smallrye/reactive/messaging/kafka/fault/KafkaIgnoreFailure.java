@@ -24,7 +24,7 @@ public class KafkaIgnoreFailure implements KafkaFailureHandler {
     public static class Factory implements KafkaFailureHandler.Factory {
 
         @Override
-        public KafkaFailureHandler crate(KafkaConnectorIncomingConfiguration config, Vertx vertx,
+        public KafkaFailureHandler create(KafkaConnectorIncomingConfiguration config, Vertx vertx,
                 KafkaConsumer<?, ?> consumer, BiConsumer<Throwable, Boolean> reportFailure) {
             return new KafkaIgnoreFailure(config.getChannel());
         }

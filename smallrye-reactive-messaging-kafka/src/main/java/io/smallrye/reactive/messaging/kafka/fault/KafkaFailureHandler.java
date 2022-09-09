@@ -31,7 +31,7 @@ public interface KafkaFailureHandler {
      * Factory interface for {@link KafkaFailureHandler}
      */
     interface Factory {
-        KafkaFailureHandler crate(
+        KafkaFailureHandler create(
                 KafkaConnectorIncomingConfiguration config,
                 Vertx vertx,
                 KafkaConsumer<?, ?> consumer,

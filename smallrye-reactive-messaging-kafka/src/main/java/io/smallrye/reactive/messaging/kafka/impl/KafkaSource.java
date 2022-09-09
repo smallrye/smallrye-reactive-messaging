@@ -326,7 +326,7 @@ public class KafkaSource<K, V> {
         Instance<KafkaFailureHandler.Factory> failureHandlerFactory = failureHandlerFactories
                 .select(Identifier.Literal.of(strategy));
         if (failureHandlerFactory.isResolvable()) {
-            return failureHandlerFactory.get().crate(configuration, vertx, client, this::reportFailure);
+            return failureHandlerFactory.get().create(configuration, vertx, client, this::reportFailure);
         } else {
             throw ex.illegalArgumentInvalidFailureStrategy(strategy);
         }

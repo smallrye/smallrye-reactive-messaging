@@ -25,7 +25,7 @@ public class KafkaFailStop implements KafkaFailureHandler {
     public static class Factory implements KafkaFailureHandler.Factory {
 
         @Override
-        public KafkaFailureHandler crate(KafkaConnectorIncomingConfiguration config, Vertx vertx, KafkaConsumer<?, ?> consumer,
+        public KafkaFailureHandler create(KafkaConnectorIncomingConfiguration config, Vertx vertx, KafkaConsumer<?, ?> consumer,
                 BiConsumer<Throwable, Boolean> reportFailure) {
             return new KafkaFailStop(config.getChannel(), reportFailure);
         }
