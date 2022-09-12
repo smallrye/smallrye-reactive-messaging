@@ -23,7 +23,7 @@ compatibility_extract() {
 
 compatibility_clear() {
   echo "Clearing difference justifications"
-  jbang .build/CompatibilityUtils.java clear
+  jbang .github/CompatibilityUtils.java clear
   if [[ $(git diff --stat) != '' ]]; then
     git add -A
     git status

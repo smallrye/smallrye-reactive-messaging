@@ -24,42 +24,7 @@
     "criticality" : "highlight",
     "minSeverity" : "POTENTIALLY_BREAKING",
     "minCriticality" : "documented",
-    "differences" : [
-        {
-            "code": "java.method.returnTypeTypeParametersChanged",
-            "old": "method java.util.Map<org.apache.kafka.common.TopicPartition, java.lang.Long> io.smallrye.reactive.messaging.kafka.companion.ConsumerBuilder<K, V>::position()",
-            "new": "method java.util.Map<org.apache.kafka.common.TopicPartition, org.apache.kafka.clients.consumer.OffsetAndMetadata> io.smallrye.reactive.messaging.kafka.companion.ConsumerBuilder<K, V>::position()",
-            "justification": "Returns OffsetMetadata instead of offset"
-        },
-        {
-            "code": "java.method.parameterTypeChanged",
-            "old": "parameter void io.smallrye.reactive.messaging.kafka.companion.ProducerBuilder<K, V>::<init>(java.util.Map<java.lang.String, java.lang.Object>, java.time.Duration, ===java.lang.Class<? extends org.apache.kafka.common.serialization.Serializer<?>>===, java.lang.Class<? extends org.apache.kafka.common.serialization.Serializer<?>>)",
-            "new": "parameter void io.smallrye.reactive.messaging.kafka.companion.ProducerBuilder<K, V>::<init>(java.util.Map<java.lang.String, java.lang.Object>, java.time.Duration, ===java.lang.String===, java.lang.String)",
-            "parameterIndex": "2",
-            "justification": "Serializer Class based constructor replaced with class name"
-        },
-        {
-            "code": "java.method.parameterTypeChanged",
-            "old": "parameter void io.smallrye.reactive.messaging.kafka.companion.ProducerBuilder<K, V>::<init>(java.util.Map<java.lang.String, java.lang.Object>, java.time.Duration, java.lang.Class<? extends org.apache.kafka.common.serialization.Serializer<?>>, ===java.lang.Class<? extends org.apache.kafka.common.serialization.Serializer<?>>===)",
-            "new": "parameter void io.smallrye.reactive.messaging.kafka.companion.ProducerBuilder<K, V>::<init>(java.util.Map<java.lang.String, java.lang.Object>, java.time.Duration, java.lang.String, ===java.lang.String===)",
-            "parameterIndex": "3",
-            "justification": "Serializer Class based constructor replaced with class name"
-        },
-        {
-            "code": "java.method.parameterTypeChanged",
-            "old": "parameter void io.smallrye.reactive.messaging.kafka.companion.ConsumerBuilder<K, V>::<init>(java.util.Map<java.lang.String, java.lang.Object>, java.time.Duration, ===java.lang.Class<? extends org.apache.kafka.common.serialization.Deserializer<?>>===, java.lang.Class<? extends org.apache.kafka.common.serialization.Deserializer<?>>)",
-            "new": "parameter void io.smallrye.reactive.messaging.kafka.companion.ConsumerBuilder<K, V>::<init>(java.util.Map<java.lang.String, java.lang.Object>, java.time.Duration, ===java.lang.String===, java.lang.String)",
-            "parameterIndex": "2",
-            "justification": "Deserializer Class based constructor replaced with class name"
-        },
-        {
-            "code": "java.method.parameterTypeChanged",
-            "old": "parameter void io.smallrye.reactive.messaging.kafka.companion.ConsumerBuilder<K, V>::<init>(java.util.Map<java.lang.String, java.lang.Object>, java.time.Duration, java.lang.Class<? extends org.apache.kafka.common.serialization.Deserializer<?>>, ===java.lang.Class<? extends org.apache.kafka.common.serialization.Deserializer<?>>===)",
-            "new": "parameter void io.smallrye.reactive.messaging.kafka.companion.ConsumerBuilder<K, V>::<init>(java.util.Map<java.lang.String, java.lang.Object>, java.time.Duration, java.lang.String, ===java.lang.String===)",
-            "parameterIndex": "3",
-            "justification": "Deserializer Class based constructor replaced with class name"
-        }
-    ]
+    "differences" : [ ]
   }
 }, {
   "extension" : "revapi.reporter.json",

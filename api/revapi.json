@@ -1,74 +1,49 @@
-[
-    {
-        "extension": "revapi.java",
-        "id": "java",
-        "configuration": {
-            "missing-classes": {
-                "behavior": "report",
-                "ignoreMissingAnnotations": false
-            }
-        }
-    },
-    {
-        "extension": "revapi.filter",
-        "configuration": {
-            "elements": {
-                "include": [
-                    {
-                        "matcher": "java-package",
-                        "match": "/io\\.smallrye\\.reactive\\.messaging(\\..+)?/"
-                    },
-                    {
-                        "matcher": "java-package",
-                        "match": "/org\\.eclipse\\.microprofile\\.reactive\\.messaging(\\..+)?/"
-                    }
-                ]
-            }
-        }
-    },
-    {
-        "extension": "revapi.differences",
-        "id": "breaking-changes",
-        "configuration": {
-            "criticality": "highlight",
-            "minSeverity": "POTENTIALLY_BREAKING",
-            "minCriticality": "documented",
-            "differences": [
-                {
-                    "code": "java.method.addedToInterface",
-                    "new": "method <M extends org.eclipse.microprofile.reactive.messaging.Message<? extends T>> io.smallrye.mutiny.Uni<java.lang.Void> io.smallrye.reactive.messaging.MutinyEmitter<T>::sendMessage(M)",
-                    "justification": "Added to the MutinyEmitter interface"
-                },
-                {
-                    "code": "java.method.addedToInterface",
-                    "new": "method <M extends org.eclipse.microprofile.reactive.messaging.Message<? extends T>> void io.smallrye.reactive.messaging.MutinyEmitter<T>::sendMessageAndAwait(M)",
-                    "justification": "Added to the MutinyEmitter interface"
-                },
-                {
-                    "code": "java.method.addedToInterface",
-                    "new": "method <M extends org.eclipse.microprofile.reactive.messaging.Message<? extends T>> io.smallrye.mutiny.subscription.Cancellable io.smallrye.reactive.messaging.MutinyEmitter<T>::sendMessageAndForget(M)",
-                    "justification": "Added to the MutinyEmitter interface"
-                }
-            ]
-        }
-    },
-    {
-        "extension": "revapi.reporter.json",
-        "configuration": {
-            "minSeverity": "POTENTIALLY_BREAKING",
-            "minCriticality": "documented",
-            "output": "target/compatibility.json",
-            "indent": true,
-            "append": false,
-            "keepEmptyFile": true
-        }
-    },
-    {
-        "extension": "revapi.reporter.text",
-        "configuration": {
-            "minSeverity": "POTENTIALLY_BREAKING",
-            "minCriticality": "documented",
-            "output": "out"
-        }
+[ {
+  "extension" : "revapi.java",
+  "id" : "java",
+  "configuration" : {
+    "missing-classes" : {
+      "behavior" : "report",
+      "ignoreMissingAnnotations" : false
     }
-]
+  }
+}, {
+  "extension" : "revapi.filter",
+  "configuration" : {
+    "elements" : {
+      "include" : [ {
+        "matcher" : "java-package",
+        "match" : "/io\\.smallrye\\.reactive\\.messaging(\\..+)?/"
+      }, {
+        "matcher" : "java-package",
+        "match" : "/org\\.eclipse\\.microprofile\\.reactive\\.messaging(\\..+)?/"
+      } ]
+    }
+  }
+}, {
+  "extension" : "revapi.differences",
+  "id" : "breaking-changes",
+  "configuration" : {
+    "criticality" : "highlight",
+    "minSeverity" : "POTENTIALLY_BREAKING",
+    "minCriticality" : "documented",
+    "differences" : [ ]
+  }
+}, {
+  "extension" : "revapi.reporter.json",
+  "configuration" : {
+    "minSeverity" : "POTENTIALLY_BREAKING",
+    "minCriticality" : "documented",
+    "output" : "target/compatibility.json",
+    "indent" : true,
+    "append" : false,
+    "keepEmptyFile" : true
+  }
+}, {
+  "extension" : "revapi.reporter.text",
+  "configuration" : {
+    "minSeverity" : "POTENTIALLY_BREAKING",
+    "minCriticality" : "documented",
+    "output" : "out"
+  }
+} ]
