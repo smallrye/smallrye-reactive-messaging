@@ -67,7 +67,7 @@ public class LocalPropagationAckTest extends KafkaCompanionTestBase {
         });
 
         await().until(() -> bean.getResults().size() >= 1);
-        assertThat(bean.getResults()).containsExactly(1);
+        assertThat(bean.getResults()).contains(1);
     }
 
     @Test
