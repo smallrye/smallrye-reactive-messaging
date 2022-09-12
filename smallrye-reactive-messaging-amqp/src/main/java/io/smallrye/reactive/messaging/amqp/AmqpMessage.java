@@ -3,7 +3,6 @@ package io.smallrye.reactive.messaging.amqp;
 import static io.smallrye.reactive.messaging.providers.locals.ContextAwareMessage.captureContextMetadata;
 
 import java.util.ArrayList;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -23,6 +22,7 @@ import io.smallrye.reactive.messaging.amqp.ce.AmqpCloudEventHelper;
 import io.smallrye.reactive.messaging.amqp.fault.AmqpFailureHandler;
 import io.smallrye.reactive.messaging.amqp.tracing.HeaderExtractAdapter;
 import io.smallrye.reactive.messaging.ce.CloudEventMetadata;
+import io.smallrye.reactive.messaging.providers.helpers.VertxContext;
 import io.smallrye.reactive.messaging.providers.locals.ContextAwareMessage;
 import io.vertx.core.json.JsonObject;
 import io.vertx.mutiny.core.Context;
@@ -115,12 +115,10 @@ public class AmqpMessage<T> implements org.eclipse.microprofile.reactive.messagi
         // We must switch to the context having created the message.
         // This context is passed when this instance of message is created.
         // It's more a Vert.x AMQP client issue which should ensure calling `accepted` on the right context.
-        CompletableFuture<Void> future = new CompletableFuture<>();
-        this.context.runOnContext(() -> {
-            this.message.accepted();
-            future.complete(null);
+        return VertxContext.runOnContext(context.getDelegate(), f -> {
+            message.accepted();
+            this.runOnMessageContext(() -> f.complete(null));
         });
-        return future;
     }
 
     @Override

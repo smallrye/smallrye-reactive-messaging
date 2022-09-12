@@ -27,6 +27,6 @@ public class AmqpModifiedFailed implements AmqpFailureHandler {
     public <V> CompletionStage<Void> handle(AmqpMessage<V> msg, Context context, Throwable reason) {
         log.nackedModifiedFailedMessage(channel);
         log.fullIgnoredFailure(reason);
-        return ConnectionHolder.runOnContext(context, () -> msg.getAmqpMessage().modified(true, false));
+        return ConnectionHolder.runOnContext(context, msg, m -> m.modified(true, false));
     }
 }

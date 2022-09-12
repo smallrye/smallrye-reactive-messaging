@@ -25,7 +25,7 @@ public class KafkaFailStop implements KafkaFailureHandler {
     public static class Factory implements KafkaFailureHandler.Factory {
 
         @Override
-        public KafkaFailureHandler crate(KafkaConnectorIncomingConfiguration config, Vertx vertx, KafkaConsumer<?, ?> consumer,
+        public KafkaFailureHandler create(KafkaConnectorIncomingConfiguration config, Vertx vertx, KafkaConsumer<?, ?> consumer,
                 BiConsumer<Throwable, Boolean> reportFailure) {
             return new KafkaFailStop(config.getChannel(), reportFailure);
         }
@@ -43,6 +43,7 @@ public class KafkaFailStop implements KafkaFailureHandler {
         log.messageNackedFailStop(channel);
         // report failure to the connector for health check
         reportFailure.accept(reason, true);
-        return Uni.createFrom().failure(reason);
+        return Uni.createFrom().<Void> failure(reason)
+                .emitOn(record::runOnMessageContext);
     }
 }

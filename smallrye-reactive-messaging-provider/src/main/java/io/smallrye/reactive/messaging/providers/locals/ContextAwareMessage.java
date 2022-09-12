@@ -7,7 +7,7 @@ import org.eclipse.microprofile.reactive.messaging.Metadata;
 
 import io.smallrye.common.annotation.CheckReturnValue;
 import io.smallrye.common.constraint.Nullable;
-import io.smallrye.common.vertx.VertxContext;
+import io.smallrye.reactive.messaging.providers.helpers.VertxContext;
 import io.vertx.core.Context;
 
 public interface ContextAwareMessage<T> extends Message<T> {
@@ -66,4 +66,14 @@ public interface ContextAwareMessage<T> extends Message<T> {
     default Optional<LocalContextMetadata> getContextMetadata() {
         return getMetadata().get(LocalContextMetadata.class);
     }
+
+    default void runOnMessageContext(Runnable runnable) {
+        Optional<LocalContextMetadata> contextMetadata = getContextMetadata();
+        if (contextMetadata.isPresent()) {
+            VertxContext.runOnContext(contextMetadata.get().context(), runnable);
+        } else {
+            runnable.run();
+        }
+    }
+
 }

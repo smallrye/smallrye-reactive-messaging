@@ -49,7 +49,7 @@ public interface RabbitMQFailureHandler {
 
     /**
      * Handle message failure.
-     * 
+     *
      * @param message the failed message
      * @param context the {@link Context} in which the handling should be done
      * @param reason the reason for the failure

@@ -21,6 +21,6 @@ public class AmqpReject implements AmqpFailureHandler {
         // We mark the message as rejected and fail.
         log.nackedIgnoreMessage(channel);
         log.fullIgnoredFailure(reason);
-        return ConnectionHolder.runOnContext(context, () -> msg.getAmqpMessage().rejected());
+        return ConnectionHolder.runOnContext(context, msg, io.vertx.mutiny.amqp.AmqpMessage::rejected);
     }
 }

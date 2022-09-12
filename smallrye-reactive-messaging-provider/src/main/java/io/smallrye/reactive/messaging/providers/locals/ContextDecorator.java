@@ -7,12 +7,12 @@ import javax.enterprise.context.ApplicationScoped;
 
 import org.eclipse.microprofile.reactive.messaging.Message;
 
-import io.smallrye.common.vertx.VertxContext;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.operators.MultiOperator;
 import io.smallrye.mutiny.operators.multi.MultiOperatorProcessor;
 import io.smallrye.mutiny.subscription.MultiSubscriber;
 import io.smallrye.reactive.messaging.PublisherDecorator;
+import io.smallrye.reactive.messaging.providers.helpers.VertxContext;
 import io.vertx.core.Context;
 import io.vertx.core.Vertx;
 
@@ -81,13 +81,7 @@ public class ContextDecorator implements PublisherDecorator {
                     // used for completion and failure event. As these are terminal events it should not matter.
                     ROOT_CONTEXT_UPDATER.compareAndSet(this, null, VertxContext.getRootContext(context));
 
-                    if (Vertx.currentContext() == context) {
-                        // We are on the right context, immediate call
-                        super.onItem(item);
-                    } else {
-                        // Submit the emission on the message context
-                        context.runOnContext(ignored -> super.onItem(item));
-                    }
+                    VertxContext.runOnContext(context, () -> super.onItem(item));
                 } else {
                     // No stored context, immediate call
                     super.onItem(item);

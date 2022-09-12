@@ -24,8 +24,6 @@ public class AmqpFailStop implements AmqpFailureHandler {
         // We mark the message as rejected and fail.
         log.nackedFailMessage(channel);
         connector.reportFailure(channel, reason);
-        return ConnectionHolder.runOnContextAndReportFailure(context, reason, () -> {
-            msg.getAmqpMessage().rejected();
-        });
+        return ConnectionHolder.runOnContextAndReportFailure(context, msg, reason, io.vertx.mutiny.amqp.AmqpMessage::rejected);
     }
 }

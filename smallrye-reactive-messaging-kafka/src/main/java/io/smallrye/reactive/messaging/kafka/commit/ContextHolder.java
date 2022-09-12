@@ -1,9 +1,14 @@
 package io.smallrye.reactive.messaging.kafka.commit;
 
-import java.util.concurrent.*;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import org.apache.kafka.common.errors.InterruptException;
 
+import io.smallrye.reactive.messaging.providers.helpers.VertxContext;
 import io.vertx.mutiny.core.Context;
 import io.vertx.mutiny.core.Vertx;
 
@@ -40,19 +45,14 @@ public class ContextHolder {
     public void runOnContext(Runnable runnable) {
         // Directly run the task if current thread is an event loop thread and have the captured context
         // Otherwise run the task on event loop
-        if (Vertx.currentContext() == context && Context.isOnEventLoopThread()) {
-            runnable.run();
-        } else {
-            context.runOnContext(runnable::run);
-        }
+        VertxContext.runOnEventLoopContext(context.getDelegate(), runnable);
     }
 
     public <T> T runOnContextAndAwait(Callable<T> action) {
-        FutureTask<T> task = new FutureTask<>(action);
-        runOnContext(task);
-
         try {
-            return task.get(timeout, TimeUnit.MILLISECONDS);
+            return VertxContext.callOnContext(context.getDelegate(), action)
+                    .toCompletableFuture()
+                    .get(timeout, TimeUnit.MILLISECONDS);
         } catch (InterruptedException e) {
             // The InterruptException reset the interruption flag.
             throw new InterruptException(e);

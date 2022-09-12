@@ -6,7 +6,6 @@ import static java.time.Duration.ofSeconds;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
@@ -16,6 +15,7 @@ import org.apache.qpid.proton.amqp.Symbol;
 
 import io.smallrye.common.annotation.CheckReturnValue;
 import io.smallrye.mutiny.Uni;
+import io.smallrye.reactive.messaging.providers.helpers.VertxContext;
 import io.vertx.amqp.impl.AmqpConnectionImpl;
 import io.vertx.mutiny.amqp.AmqpClient;
 import io.vertx.mutiny.amqp.AmqpConnection;
@@ -167,31 +167,19 @@ public class ConnectionHolder {
                 });
     }
 
-    public static CompletionStage<Void> runOnContext(Context context, Runnable runnable) {
-        CompletableFuture<Void> future = new CompletableFuture<>();
-        if (Vertx.currentContext() == context) {
-            runnable.run();
-            future.complete(null);
-        } else {
-            context.runOnContext(() -> {
-                runnable.run();
-                future.complete(null);
-            });
-        }
-        return future;
+    public static CompletionStage<Void> runOnContext(Context context, AmqpMessage<?> msg,
+            Consumer<io.vertx.mutiny.amqp.AmqpMessage> handle) {
+        return VertxContext.runOnContext(context.getDelegate(), f -> {
+            handle.accept(msg.getAmqpMessage());
+            msg.runOnMessageContext(() -> f.complete(null));
+        });
     }
 
-    public static CompletionStage<Void> runOnContextAndReportFailure(Context context, Throwable reason, Runnable runnable) {
-        CompletableFuture<Void> future = new CompletableFuture<>();
-        if (Vertx.currentContext() == context) {
-            runnable.run();
-            future.completeExceptionally(reason);
-        } else {
-            context.runOnContext(() -> {
-                runnable.run();
-                future.completeExceptionally(reason);
-            });
-        }
-        return future;
+    public static CompletionStage<Void> runOnContextAndReportFailure(Context context, AmqpMessage<?> msg,
+            Throwable reason, Consumer<io.vertx.mutiny.amqp.AmqpMessage> handle) {
+        return VertxContext.runOnContext(context.getDelegate(), f -> {
+            handle.accept(msg.getAmqpMessage());
+            msg.runOnMessageContext(() -> f.completeExceptionally(reason));
+        });
     }
 }

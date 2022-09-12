@@ -8,8 +8,8 @@ import org.eclipse.microprofile.reactive.messaging.Message;
 
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.subscription.UniEmitter;
+import io.smallrye.reactive.messaging.providers.helpers.VertxContext;
 import io.vertx.core.Context;
-import io.vertx.core.Vertx;
 
 public class LocalContextMetadata {
 
@@ -48,18 +48,7 @@ public class LocalContextMetadata {
             // Call function on Message's context
             // TODO Replace with an operator
             return Uni.createFrom().emitter(emitter -> {
-                Context current = Vertx.currentContext();
-                if (current != null && current == metadata.get().context) {
-                    // Direct call, we are already on the right context.
-                    try {
-                        function.accept(incoming, emitter);
-                    } catch (Exception e) {
-                        emitter.fail(e);
-                    }
-                    return;
-                }
-                // Run function on the message context
-                metadata.get().context.runOnContext(x -> {
+                VertxContext.runOnContext(metadata.get().context, () -> {
                     try {
                         function.accept(incoming, emitter);
                     } catch (Exception e) {
