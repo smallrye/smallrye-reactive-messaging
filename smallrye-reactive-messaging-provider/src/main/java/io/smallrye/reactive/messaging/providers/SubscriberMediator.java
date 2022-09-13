@@ -124,14 +124,14 @@ public class SubscriberMediator extends AbstractMediator {
                 try {
                     delegate.onNext(o);
                 } catch (Exception e) {
-                    log.messageProcessingException(e);
+                    log.messageProcessingException(configuration.methodAsString(), e);
                     syncErrorCatcher.set(e);
                 }
             }
 
             @Override
             public void onError(Throwable t) {
-                log.messageProcessingException(t);
+                log.messageProcessingException(configuration.methodAsString(), t);
                 syncErrorCatcher.set(t);
                 delegate.onError(t);
             }
@@ -239,7 +239,7 @@ public class SubscriberMediator extends AbstractMediator {
     }
 
     private void reportFailure(Throwable failure) {
-        log.messageProcessingException(failure);
+        log.messageProcessingException(configuration.methodAsString(), failure);
         health.reportApplicationFailure(configuration.methodAsString(), failure);
     }
 
