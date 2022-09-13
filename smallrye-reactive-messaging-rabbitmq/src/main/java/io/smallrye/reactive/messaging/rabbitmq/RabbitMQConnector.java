@@ -102,6 +102,8 @@ import io.vertx.rabbitmq.RabbitMQPublisherOptions;
 @ConnectorAttribute(name = "queue.declare", direction = INCOMING, description = "Whether to declare the queue and binding; set to false if these are expected to be set up independently", type = "boolean", defaultValue = "true")
 @ConnectorAttribute(name = "queue.ttl", direction = INCOMING, description = "If specified, the time (ms) for which a message can remain in the queue undelivered before it is dead", type = "long")
 @ConnectorAttribute(name = "queue.single-active-consumer", direction = INCOMING, description = "If set to true, only one consumer can actively consume messages", type = "boolean")
+@ConnectorAttribute(name = "queue.x-queue-type", direction = INCOMING, description = "If automatically declare queue, we can choose different types of queue [quorum, classic, stream]", type = "string")
+@ConnectorAttribute(name = "queue.x-queue-mode", direction = INCOMING, description = "If automatically declare queue, we can choose different modes of queue [lazy, default]", type = "string")
 @ConnectorAttribute(name = "max-outgoing-internal-queue-size", direction = OUTGOING, description = "The maximum size of the outgoing internal queue", type = "int")
 @ConnectorAttribute(name = "max-incoming-internal-queue-size", direction = INCOMING, description = "The maximum size of the incoming internal queue", type = "int", defaultValue = "500000")
 @ConnectorAttribute(name = "connection-count", direction = INCOMING, description = "The number of RabbitMQ connections to create for consuming from this queue. This might be necessary to consume from a sharded queue with a single client.", type = "int", defaultValue = "1")
@@ -113,6 +115,8 @@ import io.vertx.rabbitmq.RabbitMQPublisherOptions;
 @ConnectorAttribute(name = "dead-letter-exchange-type", direction = INCOMING, description = "The type of the DLX to assign to the queue. Relevant only if auto-bind-dlq is true", type = "string", defaultValue = "direct")
 @ConnectorAttribute(name = "dead-letter-routing-key", direction = INCOMING, description = "A dead letter routing key to assign to the queue; if not supplied will default to the queue name", type = "string")
 @ConnectorAttribute(name = "dlx.declare", direction = INCOMING, description = "Whether to declare the dead letter exchange binding. Relevant only if auto-bind-dlq is true; set to false if these are expected to be set up independently", type = "boolean", defaultValue = "false")
+@ConnectorAttribute(name = "dead-letter-queue-type", direction = INCOMING, description = "If automatically declare DLQ, we can choose different types of DLQ [quorum, classic, stream]", type = "string")
+@ConnectorAttribute(name = "dead-letter-queue-mode", direction = INCOMING, description = "If automatically declare DLQ, we can choose different modes of DLQ [lazy, default]", type = "string")
 
 // Message consumer
 @ConnectorAttribute(name = "failure-strategy", direction = INCOMING, description = "The failure strategy to apply when a RabbitMQ message is nacked. Accepted values are `fail`, `accept`, `reject` (default)", type = "string", defaultValue = "reject")
@@ -284,12 +288,17 @@ public class RabbitMQConnector implements IncomingConnectorFactory, OutgoingConn
                         .onFailure().invoke(ex -> log.unableToEstablishDlx(deadLetterExchangeName, ex))
                         .onItem().transform(v -> deadLetterExchangeName));
 
-        // Declare the queue (and its binding to the exchange) if we have been asked to do so
+        // Declare the queue (and its binding to the exchange or DLQ type/mode) if we have been asked to do so
+        final JsonObject queueArgs = new JsonObject();
+        // x-queue-type
+        ic.getDeadLetterQueueType().ifPresent(queueType -> queueArgs.put("x-queue-type", queueType));
+        // x-queue-mode
+        ic.getDeadLetterQueueMode().ifPresent(queueMode -> queueArgs.put("x-queue-mode", queueMode));
         return dlxFlow
                 .onItem().transform(v -> Boolean.TRUE.equals(ic.getAutoBindDlq()) ? null : deadLetterQueueName)
                 .onItem().ifNull().switchTo(
                         () -> client
-                                .queueDeclare(deadLetterQueueName, true, false, false)
+                                .queueDeclare(deadLetterQueueName, true, false, false, queueArgs)
                                 .onItem().invoke(() -> log.queueEstablished(deadLetterQueueName))
                                 .onFailure().invoke(ex -> log.unableToEstablishQueue(deadLetterQueueName, ex))
                                 .onItem()
@@ -452,7 +461,11 @@ public class RabbitMQConnector implements IncomingConnectorFactory, OutgoingConn
             queueArgs.put("x-dead-letter-routing-key", ic.getDeadLetterRoutingKey().orElse(queueName));
         }
         ic.getQueueSingleActiveConsumer().ifPresent(sac -> queueArgs.put("x-single-active-consumer", sac));
-
+        // x-queue-type
+        ic.getQueueXQueueType().ifPresent(queueType -> queueArgs.put("x-queue-type", queueType));
+        // x-queue-mode
+        ic.getQueueXQueueMode().ifPresent(queueMode -> queueArgs.put("x-queue-mode", queueMode));
+        // x-message-ttl
         ic.getQueueTtl().ifPresent(queueTtl -> {
             if (queueTtl >= 0) {
                 queueArgs.put("x-message-ttl", queueTtl);
