@@ -214,4 +214,8 @@ public abstract class AbstractMediator {
         return ConverterUtils.convert(upstream, converters, configuration.getIngestedPayloadType());
     }
 
+    public void terminate() {
+        // Do nothing by default.
+    }
+
 }
