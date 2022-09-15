@@ -17,6 +17,7 @@ import org.reactivestreams.Subscription;
 
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
+import io.smallrye.mutiny.helpers.Subscriptions;
 import io.smallrye.reactive.messaging.MediatorConfiguration;
 import io.smallrye.reactive.messaging.Shape;
 import io.smallrye.reactive.messaging.providers.helpers.ClassUtils;
@@ -319,5 +320,10 @@ public class SubscriberMediator extends AbstractMediator {
             this.function = upstream -> MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration);
             this.subscriber = sub;
         }
+    }
+
+    @Override
+    public void terminate() {
+        Subscriptions.cancel(subscription);
     }
 }

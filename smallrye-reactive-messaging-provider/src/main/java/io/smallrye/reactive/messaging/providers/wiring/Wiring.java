@@ -5,6 +5,7 @@ import static io.smallrye.reactive.messaging.providers.helpers.CDIUtils.getSorte
 import java.util.*;
 import java.util.stream.Collectors;
 
+import javax.annotation.PreDestroy;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Any;
 import javax.enterprise.inject.Instance;
@@ -61,6 +62,11 @@ public class Wiring {
 
     public Wiring() {
         components = new ArrayList<>();
+    }
+
+    @PreDestroy
+    public void terminateAllComponents() {
+        components.forEach(Component::terminate);
     }
 
     public void prepare(boolean strictMode, ChannelRegistry registry, List<EmitterConfiguration> emitters,
@@ -221,6 +227,10 @@ public class Wiring {
         }
 
         void materialize(ChannelRegistry registry);
+
+        default void terminate() {
+            // do nothing by default
+        }
     }
 
     public interface PublishingComponent extends Component {
@@ -373,6 +383,7 @@ public class Wiring {
             for (SubscriberDecorator decorator : getSortedInstances(subscriberDecorators)) {
                 merged = decorator.decorate(merged, Collections.singletonList(name), true);
             }
+            // The connector will cancel the subscription.
             merged.subscribe().withSubscriber(connector);
         }
 
@@ -524,6 +535,7 @@ public class Wiring {
     static class PublisherMediatorComponent extends MediatorComponent implements PublishingComponent, NoUpstreamComponent {
 
         private final Set<Component> downstreams = new LinkedHashSet<>();
+        private AbstractMediator mediator;
 
         protected PublisherMediatorComponent(MediatorManager manager, MediatorConfiguration configuration) {
             super(manager, configuration);
@@ -541,7 +553,9 @@ public class Wiring {
 
         @Override
         public void materialize(ChannelRegistry registry) {
-            AbstractMediator mediator = manager.createMediator(configuration);
+            synchronized (this) {
+                mediator = manager.createMediator(configuration);
+            }
             registry.register(configuration.getOutgoing(), mediator.getStream(), broadcast());
         }
 
@@ -571,11 +585,20 @@ public class Wiring {
                 throw new UnsatisfiedBroadcastException(this);
             }
         }
+
+        @Override
+        public synchronized void terminate() {
+            if (mediator != null) {
+                mediator.terminate();
+            }
+        }
     }
 
     static class SubscriberMediatorComponent extends MediatorComponent implements ConsumingComponent, NoDownstreamComponent {
 
         private final Set<Component> upstreams = new LinkedHashSet<>();
+
+        private AbstractMediator mediator;
 
         protected SubscriberMediatorComponent(MediatorManager manager, MediatorConfiguration configuration) {
             super(manager, configuration);
@@ -598,7 +621,9 @@ public class Wiring {
 
         @Override
         public void materialize(ChannelRegistry registry) {
-            AbstractMediator mediator = manager.createMediator(configuration);
+            synchronized (this) {
+                mediator = manager.createMediator(configuration);
+            }
 
             boolean concat = configuration.getMerge() == Merge.Mode.CONCAT;
             boolean one = configuration.getMerge() == Merge.Mode.ONE;
@@ -670,6 +695,13 @@ public class Wiring {
                 throw new TooManyUpstreamCandidatesException(this);
             }
         }
+
+        @Override
+        public synchronized void terminate() {
+            if (mediator != null) {
+                mediator.terminate();
+            }
+        }
     }
 
     static class ProcessorMediatorComponent extends MediatorComponent
@@ -677,6 +709,7 @@ public class Wiring {
 
         private final Set<Component> upstreams = new LinkedHashSet<>();
         private final Set<Component> downstreams = new LinkedHashSet<>();
+        private AbstractMediator mediator;
 
         protected ProcessorMediatorComponent(MediatorManager manager, MediatorConfiguration configuration) {
             super(manager, configuration);
@@ -743,7 +776,9 @@ public class Wiring {
 
         @Override
         public void materialize(ChannelRegistry registry) {
-            AbstractMediator mediator = manager.createMediator(configuration);
+            synchronized (this) {
+                mediator = manager.createMediator(configuration);
+            }
 
             boolean concat = configuration.getMerge() == Merge.Mode.CONCAT;
             boolean one = configuration.getMerge() == Merge.Mode.ONE;
@@ -793,6 +828,13 @@ public class Wiring {
             if (broadcast()
                     && getRequiredNumberOfSubscribers() != 0 && getRequiredNumberOfSubscribers() != downstreams.size()) {
                 throw new UnsatisfiedBroadcastException(this);
+            }
+        }
+
+        @Override
+        public synchronized void terminate() {
+            if (mediator != null) {
+                mediator.terminate();
             }
         }
     }

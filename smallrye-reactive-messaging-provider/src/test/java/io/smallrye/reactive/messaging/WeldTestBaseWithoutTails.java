@@ -135,7 +135,7 @@ public class WeldTestBaseWithoutTails {
 
     @AfterEach
     public void tearDown() {
-        if (container != null) {
+        if (container != null && container.isRunning()) {
             container.close();
             container = null;
         }
