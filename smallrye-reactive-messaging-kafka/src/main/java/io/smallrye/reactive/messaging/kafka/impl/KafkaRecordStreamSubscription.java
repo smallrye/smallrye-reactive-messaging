@@ -10,6 +10,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiConsumer;
 import java.util.function.UnaryOperator;
 
+import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.reactivestreams.Subscription;
 
@@ -37,6 +38,7 @@ public class KafkaRecordStreamSubscription<K, V, T> implements Subscription {
     private static final int STATE_CANCELLED = 3;
 
     private final ReactiveKafkaConsumer<K, V> client;
+    private final String clientId;
     private volatile MultiSubscriber<? super T> downstream;
     private final Context context;
     private final boolean pauseResumeEnabled;
@@ -71,6 +73,7 @@ public class KafkaRecordStreamSubscription<K, V, T> implements Subscription {
             int maxPollRecords,
             BiConsumer<ConsumerRecords<K, V>, RecordQueue<T>> enqueueFunction) {
         this.client = client;
+        this.clientId = client.get(ConsumerConfig.CLIENT_ID_CONFIG);
         this.channel = config.getChannel();
         this.pauseResumeEnabled = config.getPauseIfNoRequests();
         this.downstream = subscriber;
@@ -145,11 +148,11 @@ public class KafkaRecordStreamSubscription<K, V, T> implements Subscription {
     private void pauseResume() {
         int size = queue.size();
         if (size >= maxQueueSize && state.compareAndSet(STATE_POLLING, STATE_PAUSED)) {
-            log.pausingChannel(channel, size, maxQueueSize);
+            log.pausingChannel(channel, clientId, size, maxQueueSize);
             client.pause()
                     .subscribe().with(this::emptyConsumer, this::report);
         } else if (size <= halfMaxQueueSize && state.compareAndSet(STATE_PAUSED, STATE_POLLING)) {
-            log.resumingChannel(channel, size, halfMaxQueueSize);
+            log.resumingChannel(channel, clientId, size, halfMaxQueueSize);
             client.resume()
                     .subscribe().with(this::emptyConsumer, this::report);
         }
