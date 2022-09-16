@@ -14,6 +14,7 @@ import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Flow;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -27,7 +28,6 @@ import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.IntegerDeserializer;
 import org.eclipse.microprofile.reactive.messaging.Channel;
 import org.eclipse.microprofile.reactive.messaging.Message;
-import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.jboss.weld.exceptions.DeploymentException;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Tag;
@@ -35,6 +35,7 @@ import org.junit.jupiter.api.Test;
 
 import io.smallrye.common.annotation.Identifier;
 import io.smallrye.mutiny.Multi;
+import io.smallrye.mutiny.helpers.test.AssertSubscriber;
 import io.smallrye.reactive.messaging.health.HealthReport;
 import io.smallrye.reactive.messaging.kafka.api.KafkaMetadataUtil;
 import io.smallrye.reactive.messaging.kafka.base.KafkaCompanionTestBase;
@@ -154,22 +155,21 @@ public class KafkaSourceWithLegacyMetadataTest extends KafkaCompanionTestBase {
         connector.kafkaCDIEvents = testEvents;
         connector.init();
 
-        PublisherBuilder<? extends KafkaRecord> builder = (PublisherBuilder<? extends KafkaRecord>) connector
-                .getPublisherBuilder(config);
+        Flow.Publisher<KafkaRecord<?, ?>> publisher = (Flow.Publisher<KafkaRecord<?, ?>>) connector.getPublisher(config);
 
-        List<KafkaRecord> messages1 = new ArrayList<>();
-        List<KafkaRecord> messages2 = new ArrayList<>();
-        builder.forEach(messages1::add).run();
-        builder.forEach(messages2::add).run();
+        AssertSubscriber<KafkaRecord> messages1 = AssertSubscriber.create(Long.MAX_VALUE);
+        AssertSubscriber<KafkaRecord> messages2 = AssertSubscriber.create(Long.MAX_VALUE);
+        publisher.subscribe(messages1);
+        publisher.subscribe(messages2);
 
         companion.produceIntegers().usingGenerator(i -> new ProducerRecord<>(topic, i), 10);
 
-        await().atMost(2, TimeUnit.MINUTES).until(() -> messages1.size() >= 10);
-        await().atMost(2, TimeUnit.MINUTES).until(() -> messages2.size() >= 10);
-        assertThat(messages1.stream().map(KafkaRecord::getPayload).collect(Collectors.toList()))
+        await().atMost(2, TimeUnit.MINUTES).until(() -> messages1.getItems().size() >= 10);
+        await().atMost(2, TimeUnit.MINUTES).until(() -> messages2.getItems().size() >= 10);
+        assertThat(messages1.getItems().stream().map(KafkaRecord::getPayload).collect(Collectors.toList()))
                 .containsExactly(0, 1, 2, 3, 4,
                         5, 6, 7, 8, 9);
-        assertThat(messages2.stream().map(KafkaRecord::getPayload).collect(Collectors.toList()))
+        assertThat(messages2.getItems().stream().map(KafkaRecord::getPayload).collect(Collectors.toList()))
                 .containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
 
         assertThat(testEvents.firedConsumerEvents.sum()).isEqualTo(1);
@@ -195,22 +195,21 @@ public class KafkaSourceWithLegacyMetadataTest extends KafkaCompanionTestBase {
         connector.failureHandlerFactories = new SingletonInstance<>("fail", new KafkaFailStop.Factory());
         connector.init();
 
-        PublisherBuilder<? extends KafkaRecord> builder = (PublisherBuilder<? extends KafkaRecord>) connector
-                .getPublisherBuilder(config);
+        Flow.Publisher<KafkaRecord<?, ?>> publisher = (Flow.Publisher<KafkaRecord<?, ?>>) connector.getPublisher(config);
 
-        List<KafkaRecord> messages1 = new ArrayList<>();
-        List<KafkaRecord> messages2 = new ArrayList<>();
-        builder.forEach(messages1::add).run();
-        builder.forEach(messages2::add).run();
+        AssertSubscriber<KafkaRecord> messages1 = AssertSubscriber.create(Long.MAX_VALUE);
+        AssertSubscriber<KafkaRecord> messages2 = AssertSubscriber.create(Long.MAX_VALUE);
+        publisher.subscribe(messages1);
+        publisher.subscribe(messages2);
 
         companion.produceIntegers().usingGenerator(i -> new ProducerRecord<>(topic, i), 10);
 
-        await().atMost(2, TimeUnit.MINUTES).until(() -> messages1.size() >= 10);
-        await().atMost(2, TimeUnit.MINUTES).until(() -> messages2.size() >= 10);
-        assertThat(messages1.stream().map(KafkaRecord::getPayload).collect(Collectors.toList()))
+        await().atMost(2, TimeUnit.MINUTES).until(() -> messages1.getItems().size() >= 10);
+        await().atMost(2, TimeUnit.MINUTES).until(() -> messages2.getItems().size() >= 10);
+        assertThat(messages1.getItems().stream().map(KafkaRecord::getPayload).collect(Collectors.toList()))
                 .containsExactlyInAnyOrder(0, 1, 2, 3, 4,
                         5, 6, 7, 8, 9);
-        assertThat(messages2.stream().map(KafkaRecord::getPayload).collect(Collectors.toList()))
+        assertThat(messages2.getItems().stream().map(KafkaRecord::getPayload).collect(Collectors.toList()))
                 .containsExactlyInAnyOrder(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
     }
 
