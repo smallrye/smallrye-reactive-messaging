@@ -38,6 +38,6 @@ public class KafkaIgnoreCommit implements KafkaCommitHandler {
 
     @Override
     public <K, V> Uni<Void> handle(IncomingKafkaRecord<K, V> record) {
-        return Uni.createFrom().voidItem();
+        return Uni.createFrom().voidItem().runSubscriptionOn(record::runOnMessageContext);
     }
 }

@@ -77,6 +77,6 @@ public class KafkaLatestCommit extends ContextHolder implements KafkaCommitHandl
                         }, throwable -> log.failedToCommitAsync(key, record.getOffset() + 1));
             }
         });
-        return Uni.createFrom().voidItem();
+        return Uni.createFrom().voidItem().runSubscriptionOn(record::runOnMessageContext);
     }
 }

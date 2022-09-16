@@ -88,7 +88,7 @@ public class IncomingKafkaRecordBatch<K, T> implements KafkaRecordBatch<K, T> {
     public CompletionStage<Void> ack() {
         return Multi.createBy().concatenating().collectFailures()
                 .streams(this.latestOffsetRecords.values().stream()
-                        .map(record -> Multi.createFrom().completionStage(record::ack))
+                        .map(record -> Multi.createFrom().completionStage(record.getAck()))
                         .collect(Collectors.toList()))
                 .toUni().subscribeAsCompletionStage();
     }
