@@ -44,10 +44,14 @@ public class MultiUtils {
             return multi;
         }
         return multi.plug(stream -> (Multi) stream
-                .onItem().transformToUniAndConcatenate(message -> {
+                // Normally transformToUniAndConcatenate could be used, which doesn't prefetch.
+                // But TCK tests org.eclipse.microprofile.reactive.messaging.tck.channel.overflow.LatestOverflowStrategyTest
+                // and org.eclipse.microprofile.reactive.messaging.tck.channel.overflow.ThrowExceptionOverflowStrategyOverflowTest
+                // wouldn't pass without prefetching.
+                .onItem().transformToUni(message -> {
                     CompletionStage<Void> ack = message.ack();
                     return Uni.createFrom().completionStage(ack).map(x -> message);
-                }));
+                }).concatenate(true));
     }
 
     @SuppressWarnings({ "unchecked" })
