@@ -87,22 +87,7 @@ public class ChannelProducer {
     @Typed({ Publisher.class })
     @Channel("") // Stream name is ignored during type-safe resolution
     <T> Publisher<T> producePublisher(InjectionPoint injectionPoint) {
-        Type first = getFirstParameter(injectionPoint.getType());
-        if (TypeUtils.isAssignable(first, Message.class)) {
-            Type payloadType = getPayloadParameterFromMessageType(first);
-            if (payloadType == null) {
-                return cast(AdaptersToReactiveStreams.publisher(getPublisher(injectionPoint)));
-            } else {
-                return cast(AdaptersToReactiveStreams
-                        .publisher(convert(getPublisher(injectionPoint), converters, getRawTypeIfParameterized(payloadType))));
-            }
-        } else {
-            return cast(AdaptersToReactiveStreams
-                    .publisher(convert(getPublisher(injectionPoint), converters, getRawTypeIfParameterized(first))
-                            .onItem().call(m -> Uni.createFrom().completionStage(m.ack()))
-                            .onItem().transform(Message::getPayload)
-                            .broadcast().toAllSubscribers()));
-        }
+        return AdaptersToReactiveStreams.publisher(produceMulti(injectionPoint));
     }
 
     /**
@@ -153,8 +138,7 @@ public class ChannelProducer {
     @Produces
     @Channel("") // Stream name is ignored during type-safe resolution
     <T> PublisherBuilder<T> producePublisherBuilder(InjectionPoint injectionPoint) {
-        Multi<Object> multi = produceMulti(injectionPoint);
-        return cast(ReactiveStreams.fromPublisher(AdaptersToReactiveStreams.publisher(multi)));
+        return ReactiveStreams.fromPublisher(producePublisher(injectionPoint));
     }
 
     /**

@@ -4,6 +4,7 @@ import static io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Dire
 
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.Flow;
 
 import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -14,12 +15,10 @@ import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.spi.Connector;
-import org.eclipse.microprofile.reactive.messaging.spi.IncomingConnectorFactory;
-import org.eclipse.microprofile.reactive.messaging.spi.OutgoingConnectorFactory;
-import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
-import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 
 import io.smallrye.reactive.messaging.annotations.ConnectorAttribute;
+import io.smallrye.reactive.messaging.connector.InboundConnector;
+import io.smallrye.reactive.messaging.connector.OutboundConnector;
 import io.smallrye.reactive.messaging.providers.connectors.ExecutionHolder;
 import io.vertx.mutiny.core.Vertx;
 
@@ -57,7 +56,7 @@ import io.vertx.mutiny.core.Vertx;
 @ConnectorAttribute(name = "merge", direction = OUTGOING, description = "Whether the connector should allow multiple upstreams", type = "boolean", defaultValue = "false")
 @ConnectorAttribute(name = "buffer-size", direction = INCOMING, description = "The size buffer of incoming messages waiting to be processed", type = "int", defaultValue = "128")
 @ConnectorAttribute(name = "unsubscribe-on-disconnection", direction = INCOMING_AND_OUTGOING, description = "This flag restore the old behavior to unsubscribe from the broken on disconnection", type = "boolean", defaultValue = "false")
-public class MqttConnector implements IncomingConnectorFactory, OutgoingConnectorFactory {
+public class MqttConnector implements InboundConnector, OutboundConnector {
 
     static final String CONNECTOR_NAME = "smallrye-mqtt";
 
@@ -74,14 +73,14 @@ public class MqttConnector implements IncomingConnectorFactory, OutgoingConnecto
     }
 
     @Override
-    public PublisherBuilder<? extends Message<?>> getPublisherBuilder(Config config) {
+    public Flow.Publisher<? extends Message<?>> getPublisher(Config config) {
         MqttSource source = new MqttSource(vertx, new MqttConnectorIncomingConfiguration(config));
         sources.add(source);
         return source.getSource();
     }
 
     @Override
-    public SubscriberBuilder<? extends Message<?>, Void> getSubscriberBuilder(Config config) {
+    public Flow.Subscriber<? extends Message<?>> getSubscriber(Config config) {
         MqttSink sink = new MqttSink(vertx, new MqttConnectorOutgoingConfiguration(config));
         sinks.add(sink);
         return sink.getSink();

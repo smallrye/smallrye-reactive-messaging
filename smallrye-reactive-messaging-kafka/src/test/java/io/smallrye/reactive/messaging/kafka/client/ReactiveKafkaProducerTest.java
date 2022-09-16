@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.Flow;
 import java.util.concurrent.ThreadLocalRandom;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -24,7 +25,6 @@ import io.smallrye.reactive.messaging.kafka.base.UnsatisfiedInstance;
 import io.smallrye.reactive.messaging.kafka.companion.ConsumerTask;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSink;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
-import mutiny.zero.flow.adapters.AdaptersToFlow;
 
 public class ReactiveKafkaProducerTest extends ClientTestBase {
 
@@ -133,8 +133,8 @@ public class ReactiveKafkaProducerTest extends ClientTestBase {
 
         Thread actualProducer = new Thread(() -> {
             Multi<Message<?>> merge = Multi.createBy().merging().streams(multis);
-            Subscriber<Message<?>> subscriber = (Subscriber<Message<?>>) createSink().getSink().build();
-            merge.subscribe().withSubscriber(AdaptersToFlow.subscriber(subscriber));
+            Flow.Subscriber<Message<?>> subscriber = (Flow.Subscriber<Message<?>>) createSink().getSink();
+            merge.subscribe().withSubscriber(subscriber);
         });
         threads.add(actualProducer);
         actualProducer.start();
@@ -226,8 +226,8 @@ public class ReactiveKafkaProducerTest extends ClientTestBase {
                 emitter.complete();
             });
 
-            Subscriber<Message<?>> subscriber = (Subscriber<Message<?>>) createSink().getSink().build();
-            stream.subscribe().withSubscriber(AdaptersToFlow.subscriber(subscriber));
+            Flow.Subscriber<Message<?>> subscriber = (Flow.Subscriber<Message<?>>) createSink().getSink();
+            stream.subscribe().withSubscriber(subscriber);
         }
     }
 
