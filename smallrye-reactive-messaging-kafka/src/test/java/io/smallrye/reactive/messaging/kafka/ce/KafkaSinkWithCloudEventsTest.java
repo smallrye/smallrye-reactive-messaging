@@ -7,6 +7,7 @@ import static org.awaitility.Awaitility.await;
 import java.net.URI;
 import java.time.ZonedDateTime;
 import java.util.UUID;
+import java.util.concurrent.Flow;
 
 import javax.enterprise.context.ApplicationScoped;
 
@@ -37,7 +38,6 @@ import io.smallrye.reactive.messaging.kafka.base.UnsatisfiedInstance;
 import io.smallrye.reactive.messaging.kafka.companion.ConsumerTask;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSink;
 import io.vertx.core.json.JsonObject;
-import mutiny.zero.flow.adapters.AdaptersToFlow;
 
 public class KafkaSinkWithCloudEventsTest extends KafkaCompanionTestBase {
 
@@ -70,7 +70,7 @@ public class KafkaSinkWithCloudEventsTest extends KafkaCompanionTestBase {
                     .build());
 
             Multi.createFrom().<Message<?>> item(message)
-                    .subscribe().withSubscriber(AdaptersToFlow.subscriber((Subscriber) sink.getSink().build()));
+                    .subscribe().withSubscriber((Flow.Subscriber) sink.getSink());
 
             await().until(() -> records.count() == 1);
 
@@ -116,7 +116,7 @@ public class KafkaSinkWithCloudEventsTest extends KafkaCompanionTestBase {
                     .build());
 
             Multi.createFrom().<Message<?>> item(message)
-                    .subscribe().withSubscriber(AdaptersToFlow.subscriber((Subscriber) sink.getSink().build()));
+                    .subscribe().withSubscriber((Flow.Subscriber) sink.getSink());
 
             await().until(() -> records.count() == 1);
 
@@ -159,7 +159,7 @@ public class KafkaSinkWithCloudEventsTest extends KafkaCompanionTestBase {
                     .build());
 
             Multi.createFrom().<Message<?>> item(message)
-                    .subscribe().withSubscriber(AdaptersToFlow.subscriber((Subscriber) sink.getSink().build()));
+                    .subscribe().withSubscriber((Flow.Subscriber) sink.getSink());
 
             await().until(() -> records.count() == 1);
 
@@ -203,7 +203,7 @@ public class KafkaSinkWithCloudEventsTest extends KafkaCompanionTestBase {
         });
 
         Multi.createFrom().<Message<?>> item(message)
-                .subscribe().withSubscriber(AdaptersToFlow.subscriber((Subscriber) sink.getSink().build()));
+                .subscribe().withSubscriber((Flow.Subscriber) sink.getSink());
 
         await().until(() -> {
             HealthReport.HealthReportBuilder builder = HealthReport.builder();
@@ -246,7 +246,7 @@ public class KafkaSinkWithCloudEventsTest extends KafkaCompanionTestBase {
                     .build());
 
             Multi.createFrom().<Message<?>> item(message)
-                    .subscribe().withSubscriber(AdaptersToFlow.subscriber((Subscriber) sink.getSink().build()));
+                    .subscribe().withSubscriber((Flow.Subscriber) sink.getSink());
 
             await().until(() -> records.count() == 1);
 
@@ -285,7 +285,7 @@ public class KafkaSinkWithCloudEventsTest extends KafkaCompanionTestBase {
                     .build());
 
             Multi.createFrom().<Message<?>> item(message)
-                    .subscribe().withSubscriber(AdaptersToFlow.subscriber((Subscriber) sink.getSink().build()));
+                    .subscribe().withSubscriber((Flow.Subscriber) sink.getSink());
 
             await().until(() -> records.count() == 1);
 
@@ -321,7 +321,7 @@ public class KafkaSinkWithCloudEventsTest extends KafkaCompanionTestBase {
             Message<?> message = Message.of("hello!");
 
             Multi.createFrom().<Message<?>> item(message)
-                    .subscribe().withSubscriber(AdaptersToFlow.subscriber((Subscriber) sink.getSink().build()));
+                    .subscribe().withSubscriber((Flow.Subscriber) sink.getSink());
 
             await().until(() -> records.getRecords().size() == 1);
 
@@ -361,7 +361,7 @@ public class KafkaSinkWithCloudEventsTest extends KafkaCompanionTestBase {
                     .build());
 
             Multi.createFrom().<Message<?>> item(message)
-                    .subscribe().withSubscriber(AdaptersToFlow.subscriber((Subscriber) sink.getSink().build()));
+                    .subscribe().withSubscriber((Flow.Subscriber) sink.getSink());
 
             await().until(() -> records.getRecords().size() == 1);
 
@@ -400,7 +400,7 @@ public class KafkaSinkWithCloudEventsTest extends KafkaCompanionTestBase {
                     .build());
 
             Multi.createFrom().<Message<?>> item(message)
-                    .subscribe().withSubscriber(AdaptersToFlow.subscriber((Subscriber) sink.getSink().build()));
+                    .subscribe().withSubscriber((Flow.Subscriber) sink.getSink());
 
             await().until(() -> records.getRecords().size() == 1);
 
@@ -437,7 +437,7 @@ public class KafkaSinkWithCloudEventsTest extends KafkaCompanionTestBase {
                     .build());
 
             Multi.createFrom().<Message<?>> item(message)
-                    .subscribe().withSubscriber(AdaptersToFlow.subscriber((Subscriber) sink.getSink().build()));
+                    .subscribe().withSubscriber((Flow.Subscriber) sink.getSink());
 
             await().until(() -> records.getRecords().size() == 1);
 
@@ -477,7 +477,7 @@ public class KafkaSinkWithCloudEventsTest extends KafkaCompanionTestBase {
                     .build());
 
             Multi.createFrom().<Message<?>> item(message)
-                    .subscribe().withSubscriber(AdaptersToFlow.subscriber((Subscriber) sink.getSink().build()));
+                    .subscribe().withSubscriber((Flow.Subscriber) sink.getSink());
 
             await().until(() -> records.getRecords().size() == 1);
 
@@ -515,7 +515,7 @@ public class KafkaSinkWithCloudEventsTest extends KafkaCompanionTestBase {
                     .build());
 
             Multi.createFrom().<Message<?>> item(message)
-                    .subscribe().withSubscriber(AdaptersToFlow.subscriber((Subscriber) sink.getSink().build()));
+                    .subscribe().withSubscriber((Flow.Subscriber) sink.getSink());
 
             await().until(() -> records.getRecords().size() == 1);
 
@@ -550,7 +550,7 @@ public class KafkaSinkWithCloudEventsTest extends KafkaCompanionTestBase {
             Message<?> message = Message.of("hello!");
 
             Multi.createFrom().<Message<?>> item(message)
-                    .subscribe().withSubscriber(AdaptersToFlow.subscriber((Subscriber) sink.getSink().build()));
+                    .subscribe().withSubscriber((Flow.Subscriber) sink.getSink());
 
             await().until(() -> records.getRecords().size() == 1);
 
@@ -590,7 +590,7 @@ public class KafkaSinkWithCloudEventsTest extends KafkaCompanionTestBase {
         });
 
         Multi.createFrom().<Message<?>> item(message)
-                .subscribe().withSubscriber(AdaptersToFlow.subscriber((Subscriber) sink.getSink().build()));
+                .subscribe().withSubscriber((Flow.Subscriber) sink.getSink());
 
         await().until(() -> {
             HealthReport.HealthReportBuilder builder = HealthReport.builder();
@@ -618,7 +618,7 @@ public class KafkaSinkWithCloudEventsTest extends KafkaCompanionTestBase {
                     .build());
 
             Multi.createFrom().<Message<?>> item(message)
-                    .subscribe().withSubscriber(AdaptersToFlow.subscriber((Subscriber) sink.getSink().build()));
+                    .subscribe().withSubscriber((Flow.Subscriber) sink.getSink());
 
             await().until(() -> records.getRecords().size() == 1);
 
@@ -652,7 +652,7 @@ public class KafkaSinkWithCloudEventsTest extends KafkaCompanionTestBase {
                     .build());
 
             Multi.createFrom().<Message<?>> item(message)
-                    .subscribe().withSubscriber(AdaptersToFlow.subscriber((Subscriber) sink.getSink().build()));
+                    .subscribe().withSubscriber((Flow.Subscriber) sink.getSink());
 
             await().until(() -> records.getRecords().size() == 1);
 

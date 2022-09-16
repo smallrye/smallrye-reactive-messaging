@@ -4,12 +4,11 @@ import static io.smallrye.reactive.messaging.mqtt.i18n.MqttLogging.log;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.Flow;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.eclipse.microprofile.reactive.messaging.Message;
-import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
-import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 
 import io.netty.handler.codec.mqtt.MqttQoS;
 import io.smallrye.mutiny.Uni;
@@ -17,6 +16,7 @@ import io.smallrye.mutiny.vertx.AsyncResultUni;
 import io.smallrye.reactive.messaging.OutgoingMessageMetadata;
 import io.smallrye.reactive.messaging.mqtt.session.MqttClientSession;
 import io.smallrye.reactive.messaging.mqtt.session.MqttClientSessionOptions;
+import io.smallrye.reactive.messaging.providers.helpers.MultiUtils;
 import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
@@ -28,7 +28,7 @@ public class MqttSink {
     private final String topic;
     private final int qos;
 
-    private final SubscriberBuilder<? extends Message<?>, Void> sink;
+    private final Flow.Subscriber<? extends Message<?>> sink;
     private final AtomicBoolean ready = new AtomicBoolean();
 
     public MqttSink(Vertx vertx, MqttConnectorOutgoingConfiguration config) {
@@ -37,29 +37,25 @@ public class MqttSink {
         qos = config.getQos();
 
         AtomicReference<Clients.ClientHolder> reference = new AtomicReference<>();
-        sink = ReactiveStreams.<Message<?>> builder()
-                .flatMapCompletionStage(msg -> {
-                    Clients.ClientHolder client = reference.get();
-                    if (client == null) {
-                        client = Clients.getHolder(vertx, options);
-                        reference.set(client);
-                    }
+        sink = MultiUtils.via(m -> m.onItem().transformToUniAndConcatenate(msg -> Uni.createFrom().completionStage(() -> {
+            Clients.ClientHolder client = reference.get();
+            if (client == null) {
+                client = Clients.getHolder(vertx, options);
+                reference.set(client);
+            }
 
-                    return client.start()
-                            .onSuccess(ignore -> ready.set(true))
-                            .map(ignore -> msg)
-                            .toCompletionStage();
-                })
-                .flatMapCompletionStage(msg -> send(reference, msg))
-                .onComplete(() -> {
+            return client.start()
+                    .onSuccess(ignore -> ready.set(true))
+                    .map(ignore -> msg)
+                    .toCompletionStage();
+        })).onItem().transformToUniAndConcatenate(msg -> Uni.createFrom().completionStage(() -> send(reference, msg)))
+                .onCompletion().invoke(() -> {
                     Clients.ClientHolder c = reference.getAndSet(null);
                     if (c != null) {
                         c.close()
                                 .onComplete(ignore -> ready.set(false));
                     }
-                })
-                .onError(log::errorWhileSendingMessageToBroker)
-                .ignore();
+                }).onFailure().invoke(log::errorWhileSendingMessageToBroker));
     }
 
     private CompletionStage<?> send(AtomicReference<Clients.ClientHolder> reference, Message<?> msg) {
@@ -122,7 +118,7 @@ public class MqttSink {
         return new Buffer(Json.encodeToBuffer(payload));
     }
 
-    public SubscriberBuilder<? extends Message<?>, Void> getSink() {
+    public Flow.Subscriber<? extends Message<?>> getSink() {
         return sink;
     }
 

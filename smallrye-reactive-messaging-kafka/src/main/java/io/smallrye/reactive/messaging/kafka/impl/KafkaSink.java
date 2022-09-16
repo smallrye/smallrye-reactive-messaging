@@ -10,6 +10,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.Flow;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -28,8 +29,6 @@ import org.apache.kafka.common.errors.UnknownServerException;
 import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.eclipse.microprofile.reactive.messaging.Message;
-import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
-import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 
 import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.opentelemetry.api.trace.Span;
@@ -53,7 +52,7 @@ import io.smallrye.reactive.messaging.kafka.api.OutgoingKafkaRecordMetadata;
 import io.smallrye.reactive.messaging.kafka.health.KafkaSinkHealth;
 import io.smallrye.reactive.messaging.kafka.impl.ce.KafkaCloudEventHelper;
 import io.smallrye.reactive.messaging.kafka.tracing.HeaderInjectAdapter;
-import mutiny.zero.flow.adapters.AdaptersToReactiveStreams;
+import io.smallrye.reactive.messaging.providers.helpers.MultiUtils;
 
 public class KafkaSink {
 
@@ -61,7 +60,7 @@ public class KafkaSink {
     private final int partition;
     private final String topic;
     private final String key;
-    private final SubscriberBuilder<? extends Message<?>, Void> subscriber;
+    private final Flow.Subscriber<? extends Message<?>> subscriber;
 
     private final long retries;
     private final int deliveryTimeoutMs;
@@ -129,13 +128,10 @@ public class KafkaSink {
         }
         processor = new KafkaSenderProcessor(requests, waitForWriteCompletion,
                 writeMessageToKafka());
-        subscriber = ReactiveStreams.<Message<?>> builder()
-                .via(AdaptersToReactiveStreams.processor(processor))
-                .onError(f -> {
-                    log.unableToDispatch(f);
-                    reportFailure(f);
-                })
-                .ignore();
+        subscriber = MultiUtils.via(processor, m -> m.onFailure().invoke(f -> {
+            log.unableToDispatch(f);
+            reportFailure(f);
+        }));
 
         log.connectedToKafka(client.getClientId(), config.getBootstrapServers(), topic);
 
@@ -348,7 +344,7 @@ public class KafkaSink {
         }
     }
 
-    public SubscriberBuilder<? extends Message<?>, Void> getSink() {
+    public Flow.Subscriber<? extends Message<?>> getSink() {
         return subscriber;
     }
 

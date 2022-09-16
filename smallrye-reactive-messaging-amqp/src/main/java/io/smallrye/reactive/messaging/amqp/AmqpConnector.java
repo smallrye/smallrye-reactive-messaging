@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.Flow;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
@@ -30,11 +31,6 @@ import javax.inject.Inject;
 import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.spi.Connector;
-import org.eclipse.microprofile.reactive.messaging.spi.IncomingConnectorFactory;
-import org.eclipse.microprofile.reactive.messaging.spi.OutgoingConnectorFactory;
-import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
-import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
-import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 
 import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.opentelemetry.api.trace.Span;
@@ -55,9 +51,12 @@ import io.smallrye.reactive.messaging.amqp.fault.AmqpModifiedFailedAndUndelivera
 import io.smallrye.reactive.messaging.amqp.fault.AmqpReject;
 import io.smallrye.reactive.messaging.amqp.fault.AmqpRelease;
 import io.smallrye.reactive.messaging.annotations.ConnectorAttribute;
+import io.smallrye.reactive.messaging.connector.InboundConnector;
+import io.smallrye.reactive.messaging.connector.OutboundConnector;
 import io.smallrye.reactive.messaging.health.HealthReport;
 import io.smallrye.reactive.messaging.health.HealthReporter;
 import io.smallrye.reactive.messaging.providers.connectors.ExecutionHolder;
+import io.smallrye.reactive.messaging.providers.helpers.MultiUtils;
 import io.vertx.amqp.AmqpClientOptions;
 import io.vertx.amqp.AmqpReceiverOptions;
 import io.vertx.amqp.AmqpSenderOptions;
@@ -66,7 +65,6 @@ import io.vertx.mutiny.amqp.AmqpReceiver;
 import io.vertx.mutiny.amqp.AmqpSender;
 import io.vertx.mutiny.core.Vertx;
 import io.vertx.proton.ProtonSender;
-import mutiny.zero.flow.adapters.AdaptersToReactiveStreams;
 
 @ApplicationScoped
 @Connector(AmqpConnector.CONNECTOR_NAME)
@@ -109,7 +107,7 @@ import mutiny.zero.flow.adapters.AdaptersToReactiveStreams;
 @ConnectorAttribute(name = "cloud-events-insert-timestamp", type = "boolean", direction = ConnectorAttribute.Direction.OUTGOING, description = "Whether or not the connector should insert automatically the `time` attribute into the outgoing Cloud Event. Requires `cloud-events` to be set to `true`. This value is used if the message does not configure the `time` attribute itself", alias = "cloud-events-default-timestamp", defaultValue = "true")
 @ConnectorAttribute(name = "cloud-events-mode", type = "string", direction = ConnectorAttribute.Direction.OUTGOING, description = "The Cloud Event mode (`structured` or `binary` (default)). Indicates how are written the cloud events in the outgoing record", defaultValue = "binary")
 
-public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnectorFactory, HealthReporter {
+public class AmqpConnector implements InboundConnector, OutboundConnector, HealthReporter {
 
     public static final String CONNECTOR_NAME = "smallrye-amqp";
 
@@ -202,7 +200,7 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
     }
 
     @Override
-    public PublisherBuilder<? extends Message<?>> getPublisherBuilder(Config config) {
+    public Flow.Publisher<? extends Message<?>> getPublisher(Config config) {
         AmqpConnectorIncomingConfiguration ic = new AmqpConnectorIncomingConfiguration(config);
         String address = ic.getAddress().orElseGet(ic::getChannel);
 
@@ -247,11 +245,11 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
             multi = multi.broadcast().toAllSubscribers();
         }
 
-        return ReactiveStreams.fromPublisher(AdaptersToReactiveStreams.publisher(multi));
+        return multi;
     }
 
     @Override
-    public SubscriberBuilder<? extends Message<?>, Void> getSubscriberBuilder(Config config) {
+    public Flow.Subscriber<? extends Message<?>> getSubscriber(Config config) {
         AmqpConnectorOutgoingConfiguration oc = new AmqpConnectorOutgoingConfiguration(config);
         String configuredAddress = oc.getAddress().orElseGet(oc::getChannel);
 
@@ -314,13 +312,10 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
                 getSender);
         processors.put(oc.getChannel(), processor);
 
-        return ReactiveStreams.<Message<?>> builder()
-                .via(AdaptersToReactiveStreams.processor(processor))
-                .onError(t -> {
-                    log.failureReported(oc.getChannel(), t);
-                    opened.put(oc.getChannel(), false);
-                })
-                .ignore();
+        return MultiUtils.via(processor, m -> m.onFailure().invoke(t -> {
+            log.failureReported(oc.getChannel(), t);
+            opened.put(oc.getChannel(), false);
+        }));
     }
 
     private boolean isLinkOpen(AmqpSender current) {

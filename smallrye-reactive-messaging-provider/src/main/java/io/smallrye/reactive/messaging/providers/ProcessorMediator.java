@@ -14,7 +14,6 @@ import org.eclipse.microprofile.reactive.messaging.Acknowledgment;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.streams.operators.ProcessorBuilder;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
-import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 import org.reactivestreams.Processor;
 import org.reactivestreams.Publisher;
 
@@ -25,7 +24,6 @@ import io.smallrye.reactive.messaging.Shape;
 import io.smallrye.reactive.messaging.providers.helpers.ClassUtils;
 import io.smallrye.reactive.messaging.providers.helpers.MultiUtils;
 import mutiny.zero.flow.adapters.AdaptersToFlow;
-import mutiny.zero.flow.adapters.AdaptersToReactiveStreams;
 
 public class ProcessorMediator extends AbstractMediator {
 
@@ -191,9 +189,7 @@ public class ProcessorMediator extends AbstractMediator {
 
         this.mapper = upstream -> {
             Multi<? extends Message<?>> multi = MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration);
-            // TODO Add a via to MultiUtils
-            return Multi.createFrom().publisher(AdaptersToFlow.publisher(
-                    ReactiveStreams.fromPublisher(AdaptersToReactiveStreams.publisher(multi)).via(builder).buildRs()));
+            return MultiUtils.via(multi, AdaptersToFlow.processor(builder.buildRs()));
         };
     }
 
@@ -203,9 +199,7 @@ public class ProcessorMediator extends AbstractMediator {
 
         this.mapper = upstream -> {
             Multi<? extends Message<?>> multi = MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration);
-            // TODO Add a via to MultiUtils
-            return Multi.createFrom().publisher(AdaptersToFlow.publisher(
-                    ReactiveStreams.fromPublisher(AdaptersToReactiveStreams.publisher(multi)).via(result).buildRs()));
+            return MultiUtils.via(multi, AdaptersToFlow.processor(result));
         };
     }
 
@@ -215,11 +209,7 @@ public class ProcessorMediator extends AbstractMediator {
 
         this.mapper = upstream -> {
             Multi<? extends Message<?>> multi = MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration);
-            // TODO Add a via to MultiUtils
-            return Multi.createFrom().publisher(AdaptersToFlow.publisher(
-                    ReactiveStreams.fromPublisher(AdaptersToReactiveStreams.publisher(multi))
-                            .via(AdaptersToReactiveStreams.processor(result))
-                            .buildRs()));
+            return MultiUtils.via(multi, result);
         };
     }
 
@@ -231,10 +221,7 @@ public class ProcessorMediator extends AbstractMediator {
         this.mapper = upstream -> {
             Multi<?> multi = MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration)
                     .onItem().transform(Message::getPayload);
-            // TODO Add a via to MultiUtils
-            return Multi.createFrom().publisher(AdaptersToFlow.publisher(
-                    ReactiveStreams.fromPublisher(AdaptersToReactiveStreams.publisher(multi)).via(returnedProcessorBuilder)
-                            .buildRs()))
+            return MultiUtils.via(multi, AdaptersToFlow.processor(returnedProcessorBuilder.buildRs()))
                     .onItem().transform(Message::of);
         };
     }
@@ -246,10 +233,7 @@ public class ProcessorMediator extends AbstractMediator {
         this.mapper = upstream -> {
             Multi<?> multi = MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration)
                     .onItem().transform(Message::getPayload);
-            // TODO Add a via to MultiUtils
-            return Multi.createFrom()
-                    .publisher(AdaptersToFlow.publisher(ReactiveStreams.fromPublisher(
-                            AdaptersToReactiveStreams.publisher(multi)).via(returnedProcessor).buildRs()))
+            return MultiUtils.via(multi, AdaptersToFlow.processor(returnedProcessor))
                     .onItem().transform(Message::of);
         };
     }
@@ -261,10 +245,7 @@ public class ProcessorMediator extends AbstractMediator {
         this.mapper = upstream -> {
             Multi<?> multi = MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration)
                     .onItem().transform(Message::getPayload);
-            // TODO Add a via to MultiUtils
-            return Multi.createFrom().publisher(
-                    AdaptersToFlow.publisher(ReactiveStreams.fromPublisher(AdaptersToReactiveStreams.publisher(multi))
-                            .via(AdaptersToReactiveStreams.processor(returnedProcessor)).buildRs()))
+            return MultiUtils.via(multi, returnedProcessor)
                     .onItem().transform(Message::of);
         };
     }

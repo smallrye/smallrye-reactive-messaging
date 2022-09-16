@@ -10,19 +10,20 @@ import java.util.concurrent.Flow;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
-import javax.jms.*;
-
-import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
-import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
+import javax.jms.Destination;
+import javax.jms.IllegalStateRuntimeException;
+import javax.jms.JMSConsumer;
+import javax.jms.JMSContext;
+import javax.jms.Message;
+import javax.jms.Topic;
 
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.helpers.Subscriptions;
 import io.smallrye.reactive.messaging.json.JsonMapping;
-import mutiny.zero.flow.adapters.AdaptersToReactiveStreams;
 
 class JmsSource {
 
-    private final PublisherBuilder<IncomingJmsMessage<?>> source;
+    private final Flow.Publisher<IncomingJmsMessage<?>> source;
 
     private final JmsPublisher publisher;
 
@@ -47,14 +48,12 @@ class JmsSource {
 
         publisher = new JmsPublisher(consumer);
 
+        Multi<IncomingJmsMessage<?>> multi = Multi.createFrom().publisher(publisher)
+                .map(m -> new IncomingJmsMessage<>(m, executor, jsonMapping));
         if (!broadcast) {
-            source = ReactiveStreams.fromPublisher(AdaptersToReactiveStreams.publisher(publisher))
-                    .map(m -> new IncomingJmsMessage<>(m, executor, jsonMapping));
+            source = multi;
         } else {
-            source = ReactiveStreams.fromPublisher(AdaptersToReactiveStreams.publisher(
-                    Multi.createFrom().publisher(publisher)
-                            .map(m -> new IncomingJmsMessage<>(m, executor, jsonMapping))
-                            .broadcast().toAllSubscribers()));
+            source = multi.broadcast().toAllSubscribers();
         }
     }
 
@@ -77,7 +76,7 @@ class JmsSource {
 
     }
 
-    PublisherBuilder<IncomingJmsMessage<?>> getSource() {
+    Flow.Publisher<IncomingJmsMessage<?>> getSource() {
         return source;
     }
 

@@ -21,7 +21,6 @@ import org.junit.jupiter.api.Test;
 
 import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
-import mutiny.zero.flow.adapters.AdaptersToFlow;
 
 public class MqttSinkTest extends MqttTestBase {
 
@@ -51,7 +50,7 @@ public class MqttSinkTest extends MqttTestBase {
         config.put("port", port);
         MqttSink sink = new MqttSink(vertx, new MqttConnectorOutgoingConfiguration(new MapBasedConfig(config)));
 
-        Subscriber<? extends Message<?>> subscriber = AdaptersToFlow.subscriber(sink.getSink().build());
+        Subscriber<? extends Message<?>> subscriber = sink.getSink();
         Multi.createFrom().range(0, 10)
                 .map(Message::of)
                 .subscribe((Subscriber<? super Message<Integer>>) subscriber);
@@ -77,7 +76,7 @@ public class MqttSinkTest extends MqttTestBase {
         config.put("port", port);
         MqttSink sink = new MqttSink(vertx, new MqttConnectorOutgoingConfiguration(new MapBasedConfig(config)));
 
-        Subscriber<? extends Message<?>> subscriber = AdaptersToFlow.subscriber(sink.getSink().build());
+        Subscriber<? extends Message<?>> subscriber = sink.getSink();
         Multi.createFrom().range(0, 10)
                 .map(Message::of)
                 .subscribe((Subscriber<? super Message<Integer>>) subscriber);
@@ -103,7 +102,7 @@ public class MqttSinkTest extends MqttTestBase {
         config.put("port", port);
         MqttSink sink = new MqttSink(vertx, new MqttConnectorOutgoingConfiguration(new MapBasedConfig(config)));
 
-        Subscriber<? extends Message<?>> subscriber = AdaptersToFlow.subscriber(sink.getSink().build());
+        Subscriber<? extends Message<?>> subscriber = sink.getSink();
         Multi.createFrom().range(0, 10)
                 .map(i -> Integer.toString(i))
                 .map(Message::of)
