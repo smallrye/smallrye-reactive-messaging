@@ -47,5 +47,8 @@ find . -type f -name '*.md' -exec sed -i '' 's/jakarta.lang./javax.lang./g' {} +
 find . -type f -name '*.md' -exec sed -i '' 's/jakarta.tools./javax.tools./g' {} +
 find . -type f -name '*.md' -exec sed -i '' 's/jakarta.annotation.processing./javax.annotation.processing./g' {} +
 
+# commit all changes
+git add -A
+git commit -m "Update to Jakarta API"
 # apply patches
-git apply jakarta/*.diff
+git am jakarta/*.diff
