@@ -1,0 +1,119 @@
+From 57cf47a5f6d7bca83f526e0cd849c9e5edfafb79 Mon Sep 17 00:00:00 2001
+From: Ozan Gunalp <ozangunalp@gmail.com>
+Date: Sun, 18 Sep 2022 21:12:22 +0100
+Subject: [PATCH] Ignore revapi changes
+
+---
+ api/revapi.json                                        | 10 ++++++++--
+ .../revapi.json                                        | 10 ++++++++--
+ smallrye-reactive-messaging-kafka/revapi.json          | 10 ++++++++--
+ smallrye-reactive-messaging-provider/revapi.json       | 10 ++++++++--
+ 4 files changed, 32 insertions(+), 8 deletions(-)
+
+diff --git a/api/revapi.json b/api/revapi.json
+index 7bc3bce7f..53f64bcb5 100644
+--- a/api/revapi.json
++++ b/api/revapi.json
+@@ -27,7 +27,13 @@
+     "criticality" : "highlight",
+     "minSeverity" : "POTENTIALLY_BREAKING",
+     "minCriticality" : "documented",
+-    "differences" : [ ]
++    "differences" : [
++        {
++            "regex": true,
++            "code": ".*",
++            "ignore": true
++        }
++    ]
+   }
+ }, {
+   "extension" : "revapi.reporter.json",
+@@ -46,4 +52,4 @@
+     "minCriticality" : "documented",
+     "output" : "out"
+   }
+-} ]
+\ No newline at end of file
++} ]
+diff --git a/smallrye-reactive-messaging-kafka-test-companion/revapi.json b/smallrye-reactive-messaging-kafka-test-companion/revapi.json
+index 38e24d82d..c9496bf3b 100644
+--- a/smallrye-reactive-messaging-kafka-test-companion/revapi.json
++++ b/smallrye-reactive-messaging-kafka-test-companion/revapi.json
+@@ -24,7 +24,13 @@
+     "criticality" : "highlight",
+     "minSeverity" : "POTENTIALLY_BREAKING",
+     "minCriticality" : "documented",
+-    "differences" : [ ]
++    "differences" : [
++        {
++            "regex": true,
++            "code": ".*",
++            "ignore": true
++        }
++    ]
+   }
+ }, {
+   "extension" : "revapi.reporter.json",
+@@ -43,4 +49,4 @@
+     "minCriticality" : "documented",
+     "output" : "out"
+   }
+-} ]
+\ No newline at end of file
++} ]
+diff --git a/smallrye-reactive-messaging-kafka/revapi.json b/smallrye-reactive-messaging-kafka/revapi.json
+index d1a26bd76..191c37a44 100644
+--- a/smallrye-reactive-messaging-kafka/revapi.json
++++ b/smallrye-reactive-messaging-kafka/revapi.json
+@@ -24,7 +24,13 @@
+     "criticality" : "highlight",
+     "minSeverity" : "POTENTIALLY_BREAKING",
+     "minCriticality" : "documented",
+-    "differences" : [ ]
++    "differences" : [
++        {
++            "regex": true,
++            "code": ".*",
++            "ignore": true
++        }
++    ]
+   }
+ }, {
+   "extension" : "revapi.reporter.json",
+@@ -43,4 +49,4 @@
+     "minCriticality" : "documented",
+     "output" : "out"
+   }
+-} ]
+\ No newline at end of file
++} ]
+diff --git a/smallrye-reactive-messaging-provider/revapi.json b/smallrye-reactive-messaging-provider/revapi.json
+index 530a8a7b9..f1df6f38e 100644
+--- a/smallrye-reactive-messaging-provider/revapi.json
++++ b/smallrye-reactive-messaging-provider/revapi.json
+@@ -30,7 +30,13 @@
+     "criticality" : "highlight",
+     "minSeverity" : "POTENTIALLY_BREAKING",
+     "minCriticality" : "documented",
+-    "differences" : [ ]
++    "differences" : [
++        {
++            "regex": true,
++            "code": ".*",
++            "ignore": true
++        }
++    ]
+   }
+ }, {
+   "extension" : "revapi.reporter.json",
+@@ -49,4 +55,4 @@
+     "minCriticality" : "documented",
+     "output" : "out"
+   }
+-} ]
+\ No newline at end of file
++} ]
+-- 
+2.30.1 (Apple Git-130)
+
