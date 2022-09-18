@@ -8,8 +8,8 @@ find . -type f -name 'pom.xml' -exec sed -i '' 's/smallrye-parent/smallrye-jakar
 
 # move versions that support jakarta
 mvn versions:set-property -Dproperty=weld.version -DnewVersion=4.0.3.Final
-mvn versions:set-property -Dproperty=microprofile-reactive-messaging.version -DnewVersion=3.0-RC3
-mvn versions:set-property -Dproperty=microprofile-reactive-streams.version -DnewVersion=3.0-RC1
+mvn versions:set-property -Dproperty=microprofile-reactive-messaging.version -DnewVersion=3.0
+mvn versions:set-property -Dproperty=microprofile-reactive-streams.version -DnewVersion=3.0
 mvn versions:set-property -Dproperty=microprofile-config.version -DnewVersion=3.0.1
 mvn versions:set-property -Dproperty=microprofile-metrics-api.version -DnewVersion=4.0.1
 mvn versions:set-property -Dproperty=microprofile-health-api.version -DnewVersion=4.0
