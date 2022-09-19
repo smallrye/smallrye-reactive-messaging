@@ -1,7 +1,7 @@
 package io.smallrye.reactive.messaging.eventbus;
 
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.inject.Produces;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Produces;
 
 import io.vertx.mutiny.core.Vertx;
 

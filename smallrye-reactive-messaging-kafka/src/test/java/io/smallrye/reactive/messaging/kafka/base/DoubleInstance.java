@@ -4,8 +4,8 @@ import java.lang.annotation.Annotation;
 import java.util.Arrays;
 import java.util.Iterator;
 
-import javax.enterprise.inject.Instance;
-import javax.enterprise.util.TypeLiteral;
+import jakarta.enterprise.inject.Instance;
+import jakarta.enterprise.util.TypeLiteral;
 
 import io.smallrye.common.annotation.Identifier;
 

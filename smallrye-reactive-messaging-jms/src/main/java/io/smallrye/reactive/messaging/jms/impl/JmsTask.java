@@ -2,7 +2,7 @@ package io.smallrye.reactive.messaging.jms.impl;
 
 import java.util.function.Consumer;
 
-import javax.jms.Message;
+import jakarta.jms.Message;
 
 public interface JmsTask {
     void apply(Message message) throws Exception;

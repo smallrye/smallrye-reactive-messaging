@@ -1,6 +1,6 @@
 package io.smallrye.reactive.messaging.jms;
 
-import javax.jms.Destination;
+import jakarta.jms.Destination;
 
 public class OutgoingJmsMessageMetadata implements JmsMessageMetadata {
 

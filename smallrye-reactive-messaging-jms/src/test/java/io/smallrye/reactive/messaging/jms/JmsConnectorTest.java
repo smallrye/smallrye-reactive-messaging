@@ -7,9 +7,9 @@ import static org.awaitility.Awaitility.await;
 import java.time.Duration;
 import java.util.*;
 
-import javax.enterprise.inject.spi.DeploymentException;
-import javax.jms.DeliveryMode;
-import javax.jms.Queue;
+import jakarta.enterprise.inject.spi.DeploymentException;
+import jakarta.jms.DeliveryMode;
+import jakarta.jms.Queue;
 
 import org.jboss.weld.environment.se.WeldContainer;
 import org.junit.jupiter.api.Test;

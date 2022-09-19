@@ -6,8 +6,8 @@ import static org.awaitility.Awaitility.await;
 
 import java.util.*;
 
-import javax.enterprise.inject.Instance;
-import javax.enterprise.util.TypeLiteral;
+import jakarta.enterprise.inject.Instance;
+import jakarta.enterprise.util.TypeLiteral;
 
 import org.apache.kafka.clients.consumer.*;
 import org.apache.kafka.common.TopicPartition;

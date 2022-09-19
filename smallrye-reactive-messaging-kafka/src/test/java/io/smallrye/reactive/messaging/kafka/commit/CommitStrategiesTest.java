@@ -10,11 +10,11 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.inject.AmbiguousResolutionException;
-import javax.enterprise.inject.Instance;
-import javax.enterprise.inject.UnsatisfiedResolutionException;
-import javax.enterprise.util.TypeLiteral;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.AmbiguousResolutionException;
+import jakarta.enterprise.inject.Instance;
+import jakarta.enterprise.inject.UnsatisfiedResolutionException;
+import jakarta.enterprise.util.TypeLiteral;
 
 import org.apache.kafka.clients.consumer.*;
 import org.apache.kafka.common.TopicPartition;

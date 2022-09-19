@@ -5,8 +5,8 @@ import static org.awaitility.Awaitility.await;
 import java.time.Duration;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 
 import org.eclipse.microprofile.reactive.messaging.Channel;
 import org.eclipse.microprofile.reactive.messaging.Emitter;

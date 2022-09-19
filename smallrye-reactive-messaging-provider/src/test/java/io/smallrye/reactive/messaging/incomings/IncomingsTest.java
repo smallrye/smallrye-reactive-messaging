@@ -7,8 +7,8 @@ import static org.awaitility.Awaitility.await;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.inject.spi.DeploymentException;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.spi.DeploymentException;
 
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;

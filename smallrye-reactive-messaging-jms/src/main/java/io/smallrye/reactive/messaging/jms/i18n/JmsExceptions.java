@@ -20,10 +20,10 @@ public interface JmsExceptions {
     @Message(id = 15601, value = "Unable to unwrap message to %s")
     IllegalArgumentException illegalStateUnableToUnwrap(Class unwrapType);
 
-    @Message(id = 15602, value = "Cannot find a javax.jms.ConnectionFactory bean")
+    @Message(id = 15602, value = "Cannot find a jakarta.jms.ConnectionFactory bean")
     IllegalStateException illegalStateCannotFindFactory();
 
-    @Message(id = 15603, value = "Cannot find a javax.jms.ConnectionFactory bean named %s")
+    @Message(id = 15603, value = "Cannot find a jakarta.jms.ConnectionFactory bean named %s")
     IllegalStateException illegalStateCannotFindNamedFactory(String factoryName);
 
     @Message(id = 15604, value = "Unknown session mode: %s")
