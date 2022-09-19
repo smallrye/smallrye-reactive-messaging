@@ -1,8 +1,8 @@
 package io.smallrye.reactive.messaging.support;
 
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.inject.Produces;
-import javax.jms.ConnectionFactory;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Produces;
+import jakarta.jms.ConnectionFactory;
 
 import org.apache.activemq.artemis.jms.client.ActiveMQJMSConnectionFactory;
 

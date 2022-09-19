@@ -9,8 +9,8 @@ import static java.time.Duration.ofSeconds;
 import java.time.Duration;
 import java.util.Optional;
 
-import javax.enterprise.inject.Instance;
-import javax.enterprise.inject.literal.NamedLiteral;
+import jakarta.enterprise.inject.Instance;
+import jakarta.enterprise.inject.literal.NamedLiteral;
 
 import com.rabbitmq.client.impl.CredentialsProvider;
 import com.rabbitmq.client.impl.DefaultCredentialsRefreshService;

@@ -2,7 +2,7 @@ package io.smallrye.reactive.messaging.providers.connectors;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import javax.enterprise.inject.spi.DeploymentException;
+import jakarta.enterprise.inject.spi.DeploymentException;
 
 import org.junit.jupiter.api.*;
 

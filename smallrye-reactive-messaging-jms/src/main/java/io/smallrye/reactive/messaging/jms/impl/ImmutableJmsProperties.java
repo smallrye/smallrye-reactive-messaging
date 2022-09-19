@@ -4,7 +4,7 @@ import static io.smallrye.reactive.messaging.jms.impl.Wrap.wrap;
 
 import java.util.Enumeration;
 
-import javax.jms.Message;
+import jakarta.jms.Message;
 
 import io.smallrye.reactive.messaging.jms.JmsProperties;
 

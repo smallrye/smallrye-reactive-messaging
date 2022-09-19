@@ -1,6 +1,6 @@
 package io.smallrye.reactive.messaging.json;
 
-import javax.json.bind.annotation.JsonbProperty;
+import jakarta.json.bind.annotation.JsonbProperty;
 
 /**
  * Test object to use in {@link JsonMapping} implementation.

@@ -4,7 +4,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import javax.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.context.ApplicationScoped;
 
 import org.apache.kafka.common.header.internals.RecordHeader;
 import org.eclipse.microprofile.reactive.messaging.*;

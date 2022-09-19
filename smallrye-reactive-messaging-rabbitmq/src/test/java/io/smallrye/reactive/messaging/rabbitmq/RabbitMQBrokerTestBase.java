@@ -1,8 +1,8 @@
 package io.smallrye.reactive.messaging.rabbitmq;
 
-import javax.enterprise.inject.Any;
-import javax.enterprise.inject.se.SeContainer;
-import javax.enterprise.util.AnnotationLiteral;
+import jakarta.enterprise.inject.Any;
+import jakarta.enterprise.inject.se.SeContainer;
+import jakarta.enterprise.util.AnnotationLiteral;
 
 import org.eclipse.microprofile.config.ConfigProvider;
 import org.jboss.weld.environment.se.WeldContainer;
