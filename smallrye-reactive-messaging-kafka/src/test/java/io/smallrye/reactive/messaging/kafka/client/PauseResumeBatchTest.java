@@ -60,10 +60,10 @@ public class PauseResumeBatchTest extends KafkaCompanionTestBase {
     @Test
     public void testWithAutoCommitMultiplePartitions() {
         MyConsumerUsingNoAck application = runApplication(commonConfig()
-                        .put("enable.auto.commit", true)
-                        .put("max.poll.records", 100)
-                        .put("requests", partitions)
-                        .put("auto.commit.interval.ms", 200),
+                .put("enable.auto.commit", true)
+                .put("max.poll.records", 100)
+                .put("requests", partitions)
+                .put("auto.commit.interval.ms", 200),
                 MyConsumerUsingNoAck.class);
         long start = System.currentTimeMillis();
         await()
