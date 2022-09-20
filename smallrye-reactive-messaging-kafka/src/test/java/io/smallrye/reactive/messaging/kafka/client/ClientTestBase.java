@@ -10,7 +10,9 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Queue;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Future;
@@ -31,7 +33,9 @@ import org.apache.kafka.common.serialization.IntegerDeserializer;
 import org.apache.kafka.common.serialization.IntegerSerializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
 
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.subscription.Cancellable;
@@ -45,6 +49,7 @@ import io.smallrye.reactive.messaging.kafka.base.KafkaCompanionTestBase;
 import io.smallrye.reactive.messaging.kafka.base.SingletonInstance;
 import io.smallrye.reactive.messaging.kafka.base.UnsatisfiedInstance;
 import io.smallrye.reactive.messaging.kafka.impl.ConfigurationCleaner;
+import io.smallrye.reactive.messaging.kafka.impl.KafkaSink;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
 import io.smallrye.reactive.messaging.kafka.impl.ReactiveKafkaConsumer;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
@@ -65,6 +70,32 @@ public class ClientTestBase extends KafkaCompanionTestBase {
     final Semaphore assignSemaphore = new Semaphore(partitions);
     final List<Cancellable> subscriptions = new ArrayList<>();
     KafkaSource<Integer, String> source;
+
+    protected Queue<KafkaSink> sinks;
+
+    protected Queue<KafkaSource<Integer, String>> sources;
+
+    @AfterEach
+    public void tearDown() {
+        cancelSubscriptions();
+        for (KafkaSource<Integer, String> source : sources) {
+            source.closeQuietly();
+        }
+        for (KafkaSink sink : sinks) {
+            sink.closeQuietly();
+        }
+    }
+
+    @BeforeEach
+    public void init() {
+        sources = new ConcurrentLinkedQueue<>();
+        sinks = new ConcurrentLinkedQueue<>();
+
+        String newTopic = "test-" + UUID.randomUUID();
+        companion.topics().createAndWait(newTopic, partitions);
+        this.topic = newTopic;
+        resetMessages();
+    }
 
     private long committedCount(ReactiveKafkaConsumer<Integer, String> client) {
         TopicPartition[] tps = IntStream.range(0, partitions)
@@ -102,6 +133,7 @@ public class ClientTestBase extends KafkaCompanionTestBase {
         source = new KafkaSource<>(vertx, groupId, new KafkaConnectorIncomingConfiguration(config), commitHandlerFactories,
                 failureHandlerFactories,
                 listeners, CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), 0);
+        sources.add(source);
         return source;
     }
 
@@ -116,6 +148,7 @@ public class ClientTestBase extends KafkaCompanionTestBase {
         source = new KafkaSource<>(vertx, groupId, new KafkaConnectorIncomingConfiguration(config), commitHandlerFactories,
                 failureHandlerFactories,
                 listeners, CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), 0);
+        sources.add(source);
         return source;
     }
 
@@ -130,6 +163,7 @@ public class ClientTestBase extends KafkaCompanionTestBase {
         source = new KafkaSource<>(vertx, groupId, new KafkaConnectorIncomingConfiguration(config),
                 commitHandlerFactories, failureHandlerFactories,
                 listeners, CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), 0);
+        sources.add(source);
         return source;
     }
 
@@ -144,6 +178,15 @@ public class ClientTestBase extends KafkaCompanionTestBase {
         source = new KafkaSource<>(vertx, groupId, new KafkaConnectorIncomingConfiguration(config),
                 commitHandlerFactories, failureHandlerFactories,
                 listeners, CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), 0);
+        sources.add(source);
+        return source;
+    }
+
+    public KafkaSource<Integer, String> createSource(MapBasedConfig config, int index) {
+        source = new KafkaSource<>(vertx, "groupId", new KafkaConnectorIncomingConfiguration(config),
+                commitHandlerFactories, failureHandlerFactories,
+                UnsatisfiedInstance.instance(), CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), index);
+        sources.add(source);
         return source;
     }
 

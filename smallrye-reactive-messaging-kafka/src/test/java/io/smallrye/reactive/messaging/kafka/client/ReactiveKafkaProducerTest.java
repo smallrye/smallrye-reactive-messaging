@@ -6,15 +6,12 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Queue;
-import java.util.UUID;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ThreadLocalRandom;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.eclipse.microprofile.reactive.messaging.Message;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.reactivestreams.Subscriber;
 
@@ -29,22 +26,31 @@ import io.smallrye.reactive.messaging.kafka.impl.KafkaSink;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 
 public class ReactiveKafkaProducerTest extends ClientTestBase {
-    private Queue<KafkaSink> sinks;
 
-    @BeforeEach
-    public void init() {
-        sinks = new ConcurrentLinkedQueue<>();
-        String newTopic = "test-" + UUID.randomUUID();
-        companion.topics().createAndWait(newTopic, partitions);
-        this.topic = newTopic;
-        resetMessages();
-    }
+    @Test
+    void testConfigClientIdPrefix() {
+        MapBasedConfig producerConfig = createProducerConfig()
+                .put("channel-name", "test");
+        KafkaSink sink = createSink(producerConfig);
+        String clientId = (String) sink.getProducer().configuration().get(ProducerConfig.CLIENT_ID_CONFIG);
+        assertThat(clientId).isEqualTo("kafka-producer-test");
 
-    @AfterEach
-    public void tearDown() {
-        for (KafkaSink sink : sinks) {
-            sink.closeQuietly();
-        }
+        producerConfig.put("client.id", "my-producer");
+        sink = createSink(producerConfig);
+        clientId = (String) sink.getProducer().configuration().get(ProducerConfig.CLIENT_ID_CONFIG);
+        assertThat(clientId).isEqualTo("my-producer");
+
+        producerConfig.put("client-id-prefix", "my-custom-");
+        producerConfig.remove("client.id");
+        sink = createSink(producerConfig);
+        clientId = (String) sink.getProducer().configuration().get(ProducerConfig.CLIENT_ID_CONFIG);
+        assertThat(clientId).isEqualTo("my-custom-test");
+
+        producerConfig.put("client.id", "my-producer");
+        producerConfig.put("client-id-prefix", "my-custom-");
+        sink = createSink(producerConfig);
+        clientId = (String) sink.getProducer().configuration().get(ProducerConfig.CLIENT_ID_CONFIG);
+        assertThat(clientId).isEqualTo("my-custom-my-producer");
     }
 
     @Test
@@ -158,6 +164,13 @@ public class ReactiveKafkaProducerTest extends ClientTestBase {
                 .put("channel-name", "test-" + ThreadLocalRandom.current().nextInt())
                 .put("topic", topic);
 
+        KafkaSink sink = new KafkaSink(new KafkaConnectorOutgoingConfiguration(config),
+                CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance());
+        this.sinks.add(sink);
+        return sink;
+    }
+
+    public KafkaSink createSink(MapBasedConfig config) {
         KafkaSink sink = new KafkaSink(new KafkaConnectorOutgoingConfiguration(config),
                 CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance());
         this.sinks.add(sink);

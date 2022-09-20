@@ -24,7 +24,17 @@
     "criticality" : "highlight",
     "minSeverity" : "POTENTIALLY_BREAKING",
     "minCriticality" : "documented",
-    "differences" : [ ]
+    "differences" : [
+        {
+            "ignore": true,
+            "code": "java.annotation.attributeValueChanged",
+            "old": "class io.smallrye.reactive.messaging.kafka.KafkaConnector",
+            "new": "class io.smallrye.reactive.messaging.kafka.KafkaConnector",
+            "annotationType": "io.smallrye.reactive.messaging.annotations.ConnectorAttributes",
+            "attribute": "value",
+            "justification": "Added client-id-prefix to connector attributes"
+        }
+    ]
   }
 }, {
   "extension" : "revapi.reporter.json",

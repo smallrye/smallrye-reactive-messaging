@@ -3,8 +3,6 @@ package io.smallrye.reactive.messaging.kafka.client;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import io.smallrye.mutiny.Multi;
@@ -16,20 +14,6 @@ import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 
 public class ReactiveKafkaBatchConsumerTest extends ClientTestBase {
-
-    @AfterEach
-    public void tearDown() {
-        cancelSubscriptions();
-        source.closeQuietly();
-    }
-
-    @BeforeEach
-    public void init() {
-        String newTopic = "test-" + UUID.randomUUID();
-        companion.topics().createAndWait(newTopic, partitions);
-        this.topic = newTopic;
-        resetMessages();
-    }
 
     @Test
     public void testReception() throws Exception {
