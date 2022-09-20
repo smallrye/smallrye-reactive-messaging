@@ -13,12 +13,12 @@ mvn versions:set-property -Dproperty=microprofile-reactive-streams.version -Dnew
 mvn versions:set-property -Dproperty=microprofile-config.version -DnewVersion=3.0.1
 mvn versions:set-property -Dproperty=microprofile-metrics-api.version -DnewVersion=4.0.1
 mvn versions:set-property -Dproperty=microprofile-health-api.version -DnewVersion=4.0
-mvn versions:set-property -Dproperty=smallrye-config.version -DnewVersion=3.0.0-RC1
-mvn versions:set-property -Dproperty=smallrye-metrics.version -DnewVersion=4.0.0-RC1
-mvn versions:set-property -Dproperty=smallrye-common.version -DnewVersion=2.0.0-RC2
-mvn versions:set-property -Dproperty=smallrye-health.version -DnewVersion=4.0.0-RC1
-mvn versions:set-property -Dproperty=smallrye-testing.version -DnewVersion=2.0.0-RC1
-mvn versions:set-property -Dproperty=smallrye-fault-tolerance.version -DnewVersion=6.0.0-RC1
+mvn versions:set-property -Dproperty=smallrye-config.version -DnewVersion=3.0.0
+mvn versions:set-property -Dproperty=smallrye-metrics.version -DnewVersion=4.0.0
+mvn versions:set-property -Dproperty=smallrye-common.version -DnewVersion=2.0.0
+mvn versions:set-property -Dproperty=smallrye-health.version -DnewVersion=4.0.0
+mvn versions:set-property -Dproperty=smallrye-testing.version -DnewVersion=2.0.0
+mvn versions:set-property -Dproperty=smallrye-fault-tolerance.version -DnewVersion=6.0.0
 mvn versions:set-property -Dproperty=yasson.version -DnewVersion=2.0.3
 mvn versions:set-property -Dproperty=artemis.version -DnewVersion=2.20.0
 
