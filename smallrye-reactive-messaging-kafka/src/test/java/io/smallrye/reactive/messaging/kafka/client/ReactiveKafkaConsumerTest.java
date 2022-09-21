@@ -14,6 +14,7 @@ import java.util.stream.Collectors;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.common.serialization.StringDeserializer;
 import org.junit.jupiter.api.*;
 
 import io.smallrye.mutiny.Multi;
@@ -25,6 +26,7 @@ import io.smallrye.reactive.messaging.kafka.IncomingKafkaRecord;
 import io.smallrye.reactive.messaging.kafka.KafkaConnectorIncomingConfiguration;
 import io.smallrye.reactive.messaging.kafka.KafkaConsumerRebalanceListener;
 import io.smallrye.reactive.messaging.kafka.TestTags;
+import io.smallrye.reactive.messaging.kafka.base.KafkaMapBasedConfig;
 import io.smallrye.reactive.messaging.kafka.base.SingletonInstance;
 import io.smallrye.reactive.messaging.kafka.base.UnsatisfiedInstance;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
@@ -32,18 +34,35 @@ import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 
 public class ReactiveKafkaConsumerTest extends ClientTestBase {
 
-    @AfterEach
-    public void tearDown() {
-        cancelSubscriptions();
-        source.closeQuietly();
-    }
+    @Test
+    void testConfigClientIdPrefix() {
+        KafkaMapBasedConfig config = kafkaConfig()
+                .put("value.deserializer", StringDeserializer.class.getName())
+                .put("channel-name", "test");
+        source = createSource(config, -1);
+        String clientId = source.getConsumer().get(ConsumerConfig.CLIENT_ID_CONFIG);
+        assertThat(clientId).isEqualTo("kafka-consumer-test");
 
-    @BeforeEach
-    public void init() {
-        String newTopic = "test-" + UUID.randomUUID();
-        companion.topics().createAndWait(newTopic, partitions);
-        this.topic = newTopic;
-        resetMessages();
+        source = createSource(config, 1);
+        clientId = source.getConsumer().get(ConsumerConfig.CLIENT_ID_CONFIG);
+        assertThat(clientId).isEqualTo("kafka-consumer-test-1");
+
+        config.put("client.id", "custom-client-id");
+        source = createSource(config, 2);
+        clientId = source.getConsumer().get(ConsumerConfig.CLIENT_ID_CONFIG);
+        assertThat(clientId).isEqualTo("custom-client-id-2");
+
+        config.put("client-id-prefix", "my-client-");
+        config.remove("client.id");
+        source = createSource(config, -1);
+        clientId = source.getConsumer().get(ConsumerConfig.CLIENT_ID_CONFIG);
+        assertThat(clientId).isEqualTo("my-client-test");
+
+        config.put("client.id", "custom-client-id");
+        config.put("client-id-prefix", "my-client-");
+        source = createSource(config, 2);
+        clientId = source.getConsumer().get(ConsumerConfig.CLIENT_ID_CONFIG);
+        assertThat(clientId).isEqualTo("my-client-custom-client-id-2");
     }
 
     @Test

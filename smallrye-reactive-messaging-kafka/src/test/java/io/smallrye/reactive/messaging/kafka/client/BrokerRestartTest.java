@@ -11,8 +11,6 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
@@ -29,20 +27,6 @@ import io.strimzi.test.container.StrimziKafkaContainer;
 @Tag(TestTags.SLOW)
 // TODO should not extend ClientTestBase, it uses KafkaBrokerExtension which creates a broker for tests
 public class BrokerRestartTest extends ClientTestBase {
-
-    @BeforeEach
-    public void init() {
-        String newTopic = "test-" + UUID.randomUUID();
-        companion.topics().createAndWait(newTopic, partitions);
-        this.topic = newTopic;
-        resetMessages();
-    }
-
-    @AfterEach
-    public void tearDown() {
-        cancelSubscriptions();
-        source.closeQuietly();
-    }
 
     @Test
     public void testAcknowledgementUsingThrottledStrategyEvenAfterBrokerRestart() throws Exception {

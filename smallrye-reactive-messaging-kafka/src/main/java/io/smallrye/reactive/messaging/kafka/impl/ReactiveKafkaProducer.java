@@ -226,7 +226,17 @@ public class ReactiveKafkaProducer<K, V> implements io.smallrye.reactive.messagi
             map.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, configuration.getKeySerializer());
         }
 
-        map.putIfAbsent(ProducerConfig.CLIENT_ID_CONFIG, "kafka-producer-" + configuration.getChannel());
+        // Producer id generation:
+        // 1. If no client id set in the config, the default prefix is "kafka-producer-"
+        // 2. If a client id set in the config, the default prefix is ""
+
+        map.compute(ProducerConfig.CLIENT_ID_CONFIG, (k, configured) -> {
+            if (configured == null) {
+                return configuration.getClientIdPrefix().orElse("kafka-producer-") + configuration.getChannel();
+            } else {
+                return configuration.getClientIdPrefix().orElse("") + configured;
+            }
+        });
 
         if (!map.containsKey(ProducerConfig.RECONNECT_BACKOFF_MAX_MS_CONFIG)) {
             // If no backoff is set, use 10s, it avoids high load on disconnection.

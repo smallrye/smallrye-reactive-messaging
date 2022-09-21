@@ -257,7 +257,7 @@ public class ReactiveKafkaConsumer<K, V> implements io.smallrye.reactive.messagi
         });
     }
 
-    private Map<String, Object> getKafkaConsumerConfiguration(KafkaConnectorIncomingConfiguration configuration,
+    private static Map<String, Object> getKafkaConsumerConfiguration(KafkaConnectorIncomingConfiguration configuration,
             String consumerGroup, int index) {
         Map<String, Object> map = new HashMap<>();
         JsonHelper.asJsonObject(configuration.config())
@@ -286,28 +286,22 @@ public class ReactiveKafkaConsumer<K, V> implements io.smallrye.reactive.messagi
         }
 
         // Consumer id generation:
-        // 1. If we don't have an index and no client id set in the config, add one
-        // 2. If we don't have an index and a client id set in the config, use it
-        // 3. If we have an index and no client id set in the config, add one suffixed with the index
-        // 4. If we have an index and a client id set in the config, suffix the index
+        // 1. If no client id set in the config, set it to channel name, the prefix default value is "kafka-consumer-",
+        // 1. If a client id set in the config, prefix with the default value "",
+        // In any case if consumer index is -1, suffix is "", otherwise, suffix the index.
 
-        if (index == -1) {
-            map.computeIfAbsent(ConsumerConfig.CLIENT_ID_CONFIG, k -> {
+        String suffix = index == -1 ? ("") : ("-" + index);
+        map.compute(ConsumerConfig.CLIENT_ID_CONFIG, (k, configured) -> {
+            if (configured == null) {
+                String prefix = configuration.getClientIdPrefix().orElse("kafka-consumer-");
                 // Case 1
-                return "kafka-consumer-" + configuration.getChannel();
-            });
-            // Case 2 - nothing to do
-        } else {
-            String configuredClientId = (String) map.get(ConsumerConfig.CLIENT_ID_CONFIG);
-            if (configuredClientId == null) {
-                // Case 3
-                configuredClientId = "kafka-consumer-" + configuration.getChannel() + "-" + index;
+                return prefix + configuration.getChannel() + suffix;
             } else {
-                // Case 4
-                configuredClientId = configuredClientId + "-" + index;
+                String prefix = configuration.getClientIdPrefix().orElse("");
+                // Case 2
+                return prefix + configured + suffix;
             }
-            map.put(ConsumerConfig.CLIENT_ID_CONFIG, configuredClientId);
-        }
+        });
 
         ConfigurationCleaner.cleanupConsumerConfiguration(map);
 
