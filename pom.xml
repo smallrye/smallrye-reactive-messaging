@@ -57,11 +57,15 @@
 
 
   <properties>
+    <maven.compiler.release>11</maven.compiler.release>
+    <maven.compiler.source>11</maven.compiler.source>
+    <maven.compiler.target>11</maven.compiler.target>
+
     <vertx.version>4.3.3</vertx.version>
     <rxjava.version>2.2.21</rxjava.version>
     <cloudevent.version>1.1.0</cloudevent.version>
     <weld.version>3.1.8.Final</weld.version>
-    <camel.version>3.14.1</camel.version>
+    <camel.version>3.18.2</camel.version>
 
     <microprofile-reactive-messaging.version>2.0.1</microprofile-reactive-messaging.version>
     <microprofile-reactive-streams.version>2.0</microprofile-reactive-streams.version>
@@ -79,7 +83,8 @@
     <micrometer.version>1.9.4</micrometer.version>
 
     <mutiny.version>1.7.0</mutiny.version>
-    <artemis.version>2.19.0</artemis.version>
+    <artemis.version>2.25.0</artemis.version>
+    <commons-io.version>2.11.0</commons-io.version>
 
     <jboss-log-manager.version>2.1.18.Final</jboss-log-manager.version>
 
@@ -105,7 +110,7 @@
     <jandex-maven-plugin.version>1.2.3</jandex-maven-plugin.version>
 
     <nats-embedded.version>2.1.0</nats-embedded.version>
-    <slf4j-log4j12.version>1.7.33</slf4j-log4j12.version>
+    <slf4j-log4j12.version>1.7.36</slf4j-log4j12.version>
     <opencsv.version>5.7.0</opencsv.version>
     <strimzi-test-container.version>0.102.0</strimzi-test-container.version>
 
@@ -309,6 +314,11 @@
         <version>${slf4j-log4j12.version}</version>
       </dependency>
       <dependency>
+        <groupId>org.slf4j</groupId>
+        <artifactId>slf4j-simple</artifactId>
+        <version>${slf4j-log4j12.version}</version>
+      </dependency>
+      <dependency>
         <groupId>com.opencsv</groupId>
         <artifactId>opencsv</artifactId>
         <version>${opencsv.version}</version>
@@ -436,6 +446,7 @@
           <artifactId>maven-dependency-plugin</artifactId>
           <version>3.3.0</version>
         </plugin>
+
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-resources-plugin</artifactId>
