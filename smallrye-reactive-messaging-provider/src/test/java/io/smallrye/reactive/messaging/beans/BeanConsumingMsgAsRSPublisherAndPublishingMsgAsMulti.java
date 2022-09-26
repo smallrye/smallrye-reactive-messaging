@@ -1,7 +1,5 @@
 package io.smallrye.reactive.messaging.beans;
 
-import java.util.concurrent.Flow;
-
 import jakarta.enterprise.context.ApplicationScoped;
 
 import org.eclipse.microprofile.reactive.messaging.Incoming;
@@ -10,18 +8,19 @@ import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.reactivestreams.Publisher;
 
 import io.reactivex.Flowable;
-import mutiny.zero.flow.adapters.AdaptersToReactiveStreams;
+import io.smallrye.mutiny.Multi;
+import mutiny.zero.flow.adapters.AdaptersToFlow;
 
 @ApplicationScoped
-public class BeanConsumingMsgAsPublisherAndPublishingMsgAsFlowable {
+public class BeanConsumingMsgAsRSPublisherAndPublishingMsgAsMulti {
 
     @Incoming("count")
     @Outgoing("sink")
-    public Flowable<Message<String>> process(Flow.Publisher<Message<Integer>> source) {
-        return Flowable.fromPublisher(AdaptersToReactiveStreams.publisher(source))
+    public Multi<Message<String>> process(Publisher<Message<Integer>> source) {
+        return Multi.createFrom().publisher(AdaptersToFlow.publisher(source))
                 .map(Message::getPayload)
                 .map(i -> i + 1)
-                .flatMap(i -> Flowable.just(i, i))
+                .flatMap(i -> AdaptersToFlow.publisher(Flowable.just(i, i)))
                 .map(i -> Integer.toString(i))
                 .map(Message::of);
     }

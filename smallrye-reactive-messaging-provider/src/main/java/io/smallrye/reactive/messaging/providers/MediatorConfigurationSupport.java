@@ -478,9 +478,6 @@ public class MediatorConfigurationSupport {
                 ? MediatorConfiguration.Consumption.STREAM_OF_MESSAGE
                 : MediatorConfiguration.Consumption.STREAM_OF_PAYLOAD;
 
-        useBuilderTypes = ClassUtils.isAssignable(returnType, PublisherBuilder.class);
-        useReactiveStreams = ClassUtils.isAssignable(returnType, Publisher.class);
-
         // Post Acknowledgement is not supported
         if (acknowledgment == Acknowledgment.Strategy.POST_PROCESSING) {
             throw ex.definitionAutoAckNotSupported("@Incoming & @Outgoing", methodAsString);
@@ -503,25 +500,23 @@ public class MediatorConfigurationSupport {
             payloadType = firstMethodParamTypeAssignable.getType(0);
         }
 
-        if (useBuilderTypes) {
-            //TODO Test validation.
-
-            // Ensure that the parameter is also using the MP Reactive Streams Operator types.
-            Class<?> paramClass = parameterTypes[0];
-            if (!ClassUtils.isAssignable(paramClass, PublisherBuilder.class)) {
-                throw ex.definitionProduceConsume("@Incoming & @Outgoing", methodAsString);
-            }
+        // Ensure that the parameter is also using the MP Reactive Streams Operator types.
+        boolean builderParameter = ClassUtils.isAssignable(parameterTypes[0], PublisherBuilder.class);
+        boolean builderReturn = ClassUtils.isAssignable(returnType, PublisherBuilder.class);
+        if (builderParameter == builderReturn) {
+            useBuilderTypes = builderParameter;
+        } else {
+            throw ex.definitionProduceConsume("@Incoming & @Outgoing", methodAsString, PublisherBuilder.class.getSimpleName());
         }
 
-        if (useReactiveStreams) {
-            // Ensure that the parameter is also using the ReactiveStreams type.
-            Class<?> paramClass = parameterTypes[0];
-            if (!ClassUtils.isAssignable(paramClass, Publisher.class)) {
-                throw ex.definitionProduceConsume("@Incoming & @Outgoing", methodAsString);
-            }
+        // Ensure that the parameter is also using the ReactiveStreams type.
+        boolean rsParameter = ClassUtils.isAssignable(parameterTypes[0], Publisher.class);
+        boolean rsReturn = ClassUtils.isAssignable(returnType, Publisher.class);
+        if (rsParameter == rsReturn) {
+            useReactiveStreams = rsParameter;
+        } else {
+            throw ex.definitionProduceConsume("@Incoming & @Outgoing", methodAsString, Publisher.class.getSimpleName());
         }
-
-        // TODO Ensure that the parameter is also a publisher builder.
 
         if (payloadType == null) {
             log.unableToExtractIngestedPayloadType(methodAsString, "Cannot extract the type from the method signature");
