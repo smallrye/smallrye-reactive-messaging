@@ -35,10 +35,26 @@ public class SubscriberShapeTest extends WeldTestBaseWithoutTails {
     }
 
     @Test
+    public void testBeanProducingARSSubscriberOfMessages() {
+        initializer.addBeanClasses(BeanReturningARSSubscriberOfMessages.class);
+        initialize();
+        BeanReturningARSSubscriberOfMessages collector = container.select(BeanReturningARSSubscriberOfMessages.class).get();
+        assertThat(collector.payloads()).isEqualTo(EXPECTED);
+    }
+
+    @Test
     public void testBeanProducingASubscriberOfPayloads() {
         initializer.addBeanClasses(BeanReturningASubscriberOfPayloads.class);
         initialize();
         BeanReturningASubscriberOfPayloads collector = container.select(BeanReturningASubscriberOfPayloads.class).get();
+        assertThat(collector.payloads()).isEqualTo(EXPECTED);
+    }
+
+    @Test
+    public void testBeanProducingARSSubscriberOfPayloads() {
+        initializer.addBeanClasses(BeanReturningARSSubscriberOfPayloads.class);
+        initialize();
+        BeanReturningARSSubscriberOfPayloads collector = container.select(BeanReturningARSSubscriberOfPayloads.class).get();
         assertThat(collector.payloads()).isEqualTo(EXPECTED);
     }
 
