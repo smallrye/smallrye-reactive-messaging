@@ -18,6 +18,14 @@ public class ChannelInjectionTest extends WeldTestBaseWithoutTails {
     }
 
     @Test
+    public void testInjectionOfRSPublisherOfMessages() {
+        addBeanClass(SourceBean.class);
+        BeanInjectedWithARSPublisherOfMessages bean = installInitializeAndGet(BeanInjectedWithARSPublisherOfMessages.class);
+        assertThat(bean.consume())
+                .containsExactlyInAnyOrder("B", "O", "N", "J", "O", "U", "R", "h", "e", "l", "l", "o");
+    }
+
+    @Test
     public void testInjectionOfMultiOfMessages() {
         addBeanClass(SourceBean.class);
         BeanInjectedWithAMultiOfMessages bean = installInitializeAndGet(BeanInjectedWithAMultiOfMessages.class);
@@ -37,6 +45,14 @@ public class ChannelInjectionTest extends WeldTestBaseWithoutTails {
     public void testInjectionOfPublisherOfPayloads() {
         addBeanClass(SourceBean.class);
         BeanInjectedWithAPublisherOfPayloads bean = installInitializeAndGet(BeanInjectedWithAPublisherOfPayloads.class);
+        assertThat(bean.consume())
+                .containsExactlyInAnyOrder("B", "O", "N", "J", "O", "U", "R", "h", "e", "l", "l", "o");
+    }
+
+    @Test
+    public void testInjectionOfRSPublisherOfPayloads() {
+        addBeanClass(SourceBean.class);
+        BeanInjectedWithARSPublisherOfPayloads bean = installInitializeAndGet(BeanInjectedWithARSPublisherOfPayloads.class);
         assertThat(bean.consume())
                 .containsExactlyInAnyOrder("B", "O", "N", "J", "O", "U", "R", "h", "e", "l", "l", "o");
     }

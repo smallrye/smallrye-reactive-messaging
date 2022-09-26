@@ -7,25 +7,28 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
 import org.eclipse.microprofile.reactive.messaging.Channel;
+import org.eclipse.microprofile.reactive.messaging.Message;
 
 import io.smallrye.mutiny.Multi;
 
 @ApplicationScoped
-public class BeanInjectedWithAPublisherOfPayloads {
+public class BeanInjectedWithARSPublisherOfMessages {
 
-    private final Flow.Publisher<String> constructor;
+    private final Flow.Publisher<Message<String>> constructor;
+
     @Inject
     @Channel("hello")
-    private Flow.Publisher<String> field;
+    private Flow.Publisher<Message<String>> field;
 
     @Inject
-    public BeanInjectedWithAPublisherOfPayloads(@Channel("bonjour") Flow.Publisher<String> constructor) {
+    public BeanInjectedWithARSPublisherOfMessages(@Channel("bonjour") Flow.Publisher<Message<String>> constructor) {
         this.constructor = constructor;
     }
 
     public List<String> consume() {
         return Multi.createBy().concatenating()
                 .streams(constructor, field)
+                .map(Message::getPayload)
                 .collect().asList()
                 .await().indefinitely();
     }
