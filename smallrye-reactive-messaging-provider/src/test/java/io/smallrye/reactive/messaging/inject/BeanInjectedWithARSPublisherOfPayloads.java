@@ -1,31 +1,32 @@
 package io.smallrye.reactive.messaging.inject;
 
 import java.util.List;
-import java.util.concurrent.Flow;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
 import org.eclipse.microprofile.reactive.messaging.Channel;
+import org.reactivestreams.Publisher;
 
 import io.smallrye.mutiny.Multi;
+import mutiny.zero.flow.adapters.AdaptersToFlow;
 
 @ApplicationScoped
-public class BeanInjectedWithAPublisherOfPayloads {
+public class BeanInjectedWithARSPublisherOfPayloads {
 
-    private final Flow.Publisher<String> constructor;
+    private final Publisher<String> constructor;
     @Inject
     @Channel("hello")
-    private Flow.Publisher<String> field;
+    private Publisher<String> field;
 
     @Inject
-    public BeanInjectedWithAPublisherOfPayloads(@Channel("bonjour") Flow.Publisher<String> constructor) {
+    public BeanInjectedWithARSPublisherOfPayloads(@Channel("bonjour") Publisher<String> constructor) {
         this.constructor = constructor;
     }
 
     public List<String> consume() {
         return Multi.createBy().concatenating()
-                .streams(constructor, field)
+                .streams(AdaptersToFlow.publisher(constructor), AdaptersToFlow.publisher(field))
                 .collect().asList()
                 .await().indefinitely();
     }

@@ -202,8 +202,8 @@ public interface ProviderExceptions {
     @Message(id = 60, value = "Invalid method annotated with %s: %s - Consuming a stream of payload is not supported with MANUAL acknowledgment. Use a Publisher<Message<I>> or PublisherBuilder<Message<I>> instead.")
     DefinitionException definitionManualAckNotSupported(String annotation, String methodAsString);
 
-    @Message(id = 61, value = "Invalid method annotated with %s: %s - If the method produces a PublisherBuilder, it needs to consume a PublisherBuilder.")
-    DefinitionException definitionProduceConsume(String annotation, String methodAsString);
+    @Message(id = 61, value = "Invalid method annotated with %s: %s - If the method produces a %s, it needs to consume the same type.")
+    DefinitionException definitionProduceConsume(String annotation, String methodAsString, String expectedType);
 
     @Message(id = 62, value = "Invalid method annotated with %s: %s - The @Merge annotation is only supported for method annotated with @Incoming")
     DefinitionException definitionMergeOnlyIncoming(String annotation, String methodAsString);
