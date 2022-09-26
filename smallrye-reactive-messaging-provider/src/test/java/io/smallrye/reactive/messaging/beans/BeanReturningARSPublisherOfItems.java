@@ -1,20 +1,17 @@
 package io.smallrye.reactive.messaging.beans;
 
-import java.util.concurrent.Flow;
-
 import javax.enterprise.context.ApplicationScoped;
 
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
+import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 import org.reactivestreams.Publisher;
 
-import io.smallrye.mutiny.Multi;
-
 @ApplicationScoped
-public class BeanReturningAPublisherOfItems {
+public class BeanReturningARSPublisherOfItems {
 
     @Outgoing("producer")
-    public Flow.Publisher<String> create() {
-        return Multi.createFrom().items("a", "b", "c");
+    public Publisher<String> create() {
+        return ReactiveStreams.of("a", "b", "c").buildRs();
     }
 
 }
