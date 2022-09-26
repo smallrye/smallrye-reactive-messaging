@@ -83,7 +83,7 @@
     <micrometer.version>1.9.4</micrometer.version>
 
     <mutiny.version>1.7.0</mutiny.version>
-    <artemis.version>2.25.0</artemis.version>
+    <artemis.version>2.26.0</artemis.version>
     <commons-io.version>2.11.0</commons-io.version>
 
     <jboss-log-manager.version>2.1.18.Final</jboss-log-manager.version>
