@@ -32,6 +32,22 @@ public class DecoratorTest extends WeldTestBase {
     }
 
     @Test
+    void testDeprecatedPublisherDecorator() {
+        addBeanClass(AppendingDeprecatedDecorator.class, SimpleProducerBean.class);
+        initialize();
+
+        MyCollector collector = container.select(MyCollector.class).get();
+
+        // Expect the values in the stream to have "-sink" appended by the decorator
+        List<String> expected = SimpleProducerBean.TEST_STRINGS.stream()
+                .map((s) -> s + "-sink")
+                .collect(Collectors.toList());
+
+        await().until(collector::payloads, hasSize(expected.size()));
+        assertEquals(expected, collector.payloads());
+    }
+
+    @Test
     public void testMultiStage() {
         addBeanClass(AppendingDecorator.class, MultiStageBean.class);
         initialize();
@@ -71,5 +87,4 @@ public class DecoratorTest extends WeldTestBase {
         // five times
         assertEquals(MultiStageBean.TEST_STRINGS.size() * 5, countingDecorator.getMessageCount());
     }
-
 }
