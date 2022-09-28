@@ -13,7 +13,7 @@
   <name>SmallRye Reactive Messaging : Connector :: JMS</name>
 
   <properties>
-    <artemis.version>2.19.0</artemis.version>
+    <artemis.version>2.26.0</artemis.version>
     <revapi.skip>false</revapi.skip>
   </properties>
 
@@ -70,6 +70,12 @@
           <artifactId>geronimo-json_1.0_spec</artifactId>
         </exclusion>
       </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>commons-io</groupId>
+      <artifactId>commons-io</artifactId>
+      <version>2.11.0</version>
+      <scope>test</scope>
     </dependency>
 
     <dependency>
