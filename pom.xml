@@ -523,6 +523,7 @@
                 <goal>check</goal>
               </goals>
               <configuration>
+                <versionFormat>^\d+\.\d+\.\d+$</versionFormat>
                 <failSeverity>breaking</failSeverity>
                 <analysisConfigurationFiles>
                   <file>${project.basedir}/revapi.json</file>
