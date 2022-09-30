@@ -26,7 +26,7 @@ and potentially return a new stream of messages.
 Note that if a decorator is available it will be called on every channel.
 The `decorate` method receives the channel name and whether the channel is a connector or not as parameters.
 Decorators are called ordered from highest to lowest priority (from the least value to the greatest),
-obtained using the `javax.enterprise.inject.spi.Prioritized#getPriority` method.
+obtained using the `jakarta.enterprise.inject.spi.Prioritized#getPriority` method.
 
 !!!Note
     The `SubscriberDecorator` receive a list of channel names because `@Incoming` annotation is repeatable

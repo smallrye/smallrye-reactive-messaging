@@ -18,7 +18,7 @@
  */
 package io.smallrye.reactive.messaging.providers.wiring;
 
-import javax.enterprise.util.AnnotationLiteral;
+import jakarta.enterprise.util.AnnotationLiteral;
 
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
 

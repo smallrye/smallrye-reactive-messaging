@@ -3,7 +3,7 @@ package kafka.inbound;
 import java.util.Collection;
 import java.util.function.BiConsumer;
 
-import javax.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.context.ApplicationScoped;
 
 import org.apache.kafka.common.TopicPartition;
 

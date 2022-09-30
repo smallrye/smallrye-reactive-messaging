@@ -2,7 +2,7 @@ package io.smallrye.reactive.messaging.kafka.commit;
 
 import java.util.function.BiConsumer;
 
-import javax.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.context.ApplicationScoped;
 
 import io.smallrye.common.annotation.Identifier;
 import io.smallrye.mutiny.Uni;
