@@ -8,6 +8,7 @@ updates:
   target-branch: main
   reviewers:
   - cescoffier
+  - ozangunalp
   ignore:
   - dependency-name: com.amazonaws:aws-java-sdk-sns
     versions:
@@ -61,3 +62,9 @@ updates:
   - dependency-name: org.eclipse.microprofile.health:microprofile-health-api
     versions:
     - "3.0"
+  - dependency-name: org.slf4j:slf4j-log4j12
+    versions:
+    - "<1.8.0"
+  - dependency-name: org.slf4j:simple
+    versions:
+    - "<1.8.0"
