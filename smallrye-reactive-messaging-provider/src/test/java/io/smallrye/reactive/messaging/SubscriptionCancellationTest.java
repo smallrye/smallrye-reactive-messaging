@@ -103,7 +103,13 @@ public class SubscriptionCancellationTest extends WeldTestBaseWithoutTails {
         public void generate() {
             new Thread(() -> {
                 while (!emitter.isCancelled()) {
-                    emitter.send(1L);
+                    try {
+                        emitter.send(1L);
+                    } catch (IllegalStateException e) {
+                        // Cancellation may happen concurrently,
+                        // ignore and continue
+                        break;
+                    }
                 }
                 cancelled_a.set(true);
             }).start();
