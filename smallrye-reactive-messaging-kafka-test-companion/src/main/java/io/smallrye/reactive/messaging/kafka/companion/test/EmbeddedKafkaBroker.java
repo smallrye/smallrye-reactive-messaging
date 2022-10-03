@@ -2,6 +2,7 @@ package io.smallrye.reactive.messaging.kafka.companion.test;
 
 import static io.smallrye.reactive.messaging.kafka.companion.test.EmbeddedKafkaBroker.LoggingOutputStream.loggerPrintStream;
 import static org.apache.kafka.common.security.auth.SecurityProtocol.PLAINTEXT;
+import static org.apache.kafka.server.common.MetadataVersion.MINIMUM_BOOTSTRAP_VERSION;
 
 import java.io.ByteArrayOutputStream;
 import java.io.Closeable;
@@ -360,14 +361,15 @@ public class EmbeddedKafkaBroker implements Closeable {
         KafkaConfig config = KafkaConfig.fromProps(properties, false);
         Seq<String> directories = StorageTool.configToLogDirectories(config);
         MetaProperties metaProperties = StorageTool.buildMetadataProperties(clusterId, config);
-        StorageTool.formatCommand(loggerPrintStream(LOGGER), directories, metaProperties, ignoreFormatted);
+        StorageTool.formatCommand(loggerPrintStream(LOGGER), directories, metaProperties, MINIMUM_BOOTSTRAP_VERSION,
+                ignoreFormatted);
         return config;
     }
 
     public static void formatStorage(List<String> directories, String clusterId, int nodeId, boolean ignoreFormatted) {
         MetaProperties metaProperties = new MetaProperties(clusterId, nodeId);
         Seq<String> dirs = CollectionConverters.ListHasAsScala(directories).asScala().toSeq();
-        StorageTool.formatCommand(loggerPrintStream(LOGGER), dirs, metaProperties, ignoreFormatted);
+        StorageTool.formatCommand(loggerPrintStream(LOGGER), dirs, metaProperties, MINIMUM_BOOTSTRAP_VERSION, ignoreFormatted);
     }
 
     public static KafkaRaftServer createServer(final KafkaConfig config) {

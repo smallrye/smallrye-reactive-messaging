@@ -101,7 +101,7 @@ public class KafkaFileCheckpointCommit extends KafkaCheckpointCommit {
             })
                     .onFailure()
                     .invoke(t -> log.errorf(t, "Error persisting processing state `%s` for partition %s", state, partition))
-                    .onItem().invoke(r -> log.debugf("Persisted state for partition %s : %s -> %s", partition, state, r));
+                    .onItem().invoke(() -> log.debugf("Persisted state for partition %s : %s", partition, state));
         } else {
             return Uni.createFrom().voidItem();
         }

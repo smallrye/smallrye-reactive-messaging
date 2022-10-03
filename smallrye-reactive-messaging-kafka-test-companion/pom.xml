@@ -47,6 +47,12 @@
       <version>${kafka.version}</version>
       <optional>true</optional>
     </dependency>
+    <dependency>
+      <groupId>org.apache.kafka</groupId>
+      <artifactId>kafka-server-common</artifactId>
+      <version>${kafka.version}</version>
+      <optional>true</optional>
+    </dependency>
     <!-- Optional dependencies for usage in Tests -->
     <dependency>
       <groupId>org.junit.jupiter</groupId>

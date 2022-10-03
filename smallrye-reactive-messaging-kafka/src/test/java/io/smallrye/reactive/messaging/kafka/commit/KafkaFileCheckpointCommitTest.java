@@ -59,7 +59,9 @@ public class KafkaFileCheckpointCommitTest extends KafkaCompanionTestBase {
         await().until(() -> {
             List<JsonObject> states = Uni.join().all(Stream.of(0, 1, 2)
                     .map(i -> tempDir.toPath().resolve(topic + "-" + i).toString())
-                    .map(path -> vertx.fileSystem().readFile(path).map(Buffer::toJsonObject))
+                    .map(path -> vertx.fileSystem().readFile(path)
+                            .map(Buffer::toJsonObject)
+                            .onFailure().recoverWithItem(JsonObject.of("offset", 0, "state", 0)))
                     .collect(Collectors.toList()))
                     .andFailFast()
                     .await().indefinitely();
@@ -67,8 +69,12 @@ public class KafkaFileCheckpointCommitTest extends KafkaCompanionTestBase {
             int offset = states.stream().mapToInt(tuple -> tuple.getInteger("offset")).sum();
             int state = states.stream().mapToInt(tuple -> tuple.getInteger("state")).sum();
 
-            return offset == sum && state == sum * (sum - 1) / 2;
+            return offset == sum && state == sum(sum);
         });
+    }
+
+    private int sum(int sum) {
+        return sum * (sum - 1) / 2;
     }
 
     @Test
