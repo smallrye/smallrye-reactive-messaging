@@ -28,7 +28,12 @@
             "criticality": "highlight",
             "minSeverity": "POTENTIALLY_BREAKING",
             "minCriticality": "documented",
-            "differences": [
+            "differences" : [
+                {
+                    "regex": true,
+                    "code": ".*",
+                    "ignore": true
+                }
             ]
         }
     },
