@@ -97,7 +97,7 @@
     <smallrye-reactive-converters.version>2.6.0</smallrye-reactive-converters.version>
     <mutiny-zero-reactive-streams-junit5-tck.version>0.4.2</mutiny-zero-reactive-streams-junit5-tck.version>
 
-    <testcontainers.version>1.17.3</testcontainers.version>
+    <testcontainers.version>1.17.4</testcontainers.version>
 
     <sonar.coverage.jacoco.xmlReportPaths>${project.basedir}/target/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
     <mockito.version>4.8.0</mockito.version>
