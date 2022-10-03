@@ -118,8 +118,11 @@ public class KafkaFailureHandlerTest extends KafkaCompanionTestBase {
         assertThat(records.getRecords()).allSatisfy(r -> {
             assertThat(r.topic()).isEqualTo("dead-letter-topic-kafka");
             assertThat(r.value()).isIn(3, 6, 9);
+            assertThat(new String(r.headers().lastHeader(DEAD_LETTER_EXCEPTION_CLASS_NAME).value()))
+                    .isEqualTo(IllegalArgumentException.class.getName());
             assertThat(new String(r.headers().lastHeader(DEAD_LETTER_REASON).value())).startsWith("nack 3 -");
             assertThat(r.headers().lastHeader(DEAD_LETTER_CAUSE)).isNull();
+            assertThat(r.headers().lastHeader(DEAD_LETTER_CAUSE_CLASS_NAME)).isNull();
             assertThat(new String(r.headers().lastHeader(DEAD_LETTER_PARTITION).value())).isEqualTo("0");
             assertThat(new String(r.headers().lastHeader(DEAD_LETTER_TOPIC).value())).isEqualTo("dead-letter-default");
             assertThat(new String(r.headers().lastHeader(DEAD_LETTER_OFFSET).value())).isNotNull().isIn("3", "6", "9");
@@ -140,7 +143,7 @@ public class KafkaFailureHandlerTest extends KafkaCompanionTestBase {
         MyReceiverBean bean = runApplication(
                 getDeadLetterQueueWithCustomConfig(topic, dqTopic),
                 MyReceiverBean.class);
-        bean.setToThrowable(p -> new IllegalArgumentException());
+        bean.setToThrowable(p -> new IllegalStateException(new NullPointerException("msg")));
         await().until(this::isReady);
 
         companion.produceIntegers().usingGenerator(i -> new ProducerRecord<>(topic, i), 10);
@@ -152,9 +155,14 @@ public class KafkaFailureHandlerTest extends KafkaCompanionTestBase {
         assertThat(records.getRecords()).allSatisfy(r -> {
             assertThat(r.topic()).isEqualTo(dqTopic);
             assertThat(r.value()).isIn(3, 6, 9);
+            assertThat(new String(r.headers().lastHeader(DEAD_LETTER_EXCEPTION_CLASS_NAME).value()))
+                    .isEqualTo(IllegalStateException.class.getName());
             assertThat(new String(r.headers().lastHeader(DEAD_LETTER_REASON).value()))
-                    .isEqualTo(new IllegalArgumentException().toString());
-            assertThat(r.headers().lastHeader(DEAD_LETTER_CAUSE)).isNull();
+                    .isEqualTo(new NullPointerException() + ": msg");
+            assertThat(new String(r.headers().lastHeader(DEAD_LETTER_CAUSE).value()))
+                    .isEqualTo("msg");
+            assertThat(new String(r.headers().lastHeader(DEAD_LETTER_CAUSE_CLASS_NAME).value()))
+                    .isEqualTo(NullPointerException.class.getName());
             assertThat(new String(r.headers().lastHeader(DEAD_LETTER_PARTITION).value())).isEqualTo("0");
             assertThat(new String(r.headers().lastHeader(DEAD_LETTER_TOPIC).value())).isEqualTo(topic);
             assertThat(new String(r.headers().lastHeader(DEAD_LETTER_OFFSET).value())).isNotNull().isIn("3", "6", "9");
@@ -186,8 +194,11 @@ public class KafkaFailureHandlerTest extends KafkaCompanionTestBase {
         assertThat(records.getRecords()).allSatisfy(r -> {
             assertThat(r.topic()).isEqualTo(dqTopic);
             assertThat(r.value()).isIn(3, 6, 9);
+            assertThat(new String(r.headers().lastHeader(DEAD_LETTER_EXCEPTION_CLASS_NAME).value()))
+                    .isEqualTo(IllegalArgumentException.class.getName());
             assertThat(new String(r.headers().lastHeader(DEAD_LETTER_REASON).value())).startsWith("nack 3 -");
             assertThat(r.headers().lastHeader(DEAD_LETTER_CAUSE)).isNull();
+            assertThat(r.headers().lastHeader(DEAD_LETTER_CAUSE_CLASS_NAME)).isNull();
             assertThat(new String(r.headers().lastHeader(DEAD_LETTER_PARTITION).value())).isEqualTo("0");
             assertThat(new String(r.headers().lastHeader(DEAD_LETTER_TOPIC).value())).isEqualTo(topic);
             assertThat(new String(r.headers().lastHeader(DEAD_LETTER_OFFSET).value())).isNotNull().isIn("3", "6", "9");
@@ -220,8 +231,11 @@ public class KafkaFailureHandlerTest extends KafkaCompanionTestBase {
         assertThat(records.getRecords()).allSatisfy(r -> {
             assertThat(r.topic()).isEqualTo(dqTopic);
             assertThat(r.value()).isIn(3, 6, 9);
+            assertThat(new String(r.headers().lastHeader(DEAD_LETTER_EXCEPTION_CLASS_NAME).value()))
+                    .isEqualTo(IllegalArgumentException.class.getName());
             assertThat(new String(r.headers().lastHeader(DEAD_LETTER_REASON).value())).startsWith("nack 3 -");
             assertThat(r.headers().lastHeader(DEAD_LETTER_CAUSE)).isNull();
+            assertThat(r.headers().lastHeader(DEAD_LETTER_CAUSE_CLASS_NAME)).isNull();
             assertThat(new String(r.headers().lastHeader(DEAD_LETTER_PARTITION).value())).isEqualTo("0");
             assertThat(new String(r.headers().lastHeader(DEAD_LETTER_TOPIC).value())).isEqualTo(topic);
             assertThat(new String(r.headers().lastHeader(DEAD_LETTER_OFFSET).value())).isNotNull().isIn("3", "6", "9");
