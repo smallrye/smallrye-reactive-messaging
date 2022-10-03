@@ -4,6 +4,7 @@ import static io.smallrye.reactive.messaging.kafka.companion.RecordQualifiers.un
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -20,6 +21,7 @@ import org.apache.kafka.common.header.internals.RecordHeaders;
 import org.apache.kafka.common.serialization.IntegerDeserializer;
 import org.apache.kafka.common.serialization.IntegerSerializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
+import org.apache.kafka.common.serialization.StringSerializer;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
@@ -47,11 +49,14 @@ import io.opentelemetry.sdk.trace.samplers.Sampler;
 import io.opentelemetry.semconv.trace.attributes.SemanticAttributes;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.TracingMetadata;
+import io.smallrye.reactive.messaging.ce.OutgoingCloudEventMetadata;
 import io.smallrye.reactive.messaging.kafka.KafkaConnector;
 import io.smallrye.reactive.messaging.kafka.base.KafkaCompanionTestBase;
 import io.smallrye.reactive.messaging.kafka.base.KafkaMapBasedConfig;
 import io.smallrye.reactive.messaging.kafka.companion.ConsumerTask;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
+import io.vertx.core.json.Json;
+import io.vertx.core.json.JsonObject;
 
 public class TracingPropagationTest extends KafkaCompanionTestBase {
 
@@ -109,6 +114,96 @@ public class TracingPropagationTest extends KafkaCompanionTestBase {
         assertThat(consumed.getRecords()).allSatisfy(record -> {
             assertThat(record.value()).isNotNull();
             values.add(record.value());
+        });
+        assertThat(values).containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
+
+        assertThat(contexts).hasSize(10);
+        assertThat(contexts).doesNotContainNull().doesNotHaveDuplicates();
+
+        List<String> spanIds = contexts.stream()
+                .map(context -> Span.fromContextOrNull(context).getSpanContext().getSpanId())
+                .collect(Collectors.toList());
+        assertThat(spanIds).doesNotContainNull().doesNotHaveDuplicates().hasSize(10);
+
+        List<String> traceIds = contexts.stream()
+                .map(context -> Span.fromContextOrNull(context).getSpanContext().getTraceId())
+                .collect(Collectors.toList());
+        assertThat(traceIds).doesNotContainNull().doesNotHaveDuplicates().hasSize(10);
+
+        for (SpanData data : testExporter.getFinishedSpanItems()) {
+            assertThat(data.getSpanId()).isIn(spanIds);
+            assertThat(data.getSpanId()).isNotEqualTo(data.getParentSpanId());
+            assertThat(data.getTraceId()).isIn(traceIds);
+            assertThat(data.getKind()).isEqualByComparingTo(SpanKind.PRODUCER);
+        }
+    }
+
+    @Test
+    public void testFromAppToKafkaWithStructuredCloudEvents() {
+        List<Context> contexts = new CopyOnWriteArrayList<>();
+
+        ConsumerTask<String, String> consumed = companion.consumeStrings().fromTopics(topic,
+                m -> m.plug(until(10L, Duration.ofMinutes(1), null))
+                        .onItem().invoke(record -> {
+                            contexts.add(GlobalOpenTelemetry.getPropagators().getTextMapPropagator()
+                                    .extract(Context.current(), record.headers(), new HeaderExtractAdapter()));
+                        }));
+        runApplication(getKafkaSinkConfigForMyAppGeneratingDataWithStructuredCloudEvent("structured"),
+                MyAppGeneratingCloudEventData.class);
+
+        await().until(() -> consumed.getRecords().size() >= 10);
+        List<Integer> values = new ArrayList<>();
+        assertThat(consumed.getRecords()).allSatisfy(record -> {
+            assertThat(record.value()).isNotNull();
+            JsonObject ce = (JsonObject) Json.decodeValue(record.value());
+            assertThat(ce.getString("source")).isEqualTo("test://test");
+            assertThat(ce.getString("type")).isEqualTo("type");
+            values.add(Integer.parseInt(ce.getString("data")));
+        });
+        assertThat(values).containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
+
+        assertThat(contexts).hasSize(10);
+        assertThat(contexts).doesNotContainNull().doesNotHaveDuplicates();
+
+        List<String> spanIds = contexts.stream()
+                .map(context -> Span.fromContextOrNull(context).getSpanContext().getSpanId())
+                .collect(Collectors.toList());
+        assertThat(spanIds).doesNotContainNull().doesNotHaveDuplicates().hasSize(10);
+
+        List<String> traceIds = contexts.stream()
+                .map(context -> Span.fromContextOrNull(context).getSpanContext().getTraceId())
+                .collect(Collectors.toList());
+        assertThat(traceIds).doesNotContainNull().doesNotHaveDuplicates().hasSize(10);
+
+        for (SpanData data : testExporter.getFinishedSpanItems()) {
+            assertThat(data.getSpanId()).isIn(spanIds);
+            assertThat(data.getSpanId()).isNotEqualTo(data.getParentSpanId());
+            assertThat(data.getTraceId()).isIn(traceIds);
+            assertThat(data.getKind()).isEqualByComparingTo(SpanKind.PRODUCER);
+        }
+    }
+
+    @Test
+    public void testFromAppToKafkaWithBinaryCloudEvents() {
+        List<Context> contexts = new CopyOnWriteArrayList<>();
+
+        ConsumerTask<String, String> consumed = companion.consumeStrings().fromTopics(topic,
+                m -> m.plug(until(10L, Duration.ofMinutes(1), null))
+                        .onItem().invoke(record -> {
+                            contexts.add(GlobalOpenTelemetry.getPropagators().getTextMapPropagator()
+                                    .extract(Context.current(), record.headers(), new HeaderExtractAdapter()));
+                        }));
+        runApplication(getKafkaSinkConfigForMyAppGeneratingDataWithStructuredCloudEvent("binary"),
+                MyAppGeneratingCloudEventData.class);
+
+        await().until(() -> consumed.getRecords().size() >= 10);
+        List<Integer> values = new ArrayList<>();
+        assertThat(consumed.getRecords()).allSatisfy(record -> {
+            assertThat(record.value()).isNotNull();
+            assertThat(record.headers().lastHeader("ce_source").value())
+                    .isEqualTo("test://test".getBytes(StandardCharsets.UTF_8));
+            assertThat(record.headers().lastHeader("ce_type").value()).isEqualTo("type".getBytes(StandardCharsets.UTF_8));
+            values.add(Integer.parseInt(record.value()));
         });
         assertThat(values).containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
 
@@ -331,6 +426,13 @@ public class TracingPropagationTest extends KafkaCompanionTestBase {
                 .put("topic", topic);
     }
 
+    private KafkaMapBasedConfig getKafkaSinkConfigForMyAppGeneratingDataWithStructuredCloudEvent(String mode) {
+        return kafkaConfig("mp.messaging.outgoing.kafka", true)
+                .put("value.serializer", StringSerializer.class.getName())
+                .put("topic", topic)
+                .put("cloud-events-mode", mode);
+    }
+
     private MapBasedConfig getKafkaSinkConfigForMyAppProcessingData(String resultTopic, String parentTopic) {
         return kafkaConfig("mp.messaging.outgoing.kafka", true)
                 .put("value.serializer", IntegerSerializer.class.getName())
@@ -356,6 +458,21 @@ public class TracingPropagationTest extends KafkaCompanionTestBase {
         @Outgoing("kafka")
         public Publisher<Integer> source() {
             return Multi.createFrom().range(0, 10);
+        }
+    }
+
+    @ApplicationScoped
+    public static class MyAppGeneratingCloudEventData {
+
+        @Outgoing("kafka")
+        public Publisher<Message<String>> source() {
+            return Multi.createFrom().range(0, 10)
+                    .map(i -> Message.of(Integer.toString(i)))
+                    .map(m -> m.addMetadata(OutgoingCloudEventMetadata.builder()
+                            .withSource(URI.create("test://test"))
+                            .withType("type")
+                            .withId("some id")
+                            .build()));
         }
     }
 
