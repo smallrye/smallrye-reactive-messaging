@@ -21,11 +21,12 @@ public class RuntimeKafkaSinkConfiguration {
     private final Optional<String> cloudEventsType;
     private final Boolean cloudEventsInsertTimestamp;
     private final Boolean propagateRecordKey;
+    private final Boolean tracingEnabled;
 
     private RuntimeKafkaSinkConfiguration(int partition, Optional<String> key, Optional<String> cloudEventSubject,
             String propagateHeaders, Optional<String> cloudEventsDataContentType, Optional<String> cloudEventsDataSchema,
             Optional<String> cloudEventSource, Optional<String> cloudEventsType, Boolean cloudEventsInsertTimestamp,
-            Boolean propagateRecordKey) {
+            Boolean propagateRecordKey, Boolean tracingEnabled) {
         this.partition = partition;
         this.key = key;
         this.cloudEventSubject = cloudEventSubject;
@@ -36,6 +37,7 @@ public class RuntimeKafkaSinkConfiguration {
         this.cloudEventsType = cloudEventsType;
         this.cloudEventsInsertTimestamp = cloudEventsInsertTimestamp;
         this.propagateRecordKey = propagateRecordKey;
+        this.tracingEnabled = tracingEnabled;
     }
 
     public static RuntimeKafkaSinkConfiguration buildFromConfiguration(KafkaConnectorOutgoingConfiguration configuration) {
@@ -49,7 +51,8 @@ public class RuntimeKafkaSinkConfiguration {
                 configuration.getCloudEventsSource(),
                 configuration.getCloudEventsType(),
                 configuration.getCloudEventsInsertTimestamp(),
-                configuration.getPropagateRecordKey());
+                configuration.getPropagateRecordKey(),
+                configuration.getTracingEnabled());
     }
 
     public int getPartition() {
@@ -90,5 +93,9 @@ public class RuntimeKafkaSinkConfiguration {
 
     public Boolean getPropagateRecordKey() {
         return propagateRecordKey;
+    }
+
+    public Boolean getTracingEnabled() {
+        return tracingEnabled;
     }
 }

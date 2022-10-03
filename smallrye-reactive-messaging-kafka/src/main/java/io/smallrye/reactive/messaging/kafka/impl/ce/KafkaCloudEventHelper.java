@@ -216,6 +216,9 @@ public class KafkaCloudEventHelper {
         Object key = getKey(message, outgoingMetadata, ceMetadata, configuration);
         Long timestamp = getTimestamp(outgoingMetadata);
         Headers headers = KafkaRecordHelper.getHeaders(outgoingMetadata, incomingMetadata, configuration);
+        if (configuration.getTracingEnabled()) {
+            KafkaRecordHelper.createOutgoingTrace(message, topic, partition, headers);
+        }
         Optional<String> subject = getSubject(ceMetadata, configuration);
         Optional<String> contentType = getDataContentType(ceMetadata, configuration);
         Optional<URI> schema = getDataSchema(ceMetadata, configuration);
@@ -379,6 +382,9 @@ public class KafkaCloudEventHelper {
         Object key = getKey(message, outgoingMetadata, ceMetadata, configuration);
         Long timestamp = getTimestamp(outgoingMetadata);
         Headers headers = KafkaRecordHelper.getHeaders(outgoingMetadata, incomingMetadata, configuration);
+        if (configuration.getTracingEnabled()) {
+            KafkaRecordHelper.createOutgoingTrace(message, topic, partition, headers);
+        }
         String source = getSource(ceMetadata, configuration);
         String type = getType(ceMetadata, configuration);
         Optional<String> subject = getSubject(ceMetadata, configuration);
