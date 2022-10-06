@@ -2,7 +2,7 @@ package io.smallrye.reactive.messaging.providers;
 
 import static io.smallrye.reactive.messaging.providers.i18n.ProviderExceptions.ex;
 
-import javax.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.context.ApplicationScoped;
 
 import io.smallrye.reactive.messaging.MediatorConfiguration;
 

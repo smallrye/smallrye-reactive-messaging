@@ -7,10 +7,10 @@ import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.*;
 
-import javax.enterprise.event.Observes;
-import javax.enterprise.inject.Instance;
-import javax.enterprise.inject.spi.*;
-import javax.inject.Inject;
+import jakarta.enterprise.event.Observes;
+import jakarta.enterprise.inject.Instance;
+import jakarta.enterprise.inject.spi.*;
+import jakarta.inject.Inject;
 
 import org.eclipse.microprofile.reactive.messaging.*;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;

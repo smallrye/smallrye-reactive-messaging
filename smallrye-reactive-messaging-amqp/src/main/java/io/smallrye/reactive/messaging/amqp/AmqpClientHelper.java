@@ -5,8 +5,8 @@ import static io.smallrye.reactive.messaging.amqp.i18n.AMQPLogging.log;
 
 import java.util.Optional;
 
-import javax.enterprise.inject.Instance;
-import javax.enterprise.inject.literal.NamedLiteral;
+import jakarta.enterprise.inject.Instance;
+import jakarta.enterprise.inject.literal.NamedLiteral;
 
 import io.smallrye.common.annotation.Identifier;
 import io.smallrye.reactive.messaging.providers.i18n.ProviderLogging;

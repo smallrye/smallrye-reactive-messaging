@@ -4,9 +4,9 @@ import java.lang.annotation.Annotation;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.atomic.LongAdder;
 
-import javax.enterprise.event.Event;
-import javax.enterprise.event.NotificationOptions;
-import javax.enterprise.util.TypeLiteral;
+import jakarta.enterprise.event.Event;
+import jakarta.enterprise.event.NotificationOptions;
+import jakarta.enterprise.util.TypeLiteral;
 
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.producer.Producer;

@@ -10,10 +10,10 @@ import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import javax.annotation.PostConstruct;
-import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
-import javax.jms.*;
+import jakarta.annotation.PostConstruct;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
+import jakarta.jms.*;
 
 import org.apache.activemq.artemis.jms.client.ActiveMQJMSConnectionFactory;
 import org.eclipse.microprofile.config.ConfigProvider;
@@ -75,7 +75,7 @@ public class HeaderPropagationTest extends JmsTestBase {
 
     private class MyJmsClient {
 
-        private final List<javax.jms.Message> messages = new CopyOnWriteArrayList<>();
+        private final List<jakarta.jms.Message> messages = new CopyOnWriteArrayList<>();
 
         MyJmsClient(Destination destination) {
             JMSConsumer consumer = jms.createConsumer(destination);

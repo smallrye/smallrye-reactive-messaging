@@ -75,7 +75,7 @@ import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
  * In the previous configuration, the reactive messaging implementation would need to find the
  * {@link IncomingConnectorFactory} qualified using the {@link Connector} qualifier with the value
  * {@code acme.kafka} class to create the {@code my-channel} channel. Note that if the
- * connector cannot be found, the deployment must be failed with a {@link javax.enterprise.inject.spi.DeploymentException}.
+ * connector cannot be found, the deployment must be failed with a {@link jakarta.enterprise.inject.spi.DeploymentException}.
  * <p>
  * The {@link #getPublisherBuilder(Config)} is called for every channel that needs to be created. The {@link Config} object
  * passed to the method contains a subset of the global configuration, and with the prefixes removed. So for the previous
@@ -95,7 +95,7 @@ import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
  * <p>
  * If the configuration is invalid, the {@link #getPublisherBuilder(Config)} method must throw an
  * {@link IllegalArgumentException}, caught by the reactive messaging implementation and failing the deployment by
- * throwing a {@link javax.enterprise.inject.spi.DeploymentException} wrapping the exception.
+ * throwing a {@link jakarta.enterprise.inject.spi.DeploymentException} wrapping the exception.
  * <p>
  * Note that a Reactive Messaging implementation must support the configuration format described here. Implementations
  * are free to provide additional support for other approaches.

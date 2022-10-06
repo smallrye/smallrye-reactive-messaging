@@ -1,6 +1,6 @@
 package io.smallrye.reactive.messaging.camel;
 
-import javax.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.context.ApplicationScoped;
 
 import org.apache.camel.builder.RouteBuilder;
 

@@ -6,8 +6,8 @@ import static org.awaitility.Awaitility.await;
 import java.util.*;
 import java.util.concurrent.*;
 
-import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 
 import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.reactive.messaging.Acknowledgment;

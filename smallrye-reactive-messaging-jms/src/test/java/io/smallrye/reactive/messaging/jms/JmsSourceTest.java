@@ -11,8 +11,8 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import javax.jms.*;
-import javax.jms.Queue;
+import jakarta.jms.*;
+import jakarta.jms.Queue;
 
 import org.apache.activemq.artemis.jms.client.ActiveMQJMSConnectionFactory;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
