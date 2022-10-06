@@ -35,6 +35,9 @@ import io.vertx.mutiny.core.Vertx;
 @SuppressWarnings({ "rawtypes", "unchecked" })
 public class KafkaDeadLetterQueue implements KafkaFailureHandler {
 
+    public static final String DEAD_LETTER_EXCEPTION_CLASS_NAME = "dead-letter-exception-class-name";
+    public static final String DEAD_LETTER_CAUSE_CLASS_NAME = "dead-letter-cause-class-name";
+
     public static final String DEAD_LETTER_REASON = "dead-letter-reason";
     public static final String DEAD_LETTER_CAUSE = "dead-letter-cause";
     public static final String DEAD_LETTER_TOPIC = "dead-letter-topic";
@@ -140,8 +143,10 @@ public class KafkaDeadLetterQueue implements KafkaFailureHandler {
 
         ProducerRecord<K, V> dead = new ProducerRecord<>(topic, partition, key, record.getPayload());
 
+        addHeader(dead, DEAD_LETTER_EXCEPTION_CLASS_NAME, reason.getClass().getName());
         addHeader(dead, DEAD_LETTER_REASON, getThrowableMessage(reason));
         if (reason.getCause() != null) {
+            addHeader(dead, DEAD_LETTER_CAUSE_CLASS_NAME, reason.getCause().getClass().getName());
             addHeader(dead, DEAD_LETTER_CAUSE, getThrowableMessage(reason.getCause()));
         }
         addHeader(dead, DEAD_LETTER_TOPIC, record.getTopic());

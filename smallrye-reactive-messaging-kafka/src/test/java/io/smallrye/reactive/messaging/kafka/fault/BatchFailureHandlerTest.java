@@ -1,6 +1,8 @@
 package io.smallrye.reactive.messaging.kafka.fault;
 
 import static io.smallrye.reactive.messaging.kafka.fault.KafkaDeadLetterQueue.DEAD_LETTER_CAUSE;
+import static io.smallrye.reactive.messaging.kafka.fault.KafkaDeadLetterQueue.DEAD_LETTER_CAUSE_CLASS_NAME;
+import static io.smallrye.reactive.messaging.kafka.fault.KafkaDeadLetterQueue.DEAD_LETTER_EXCEPTION_CLASS_NAME;
 import static io.smallrye.reactive.messaging.kafka.fault.KafkaDeadLetterQueue.DEAD_LETTER_OFFSET;
 import static io.smallrye.reactive.messaging.kafka.fault.KafkaDeadLetterQueue.DEAD_LETTER_PARTITION;
 import static io.smallrye.reactive.messaging.kafka.fault.KafkaDeadLetterQueue.DEAD_LETTER_REASON;
@@ -131,8 +133,11 @@ public class BatchFailureHandlerTest extends KafkaCompanionTestBase {
         assertThat(records.getRecords()).allSatisfy(r -> {
             assertThat(r.topic()).isEqualTo(dqTopic);
             assertThat(r.value()).isIn(bean.nacked());
+            assertThat(new String(r.headers().lastHeader(DEAD_LETTER_EXCEPTION_CLASS_NAME).value()))
+                    .isEqualTo(IllegalArgumentException.class.getName());
             assertThat(new String(r.headers().lastHeader(DEAD_LETTER_REASON).value())).startsWith("nack all -");
             assertThat(r.headers().lastHeader(DEAD_LETTER_CAUSE)).isNull();
+            assertThat(r.headers().lastHeader(DEAD_LETTER_CAUSE_CLASS_NAME)).isNull();
             assertThat(new String(r.headers().lastHeader(DEAD_LETTER_PARTITION).value())).isEqualTo("0");
             assertThat(new String(r.headers().lastHeader(DEAD_LETTER_TOPIC).value())).isEqualTo(topic);
             assertThat(new String(r.headers().lastHeader(DEAD_LETTER_OFFSET).value())).isNotNull().isIn(dlqOffsets);
@@ -166,8 +171,11 @@ public class BatchFailureHandlerTest extends KafkaCompanionTestBase {
         assertThat(records.getRecords()).allSatisfy(r -> {
             assertThat(r.topic()).isEqualTo(dqTopic);
             assertThat(r.value()).isIn(bean.nacked());
+            assertThat(new String(r.headers().lastHeader(DEAD_LETTER_EXCEPTION_CLASS_NAME).value()))
+                    .isEqualTo(IllegalArgumentException.class.getName());
             assertThat(new String(r.headers().lastHeader(DEAD_LETTER_REASON).value())).startsWith("nack all -");
             assertThat(r.headers().lastHeader(DEAD_LETTER_CAUSE)).isNull();
+            assertThat(r.headers().lastHeader(DEAD_LETTER_CAUSE_CLASS_NAME)).isNull();
             assertThat(new String(r.headers().lastHeader(DEAD_LETTER_PARTITION).value())).isEqualTo("0");
             assertThat(new String(r.headers().lastHeader(DEAD_LETTER_TOPIC).value())).isEqualTo(topic);
             assertThat(new String(r.headers().lastHeader(DEAD_LETTER_OFFSET).value())).isNotNull().isIn(dlqOffsets);
