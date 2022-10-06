@@ -39,10 +39,10 @@ public class WorkerPoolRegistry {
     private static final String WORKER_CONCURRENCY = "max-concurrency";
 
     @Inject
-    private Instance<ExecutionHolder> executionHolder;
+    Instance<ExecutionHolder> executionHolder;
 
     @Inject
-    private Instance<Config> configInstance;
+    Instance<Config> configInstance;
 
     private final Map<String, Integer> workerConcurrency = new HashMap<>();
     private final Map<String, WorkerExecutor> workerExecutors = new ConcurrentHashMap<>();
