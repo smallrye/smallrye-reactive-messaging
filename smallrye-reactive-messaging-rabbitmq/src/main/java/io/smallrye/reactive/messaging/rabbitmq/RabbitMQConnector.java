@@ -161,11 +161,11 @@ public class RabbitMQConnector implements IncomingConnectorFactory, OutgoingConn
 
     @Inject
     @Any
-    private Instance<RabbitMQOptions> clientOptions;
+    Instance<RabbitMQOptions> clientOptions;
 
     @Inject
     @Any
-    private Instance<CredentialsProvider> credentialsProviders;
+    Instance<CredentialsProvider> credentialsProviders;
 
     RabbitMQConnector() {
         // used for proxies

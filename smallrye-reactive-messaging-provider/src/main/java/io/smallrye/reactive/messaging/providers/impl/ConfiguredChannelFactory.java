@@ -35,7 +35,7 @@ public class ConfiguredChannelFactory implements ChannelRegistar {
     private final ConnectorFactories factories;
 
     @Inject
-    private Instance<PublisherDecorator> publisherDecoratorInstance;
+    Instance<PublisherDecorator> publisherDecoratorInstance;
 
     // CDI requirement for normal scoped beans
     protected ConfiguredChannelFactory() {
