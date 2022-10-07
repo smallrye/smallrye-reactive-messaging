@@ -43,6 +43,7 @@ public class MqttHelpers {
         options.setWillQoS(config.getWillQos());
         options.setWillFlag(config.getWillFlag());
         options.setWillRetain(config.getWillRetain());
+        options.setUnsubscribeOnDisconnect(config.getUnsubscribeOnDisconnection().booleanValue());
         return options;
     }
 
