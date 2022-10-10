@@ -13,6 +13,7 @@ public class MqttClientSessionOptions extends MqttClientOptions {
     private Optional<String> serverName = DEFAULT_SERVER_NAME;
     private int port = MqttClientOptions.DEFAULT_PORT;
     private ReconnectDelayOptions reconnectDelay = DEFAULT_RECONNECT_DELAY;
+    private boolean unsubscribeOnDisconnect = false;
 
     /**
      * Default constructor
@@ -69,4 +70,13 @@ public class MqttClientSessionOptions extends MqttClientOptions {
         this.serverName = serverName;
         return this;
     }
+
+    public boolean isUnsubscribeOnDisconnect() {
+        return unsubscribeOnDisconnect;
+    }
+
+    public void setUnsubscribeOnDisconnect(boolean unsubscribeOnDisconnect) {
+        this.unsubscribeOnDisconnect = unsubscribeOnDisconnect;
+    }
+
 }

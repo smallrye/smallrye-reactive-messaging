@@ -78,3 +78,26 @@ you can pass any attribute supported by this client.
     A single instance of `MqttClient` and a single connection is used for
     each `host` / `port` / `server-name` / `client-id`. This client is
     reused for both the inbound and outbound connectors.
+    
+!!!important
+	Using `auto-clean-session=false` the MQTT Connector send Subscribe requests
+	to the broken only if a Persistent Session is not present (like on the first 
+	connection). This means that if a Session is already present (maybe for a 
+	previous run) and you add a new incoming channel, this will not be subscribed.
+	Beware to check always the subscription present on Broker when use 
+	`auto-clean-session=false`.
+	
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    

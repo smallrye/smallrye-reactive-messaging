@@ -45,6 +45,7 @@ public class MqttSource {
                 .subscribe(topic, RequestedQoS.valueOf(qos))
                 .onComplete(outcome -> log.info("Subscription outcome: " + outcome))
                 .onSuccess(ignore -> ready.set(true));
+
         this.source = ReactiveStreams.fromPublisher(
                 holder.stream()
                         .select().where(m -> matches(topic, m))
@@ -58,10 +59,13 @@ public class MqttSource {
                         .onOverflow().buffer(config.getBufferSize())
                         .onCancellation().call(() -> {
                             ready.set(false);
-                            return Uni
-                                    .createFrom()
-                                    .completionStage(holder.getClient()
-                                            .unsubscribe(topic).toCompletionStage());
+                            if (config.getUnsubscribeOnDisconnection())
+                                return Uni
+                                        .createFrom()
+                                        .completionStage(holder.getClient()
+                                                .unsubscribe(topic).toCompletionStage());
+                            else
+                                return Uni.createFrom().voidItem();
                         })
                         .onFailure().invoke(log::unableToConnectToBroker));
     }

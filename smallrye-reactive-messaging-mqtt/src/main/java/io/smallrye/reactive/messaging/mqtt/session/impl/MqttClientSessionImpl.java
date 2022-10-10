@@ -486,13 +486,16 @@ public class MqttClientSessionImpl implements MqttClientSession {
                     options.isCleanSession(), ack.isSessionPresent()));
         }
 
-        if (!this.subscriptions.isEmpty() && (options.isCleanSession() || !ack.isSessionPresent())) {
-            if (log.isDebugEnabled()) {
-                log.debug("Re-subscribe to: " + this.subscriptions);
-            }
+        if (options.isCleanSession() || !ack.isSessionPresent()) {
             // re-subscribe if we have requested subscriptions and (either cleanSession=true or no session found on the server)
             requestSubscribe(new LinkedHashMap<>(this.subscriptions));
+        } else {
+            // If the session is present on broker, I mark all subscription to SUBSC
+            log.debug("Session present on broker, subscriptions request not sent. "
+                    + "Be sure that the subscriptions on the broker side are the same that this client needs.");
+            this.subscriptions.forEach((t, q) -> notifySubscriptionState(t, SubscriptionState.SUBSCRIBED, q.toInteger()));
         }
+
     }
 
     /**
@@ -638,6 +641,10 @@ public class MqttClientSessionImpl implements MqttClientSession {
         if (topics.isEmpty() || this.client == null || !this.client.isConnected()) {
             // nothing to do
             return;
+        }
+
+        if (log.isDebugEnabled()) {
+            log.debug("Request Subscribe to: " + topics);
         }
 
         this.client
