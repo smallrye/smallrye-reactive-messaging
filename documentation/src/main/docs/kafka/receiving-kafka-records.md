@@ -115,6 +115,25 @@ The Kafka connector supports three strategies:
     there are poison pill messages. This strategy is the default if
     `enable.auto.commit` is not explicitly set to `true`.
 
+-   `checkpoint` allows persisting consumer offsets on a "state store",
+    instead of committing them back to the Kafka broker. Using the
+    `CheckpointMetadata` API, consumer code can persist a processing
+    state with the offset to mark the progress of a consumer.
+    When the processing continues from a previously persisted offset,
+    it seeks the Kafka consumer to that offset and also restores the
+    persisted state, continuing the stateful processing from where it
+    left off. The `checkpoint` strategy holds locally the processing
+    state associated with the latest offset, and persists it
+    periodically to the state store (period specified by
+    `auto.commit.interval.ms` (default: 5000)). The connector will be
+    marked as unhealthy if no processing state is persisted to the state
+    store in `checkpoint.unsynced-state-max-age.ms` (default: 10000).
+    Using the `CheckpointMetadata` API the user code can force to persist
+    the state on message ack. If `checkpoint.unsynced-state-max-age.ms`
+    is set to less than or equal to 0, it does not perform any health
+    check verification. For more information, see
+    [Stateful processing with Checkpointing](#stateful-processing-with-checkpointing)
+
 -   `latest` commits the record offset received by the Kafka consumer as
     soon as the associated message is acknowledged (if the offset is
     higher than the previously committed offset). This strategy provides
@@ -501,6 +520,87 @@ The configured commit strategy will be applied for these records only.
 Conversely, if the processing throws an exception, all messages are
 *nacked*, applying the failure strategy for all the records inside the
 batch.
+
+## Stateful processing with Checkpointing
+
+!!!warning "Experimental"
+    Checkpointing is experimental, and APIs and features are subject
+    to change in the future.
+
+The `checkpoint` commit strategy allows for a Kafka incoming channel to
+manage topic-partition offsets, not by committing on the Kafka broker,
+but by persisting consumers' advancement on a
+[_state store_](#implementing-state-stores).
+
+In addition to that, if the consumer builds an internal state as
+a result of consumed records, the topic-partition offset persisted
+to the state store can be associated with a _processing state_,
+saving the local state to the persistent store. When a consumer
+restarts or consumer group instances scale, i.e. when new partitions
+get assigned to the consumer, the checkpointing works by resuming the
+processing from the latest offset and its saved state.
+
+The `@Incoming` channel consumer code can manipulate the processing
+state through the `CheckpointMetadata` API:
+
+``` java
+{{ insert('kafka/inbound/KafkaCheckpointExample.java', 'code') }}
+```
+
+The `transform` method allows applying a transformation function to
+the current state, producing a changed state and registering it
+locally for checkpointing. By default, the local state is synced
+(persisted) to the state store periodically, period specified by
+`auto.commit.interval.ms`, (default: 5000). If `persistOnAck` flag
+is given, the latest state is persisted to the state store eagerly
+on message acknowledgment. The `setNext` method works similarly
+directly setting the latest state.
+
+The `checkpoint` commit strategy tracks when a processing state
+is last persisted for each topic-partition. If an outstanding state
+change can not be persisted for `checkpoint.unsynced-state-max-age.ms`
+(default: 10000), the channel is marked unhealthy.
+
+Where and how processing states are persisted is decided by the
+state store implementation. This can be configured on the incoming
+channel using `checkpoint.state-store` configuration property,
+using the state store factory identifier name.
+The serialization of state objects depends on the state store
+implementation. In order to instruct state stores for serialization
+can require configuring the type name of state objects
+using `checkpoint.state-type` property.
+
+In order to keep Smallrye Reactive Messaging free of persistence-related
+dependencies, this library includes only a default state store named `file`.
+It is based on Vert.x Filesystem API and stores the processing state
+in Json formatted files, in a local directory configured by the
+`checkpoint.file.state-dir` property. State files follow the naming
+scheme `[consumer-group-id]:[topic]:[partition]`.
+
+### Implementing State Stores
+
+State store implementations are required to implement `CheckpointStateStore`
+interface, and provide a managed bean implementing
+`CheckpointStateStore.Factory`, identified with `@Identifier` bean
+qualifier indicating the name of the state-store.
+The factory bean identifier indicates the name to configure on
+`checkpoint.state-store` config property.
+The factory is discovered as a CDI managed bean and state store is
+created once per channel:
+
+``` java
+{{ insert('kafka/inbound/MyCheckpointStateStore.java') }}
+```
+
+The checkpoint commit strategy calls the state store in following events:
+
+- `fetchProcessingState` : on partitions assigned, to seek the consumer to the latest offset.
+- `persistProcessingState` on partitions revoked, to persist the state of last processed record.
+- `persistProcessingState` on message acknowledgement, if a new state is set during the processing and `persistOnAck` flag is set.
+- `persistProcessingState` on `auto.commit.interval.ms` intervals, if a new state is set during processing.
+- `persistProcessingState` on channel shutdown.
+- `close` on channel shutdown.
+
 
 ## Configuration Reference
 

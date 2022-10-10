@@ -63,8 +63,9 @@ public interface KafkaLogging extends BasicLogger {
     void unableToSendRecord(@Cause Throwable t);
 
     @LogMessage(level = Logger.Level.DEBUG)
-    @Message(id = 18211, value = "Message %s sent successfully to Kafka topic '%s'")
-    void successfullyToTopic(org.eclipse.microprofile.reactive.messaging.Message<?> message, String topic);
+    @Message(id = 18211, value = "Message %s sent successfully to Kafka topic-partition '%s-%d', with offset %d")
+    void successfullyToTopic(org.eclipse.microprofile.reactive.messaging.Message<?> message, String topic, int partition,
+            long offset);
 
     @LogMessage(level = Logger.Level.ERROR)
     @Message(id = 18212, value = "Message %s was not sent to Kafka topic '%s' - nacking message")
@@ -268,4 +269,45 @@ public interface KafkaLogging extends BasicLogger {
     @LogMessage(level = Logger.Level.FATAL)
     @Message(id = 18263, value = "The serialization failure handler `%s` throws an exception")
     void serializationFailureHandlerFailure(String instance, @Cause Throwable t);
+
+    @LogMessage(level = Logger.Level.WARN)
+    @Message(id = 18264, value = "No `checkpoint.state-store` given to use with checkpoint commit strategy. `file` will be used.")
+    void checkpointDefaultStateStore();
+
+    @LogMessage(level = Logger.Level.WARN)
+    @Message(id = 18265, value = "Will not health check checkpoint commit strategy for consumer '%s'.")
+    void disableCheckpointCommitStrategyHealthCheck(String consumerId);
+
+    @LogMessage(level = Logger.Level.DEBUG)
+    @Message(id = 18266, value = "Will mark checkpoint commit strategy for consumer '%s' as unhealthy if processing state go more than %d milliseconds without being persisted.")
+    void setCheckpointCommitStrategyUnsyncedStateMaxAge(String consumerId, int unsyncedStateMaxAge);
+
+    @LogMessage(level = Logger.Level.DEBUG)
+    @Message(id = 18267, value = "Partitions assigned to client %s : %s with initial state %s")
+    void checkpointPartitionsAssigned(String consumerId, Collection<TopicPartition> assignments, String state);
+
+    @LogMessage(level = Logger.Level.ERROR)
+    @Message(id = 18268, value = "Failed fetching state on partitions assigned to client %s : %s")
+    void failedCheckpointPartitionsAssigned(String consumerId, Collection<TopicPartition> assignments, @Cause Throwable cause);
+
+    @LogMessage(level = Logger.Level.DEBUG)
+    @Message(id = 18269, value = "Partitions revoked from client %s: %s with state to persist %s")
+    void checkpointPartitionsRevoked(String consumerId, Collection<TopicPartition> assignments, String state);
+
+    @LogMessage(level = Logger.Level.DEBUG)
+    @Message(id = 18270, value = "Persisted state for client %s : %s")
+    void checkpointPersistedState(String consumerId, String state);
+
+    @LogMessage(level = Logger.Level.WARN)
+    @Message(id = 18271, value = "Failed persisting state for %s : %s")
+    void checkpointFailedPersistingState(String consumerId, String state, @Cause Throwable cause);
+
+    @LogMessage(level = Logger.Level.DEBUG)
+    @Message(id = 18272, value = "Failed persisting state but can be retried for %s : %s")
+    void checkpointFailedPersistingStateRetryable(String consumerId, String state, @Cause Throwable cause);
+
+    @LogMessage(level = Logger.Level.WARN)
+    @Message(id = 18273, value = "Checkpoint commit strategy processing state type not found for channel %s : %s")
+    void checkpointStateTypeNotFound(String channel, String fqcn);
+
 }

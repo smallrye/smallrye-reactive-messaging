@@ -75,6 +75,8 @@ public class ConfigurationCleaner {
             "key.serializer",
             "value.serializer");
 
+    private static final List<String> CONSUMER_PREFIX = Arrays.asList("checkpoint");
+
     private ConfigurationCleaner() {
         // Avoid direct instantiation
     }
@@ -94,6 +96,9 @@ public class ConfigurationCleaner {
         }
         for (String key : CONSUMER) {
             conf.remove(key);
+        }
+        for (String prefix : CONSUMER_PREFIX) {
+            conf.keySet().removeIf(key -> key.startsWith(prefix));
         }
     }
 

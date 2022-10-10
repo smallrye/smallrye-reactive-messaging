@@ -35,11 +35,11 @@ import io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Direction;
 import io.smallrye.reactive.messaging.health.HealthReport;
 import io.smallrye.reactive.messaging.health.HealthReporter;
 import io.smallrye.reactive.messaging.kafka.commit.KafkaCommitHandler;
-import io.smallrye.reactive.messaging.kafka.commit.KafkaThrottledLatestProcessedCommit;
 import io.smallrye.reactive.messaging.kafka.fault.KafkaFailureHandler;
 import io.smallrye.reactive.messaging.kafka.impl.ConfigHelper;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSink;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
+import io.smallrye.reactive.messaging.kafka.impl.TopicPartitions;
 import io.smallrye.reactive.messaging.providers.connectors.ExecutionHolder;
 import io.vertx.mutiny.core.Vertx;
 
@@ -75,6 +75,9 @@ import io.vertx.mutiny.core.Vertx;
 @ConnectorAttribute(name = "failure-strategy", type = "string", direction = Direction.INCOMING, description = "Specify the failure strategy to apply when a message produced from a record is acknowledged negatively (nack). Values can be `fail` (default), `ignore`, or `dead-letter-queue`", defaultValue = "fail")
 @ConnectorAttribute(name = "commit-strategy", type = "string", direction = Direction.INCOMING, description = "Specify the commit strategy to apply when a message produced from a record is acknowledged. Values can be `latest`, `ignore` or `throttled`. If `enable.auto.commit` is true then the default is `ignore` otherwise it is `throttled`")
 @ConnectorAttribute(name = "throttled.unprocessed-record-max-age.ms", type = "int", direction = Direction.INCOMING, description = "While using the `throttled` commit-strategy, specify the max age in milliseconds that an unprocessed message can be before the connector is marked as unhealthy. Setting this attribute to 0 disables this monitoring.", defaultValue = "60000")
+@ConnectorAttribute(name = "checkpoint.state-store", type = "string", direction = Direction.INCOMING, description = "While using the `checkpoint` commit-strategy, the name set in `@Identifier` of a bean that implements `io.smallrye.reactive.messaging.kafka.StateStore.Factory` to specify the state store implementation.")
+@ConnectorAttribute(name = "checkpoint.state-type", type = "string", direction = Direction.INCOMING, description = "While using the `checkpoint` commit-strategy, the fully qualified type name of the state object to persist in the state store. When provided, it can be used by the state store implementation to help persisting the processing state object.")
+@ConnectorAttribute(name = "checkpoint.unsynced-state-max-age.ms", type = "int", direction = Direction.INCOMING, description = "While using the `checkpoint` commit-strategy, specify the max age in milliseconds that the processing state must be persisted before the connector is marked as unhealthy. Setting this attribute to 0 disables this monitoring.", defaultValue = "10000")
 @ConnectorAttribute(name = "dead-letter-queue.topic", type = "string", direction = Direction.INCOMING, description = "When the `failure-strategy` is set to `dead-letter-queue` indicates on which topic the record is sent. Defaults is `dead-letter-topic-$channel`")
 @ConnectorAttribute(name = "dead-letter-queue.producer-client-id", type = "string", direction = Direction.INCOMING, description = "When the `failure-strategy` is set to `dead-letter-queue` indicates what client id the generated producer should use. Defaults is `kafka-dead-letter-topic-producer-$client-id`")
 @ConnectorAttribute(name = "dead-letter-queue.key.serializer", type = "string", direction = Direction.INCOMING, description = "When the `failure-strategy` is set to `dead-letter-queue` indicates the key serializer to use. If not set the serializer associated to the key deserializer is used")
@@ -158,7 +161,7 @@ public class KafkaConnector implements IncomingConnectorFactory, OutgoingConnect
             @Observes(notifyObserver = Reception.IF_EXISTS) @Priority(50) @BeforeDestroyed(ApplicationScoped.class) Object event) {
         sources.forEach(KafkaSource::closeQuietly);
         sinks.forEach(KafkaSink::closeQuietly);
-        KafkaThrottledLatestProcessedCommit.clearCache();
+        TopicPartitions.clearCache();
     }
 
     @PostConstruct

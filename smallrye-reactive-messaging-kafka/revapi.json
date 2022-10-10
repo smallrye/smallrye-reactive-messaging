@@ -24,17 +24,17 @@
     "criticality" : "highlight",
     "minSeverity" : "POTENTIALLY_BREAKING",
     "minCriticality" : "documented",
-    "differences" : [
-        {
-            "ignore": true,
-            "code": "java.annotation.attributeValueChanged",
-            "old": "class io.smallrye.reactive.messaging.kafka.KafkaConnector",
-            "new": "class io.smallrye.reactive.messaging.kafka.KafkaConnector",
-            "annotationType": "io.smallrye.reactive.messaging.annotations.ConnectorAttributes",
-            "attribute": "value",
-            "justification": "Added lazy-client to connector attributes"
-        }
-    ]
+      "differences" : [
+          {
+              "ignore": true,
+              "code": "java.annotation.attributeValueChanged",
+              "old": "class io.smallrye.reactive.messaging.kafka.KafkaConnector",
+              "new": "class io.smallrye.reactive.messaging.kafka.KafkaConnector",
+              "annotationType": "io.smallrye.reactive.messaging.annotations.ConnectorAttributes",
+              "attribute": "value",
+              "justification": "Added lazy-client, checkpoint.state-store, checkpoint.unsynced-state-max-age.ms and checkpoint.state-type to connector attributes"
+          }
+      ]
   }
 }, {
   "extension" : "revapi.reporter.json",

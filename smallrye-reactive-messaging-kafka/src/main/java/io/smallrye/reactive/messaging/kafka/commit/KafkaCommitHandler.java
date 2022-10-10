@@ -25,6 +25,7 @@ public interface KafkaCommitHandler {
         String LATEST = "latest";
         String IGNORE = "ignore";
         String THROTTLED = "throttled";
+        String CHECKPOINT = "checkpoint";
 
     }
 
