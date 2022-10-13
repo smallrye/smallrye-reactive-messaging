@@ -35,6 +35,7 @@ find . -type f -name '*.kt' -exec sed -i '' 's/javax./jakarta./g' {} +
 find . -type f -name '*.java' -exec sed -i '' 's/jakarta.lang./javax.lang./g' {} +
 find . -type f -name '*.java' -exec sed -i '' 's/jakarta.tools./javax.tools./g' {} +
 find . -type f -name '*.java' -exec sed -i '' 's/jakarta.annotation.processing./javax.annotation.processing./g' {} +
+find . -type f -name '*.java' -exec sed -i '' 's/jakarta.net./javax.net./g' {} +
 # service loader files
 find . -path "*/src/main/resources/META-INF/services/javax*" | sed -e 'p;s/javax/jakarta/g' | xargs -n2 git mv
 # docs
