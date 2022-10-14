@@ -49,7 +49,8 @@ public class RabbitMQMessageSender implements Processor<Message<?>, Message<?>>,
             final Uni<RabbitMQPublisher> retrieveSender) {
         this.retrieveSender = retrieveSender;
         this.configuration = oc;
-        this.configuredExchange = oc.getExchangeName().orElseGet(oc::getChannel);
+        this.configuredExchange = Boolean.TRUE.equals(oc.getExchangeIsDefault()) ? ""
+                : oc.getExchangeName().orElseGet(oc::getChannel);
         this.isTracingEnabled = oc.getTracingEnabled();
         this.inflights = oc.getMaxInflightMessages();
         this.defaultTtl = oc.getDefaultTtl();

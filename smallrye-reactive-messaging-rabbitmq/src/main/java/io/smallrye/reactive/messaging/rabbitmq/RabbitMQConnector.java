@@ -93,6 +93,7 @@ import io.vertx.rabbitmq.RabbitMQPublisherOptions;
 @ConnectorAttribute(name = "exchange.auto-delete", direction = INCOMING_AND_OUTGOING, description = "Whether the exchange should be deleted after use", type = "boolean", defaultValue = "false")
 @ConnectorAttribute(name = "exchange.type", direction = INCOMING_AND_OUTGOING, description = "The exchange type: direct, fanout, headers or topic (default)", type = "string", defaultValue = "topic")
 @ConnectorAttribute(name = "exchange.declare", direction = INCOMING_AND_OUTGOING, description = "Whether to declare the exchange; set to false if the exchange is expected to be set up independently", type = "boolean", defaultValue = "true")
+@ConnectorAttribute(name = "exchange.is-default", direction = OUTGOING, description = "Whether the default exchange of RabbitMQ should be used; if this is true, all other exchange parameters are ignored", type = "boolean", defaultValue = "false")
 
 // Queue
 @ConnectorAttribute(name = "queue.name", direction = INCOMING, description = "The queue from which messages are consumed.", type = "string", mandatory = true)
@@ -332,12 +333,14 @@ public class RabbitMQConnector implements IncomingConnectorFactory, OutgoingConn
 
         // Create a client
         final RabbitMQClient client = RabbitMQClientHelper.createClient(this, oc, clientOptions, credentialsProviders);
-        client.getDelegate().addConnectionEstablishedCallback(promise -> {
-            // Ensure we create the exchange to which messages are to be sent
-            Uni.createFrom().nullItem()
-                    .onItem().call(ignored -> establishExchange(client, oc))
-                    .subscribe().with((ignored) -> promise.complete(), promise::fail);
-        });
+        if (Boolean.FALSE.equals(oc.getExchangeIsDefault())) {
+            client.getDelegate().addConnectionEstablishedCallback(promise -> {
+                // Ensure we create the exchange to which messages are to be sent
+                Uni.createFrom().nullItem()
+                        .onItem().call(ignored -> establishExchange(client, oc))
+                        .subscribe().with((ignored) -> promise.complete(), promise::fail);
+            });
+        }
 
         final ConnectionHolder holder = new ConnectionHolder(client, oc, getVertx());
         final Uni<RabbitMQPublisher> getSender = holder.getOrEstablishConnection()
