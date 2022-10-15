@@ -56,6 +56,7 @@ public class MqttSource {
                     }
                     return multi;
                 });
+        // overflow strategy
         String ofs = config.getOverflowStrategy();
         if ("drop".equals(ofs)) {
             mqtt = mqtt.onOverflow().drop();
