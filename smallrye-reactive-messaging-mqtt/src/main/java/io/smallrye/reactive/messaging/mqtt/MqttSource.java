@@ -56,7 +56,7 @@ public class MqttSource {
                     }
                     return multi;
                 });
-        // overflow strategy
+        // overflow strategy can be drop, drop-prev or default buffer
         String ofs = config.getOverflowStrategy();
         if ("drop".equals(ofs)) {
             mqtt = mqtt.onOverflow().drop();
