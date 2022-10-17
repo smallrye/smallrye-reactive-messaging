@@ -138,3 +138,14 @@ mp.messaging.outgoing.people-out.exchange.declare=true
     exchange or have a different default routing key, then the
     `exchange.type` and `default-routing-key` properties need to be
     explicitly specified.
+
+## Sending to specific queues via the default exchange
+
+To send a message to a specific queue (usually a reply queue),
+you have to configure the default exchange as an outgoing channel and set the name of the queue as routing key in the message metadata.
+The name of the exchange needs to be set to `""`.
+
+```properties
+mp.messaging.outgoing.channel-name-for-default-exchange.connector=smallrye-rabbitmq
+mp.messaging.outgoing.channel-name-for-default-exchange.exchange.name=""
+```
