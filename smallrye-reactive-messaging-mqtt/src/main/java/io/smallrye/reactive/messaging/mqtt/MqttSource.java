@@ -6,10 +6,10 @@ import static io.smallrye.reactive.messaging.mqtt.i18n.MqttLogging.log;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Pattern;
 
-import io.smallrye.mutiny.Multi;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 
+import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.mqtt.session.MqttClientSessionOptions;
 import io.smallrye.reactive.messaging.mqtt.session.RequestedQoS;
@@ -66,15 +66,15 @@ public class MqttSource {
             mqtt = mqtt.onOverflow().buffer(config.getBufferSize());
         }
         this.source = ReactiveStreams.fromPublisher(mqtt.onCancellation().call(() -> {
-                    ready.set(false);
-                    if (config.getUnsubscribeOnDisconnection())
-                        return Uni
-                                .createFrom()
-                                .completionStage(holder.getClient()
-                                        .unsubscribe(topic).toCompletionStage());
-                    else
-                        return Uni.createFrom().voidItem();
-                })
+            ready.set(false);
+            if (config.getUnsubscribeOnDisconnection())
+                return Uni
+                        .createFrom()
+                        .completionStage(holder.getClient()
+                                .unsubscribe(topic).toCompletionStage());
+            else
+                return Uni.createFrom().voidItem();
+        })
                 .onFailure().invoke(log::unableToConnectToBroker));
     }
 

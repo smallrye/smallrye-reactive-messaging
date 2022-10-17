@@ -129,4 +129,10 @@ public interface ProviderLogging extends BasicLogger {
     @LogMessage(level = Logger.Level.INFO)
     @Message(id = 238, value = "No ExecutionHolder, disabling @Blocking support")
     void noExecutionHolderDisablingBlockingSupport();
+
+    @Message(id = 239, value = "Cannot specify both client-options-name and client-ssl-context-name")
+    IllegalStateException cannotSpecifyBothClientOptionsNameAndClientSslContextName();
+
+    @Message(id = 240, value = "Could not find an SSLContext bean with the @Identifier=%s")
+    IllegalStateException couldFindSslContextWithIdentifier(String sslContextIdentifier);
 }

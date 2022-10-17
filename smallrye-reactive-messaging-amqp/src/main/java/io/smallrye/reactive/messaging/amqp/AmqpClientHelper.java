@@ -33,8 +33,7 @@ public class AmqpClientHelper {
         Optional<String> clientOptionsName = config.getClientOptionsName();
         Optional<String> clientSslContextName = config.getClientSslContextName();
         if (clientOptionsName.isPresent() && clientSslContextName.isPresent()) {
-            // TODO i18n
-            throw new IllegalStateException("Cannot specify both client-options-name and client-ssl-context-name");
+            throw ProviderLogging.log.cannotSpecifyBothClientOptionsNameAndClientSslContextName();
         }
         Vertx vertx = connector.getVertx();
         if (clientOptionsName.isPresent()) {
@@ -213,9 +212,7 @@ public class AmqpClientHelper {
             Instance<SSLContext> context = clientSslContexts
                     .select(Identifier.Literal.of(clientSslContextName.get()));
             if (context.isUnsatisfied()) {
-                // TODO i18n
-                throw new IllegalStateException(
-                        "Could not find an SSLContext bean with the @Identifier=" + clientSslContextName.get());
+                throw ProviderLogging.log.couldFindSslContextWithIdentifier(clientSslContextName.get());
             }
             return context.get();
         }
