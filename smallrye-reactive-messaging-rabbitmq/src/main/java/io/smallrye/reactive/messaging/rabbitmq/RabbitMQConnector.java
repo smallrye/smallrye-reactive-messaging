@@ -88,7 +88,7 @@ import io.vertx.rabbitmq.RabbitMQPublisherOptions;
 @ConnectorAttribute(name = "credentials-provider-name", direction = INCOMING_AND_OUTGOING, description = "The name of the RabbitMQ Credentials Provider bean used to provide dynamic credentials to the RabbitMQ client", type = "string", alias = "rabbitmq-credentials-provider-name")
 
 // Exchange
-@ConnectorAttribute(name = "exchange.name", direction = INCOMING_AND_OUTGOING, description = "The exchange that messages are published to or consumed from. If not set, the channel name is used", type = "string")
+@ConnectorAttribute(name = "exchange.name", direction = INCOMING_AND_OUTGOING, description = "The exchange that messages are published to or consumed from. If not set, the channel name is used. If set to \"\", the default exchange is used.", type = "string")
 @ConnectorAttribute(name = "exchange.durable", direction = INCOMING_AND_OUTGOING, description = "Whether the exchange is durable", type = "boolean", defaultValue = "true")
 @ConnectorAttribute(name = "exchange.auto-delete", direction = INCOMING_AND_OUTGOING, description = "Whether the exchange should be deleted after use", type = "boolean", defaultValue = "false")
 @ConnectorAttribute(name = "exchange.type", direction = INCOMING_AND_OUTGOING, description = "The exchange type: direct, fanout, headers or topic (default)", type = "string", defaultValue = "topic")
@@ -171,8 +171,8 @@ public class RabbitMQConnector implements IncomingConnectorFactory, OutgoingConn
         // used for proxies
     }
 
-    private static String getExchangeName(final RabbitMQConnectorCommonConfiguration config) {
-        return config.getExchangeName().orElse(config.getChannel());
+    public static String getExchangeName(final RabbitMQConnectorCommonConfiguration config) {
+        return config.getExchangeName().map(s -> "\"\"".equals(s) ? "" : s).orElse(config.getChannel());
     }
 
     @PostConstruct
@@ -334,9 +334,7 @@ public class RabbitMQConnector implements IncomingConnectorFactory, OutgoingConn
         final RabbitMQClient client = RabbitMQClientHelper.createClient(this, oc, clientOptions, credentialsProviders);
         client.getDelegate().addConnectionEstablishedCallback(promise -> {
             // Ensure we create the exchange to which messages are to be sent
-            Uni.createFrom().nullItem()
-                    .onItem().call(ignored -> establishExchange(client, oc))
-                    .subscribe().with((ignored) -> promise.complete(), promise::fail);
+            establishExchange(client, oc).subscribe().with((ignored) -> promise.complete(), promise::fail);
         });
 
         final ConnectionHolder holder = new ConnectionHolder(client, oc, getVertx());
@@ -433,13 +431,17 @@ public class RabbitMQConnector implements IncomingConnectorFactory, OutgoingConn
             final RabbitMQConnectorCommonConfiguration config) {
         final String exchangeName = getExchangeName(config);
 
-        // Declare the exchange if we have been asked to do so
-        return Uni.createFrom().item(() -> Boolean.TRUE.equals(config.getExchangeDeclare()) ? null : exchangeName)
-                .onItem().ifNull().switchTo(() -> client.exchangeDeclare(exchangeName, config.getExchangeType(),
-                        config.getExchangeDurable(), config.getExchangeAutoDelete())
-                        .onItem().invoke(() -> log.exchangeEstablished(exchangeName))
-                        .onFailure().invoke(ex -> log.unableToEstablishExchange(exchangeName, ex))
-                        .onItem().transform(v -> exchangeName));
+        // Declare the exchange if we have been asked to do so and only when exchange name is not default ("")
+        boolean declareExchange = Boolean.TRUE.equals(config.getExchangeDeclare()) && exchangeName.length() != 0;
+        if (declareExchange) {
+            return client.exchangeDeclare(exchangeName, config.getExchangeType(),
+                    config.getExchangeDurable(), config.getExchangeAutoDelete())
+                    .onItem().invoke(() -> log.exchangeEstablished(exchangeName))
+                    .onFailure().invoke(ex -> log.unableToEstablishExchange(exchangeName, ex))
+                    .onItem().transform(v -> exchangeName);
+        } else {
+            return Uni.createFrom().item(exchangeName);
+        }
     }
 
     /**
@@ -515,6 +517,10 @@ public class RabbitMQConnector implements IncomingConnectorFactory, OutgoingConn
         final List<String> routingKeys = Arrays.stream(ic.getRoutingKeys().split(","))
                 .map(String::trim).collect(Collectors.toList());
 
+        // Skip queue bindings if exchange name is default ("")
+        if (exchangeName.length() == 0) {
+            return Multi.createFrom().empty();
+        }
         return Multi.createFrom().iterable(routingKeys)
                 .onItem().call(routingKey -> client.queueBind(serverQueueName(queueName), exchangeName, routingKey))
                 .onItem().invoke(routingKey -> log.bindingEstablished(queueName, exchangeName, routingKey))
