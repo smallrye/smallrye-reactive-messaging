@@ -19,19 +19,24 @@ public class AmqpBroker {
     static EmbeddedActiveMQ server;
     static AmqpBroker instance;
 
+    private String brokerXmlName;
+
     public Map<String, String> start(int port) {
         instance = this;
         try {
             server = new EmbeddedActiveMQ();
-            Configuration config = new ConfigurationImpl();
-            config.setPagingDirectory("target/data/paging");
-            config.setBindingsDirectory("target/data/bindings");
-            config.setJournalDirectory("target/data/journal");
-            config.setLargeMessagesDirectory("target/data/large-messages");
-            config.addAcceptorConfiguration("in-vm", "vm://0");
-            config.addAcceptorConfiguration("tcp", "tcp://127.0.0.1:" + port);
-
-            server.setConfiguration(config);
+            if (brokerXmlName == null) {
+                Configuration config = new ConfigurationImpl();
+                config.setPagingDirectory("target/data/paging");
+                config.setBindingsDirectory("target/data/bindings");
+                config.setJournalDirectory("target/data/journal");
+                config.setLargeMessagesDirectory("target/data/large-messages");
+                config.addAcceptorConfiguration("in-vm", "vm://0");
+                config.addAcceptorConfiguration("tcp", "tcp://127.0.0.1:" + port);
+                server.setConfiguration(config);
+            } else {
+                server.setConfigResourcePath(brokerXmlName);
+            }
             server.setSecurityManager(new ActiveMQSecurityManager() {
                 @Override
                 public boolean validateUser(String username, String password) {
@@ -62,6 +67,7 @@ public class AmqpBroker {
                 server.stop();
             }
             instance = null;
+            brokerXmlName = null;
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -71,4 +77,7 @@ public class AmqpBroker {
         return server;
     }
 
+    public void setConfigResourcePath(String brokerXmlName) {
+        this.brokerXmlName = brokerXmlName;
+    }
 }
