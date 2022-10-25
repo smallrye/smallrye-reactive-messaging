@@ -13,6 +13,7 @@ import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.mqtt.session.MqttClientSessionOptions;
 import io.smallrye.reactive.messaging.mqtt.session.RequestedQoS;
+import io.smallrye.reactive.messaging.providers.locals.ContextOperator;
 import io.vertx.mutiny.core.Vertx;
 import io.vertx.mutiny.mqtt.messages.MqttPublishMessage;
 
@@ -74,7 +75,7 @@ public class MqttSource {
                                 .unsubscribe(topic).toCompletionStage());
             else
                 return Uni.createFrom().voidItem();
-        })
+        }).plug(ContextOperator::apply)
                 .onFailure().invoke(log::unableToConnectToBroker));
     }
 

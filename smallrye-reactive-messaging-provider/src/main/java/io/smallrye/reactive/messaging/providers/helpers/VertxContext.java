@@ -41,6 +41,12 @@ public class VertxContext {
         return future;
     }
 
+    public static <V> CompletionStage<V> runOnEventLoopContext(Context context, Consumer<CompletableFuture<V>> runnable) {
+        CompletableFuture<V> future = new CompletableFuture<>();
+        runOnEventLoopContext(context, () -> runnable.accept(future));
+        return future;
+    }
+
     public static <V> CompletionStage<V> callOnContext(Context context, Callable<V> callable) {
         return runOnContext(context, future -> {
             try {

@@ -3,15 +3,12 @@ package io.smallrye.reactive.messaging.providers.locals;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 
-import javax.enterprise.context.ApplicationScoped;
-
 import org.eclipse.microprofile.reactive.messaging.Message;
 
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.operators.MultiOperator;
 import io.smallrye.mutiny.operators.multi.MultiOperatorProcessor;
 import io.smallrye.mutiny.subscription.MultiSubscriber;
-import io.smallrye.reactive.messaging.PublisherDecorator;
 import io.smallrye.reactive.messaging.providers.helpers.VertxContext;
 import io.vertx.core.Context;
 import io.vertx.core.Vertx;
@@ -20,41 +17,32 @@ import io.vertx.core.Vertx;
  * Decorator to dispatch messages on the Vert.x context attached to the message via {@link LocalContextMetadata}.
  * Low priority to be called before other decorators.
  */
-@ApplicationScoped
-public class ContextDecorator implements PublisherDecorator {
+public class ContextOperator {
 
-    @Override
-    public int getPriority() {
-        return 0;
+    public static <T extends Message<?>> Multi<T> apply(Multi<T> publisher) {
+        return new ContextMulti<>(publisher);
     }
 
-    @Override
-    public Multi<? extends Message<?>> decorate(Multi<? extends Message<?>> publisher, String channelName,
-            boolean isConnector) {
-        return publisher
-                .plug(upstream -> new ContextMulti((Multi<Message<?>>) upstream));
-    }
+    static class ContextMulti<T extends Message<?>> extends MultiOperator<T, T> {
 
-    static class ContextMulti extends MultiOperator<Message<?>, Message<?>> {
-
-        public ContextMulti(Multi<Message<?>> upstream) {
+        public ContextMulti(Multi<T> upstream) {
             super(upstream);
         }
 
         @Override
-        public void subscribe(MultiSubscriber<? super Message<?>> subscriber) {
-            MultiOperatorProcessor<Message<?>, Message<?>> operator = new ContextProcessor(subscriber);
+        public void subscribe(MultiSubscriber<? super T> subscriber) {
+            MultiOperatorProcessor<T, T> operator = new ContextProcessor<>(subscriber);
             upstream().subscribe().withSubscriber(operator);
         }
 
-        static class ContextProcessor extends MultiOperatorProcessor<Message<?>, Message<?>> {
+        static class ContextProcessor<T extends Message<?>> extends MultiOperatorProcessor<T, T> {
 
             private volatile Context rootContext;
 
             private static final AtomicReferenceFieldUpdater<ContextProcessor, Context> ROOT_CONTEXT_UPDATER = AtomicReferenceFieldUpdater
                     .newUpdater(ContextProcessor.class, Context.class, "rootContext");
 
-            public ContextProcessor(MultiSubscriber<? super Message<?>> downstream) {
+            public ContextProcessor(MultiSubscriber<? super T> downstream) {
                 super(downstream);
             }
 
@@ -72,7 +60,7 @@ public class ContextDecorator implements PublisherDecorator {
             }
 
             @Override
-            public void onItem(Message<?> item) {
+            public void onItem(T item) {
                 Optional<LocalContextMetadata> metadata = item.getMetadata().get(LocalContextMetadata.class);
                 if (metadata.isPresent()) {
                     Context context = metadata.get().context();

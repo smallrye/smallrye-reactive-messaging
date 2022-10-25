@@ -259,7 +259,7 @@ public class KafkaThrottledLatestProcessedCommit extends ContextHolder implement
      */
     @Override
     public <K, V> Uni<Void> handle(final IncomingKafkaRecord<K, V> record) {
-        return Uni.createFrom().completionStage(VertxContext.runOnContext(context.getDelegate(), f -> {
+        return Uni.createFrom().completionStage(VertxContext.runOnEventLoopContext(context.getDelegate(), f -> {
             TopicPartition topicPartition = getTopicPartition(record);
             OffsetStore store = offsetStores
                     .get(topicPartition);

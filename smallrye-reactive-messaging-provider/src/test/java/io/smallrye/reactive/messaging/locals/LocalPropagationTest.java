@@ -32,6 +32,7 @@ import io.smallrye.reactive.messaging.annotations.Merge;
 import io.smallrye.reactive.messaging.connector.InboundConnector;
 import io.smallrye.reactive.messaging.providers.connectors.ExecutionHolder;
 import io.smallrye.reactive.messaging.providers.locals.ContextAwareMessage;
+import io.smallrye.reactive.messaging.providers.locals.ContextOperator;
 import io.smallrye.reactive.messaging.providers.locals.LocalContextMetadata;
 import io.vertx.core.impl.ConcurrentHashSet;
 import io.vertx.mutiny.core.Context;
@@ -174,7 +175,8 @@ public class LocalPropagationTest extends WeldTestBaseWithoutTails {
                     .onItem()
                     .transformToUniAndConcatenate(i -> Uni.createFrom().emitter(e -> context.runOnContext(() -> e.complete(i))))
                     .map(Message::of)
-                    .map(ContextAwareMessage::withContextMetadata);
+                    .map(ContextAwareMessage::withContextMetadata)
+                    .plug(ContextOperator::apply);
         }
     }
 
@@ -396,7 +398,8 @@ public class LocalPropagationTest extends WeldTestBaseWithoutTails {
 
             int p = ContextLocals.get("input", null);
             assertThat(p + 1).isEqualTo(payload);
-            return Uni.createFrom().item(payload).emitOn(Infrastructure.getDefaultExecutor());
+            return Uni.createFrom().item(() -> payload)
+                    .runSubscriptionOn(Infrastructure.getDefaultExecutor());
         }
 
         @Incoming("after-process")

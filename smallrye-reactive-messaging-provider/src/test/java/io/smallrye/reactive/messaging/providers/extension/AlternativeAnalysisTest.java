@@ -28,7 +28,6 @@ import io.smallrye.reactive.messaging.providers.connectors.WorkerPoolRegistry;
 import io.smallrye.reactive.messaging.providers.impl.ConfiguredChannelFactory;
 import io.smallrye.reactive.messaging.providers.impl.ConnectorFactories;
 import io.smallrye.reactive.messaging.providers.impl.InternalChannelRegistry;
-import io.smallrye.reactive.messaging.providers.locals.ContextDecorator;
 import io.smallrye.reactive.messaging.providers.wiring.Wiring;
 
 /**
@@ -60,7 +59,6 @@ public class AlternativeAnalysisTest {
                 ConfiguredChannelFactory.class,
                 ConnectorFactories.class,
                 HealthCenter.class,
-                ContextDecorator.class,
                 // Messaging provider
                 MyDummyConnector.class,
 
