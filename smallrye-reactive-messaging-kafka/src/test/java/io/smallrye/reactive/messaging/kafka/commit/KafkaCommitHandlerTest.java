@@ -236,14 +236,14 @@ public class KafkaCommitHandlerTest extends KafkaCompanionTestBase {
                 .with("group.id", "test-source-with-throttled-latest-processed-commit")
                 .with("value.deserializer", IntegerDeserializer.class.getName())
                 .with("commit-strategy", "throttled")
-                .with("throttled.unprocessed-record-max-age.ms", 1);
+                .with("throttled.unprocessed-record-max-age.ms", 100);
 
         MapBasedConfig config2 = newCommonConfigForSource()
                 .with("client.id", UUID.randomUUID().toString())
                 .with("group.id", "test-source-with-throttled-latest-processed-commit")
                 .with("value.deserializer", IntegerDeserializer.class.getName())
                 .with("commit-strategy", "throttled")
-                .with("throttled.unprocessed-record-max-age.ms", 1);
+                .with("throttled.unprocessed-record-max-age.ms", 100);
 
         KafkaConnectorIncomingConfiguration ic1 = new KafkaConnectorIncomingConfiguration(config1);
         KafkaConnectorIncomingConfiguration ic2 = new KafkaConnectorIncomingConfiguration(config2);
