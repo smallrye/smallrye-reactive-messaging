@@ -29,6 +29,7 @@ import com.opencsv.CSVReader;
 
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
+import io.smallrye.mutiny.groups.MultiFlatten;
 import io.smallrye.mutiny.unchecked.Unchecked;
 
 /**
@@ -90,6 +91,11 @@ public class ProducerBuilder<K, V> implements Closeable {
      * Callback to invoke on producer termination
      */
     private BiConsumer<KafkaProducer<K, V>, Throwable> onTermination = this::terminate;
+
+    /**
+     * Concurrency level for producer writes, default is 1. Without concurrency records are sent one after the other.
+     */
+    private int concurrency = 1;
 
     /**
      * Creates a new {@link ProducerBuilder}.
@@ -252,6 +258,26 @@ public class ProducerBuilder<K, V> implements Closeable {
     }
 
     /**
+     * Set the concurrency level for producer writes.
+     *
+     * @param concurrency the concurrency for producer writes
+     * @return this {@link ProducerBuilder}
+     */
+    public ProducerBuilder<K, V> withConcurrency(int concurrency) {
+        this.concurrency = concurrency;
+        return this;
+    }
+
+    /**
+     * Set the concurrency level for producer writes to 1024.
+     *
+     * @return this {@link ProducerBuilder}
+     */
+    public ProducerBuilder<K, V> withConcurrency() {
+        return withConcurrency(1024);
+    }
+
+    /**
      * @return the client id
      */
     public String clientId() {
@@ -282,7 +308,11 @@ public class ProducerBuilder<K, V> implements Closeable {
             if (isTransactional()) {
                 getOrCreateProducer().beginTransaction();
             }
-            return recordProducer.onItem().transformToUniAndConcatenate(this::record)
+
+            MultiFlatten<ProducerRecord<K, V>, RecordMetadata> flatten = recordProducer.onItem()
+                    .transformToUni(this::record);
+            Multi<RecordMetadata> multi = (concurrency <= 1) ? flatten.concatenate() : flatten.merge(concurrency);
+            return multi
                     .runSubscriptionOn(getOrCreateExecutor())
                     .onTermination()
                     .invoke((throwable, cancelled) -> onTermination.accept(getOrCreateProducer(), throwable));

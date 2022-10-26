@@ -51,7 +51,9 @@ public class EndToEndPayloadPerfTest extends KafkaCompanionTestBase {
 
     @BeforeAll
     static void insertRecords() {
-        companion.produce(String.class, byte[].class).withClientId("payload-producer")
+        companion.produce(String.class, byte[].class)
+                .withConcurrency()
+                .withClientId("payload-producer")
                 .usingGenerator(i -> new ProducerRecord<>(input_topic, "key", generateRandomPayload(10000)), COUNT) // 10kb
                 .awaitCompletion(Duration.ofMinutes(5));
     }

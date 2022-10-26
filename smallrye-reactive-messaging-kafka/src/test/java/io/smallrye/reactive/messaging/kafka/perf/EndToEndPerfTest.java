@@ -47,7 +47,9 @@ public class EndToEndPerfTest extends KafkaCompanionTestBase {
 
     @BeforeAll
     static void insertRecords() {
-        companion.produceStrings().usingGenerator(i -> new ProducerRecord<>(input_topic, "key", Long.toString(i)), COUNT)
+        companion.produceStrings()
+                .withConcurrency()
+                .usingGenerator(i -> new ProducerRecord<>(input_topic, "key", Long.toString(i)), COUNT)
                 .awaitCompletion(Duration.ofMinutes(5));
     }
 

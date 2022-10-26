@@ -15,7 +15,8 @@ public class RecordsTest extends KafkaCompanionTestBase {
 
     @Test
     void testDeleteRecords() {
-        companion.produceIntegers().usingGenerator(i -> new ProducerRecord<>(topic, i), 100)
+        companion.produceIntegers().withConcurrency()
+                .usingGenerator(i -> new ProducerRecord<>(topic, i), 100)
                 .awaitCompletion();
 
         long offset = companion.offsets().get(tp(topic, 0), OffsetSpec.latest()).offset();
@@ -31,7 +32,9 @@ public class RecordsTest extends KafkaCompanionTestBase {
 
     @Test
     void testClearRecords() {
-        companion.produceIntegers().usingGenerator(i -> new ProducerRecord<>(topic, i), 100)
+        companion.produceIntegers()
+                .withConcurrency()
+                .usingGenerator(i -> new ProducerRecord<>(topic, i), 100)
                 .awaitCompletion();
 
         assertThat(companion.consumeIntegers().fromTopics(topic, 100).awaitCompletion().count()).isEqualTo(100L);
