@@ -820,6 +820,29 @@ public class ConsumerBuilder<K, V> implements ConsumerRebalanceListener, Closeab
         return fromTopics(Collections.singleton(topic), until(numberOfRecords, during, null));
     }
 
+    public ConsumerTask<K, V> fromPrevious(KafkaTask<?, ?> task,
+            Function<Multi<ConsumerRecord<K, V>>, Multi<ConsumerRecord<K, V>>> plugFunction) {
+        Map<TopicPartition, Long> offsets = task.latestOffsets().entrySet().stream()
+                .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue() + 1));
+        return fromOffsets(offsets, plugFunction);
+    }
+
+    public ConsumerTask<K, V> fromPrevious(KafkaTask<?, ?> task) {
+        return fromPrevious(task, Function.identity());
+    }
+
+    public ConsumerTask<K, V> fromPrevious(KafkaTask<?, ?> task, long numberOfRecords) {
+        return fromPrevious(task, until(numberOfRecords));
+    }
+
+    public ConsumerTask<K, V> fromPrevious(KafkaTask<?, ?> task, Duration during) {
+        return fromPrevious(task, until(during));
+    }
+
+    public ConsumerTask<K, V> fromPrevious(KafkaTask<?, ?> task, long numberOfRecords, Duration during) {
+        return fromPrevious(task, until(numberOfRecords, during, null));
+    }
+
     /**
      * Commit the given offset and close the consumer
      *

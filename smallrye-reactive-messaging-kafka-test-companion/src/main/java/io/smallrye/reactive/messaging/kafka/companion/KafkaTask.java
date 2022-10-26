@@ -9,6 +9,8 @@ import java.util.Map;
 import java.util.Spliterator;
 import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 import org.apache.kafka.common.TopicPartition;
 
@@ -267,8 +269,16 @@ public abstract class KafkaTask<T, SELF extends KafkaTask<T, SELF>> implements I
         return offset(lastRecord);
     }
 
+    public Stream<T> stream() {
+        return StreamSupport.stream(spliterator(), false);
+    }
+
     public Map<TopicPartition, List<T>> byTopicPartition() {
-        return getRecords().stream().collect(Collectors.groupingBy(this::topicPartition));
+        return stream().collect(Collectors.groupingBy(this::topicPartition));
+    }
+
+    public Map<TopicPartition, Long> latestOffsets() {
+        return stream().collect(Collectors.toMap(this::topicPartition, this::offset, Math::max));
     }
 
     protected abstract long offset(T record);

@@ -403,4 +403,43 @@ public class ConsumerTest extends KafkaCompanionTestBase {
         }
     }
 
+    @Test
+    void testFromPrevious() {
+        companion.topics().createAndWait(topic, 3);
+        ProducerTask producerTask = companion.produceStrings().fromRecords(
+                new ProducerRecord<>(topic, 0, "0", "1"),
+                new ProducerRecord<>(topic, 1, "0", "2"),
+                new ProducerRecord<>(topic, 1, "1", "3"),
+                new ProducerRecord<>(topic, 2, "0", "4"),
+                new ProducerRecord<>(topic, 0, "1", "5"),
+                new ProducerRecord<>(topic, 0, "2", "6"))
+                .awaitCompletion();
+
+        assertThat(producerTask.latestOffsets())
+                .containsEntry(tp(topic, 0), 2L)
+                .containsEntry(tp(topic, 1), 1L)
+                .containsEntry(tp(topic, 2), 0L);
+
+        ConsumerTask<String, String> consumerTask = companion.consumeStrings().fromPrevious(producerTask);
+
+        companion.produceStrings().fromRecords(
+                new ProducerRecord<>(topic, 0, "3", "7"),
+                new ProducerRecord<>(topic, 1, "2", "8"),
+                new ProducerRecord<>(topic, 2, "1", "9")).awaitCompletion();
+
+        consumerTask.awaitRecords(3);
+        assertThat(consumerTask.latestOffsets())
+                .containsEntry(tp(topic, 0), 3L)
+                .containsEntry(tp(topic, 1), 2L)
+                .containsEntry(tp(topic, 2), 1L);
+
+        ConsumerTask<String, String> consumerTask2 = companion.consumeStrings().fromPrevious(consumerTask, 3);
+
+        companion.produceStrings().fromRecords(
+                new ProducerRecord<>(topic, 0, "4", "10"),
+                new ProducerRecord<>(topic, 1, "3", "11"),
+                new ProducerRecord<>(topic, 2, "21", "12")).awaitCompletion();
+
+        assertThat(consumerTask2.awaitCompletion().latestOffsets()).hasSize(3);
+    }
 }
