@@ -30,7 +30,11 @@
     "criticality" : "highlight",
     "minSeverity" : "POTENTIALLY_BREAKING",
     "minCriticality" : "documented",
-    "differences" : [ ]
+    "differences" : [  {
+        "code": "java.class.removed",
+        "old": "class io.smallrye.reactive.messaging.providers.locals.ContextDecorator",
+        "justification": "ContextDecorator no longer an implementation of PublisherDecorator, replaced by ContextOperator"
+    } ]
   }
 }, {
   "extension" : "revapi.reporter.json",

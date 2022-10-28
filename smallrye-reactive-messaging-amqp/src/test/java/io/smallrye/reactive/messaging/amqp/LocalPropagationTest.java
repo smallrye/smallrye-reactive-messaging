@@ -29,7 +29,10 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
 
+import io.smallrye.common.vertx.ContextLocals;
 import io.smallrye.config.SmallRyeConfigProviderResolver;
+import io.smallrye.mutiny.Uni;
+import io.smallrye.mutiny.infrastructure.Infrastructure;
 import io.smallrye.reactive.messaging.annotations.Blocking;
 import io.smallrye.reactive.messaging.annotations.Broadcast;
 import io.smallrye.reactive.messaging.annotations.Merge;
@@ -167,6 +170,22 @@ public class LocalPropagationTest extends AmqpBrokerTestBase {
     @Test
     public void testLinearPipelineWithAckOnCustomThread() {
         LinearPipelineWithAckOnCustomThread bean = runApplication(dataconfig(), LinearPipelineWithAckOnCustomThread.class);
+        await().until(() -> isAmqpConnectorReady(container));
+        await().until(() -> isAmqpConnectorAlive(container));
+        produceIntegers();
+
+        await().atMost(20, TimeUnit.SECONDS).until(() -> {
+            List<Integer> results = bean.getResults();
+            System.out.println(results);
+            return results.size() >= 5;
+        });
+        assertThat(bean.getResults()).containsExactly(2, 3, 4, 5, 6);
+
+    }
+
+    @Test
+    public void testPipelineWithAnAsyncStage() {
+        PipelineWithAnAsyncStage bean = runApplication(dataconfig(), PipelineWithAnAsyncStage.class);
         await().until(() -> isAmqpConnectorReady(container));
         await().until(() -> isAmqpConnectorAlive(container));
         produceIntegers();
@@ -577,6 +596,66 @@ public class LocalPropagationTest extends AmqpBrokerTestBase {
             assertThat(uuid).isNotNull();
 
             int p = Vertx.currentContext().getLocal("input");
+            assertThat(p + 1).isEqualTo(val);
+            list.add(val);
+        }
+
+        public List<Integer> getResults() {
+            return list;
+        }
+    }
+
+    @ApplicationScoped
+    public static class PipelineWithAnAsyncStage {
+
+        private final List<Integer> list = new CopyOnWriteArrayList<>();
+        private final Set<String> uuids = new ConcurrentHashSet<>();
+
+        @Incoming("data")
+        @Outgoing("process")
+        @Acknowledgment(Acknowledgment.Strategy.MANUAL)
+        public Message<Integer> process(Message<Integer> input) {
+            String value = UUID.randomUUID().toString();
+            assertThat((String) ContextLocals.get("uuid", null)).isNull();
+            ContextLocals.put("uuid", value);
+            ContextLocals.put("input", input.getPayload());
+
+            assertThat(input.getMetadata(LocalContextMetadata.class)).isPresent();
+
+            return input.withPayload(input.getPayload() + 1);
+        }
+
+        @Incoming("process")
+        @Outgoing("after-process")
+        public Uni<Integer> handle(int payload) {
+            String uuid = ContextLocals.get("uuid", null);
+            assertThat(uuid).isNotNull();
+
+            assertThat(uuids.add(uuid)).isTrue();
+
+            int p = ContextLocals.get("input", null);
+            assertThat(p + 1).isEqualTo(payload);
+            return Uni.createFrom().item(() -> payload)
+                    .runSubscriptionOn(Infrastructure.getDefaultExecutor());
+        }
+
+        @Incoming("after-process")
+        @Outgoing("sink")
+        public Integer afterProcess(int payload) {
+            String uuid = ContextLocals.get("uuid", null);
+            assertThat(uuid).isNotNull();
+
+            int p = ContextLocals.get("input", null);
+            assertThat(p + 1).isEqualTo(payload);
+            return payload;
+        }
+
+        @Incoming("sink")
+        public void sink(int val) {
+            String uuid = ContextLocals.get("uuid", null);
+            assertThat(uuid).isNotNull();
+
+            int p = ContextLocals.get("input", null);
             assertThat(p + 1).isEqualTo(val);
             list.add(val);
         }
