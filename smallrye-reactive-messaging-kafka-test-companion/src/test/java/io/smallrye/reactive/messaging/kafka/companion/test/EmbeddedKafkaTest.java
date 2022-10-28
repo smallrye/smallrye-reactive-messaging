@@ -92,7 +92,9 @@ public class EmbeddedKafkaTest {
         // create topic and wait
         companion.topics().createAndWait("messages", 3);
         // produce messages
-        companion.produceStrings().usingGenerator(i -> new ProducerRecord<>("messages", i % 3, "k", "" + i), 100);
+        companion.produceStrings()
+                .withConcurrency()
+                .usingGenerator(i -> new ProducerRecord<>("messages", i % 3, "k", "" + i), 100);
         // consume messages
         companion.consumeStrings().fromTopics("messages", 100).awaitCompletion();
     }

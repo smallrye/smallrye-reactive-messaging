@@ -97,6 +97,15 @@ public class ConsumerGroupsCompanion {
 
     /**
      * @param groupId consumer group id
+     * @return the map of topic partitions to offset
+     */
+    public Map<TopicPartition, OffsetAndMetadata> offsets(String groupId) {
+        return toUni(adminClient.listConsumerGroupOffsets(groupId).partitionsToOffsetAndMetadata())
+                .await().atMost(kafkaApiTimeout);
+    }
+
+    /**
+     * @param groupId consumer group id
      * @param topicPartitions list of topic partitions
      * @return the map of topic partitions to offset
      */

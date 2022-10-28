@@ -22,7 +22,9 @@ public class StreamTest extends KafkaCompanionTestBase {
 
     @Test
     void testBroadcast() {
-        companion.produceStrings().usingGenerator(i -> new ProducerRecord<>(topic, "t" + i), 500);
+        companion.produceStrings()
+                .withConcurrency()
+                .usingGenerator(i -> new ProducerRecord<>(topic, "t" + i), 500);
 
         ConsumerBuilder<String, String> consumer = companion.consumeStrings();
         ConsumerTask<String, String> records = consumer.fromTopics(topic);
@@ -39,7 +41,9 @@ public class StreamTest extends KafkaCompanionTestBase {
     void testProduceConsumeProduce() {
         String newTopic = topic + "-new";
         String newTopic2 = topic + "-new2";
-        companion.produceStrings().usingGenerator(i -> new ProducerRecord<>(topic, "t" + i), 500);
+        companion.produceStrings()
+                .withConcurrency()
+                .usingGenerator(i -> new ProducerRecord<>(topic, "t" + i), 500);
 
         ConsumerTask<String, String> consumer = companion.consumeStrings().fromTopics(topic);
 
@@ -75,7 +79,9 @@ public class StreamTest extends KafkaCompanionTestBase {
     @Test
     void testProcessTransaction() {
         String newTopic = topic + "-new";
-        companion.produceStrings().usingGenerator(i -> new ProducerRecord<>(topic, "t" + i), 1000)
+        companion.produceStrings()
+                .withConcurrency()
+                .usingGenerator(i -> new ProducerRecord<>(topic, "t" + i), 1000)
                 .awaitCompletion();
 
         ProducerTask txProcess = companion.processTransactional(Collections.singleton(topic),
@@ -89,12 +95,14 @@ public class StreamTest extends KafkaCompanionTestBase {
     @Test
     void testProcessTransactionWithError() {
         String newTopic = topic + "-new";
-        companion.produceStrings().usingGenerator(i -> new ProducerRecord<>(topic, "t" + i), 1000)
+        companion.produceStrings()
+                .withConcurrency()
+                .usingGenerator(i -> new ProducerRecord<>(topic, "t" + i), 1000)
                 .awaitCompletion();
 
         ProducerTask txProcess = companion.processTransactional(Collections.singleton(topic),
                 companion.consumeStrings().withGroupId("tx-consumer"),
-                companion.produceIntegers().withTransactionalId("tx-producer"),
+                companion.produceIntegers().withTransactionalId("tx-producer").withConcurrency(1),
                 record -> {
                     if (record.value().equals("t600")) {
                         throw new IllegalArgumentException("Cannot process" + record);

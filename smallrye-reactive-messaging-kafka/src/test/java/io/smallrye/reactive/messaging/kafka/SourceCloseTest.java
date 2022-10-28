@@ -21,7 +21,8 @@ public class SourceCloseTest extends KafkaCompanionTestBase {
 
     @Test
     public void testNoLostMessagesOnClose() {
-        companion.produceIntegers().usingGenerator(i -> new ProducerRecord<>(topic, null, i), 1000)
+        companion.produceIntegers()
+                .usingGenerator(i -> new ProducerRecord<>(topic, null, i), 1000)
                 .awaitCompletion();
 
         String groupId = UUID.randomUUID().toString();

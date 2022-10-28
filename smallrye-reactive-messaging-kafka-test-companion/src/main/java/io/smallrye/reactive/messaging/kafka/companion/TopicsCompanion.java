@@ -89,6 +89,7 @@ public class TopicsCompanion {
     public Uni<TopicDescription> waitForTopic(String topic) {
         AtomicInteger retries = new AtomicInteger(0);
         return Uni.createFrom().item(this::describeAll)
+                .onItem().ifNull().continueWith(Collections.emptyMap())
                 .repeat()
                 .withDelay(Duration.ofMillis(1000))
                 .until(topics -> {
@@ -98,7 +99,7 @@ public class TopicsCompanion {
                     }
                     return !checkIfTheTopicIsCreated(topic, topics);
                 })
-                .select().where(Objects::nonNull)
+                .select().first(Objects::nonNull)
                 .toUni()
                 .map(topics -> topics.get(topic));
     }

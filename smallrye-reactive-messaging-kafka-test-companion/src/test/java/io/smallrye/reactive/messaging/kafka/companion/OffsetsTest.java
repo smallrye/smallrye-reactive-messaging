@@ -23,7 +23,9 @@ public class OffsetsTest extends KafkaCompanionTestBase {
 
     @Test
     void testOffsetReset() {
-        companion.produceStrings().usingGenerator(i -> new ProducerRecord<>(topic, "" + i), 500)
+        companion.produceStrings()
+                .withConcurrency()
+                .usingGenerator(i -> new ProducerRecord<>(topic, "" + i), 500)
                 .awaitCompletion();
 
         String groupId = UUID.randomUUID().toString();

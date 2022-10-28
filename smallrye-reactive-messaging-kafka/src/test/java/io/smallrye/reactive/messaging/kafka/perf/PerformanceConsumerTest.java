@@ -35,7 +35,7 @@ public class PerformanceConsumerTest extends KafkaCompanionTestBase {
     @BeforeAll
     static void insertRecords() {
         expected = new ArrayList<>();
-        companion.produceStrings().usingGenerator(i -> {
+        companion.produceStrings().withConcurrency().usingGenerator(i -> {
             expected.add(Integer.toString(i));
             return new ProducerRecord<>(topic, "key", Long.toString(i));
         }, COUNT).awaitCompletion(Duration.ofMinutes(2));

@@ -53,7 +53,9 @@ public class ConsumerTest extends KafkaCompanionTestBase {
 
     @Test
     void testConsumeParallel() {
-        companion.produceIntegers().usingGenerator(i -> record(topic, i), 1000)
+        companion.produceIntegers()
+                .withConcurrency()
+                .usingGenerator(i -> record(topic, i), 1000)
                 .awaitCompletion(Duration.ofSeconds(10));
 
         AtomicInteger records = new AtomicInteger();
@@ -123,7 +125,9 @@ public class ConsumerTest extends KafkaCompanionTestBase {
 
     @Test
     void testConsumeFromOffsets() {
-        companion.produceStrings().usingGenerator(i -> new ProducerRecord<>(topic, "t" + i), 100)
+        companion.produceStrings()
+                .withConcurrency()
+                .usingGenerator(i -> new ProducerRecord<>(topic, "t" + i), 100)
                 .awaitCompletion();
 
         Map<TopicPartition, Long> offsets = new HashMap<>();
@@ -141,7 +145,9 @@ public class ConsumerTest extends KafkaCompanionTestBase {
 
     @Test
     void testConsumeFromOffsetsWithDuration() {
-        companion.produceStrings().usingGenerator(i -> new ProducerRecord<>(topic, "t" + i), 100)
+        companion.produceStrings()
+                .withConcurrency()
+                .usingGenerator(i -> new ProducerRecord<>(topic, "t" + i), 100)
                 .awaitCompletion();
 
         Map<TopicPartition, Long> offsets = new HashMap<>();
@@ -158,7 +164,9 @@ public class ConsumerTest extends KafkaCompanionTestBase {
 
     @Test
     void testConsumerWithCommitAsync() {
-        companion.produceStrings().usingGenerator(i -> new ProducerRecord<>(topic, "t" + i), 108)
+        companion.produceStrings()
+                .withConcurrency()
+                .usingGenerator(i -> new ProducerRecord<>(topic, "t" + i), 108)
                 .awaitCompletion();
 
         ConsumerBuilder<String, String> consumer = companion.consumeStrings()
@@ -171,7 +179,9 @@ public class ConsumerTest extends KafkaCompanionTestBase {
 
     @Test
     void testConsumerWithCommitAsyncCallback() {
-        companion.produceStrings().usingGenerator(i -> new ProducerRecord<>(topic, "t" + i), 108)
+        companion.produceStrings()
+                .withConcurrency()
+                .usingGenerator(i -> new ProducerRecord<>(topic, "t" + i), 108)
                 .awaitCompletion();
 
         List<Map<TopicPartition, OffsetAndMetadata>> commits = new CopyOnWriteArrayList<>();
@@ -198,7 +208,9 @@ public class ConsumerTest extends KafkaCompanionTestBase {
 
     @Test
     void testConsumerWithCommitSync() {
-        companion.produceStrings().usingGenerator(i -> new ProducerRecord<>(topic, "t" + i), 108)
+        companion.produceStrings()
+                .withConcurrency()
+                .usingGenerator(i -> new ProducerRecord<>(topic, "t" + i), 108)
                 .awaitCompletion();
 
         ConsumerBuilder<String, String> consumer = companion.consumeStrings()
@@ -253,7 +265,7 @@ public class ConsumerTest extends KafkaCompanionTestBase {
         ConsumerBuilder<String, String> consumer = companion.consumeStrings();
 
         try (ConsumerTask<String, String> records = consumer.fromTopics(topic)) {
-            companion.produceStrings().usingGenerator(i -> record(topic, "v" + i), 200);
+            companion.produceStrings().withConcurrency().usingGenerator(i -> record(topic, "v" + i), 200);
 
             records.awaitRecords(100, Duration.ofMinutes(1));
 
@@ -270,7 +282,7 @@ public class ConsumerTest extends KafkaCompanionTestBase {
                 .withCommitSyncWhen(cr -> true);
 
         try (ConsumerTask<String, String> records = consumer.fromTopics(topic)) {
-            companion.produceStrings().usingGenerator(i -> record(topic, "v" + i), 200);
+            companion.produceStrings().withConcurrency().usingGenerator(i -> record(topic, "v" + i), 200);
 
             records.awaitRecords(100);
             await().untilAsserted(() -> assertThat(consumer.committed(tp(topic, 0)).offset())
@@ -288,7 +300,7 @@ public class ConsumerTest extends KafkaCompanionTestBase {
 
         ConsumerTask<String, String> records = consumer.fromTopics(topic, 100);
 
-        companion.produceStrings().usingGenerator(i -> record(topic, "v-" + i), 400);
+        companion.produceStrings().withConcurrency().usingGenerator(i -> record(topic, "v-" + i), 400);
 
         assertThat(records.awaitCompletion().count()).isEqualTo(100);
         await().untilAsserted(() -> assertThat(consumer.committed(tp(topic, 0)).offset()).isEqualTo(100L));
@@ -323,7 +335,9 @@ public class ConsumerTest extends KafkaCompanionTestBase {
 
     @Test
     void testPauseResume() throws InterruptedException {
-        companion.produceIntegers().usingGenerator(i -> record(topic, i), 400);
+        companion.produceIntegers()
+                .withConcurrency()
+                .usingGenerator(i -> record(topic, i), 400);
 
         ConsumerBuilder<String, Integer> consumer = companion.consumeIntegers();
 
@@ -349,6 +363,7 @@ public class ConsumerTest extends KafkaCompanionTestBase {
     void testCommitAndClose() {
         // produce records
         companion.produceIntegers()
+                .withConcurrency()
                 .usingGenerator(i -> new ProducerRecord<>(topic, i), 100)
                 .awaitCompletion();
 
@@ -388,4 +403,43 @@ public class ConsumerTest extends KafkaCompanionTestBase {
         }
     }
 
+    @Test
+    void testFromPrevious() {
+        companion.topics().createAndWait(topic, 3);
+        ProducerTask producerTask = companion.produceStrings().fromRecords(
+                new ProducerRecord<>(topic, 0, "0", "1"),
+                new ProducerRecord<>(topic, 1, "0", "2"),
+                new ProducerRecord<>(topic, 1, "1", "3"),
+                new ProducerRecord<>(topic, 2, "0", "4"),
+                new ProducerRecord<>(topic, 0, "1", "5"),
+                new ProducerRecord<>(topic, 0, "2", "6"))
+                .awaitCompletion();
+
+        assertThat(producerTask.latestOffsets())
+                .containsEntry(tp(topic, 0), 2L)
+                .containsEntry(tp(topic, 1), 1L)
+                .containsEntry(tp(topic, 2), 0L);
+
+        ConsumerTask<String, String> consumerTask = companion.consumeStrings().fromPrevious(producerTask);
+
+        companion.produceStrings().fromRecords(
+                new ProducerRecord<>(topic, 0, "3", "7"),
+                new ProducerRecord<>(topic, 1, "2", "8"),
+                new ProducerRecord<>(topic, 2, "1", "9")).awaitCompletion();
+
+        consumerTask.awaitRecords(3);
+        assertThat(consumerTask.latestOffsets())
+                .containsEntry(tp(topic, 0), 3L)
+                .containsEntry(tp(topic, 1), 2L)
+                .containsEntry(tp(topic, 2), 1L);
+
+        ConsumerTask<String, String> consumerTask2 = companion.consumeStrings().fromPrevious(consumerTask, 3);
+
+        companion.produceStrings().fromRecords(
+                new ProducerRecord<>(topic, 0, "4", "10"),
+                new ProducerRecord<>(topic, 1, "3", "11"),
+                new ProducerRecord<>(topic, 2, "21", "12")).awaitCompletion();
+
+        assertThat(consumerTask2.awaitCompletion().latestOffsets()).hasSize(3);
+    }
 }

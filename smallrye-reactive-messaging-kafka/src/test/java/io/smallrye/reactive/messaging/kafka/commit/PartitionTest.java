@@ -12,7 +12,6 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import javax.enterprise.context.ApplicationScoped;
 
-import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.clients.consumer.*;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.TopicPartition;
@@ -51,20 +50,15 @@ public class PartitionTest extends KafkaCompanionTestBase {
                 .until(() -> application.count() == expected);
         assertThat(application.getReceived().keySet()).hasSizeGreaterThanOrEqualTo(getMaxNumberOfEventLoop(3));
 
-        Properties properties = new Properties();
-        properties.put("bootstrap.servers", companion.getBootstrapServers());
-        Admin admin = Admin.create(properties);
-
         await().until(() -> {
-            Map<TopicPartition, OffsetAndMetadata> map = admin.listConsumerGroupOffsets(groupId)
-                    .partitionsToOffsetAndMetadata().get();
+            Map<TopicPartition, OffsetAndMetadata> map = companion.consumerGroups().offsets(groupId);
             long c = map.values().stream().map(OffsetAndMetadata::offset).mapToLong(l -> l).sum();
             return map.size() == 3 && c == expected;
         });
     }
 
     @Test
-    public void testWithMoreConsumersThanPartitions() throws InterruptedException {
+    public void testWithMoreConsumersThanPartitions() {
         companion.topics().createAndWait(topic, 3);
         String groupId = UUID.randomUUID().toString();
         MapBasedConfig config = kafkaConfig("mp.messaging.incoming.kafka")
@@ -88,20 +82,15 @@ public class PartitionTest extends KafkaCompanionTestBase {
                 .until(() -> application.count() == expected);
         assertThat(application.getReceived().keySet()).hasSizeGreaterThanOrEqualTo(getMaxNumberOfEventLoop(3));
 
-        Properties properties = new Properties();
-        properties.put("bootstrap.servers", companion.getBootstrapServers());
-        Admin admin = Admin.create(properties);
-
         await().until(() -> {
-            Map<TopicPartition, OffsetAndMetadata> map = admin.listConsumerGroupOffsets(groupId)
-                    .partitionsToOffsetAndMetadata().get();
+            Map<TopicPartition, OffsetAndMetadata> map = companion.consumerGroups().offsets(groupId);
             long c = map.values().stream().map(OffsetAndMetadata::offset).mapToLong(l -> l).sum();
             return map.size() == 3 && c == expected;
         });
     }
 
     @Test
-    public void testWithMorePartitionsThanConsumers() throws InterruptedException {
+    public void testWithMorePartitionsThanConsumers() {
         companion.topics().createAndWait(topic, 3);
         String groupId = UUID.randomUUID().toString();
 
@@ -126,13 +115,8 @@ public class PartitionTest extends KafkaCompanionTestBase {
                 .until(() -> application.count() == expected);
         assertThat(application.getReceived().keySet()).hasSizeGreaterThanOrEqualTo(getMaxNumberOfEventLoop(2));
 
-        Properties properties = new Properties();
-        properties.put("bootstrap.servers", companion.getBootstrapServers());
-        Admin admin = Admin.create(properties);
-
         await().until(() -> {
-            Map<TopicPartition, OffsetAndMetadata> map = admin.listConsumerGroupOffsets(groupId)
-                    .partitionsToOffsetAndMetadata().get();
+            Map<TopicPartition, OffsetAndMetadata> map = companion.consumerGroups().offsets(groupId);
             long c = map.values().stream().map(OffsetAndMetadata::offset).mapToLong(l -> l).sum();
             return map.size() == 3 && c == expected;
         });
