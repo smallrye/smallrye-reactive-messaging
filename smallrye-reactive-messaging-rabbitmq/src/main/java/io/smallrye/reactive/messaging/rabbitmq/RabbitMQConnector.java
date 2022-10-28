@@ -137,7 +137,7 @@ import io.vertx.rabbitmq.RabbitMQPublisherOptions;
 @ConnectorAttribute(name = "tracing.attribute-headers", direction = INCOMING_AND_OUTGOING, description = "A comma-separated list of headers that should be recorded as span attributes. Relevant only if tracing.enabled=true", type = "string", defaultValue = "")
 
 public class RabbitMQConnector implements IncomingConnectorFactory, OutgoingConnectorFactory, HealthReporter {
-    static final String CONNECTOR_NAME = "smallrye-rabbitmq";
+    public static final String CONNECTOR_NAME = "smallrye-rabbitmq";
 
     private enum ChannelStatus {
         CONNECTED,
