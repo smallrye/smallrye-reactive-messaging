@@ -1,0 +1,25 @@
+From 57471bf45d65f4eca7c3267af511cc94fd8bb202 Mon Sep 17 00:00:00 2001
+From: Ozan Gunalp <ozangunalp@gmail.com>
+Date: Wed, 2 Nov 2022 17:49:51 +0000
+Subject: [PATCH] Include weld-se-shaded in tests
+
+---
+ pom.xml | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/pom.xml b/pom.xml
+index 52ddfbe1a..2fa95606c 100644
+--- a/pom.xml
++++ b/pom.xml
+@@ -356,7 +356,7 @@
+     <!-- Test -->
+     <dependency>
+       <groupId>org.jboss.weld.se</groupId>
+-      <artifactId>weld-se-core</artifactId>
++      <artifactId>weld-se-shaded</artifactId>
+       <version>${weld.version}</version>
+       <scope>test</scope>
+     </dependency>
+-- 
+2.30.1 (Apple Git-130)
+
