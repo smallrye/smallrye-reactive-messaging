@@ -50,6 +50,7 @@ public class RebalanceTest extends WeldTestBase {
     void testRebalance() throws InterruptedException {
         String group = UUID.randomUUID().toString();
         MapBasedConfig config = commonConfiguration()
+                .with("lazy-client", true)
                 .with("client.id", UUID.randomUUID().toString())
                 .with("commit-strategy", "throttled")
                 .with("auto.offset.reset", "earliest")

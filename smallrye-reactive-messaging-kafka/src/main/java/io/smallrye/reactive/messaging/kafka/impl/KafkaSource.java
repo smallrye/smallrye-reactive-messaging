@@ -96,7 +96,8 @@ public class KafkaSource<K, V> {
         // It associates the context with the caller thread which will always be the same.
         // So, we force the creation of different event loop context.
         context = ((VertxInternal) vertx.getDelegate()).createEventLoopContext();
-        client = new ReactiveKafkaConsumer<>(config, this);
+        // fire consumer event (e.g. bind metrics)
+        client = new ReactiveKafkaConsumer<>(config, this, c -> kafkaCDIEvents.consumer().fire(c));
 
         String commitStrategy = config
                 .getCommitStrategy()
@@ -117,9 +118,6 @@ public class KafkaSource<K, V> {
         isHealthReadinessEnabled = this.configuration.getHealthReadinessEnabled();
         isCloudEventEnabled = this.configuration.getCloudEvents();
         channel = this.configuration.getChannel();
-
-        // fire consumer event (e.g. bind metrics)
-        kafkaCDIEvents.consumer().fire(client.unwrap());
 
         if (commitHandler instanceof ContextHolder) {
             ((ContextHolder) commitHandler).capture(context);
@@ -359,7 +357,7 @@ public class KafkaSource<K, V> {
         try {
             if (configuration.getGracefulShutdown()) {
                 Duration pollTimeoutTwice = Duration.ofMillis(configuration.getPollTimeout() * 2L);
-                if (this.client.runOnPollingThread(c -> {
+                if (!this.client.isClosed() && this.client.runOnPollingThread(c -> {
                     Set<TopicPartition> partitions = c.assignment();
                     if (!partitions.isEmpty()) {
                         log.pauseAllPartitionOnTermination();

@@ -18,7 +18,9 @@ public class ConfigurationCleaner {
             "health-topic-verification-timeout",
 
             "tracing-enabled",
-            "cloud-events");
+            "cloud-events",
+            "client-id-prefix",
+            "lazy-client");
 
     private static final List<String> PRODUCER = Arrays.asList(
             "key",

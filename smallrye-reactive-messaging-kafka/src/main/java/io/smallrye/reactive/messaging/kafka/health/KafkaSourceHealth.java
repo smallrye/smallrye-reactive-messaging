@@ -5,8 +5,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.common.Metric;
-import org.apache.kafka.common.MetricName;
 import org.apache.kafka.common.TopicPartition;
 
 import io.smallrye.reactive.messaging.health.HealthReport;
@@ -19,32 +19,40 @@ import io.smallrye.reactive.messaging.kafka.impl.ReactiveKafkaConsumer;
 public class KafkaSourceHealth extends BaseHealth {
 
     private final KafkaAdmin admin;
-    private final KafkaConnectorIncomingConfiguration config;
-    private final Metric metric;
     private final KafkaSource<?, ?> source;
     private final ReactiveKafkaConsumer<?, ?> client;
+    private final Duration adminClientTimeout;
+    private Metric metric;
 
     public KafkaSourceHealth(KafkaSource<?, ?> source, KafkaConnectorIncomingConfiguration config,
             ReactiveKafkaConsumer<?, ?> client) {
         super(config.getChannel());
-        this.config = config;
+        this.adminClientTimeout = Duration.ofMillis(
+                config.getHealthReadinessTimeout().orElse(config.getHealthTopicVerificationTimeout()));
         this.source = source;
         this.client = client;
         if (config.getHealthReadinessTopicVerification().orElse(config.getHealthTopicVerificationEnabled())) {
             // Do not create the client if the readiness health checks are disabled
             Map<String, Object> adminConfiguration = new HashMap<>(client.configuration());
             this.admin = KafkaAdminHelper.createAdminClient(adminConfiguration, config.getChannel(), true);
-            this.metric = null;
-
         } else {
             this.admin = null;
-            Map<MetricName, ? extends Metric> metrics = client.unwrap().metrics();
-            this.metric = getMetric(metrics);
         }
+    }
+
+    protected synchronized Metric getMetric() {
+        if (this.metric == null) {
+            Consumer<?, ?> consumer = this.client.unwrap();
+            if (consumer != null) {
+                this.metric = getMetric(consumer.metrics());
+            }
+        }
+        return this.metric;
     }
 
     @Override
     protected void metricsBasedStartupCheck(HealthReport.HealthReportBuilder builder) {
+        Metric metric = getMetric();
         if (metric != null) {
             boolean connected = (double) metric.metricValue() >= 1.0;
             boolean hasSubscribers = source.hasSubscribers();
@@ -68,9 +76,8 @@ public class KafkaSourceHealth extends BaseHealth {
     @Override
     protected void clientBasedStartupCheck(HealthReport.HealthReportBuilder builder) {
         try {
-            long timeout = config.getHealthReadinessTimeout().orElse(config.getHealthTopicVerificationTimeout());
             admin.listTopics()
-                    .await().atMost(Duration.ofMillis(timeout));
+                    .await().atMost(adminClientTimeout);
             builder.add(channel, true);
         } catch (Exception failed) {
             builder.add(channel, false, "Failed to get response from broker for channel "
@@ -82,9 +89,8 @@ public class KafkaSourceHealth extends BaseHealth {
         if (source.hasSubscribers()) {
             Set<TopicPartition> partitions;
             try {
-                long timeout = config.getHealthReadinessTimeout().orElse(config.getHealthTopicVerificationTimeout());
                 partitions = client.getAssignments()
-                        .await().atMost(Duration.ofMillis(timeout));
+                        .await().atMost(adminClientTimeout);
                 if (partitions.isEmpty()) {
                     builder.add(channel, false, "No partition assignments for channel " + channel);
                 } else {
