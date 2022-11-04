@@ -14,6 +14,8 @@ import io.smallrye.config.SmallRyeConfigProviderResolver;
 import io.smallrye.config.inject.ConfigExtension;
 import io.smallrye.reactive.messaging.kafka.KafkaCDIEvents;
 import io.smallrye.reactive.messaging.kafka.KafkaConnector;
+import io.smallrye.reactive.messaging.kafka.commit.FileCheckpointStateStore;
+import io.smallrye.reactive.messaging.kafka.commit.KafkaCheckpointCommit;
 import io.smallrye.reactive.messaging.kafka.commit.KafkaCommitHandler;
 import io.smallrye.reactive.messaging.kafka.commit.KafkaIgnoreCommit;
 import io.smallrye.reactive.messaging.kafka.commit.KafkaLatestCommit;
@@ -23,6 +25,7 @@ import io.smallrye.reactive.messaging.kafka.fault.KafkaFailStop;
 import io.smallrye.reactive.messaging.kafka.fault.KafkaFailureHandler;
 import io.smallrye.reactive.messaging.kafka.fault.KafkaIgnoreFailure;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaClientServiceImpl;
+import io.smallrye.reactive.messaging.kafka.impl.TopicPartitions;
 import io.smallrye.reactive.messaging.kafka.transactions.KafkaTransactionsFactory;
 import io.smallrye.reactive.messaging.providers.MediatorFactory;
 import io.smallrye.reactive.messaging.providers.connectors.ExecutionHolder;
@@ -47,7 +50,9 @@ public class WeldTestBase {
     public static Instance<KafkaCommitHandler.Factory> commitHandlerFactories = new MultipleInstance<>(
             new KafkaThrottledLatestProcessedCommit.Factory(),
             new KafkaLatestCommit.Factory(),
-            new KafkaIgnoreCommit.Factory());
+            new KafkaIgnoreCommit.Factory(),
+            new KafkaCheckpointCommit.Factory(new SingletonInstance<>("file",
+                    new FileCheckpointStateStore.Factory(UnsatisfiedInstance.instance()))));
 
     public static Instance<KafkaFailureHandler.Factory> failureHandlerFactories = new MultipleInstance<>(
             new KafkaFailStop.Factory(),
@@ -85,6 +90,8 @@ public class WeldTestBase {
         weld.addBeanClass(KafkaThrottledLatestProcessedCommit.Factory.class);
         weld.addBeanClass(KafkaLatestCommit.Factory.class);
         weld.addBeanClass(KafkaIgnoreCommit.Factory.class);
+        weld.addBeanClass(KafkaCheckpointCommit.Factory.class);
+        weld.addBeanClass(FileCheckpointStateStore.Factory.class);
         weld.addBeanClass(KafkaFailStop.Factory.class);
         weld.addBeanClass(KafkaIgnoreFailure.Factory.class);
         weld.addBeanClass(KafkaDeadLetterQueue.Factory.class);
@@ -106,7 +113,7 @@ public class WeldTestBase {
         }
         // Release the config objects
         SmallRyeConfigProviderResolver.instance().releaseConfig(ConfigProvider.getConfig());
-        KafkaThrottledLatestProcessedCommit.clearCache();
+        TopicPartitions.clearCache();
     }
 
     public BeanManager getBeanManager() {

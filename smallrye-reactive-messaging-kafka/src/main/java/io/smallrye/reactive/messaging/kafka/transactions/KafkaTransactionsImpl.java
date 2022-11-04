@@ -23,6 +23,7 @@ import io.smallrye.reactive.messaging.kafka.api.IncomingKafkaRecordBatchMetadata
 import io.smallrye.reactive.messaging.kafka.api.IncomingKafkaRecordMetadata;
 import io.smallrye.reactive.messaging.kafka.i18n.KafkaExceptions;
 import io.smallrye.reactive.messaging.kafka.i18n.KafkaLogging;
+import io.smallrye.reactive.messaging.kafka.impl.TopicPartitions;
 import io.smallrye.reactive.messaging.providers.extension.MutinyEmitterImpl;
 import io.vertx.core.Context;
 import io.vertx.core.Vertx;
@@ -72,7 +73,7 @@ public class KafkaTransactionsImpl<T> extends MutinyEmitterImpl<T> implements Ka
             IncomingKafkaRecordMetadata<?, ?> metadata = recordMetadata.get();
             channel = metadata.getChannel();
             offsets = new HashMap<>();
-            offsets.put(new TopicPartition(metadata.getTopic(), metadata.getPartition()),
+            offsets.put(TopicPartitions.getTopicPartition(metadata.getTopic(), metadata.getPartition()),
                     new OffsetAndMetadata(metadata.getOffset() + 1));
         } else {
             throw KafkaExceptions.ex.noKafkaMetadataFound(message);

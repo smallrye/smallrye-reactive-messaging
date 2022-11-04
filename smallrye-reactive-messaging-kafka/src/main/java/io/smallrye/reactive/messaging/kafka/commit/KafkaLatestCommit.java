@@ -17,6 +17,7 @@ import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.kafka.IncomingKafkaRecord;
 import io.smallrye.reactive.messaging.kafka.KafkaConnectorIncomingConfiguration;
 import io.smallrye.reactive.messaging.kafka.KafkaConsumer;
+import io.smallrye.reactive.messaging.kafka.impl.TopicPartitions;
 import io.vertx.mutiny.core.Vertx;
 
 /**
@@ -66,7 +67,7 @@ public class KafkaLatestCommit extends ContextHolder implements KafkaCommitHandl
     public <K, V> Uni<Void> handle(IncomingKafkaRecord<K, V> record) {
         runOnContext(() -> {
             Map<TopicPartition, OffsetAndMetadata> map = new HashMap<>();
-            TopicPartition key = new TopicPartition(record.getTopic(), record.getPartition());
+            TopicPartition key = TopicPartitions.getTopicPartition(record);
             Long last = offsets.get(key);
             // Verify that the latest committed offset before this one.
             if (last == null || last < record.getOffset() + 1) {

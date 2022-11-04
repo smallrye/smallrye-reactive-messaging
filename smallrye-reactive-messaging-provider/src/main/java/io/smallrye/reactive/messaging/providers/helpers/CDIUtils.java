@@ -3,6 +3,7 @@ package io.smallrye.reactive.messaging.providers.helpers;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import javax.enterprise.inject.Instance;
@@ -33,5 +34,14 @@ public class CDIUtils {
             }
         }
         return matching;
+    }
+
+    public static <T> T getInstanceById(Instance<T> instances, String identifier, Supplier<T> defaultSupplier) {
+        Instance<T> instanceById = getInstanceById(instances, identifier);
+        if (instanceById.isUnsatisfied()) {
+            return defaultSupplier.get();
+        } else {
+            return instanceById.get();
+        }
     }
 }

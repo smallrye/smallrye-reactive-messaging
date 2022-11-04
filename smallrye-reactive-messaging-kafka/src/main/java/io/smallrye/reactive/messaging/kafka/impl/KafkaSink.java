@@ -201,7 +201,7 @@ public class KafkaSink {
 
                 Uni<Void> uni = sendUni.onItem().transformToUni(recordMetadata -> {
                     OutgoingMessageMetadata.setResultOnMessage(message, recordMetadata);
-                    log.successfullyToTopic(message, record.topic());
+                    log.successfullyToTopic(message, record.topic(), recordMetadata.partition(), recordMetadata.offset());
                     return Uni.createFrom().completionStage(message.ack());
                 });
 

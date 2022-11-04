@@ -1,6 +1,7 @@
 package io.smallrye.reactive.messaging.kafka.commit;
 
 import static io.smallrye.reactive.messaging.kafka.i18n.KafkaLogging.log;
+import static io.smallrye.reactive.messaging.kafka.impl.TopicPartitions.getTopicPartition;
 
 import java.util.*;
 import java.util.concurrent.*;
@@ -41,8 +42,6 @@ import io.vertx.mutiny.core.Vertx;
  * To use set `commit-strategy` to `throttled`.
  */
 public class KafkaThrottledLatestProcessedCommit extends ContextHolder implements KafkaCommitHandler {
-
-    private static final Map<String, Map<Integer, TopicPartition>> TOPIC_PARTITIONS_CACHE = new ConcurrentHashMap<>();
 
     private final Map<TopicPartition, OffsetStore> offsetStores = new HashMap<>();
 
@@ -97,16 +96,6 @@ public class KafkaThrottledLatestProcessedCommit extends ContextHolder implement
         this.reportFailure = reportFailure;
         this.unprocessedRecordMaxAge = unprocessedRecordMaxAge;
         this.autoCommitInterval = autoCommitInterval;
-    }
-
-    public static void clearCache() {
-        TOPIC_PARTITIONS_CACHE.clear();
-    }
-
-    private <K, V> TopicPartition getTopicPartition(IncomingKafkaRecord<K, V> record) {
-        return TOPIC_PARTITIONS_CACHE
-                .computeIfAbsent(record.getTopic(), topic -> new ConcurrentHashMap<>())
-                .computeIfAbsent(record.getPartition(), partition -> new TopicPartition(record.getTopic(), partition));
     }
 
     /**
