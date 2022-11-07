@@ -5,9 +5,10 @@ import static org.awaitility.Awaitility.await;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import org.eclipse.paho.client.mqttv3.MqttMessage;
@@ -35,7 +36,30 @@ public class DynamicMqttSinkTest extends MqttTestBase {
         weld.addBeanClass(DynamicTopicProducingBean.class);
 
         final List<MqttMessage> rawMessages = new ArrayList<>(10);
-        final List<String> topics = new CopyOnWriteArrayList<>();
+        final Set<String> topics = new HashSet<>();
+        usage.consumeRaw("#", 10, 60, TimeUnit.SECONDS, null,
+                (topic, msg) -> {
+                    topics.add(topic);
+                    rawMessages.add(msg);
+                });
+
+        container = weld.initialize();
+
+        await().atMost(1, TimeUnit.MINUTES).until(() -> topics.size() >= 10);
+        assertThat(topics.size()).isEqualTo(10);
+        assertThat(rawMessages.size()).isEqualTo(10);
+        MqttMessage firstMessage = rawMessages.get(0);
+        assertThat(firstMessage.getQos()).isEqualTo(1);
+        assertThat(firstMessage.isRetained()).isFalse();
+    }
+
+    @Test
+    public void testABeanProducingMessagesWithEmitterSentToMQTT() {
+        Weld weld = baseWeld(getConfig());
+        weld.addBeanClass(DynamicTopicEmitterProducingBean.class);
+
+        final List<MqttMessage> rawMessages = new ArrayList<>(10);
+        final Set<String> topics = new HashSet<>();
         usage.consumeRaw("#", 10, 60, TimeUnit.SECONDS, null,
                 (topic, msg) -> {
                     topics.add(topic);

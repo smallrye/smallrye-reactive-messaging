@@ -2,6 +2,7 @@ package io.smallrye.reactive.messaging.mqtt;
 
 import static io.smallrye.reactive.messaging.mqtt.i18n.MqttLogging.log;
 
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -68,8 +69,9 @@ public class MqttSink {
         final MqttQoS actualQoS;
         final boolean isRetain;
 
-        if (msg instanceof SendingMqttMessage) {
-            MqttMessage<?> mm = ((SendingMqttMessage<?>) msg);
+        Optional<SendingMqttMessageMetadata> metadata = msg.getMetadata(SendingMqttMessageMetadata.class);
+        if (metadata.isPresent()) {
+            SendingMqttMessageMetadata mm = metadata.get();
             actualTopicToBeUsed = mm.getTopic() == null ? this.topic : mm.getTopic();
             actualQoS = mm.getQosLevel() == null ? MqttQoS.valueOf(this.qos) : mm.getQosLevel();
             isRetain = mm.isRetain();
