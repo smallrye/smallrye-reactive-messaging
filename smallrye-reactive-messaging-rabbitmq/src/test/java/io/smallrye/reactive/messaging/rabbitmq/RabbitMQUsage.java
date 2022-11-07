@@ -72,7 +72,7 @@ public class RabbitMQUsage {
      * @param messageCount the number of messages to produce; must be positive
      * @param messageSupplier the function to produce messages; may not be null
      */
-    void produce(String exchange, String queue, String routingKey, int messageCount, Supplier<Object> messageSupplier) {
+    public void produce(String exchange, String queue, String routingKey, int messageCount, Supplier<Object> messageSupplier) {
         this.produce(exchange, queue, routingKey, messageCount, messageSupplier, "text/plain");
     }
 
@@ -84,23 +84,24 @@ public class RabbitMQUsage {
      * @param messageSupplier the function to produce messages; may not be null
      * @param contentType the message's content_type attribute
      */
-    void produce(String exchange, String queue, String routingKey, int messageCount, Supplier<Object> messageSupplier,
+    public void produce(String exchange, String queue, String routingKey, int messageCount, Supplier<Object> messageSupplier,
             String contentType) {
+        this.produce(exchange, queue, routingKey, messageCount, messageSupplier,
+                new AMQP.BasicProperties().builder().expiration("10000").contentType(contentType).build());
+    }
+
+    public void produce(String exchange, String queue, String routingKey, int messageCount, Supplier<Object> messageSupplier,
+            BasicProperties properties) {
         CountDownLatch done = new CountDownLatch(messageCount);
         // Start the machinery to receive the messages
         client.startAndAwait();
 
-        final Thread t = new Thread(() -> {
+        Thread t = new Thread(() -> {
             LOGGER.infof("Starting RabbitMQ sender to write %s messages with routing key %s", messageCount, routingKey);
             try {
                 for (int i = 0; i != messageCount; ++i) {
-                    final Object payload = messageSupplier.get();
-                    final Buffer body = Buffer.buffer(payload.toString());
-                    final BasicProperties properties = new AMQP.BasicProperties().builder()
-                            .expiration("10000")
-                            .contentType(contentType)
-                            .build();
-
+                    Object payload = messageSupplier.get();
+                    Buffer body = Buffer.buffer(payload.toString());
                     client.basicPublish(exchange, routingKey, properties, body)
                             .subscribe().with(
                                     v -> {

@@ -43,7 +43,7 @@ public class RabbitMQBrokerTestBase {
     protected static int managementPort;
     final static String username = "guest";
     final static String password = "guest";
-    RabbitMQUsage usage;
+    protected RabbitMQUsage usage;
     ExecutionHolder executionHolder;
 
     @BeforeAll
