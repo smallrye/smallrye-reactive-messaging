@@ -5,7 +5,6 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
@@ -46,13 +45,12 @@ public class IncomingRabbitMQMessageTest {
         when(mockMsg.envelope()).thenReturn(new Envelope(13456, false, "test", "test"));
         RabbitMQMessage msg = RabbitMQMessage.newInstance(mockMsg);
 
-        RabbitMQConnectorIncomingConfiguration incomingConfiguration = mock(RabbitMQConnectorIncomingConfiguration.class);
-        when(incomingConfiguration.getContentTypeOverride()).thenReturn(Optional.of("text/plain"));
-
         Exception nackReason = new Exception("test");
 
-        IncomingRabbitMQMessage<String> ackMsg = new IncomingRabbitMQMessage<>(msg, mock(ConnectionHolder.class), doNothingNack,
-                doNothingAck, incomingConfiguration);
+        IncomingRabbitMQMessage<String> ackMsg = new IncomingRabbitMQMessage<>(msg, mock(ConnectionHolder.class),
+                doNothingNack,
+                doNothingAck,
+                "text/plain");
 
         assertDoesNotThrow(() -> ackMsg.ack().toCompletableFuture().get());
         assertDoesNotThrow(() -> ackMsg.ack().toCompletableFuture().get());
@@ -67,13 +65,12 @@ public class IncomingRabbitMQMessageTest {
         when(mockMsg.envelope()).thenReturn(new Envelope(13456, false, "test", "test"));
         RabbitMQMessage msg = RabbitMQMessage.newInstance(mockMsg);
 
-        RabbitMQConnectorIncomingConfiguration incomingConfiguration = mock(RabbitMQConnectorIncomingConfiguration.class);
-        when(incomingConfiguration.getContentTypeOverride()).thenReturn(Optional.of("text/plain"));
-
         Exception nackReason = new Exception("test");
 
         IncomingRabbitMQMessage<String> nackMsg = new IncomingRabbitMQMessage<>(msg, mock(ConnectionHolder.class),
-                doNothingNack, doNothingAck, incomingConfiguration);
+                doNothingNack,
+                doNothingAck,
+                "text/plain");
 
         assertDoesNotThrow(() -> nackMsg.nack(nackReason).toCompletableFuture().get());
         assertDoesNotThrow(() -> nackMsg.nack(nackReason).toCompletableFuture().get());
@@ -88,11 +85,9 @@ public class IncomingRabbitMQMessageTest {
         when(mockMsg.envelope()).thenReturn(new Envelope(13456, false, "test", "test"));
         RabbitMQMessage msg = RabbitMQMessage.newInstance(mockMsg);
 
-        RabbitMQConnectorIncomingConfiguration incomingConfiguration = mock(RabbitMQConnectorIncomingConfiguration.class);
-        when(incomingConfiguration.getContentTypeOverride()).thenReturn(Optional.of("text/plain"));
-
         IncomingRabbitMQMessage<String> incomingRabbitMQMessage = new IncomingRabbitMQMessage<>(msg,
-                mock(ConnectionHolder.class), doNothingNack, doNothingAck, incomingConfiguration);
+                mock(ConnectionHolder.class),
+                doNothingNack, doNothingAck, "text/plain");
 
         assertThat(incomingRabbitMQMessage.getPayload()).isEqualTo("payload");
     }
@@ -107,11 +102,9 @@ public class IncomingRabbitMQMessageTest {
         when(mockMsg.envelope()).thenReturn(new Envelope(13456, false, "test", "test"));
         RabbitMQMessage msg = RabbitMQMessage.newInstance(mockMsg);
 
-        RabbitMQConnectorIncomingConfiguration incomingConfiguration = mock(RabbitMQConnectorIncomingConfiguration.class);
-        when(incomingConfiguration.getContentTypeOverride()).thenReturn(Optional.empty());
-
         IncomingRabbitMQMessage<JsonObject> incomingRabbitMQMessage = new IncomingRabbitMQMessage<>(msg,
-                mock(ConnectionHolder.class), doNothingNack, doNothingAck, incomingConfiguration);
+                mock(ConnectionHolder.class),
+                doNothingNack, doNothingAck, null);
 
         assertThat(incomingRabbitMQMessage.getPayload()).isEqualTo(payload);
     }
@@ -125,12 +118,9 @@ public class IncomingRabbitMQMessageTest {
         when(mockMsg.envelope()).thenReturn(new Envelope(13456, false, "test", "test"));
         RabbitMQMessage msg = RabbitMQMessage.newInstance(mockMsg);
 
-        RabbitMQConnectorIncomingConfiguration incomingConfiguration = mock(RabbitMQConnectorIncomingConfiguration.class);
-        when(incomingConfiguration.getContentTypeOverride()).thenReturn(Optional.empty());
-
         IncomingRabbitMQMessage<JsonObject> incomingRabbitMQMessage = new IncomingRabbitMQMessage<>(msg,
                 mock(ConnectionHolder.class),
-                doNothingNack, doNothingAck, incomingConfiguration);
+                doNothingNack, doNothingAck, null);
 
         assertThat(((Message<byte[]>) ((Message) incomingRabbitMQMessage)).getPayload()).isEqualTo(payloadBuffer.getBytes());
     }

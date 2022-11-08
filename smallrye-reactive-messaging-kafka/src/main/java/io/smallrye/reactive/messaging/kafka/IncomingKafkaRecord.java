@@ -14,9 +14,10 @@ import io.smallrye.reactive.messaging.ce.CloudEventMetadata;
 import io.smallrye.reactive.messaging.kafka.commit.KafkaCommitHandler;
 import io.smallrye.reactive.messaging.kafka.fault.KafkaFailureHandler;
 import io.smallrye.reactive.messaging.kafka.impl.ce.KafkaCloudEventHelper;
+import io.smallrye.reactive.messaging.providers.MetadataInjectableMessage;
 import io.smallrye.reactive.messaging.providers.locals.ContextAwareMessage;
 
-public class IncomingKafkaRecord<K, T> implements KafkaRecord<K, T> {
+public class IncomingKafkaRecord<K, T> implements KafkaRecord<K, T>, MetadataInjectableMessage<T> {
 
     private Metadata metadata;
     // TODO add as a normal import once we have removed IncomingKafkaRecordMetadata in this package
@@ -131,6 +132,7 @@ public class IncomingKafkaRecord<K, T> implements KafkaRecord<K, T> {
         return onNack.handle(this, reason, metadata).subscribeAsCompletionStage();
     }
 
+    @Override
     public synchronized void injectMetadata(Object metadata) {
         this.metadata = this.metadata.with(metadata);
     }

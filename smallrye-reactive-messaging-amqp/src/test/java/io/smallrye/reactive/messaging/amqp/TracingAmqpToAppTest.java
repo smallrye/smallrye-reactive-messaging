@@ -19,7 +19,6 @@ import org.jboss.weld.environment.se.WeldContainer;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import io.opentelemetry.api.GlobalOpenTelemetry;
@@ -37,7 +36,6 @@ import io.smallrye.config.SmallRyeConfigProviderResolver;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 import io.vertx.mutiny.amqp.AmqpMessage;
 
-@Disabled("See https://github.com/smallrye/smallrye-reactive-messaging/issues/1268")
 public class TracingAmqpToAppTest extends AmqpBrokerTestBase {
     private SdkTracerProvider tracerProvider;
     private InMemorySpanExporter spanExporter;
@@ -91,6 +89,7 @@ public class TracingAmqpToAppTest extends AmqpBrokerTestBase {
         weld.addBeanClass(MyAppReceivingData.class);
         container = weld.initialize();
         await().until(() -> isAmqpConnectorReady(container));
+        await().until(() -> isAmqpConnectorAlive(container));
 
         MyAppReceivingData bean = container.getBeanManager().createInstance().select(MyAppReceivingData.class).get();
 

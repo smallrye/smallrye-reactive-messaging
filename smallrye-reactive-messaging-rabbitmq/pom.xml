@@ -29,6 +29,11 @@
       <version>${smallrye-vertx-mutiny-clients.version}</version>
     </dependency>
     <dependency>
+      <groupId>io.smallrye.reactive</groupId>
+      <artifactId>smallrye-reactive-messaging-otel</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
       <groupId>io.vertx</groupId>
       <artifactId>vertx-rabbitmq-client</artifactId>
     </dependency>
@@ -49,23 +54,6 @@
       <artifactId>smallrye-connector-attribute-processor</artifactId>
       <version>${project.version}</version>
       <scope>provided</scope>
-    </dependency>
-
-    <dependency>
-      <groupId>io.opentelemetry</groupId>
-      <artifactId>opentelemetry-api</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>io.opentelemetry</groupId>
-      <artifactId>opentelemetry-semconv</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>io.opentelemetry.instrumentation</groupId>
-      <artifactId>opentelemetry-instrumentation-api</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>io.opentelemetry.instrumentation</groupId>
-      <artifactId>opentelemetry-instrumentation-api-semconv</artifactId>
     </dependency>
 
     <dependency>

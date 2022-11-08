@@ -31,6 +31,26 @@
             "old": "class io.smallrye.reactive.messaging.kafka.commit.KafkaCheckpointCommit.CheckpointState<T>",
             "new": "class io.smallrye.reactive.messaging.kafka.commit.KafkaCheckpointCommit.CheckpointState<T>",
             "justification": "New checkpointing API"
+        },
+        {
+            "code": "java.method.removed",
+            "old": "method void io.smallrye.reactive.messaging.kafka.impl.KafkaRecordHelper::createOutgoingTrace(org.eclipse.microprofile.reactive.messaging.Message<?>, java.lang.String, java.lang.Integer, org.apache.kafka.common.header.Headers)",
+            "justification": "Tracing methods moved to separate otel module"
+        },
+        {
+            "code": "java.method.removed",
+            "old": "method java.util.Set<java.lang.String> io.smallrye.reactive.messaging.kafka.impl.KafkaSource<K, V>::getSubscribedTopics()",
+            "justification": "Removed unused method"
+        },
+        {
+            "code": "java.class.removed",
+            "old": "class io.smallrye.reactive.messaging.kafka.tracing.HeaderExtractAdapter",
+            "justification": "Replaced by otel instrumentation api"
+        },
+        {
+            "code": "java.class.removed",
+            "old": "class io.smallrye.reactive.messaging.kafka.tracing.HeaderInjectAdapter",
+            "justification": "Replaced by otel instrumentation api"
         }
     ]
   }

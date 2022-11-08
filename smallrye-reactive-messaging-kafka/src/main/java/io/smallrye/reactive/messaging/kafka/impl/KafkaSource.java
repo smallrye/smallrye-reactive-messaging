@@ -22,7 +22,6 @@ import org.apache.kafka.common.errors.RebalanceInProgressException;
 
 import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.opentelemetry.context.Context;
-import io.opentelemetry.context.Scope;
 import io.opentelemetry.instrumentation.api.instrumenter.Instrumenter;
 import io.opentelemetry.instrumentation.api.instrumenter.InstrumenterBuilder;
 import io.opentelemetry.instrumentation.api.instrumenter.messaging.MessageOperation;
@@ -32,7 +31,6 @@ import io.opentelemetry.instrumentation.api.instrumenter.messaging.MessagingSpan
 import io.smallrye.common.annotation.Identifier;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
-import io.smallrye.reactive.messaging.TracingMetadata;
 import io.smallrye.reactive.messaging.health.HealthReport;
 import io.smallrye.reactive.messaging.kafka.DeserializationFailureHandler;
 import io.smallrye.reactive.messaging.kafka.IncomingKafkaRecord;
@@ -48,6 +46,7 @@ import io.smallrye.reactive.messaging.kafka.health.KafkaSourceHealth;
 import io.smallrye.reactive.messaging.kafka.tracing.KafkaAttributesExtractor;
 import io.smallrye.reactive.messaging.kafka.tracing.KafkaTrace;
 import io.smallrye.reactive.messaging.kafka.tracing.KafkaTraceTextMapGetter;
+import io.smallrye.reactive.messaging.tracing.TracingUtils;
 import io.vertx.core.impl.EventLoopContext;
 import io.vertx.core.impl.VertxInternal;
 import io.vertx.mutiny.core.Vertx;
@@ -279,31 +278,7 @@ public class KafkaSource<K, V> {
                     .withClientId(client.get(ConsumerConfig.CLIENT_ID_CONFIG))
                     .build();
 
-            TracingMetadata tracingMetadata = TracingMetadata.fromMessage(kafkaRecord).orElse(TracingMetadata.empty());
-            Context parentContext = tracingMetadata.getPreviousContext();
-            if (parentContext == null) {
-                parentContext = Context.current();
-            }
-            Context spanContext;
-            Scope scope = null;
-            boolean shouldStart = instrumenter.shouldStart(parentContext, kafkaTrace);
-
-            if (shouldStart) {
-                spanContext = instrumenter.start(parentContext, kafkaTrace);
-                if (!insideBatch) {
-                    scope = spanContext.makeCurrent();
-                }
-
-                kafkaRecord.injectMetadata(TracingMetadata.with(spanContext, parentContext));
-
-                try {
-                    instrumenter.end(spanContext, kafkaTrace, null, null);
-                } finally {
-                    if (scope != null) {
-                        scope.close();
-                    }
-                }
-            }
+            TracingUtils.traceIncoming(instrumenter, kafkaRecord, kafkaTrace, !insideBatch);
         }
     }
 

@@ -47,7 +47,6 @@ import io.opentelemetry.sdk.trace.export.SimpleSpanProcessor;
 import io.opentelemetry.sdk.trace.samplers.Sampler;
 import io.smallrye.reactive.messaging.providers.connectors.InMemoryConnector;
 import io.smallrye.reactive.messaging.providers.connectors.InMemorySource;
-import io.smallrye.reactive.messaging.rabbitmq.tracing.RabbitMQTracingSubscriberDecorator;
 
 public class TracingTest extends WeldTestBase {
     private SdkTracerProvider tracerProvider;
@@ -69,8 +68,6 @@ public class TracingTest extends WeldTestBase {
                 .setPropagators(ContextPropagators.create(W3CTraceContextPropagator.getInstance()))
                 .setTracerProvider(tracerProvider)
                 .buildAndRegisterGlobal();
-
-        addBeans(RabbitMQTracingSubscriberDecorator.class);
     }
 
     @Test

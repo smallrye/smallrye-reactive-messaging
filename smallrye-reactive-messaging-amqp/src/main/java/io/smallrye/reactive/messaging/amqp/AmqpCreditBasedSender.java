@@ -16,8 +16,6 @@ import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
 
 import io.opentelemetry.api.GlobalOpenTelemetry;
-import io.opentelemetry.context.Context;
-import io.opentelemetry.context.Scope;
 import io.opentelemetry.instrumentation.api.instrumenter.Instrumenter;
 import io.opentelemetry.instrumentation.api.instrumenter.InstrumenterBuilder;
 import io.opentelemetry.instrumentation.api.instrumenter.messaging.MessageOperation;
@@ -28,11 +26,11 @@ import io.smallrye.common.annotation.CheckReturnValue;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.helpers.Subscriptions;
 import io.smallrye.mutiny.tuples.Tuple2;
-import io.smallrye.reactive.messaging.TracingMetadata;
 import io.smallrye.reactive.messaging.amqp.ce.AmqpCloudEventHelper;
 import io.smallrye.reactive.messaging.amqp.tracing.AmqpAttributesExtractor;
 import io.smallrye.reactive.messaging.amqp.tracing.AmqpMessageTextMapSetter;
 import io.smallrye.reactive.messaging.ce.OutgoingCloudEventMetadata;
+import io.smallrye.reactive.messaging.tracing.TracingUtils;
 import io.vertx.amqp.impl.AmqpMessageImpl;
 import io.vertx.mutiny.amqp.AmqpSender;
 
@@ -326,7 +324,7 @@ public class AmqpCreditBasedSender implements Processor<Message<?>, Message<?>>,
         }
 
         if (tracingEnabled) {
-            createOutgoingTrace(msg, amqp);
+            TracingUtils.traceOutgoing(instrumenter, msg, new AmqpMessage<>(amqp, null, null, false, true));
         }
 
         log.sendingMessageToAddress(actualAddress);
@@ -340,29 +338,6 @@ public class AmqpCreditBasedSender implements Processor<Message<?>, Message<?>>,
                     }
                 })
                 .onItem().transform(x -> msg);
-    }
-
-    private void createOutgoingTrace(Message<?> msg, io.vertx.mutiny.amqp.AmqpMessage amqp) {
-        Optional<TracingMetadata> tracingMetadata = TracingMetadata.fromMessage(msg);
-        AmqpMessage<?> message = new AmqpMessage<>(amqp, null, null, false, true);
-
-        Context parentContext = tracingMetadata.map(TracingMetadata::getCurrentContext).orElse(Context.current());
-        Context spanContext;
-        Scope scope = null;
-
-        boolean shouldStart = instrumenter.shouldStart(parentContext, message);
-        if (shouldStart) {
-            try {
-                spanContext = instrumenter.start(parentContext, message);
-                scope = spanContext.makeCurrent();
-                message.injectTracingMetadata(TracingMetadata.with(spanContext, parentContext));
-                instrumenter.end(spanContext, message, null, null);
-            } finally {
-                if (scope != null) {
-                    scope.close();
-                }
-            }
-        }
     }
 
     private String getActualAddress(Message<?> message, io.vertx.mutiny.amqp.AmqpMessage amqp, String configuredAddress,

@@ -38,8 +38,6 @@ import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 
 import io.opentelemetry.api.GlobalOpenTelemetry;
-import io.opentelemetry.context.Context;
-import io.opentelemetry.context.Scope;
 import io.opentelemetry.instrumentation.api.instrumenter.Instrumenter;
 import io.opentelemetry.instrumentation.api.instrumenter.InstrumenterBuilder;
 import io.opentelemetry.instrumentation.api.instrumenter.messaging.MessageOperation;
@@ -49,7 +47,6 @@ import io.opentelemetry.instrumentation.api.instrumenter.messaging.MessagingSpan
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.operators.multi.processors.BroadcastProcessor;
-import io.smallrye.reactive.messaging.TracingMetadata;
 import io.smallrye.reactive.messaging.amqp.fault.AmqpAccept;
 import io.smallrye.reactive.messaging.amqp.fault.AmqpFailStop;
 import io.smallrye.reactive.messaging.amqp.fault.AmqpFailureHandler;
@@ -63,6 +60,7 @@ import io.smallrye.reactive.messaging.annotations.ConnectorAttribute;
 import io.smallrye.reactive.messaging.health.HealthReport;
 import io.smallrye.reactive.messaging.health.HealthReporter;
 import io.smallrye.reactive.messaging.providers.connectors.ExecutionHolder;
+import io.smallrye.reactive.messaging.tracing.TracingUtils;
 import io.vertx.amqp.AmqpClientOptions;
 import io.vertx.amqp.AmqpReceiverOptions;
 import io.vertx.amqp.AmqpSenderOptions;
@@ -203,7 +201,7 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
 
         return Multi.createFrom().deferred(
                 () -> {
-                    Multi<AmqpMessage<?>> stream = receiver.toMulti()
+                    Multi<Message<?>> stream = receiver.toMulti()
                             .onItem().transformToUniAndConcatenate(m -> {
                                 try {
                                     return Uni.createFrom().item(new AmqpMessage<>(m, holder.getContext(), onNack,
@@ -215,7 +213,8 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
                             });
 
                     if (tracingEnabled) {
-                        stream = stream.onItem().invoke(this::incomingTrace);
+                        stream = stream.onItem()
+                                .transform(m -> TracingUtils.traceIncoming(instrumenter, m, (AmqpMessage<?>) m));
                     }
 
                     return Multi.createBy().merging().streams(stream, processor);
@@ -462,28 +461,4 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
         terminate(null);
     }
 
-    private void incomingTrace(AmqpMessage<?> message) {
-        TracingMetadata tracingMetadata = TracingMetadata.fromMessage(message).orElse(TracingMetadata.empty());
-
-        Context parentContext = tracingMetadata.getPreviousContext();
-        if (parentContext == null) {
-            parentContext = Context.current();
-        }
-        Context spanContext;
-        Scope scope = null;
-
-        boolean shouldStart = instrumenter.shouldStart(parentContext, message);
-        if (shouldStart) {
-            try {
-                spanContext = instrumenter.start(parentContext, message);
-                scope = spanContext.makeCurrent();
-                message.injectTracingMetadata(TracingMetadata.with(spanContext, parentContext));
-                instrumenter.end(spanContext, message, null, null);
-            } finally {
-                if (scope != null) {
-                    scope.close();
-                }
-            }
-        }
-    }
 }

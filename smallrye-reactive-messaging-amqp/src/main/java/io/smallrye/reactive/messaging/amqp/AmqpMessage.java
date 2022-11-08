@@ -16,17 +16,17 @@ import org.apache.qpid.proton.message.Message;
 import org.apache.qpid.proton.message.MessageError;
 import org.eclipse.microprofile.reactive.messaging.Metadata;
 
-import io.smallrye.reactive.messaging.TracingMetadata;
 import io.smallrye.reactive.messaging.amqp.ce.AmqpCloudEventHelper;
 import io.smallrye.reactive.messaging.amqp.fault.AmqpFailureHandler;
 import io.smallrye.reactive.messaging.ce.CloudEventMetadata;
+import io.smallrye.reactive.messaging.providers.MetadataInjectableMessage;
 import io.smallrye.reactive.messaging.providers.helpers.VertxContext;
 import io.smallrye.reactive.messaging.providers.locals.ContextAwareMessage;
 import io.vertx.core.json.JsonObject;
 import io.vertx.mutiny.core.Context;
 import io.vertx.mutiny.core.buffer.Buffer;
 
-public class AmqpMessage<T> implements org.eclipse.microprofile.reactive.messaging.Message<T>, ContextAwareMessage<T> {
+public class AmqpMessage<T> implements ContextAwareMessage<T>, MetadataInjectableMessage<T> {
 
     protected static final String APPLICATION_JSON = "application/json";
     protected final io.vertx.amqp.AmqpMessage message;
@@ -238,8 +238,9 @@ public class AmqpMessage<T> implements org.eclipse.microprofile.reactive.messagi
         return this::nack;
     }
 
-    public synchronized void injectTracingMetadata(TracingMetadata tracingMetadata) {
-        metadata = metadata.with(tracingMetadata);
+    @Override
+    public synchronized void injectMetadata(Object metadataObject) {
+        metadata = metadata.with(metadataObject);
     }
 
 }

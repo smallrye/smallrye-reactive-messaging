@@ -85,12 +85,13 @@ public class TracingAppToAmqpTest extends AmqpBrokerTestBase {
                 .with("amqp-password", password)
                 .write();
 
+        List<Integer> payloads = new CopyOnWriteArrayList<>();
+        usage.consumeIntegers("amqp", payloads::add);
+
         weld.addBeanClass(MyAppGeneratingData.class);
         container = weld.initialize();
         await().until(() -> isAmqpConnectorReady(container));
-
-        List<Integer> payloads = new CopyOnWriteArrayList<>();
-        usage.consumeIntegers("amqp", payloads::add);
+        await().until(() -> isAmqpConnectorAlive(container));
 
         await().until(() -> payloads.size() >= 10);
         assertThat(payloads).containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);

@@ -22,6 +22,7 @@ import io.smallrye.reactive.messaging.rabbitmq.ack.RabbitMQAckHandler;
 import io.smallrye.reactive.messaging.rabbitmq.fault.RabbitMQFailureHandler;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.mutiny.core.Context;
+import io.vertx.mutiny.rabbitmq.RabbitMQMessage;
 
 /**
  * An implementation of {@link Message} suitable for incoming RabbitMQ messages.
@@ -56,32 +57,25 @@ public class IncomingRabbitMQMessage<T> implements ContextAwareMessage<T> {
     private final long deliveryTag;
     private RabbitMQFailureHandler onNack;
     private RabbitMQAckHandler onAck;
-    private final RabbitMQConnectorIncomingConfiguration incomingConfiguration;
+    private final String contentTypeOverride;
     private final T payload;
 
-    IncomingRabbitMQMessage(
-            final io.vertx.mutiny.rabbitmq.RabbitMQMessage delegate,
-            final ConnectionHolder holder,
-            final RabbitMQFailureHandler onNack,
-            final RabbitMQAckHandler onAck,
-            final RabbitMQConnectorIncomingConfiguration incomingConfiguration) {
-        this(delegate.getDelegate(), holder, onNack, onAck, incomingConfiguration);
+    IncomingRabbitMQMessage(RabbitMQMessage delegate, ConnectionHolder holder,
+            RabbitMQFailureHandler onNack,
+            RabbitMQAckHandler onAck, String contentTypeOverride) {
+        this(delegate.getDelegate(), holder, onNack, onAck, contentTypeOverride);
     }
 
-    IncomingRabbitMQMessage(
-            final io.vertx.rabbitmq.RabbitMQMessage msg,
-            final ConnectionHolder holder,
-            final RabbitMQFailureHandler onNack,
-            final RabbitMQAckHandler onAck,
-            final RabbitMQConnectorIncomingConfiguration incomingConfiguration) {
+    IncomingRabbitMQMessage(io.vertx.rabbitmq.RabbitMQMessage msg, ConnectionHolder holder,
+            RabbitMQFailureHandler onNack, RabbitMQAckHandler onAck, String contentTypeOverride) {
         this.message = msg;
         this.deliveryTag = msg.envelope().getDeliveryTag();
         this.holder = holder;
         this.context = holder.getContext();
-        this.rabbitMQMetadata = new IncomingRabbitMQMetadata(message, incomingConfiguration);
+        this.contentTypeOverride = contentTypeOverride;
+        this.rabbitMQMetadata = new IncomingRabbitMQMetadata(this.message);
         this.onNack = onNack;
         this.onAck = onAck;
-        this.incomingConfiguration = incomingConfiguration;
         this.metadata = captureContextMetadata(rabbitMQMetadata);
         //noinspection unchecked
         this.payload = (T) convertPayload(message);
@@ -155,9 +149,13 @@ public class IncomingRabbitMQMessage<T> implements ContextAwareMessage<T> {
 
     private Object convertPayload(io.vertx.rabbitmq.RabbitMQMessage msg) {
         // Neither of these are guaranteed to be non-null
-        final String contentType = incomingConfiguration.getContentTypeOverride().orElse(msg.properties().getContentType());
+        String contentType = msg.properties().getContentType();
         final String contentEncoding = msg.properties().getContentEncoding();
         final Buffer body = msg.body();
+
+        if (this.contentTypeOverride != null) {
+            contentType = contentTypeOverride;
+        }
 
         // If there is a content encoding specified, we don't try to unwrap
         if (contentEncoding == null) {

@@ -66,7 +66,7 @@ public class RabbitMQMetadataTest {
             }
         };
 
-        IncomingRabbitMQMetadata incoming = new IncomingRabbitMQMetadata(message, null);
+        IncomingRabbitMQMetadata incoming = new IncomingRabbitMQMetadata(message);
         assertThat(incoming.getUserId()).isEqualTo(Optional.of("test-user"));
         assertThat(incoming.getAppId()).isEqualTo(Optional.of("tests"));
         assertThat(incoming.getContentType()).isEqualTo(Optional.of("text/plain"));

@@ -14,7 +14,6 @@ import org.junit.jupiter.api.BeforeEach;
 
 import io.smallrye.config.inject.ConfigExtension;
 import io.smallrye.reactive.messaging.providers.MediatorFactory;
-import io.smallrye.reactive.messaging.providers.OutgoingInterceptorDecorator;
 import io.smallrye.reactive.messaging.providers.connectors.ExecutionHolder;
 import io.smallrye.reactive.messaging.providers.connectors.WorkerPoolRegistry;
 import io.smallrye.reactive.messaging.providers.extension.ChannelProducer;
@@ -70,7 +69,6 @@ public class WeldTestBase extends RabbitMQBrokerTestBase {
         weld.addBeanClass(MetricDecorator.class);
         weld.addBeanClass(MicrometerDecorator.class);
         weld.addBeanClass(ContextDecorator.class);
-        weld.addBeanClass(OutgoingInterceptorDecorator.class);
         weld.disableDiscovery();
     }
 

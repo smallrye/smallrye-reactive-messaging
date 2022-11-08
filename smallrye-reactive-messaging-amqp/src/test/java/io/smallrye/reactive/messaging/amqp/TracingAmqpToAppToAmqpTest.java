@@ -98,6 +98,7 @@ public class TracingAmqpToAppToAmqpTest extends AmqpBrokerTestBase {
         weld.addBeanClass(MyAppProcessingData.class);
         container = weld.initialize();
         await().until(() -> isAmqpConnectorReady(container));
+        await().until(() -> isAmqpConnectorAlive(container));
 
         List<Integer> payloads = new CopyOnWriteArrayList<>();
         usage.consumeIntegers("result-topic", payloads::add);

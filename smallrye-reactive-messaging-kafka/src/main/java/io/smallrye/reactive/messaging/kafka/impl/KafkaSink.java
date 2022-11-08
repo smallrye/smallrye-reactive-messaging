@@ -32,8 +32,6 @@ import org.eclipse.microprofile.reactive.messaging.Message;
 import org.reactivestreams.Subscriber;
 
 import io.opentelemetry.api.GlobalOpenTelemetry;
-import io.opentelemetry.context.Context;
-import io.opentelemetry.context.Scope;
 import io.opentelemetry.instrumentation.api.instrumenter.Instrumenter;
 import io.opentelemetry.instrumentation.api.instrumenter.InstrumenterBuilder;
 import io.opentelemetry.instrumentation.api.instrumenter.messaging.MessageOperation;
@@ -42,7 +40,6 @@ import io.opentelemetry.instrumentation.api.instrumenter.messaging.MessagingAttr
 import io.opentelemetry.instrumentation.api.instrumenter.messaging.MessagingSpanNameExtractor;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.OutgoingMessageMetadata;
-import io.smallrye.reactive.messaging.TracingMetadata;
 import io.smallrye.reactive.messaging.ce.OutgoingCloudEventMetadata;
 import io.smallrye.reactive.messaging.health.HealthReport;
 import io.smallrye.reactive.messaging.kafka.KafkaCDIEvents;
@@ -57,6 +54,8 @@ import io.smallrye.reactive.messaging.kafka.impl.ce.KafkaCloudEventHelper;
 import io.smallrye.reactive.messaging.kafka.tracing.KafkaAttributesExtractor;
 import io.smallrye.reactive.messaging.kafka.tracing.KafkaTrace;
 import io.smallrye.reactive.messaging.kafka.tracing.KafkaTraceTextMapSetter;
+import io.smallrye.reactive.messaging.providers.helpers.MultiUtils;
+import io.smallrye.reactive.messaging.tracing.TracingUtils;
 
 @SuppressWarnings("jol")
 public class KafkaSink {
@@ -220,32 +219,13 @@ public class KafkaSink {
                 }
 
                 if (isTracingEnabled) {
-                    KafkaTrace kafkaTrace = new KafkaTrace.Builder()
+                    TracingUtils.traceOutgoing(instrumenter, message, new KafkaTrace.Builder()
                             .withPartition(record.partition() != null ? record.partition() : -1)
                             .withTopic(record.topic())
                             .withHeaders(record.headers())
                             .withGroupId(client.get(ConsumerConfig.GROUP_ID_CONFIG))
                             .withClientId(client.get(ConsumerConfig.CLIENT_ID_CONFIG))
-                            .build();
-
-                    Optional<TracingMetadata> tracingMetadata = TracingMetadata.fromMessage(message);
-
-                    Context parentContext = tracingMetadata.map(TracingMetadata::getCurrentContext).orElse(Context.current());
-                    Context spanContext;
-                    Scope scope = null;
-
-                    boolean shouldStart = instrumenter.shouldStart(parentContext, kafkaTrace);
-                    if (shouldStart) {
-                        try {
-                            spanContext = instrumenter.start(parentContext, kafkaTrace);
-                            scope = spanContext.makeCurrent();
-                            instrumenter.end(spanContext, kafkaTrace, null, null);
-                        } finally {
-                            if (scope != null) {
-                                scope.close();
-                            }
-                        }
-                    }
+                            .build());
                 }
 
                 log.sendingMessageToTopic(message, actualTopic);
