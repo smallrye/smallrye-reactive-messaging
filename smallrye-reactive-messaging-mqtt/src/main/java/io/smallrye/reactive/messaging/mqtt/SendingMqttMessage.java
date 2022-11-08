@@ -15,15 +15,15 @@ public final class SendingMqttMessage<T> implements MqttMessage<T> {
     private final SendingMqttMessageMetadata sendingMetadata;
     private final Metadata metadata;
 
-    SendingMqttMessage(String topic, T payload, MqttQoS qos, boolean isRetain, Supplier<CompletionStage<Void>> ack) {
+    SendingMqttMessage(T payload, SendingMqttMessageMetadata metadata, Supplier<CompletionStage<Void>> ack) {
         this.payload = payload;
         this.ack = ack;
-        this.sendingMetadata = new SendingMqttMessageMetadata(topic, qos, isRetain);
+        this.sendingMetadata = metadata;
         this.metadata = Metadata.of(sendingMetadata);
     }
 
-    SendingMqttMessage(String topic, T payload, MqttQoS qos, boolean isRetain) {
-        this(topic, payload, qos, isRetain, null);
+    SendingMqttMessage(T payload, SendingMqttMessageMetadata metadata) {
+        this(payload, metadata, null);
     }
 
     @Override
@@ -44,26 +44,32 @@ public final class SendingMqttMessage<T> implements MqttMessage<T> {
         return this::ack;
     }
 
+    @Override
     public T getPayload() {
         return payload;
     }
 
+    @Override
     public int getMessageId() {
         return -1;
     }
 
+    @Override
     public MqttQoS getQosLevel() {
         return sendingMetadata.getQosLevel();
     }
 
+    @Override
     public boolean isDuplicate() {
         return false;
     }
 
+    @Override
     public boolean isRetain() {
         return sendingMetadata.isRetain();
     }
 
+    @Override
     public String getTopic() {
         return sendingMetadata.getTopic();
     }

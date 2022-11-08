@@ -69,4 +69,18 @@ public class MqttMessageTest {
         assertThat(message.isDuplicate()).isFalse();
         assertThat(message.isRetain()).isTrue();
     }
+
+    @Test
+    void testOfMetadata() {
+        MqttMessage<String> message = MqttMessage.of(
+                new SendingMqttMessageMetadata("topic3", MqttQoS.EXACTLY_ONCE, true),
+                "testWithRetain");
+
+        assertThat(message.getPayload()).isEqualTo("testWithRetain");
+        assertThat(message.getTopic()).isEqualTo("topic3");
+        assertThat(message.getMessageId()).isEqualTo(-1);
+        assertThat(message.getQosLevel()).isEqualTo(MqttQoS.EXACTLY_ONCE);
+        assertThat(message.isDuplicate()).isFalse();
+        assertThat(message.isRetain()).isTrue();
+    }
 }

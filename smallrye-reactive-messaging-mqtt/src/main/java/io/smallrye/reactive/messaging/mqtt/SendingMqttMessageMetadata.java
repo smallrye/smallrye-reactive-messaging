@@ -5,7 +5,7 @@ import io.netty.handler.codec.mqtt.MqttQoS;
 /**
  * Used to represent MQTT metadata in on outgoing message.
  */
-public final class SendingMqttMessageMetadata {
+public final class SendingMqttMessageMetadata implements MqttMessageMetadata {
 
     private final String topic;
     private final MqttQoS qos;
@@ -17,15 +17,18 @@ public final class SendingMqttMessageMetadata {
         this.isRetain = isRetain;
     }
 
+    @Override
+    public String getTopic() {
+        return topic;
+    }
+
+    @Override
     public MqttQoS getQosLevel() {
         return qos;
     }
 
+    @Override
     public boolean isRetain() {
         return isRetain;
-    }
-
-    public String getTopic() {
-        return topic;
     }
 }
