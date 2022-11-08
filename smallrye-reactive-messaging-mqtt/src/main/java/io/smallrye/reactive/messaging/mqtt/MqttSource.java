@@ -9,7 +9,6 @@ import java.util.regex.Pattern;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 
-import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.mqtt.session.MqttClientSessionOptions;
 import io.smallrye.reactive.messaging.mqtt.session.RequestedQoS;
@@ -48,35 +47,28 @@ public class MqttSource {
                 .onComplete(outcome -> log.info("Subscription outcome: " + outcome))
                 .onSuccess(ignore -> ready.set(true));
 
-        Multi<ReceivingMqttMessage> mqtt = holder.stream()
-                .select().where(m -> matches(topic, m))
-                .onItem().transform(m -> new ReceivingMqttMessage(m, onNack))
-                .stage(multi -> {
-                    if (broadcast) {
-                        return multi.broadcast().toAllSubscribers();
-                    }
-                    return multi;
-                });
-        // overflow strategy can be drop, drop-prev or default buffer
-        String ofs = config.getOverflowStrategy();
-        if ("drop".equals(ofs)) {
-            mqtt = mqtt.onOverflow().drop();
-        } else if ("drop-prev".equals(ofs)) {
-            mqtt = mqtt.onOverflow().dropPreviousItems();
-        } else {
-            mqtt = mqtt.onOverflow().buffer(config.getBufferSize());
-        }
-        this.source = ReactiveStreams.fromPublisher(mqtt.onCancellation().call(() -> {
-            ready.set(false);
-            if (config.getUnsubscribeOnDisconnection())
-                return Uni
-                        .createFrom()
-                        .completionStage(holder.getClient()
-                                .unsubscribe(topic).toCompletionStage());
-            else
-                return Uni.createFrom().voidItem();
-        }).plug(ContextOperator::apply)
-                .onFailure().invoke(log::unableToConnectToBroker));
+        this.source = ReactiveStreams.fromPublisher(
+                holder.stream()
+                        .select().where(m -> matches(topic, m))
+                        .onItem().transform(m -> new ReceivingMqttMessage(m, onNack))
+                        .stage(multi -> {
+                            if (broadcast) {
+                                return multi.broadcast().toAllSubscribers();
+                            }
+                            return multi;
+                        })
+                        .onOverflow().buffer(config.getBufferSize())
+                        .onCancellation().call(() -> {
+                            ready.set(false);
+                            if (config.getUnsubscribeOnDisconnection())
+                                return Uni
+                                        .createFrom()
+                                        .completionStage(holder.getClient()
+                                                .unsubscribe(topic).toCompletionStage());
+                            else
+                                return Uni.createFrom().voidItem();
+                        }).plug(ContextOperator::apply)
+                        .onFailure().invoke(log::unableToConnectToBroker));
     }
 
     /**
