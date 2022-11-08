@@ -14,11 +14,13 @@ public class ReceivingMqttMessage implements MqttMessage<byte[]> {
     final MqttPublishMessage message;
     final MqttFailureHandler onNack;
     final Metadata metadata;
+    private final ReceivingMqttMessageMetadata receivingMetadata;
 
     ReceivingMqttMessage(MqttPublishMessage message, MqttFailureHandler onNack) {
         this.message = message;
         this.onNack = onNack;
-        this.metadata = captureContextMetadata();
+        this.receivingMetadata = new ReceivingMqttMessageMetadata(this.message);
+        this.metadata = captureContextMetadata(receivingMetadata);
     }
 
     @Override
@@ -31,24 +33,29 @@ public class ReceivingMqttMessage implements MqttMessage<byte[]> {
         return metadata;
     }
 
+    @Override
     public int getMessageId() {
-        return message.messageId();
+        return receivingMetadata.getMessageId();
     }
 
+    @Override
     public MqttQoS getQosLevel() {
-        return message.qosLevel();
+        return receivingMetadata.getQosLevel();
     }
 
+    @Override
     public boolean isDuplicate() {
-        return message.isDup();
+        return receivingMetadata.isDuplicate();
     }
 
+    @Override
     public boolean isRetain() {
-        return message.isRetain();
+        return receivingMetadata.isRetain();
     }
 
+    @Override
     public String getTopic() {
-        return message.topicName();
+        return receivingMetadata.getTopic();
     }
 
     @Override
