@@ -1,6 +1,6 @@
 package io.smallrye.reactive.messaging.decorator;
 
-import javax.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.context.ApplicationScoped;
 
 import org.eclipse.microprofile.reactive.messaging.Message;
 

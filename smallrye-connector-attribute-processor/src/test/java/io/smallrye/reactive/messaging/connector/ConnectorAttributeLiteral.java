@@ -1,6 +1,6 @@
 package io.smallrye.reactive.messaging.connector;
 
-import javax.enterprise.util.AnnotationLiteral;
+import jakarta.enterprise.util.AnnotationLiteral;
 
 import io.smallrye.reactive.messaging.annotations.ConnectorAttribute;
 

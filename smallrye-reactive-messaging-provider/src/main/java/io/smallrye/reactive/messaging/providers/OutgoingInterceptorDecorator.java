@@ -5,11 +5,11 @@ import static io.smallrye.reactive.messaging.providers.helpers.CDIUtils.getSorte
 
 import java.util.List;
 
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.inject.Any;
-import javax.enterprise.inject.Default;
-import javax.enterprise.inject.Instance;
-import javax.inject.Inject;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Any;
+import jakarta.enterprise.inject.Default;
+import jakarta.enterprise.inject.Instance;
+import jakarta.inject.Inject;
 
 import org.eclipse.microprofile.reactive.messaging.Message;
 

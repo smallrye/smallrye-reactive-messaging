@@ -1,6 +1,6 @@
 package acme
 
-import javax.enterprise.inject.se.SeContainerInitializer
+import jakarta.enterprise.inject.se.SeContainerInitializer
 
 object Main {
 

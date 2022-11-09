@@ -2,7 +2,7 @@ package io.smallrye.reactive.messaging.kafka.commit;
 
 import java.io.IOException;
 
-import javax.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.context.ApplicationScoped;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JavaType;

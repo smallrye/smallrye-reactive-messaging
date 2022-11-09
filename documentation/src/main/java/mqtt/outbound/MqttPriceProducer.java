@@ -3,7 +3,7 @@ package mqtt.outbound;
 import java.time.Duration;
 import java.util.Random;
 
-import javax.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.context.ApplicationScoped;
 
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
 

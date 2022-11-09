@@ -8,7 +8,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
 
-import javax.jms.*;
+import jakarta.jms.*;
 
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
@@ -79,11 +79,11 @@ class JmsSink {
         Object payload = message.getPayload();
 
         // If the payload is a JMS Message, send it as it is, ignoring metadata.
-        if (payload instanceof javax.jms.Message) {
-            return dispatch(message, () -> producer.send(destination, (javax.jms.Message) payload));
+        if (payload instanceof jakarta.jms.Message) {
+            return dispatch(message, () -> producer.send(destination, (jakarta.jms.Message) payload));
         }
 
-        javax.jms.Message outgoing;
+        jakarta.jms.Message outgoing;
         if (payload instanceof String || payload.getClass().isPrimitive() || isPrimitiveBoxed(payload.getClass())) {
             outgoing = context.createTextMessage(payload.toString());
             outgoing.setStringProperty("_classname", payload.getClass().getName());
