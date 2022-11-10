@@ -1,49 +1,59 @@
 package io.smallrye.reactive.messaging.pulsar;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
-import org.apache.pulsar.client.api.Consumer;
-import org.apache.pulsar.client.api.Producer;
-import org.apache.pulsar.client.api.PulsarClientException;
-import org.apache.pulsar.client.api.Schema;
-import org.apache.pulsar.client.api.SubscriptionInitialPosition;
+import jakarta.enterprise.context.ApplicationScoped;
+
+import org.eclipse.microprofile.reactive.messaging.Incoming;
+import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.junit.jupiter.api.Test;
 
-public class ProducerConsumerTest extends PulsarBaseTest {
+import io.smallrye.mutiny.Multi;
+import io.smallrye.reactive.messaging.pulsar.base.WeldTestBase;
+import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
+
+public class ProducerConsumerTest extends WeldTestBase {
 
     @Test
-    void testConsumer() throws PulsarClientException {
-        System.out.println("creating producer");
-        Producer<String> producer = client.newProducer(Schema.STRING)
-                .producerName("test-producer")
-                .topic(topic)
-                .create();
+    void testProducerConsumer() {
+        ProducerConsumerApp app = runApplication(config(), ProducerConsumerApp.class);
 
-        System.out.println("sending messages");
-        send(producer, 5, String::valueOf);
+        await().untilAsserted(() -> assertThat(app.received()).contains("1", "2", "3", "4", "5"));
+    }
 
-        System.out.println("creating consumer");
-        Consumer<String> consumer = client.newConsumer(Schema.STRING)
-                .topic(topic)
-                .subscriptionName("test-" + topic)
-                .subscriptionInitialPosition(SubscriptionInitialPosition.Earliest)
-                .consumerName("test-consumer")
-                .subscribe();
+    MapBasedConfig config() {
+        return new MapBasedConfig()
+                .with("mp.messaging.outgoing.pulsar.connector", PulsarConnector.CONNECTOR_NAME)
+                .with("mp.messaging.outgoing.pulsar.serviceUrl", serviceUrl)
+                .with("mp.messaging.outgoing.pulsar.topic", topic)
+                .with("mp.messaging.outgoing.pulsar.schema", "STRING")
+                .with("mp.messaging.incoming.data.connector", PulsarConnector.CONNECTOR_NAME)
+                .with("mp.messaging.incoming.data.serviceUrl", serviceUrl)
+                .with("mp.messaging.incoming.data.topic", topic)
+                .with("mp.messaging.incoming.data.schema", "STRING");
+    }
+
+    @ApplicationScoped
+    public static class ProducerConsumerApp {
 
         List<String> received = new CopyOnWriteArrayList<>();
-        receive(consumer, 5, message -> {
-            try {
-                System.out.println("Message received: " + message);
-                received.add(message.getValue());
-                consumer.acknowledge(message);
-            } catch (Exception e) {
-                consumer.negativeAcknowledge(message);
-            }
-        });
 
-        await().until(() -> received.size() >= 5);
+        @Outgoing("pulsar")
+        public Multi<String> produce() {
+            return Multi.createFrom().items("1", "2", "3", "4", "5");
+        }
+
+        @Incoming("data")
+        public void produce(String msg) {
+            received.add(msg);
+        }
+
+        public List<String> received() {
+            return received;
+        }
     }
 }

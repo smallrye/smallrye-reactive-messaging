@@ -4,6 +4,7 @@ import static org.awaitility.Awaitility.await;
 
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.Flow;
 
 import org.apache.pulsar.client.api.PulsarClientException;
 import org.apache.pulsar.client.api.Schema;
@@ -12,6 +13,7 @@ import org.junit.jupiter.api.Test;
 import org.reactivestreams.Subscriber;
 
 import io.smallrye.mutiny.Multi;
+import io.smallrye.reactive.messaging.pulsar.base.PulsarBaseTest;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 
 public class PulsarOutgoingChannelTest extends PulsarBaseTest {
@@ -23,10 +25,10 @@ public class PulsarOutgoingChannelTest extends PulsarBaseTest {
         List<org.apache.pulsar.client.api.Message<String>> messages = new CopyOnWriteArrayList<>();
 
         PulsarConnectorOutgoingConfiguration oc = new PulsarConnectorOutgoingConfiguration(config()
-                .with("max-pending-messages", 10));
-        PulsarOutgoingChannel<String> channel = new PulsarOutgoingChannel<>(client, Schema.STRING, oc);
+                .with("maxPendingMessagesAcrossPartitions", 10));
+        PulsarOutgoingChannel<String> channel = new PulsarOutgoingChannel<>(client, Schema.STRING, oc, configResolver);
 
-        Subscriber<? super Message<?>> subscriber = channel.getSubscriber().build();
+        Flow.Subscriber<? extends Message<?>> subscriber = channel.getSubscriber();
 
         receive(client.newConsumer(Schema.STRING)
                 .consumerName("test-consumer")
@@ -34,8 +36,9 @@ public class PulsarOutgoingChannelTest extends PulsarBaseTest {
                 .topic(topic)
                 .subscribe(), NUMBER_OF_MESSAGES, messages::add);
 
-        Multi.createFrom().range(0, NUMBER_OF_MESSAGES).map(i -> Message.of("v-" + i))
-                .subscribe(subscriber);
+        Multi.createFrom().range(0, NUMBER_OF_MESSAGES)
+                .map(i -> Message.of("v-" + i))
+                .subscribe((Flow.Subscriber<? super Message<String>>) subscriber);
 
         await().until(() -> messages.size() == NUMBER_OF_MESSAGES);
     }
@@ -45,10 +48,11 @@ public class PulsarOutgoingChannelTest extends PulsarBaseTest {
         List<org.apache.pulsar.client.api.Message<Person>> messages = new CopyOnWriteArrayList<>();
 
         PulsarConnectorOutgoingConfiguration oc = new PulsarConnectorOutgoingConfiguration(config()
-                .with("max-pending-messages", 10));
-        PulsarOutgoingChannel<Person> channel = new PulsarOutgoingChannel<>(client, Schema.JSON(Person.class), oc);
+                .with("maxPendingMessagesAcrossPartitions", 10));
+        PulsarOutgoingChannel<Person> channel = new PulsarOutgoingChannel<>(client, Schema.JSON(Person.class), oc,
+                configResolver);
 
-        Subscriber<? super Message<?>> subscriber = channel.getSubscriber().build();
+        Flow.Subscriber<? extends Message<?>> subscriber = channel.getSubscriber();
 
         receive(client.newConsumer(Schema.JSON(Person.class))
                 .consumerName("test-consumer")
@@ -56,8 +60,9 @@ public class PulsarOutgoingChannelTest extends PulsarBaseTest {
                 .topic(topic)
                 .subscribe(), NUMBER_OF_MESSAGES, messages::add);
 
-        Multi.createFrom().range(0, NUMBER_OF_MESSAGES).map(i -> Message.of(new Person("name-" + i, i)))
-                .subscribe(subscriber);
+        Multi.createFrom().range(0, NUMBER_OF_MESSAGES)
+                .map(i -> Message.of(new Person("name-" + i, i)))
+                .subscribe((Flow.Subscriber<? super Message<Person>>) subscriber);
 
         await().until(() -> messages.size() == NUMBER_OF_MESSAGES);
     }
@@ -65,7 +70,7 @@ public class PulsarOutgoingChannelTest extends PulsarBaseTest {
     private MapBasedConfig config() {
         return baseConfig()
                 .with("channel-name", "channel")
-                .with("topic", topic);
+                .with("topicName", topic);
     }
 
     static class Person {

@@ -5,82 +5,111 @@ import static io.smallrye.reactive.messaging.pulsar.i18n.PulsarLogging.log;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.function.Function;
+import java.util.concurrent.Flow;
+import java.util.stream.Collectors;
 
-import javax.annotation.PostConstruct;
-import javax.annotation.Priority;
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.context.BeforeDestroyed;
-import javax.enterprise.event.Observes;
-import javax.enterprise.event.Reception;
-import javax.enterprise.inject.Any;
-import javax.enterprise.inject.Instance;
-import javax.inject.Inject;
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.Priority;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.context.BeforeDestroyed;
+import jakarta.enterprise.event.Observes;
+import jakarta.enterprise.event.Reception;
+import jakarta.enterprise.inject.Any;
+import jakarta.enterprise.inject.Instance;
+import jakarta.inject.Inject;
 
+import org.apache.pulsar.client.api.Consumer;
+import org.apache.pulsar.client.api.Producer;
 import org.apache.pulsar.client.api.PulsarClient;
 import org.apache.pulsar.client.api.PulsarClientException;
-import org.apache.pulsar.client.api.Schema;
+import org.apache.pulsar.client.impl.PulsarClientImpl;
+import org.apache.pulsar.client.impl.conf.ClientConfigurationData;
 import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.spi.Connector;
-import org.eclipse.microprofile.reactive.messaging.spi.IncomingConnectorFactory;
-import org.eclipse.microprofile.reactive.messaging.spi.OutgoingConnectorFactory;
-import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
-import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 
 import io.smallrye.reactive.messaging.annotations.ConnectorAttribute;
+import io.smallrye.reactive.messaging.connector.InboundConnector;
+import io.smallrye.reactive.messaging.connector.OutboundConnector;
+import io.smallrye.reactive.messaging.health.HealthReport;
 import io.smallrye.reactive.messaging.health.HealthReporter;
 import io.smallrye.reactive.messaging.providers.connectors.ExecutionHolder;
+import io.smallrye.reactive.messaging.providers.helpers.CDIUtils;
 import io.vertx.mutiny.core.Vertx;
 
 @ApplicationScoped
 @Connector(PulsarConnector.CONNECTOR_NAME)
-@ConnectorAttribute(name = "service-url", type = "string", defaultValue = "pulsar://localhost:6650", direction = ConnectorAttribute.Direction.INCOMING_AND_OUTGOING, description = "The service URL for the Pulsar service")
+@ConnectorAttribute(name = "client-configuration", type = "string", direction = ConnectorAttribute.Direction.INCOMING_AND_OUTGOING, description = "Identifier of a CDI bean that provides the default Pulsar client configuration for this channel. The channel configuration can still override any attribute. The bean must have a type of Map<String, Object> and must use the @io.smallrye.common.annotation.Identifier qualifier to set the identifier.")
+@ConnectorAttribute(name = "serviceUrl", type = "string", defaultValue = "pulsar://localhost:6650", direction = ConnectorAttribute.Direction.INCOMING_AND_OUTGOING, description = "The service URL for the Pulsar service")
 @ConnectorAttribute(name = "topic", type = "string", direction = ConnectorAttribute.Direction.INCOMING_AND_OUTGOING, description = "The consumed / populated Pulsar topic. If not set, the channel name is used")
 @ConnectorAttribute(name = "schema", type = "string", direction = ConnectorAttribute.Direction.INCOMING_AND_OUTGOING, description = "The Pulsar schema type of this channel. When configured a schema is built with the given SchemaType and used for the channel. When absent, the schema is resolved searching for a CDI bean typed `Schema` qualified with `@Identifier` and the channel name. As a fallback AUTO_CONSUME or AUTO_PRODUCE are used.")
-@ConnectorAttribute(name = "subscription.name", type = "string", direction = ConnectorAttribute.Direction.INCOMING, description = "The name of the subscription. If not set, a unique, generated id is used")
-@ConnectorAttribute(name = "subscription.type", type = "org.apache.pulsar.client.api.SubscriptionType", direction = ConnectorAttribute.Direction.INCOMING, description = "The type of the subscription. If not set, 'Exclusive' will be used as the default")
-@ConnectorAttribute(name = "ack.timeout", type = "long", direction = ConnectorAttribute.Direction.INCOMING, description = "Set the timeout for unacknowledged messages in ms. The timeout needs to be greater than 1000 milliseconds (1 second)")
-@ConnectorAttribute(name = "ack.group-time", type = "long", direction = ConnectorAttribute.Direction.INCOMING, description = "The interval (in milliseconds) at which the Pulsar consumer sends the ACKs to the server. By default, the consumer will use a 100ms grouping time to send out the acknowledgments to the broker. Setting a group time of 0, will send out the acknowledgments immediately. A longer ack group time will be more efficient at the expense of a slight increase in message re-deliveries after a failure", defaultValue = "100")
-@ConnectorAttribute(name = "dead-letter-policy.max-redeliver-count", type = "int", direction = ConnectorAttribute.Direction.INCOMING, description = "Maximum number of times that a message will be redelivered before being sent to the dead letter topic")
-@ConnectorAttribute(name = "dead-letter-policy.dead-letter-topic", type = "string", direction = ConnectorAttribute.Direction.INCOMING, description = "Name of the dead letter topic where the failing messages will be sent")
-@ConnectorAttribute(name = "dead-letter-policy.retry-letter-topic", type = "string", direction = ConnectorAttribute.Direction.INCOMING, description = "Name of the retry topic where the failing messages will be sent")
-@ConnectorAttribute(name = "max-pending-messages", type = "int", direction = ConnectorAttribute.Direction.OUTGOING, description = "The maximum size of a queue holding pending messages, i.e messages waiting to receive an acknowledgment from a broker", defaultValue = "1000")
-public class PulsarConnector implements IncomingConnectorFactory, OutgoingConnectorFactory, HealthReporter {
+@ConnectorAttribute(name = "health-enabled", type = "boolean", direction = ConnectorAttribute.Direction.INCOMING_AND_OUTGOING, description = "Whether health reporting is enabled (default) or disabled", defaultValue = "true")
+@ConnectorAttribute(name = "tracing-enabled", type = "boolean", direction = ConnectorAttribute.Direction.INCOMING_AND_OUTGOING, description = "Whether tracing is enabled (default) or disabled", defaultValue = "true")
+
+@ConnectorAttribute(name = "consumer-configuration", type = "string", direction = ConnectorAttribute.Direction.INCOMING, description = "Identifier of a CDI bean that provides the default Pulsar consumer configuration for this channel. The channel configuration can still override any attribute. The bean must have a type of Map<String, Object> and must use the @io.smallrye.common.annotation.Identifier qualifier to set the identifier.")
+@ConnectorAttribute(name = "ack-strategy", type = "string", direction = ConnectorAttribute.Direction.INCOMING, description = "Specify the commit strategy to apply when a message produced from a record is acknowledged. Values can be `ack`, `cumulative`.", defaultValue = "ack")
+@ConnectorAttribute(name = "failure-strategy", type = "string", direction = ConnectorAttribute.Direction.INCOMING, description = "Specify the failure strategy to apply when a message produced from a record is acknowledged negatively (nack). Values can be `nack` (default), `fail`, `ignore` or `reconsume-later", defaultValue = "nack")
+@ConnectorAttribute(name = "reconsumeLater.delay", type = "long", direction = ConnectorAttribute.Direction.INCOMING, description = "Default delay for reconsume failure-strategy, in seconds", defaultValue = "3")
+@ConnectorAttribute(name = "negativeAck.redeliveryBackoff", type = "string", direction = ConnectorAttribute.Direction.INCOMING, description = "Comma separated values for configuring negative ack MultiplierRedeliveryBackoff, min delay, max delay, multiplier.")
+@ConnectorAttribute(name = "ackTimeout.redeliveryBackoff", type = "string", direction = ConnectorAttribute.Direction.INCOMING, description = "Comma separated values for configuring ack timeout MultiplierRedeliveryBackoff, min delay, max delay, multiplier.")
+@ConnectorAttribute(name = "deadLetterPolicy.maxRedeliverCount", type = "int", direction = ConnectorAttribute.Direction.INCOMING, description = "Maximum number of times that a message will be redelivered before being sent to the dead letter topic")
+@ConnectorAttribute(name = "deadLetterPolicy.deadLetterTopic", type = "string", direction = ConnectorAttribute.Direction.INCOMING, description = "Name of the dead letter topic where the failing messages will be sent")
+@ConnectorAttribute(name = "deadLetterPolicy.retryLetterTopic", type = "string", direction = ConnectorAttribute.Direction.INCOMING, description = "Name of the retry topic where the failing messages will be sent")
+@ConnectorAttribute(name = "deadLetterPolicy.initialSubscriptionName", type = "string", direction = ConnectorAttribute.Direction.INCOMING, description = "Name of the initial subscription name of the dead letter topic")
+@ConnectorAttribute(name = "batchReceive", type = "boolean", direction = ConnectorAttribute.Direction.INCOMING, description = "Whether batch receive is used to consume messages", defaultValue = "false")
+
+@ConnectorAttribute(name = "producer-configuration", type = "string", direction = ConnectorAttribute.Direction.OUTGOING, description = "Identifier of a CDI bean that provides the default Pulsar producer configuration for this channel. The channel configuration can still override any attribute. The bean must have a type of Map<String, Object> and must use the @io.smallrye.common.annotation.Identifier qualifier to set the identifier.")
+@ConnectorAttribute(name = "maxPendingMessages", type = "int", direction = ConnectorAttribute.Direction.OUTGOING, description = "The maximum size of a queue holding pending messages, i.e messages waiting to receive an acknowledgment from a broker", defaultValue = "1000")
+@ConnectorAttribute(name = "waitForWriteCompletion", type = "boolean", direction = ConnectorAttribute.Direction.OUTGOING, description = "Whether the client waits for the broker to acknowledge the written record before acknowledging the message", defaultValue = "true")
+@ConnectorAttribute(name = "retries", type = "long", direction = ConnectorAttribute.Direction.OUTGOING, description = "If set to a positive number, the connector will try to resend any record that was not delivered successfully (with a potentially transient error) until the number of retries is reached. If set to 0, retries are disabled. If not set, the connector tries to resend any record that failed to be delivered (because of a potentially transient error) during an amount of time configured by `sendTimeoutMs`.", defaultValue = "2147483647")
+public class PulsarConnector implements InboundConnector, OutboundConnector, HealthReporter {
 
     public static final String CONNECTOR_NAME = "smallrye-pulsar";
 
-    private final Map<String, PulsarClient> clients = new ConcurrentHashMap<>();
+    private final Map<ClientConfigurationData, PulsarClient> clients = new ConcurrentHashMap<>();
+    private final Map<String, PulsarClient> clientsByChannel = new ConcurrentHashMap<>();
     private final List<PulsarOutgoingChannel<?>> outgoingChannels = new CopyOnWriteArrayList<>();
     private final List<PulsarIncomingChannel<?>> incomingChannels = new CopyOnWriteArrayList<>();
 
     @Inject
     private ExecutionHolder executionHolder;
 
-    @Inject
-    @Any
-    private Instance<Schema<?>> schemas;
-
     private Vertx vertx;
 
+    @Inject
     private SchemaResolver schemaResolver;
+
+    @Inject
+    private ConfigResolver configResolver;
+
+    @Inject
+    @Any
+    private Instance<PulsarAckHandler.Factory> ackHandlerFactories;
+
+    @Inject
+    @Any
+    private Instance<PulsarFailureHandler.Factory> failureHandlerFactories;
 
     @PostConstruct
     void init() {
         this.vertx = executionHolder.vertx();
-        this.schemaResolver = new SchemaResolver(schemas);
     }
 
     @Override
-    public PublisherBuilder<? extends Message<?>> getPublisherBuilder(Config config) {
+    public Flow.Publisher<? extends Message<?>> getPublisher(Config config) {
         PulsarConnectorIncomingConfiguration ic = new PulsarConnectorIncomingConfiguration(config);
 
-        PulsarClient client = clients.computeIfAbsent(clientHash(ic), new PulsarClientCreator(ic));
+        PulsarClient client = clients.computeIfAbsent(configResolver.getClientConf(ic), this::createPulsarClient);
+        clientsByChannel.put(ic.getChannel(), client);
 
         try {
-            PulsarIncomingChannel<?> channel = new PulsarIncomingChannel<>(client, vertx, schemaResolver.getSchema(ic), ic);
+            PulsarIncomingChannel<?> channel = new PulsarIncomingChannel<>(client, vertx, schemaResolver.getSchema(ic),
+                    CDIUtils.getInstanceById(ackHandlerFactories, ic.getAckStrategy()).get(),
+                    CDIUtils.getInstanceById(failureHandlerFactories, ic.getFailureStrategy()).get(),
+                    ic, configResolver);
             incomingChannels.add(channel);
             return channel.getPublisher();
         } catch (PulsarClientException e) {
@@ -89,13 +118,15 @@ public class PulsarConnector implements IncomingConnectorFactory, OutgoingConnec
     }
 
     @Override
-    public SubscriberBuilder<? extends Message<?>, Void> getSubscriberBuilder(Config config) {
+    public Flow.Subscriber<? extends Message<?>> getSubscriber(Config config) {
         PulsarConnectorOutgoingConfiguration oc = new PulsarConnectorOutgoingConfiguration(config);
 
-        PulsarClient client = clients.computeIfAbsent(clientHash(oc), new PulsarClientCreator(oc));
+        PulsarClient client = clients.computeIfAbsent(configResolver.getClientConf(oc), this::createPulsarClient);
+        clientsByChannel.put(oc.getChannel(), client);
 
         try {
-            PulsarOutgoingChannel<?> channel = new PulsarOutgoingChannel<>(client, schemaResolver.getSchema(oc), oc);
+            PulsarOutgoingChannel<?> channel = new PulsarOutgoingChannel<>(client, schemaResolver.getSchema(oc), oc,
+                    configResolver);
             outgoingChannels.add(channel);
             return channel.getSubscriber();
         } catch (PulsarClientException e) {
@@ -117,29 +148,79 @@ public class PulsarConnector implements IncomingConnectorFactory, OutgoingConnec
         incomingChannels.clear();
         outgoingChannels.clear();
         clients.clear();
+        clientsByChannel.clear();
     }
 
-    // the idea is to share clients if possible since one PulsarClient can be used for multiple producers and consumers
-    private String clientHash(PulsarConnectorCommonConfiguration pulsarConnectorCommonConfiguration) {
-        return HashUtil.sha256(pulsarConnectorCommonConfiguration.getServiceUrl());
-    }
-
-    private static class PulsarClientCreator implements Function<String, PulsarClient> {
-        private final PulsarConnectorCommonConfiguration configuration;
-
-        public PulsarClientCreator(PulsarConnectorCommonConfiguration configuration) {
-            this.configuration = configuration;
-        }
-
-        @Override
-        public PulsarClient apply(String s) {
-            try {
-                // TODO we need a hell of a lot more configuration here
-                return PulsarClient.builder().serviceUrl(configuration.getServiceUrl()).build();
-            } catch (PulsarClientException e) {
-                throw ex.illegalStateUnableToBuildClient(e);
-            }
+    private PulsarClientImpl createPulsarClient(ClientConfigurationData configuration) {
+        try {
+            log.createdClientWithConfig(configuration);
+            return new PulsarClientImpl(configuration, vertx.nettyEventLoopGroup());
+        } catch (PulsarClientException e) {
+            throw ex.illegalStateUnableToBuildClient(e);
         }
     }
 
+    public PulsarClient getClient(String channel) {
+        return clientsByChannel.get(channel);
+    }
+
+    @SuppressWarnings("unchecked")
+    public <T> Consumer<T> getConsumer(String channel) {
+        return incomingChannels.stream()
+                .filter(ks -> ks.getChannel().equals(channel))
+                .map(incomingChannel -> ((Consumer<T>) incomingChannel.getConsumer()))
+                .findFirst().orElse(null);
+    }
+
+    @SuppressWarnings("unchecked")
+    public <T> Producer<T> getProducer(String channel) {
+        return outgoingChannels.stream()
+                .filter(ks -> ks.getChannel().equals(channel))
+                .map(outgoingChannel -> ((Producer<T>) outgoingChannel.getProducer()))
+                .findFirst().orElse(null);
+    }
+
+    public Set<String> getConsumerChannels() {
+        return incomingChannels.stream().map(PulsarIncomingChannel::getChannel).collect(Collectors.toSet());
+    }
+
+    public Set<String> getProducerChannels() {
+        return outgoingChannels.stream().map(PulsarOutgoingChannel::getChannel).collect(Collectors.toSet());
+    }
+
+    @Override
+    public HealthReport getStartup() {
+        HealthReport.HealthReportBuilder builder = HealthReport.builder();
+        for (PulsarIncomingChannel<?> incomingChannel : incomingChannels) {
+            incomingChannel.isStarted(builder);
+        }
+        for (PulsarOutgoingChannel<?> outgoingChannel : outgoingChannels) {
+            outgoingChannel.isStarted(builder);
+        }
+        return builder.build();
+    }
+
+    @Override
+    public HealthReport getReadiness() {
+        HealthReport.HealthReportBuilder builder = HealthReport.builder();
+        for (PulsarIncomingChannel<?> incomingChannel : incomingChannels) {
+            incomingChannel.isReady(builder);
+        }
+        for (PulsarOutgoingChannel<?> outgoingChannel : outgoingChannels) {
+            outgoingChannel.isReady(builder);
+        }
+        return builder.build();
+    }
+
+    @Override
+    public HealthReport getLiveness() {
+        HealthReport.HealthReportBuilder builder = HealthReport.builder();
+        for (PulsarIncomingChannel<?> incomingChannel : incomingChannels) {
+            incomingChannel.isAlive(builder);
+        }
+        for (PulsarOutgoingChannel<?> outgoingChannel : outgoingChannels) {
+            outgoingChannel.isAlive(builder);
+        }
+        return builder.build();
+    }
 }

@@ -1,6 +1,6 @@
-package io.smallrye.reactive.messaging.pulsar;
+package io.smallrye.reactive.messaging.pulsar.base;
 
-import javax.enterprise.inject.spi.BeanManager;
+import jakarta.enterprise.inject.spi.BeanManager;
 
 import org.eclipse.microprofile.config.ConfigProvider;
 import org.eclipse.microprofile.reactive.messaging.spi.ConnectorLiteral;
@@ -24,9 +24,14 @@ import io.smallrye.reactive.messaging.providers.impl.InternalChannelRegistry;
 import io.smallrye.reactive.messaging.providers.metrics.MetricDecorator;
 import io.smallrye.reactive.messaging.providers.metrics.MicrometerDecorator;
 import io.smallrye.reactive.messaging.providers.wiring.Wiring;
+import io.smallrye.reactive.messaging.pulsar.ConfigResolver;
+import io.smallrye.reactive.messaging.pulsar.PulsarConnector;
+import io.smallrye.reactive.messaging.pulsar.SchemaResolver;
+import io.smallrye.reactive.messaging.pulsar.ack.PulsarMessageAck;
+import io.smallrye.reactive.messaging.pulsar.fault.PulsarNack;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 
-public class WeldTestBase extends PulsarBaseTest {
+public class WeldTestBaseWithoutExtension extends PulsarClientBaseTest {
 
     protected Weld weld;
     protected WeldContainer container;
@@ -52,8 +57,12 @@ public class WeldTestBase extends PulsarBaseTest {
         weld.addExtension(new ReactiveMessagingExtension());
 
         weld.addBeanClass(PulsarConnector.class);
+        weld.addBeanClass(SchemaResolver.class);
+        weld.addBeanClass(ConfigResolver.class);
         weld.addBeanClass(MetricDecorator.class);
         weld.addBeanClass(MicrometerDecorator.class);
+        weld.addBeanClass(PulsarMessageAck.Factory.class);
+        weld.addBeanClass(PulsarNack.Factory.class);
         weld.disableDiscovery();
     }
 

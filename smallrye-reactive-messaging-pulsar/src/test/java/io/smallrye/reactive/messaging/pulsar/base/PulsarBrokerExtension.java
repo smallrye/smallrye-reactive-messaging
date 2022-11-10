@@ -1,6 +1,6 @@
-package io.smallrye.reactive.messaging.pulsar;
+package io.smallrye.reactive.messaging.pulsar.base;
 
-import static io.smallrye.reactive.messaging.pulsar.PulsarContainer.PULSAR_PORT;
+import static io.smallrye.reactive.messaging.pulsar.base.PulsarContainer.BROKER_PORT;
 import static org.junit.jupiter.api.extension.ExtensionContext.Namespace.GLOBAL;
 import static org.testcontainers.shaded.org.awaitility.Awaitility.await;
 
@@ -50,7 +50,7 @@ public class PulsarBrokerExtension implements BeforeAllCallback, ParameterResolv
     public void startPulsarBroker() {
         pulsar = createPulsarContainer();
         pulsar.start();
-        LOGGER.info("Pulsar broker started: " + pulsar.getClusterServiceUrl() + " (" + pulsar.getMappedPort(PULSAR_PORT) + ")");
+        LOGGER.info("Pulsar broker started: " + pulsar.getPulsarBrokerUrl() + " (" + pulsar.getMappedPort(BROKER_PORT) + ")");
         await().until(() -> pulsar.isRunning());
     }
 
@@ -64,7 +64,7 @@ public class PulsarBrokerExtension implements BeforeAllCallback, ParameterResolv
      * @return the new broker
      */
     public static PulsarContainer restart(PulsarContainer pulsar, int gracePeriodInSecond) {
-        int port = pulsar.getMappedPort(PULSAR_PORT);
+        int port = pulsar.getMappedPort(BROKER_PORT);
         try {
             pulsar.close();
         } catch (Exception e) {
@@ -105,18 +105,24 @@ public class PulsarBrokerExtension implements BeforeAllCallback, ParameterResolv
     @Override
     public boolean supportsParameter(ParameterContext parameterContext, ExtensionContext extensionContext)
             throws ParameterResolutionException {
-        return parameterContext.isAnnotated(PulsarServiceUrl.class)
-                && parameterContext.getParameter().getType().equals(String.class);
+        return parameterContext.getParameter().getType().equals(String.class)
+                && (parameterContext.isAnnotated(PulsarServiceUrl.class)
+                        || parameterContext.isAnnotated(PulsarServiceHttpUrl.class));
     }
 
     @Override
     public Object resolveParameter(ParameterContext parameterContext, ExtensionContext extensionContext)
             throws ParameterResolutionException {
+        ExtensionContext.Store globalStore = extensionContext.getRoot().getStore(GLOBAL);
+        PulsarBrokerExtension extension = (PulsarBrokerExtension) globalStore.get(PulsarBrokerExtension.class);
         if (parameterContext.isAnnotated(PulsarServiceUrl.class)) {
-            ExtensionContext.Store globalStore = extensionContext.getRoot().getStore(GLOBAL);
-            PulsarBrokerExtension extension = (PulsarBrokerExtension) globalStore.get(PulsarBrokerExtension.class);
             if (extension.pulsar != null) {
-                return extension.pulsar.getClusterServiceUrl();
+                return extension.pulsar.getPulsarBrokerUrl();
+            }
+        }
+        if (parameterContext.isAnnotated(PulsarServiceHttpUrl.class)) {
+            if (extension.pulsar != null) {
+                return extension.pulsar.getHttpServiceUrl();
             }
         }
         return null;
@@ -125,6 +131,12 @@ public class PulsarBrokerExtension implements BeforeAllCallback, ParameterResolv
     @Target({ ElementType.FIELD, ElementType.PARAMETER })
     @Retention(RetentionPolicy.RUNTIME)
     public @interface PulsarServiceUrl {
+
+    }
+
+    @Target({ ElementType.FIELD, ElementType.PARAMETER })
+    @Retention(RetentionPolicy.RUNTIME)
+    public @interface PulsarServiceHttpUrl {
 
     }
 

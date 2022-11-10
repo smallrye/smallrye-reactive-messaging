@@ -6,7 +6,7 @@
   <parent>
     <groupId>io.smallrye.reactive</groupId>
     <artifactId>smallrye-reactive-messaging</artifactId>
-    <version>3.15.0-SNAPSHOT</version>
+    <version>4.7.0-SNAPSHOT</version>
   </parent>
 
   <artifactId>smallrye-reactive-messaging-pulsar</artifactId>
@@ -14,7 +14,7 @@
   <name>SmallRye Reactive Messaging : Connector :: Pulsar</name>
 
   <properties>
-    <pulsar.version>2.9.1</pulsar.version>
+    <pulsar.version>2.11.0</pulsar.version>
   </properties>
 
   <dependencies>
@@ -26,17 +26,38 @@
 
     <dependency>
       <groupId>org.apache.pulsar</groupId>
-      <artifactId>pulsar-client</artifactId>
+      <artifactId>pulsar-client-original</artifactId>
       <version>${pulsar.version}</version>
+      <exclusions>
+        <exclusion>
+          <groupId>org.apache.logging.log4j</groupId>
+          <artifactId>log4j-slf4j-impl</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.pulsar</groupId>
+      <artifactId>pulsar-client-admin-original</artifactId>
+      <version>${pulsar.version}</version>
+      <scope>test</scope>
+      <exclusions>
+        <exclusion>
+          <groupId>org.apache.logging.log4j</groupId>
+          <artifactId>log4j-slf4j-impl</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>javax.annotation</groupId>
+      <artifactId>javax.annotation-api</artifactId>
+      <scope>test</scope>
+      <version>1.3.2</version>
     </dependency>
 
     <dependency>
-      <groupId>io.opentelemetry</groupId>
-      <artifactId>opentelemetry-api</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>io.opentelemetry</groupId>
-      <artifactId>opentelemetry-semconv</artifactId>
+      <groupId>io.smallrye.reactive</groupId>
+      <artifactId>smallrye-reactive-messaging-otel</artifactId>
+      <version>${project.version}</version>
     </dependency>
 
     <dependency>
@@ -83,8 +104,8 @@
     </dependency>
     <dependency>
       <groupId>io.smallrye.reactive</groupId>
-      <artifactId>reactive-streams-junit5-tck</artifactId>
-      <version>${mutiny.version}</version>
+      <artifactId>mutiny-zero-reactive-streams-junit5-tck</artifactId>
+      <version>${mutiny-zero.version}</version>
       <scope>test</scope>
       <classifier>tests</classifier>
     </dependency>
@@ -137,6 +158,7 @@
               <systemPropertyVariables>
                 <org.jboss.logging.provider>slf4j</org.jboss.logging.provider>
               </systemPropertyVariables>
+              <argLine>--add-opens=java.base/sun.net=ALL-UNNAMED</argLine>
             </configuration>
           </execution>
         </executions>

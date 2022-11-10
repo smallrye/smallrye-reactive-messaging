@@ -1,6 +1,5 @@
 package io.smallrye.reactive.messaging.kafka.perf;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 import java.time.Duration;
@@ -27,18 +26,19 @@ import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 public class PerformanceConsumerTest extends KafkaCompanionTestBase {
 
     public static final int TIMEOUT_IN_SECONDS = 400;
-    public static final int COUNT = 10_000;
+    public static final int COUNT = 100_000;
 
     public static String topic = UUID.randomUUID().toString();
-    private static ArrayList<String> expected;
 
     @BeforeAll
     static void insertRecords() {
-        expected = new ArrayList<>();
-        companion.produceStrings().withConcurrency().usingGenerator(i -> {
-            expected.add(Integer.toString(i));
-            return new ProducerRecord<>(topic, "key", Long.toString(i));
-        }, COUNT).awaitCompletion(Duration.ofMinutes(2));
+        long start = System.currentTimeMillis();
+
+        companion.produceStrings().withConcurrency()
+                .usingGenerator(i -> new ProducerRecord<>(topic, "key", Long.toString(i)), COUNT)
+                .awaitCompletion(Duration.ofMinutes(2));
+        long end = System.currentTimeMillis();
+        System.out.println("Published records in " + (end - start) + " ms");
     }
 
     private MapBasedConfig commonConfig() {
@@ -49,7 +49,7 @@ public class PerformanceConsumerTest extends KafkaCompanionTestBase {
         return kafkaConfig("mp.messaging.incoming.data")
                 .put("topic", topic)
                 .put("cloud-events", false)
-                .put("pause-if-no-requests", false)
+                .put("pause-if-no-requests", true)
                 .put("commit-strategy", commitStrategy)
                 .put("auto.offset.reset", "earliest")
                 .put("value.deserializer", StringDeserializer.class.getName())
@@ -66,14 +66,11 @@ public class PerformanceConsumerTest extends KafkaCompanionTestBase {
         MyConsumerUsingPostAck application = runApplication(commonConfig("latest")
                 .with("poll-timeout", 5),
                 MyConsumerUsingPostAck.class);
-        long start = System.currentTimeMillis();
         await()
                 .atMost(Duration.ofSeconds(TIMEOUT_IN_SECONDS))
                 .until(() -> application.getCount() == COUNT);
-
+        long start = application.getStart();
         long end = System.currentTimeMillis();
-
-        assertThat(application.get()).containsExactlyElementsOf(expected);
 
         System.out.println("Post-Ack / Latest - Estimate: " + (end - start) + " ms");
     }
@@ -82,14 +79,11 @@ public class PerformanceConsumerTest extends KafkaCompanionTestBase {
     public void testWithPostAckThrottled() {
         MyConsumerUsingPostAck application = runApplication(commonConfig(),
                 MyConsumerUsingPostAck.class);
-        long start = System.currentTimeMillis();
         await()
                 .atMost(Duration.ofSeconds(TIMEOUT_IN_SECONDS))
                 .until(() -> application.getCount() == COUNT);
-
+        long start = application.getStart();
         long end = System.currentTimeMillis();
-
-        assertThat(application.get()).containsExactlyElementsOf(expected);
 
         System.out.println("Post-Ack / Throttled - Estimate: " + (end - start) + " ms");
     }
@@ -99,14 +93,11 @@ public class PerformanceConsumerTest extends KafkaCompanionTestBase {
         MyConsumerUsingNoAck application = runApplication(commonConfig()
                 .with("enable.auto.commit", true),
                 MyConsumerUsingNoAck.class);
-        long start = System.currentTimeMillis();
         await()
                 .atMost(Duration.ofSeconds(TIMEOUT_IN_SECONDS))
                 .until(() -> application.getCount() == COUNT);
-
+        long start = application.getStart();
         long end = System.currentTimeMillis();
-
-        assertThat(application.get()).containsExactlyElementsOf(expected);
 
         System.out.println("Ignored acknowledgement (auto-commit, no-ack) - Estimate: " + (end - start) + " ms");
     }
@@ -116,13 +107,11 @@ public class PerformanceConsumerTest extends KafkaCompanionTestBase {
         MyConsumerUsingPostAck application = runApplication(commonConfig()
                 .with("enable.auto.commit", true),
                 MyConsumerUsingPostAck.class);
-        long start = System.currentTimeMillis();
         await()
                 .atMost(Duration.ofSeconds(TIMEOUT_IN_SECONDS))
                 .until(() -> application.getCount() == COUNT);
-
+        long start = application.getStart();
         long end = System.currentTimeMillis();
-        assertThat(application.get()).containsExactlyElementsOf(expected);
         System.out.println("Ignored acknowledgement (auto-commit, post-ack) - Estimate: " + (end - start) + " ms");
     }
 
@@ -134,13 +123,12 @@ public class PerformanceConsumerTest extends KafkaCompanionTestBase {
                 .with("metadata.max.age.ms", 30000)
                 .with("enable.auto.commit", true),
                 MyConsumerUsingPostAck.class);
-        long start = System.currentTimeMillis();
         await()
                 .atMost(Duration.ofSeconds(TIMEOUT_IN_SECONDS))
                 .until(() -> application.getCount() == COUNT);
 
+        long start = application.getStart();
         long end = System.currentTimeMillis();
-        assertThat(application.get()).containsExactlyElementsOf(expected);
         System.out.println("Ignore with Auto-Commit - Estimate: " + (end - start) + " ms");
     }
 
@@ -150,9 +138,13 @@ public class PerformanceConsumerTest extends KafkaCompanionTestBase {
         LongAdder count = new LongAdder();
         List<String> list = new ArrayList<>();
 
+        long start;
+
         @Incoming("data")
         public void consume(String message) {
-            list.add(message);
+            if (count.longValue() == 0L) {
+                start = System.currentTimeMillis();
+            }
             count.increment();
         }
 
@@ -162,6 +154,10 @@ public class PerformanceConsumerTest extends KafkaCompanionTestBase {
 
         public long getCount() {
             return count.longValue();
+        }
+
+        public long getStart() {
+            return start;
         }
     }
 
@@ -171,10 +167,14 @@ public class PerformanceConsumerTest extends KafkaCompanionTestBase {
         LongAdder count = new LongAdder();
         List<String> list = new ArrayList<>();
 
+        long start;
+
         @Incoming("data")
         @Acknowledgment(Acknowledgment.Strategy.NONE)
         public void consume(String message) {
-            list.add(message);
+            if (count.longValue() == 0L) {
+                start = System.currentTimeMillis();
+            }
             count.increment();
         }
 
@@ -184,6 +184,10 @@ public class PerformanceConsumerTest extends KafkaCompanionTestBase {
 
         public List<String> get() {
             return list;
+        }
+
+        public long getStart() {
+            return start;
         }
     }
 

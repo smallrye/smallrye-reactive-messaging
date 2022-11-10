@@ -15,8 +15,10 @@ import org.eclipse.microprofile.reactive.messaging.Message;
 import org.junit.jupiter.api.Test;
 
 import io.smallrye.mutiny.Multi;
+import io.smallrye.reactive.messaging.pulsar.ack.PulsarMessageAck;
+import io.smallrye.reactive.messaging.pulsar.base.PulsarBaseTest;
+import io.smallrye.reactive.messaging.pulsar.fault.PulsarNack;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
-import io.vertx.mutiny.core.Vertx;
 
 public class PulsarIncomingChannelTest extends PulsarBaseTest {
 
@@ -27,10 +29,10 @@ public class PulsarIncomingChannelTest extends PulsarBaseTest {
         List<Message<?>> messages = new CopyOnWriteArrayList<>();
 
         PulsarConnectorIncomingConfiguration ic = new PulsarConnectorIncomingConfiguration(config());
-        PulsarIncomingChannel<Person> channel = new PulsarIncomingChannel<>(client, Vertx.vertx(), Schema.JSON(Person.class),
-                ic);
-        Multi.createFrom().publisher(channel.getPublisher().buildRs())
-                .subscribe().with(e -> messages.add(e));
+        PulsarIncomingChannel<Person> channel = new PulsarIncomingChannel<>(client, vertx, Schema.JSON(Person.class),
+                new PulsarMessageAck.Factory(), new PulsarNack.Factory(), ic, configResolver);
+        Multi.createFrom().publisher(channel.getPublisher())
+                .subscribe().with(messages::add);
 
         send(client.newProducer(Schema.JSON(Person.class))
                 .producerName("test-producer")
@@ -42,13 +44,14 @@ public class PulsarIncomingChannelTest extends PulsarBaseTest {
         assertThat(messages).allSatisfy(m -> {
             assertThat(m).isInstanceOf(PulsarIncomingMessage.class);
             assertThat(m.getMetadata(PulsarIncomingMessageMetadata.class)).isPresent();
-        }).extracting(m -> ((Person) m.getPayload()).age)
-                .containsSequence(IntStream.range(0, NUMBER_OF_MESSAGES).boxed().collect(Collectors.toList()));
+        }).extracting(m -> ((Person) m.getPayload()).age).containsExactlyInAnyOrderElementsOf(
+                IntStream.range(0, NUMBER_OF_MESSAGES).boxed().collect(Collectors.toList()));
     }
 
     MapBasedConfig config() {
         return baseConfig()
                 .with("channel-name", "channel")
+                .with("subscriptionInitialPosition", "Earliest")
                 .with("topic", topic);
     }
 
