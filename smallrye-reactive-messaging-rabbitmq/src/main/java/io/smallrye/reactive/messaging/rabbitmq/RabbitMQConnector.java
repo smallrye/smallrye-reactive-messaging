@@ -119,6 +119,9 @@ import io.vertx.rabbitmq.RabbitMQPublisherOptions;
 @ConnectorAttribute(name = "dead-letter-queue-type", direction = INCOMING, description = "If automatically declare DLQ, we can choose different types of DLQ [quorum, classic, stream]", type = "string")
 @ConnectorAttribute(name = "dead-letter-queue-mode", direction = INCOMING, description = "If automatically declare DLQ, we can choose different modes of DLQ [lazy, default]", type = "string")
 
+//Priority
+@ConnectorAttribute(name = "max-priority", direction = INCOMING, description = "Define priority level queue consumer", type = "int")
+
 // Message consumer
 @ConnectorAttribute(name = "failure-strategy", direction = INCOMING, description = "The failure strategy to apply when a RabbitMQ message is nacked. Accepted values are `fail`, `accept`, `reject` (default)", type = "string", defaultValue = "reject")
 @ConnectorAttribute(name = "broadcast", direction = INCOMING, description = "Whether the received RabbitMQ messages must be dispatched to multiple _subscribers_", type = "boolean", defaultValue = "false")
@@ -476,6 +479,8 @@ public class RabbitMQConnector implements IncomingConnectorFactory, OutgoingConn
                 throw ex.illegalArgumentInvalidQueueTtl();
             }
         });
+        //x-max-priority
+        ic.getMaxPriority().ifPresent(maxPriority -> queueArgs.put("x-max-priority", ic.getMaxPriority()));
 
         return establishExchange(client, ic)
                 .onItem().transform(v -> Boolean.TRUE.equals(ic.getQueueDeclare()) ? null : queueName)
