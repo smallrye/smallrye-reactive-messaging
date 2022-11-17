@@ -108,6 +108,7 @@ import io.vertx.rabbitmq.RabbitMQPublisherOptions;
 @ConnectorAttribute(name = "max-outgoing-internal-queue-size", direction = OUTGOING, description = "The maximum size of the outgoing internal queue", type = "int")
 @ConnectorAttribute(name = "max-incoming-internal-queue-size", direction = INCOMING, description = "The maximum size of the incoming internal queue", type = "int", defaultValue = "500000")
 @ConnectorAttribute(name = "connection-count", direction = INCOMING, description = "The number of RabbitMQ connections to create for consuming from this queue. This might be necessary to consume from a sharded queue with a single client.", type = "int", defaultValue = "1")
+@ConnectorAttribute(name = "queue.x-max-priority", direction = INCOMING, description = "Define priority level queue consumer", type = "int")
 
 // DLQs
 @ConnectorAttribute(name = "auto-bind-dlq", direction = INCOMING, description = "Whether to automatically declare the DLQ and bind it to the binder DLX", type = "boolean", defaultValue = "false")
@@ -118,9 +119,6 @@ import io.vertx.rabbitmq.RabbitMQPublisherOptions;
 @ConnectorAttribute(name = "dlx.declare", direction = INCOMING, description = "Whether to declare the dead letter exchange binding. Relevant only if auto-bind-dlq is true; set to false if these are expected to be set up independently", type = "boolean", defaultValue = "false")
 @ConnectorAttribute(name = "dead-letter-queue-type", direction = INCOMING, description = "If automatically declare DLQ, we can choose different types of DLQ [quorum, classic, stream]", type = "string")
 @ConnectorAttribute(name = "dead-letter-queue-mode", direction = INCOMING, description = "If automatically declare DLQ, we can choose different modes of DLQ [lazy, default]", type = "string")
-
-//Priority
-@ConnectorAttribute(name = "max-priority", direction = INCOMING, description = "Define priority level queue consumer", type = "int")
 
 // Message consumer
 @ConnectorAttribute(name = "failure-strategy", direction = INCOMING, description = "The failure strategy to apply when a RabbitMQ message is nacked. Accepted values are `fail`, `accept`, `reject` (default)", type = "string", defaultValue = "reject")
@@ -480,7 +478,7 @@ public class RabbitMQConnector implements IncomingConnectorFactory, OutgoingConn
             }
         });
         //x-max-priority
-        ic.getMaxPriority().ifPresent(maxPriority -> queueArgs.put("x-max-priority", ic.getMaxPriority()));
+        ic.getQueueXMaxPriority().ifPresent(maxPriority -> queueArgs.put("x-max-priority", ic.getQueueXMaxPriority()));
 
         return establishExchange(client, ic)
                 .onItem().transform(v -> Boolean.TRUE.equals(ic.getQueueDeclare()) ? null : queueName)
