@@ -42,4 +42,8 @@ public interface MqttLogging extends BasicLogger {
     @Message(id = 17105, value = "Unable to establish a connection with the MQTT broker")
     void unableToConnectToBroker(@Cause Throwable t);
 
+    @LogMessage(level = Logger.Level.DEBUG)
+    @Message(id = 17200, value = "Creating MQTT client from bean named '%s'")
+    void createClientFromBean(String optionsBeanName);
+
 }
