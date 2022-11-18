@@ -1,9 +1,9 @@
-package amqp.customization;
+package mqtt.customization;
 
 import javax.enterprise.inject.Produces;
 
 import io.smallrye.common.annotation.Identifier;
-import io.vertx.amqp.AmqpClientOptions;
+import io.smallrye.reactive.messaging.mqtt.session.MqttClientSessionOptions;
 import io.vertx.core.net.PemKeyCertOptions;
 import io.vertx.core.net.PemTrustOptions;
 
@@ -12,22 +12,20 @@ public class ClientProducers {
     // <named>
     @Produces
     @Identifier("my-options")
-    public AmqpClientOptions getNamedOptions() {
+    public MqttClientSessionOptions getOptions() {
         // You can use the produced options to configure the TLS connection
         PemKeyCertOptions keycert = new PemKeyCertOptions()
                 .addCertPath("./tls/tls.crt")
                 .addKeyPath("./tls/tls.key");
         PemTrustOptions trust = new PemTrustOptions().addCertPath("./tlc/ca.crt");
 
-        return new AmqpClientOptions()
+        return new MqttClientSessionOptions()
                 .setSsl(true)
                 .setPemKeyCertOptions(keycert)
                 .setPemTrustOptions(trust)
-                .addEnabledSaslMechanism("EXTERNAL")
                 .setHostnameVerificationAlgorithm("")
                 .setConnectTimeout(30000)
-                .setReconnectInterval(5000)
-                .setContainerId("my-container");
+                .setReconnectInterval(5000);
     }
     // </named>
 

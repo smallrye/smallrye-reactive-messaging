@@ -19,4 +19,7 @@ public interface MqttExceptions {
     @Message(id = 17001, value = "Invalid QoS value: %s")
     IllegalArgumentException illegalArgumentInvalidQoS(int qos);
 
+    @Message(id = 17002, value = "Cannot find a %s bean identified with %s")
+    IllegalStateException illegalStateFindingBean(String className, String beanName);
+
 }

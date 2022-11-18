@@ -8,6 +8,8 @@ import java.util.concurrent.CompletionStage;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
+import javax.enterprise.inject.Instance;
+
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
@@ -16,6 +18,7 @@ import io.netty.handler.codec.mqtt.MqttQoS;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.vertx.AsyncResultUni;
 import io.smallrye.reactive.messaging.OutgoingMessageMetadata;
+import io.smallrye.reactive.messaging.mqtt.internal.MqttHelpers;
 import io.smallrye.reactive.messaging.mqtt.session.MqttClientSession;
 import io.smallrye.reactive.messaging.mqtt.session.MqttClientSessionOptions;
 import io.vertx.core.json.Json;
@@ -32,8 +35,9 @@ public class MqttSink {
     private final SubscriberBuilder<? extends Message<?>, Void> sink;
     private final AtomicBoolean ready = new AtomicBoolean();
 
-    public MqttSink(Vertx vertx, MqttConnectorOutgoingConfiguration config) {
-        MqttClientSessionOptions options = MqttHelpers.createMqttClientOptions(config);
+    public MqttSink(Vertx vertx, MqttConnectorOutgoingConfiguration config,
+            Instance<MqttClientSessionOptions> instances) {
+        MqttClientSessionOptions options = MqttHelpers.createClientOptions(config, instances);
         topic = config.getTopic().orElseGet(config::getChannel);
         qos = config.getQos();
 

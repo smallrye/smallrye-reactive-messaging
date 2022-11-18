@@ -74,6 +74,7 @@ nav:
         - mqtt/mqtt.md
         - 'Receiving MQTT messages': mqtt/receiving-mqtt-messages.md
         - 'Sending MQTT messages': mqtt/sending-messages-to-mqtt.md
+        - 'Customizing the MQTT client': mqtt/client-customization.md
 
 plugins:
   - search

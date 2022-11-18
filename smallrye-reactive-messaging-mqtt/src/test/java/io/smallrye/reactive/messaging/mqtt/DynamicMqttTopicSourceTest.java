@@ -25,6 +25,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import io.netty.handler.codec.mqtt.MqttQoS;
+import io.smallrye.reactive.messaging.mqtt.internal.MqttHelpers;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 
 public class DynamicMqttTopicSourceTest extends MqttTestBase {

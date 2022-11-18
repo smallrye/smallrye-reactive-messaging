@@ -49,7 +49,6 @@ public class MqttTestBase {
     @BeforeAll
     public static void startBroker() {
         mosquitto.start();
-
         awaitForMosquittoToBeReady(mosquitto);
     }
 

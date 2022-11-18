@@ -9,6 +9,8 @@ import javax.annotation.PostConstruct;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.context.Destroyed;
 import javax.enterprise.event.Observes;
+import javax.enterprise.inject.Any;
+import javax.enterprise.inject.Instance;
 import javax.inject.Inject;
 
 import org.eclipse.microprofile.config.Config;
@@ -20,6 +22,7 @@ import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 
 import io.smallrye.reactive.messaging.annotations.ConnectorAttribute;
+import io.smallrye.reactive.messaging.mqtt.session.MqttClientSessionOptions;
 import io.smallrye.reactive.messaging.providers.connectors.ExecutionHolder;
 import io.vertx.mutiny.core.Vertx;
 
@@ -52,6 +55,7 @@ import io.vertx.mutiny.core.Vertx;
 @ConnectorAttribute(name = "server-name", type = "string", direction = INCOMING_AND_OUTGOING, description = "Set the SNI server name")
 @ConnectorAttribute(name = "topic", type = "string", direction = INCOMING_AND_OUTGOING, description = "Set the MQTT topic. If not set, the channel name is used")
 @ConnectorAttribute(name = "qos", type = "int", defaultValue = "0", direction = INCOMING_AND_OUTGOING, description = "Set the QoS level when subscribing to the topic or when sending a message")
+@ConnectorAttribute(name = "client-options-name", direction = INCOMING_AND_OUTGOING, description = "The name of the MQTT Client Option bean (`io.smallrye.reactive.messaging.mqtt.session.MqttClientSessionOptions`) used to customize the MQTT client configuration", type = "string", alias = "mqtt-client-options-name")
 @ConnectorAttribute(name = "broadcast", description = "Whether or not the messages should be dispatched to multiple consumers", type = "boolean", direction = INCOMING, defaultValue = "false")
 @ConnectorAttribute(name = "failure-strategy", type = "string", direction = INCOMING, description = "Specify the failure strategy to apply when a message produced from a MQTT message is nacked. Values can be `fail` (default), or `ignore`", defaultValue = "fail")
 @ConnectorAttribute(name = "merge", direction = OUTGOING, description = "Whether the connector should allow multiple upstreams", type = "boolean", defaultValue = "false")
@@ -64,6 +68,10 @@ public class MqttConnector implements IncomingConnectorFactory, OutgoingConnecto
     @Inject
     private ExecutionHolder executionHolder;
 
+    @Inject
+    @Any
+    Instance<MqttClientSessionOptions> instances;
+
     private Vertx vertx;
     private final List<MqttSource> sources = new CopyOnWriteArrayList<>();
     private final List<MqttSink> sinks = new CopyOnWriteArrayList<>();
@@ -75,14 +83,14 @@ public class MqttConnector implements IncomingConnectorFactory, OutgoingConnecto
 
     @Override
     public PublisherBuilder<? extends Message<?>> getPublisherBuilder(Config config) {
-        MqttSource source = new MqttSource(vertx, new MqttConnectorIncomingConfiguration(config));
+        MqttSource source = new MqttSource(vertx, new MqttConnectorIncomingConfiguration(config), instances);
         sources.add(source);
         return source.getSource();
     }
 
     @Override
     public SubscriberBuilder<? extends Message<?>, Void> getSubscriberBuilder(Config config) {
-        MqttSink sink = new MqttSink(vertx, new MqttConnectorOutgoingConfiguration(config));
+        MqttSink sink = new MqttSink(vertx, new MqttConnectorOutgoingConfiguration(config), instances);
         sinks.add(sink);
         return sink.getSink();
     }
@@ -108,4 +116,5 @@ public class MqttConnector implements IncomingConnectorFactory, OutgoingConnecto
     public void destroy(@Observes @Destroyed(ApplicationScoped.class) final Object context) {
         Clients.clear();
     }
+
 }
