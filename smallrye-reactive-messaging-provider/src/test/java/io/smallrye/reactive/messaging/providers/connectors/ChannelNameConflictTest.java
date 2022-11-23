@@ -15,12 +15,16 @@ public class ChannelNameConflictTest extends WeldTestBase {
         installConfig("src/test/resources/config/channel-name-conflict.properties");
     }
 
+    @AfterEach
+    void cleanup() {
+        releaseConfig();
+    }
+
     @Test
     public void test() {
         assertThatThrownBy(() -> {
             initializer.addBeanClasses(DummyBean.class);
             initialize();
         }).isInstanceOf(DeploymentException.class);
-
     }
 }
