@@ -18,6 +18,7 @@ import org.reactivestreams.Subscription;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.helpers.Subscriptions;
+import io.smallrye.mutiny.subscription.MultiSubscriber;
 import io.smallrye.reactive.messaging.MediatorConfiguration;
 import io.smallrye.reactive.messaging.Shape;
 import io.smallrye.reactive.messaging.providers.helpers.ClassUtils;
@@ -103,7 +104,7 @@ public class SubscriberMediator extends AbstractMediator {
 
         AtomicReference<Throwable> syncErrorCatcher = new AtomicReference<>();
         Subscriber<Message<?>> delegate = this.subscriber;
-        Subscriber<Message<?>> delegating = new Subscriber<Message<?>>() {
+        Subscriber<Message<?>> delegating = new MultiSubscriber<Message<?>>() {
             @Override
             public void onSubscribe(Subscription s) {
                 subscription.set(s);
@@ -121,9 +122,9 @@ public class SubscriberMediator extends AbstractMediator {
             }
 
             @Override
-            public void onNext(Message<?> o) {
+            public void onItem(Message<?> item) {
                 try {
-                    delegate.onNext(o);
+                    delegate.onNext(item);
                 } catch (Exception e) {
                     log.messageProcessingException(configuration.methodAsString(), e);
                     syncErrorCatcher.set(e);
@@ -131,14 +132,14 @@ public class SubscriberMediator extends AbstractMediator {
             }
 
             @Override
-            public void onError(Throwable t) {
+            public void onFailure(Throwable t) {
                 log.messageProcessingException(configuration.methodAsString(), t);
                 syncErrorCatcher.set(t);
                 delegate.onError(t);
             }
 
             @Override
-            public void onComplete() {
+            public void onCompletion() {
                 delegate.onComplete();
             }
         };

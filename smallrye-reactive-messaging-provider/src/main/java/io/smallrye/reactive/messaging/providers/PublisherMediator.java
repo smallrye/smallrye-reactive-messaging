@@ -103,21 +103,21 @@ public class PublisherMediator extends AbstractMediator {
 
     private void produceAPublisherBuilderOfMessages() {
         PublisherBuilder<Message<?>> builder = invoke();
-        this.publisher = decorate(Multi.createFrom().publisher(builder.buildRs()));
+        this.publisher = decorate(MultiUtils.publisher(builder.buildRs()));
     }
 
     private <P> void produceAPublisherBuilderOfPayloads() {
         PublisherBuilder<P> builder = invoke();
-        this.publisher = decorate(Multi.createFrom().publisher(builder.map(Message::of).buildRs()));
+        this.publisher = decorate(MultiUtils.publisher(builder.map(Message::of).buildRs()));
     }
 
     private void produceAPublisherOfMessages() {
-        this.publisher = Multi.createFrom().publisher(invoke());
+        this.publisher = MultiUtils.publisher(invoke());
     }
 
     private <P> void produceAPublisherOfPayloads() {
         Publisher<P> pub = invoke();
-        this.publisher = decorate(Multi.createFrom().publisher(pub).map(Message::of));
+        this.publisher = decorate(MultiUtils.publisher(pub).map(Message::of));
     }
 
     private void produceIndividualMessages() {

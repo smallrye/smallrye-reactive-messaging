@@ -28,6 +28,7 @@ import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.ChannelRegistry;
 import io.smallrye.reactive.messaging.MessageConverter;
 import io.smallrye.reactive.messaging.MutinyEmitter;
+import io.smallrye.reactive.messaging.providers.helpers.MultiUtils;
 import io.smallrye.reactive.messaging.providers.helpers.TypeUtils;
 import io.smallrye.reactive.messaging.providers.i18n.ProviderExceptions;
 
@@ -172,7 +173,7 @@ public class ChannelProducer {
             if (list.isEmpty()) {
                 throw ex.illegalStateForStream(name, channelRegistry.getIncomingNames());
             } else if (list.size() == 1) {
-                return Multi.createFrom().publisher(list.get(0));
+                return MultiUtils.publisher(list.get(0));
             } else {
                 return Multi.createBy().merging()
                         .streams(list.stream().map(p -> p).collect(Collectors.toList()));

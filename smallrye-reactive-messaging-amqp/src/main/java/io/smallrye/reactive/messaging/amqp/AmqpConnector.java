@@ -59,7 +59,6 @@ import io.smallrye.reactive.messaging.annotations.ConnectorAttribute;
 import io.smallrye.reactive.messaging.health.HealthReport;
 import io.smallrye.reactive.messaging.health.HealthReporter;
 import io.smallrye.reactive.messaging.providers.connectors.ExecutionHolder;
-import io.smallrye.reactive.messaging.providers.locals.ContextOperator;
 import io.vertx.amqp.AmqpClientOptions;
 import io.vertx.amqp.AmqpReceiverOptions;
 import io.vertx.amqp.AmqpSenderOptions;
@@ -254,7 +253,7 @@ public class AmqpConnector implements IncomingConnectorFactory, OutgoingConnecto
             multi = multi.broadcast().toAllSubscribers();
         }
 
-        return ReactiveStreams.fromPublisher(multi.plug(ContextOperator::apply));
+        return ReactiveStreams.fromPublisher(multi);
     }
 
     @Override

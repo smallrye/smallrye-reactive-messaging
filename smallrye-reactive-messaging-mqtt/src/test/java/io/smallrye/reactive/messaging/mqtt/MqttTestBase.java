@@ -27,6 +27,7 @@ import io.smallrye.reactive.messaging.providers.extension.ReactiveMessagingExten
 import io.smallrye.reactive.messaging.providers.impl.ConfiguredChannelFactory;
 import io.smallrye.reactive.messaging.providers.impl.ConnectorFactories;
 import io.smallrye.reactive.messaging.providers.impl.InternalChannelRegistry;
+import io.smallrye.reactive.messaging.providers.locals.ContextDecorator;
 import io.smallrye.reactive.messaging.providers.wiring.Wiring;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 import io.vertx.mqtt.MqttClientOptions;
@@ -127,6 +128,7 @@ public class MqttTestBase {
         weld.addPackages(EmitterImpl.class.getPackage());
         weld.addExtension(new ReactiveMessagingExtension());
         weld.addBeanClass(MqttConnector.class);
+        weld.addBeanClass(ContextDecorator.class);
         weld.addBeanClass(EmitterFactoryImpl.class);
         weld.addBeanClass(MutinyEmitterFactoryImpl.class);
         weld.addBeanClass(LegacyEmitterFactoryImpl.class);

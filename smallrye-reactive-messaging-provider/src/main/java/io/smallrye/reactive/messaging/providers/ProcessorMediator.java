@@ -230,7 +230,7 @@ public class ProcessorMediator extends AbstractMediator {
             Multi<? extends Message<?>> multi = MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration);
             return multi.onItem().transformToMultiAndConcatenate(message -> {
                 PublisherBuilder<?> pb = invoke(message.getPayload());
-                return Multi.createFrom().publisher(pb.buildRs())
+                return MultiUtils.publisher(pb.buildRs())
                         .onItem().transform(payload -> Message.of(payload, message.getMetadata()));
                 // TODO We can handle post-acknowledgement here. -> onCompletion
             });
@@ -242,7 +242,7 @@ public class ProcessorMediator extends AbstractMediator {
             Multi<? extends Message<?>> multi = MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration);
             return multi.onItem().transformToMultiAndConcatenate(message -> {
                 Publisher<?> pub = invoke(message.getPayload());
-                return Multi.createFrom().publisher(pub)
+                return MultiUtils.publisher(pub)
                         .onItem().transform(payload -> Message.of(payload, message.getMetadata()));
                 // TODO We can handle post-acknowledgement here. -> onCompletion
             });

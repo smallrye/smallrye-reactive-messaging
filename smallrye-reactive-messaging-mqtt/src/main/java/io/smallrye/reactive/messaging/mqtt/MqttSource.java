@@ -16,7 +16,6 @@ import io.smallrye.reactive.messaging.mqtt.internal.MqttHelpers;
 import io.smallrye.reactive.messaging.mqtt.internal.MqttTopicHelper;
 import io.smallrye.reactive.messaging.mqtt.session.MqttClientSessionOptions;
 import io.smallrye.reactive.messaging.mqtt.session.RequestedQoS;
-import io.smallrye.reactive.messaging.providers.locals.ContextOperator;
 import io.vertx.mutiny.core.Vertx;
 
 public class MqttSource {
@@ -71,7 +70,7 @@ public class MqttSource {
                                                 .unsubscribe(topic).toCompletionStage());
                             else
                                 return Uni.createFrom().voidItem();
-                        }).plug(ContextOperator::apply)
+                        })
                         .onFailure().invoke(log::unableToConnectToBroker));
     }
 
