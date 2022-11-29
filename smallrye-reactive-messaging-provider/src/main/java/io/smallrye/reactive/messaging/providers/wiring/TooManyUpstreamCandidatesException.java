@@ -26,7 +26,7 @@ public class TooManyUpstreamCandidatesException extends WiringException {
             if (component instanceof Wiring.OutgoingConnectorComponent) {
                 // outgoing connectors have a single incoming channel
                 return "'mp.messaging.outgoing." + component.incomings().get(0)
-                        + ".merge=true' + to allow multiple upstreams.";
+                        + ".merge=true' to allow multiple upstreams.";
             } else if (component instanceof Wiring.ProcessorMediatorComponent
                     || component instanceof Wiring.SubscriberMediatorComponent) {
                 return String.format(
