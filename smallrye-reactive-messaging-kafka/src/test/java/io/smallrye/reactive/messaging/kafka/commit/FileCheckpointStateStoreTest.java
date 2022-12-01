@@ -34,6 +34,7 @@ import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.eclipse.microprofile.reactive.messaging.spi.ConnectorLiteral;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -42,6 +43,7 @@ import io.smallrye.reactive.messaging.annotations.Blocking;
 import io.smallrye.reactive.messaging.kafka.CountKafkaCdiEvents;
 import io.smallrye.reactive.messaging.kafka.KafkaConnector;
 import io.smallrye.reactive.messaging.kafka.KafkaConnectorIncomingConfiguration;
+import io.smallrye.reactive.messaging.kafka.TestTags;
 import io.smallrye.reactive.messaging.kafka.api.IncomingKafkaRecordMetadata;
 import io.smallrye.reactive.messaging.kafka.api.OutgoingKafkaRecordMetadata;
 import io.smallrye.reactive.messaging.kafka.base.KafkaCompanionTestBase;
@@ -514,6 +516,7 @@ public class FileCheckpointStateStoreTest extends KafkaCompanionTestBase {
     }
 
     @Test
+    @Tag(TestTags.FLAKY)
     public void testProcessorBeanWithPartitions(@TempDir File tempDir) {
         companion.topics().createAndWait(topic, 3);
         companion.topics().createAndWait(topic + "-sink", 3);
