@@ -56,7 +56,6 @@ public class Clients {
             this.client = client;
             messages = BroadcastProcessor.create();
             client.messageHandler(m -> messages.onNext(MqttPublishMessage.newInstance(m)));
-            client.exceptionHandler(messages::onError);
         }
 
         public Future<Void> start() {
