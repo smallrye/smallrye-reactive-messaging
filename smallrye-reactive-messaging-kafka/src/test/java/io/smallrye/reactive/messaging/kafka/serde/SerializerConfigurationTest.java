@@ -48,7 +48,7 @@ public class SerializerConfigurationTest extends KafkaCompanionTestBase {
 
         ConsumerTask<String, String> consumed = companion.consumeStrings().fromTopics(topic, 4, Duration.ofSeconds(10));
 
-        Subscriber<? extends Message<?>> subscriber = sink.getSink().build();
+        Subscriber<? extends Message<?>> subscriber = sink.getSink();
         Multi.createFrom().items(
                 Message.of(of("key", "value")), Message.of(of(null, "value")),
                 Message.of(of("key", null)), Message.of(of(null, null)))
@@ -77,7 +77,7 @@ public class SerializerConfigurationTest extends KafkaCompanionTestBase {
                 .with("retries", 0L);
         sink = new KafkaSink(new KafkaConnectorOutgoingConfiguration(config), CountKafkaCdiEvents.noCdiEvents,
                 UnsatisfiedInstance.instance());
-        Subscriber<? extends Message<?>> subscriber = sink.getSink().build();
+        Subscriber<? extends Message<?>> subscriber = sink.getSink();
         AtomicBoolean nacked = new AtomicBoolean();
         Multi.createFrom().items(
                 Message.of(of(125.25, new JsonObject().put("k", "v"))).withNack(t -> {
@@ -96,7 +96,7 @@ public class SerializerConfigurationTest extends KafkaCompanionTestBase {
                 .with("retries", 0L);
         sink = new KafkaSink(new KafkaConnectorOutgoingConfiguration(config), CountKafkaCdiEvents.noCdiEvents,
                 UnsatisfiedInstance.instance());
-        Subscriber<? extends Message<?>> subscriber = sink.getSink().build();
+        Subscriber<? extends Message<?>> subscriber = sink.getSink();
         AtomicBoolean nacked = new AtomicBoolean();
         Multi.createFrom().items(
                 Message.of(of(new JsonObject().put("k", "v"), 125.25)).withNack(t -> {

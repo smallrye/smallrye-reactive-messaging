@@ -27,7 +27,6 @@ import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.IntegerDeserializer;
 import org.eclipse.microprofile.reactive.messaging.Channel;
 import org.eclipse.microprofile.reactive.messaging.Message;
-import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.jboss.weld.exceptions.DeploymentException;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Tag;
@@ -149,13 +148,12 @@ public class KafkaSourceTest extends KafkaCompanionTestBase {
         connector.failureHandlerFactories = new SingletonInstance<>("fail", new KafkaFailStop.Factory());
         connector.init();
 
-        PublisherBuilder<? extends KafkaRecord> builder = (PublisherBuilder<? extends KafkaRecord>) connector
-                .getPublisherBuilder(config);
+        Multi<? extends KafkaRecord> multi = (Multi<? extends KafkaRecord>) connector.getPublisher(config);
 
         List<KafkaRecord> messages1 = new ArrayList<>();
         List<KafkaRecord> messages2 = new ArrayList<>();
-        builder.forEach(messages1::add).run();
-        builder.forEach(messages2::add).run();
+        multi.subscribe().with(messages1::add);
+        multi.subscribe().with(messages2::add);
 
         companion.produceIntegers().usingGenerator(i -> new ProducerRecord<>(topic, i), 10);
 
@@ -190,13 +188,12 @@ public class KafkaSourceTest extends KafkaCompanionTestBase {
         connector.failureHandlerFactories = new SingletonInstance<>("fail", new KafkaFailStop.Factory());
         connector.init();
 
-        PublisherBuilder<? extends KafkaRecord> builder = (PublisherBuilder<? extends KafkaRecord>) connector
-                .getPublisherBuilder(config);
+        Multi<? extends KafkaRecord> multi = (Multi<? extends KafkaRecord>) connector.getPublisher(config);
 
         List<KafkaRecord> messages1 = new ArrayList<>();
         List<KafkaRecord> messages2 = new ArrayList<>();
-        builder.forEach(messages1::add).run();
-        builder.forEach(messages2::add).run();
+        multi.subscribe().with(messages1::add);
+        multi.subscribe().with(messages2::add);
 
         companion.produceIntegers().usingGenerator(i -> new ProducerRecord<>(topic, i), 10);
 

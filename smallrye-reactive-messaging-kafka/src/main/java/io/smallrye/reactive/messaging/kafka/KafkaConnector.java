@@ -20,18 +20,16 @@ import javax.inject.Inject;
 import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.spi.Connector;
-import org.eclipse.microprofile.reactive.messaging.spi.IncomingConnectorFactory;
-import org.eclipse.microprofile.reactive.messaging.spi.OutgoingConnectorFactory;
-import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
-import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
-import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 import org.reactivestreams.Publisher;
+import org.reactivestreams.Subscriber;
 
 import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.opentelemetry.api.trace.Tracer;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.annotations.ConnectorAttribute;
 import io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Direction;
+import io.smallrye.reactive.messaging.connector.InboundConnector;
+import io.smallrye.reactive.messaging.connector.OutboundConnector;
 import io.smallrye.reactive.messaging.health.HealthReport;
 import io.smallrye.reactive.messaging.health.HealthReporter;
 import io.smallrye.reactive.messaging.kafka.commit.KafkaCommitHandler;
@@ -116,7 +114,7 @@ import io.vertx.mutiny.core.Vertx;
 @ConnectorAttribute(name = "propagate-headers", direction = Direction.OUTGOING, description = "A comma-separating list of incoming record headers to be propagated to the outgoing record", type = "string", defaultValue = "")
 @ConnectorAttribute(name = "key-serialization-failure-handler", type = "string", direction = Direction.OUTGOING, description = "The name set in `@Identifier` of a bean that implements `io.smallrye.reactive.messaging.kafka.SerializationFailureHandler`. If set, serialization failure happening when serializing keys are delegated to this handler which may provide a fallback value.")
 @ConnectorAttribute(name = "value-serialization-failure-handler", type = "string", direction = Direction.OUTGOING, description = "The name set in `@Identifier` of a bean that implements `io.smallrye.reactive.messaging.kafka.SerializationFailureHandler`. If set, serialization failure happening when serializing values are delegated to this handler which may provide a fallback value.")
-public class KafkaConnector implements IncomingConnectorFactory, OutgoingConnectorFactory, HealthReporter {
+public class KafkaConnector implements InboundConnector, OutboundConnector, HealthReporter {
 
     public static final String CONNECTOR_NAME = "smallrye-kafka";
 
@@ -171,7 +169,7 @@ public class KafkaConnector implements IncomingConnectorFactory, OutgoingConnect
     }
 
     @Override
-    public PublisherBuilder<? extends Message<?>> getPublisherBuilder(Config config) {
+    public Publisher<? extends Message<?>> getPublisher(Config config) {
         Config channelConfiguration = ConfigHelper.retrieveChannelConfiguration(configurations, config);
 
         KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(channelConfiguration);
@@ -207,9 +205,9 @@ public class KafkaConnector implements IncomingConnectorFactory, OutgoingConnect
                 stream = source.getBatchStream();
             }
             if (broadcast) {
-                return ReactiveStreams.fromPublisher(stream.broadcast().toAllSubscribers());
+                return stream.broadcast().toAllSubscribers();
             } else {
-                return ReactiveStreams.fromPublisher(stream);
+                return stream;
             }
         }
 
@@ -235,14 +233,14 @@ public class KafkaConnector implements IncomingConnectorFactory, OutgoingConnect
                 .streams(streams.toArray(new Publisher[0]));
         boolean broadcast = ic.getBroadcast();
         if (broadcast) {
-            return ReactiveStreams.fromPublisher(multi.broadcast().toAllSubscribers());
+            return multi.broadcast().toAllSubscribers();
         } else {
-            return ReactiveStreams.fromPublisher(multi);
+            return multi;
         }
     }
 
     @Override
-    public SubscriberBuilder<? extends Message<?>, Void> getSubscriberBuilder(Config config) {
+    public Subscriber<? extends Message<?>> getSubscriber(Config config) {
         Config channelConfiguration = ConfigHelper.retrieveChannelConfiguration(configurations, config);
 
         KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(channelConfiguration);

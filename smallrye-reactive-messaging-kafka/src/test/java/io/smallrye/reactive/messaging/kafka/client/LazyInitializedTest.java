@@ -57,7 +57,7 @@ public class LazyInitializedTest extends WeldTestBase {
         assertThat(producer).isNotNull();
         assertThat(producer.unwrap()).isNull();
 
-        Subscriber<Message<?>> subscriber = (Subscriber<Message<?>>) sink.getSink().build();
+        Subscriber<Message<?>> subscriber = (Subscriber<Message<?>>) sink.getSink();
         await().untilAsserted(() -> {
             assertThat(getHealthReport(sink::isStarted).isOk()).isTrue();
             assertThat(getHealthReport(sink::isReady).isOk()).isTrue();

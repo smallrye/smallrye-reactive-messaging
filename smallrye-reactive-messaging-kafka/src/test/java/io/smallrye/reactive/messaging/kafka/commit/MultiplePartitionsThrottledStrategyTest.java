@@ -123,7 +123,6 @@ public class MultiplePartitionsThrottledStrategyTest extends KafkaCompanionTestB
     }
 
     @Test
-    @Disabled
     public void testWithPartitionsStreamProcessor() {
         companion.topics().createAndWait(topic, 3);
         String sinkTopic = topic + "-sink";
