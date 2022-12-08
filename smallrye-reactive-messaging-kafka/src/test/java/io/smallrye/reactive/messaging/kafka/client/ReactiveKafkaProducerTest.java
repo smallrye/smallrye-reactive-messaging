@@ -132,7 +132,7 @@ public class ReactiveKafkaProducerTest extends ClientTestBase {
 
         Thread actualProducer = new Thread(() -> {
             Multi<Message<?>> merge = Multi.createBy().merging().streams(multis);
-            Subscriber<Message<?>> subscriber = (Subscriber<Message<?>>) createSink().getSink().build();
+            Subscriber<Message<?>> subscriber = (Subscriber<Message<?>>) createSink().getSink();
             merge.subscribe().withSubscriber(subscriber);
         });
         threads.add(actualProducer);
@@ -225,7 +225,7 @@ public class ReactiveKafkaProducerTest extends ClientTestBase {
                 emitter.complete();
             });
 
-            Subscriber<Message<?>> subscriber = (Subscriber<Message<?>>) createSink().getSink().build();
+            Subscriber<Message<?>> subscriber = (Subscriber<Message<?>>) createSink().getSink();
             stream.subscribe().withSubscriber(subscriber);
         }
     }

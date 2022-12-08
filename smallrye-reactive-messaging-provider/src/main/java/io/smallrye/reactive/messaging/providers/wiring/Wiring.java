@@ -27,6 +27,7 @@ import io.smallrye.reactive.messaging.annotations.EmitterFactoryFor;
 import io.smallrye.reactive.messaging.annotations.Merge;
 import io.smallrye.reactive.messaging.providers.AbstractMediator;
 import io.smallrye.reactive.messaging.providers.extension.*;
+import io.smallrye.reactive.messaging.providers.helpers.MultiUtils;
 import io.smallrye.reactive.messaging.providers.i18n.ProviderLogging;
 
 @ApplicationScoped
@@ -374,7 +375,7 @@ public class Wiring {
             List<Publisher<? extends Message<?>>> publishers = registry.getPublishers(name);
             Multi<? extends Message<?>> merged;
             if (publishers.size() == 1) {
-                merged = Multi.createFrom().publisher(publishers.get(0));
+                merged = MultiUtils.publisher(publishers.get(0));
             } else {
                 merged = Multi.createBy().merging().streams(publishers.stream().map(p -> p).collect(Collectors.toList()));
             }
@@ -635,12 +636,12 @@ public class Wiring {
             }
 
             if (publishers.size() == 1) {
-                aggregates = Multi.createFrom().publisher(publishers.get(0));
+                aggregates = MultiUtils.publisher(publishers.get(0));
             } else if (concat) {
                 aggregates = Multi.createBy().concatenating()
                         .streams(publishers.stream().map(p -> p).collect(Collectors.toList()));
             } else if (one) {
-                aggregates = Multi.createFrom().publisher(publishers.get(0));
+                aggregates = MultiUtils.publisher(publishers.get(0));
             } else {
                 aggregates = Multi.createBy().merging()
                         .streams(publishers.stream().map(p -> p).collect(Collectors.toList()));
@@ -789,12 +790,12 @@ public class Wiring {
                 publishers.addAll(registry.getPublishers(channel));
             }
             if (publishers.size() == 1) {
-                aggregates = Multi.createFrom().publisher(publishers.get(0));
+                aggregates = MultiUtils.publisher(publishers.get(0));
             } else if (concat) {
                 aggregates = Multi.createBy().concatenating()
                         .streams(publishers.stream().map(p -> p).collect(Collectors.toList()));
             } else if (one) {
-                aggregates = Multi.createFrom().publisher(publishers.get(0));
+                aggregates = MultiUtils.publisher(publishers.get(0));
             } else {
                 aggregates = Multi.createBy().merging()
                         .streams(publishers.stream().map(p -> p).collect(Collectors.toList()));

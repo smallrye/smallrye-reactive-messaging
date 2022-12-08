@@ -58,7 +58,7 @@ public class KafkaSinkTest extends KafkaCompanionTestBase {
         KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
         sink = new KafkaSink(oc, CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance());
 
-        Subscriber<? extends Message<?>> subscriber = sink.getSink().build();
+        Subscriber<? extends Message<?>> subscriber = sink.getSink();
         Multi.createFrom().range(0, 10)
                 .map(Message::of)
                 .subscribe((Subscriber<? super Message<Integer>>) subscriber);
@@ -78,7 +78,7 @@ public class KafkaSinkTest extends KafkaCompanionTestBase {
         KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
         sink = new KafkaSink(oc, CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance());
 
-        Subscriber<? extends Message<?>> subscriber = sink.getSink().build();
+        Subscriber<? extends Message<?>> subscriber = sink.getSink();
         Multi.createFrom().range(0, 10)
                 .map(Message::of)
                 .subscribe((Subscriber<? super Message<Integer>>) subscriber);
@@ -99,7 +99,7 @@ public class KafkaSinkTest extends KafkaCompanionTestBase {
         KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
         sink = new KafkaSink(oc, CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance());
 
-        Subscriber<? extends Message<?>> subscriber = sink.getSink().build();
+        Subscriber<? extends Message<?>> subscriber = sink.getSink();
         Multi.createFrom().range(0, 10)
                 .map(i -> Integer.toString(i))
                 .map(Message::of)
@@ -238,7 +238,7 @@ public class KafkaSinkTest extends KafkaCompanionTestBase {
 
         List<Object> acked = new CopyOnWriteArrayList<>();
         List<Object> nacked = new CopyOnWriteArrayList<>();
-        Subscriber subscriber = sink.getSink().build();
+        Subscriber subscriber = sink.getSink();
         Multi.createFrom().range(0, 6)
                 .map(i -> {
                     if (i == 3 || i == 5) {
@@ -279,7 +279,7 @@ public class KafkaSinkTest extends KafkaCompanionTestBase {
         KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
         sink = new KafkaSink(oc, CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance());
 
-        Subscriber subscriber = sink.getSink().build();
+        Subscriber subscriber = sink.getSink();
         Multi.createFrom().range(0, 5)
                 .map(i -> {
                     if (i == 3 || i == 5) {

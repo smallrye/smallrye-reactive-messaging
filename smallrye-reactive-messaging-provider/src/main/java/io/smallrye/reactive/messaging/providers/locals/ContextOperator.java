@@ -11,7 +11,6 @@ import io.smallrye.mutiny.operators.multi.MultiOperatorProcessor;
 import io.smallrye.mutiny.subscription.MultiSubscriber;
 import io.smallrye.reactive.messaging.providers.helpers.VertxContext;
 import io.vertx.core.Context;
-import io.vertx.core.Vertx;
 
 /**
  * Decorator to dispatch messages on the Vert.x context attached to the message via {@link LocalContextMetadata}.
@@ -78,16 +77,11 @@ public class ContextOperator {
 
             @Override
             public void request(long numberOfItems) {
-                Context context = Vertx.currentContext();
-                if (context != null) {
-                    super.request(numberOfItems);
+                Context root = ROOT_CONTEXT_UPDATER.get(this);
+                if (root != null) {
+                    root.runOnContext(x -> super.request(numberOfItems));
                 } else {
-                    Context root = ROOT_CONTEXT_UPDATER.get(this);
-                    if (root != null) {
-                        root.runOnContext(x -> super.request(numberOfItems));
-                    } else {
-                        super.request(numberOfItems);
-                    }
+                    super.request(numberOfItems);
                 }
             }
 

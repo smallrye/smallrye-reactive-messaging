@@ -23,6 +23,7 @@ import io.smallrye.reactive.messaging.ChannelRegistry;
 import io.smallrye.reactive.messaging.PublisherDecorator;
 import io.smallrye.reactive.messaging.connector.InboundConnector;
 import io.smallrye.reactive.messaging.connector.OutboundConnector;
+import io.smallrye.reactive.messaging.providers.helpers.MultiUtils;
 
 /**
  * Look for stream factories and get instances.
@@ -169,7 +170,7 @@ public class ConfiguredChannelFactory implements ChannelRegistar {
             throw ex.illegalArgumentUnknownConnector(name);
         }
 
-        Multi<? extends Message<?>> publisher = Multi.createFrom().publisher(inboundConnector.getPublisher(config));
+        Multi<? extends Message<?>> publisher = MultiUtils.publisher(inboundConnector.getPublisher(config));
 
         for (PublisherDecorator decorator : getSortedInstances(publisherDecoratorInstance)) {
             publisher = decorator.decorate(publisher, name, true);

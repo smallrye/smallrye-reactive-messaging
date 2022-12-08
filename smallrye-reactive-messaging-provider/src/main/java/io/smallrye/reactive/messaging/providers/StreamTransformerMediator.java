@@ -97,7 +97,7 @@ public class StreamTransformerMediator extends AbstractMediator {
             PublisherBuilder<? extends Message<?>> argument = ReactiveStreams.fromPublisher(multi);
             PublisherBuilder<Message<?>> result = invoke(argument);
             Objects.requireNonNull(result, msg.methodReturnedNull(configuration.methodAsString()));
-            return Multi.createFrom().publisher(result.buildRs());
+            return MultiUtils.publisher(result.buildRs());
         };
     }
 
@@ -107,13 +107,16 @@ public class StreamTransformerMediator extends AbstractMediator {
             Publisher<? extends Message<?>> argument = convertToDesiredPublisherType(multi);
             Publisher<Message<?>> result = invoke(argument);
             Objects.requireNonNull(result, msg.methodReturnedNull(configuration.methodAsString()));
-            return Multi.createFrom().publisher(result);
+            return MultiUtils.publisher(result);
         };
     }
 
     @SuppressWarnings("unchecked")
     private <T> Publisher<T> convertToDesiredPublisherType(Multi<T> multi) {
         Class<?> parameterType = configuration.getParameterTypes()[0];
+        if (parameterType.equals(Multi.class)) {
+            return multi;
+        }
         Optional<? extends ReactiveTypeConverter<?>> converter = Registry.lookup(parameterType);
         Publisher<T> argument = multi;
         if (converter.isPresent()) {
@@ -129,7 +132,7 @@ public class StreamTransformerMediator extends AbstractMediator {
             PublisherBuilder<?> argument = ReactiveStreams.fromPublisher(multi);
             PublisherBuilder<Object> result = invoke(argument);
             Objects.requireNonNull(result, msg.methodReturnedNull(configuration.methodAsString()));
-            return Multi.createFrom().publisher(result.buildRs())
+            return MultiUtils.publisher(result.buildRs())
                     .onItem().transform(Message::of);
         };
     }
@@ -141,7 +144,7 @@ public class StreamTransformerMediator extends AbstractMediator {
             Publisher<?> argument = convertToDesiredPublisherType(multi);
             Publisher<Object> result = invoke(argument);
             Objects.requireNonNull(result, msg.methodReturnedNull(configuration.methodAsString()));
-            return Multi.createFrom().publisher(result)
+            return MultiUtils.publisher(result)
                     .onItem().transform(Message::of);
         };
     }

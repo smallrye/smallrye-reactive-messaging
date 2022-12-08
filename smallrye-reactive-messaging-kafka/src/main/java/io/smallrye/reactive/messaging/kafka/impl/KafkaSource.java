@@ -31,7 +31,6 @@ import io.smallrye.reactive.messaging.kafka.*;
 import io.smallrye.reactive.messaging.kafka.commit.*;
 import io.smallrye.reactive.messaging.kafka.fault.KafkaFailureHandler;
 import io.smallrye.reactive.messaging.kafka.health.KafkaSourceHealth;
-import io.smallrye.reactive.messaging.providers.locals.ContextOperator;
 import io.vertx.core.impl.EventLoopContext;
 import io.vertx.core.impl.VertxInternal;
 import io.vertx.mutiny.core.Vertx;
@@ -157,8 +156,7 @@ public class KafkaSource<K, V> {
                 incomingMulti = incomingMulti.onItem().invoke(record -> incomingTrace(record, false));
             }
             this.stream = incomingMulti
-                    .onFailure().invoke(t -> reportFailure(t, false))
-                    .plug(ContextOperator::apply);
+                    .onFailure().invoke(t -> reportFailure(t, false));
             this.batchStream = null;
         } else {
             Multi<ConsumerRecords<K, V>> multi;
@@ -188,8 +186,7 @@ public class KafkaSource<K, V> {
                 incomingMulti = incomingMulti.onItem().invoke(this::incomingTrace);
             }
             this.batchStream = incomingMulti
-                    .onFailure().invoke(t -> reportFailure(t, false))
-                    .plug(ContextOperator::apply);
+                    .onFailure().invoke(t -> reportFailure(t, false));
             this.stream = null;
         }
 

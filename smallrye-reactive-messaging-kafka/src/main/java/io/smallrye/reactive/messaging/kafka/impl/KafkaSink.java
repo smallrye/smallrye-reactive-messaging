@@ -28,8 +28,7 @@ import org.apache.kafka.common.errors.UnknownServerException;
 import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.eclipse.microprofile.reactive.messaging.Message;
-import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
-import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
+import org.reactivestreams.Subscriber;
 
 import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.OutgoingMessageMetadata;
@@ -44,6 +43,7 @@ import io.smallrye.reactive.messaging.kafka.api.IncomingKafkaRecordMetadata;
 import io.smallrye.reactive.messaging.kafka.api.OutgoingKafkaRecordMetadata;
 import io.smallrye.reactive.messaging.kafka.health.KafkaSinkHealth;
 import io.smallrye.reactive.messaging.kafka.impl.ce.KafkaCloudEventHelper;
+import io.smallrye.reactive.messaging.providers.helpers.MultiUtils;
 
 @SuppressWarnings("jol")
 public class KafkaSink {
@@ -52,7 +52,7 @@ public class KafkaSink {
     private final int partition;
     private final String topic;
     private final String key;
-    private final SubscriberBuilder<? extends Message<?>, Void> subscriber;
+    private final Subscriber<? extends Message<?>> subscriber;
 
     private final long retries;
     private final int deliveryTimeoutMs;
@@ -118,13 +118,10 @@ public class KafkaSink {
         }
         this.processor = new KafkaSenderProcessor(requests, waitForWriteCompletion,
                 writeMessageToKafka());
-        this.subscriber = ReactiveStreams.<Message<?>> builder()
-                .via(processor)
-                .onError(f -> {
-                    log.unableToDispatch(f);
-                    reportFailure(f);
-                })
-                .ignore();
+        this.subscriber = MultiUtils.via(processor, m -> m.onFailure().invoke(f -> {
+            log.unableToDispatch(f);
+            reportFailure(f);
+        }));
 
     }
 
@@ -310,7 +307,7 @@ public class KafkaSink {
         return key;
     }
 
-    public SubscriberBuilder<? extends Message<?>, Void> getSink() {
+    public Subscriber<? extends Message<?>> getSink() {
         return subscriber;
     }
 
