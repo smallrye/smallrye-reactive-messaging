@@ -64,7 +64,7 @@ updates:
     - "3.0"
   - dependency-name: org.slf4j:slf4j-log4j12
     versions:
-    - "<1.8.0"
+    - "> 1.8.0"
   - dependency-name: org.slf4j:simple
     versions:
-    - "<1.8.0"
+    - "> 1.8.0"
