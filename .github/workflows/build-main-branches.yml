@@ -75,7 +75,7 @@ jobs:
                   SONAR_TOKEN: ${{ secrets.SONAR_LOGIN }}
               run: |
                     mvn -s .github/ci-maven-settings.xml -B \
-                        clean verify sonar:sonar -Pcoverage \
+                        clean install sonar:sonar -Pcoverage \
                         -Dsonar.projectKey=smallrye_smallrye-reactive-messaging \
                         -Dsonar.projectName="SmallRye Reactive Messaging" \
                         -Dsonar.organization=smallrye \
