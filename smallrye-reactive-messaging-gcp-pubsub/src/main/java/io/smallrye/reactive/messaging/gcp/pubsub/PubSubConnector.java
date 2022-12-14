@@ -7,11 +7,11 @@ import java.nio.file.Path;
 import java.util.Optional;
 import java.util.concurrent.*;
 
-import javax.annotation.PostConstruct;
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.context.Destroyed;
-import javax.enterprise.event.Observes;
-import javax.inject.Inject;
+import jakarta.annotation.PostConstruct;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.context.Destroyed;
+import jakarta.enterprise.event.Observes;
+import jakarta.inject.Inject;
 
 import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.config.inject.ConfigProperty;

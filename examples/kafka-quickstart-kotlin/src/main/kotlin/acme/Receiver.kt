@@ -3,7 +3,7 @@ package acme
 import io.smallrye.reactive.messaging.kafka.KafkaRecord
 import org.eclipse.microprofile.reactive.messaging.Incoming
 import java.util.concurrent.CompletionStage
-import javax.enterprise.context.ApplicationScoped
+import jakarta.enterprise.context.ApplicationScoped
 
 @ApplicationScoped
 open class Receiver {

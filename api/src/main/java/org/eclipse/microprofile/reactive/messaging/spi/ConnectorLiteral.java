@@ -18,7 +18,7 @@
  */
 package org.eclipse.microprofile.reactive.messaging.spi;
 
-import javax.enterprise.util.AnnotationLiteral;
+import jakarta.enterprise.util.AnnotationLiteral;
 
 /**
  * Supports inline instantiation of the {@link Connector} qualifier.

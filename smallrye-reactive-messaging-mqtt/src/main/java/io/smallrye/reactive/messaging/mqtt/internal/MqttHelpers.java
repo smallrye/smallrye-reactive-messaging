@@ -7,7 +7,7 @@ import java.time.Duration;
 import java.util.Optional;
 import java.util.regex.Pattern;
 
-import javax.enterprise.inject.Instance;
+import jakarta.enterprise.inject.Instance;
 
 import io.smallrye.common.annotation.Identifier;
 import io.smallrye.reactive.messaging.mqtt.MqttConnectorCommonConfiguration;

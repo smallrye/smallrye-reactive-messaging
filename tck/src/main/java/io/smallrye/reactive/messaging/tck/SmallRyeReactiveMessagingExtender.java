@@ -2,7 +2,7 @@ package io.smallrye.reactive.messaging.tck;
 
 import static io.smallrye.reactive.messaging.providers.extension.MediatorManager.STRICT_MODE_PROPERTY;
 
-import javax.enterprise.inject.spi.Extension;
+import jakarta.enterprise.inject.spi.Extension;
 
 import org.eclipse.microprofile.reactive.messaging.tck.ArchiveExtender;
 import org.jboss.shrinkwrap.api.asset.EmptyAsset;

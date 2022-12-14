@@ -3,11 +3,11 @@ package io.smallrye.reactive.messaging.providers.impl;
 import java.util.HashMap;
 import java.util.Map;
 
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.inject.Any;
-import javax.enterprise.inject.Instance;
-import javax.enterprise.inject.spi.*;
-import javax.inject.Inject;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Any;
+import jakarta.enterprise.inject.Instance;
+import jakarta.enterprise.inject.spi.*;
+import jakarta.inject.Inject;
 
 import org.eclipse.microprofile.reactive.messaging.spi.Connector;
 import org.eclipse.microprofile.reactive.messaging.spi.ConnectorLiteral;

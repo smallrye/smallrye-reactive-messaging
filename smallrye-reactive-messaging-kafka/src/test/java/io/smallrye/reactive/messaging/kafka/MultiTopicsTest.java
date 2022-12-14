@@ -11,8 +11,8 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.inject.spi.DeploymentException;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.spi.DeploymentException;
 
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.serialization.StringDeserializer;

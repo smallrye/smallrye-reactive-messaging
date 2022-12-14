@@ -14,7 +14,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import javax.enterprise.inject.Any;
+import jakarta.enterprise.inject.Any;
 
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.jboss.weld.junit5.auto.WeldJunit5AutoExtension;

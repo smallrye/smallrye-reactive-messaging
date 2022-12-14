@@ -4,7 +4,7 @@ import java.io.File;
 import java.util.Optional;
 import java.util.concurrent.CompletionStage;
 
-import javax.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.context.ApplicationScoped;
 
 import org.apache.camel.Exchange;
 import org.apache.camel.component.file.GenericFile;
