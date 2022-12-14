@@ -544,7 +544,7 @@ public class RedisCheckpointStateStoreTest extends KafkaCompanionTestBase {
                 .with("auto.offset.reset", "earliest")
                 .with("commit-strategy", "checkpoint")
                 .with("checkpoint.state-store", "redis")
-                .with("checkpoint.unsynced-state-max-age.ms", 300)
+                .with("checkpoint.unsynced-state-max-age.ms", 500)
                 .with("auto.commit.interval.ms", 200)
                 .with("checkpoint.redis.connectionString", getRedisString())
                 .with("value.deserializer", IntegerDeserializer.class.getName());
@@ -552,7 +552,10 @@ public class RedisCheckpointStateStoreTest extends KafkaCompanionTestBase {
         RemoteStoringBean application = runApplication(config, RemoteStoringBean.class);
 
         // consumer assigned partitions but receives no records
-        await().pollDelay(500, TimeUnit.MILLISECONDS).until(() -> true);
+        await().untilAsserted(() -> {
+            assertThat(getHealth().getReadiness().getChannels()).isNotEmpty();
+            assertThat(getHealth().getReadiness().isOk()).isTrue();
+        });
 
         int expected = 100;
         companion.produceIntegers().usingGenerator(i -> new ProducerRecord<>(topic, i), expected)
