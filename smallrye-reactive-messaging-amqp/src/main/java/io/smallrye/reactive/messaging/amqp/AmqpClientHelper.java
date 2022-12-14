@@ -5,9 +5,10 @@ import static io.smallrye.reactive.messaging.amqp.i18n.AMQPLogging.log;
 
 import java.util.Optional;
 
+import javax.net.ssl.SSLContext;
+
 import jakarta.enterprise.inject.Instance;
 import jakarta.enterprise.inject.literal.NamedLiteral;
-import javax.net.ssl.SSLContext;
 
 import io.netty.handler.ssl.ApplicationProtocolConfig;
 import io.netty.handler.ssl.IdentityCipherSuiteFilter;
