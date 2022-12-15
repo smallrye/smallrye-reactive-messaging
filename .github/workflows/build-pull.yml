@@ -14,41 +14,46 @@ jobs:
         strategy:
             matrix:
                 java: [
-                    {'version': '11'},
+                    {
+                        'name': '',
+                        'version': '11',
+                        'build_opts': '-Drevapi.skip=true'
+                    },
                     {
                         'version': '11',
-                        'build_opts': '-Dkafka-container-version=2.8.1 -pl smallrye-reactive-messaging-kafka --also-make',
+                        'build_opts': '-Dkafka-container-version=2.8.1 -pl smallrye-reactive-messaging-kafka --also-make -Drevapi.skip=true',
                         'name': 'Kafka tests against Kafka Broker 2.8.0'
                     },
                     {
+                        'name': '',
                         'version': '17',
                         'opts': '--illegal-access=permit' # required for kotlin
                     },
                     {
                         'version': '11',
-                        'build_opts': '-Pslow-flaky-tests',
+                        'build_opts': '-Pslow-flaky-tests -Drevapi.skip=true',
                         'name': 'Slow and Flaky tests',
                         'continue-on-error': true
                     }
                 ]
         name: Build with Java ${{ matrix.java.version }} ${{ matrix.java.name }}
         steps:
-            - uses: actions/cache@v2
-              with:
-                  path: ~/.m2/repository
-                  key: maven-${{ hashFiles('**/pom.xml') }}
-                  restore-keys: |
-                      maven-
-            - uses: actions/checkout@v2
-            - uses: actions/setup-java@v2
-              with:
-                  java-version: ${{ matrix.java.version }}
-                  distribution: temurin
-            - name: Build with Maven
-              env:
-                  MAVEN_OPTS: ${{ matrix.java.opts }}
-              run: |
-                 mvn -s .github/ci-maven-settings.xml \
-                    -B clean install -Pcoverage -Dtest-containers=true ${{ matrix.java.build_opts }}
-            - name: Codecov
-              uses: codecov/codecov-action@v1.0.13
+            -   uses: actions/cache@v2
+                with:
+                    path: ~/.m2/repository
+                    key: maven-${{ hashFiles('**/pom.xml') }}
+                    restore-keys: |
+                        maven-
+            -   uses: actions/checkout@v2
+            -   uses: actions/setup-java@v2
+                with:
+                    java-version: ${{ matrix.java.version }}
+                    distribution: temurin
+            -   name: Build with Maven
+                env:
+                    MAVEN_OPTS: ${{ matrix.java.opts }}
+                run: |
+                    mvn -s .github/ci-maven-settings.xml \
+                       -B clean install -Pcoverage -Dtest-containers=true ${{ matrix.java.build_opts }}
+            -   name: Codecov
+                uses: codecov/codecov-action@v1.0.13

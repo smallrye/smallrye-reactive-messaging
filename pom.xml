@@ -529,13 +529,6 @@
                 <analysisConfigurationFiles>
                   <file>${project.basedir}/revapi.json</file>
                 </analysisConfigurationFiles>
-                <analysisConfiguration>
-                  <revapi.java>
-                    <missing-classes>
-                      <behavior>ignore</behavior>
-                    </missing-classes>
-                  </revapi.java>
-                </analysisConfiguration>
               </configuration>
             </execution>
           </executions>
