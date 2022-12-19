@@ -24,7 +24,15 @@
     "criticality" : "highlight",
     "minSeverity" : "POTENTIALLY_BREAKING",
     "minCriticality" : "documented",
-    "differences" : [ ]
+    "differences" : [
+        {
+            "ignore": true,
+            "code": "java.class.nonPublicPartOfAPI",
+            "old": "class io.smallrye.reactive.messaging.kafka.commit.KafkaCheckpointCommit.CheckpointState<T>",
+            "new": "class io.smallrye.reactive.messaging.kafka.commit.KafkaCheckpointCommit.CheckpointState<T>",
+            "justification": "New checkpointing API"
+        }
+    ]
   }
 }, {
   "extension" : "revapi.reporter.json",
