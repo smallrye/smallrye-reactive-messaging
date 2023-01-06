@@ -2,6 +2,7 @@ package io.smallrye.reactive.messaging.amqp;
 
 import static io.smallrye.reactive.messaging.amqp.i18n.AMQPExceptions.ex;
 import static io.smallrye.reactive.messaging.amqp.i18n.AMQPLogging.log;
+import static io.vertx.core.net.ClientOptionsBase.DEFAULT_METRICS_NAME;
 
 import java.util.Optional;
 
@@ -142,6 +143,10 @@ public class AmqpClientHelper {
         if (isSetInChannelConfiguration("connect-timeout", config)) {
             custom.setConnectTimeout(channel.getConnectTimeout());
         }
+
+        if (DEFAULT_METRICS_NAME.equals(custom.getMetricsName())) {
+            custom.setMetricsName(channel.getMetricsName());
+        }
     }
 
     static AmqpClientOptions getOptionsFromChannel(AmqpConnectorCommonConfiguration config) {
@@ -169,6 +174,8 @@ public class AmqpClientHelper {
                 .setReconnectAttempts(reconnectAttempts)
                 .setReconnectInterval(reconnectInterval)
                 .setConnectTimeout(connectTimeout);
+
+        options.setMetricsName("amqp|" + config.getChannel());
 
         config.getSniServerName().ifPresent(options::setSniServerName);
         config.getVirtualHost().ifPresent(options::setVirtualHost);

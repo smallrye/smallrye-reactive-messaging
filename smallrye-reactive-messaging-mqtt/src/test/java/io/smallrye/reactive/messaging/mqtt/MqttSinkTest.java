@@ -45,6 +45,7 @@ public class MqttSinkTest extends MqttTestBase {
                 v -> expected.getAndIncrement());
 
         Map<String, Object> config = new HashMap<>();
+        config.put("channel-name", topic);
         config.put("topic", topic);
         config.put("host", address);
         config.put("port", port);
@@ -97,6 +98,7 @@ public class MqttSinkTest extends MqttTestBase {
                 v -> expected.getAndIncrement());
 
         Map<String, Object> config = new HashMap<>();
+        config.put("channel-name", topic);
         config.put("topic", topic);
         config.put("host", address);
         config.put("port", port);

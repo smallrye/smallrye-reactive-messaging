@@ -2,6 +2,7 @@ package io.smallrye.reactive.messaging.mqtt.internal;
 
 import static io.smallrye.reactive.messaging.mqtt.i18n.MqttExceptions.ex;
 import static io.smallrye.reactive.messaging.mqtt.i18n.MqttLogging.log;
+import static io.vertx.core.net.ClientOptionsBase.DEFAULT_METRICS_NAME;
 
 import java.time.Duration;
 import java.util.Optional;
@@ -51,6 +52,7 @@ public class MqttHelpers {
         options.setWillFlag(config.getWillFlag());
         options.setWillRetain(config.getWillRetain());
         options.setUnsubscribeOnDisconnect(config.getUnsubscribeOnDisconnection());
+        options.setMetricsName("mqtt|" + config.getChannel());
         return options;
     }
 
@@ -205,7 +207,9 @@ public class MqttHelpers {
         }
         if (isSetInChannelConfiguration("unsubscribe-on-disconnection", config)) {
             custom.setUnsubscribeOnDisconnect(config.getUnsubscribeOnDisconnection());
-            ;
+        }
+        if (DEFAULT_METRICS_NAME.equals(custom.getMetricsName())) {
+            custom.setMetricsName("mqtt|" + config.getChannel());
         }
     }
 
