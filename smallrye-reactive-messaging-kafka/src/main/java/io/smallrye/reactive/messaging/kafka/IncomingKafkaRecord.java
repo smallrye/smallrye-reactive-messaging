@@ -10,17 +10,14 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.header.Headers;
 import org.eclipse.microprofile.reactive.messaging.Metadata;
 
-import io.opentelemetry.api.GlobalOpenTelemetry;
-import io.opentelemetry.context.Context;
-import io.smallrye.reactive.messaging.TracingMetadata;
 import io.smallrye.reactive.messaging.ce.CloudEventMetadata;
 import io.smallrye.reactive.messaging.kafka.commit.KafkaCommitHandler;
 import io.smallrye.reactive.messaging.kafka.fault.KafkaFailureHandler;
 import io.smallrye.reactive.messaging.kafka.impl.ce.KafkaCloudEventHelper;
-import io.smallrye.reactive.messaging.kafka.tracing.HeaderExtractAdapter;
+import io.smallrye.reactive.messaging.providers.MetadataInjectableMessage;
 import io.smallrye.reactive.messaging.providers.locals.ContextAwareMessage;
 
-public class IncomingKafkaRecord<K, T> implements KafkaRecord<K, T> {
+public class IncomingKafkaRecord<K, T> implements KafkaRecord<K, T>, MetadataInjectableMessage<T> {
 
     private Metadata metadata;
     // TODO add as a normal import once we have removed IncomingKafkaRecordMetadata in this package
@@ -65,18 +62,6 @@ public class IncomingKafkaRecord<K, T> implements KafkaRecord<K, T> {
                     meta.add(KafkaCloudEventHelper.createFromBinaryCloudEvent(record));
                     break;
             }
-        }
-
-        if (tracingEnabled) {
-            TracingMetadata tracingMetadata = TracingMetadata.empty();
-            if (record.headers() != null) {
-                // Read tracing headers
-                Context context = GlobalOpenTelemetry.getPropagators().getTextMapPropagator()
-                        .extract(Context.root(), kafkaMetadata.getHeaders(), HeaderExtractAdapter.GETTER);
-                tracingMetadata = TracingMetadata.withPrevious(context);
-            }
-
-            meta.add(tracingMetadata);
         }
 
         this.metadata = ContextAwareMessage.captureContextMetadata(meta);
@@ -147,6 +132,7 @@ public class IncomingKafkaRecord<K, T> implements KafkaRecord<K, T> {
         return onNack.handle(this, reason, metadata).subscribeAsCompletionStage();
     }
 
+    @Override
     public synchronized void injectMetadata(Object metadata) {
         this.metadata = this.metadata.with(metadata);
     }

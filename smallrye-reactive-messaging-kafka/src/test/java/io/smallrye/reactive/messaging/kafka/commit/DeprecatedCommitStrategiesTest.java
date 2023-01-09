@@ -36,11 +36,9 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.smallrye.reactive.messaging.health.HealthReport;
 import io.smallrye.reactive.messaging.kafka.CountKafkaCdiEvents;
 import io.smallrye.reactive.messaging.kafka.DeserializationFailureHandler;
-import io.smallrye.reactive.messaging.kafka.KafkaConnector;
 import io.smallrye.reactive.messaging.kafka.KafkaConnectorIncomingConfiguration;
 import io.smallrye.reactive.messaging.kafka.KafkaConsumerRebalanceListener;
 import io.smallrye.reactive.messaging.kafka.LegacyMetadataTestUtils;
@@ -63,9 +61,8 @@ public class DeprecatedCommitStrategiesTest extends WeldTestBase {
     private KafkaSource<String, String> source2;
 
     @BeforeEach
-    public void initializing() {
+    public void setup() {
         vertx = Vertx.vertx();
-        KafkaConnector.TRACER = GlobalOpenTelemetry.getTracerProvider().get("io.smallrye.reactive.messaging.kafka");
         consumer = new MockConsumer<>(OffsetResetStrategy.EARLIEST);
     }
 

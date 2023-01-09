@@ -59,6 +59,14 @@ public class TracingMetadata {
         return EMPTY;
     }
 
+    public static TracingMetadata with(Context currentSpanContext, Context previousSpanContext) {
+        if (currentSpanContext != null || previousSpanContext != null) {
+            return new TracingMetadata(currentSpanContext, previousSpanContext);
+        }
+        return EMPTY;
+    }
+
+    @Deprecated
     public TracingMetadata withSpan(Span span) {
         if (span != null) {
             return new TracingMetadata(Context.root().with(span), previousSpanContext);

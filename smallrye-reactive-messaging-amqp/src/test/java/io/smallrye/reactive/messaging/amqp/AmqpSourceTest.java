@@ -635,6 +635,7 @@ public class AmqpSourceTest extends AmqpTestBase {
         config.put("host", "localhost");
         config.put("port", port);
         config.put("name", "some name");
+        config.put("tracing-enabled", false);
         return config;
     }
 
@@ -645,6 +646,7 @@ public class AmqpSourceTest extends AmqpTestBase {
         config.put("host", "localhost");
         config.put("port", port);
         config.put("name", "some name");
+        config.put("tracing-enabled", false);
         return config;
     }
 

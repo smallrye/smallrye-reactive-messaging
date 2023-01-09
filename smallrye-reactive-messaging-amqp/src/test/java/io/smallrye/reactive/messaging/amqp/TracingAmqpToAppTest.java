@@ -5,19 +5,21 @@ import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.List;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.enterprise.context.ApplicationScoped;
 
 import org.eclipse.microprofile.config.ConfigProvider;
-import org.eclipse.microprofile.reactive.messaging.Outgoing;
+import org.eclipse.microprofile.reactive.messaging.Incoming;
+import org.eclipse.microprofile.reactive.messaging.Message;
 import org.jboss.weld.environment.se.Weld;
 import org.jboss.weld.environment.se.WeldContainer;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.reactivestreams.Publisher;
 
 import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.opentelemetry.api.trace.propagation.W3CTraceContextPropagator;
@@ -31,10 +33,10 @@ import io.opentelemetry.sdk.trace.data.SpanData;
 import io.opentelemetry.sdk.trace.export.SimpleSpanProcessor;
 import io.opentelemetry.sdk.trace.samplers.Sampler;
 import io.smallrye.config.SmallRyeConfigProviderResolver;
-import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
+import io.vertx.mutiny.amqp.AmqpMessage;
 
-public class TracingAppToAmqpTest extends AmqpBrokerTestBase {
+public class TracingAmqpToAppTest extends AmqpBrokerTestBase {
     private SdkTracerProvider tracerProvider;
     private InMemorySpanExporter spanExporter;
 
@@ -75,26 +77,31 @@ public class TracingAppToAmqpTest extends AmqpBrokerTestBase {
     }
 
     @Test
-    public void testFromAppToAmqp() {
+    public void testFromAmqpToAppWithParentSpan() {
         new MapBasedConfig()
-                .with("mp.messaging.outgoing.amqp.connector", AmqpConnector.CONNECTOR_NAME)
-                .with("mp.messaging.outgoing.amqp.durable", false)
-                .with("mp.messaging.outgoing.amqp.host", host)
-                .with("mp.messaging.outgoing.amqp.port", port)
+                .with("mp.messaging.incoming.stuff.connector", AmqpConnector.CONNECTOR_NAME)
+                .with("mp.messaging.incoming.stuff.host", host)
+                .with("mp.messaging.incoming.stuff.port", port)
                 .with("amqp-username", username)
                 .with("amqp-password", password)
                 .write();
 
-        List<Integer> payloads = new CopyOnWriteArrayList<>();
-        usage.consumeIntegers("amqp", payloads::add);
-
-        weld.addBeanClass(MyAppGeneratingData.class);
+        weld.addBeanClass(MyAppReceivingData.class);
         container = weld.initialize();
         await().until(() -> isAmqpConnectorReady(container));
         await().until(() -> isAmqpConnectorAlive(container));
 
-        await().until(() -> payloads.size() >= 10);
-        assertThat(payloads).containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
+        MyAppReceivingData bean = container.getBeanManager().createInstance().select(MyAppReceivingData.class).get();
+
+        AtomicInteger count = new AtomicInteger();
+        usage.produce("stuff", 10, () -> AmqpMessage.create()
+                .durable(false)
+                .ttl(10000)
+                .withIntegerAsBody(count.getAndIncrement())
+                .build());
+
+        await().until(() -> bean.results().size() >= 10);
+        assertThat(bean.results()).containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
 
         CompletableResultCode completableResultCode = tracerProvider.forceFlush();
         completableResultCode.whenComplete(() -> {
@@ -104,10 +111,17 @@ public class TracingAppToAmqpTest extends AmqpBrokerTestBase {
     }
 
     @ApplicationScoped
-    public static class MyAppGeneratingData {
-        @Outgoing("amqp")
-        public Publisher<Integer> source() {
-            return Multi.createFrom().range(0, 10);
+    public static class MyAppReceivingData {
+        private final List<Integer> results = new CopyOnWriteArrayList<>();
+
+        @Incoming("stuff")
+        public CompletionStage<Void> consume(Message<Integer> input) {
+            results.add(input.getPayload());
+            return input.ack();
+        }
+
+        public List<Integer> results() {
+            return results;
         }
     }
 }

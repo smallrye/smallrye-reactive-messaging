@@ -20,9 +20,9 @@ import io.smallrye.reactive.messaging.TracingMetadata;
 import io.smallrye.reactive.messaging.providers.locals.ContextAwareMessage;
 import io.smallrye.reactive.messaging.rabbitmq.ack.RabbitMQAckHandler;
 import io.smallrye.reactive.messaging.rabbitmq.fault.RabbitMQFailureHandler;
-import io.smallrye.reactive.messaging.rabbitmq.tracing.TracingUtils;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.mutiny.core.Context;
+import io.vertx.mutiny.rabbitmq.RabbitMQMessage;
 
 /**
  * An implementation of {@link Message} suitable for incoming RabbitMQ messages.
@@ -60,13 +60,13 @@ public class IncomingRabbitMQMessage<T> implements ContextAwareMessage<T> {
     private final String contentTypeOverride;
     private final T payload;
 
-    IncomingRabbitMQMessage(io.vertx.mutiny.rabbitmq.RabbitMQMessage delegate, ConnectionHolder holder,
-            boolean isTracingEnabled, RabbitMQFailureHandler onNack,
+    IncomingRabbitMQMessage(RabbitMQMessage delegate, ConnectionHolder holder,
+            RabbitMQFailureHandler onNack,
             RabbitMQAckHandler onAck, String contentTypeOverride) {
-        this(delegate.getDelegate(), holder, isTracingEnabled, onNack, onAck, contentTypeOverride);
+        this(delegate.getDelegate(), holder, onNack, onAck, contentTypeOverride);
     }
 
-    IncomingRabbitMQMessage(io.vertx.rabbitmq.RabbitMQMessage msg, ConnectionHolder holder, boolean isTracingEnabled,
+    IncomingRabbitMQMessage(io.vertx.rabbitmq.RabbitMQMessage msg, ConnectionHolder holder,
             RabbitMQFailureHandler onNack, RabbitMQAckHandler onAck, String contentTypeOverride) {
         this.message = msg;
         this.deliveryTag = msg.envelope().getDeliveryTag();
@@ -79,11 +79,6 @@ public class IncomingRabbitMQMessage<T> implements ContextAwareMessage<T> {
         this.metadata = captureContextMetadata(rabbitMQMetadata);
         //noinspection unchecked
         this.payload = (T) convertPayload(message);
-
-        // If tracing is enabled, ensure any tracing metadata in the received msg headers is transferred as metadata.
-        if (isTracingEnabled) {
-            this.metadata = this.metadata.with(TracingUtils.getTracingMetaData(msg));
-        }
     }
 
     @Override

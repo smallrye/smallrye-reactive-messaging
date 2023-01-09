@@ -1,5 +1,10 @@
-package io.smallrye.reactive.messaging.rabbitmq.tracing;
+package io.smallrye.reactive.messaging.rabbitmq;
 
+import static io.opentelemetry.semconv.trace.attributes.SemanticAttributes.MESSAGING_DESTINATION;
+import static io.opentelemetry.semconv.trace.attributes.SemanticAttributes.MESSAGING_DESTINATION_KIND;
+import static io.opentelemetry.semconv.trace.attributes.SemanticAttributes.MESSAGING_PROTOCOL;
+import static io.opentelemetry.semconv.trace.attributes.SemanticAttributes.MESSAGING_PROTOCOL_VERSION;
+import static io.opentelemetry.semconv.trace.attributes.SemanticAttributes.MESSAGING_SYSTEM;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
@@ -42,10 +47,8 @@ import io.opentelemetry.sdk.trace.export.SimpleSpanProcessor;
 import io.opentelemetry.sdk.trace.samplers.Sampler;
 import io.smallrye.reactive.messaging.providers.connectors.InMemoryConnector;
 import io.smallrye.reactive.messaging.providers.connectors.InMemorySource;
-import io.smallrye.reactive.messaging.rabbitmq.RabbitMQConnector;
-import io.smallrye.reactive.messaging.rabbitmq.WeldTestBase;
 
-public class IncomingTracingTest extends WeldTestBase {
+public class TracingTest extends WeldTestBase {
     private SdkTracerProvider tracerProvider;
     private InMemorySpanExporter spanExporter;
 
@@ -87,6 +90,15 @@ public class IncomingTracingTest extends WeldTestBase {
             List<SpanData> spans = spanExporter.getFinishedSpanItems();
             assertEquals(5, spans.size());
             assertEquals(5, spans.stream().map(SpanData::getTraceId).collect(toSet()).size());
+
+            SpanData consumer = spans.get(0);
+            assertEquals(SpanKind.CONSUMER, consumer.getKind());
+            assertEquals("smallrye-rabbitmq", consumer.getAttributes().get(MESSAGING_SYSTEM));
+            assertEquals("AMQP", consumer.getAttributes().get(MESSAGING_PROTOCOL));
+            assertEquals("1.0", consumer.getAttributes().get(MESSAGING_PROTOCOL_VERSION));
+            assertEquals("queue", consumer.getAttributes().get(MESSAGING_DESTINATION_KIND));
+            assertEquals(queue, consumer.getAttributes().get(MESSAGING_DESTINATION));
+            assertEquals(queue + " receive", consumer.getName());
         });
     }
 

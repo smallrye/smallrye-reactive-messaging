@@ -1,5 +1,6 @@
 package io.smallrye.reactive.messaging.rabbitmq;
 
+import static io.opentelemetry.instrumentation.api.instrumenter.messaging.MessageOperation.RECEIVE;
 import static io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Direction.INCOMING;
 import static io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Direction.INCOMING_AND_OUTGOING;
 import static io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Direction.OUTGOING;
@@ -35,6 +36,12 @@ import org.reactivestreams.Subscription;
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.impl.CredentialsProvider;
 
+import io.opentelemetry.api.GlobalOpenTelemetry;
+import io.opentelemetry.instrumentation.api.instrumenter.Instrumenter;
+import io.opentelemetry.instrumentation.api.instrumenter.InstrumenterBuilder;
+import io.opentelemetry.instrumentation.api.instrumenter.messaging.MessagingAttributesExtractor;
+import io.opentelemetry.instrumentation.api.instrumenter.messaging.MessagingAttributesGetter;
+import io.opentelemetry.instrumentation.api.instrumenter.messaging.MessagingSpanNameExtractor;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.tuples.Tuple2;
@@ -49,7 +56,10 @@ import io.smallrye.reactive.messaging.rabbitmq.fault.RabbitMQAccept;
 import io.smallrye.reactive.messaging.rabbitmq.fault.RabbitMQFailStop;
 import io.smallrye.reactive.messaging.rabbitmq.fault.RabbitMQFailureHandler;
 import io.smallrye.reactive.messaging.rabbitmq.fault.RabbitMQReject;
-import io.smallrye.reactive.messaging.rabbitmq.tracing.TracingUtils;
+import io.smallrye.reactive.messaging.rabbitmq.tracing.RabbitMQTrace;
+import io.smallrye.reactive.messaging.rabbitmq.tracing.RabbitMQTraceAttributesExtractor;
+import io.smallrye.reactive.messaging.rabbitmq.tracing.RabbitMQTraceTextMapGetter;
+import io.smallrye.reactive.messaging.tracing.TracingUtils;
 import io.vertx.core.json.JsonObject;
 import io.vertx.mutiny.core.Vertx;
 import io.vertx.mutiny.rabbitmq.RabbitMQClient;
@@ -143,7 +153,7 @@ public class RabbitMQConnector implements IncomingConnectorFactory, OutgoingConn
     private enum ChannelStatus {
         CONNECTED,
         NOT_CONNECTED,
-        INITIALISING
+        INITIALISING;
     }
 
     // The list of RabbitMQClient's currently managed by this connector
@@ -168,6 +178,8 @@ public class RabbitMQConnector implements IncomingConnectorFactory, OutgoingConn
     @Any
     Instance<CredentialsProvider> credentialsProviders;
 
+    private Instrumenter<RabbitMQTrace, Void> instrumenter;
+
     RabbitMQConnector() {
         // used for proxies
     }
@@ -178,24 +190,40 @@ public class RabbitMQConnector implements IncomingConnectorFactory, OutgoingConn
 
     @PostConstruct
     void init() {
-        TracingUtils.initialise();
+        RabbitMQTraceAttributesExtractor rabbitMQAttributesExtractor = new RabbitMQTraceAttributesExtractor();
+        MessagingAttributesGetter<RabbitMQTrace, Void> messagingAttributesGetter = rabbitMQAttributesExtractor
+                .getMessagingAttributesGetter();
+        InstrumenterBuilder<RabbitMQTrace, Void> builder = Instrumenter.builder(GlobalOpenTelemetry.get(),
+                "io.smallrye.reactive.messaging", MessagingSpanNameExtractor.create(messagingAttributesGetter, RECEIVE));
+
+        instrumenter = builder.addAttributesExtractor(rabbitMQAttributesExtractor)
+                .addAttributesExtractor(MessagingAttributesExtractor.create(messagingAttributesGetter, RECEIVE))
+                .buildConsumerInstrumenter(RabbitMQTraceTextMapGetter.INSTANCE);
     }
 
-    private Multi<? extends Message<?>> getStreamOfMessages(RabbitMQConsumer receiver,
+    private Multi<? extends Message<?>> getStreamOfMessages(
+            RabbitMQConsumer receiver,
             ConnectionHolder holder,
             RabbitMQConnectorIncomingConfiguration ic,
             RabbitMQFailureHandler onNack,
             RabbitMQAckHandler onAck) {
+
         final String queueName = ic.getQueueName();
         final boolean isTracingEnabled = ic.getTracingEnabled();
         final String contentTypeOverride = ic.getContentTypeOverride().orElse(null);
-        final List<String> attributeHeaders = Arrays.stream(ic.getTracingAttributeHeaders().split(","))
-                .map(String::trim).collect(Collectors.toList());
         log.receiverListeningAddress(queueName);
 
         return receiver.toMulti()
-                .map(m -> new IncomingRabbitMQMessage<>(m, holder, isTracingEnabled, onNack, onAck, contentTypeOverride))
-                .map(m -> isTracingEnabled ? TracingUtils.addIncomingTrace(m, queueName, attributeHeaders) : m);
+                .map(m -> new IncomingRabbitMQMessage<>(m, holder, onNack, onAck, contentTypeOverride))
+                .plug(m -> {
+                    if (isTracingEnabled) {
+                        return m.map(msg -> {
+                            TracingUtils.traceIncoming(instrumenter, msg, RabbitMQTrace.trace(queueName, msg.getHeaders()));
+                            return msg;
+                        });
+                    }
+                    return m;
+                });
     }
 
     /**

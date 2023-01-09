@@ -23,9 +23,6 @@ import org.apache.qpid.proton.amqp.messaging.Section;
 import org.apache.qpid.proton.message.Message;
 import org.jboss.logging.Logger;
 
-import io.opentelemetry.api.GlobalOpenTelemetry;
-import io.opentelemetry.context.Context;
-import io.smallrye.reactive.messaging.amqp.tracing.HeaderExtractAdapter;
 import io.vertx.amqp.AmqpClientOptions;
 import io.vertx.amqp.AmqpReceiverOptions;
 import io.vertx.amqp.impl.AmqpMessageImpl;
@@ -90,6 +87,7 @@ public class AmqpUsage {
                     }
                 } catch (Exception e) {
                     LOGGER.error("Unable to send message", e);
+                    e.printStackTrace();
                 }
             });
             t.setName(topic + "-thread");
@@ -129,16 +127,6 @@ public class AmqpUsage {
                     consumer.accept(msg.bodyAsInteger());
                 }))
                 .await().indefinitely();
-    }
-
-    public void consumeIntegersWithTracing(String topicName, Consumer<Integer> consumer, Consumer<Context> tracingConsumer) {
-        this.consume(topicName,
-                (msg) -> {
-                    consumer.accept(msg.bodyAsInteger());
-                    tracingConsumer.accept(
-                            GlobalOpenTelemetry.getPropagators().getTextMapPropagator()
-                                    .extract(Context.current(), msg.applicationProperties(), HeaderExtractAdapter.GETTER));
-                });
     }
 
     public void close() {
