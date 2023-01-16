@@ -17,7 +17,6 @@ import org.apache.kafka.clients.consumer.ConsumerRecords;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.helpers.Subscriptions;
 import io.smallrye.mutiny.subscription.MultiSubscriber;
-import io.smallrye.reactive.messaging.kafka.KafkaConnectorIncomingConfiguration;
 import io.vertx.core.Context;
 
 /**
@@ -67,7 +66,7 @@ public class KafkaRecordStreamSubscription<K, V, T> implements Flow.Subscription
 
     public KafkaRecordStreamSubscription(
             ReactiveKafkaConsumer<K, V> client,
-            KafkaConnectorIncomingConfiguration config,
+            RuntimeKafkaSourceConfiguration config,
             MultiSubscriber<? super T> subscriber,
             Context context,
             int maxPollRecords,

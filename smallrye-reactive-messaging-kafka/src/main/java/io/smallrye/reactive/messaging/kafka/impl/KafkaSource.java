@@ -2,6 +2,7 @@ package io.smallrye.reactive.messaging.kafka.impl;
 
 import static io.smallrye.reactive.messaging.kafka.i18n.KafkaExceptions.ex;
 import static io.smallrye.reactive.messaging.kafka.i18n.KafkaLogging.log;
+import static io.smallrye.reactive.messaging.kafka.impl.RebalanceListeners.findMatchingListener;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -114,7 +115,8 @@ public class KafkaSource<K, V> {
         // So, we force the creation of different event loop context.
         context = ((VertxInternal) vertx.getDelegate()).createEventLoopContext();
         // fire consumer event (e.g. bind metrics)
-        client = new ReactiveKafkaConsumer<>(config, this, c -> kafkaCDIEvents.consumer().fire(c));
+        client = new ReactiveKafkaConsumer<>(config, deserializationFailureHandlers, consumerGroup, index,
+                this::reportFailure, getContext().getDelegate(), c -> kafkaCDIEvents.consumer().fire(c));
 
         String commitStrategy = config
                 .getCommitStrategy()
@@ -142,7 +144,7 @@ public class KafkaSource<K, V> {
         if (failureHandler instanceof ContextHolder) {
             ((ContextHolder) failureHandler).capture(context);
         }
-        this.client.setRebalanceListener();
+        this.client.setRebalanceListener(findMatchingListener(config, consumerGroup, consumerRebalanceListeners), commitHandler);
 
         if (!config.getBatch()) {
             Multi<ConsumerRecord<K, V>> multi;
