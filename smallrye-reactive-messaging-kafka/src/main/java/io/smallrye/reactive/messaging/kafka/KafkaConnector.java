@@ -17,6 +17,7 @@ import javax.enterprise.inject.Any;
 import javax.enterprise.inject.Instance;
 import javax.inject.Inject;
 
+import org.apache.kafka.clients.producer.ProducerInterceptor;
 import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.spi.Connector;
@@ -114,6 +115,7 @@ import io.vertx.mutiny.core.Vertx;
 @ConnectorAttribute(name = "propagate-headers", direction = Direction.OUTGOING, description = "A comma-separating list of incoming record headers to be propagated to the outgoing record", type = "string", defaultValue = "")
 @ConnectorAttribute(name = "key-serialization-failure-handler", type = "string", direction = Direction.OUTGOING, description = "The name set in `@Identifier` of a bean that implements `io.smallrye.reactive.messaging.kafka.SerializationFailureHandler`. If set, serialization failure happening when serializing keys are delegated to this handler which may provide a fallback value.")
 @ConnectorAttribute(name = "value-serialization-failure-handler", type = "string", direction = Direction.OUTGOING, description = "The name set in `@Identifier` of a bean that implements `io.smallrye.reactive.messaging.kafka.SerializationFailureHandler`. If set, serialization failure happening when serializing values are delegated to this handler which may provide a fallback value.")
+@ConnectorAttribute(name = "interceptor-bean", type = "string", direction = Direction.OUTGOING, description = "The name set in `@Identifier` of a bean that implements `org.apache.kafka.clients.producer.ProducerInterceptor`. If set, the identified bean will be used as the producer interceptor.")
 public class KafkaConnector implements InboundConnector, OutboundConnector, HealthReporter {
 
     public static final String CONNECTOR_NAME = "smallrye-kafka";
@@ -132,6 +134,10 @@ public class KafkaConnector implements InboundConnector, OutboundConnector, Heal
     @Inject
     @Any
     Instance<KafkaConsumerRebalanceListener> consumerRebalanceListeners;
+
+    @Inject
+    @Any
+    Instance<ProducerInterceptor<?, ?>> producerInterceptors;
 
     @Inject
     @Any
@@ -256,7 +262,7 @@ public class KafkaConnector implements InboundConnector, OutboundConnector, Heal
         if (oc.getHealthReadinessTimeout().isPresent()) {
             log.deprecatedConfig("health-readiness-timeout", "health-topic-verification-timeout");
         }
-        KafkaSink sink = new KafkaSink(oc, kafkaCDIEvents, serializationFailureHandlers);
+        KafkaSink sink = new KafkaSink(oc, kafkaCDIEvents, serializationFailureHandlers, producerInterceptors);
         sinks.add(sink);
         return sink.getSink();
     }

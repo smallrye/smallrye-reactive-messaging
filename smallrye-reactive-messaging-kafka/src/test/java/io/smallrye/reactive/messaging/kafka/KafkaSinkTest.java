@@ -5,13 +5,18 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.awaitility.Awaitility.await;
 
 import java.time.Duration;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import javax.enterprise.context.ApplicationScoped;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.clients.producer.ProducerInterceptor;
+import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.serialization.IntegerSerializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
@@ -22,6 +27,7 @@ import org.junit.jupiter.api.Test;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
 
+import io.smallrye.common.annotation.Identifier;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.health.HealthReport;
@@ -56,7 +62,8 @@ public class KafkaSinkTest extends KafkaCompanionTestBase {
                 .with("partition", 0)
                 .with("channel-name", "testSinkUsingInteger");
         KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
-        sink = new KafkaSink(oc, CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance());
+        sink = new KafkaSink(oc, CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(),
+                UnsatisfiedInstance.instance());
 
         Subscriber<? extends Message<?>> subscriber = sink.getSink();
         Multi.createFrom().range(0, 10)
@@ -76,7 +83,8 @@ public class KafkaSinkTest extends KafkaCompanionTestBase {
                 .with("value.serializer", IntegerSerializer.class.getName())
                 .with("partition", 0);
         KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
-        sink = new KafkaSink(oc, CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance());
+        sink = new KafkaSink(oc, CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(),
+                UnsatisfiedInstance.instance());
 
         Subscriber<? extends Message<?>> subscriber = sink.getSink();
         Multi.createFrom().range(0, 10)
@@ -97,7 +105,8 @@ public class KafkaSinkTest extends KafkaCompanionTestBase {
                 .with("partition", 0)
                 .with("channel-name", "testSinkUsingString");
         KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
-        sink = new KafkaSink(oc, CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance());
+        sink = new KafkaSink(oc, CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(),
+                UnsatisfiedInstance.instance());
 
         Subscriber<? extends Message<?>> subscriber = sink.getSink();
         Multi.createFrom().range(0, 10)
@@ -228,7 +237,7 @@ public class KafkaSinkTest extends KafkaCompanionTestBase {
                 .with("retries", 0L); // disable retry.
         KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
         CountKafkaCdiEvents testCdiEvents = new CountKafkaCdiEvents();
-        sink = new KafkaSink(oc, testCdiEvents, UnsatisfiedInstance.instance());
+        sink = new KafkaSink(oc, testCdiEvents, UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance());
 
         await().until(() -> {
             HealthReport.HealthReportBuilder builder = HealthReport.builder();
@@ -277,7 +286,8 @@ public class KafkaSinkTest extends KafkaCompanionTestBase {
                 .with("retries", 0L)
                 .with("channel-name", "testInvalidTypeWithDefaultInflightMessages");
         KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
-        sink = new KafkaSink(oc, CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance());
+        sink = new KafkaSink(oc, CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(),
+                UnsatisfiedInstance.instance());
 
         Subscriber subscriber = sink.getSink();
         Multi.createFrom().range(0, 5)
@@ -424,6 +434,100 @@ public class KafkaSinkTest extends KafkaCompanionTestBase {
         assertThat(consumed.getRecords())
                 .extracting(ConsumerRecord::value)
                 .contains(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19);
+    }
+
+    @Test
+    public void testProducerInterceptorBean() {
+        ConsumerTask<Integer, String> consumed = companion.consume(Integer.class, String.class)
+                .fromTopics(topic, 10);
+
+        addBeans(ProducerInterceptorBean.class);
+        KafkaMapBasedConfig config = getKafkaSinkConfigForRecordProducingBean(topic)
+                .with("interceptor-bean", "my-producer-interceptor");
+        runApplication(config, BeanProducingKafkaRecord.class);
+
+        await().until(this::isReady);
+        await().until(this::isAlive);
+
+        assertThat(consumed.awaitCompletion(Duration.ofMinutes(1)).count()).isEqualTo(10);
+        assertThat(consumed.getRecords())
+                .extracting(ConsumerRecord::key)
+                .containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
+        assertThat(consumed.getRecords())
+                .extracting(ConsumerRecord::headers)
+                .extracting(h -> h.lastHeader("intercept"))
+                .allSatisfy(h -> assertThat(h.value()).asString().isEqualTo("value"));
+        assertThat(consumed.getRecords())
+                .extracting(ConsumerRecord::value)
+                .containsExactly("value-1", "value-2", "value-3", "value-4", "value-5", "value-6", "value-7", "value-8",
+                        "value-9", "value-10");
+
+        ProducerInterceptorBean interceptor = getBeanManager().createInstance()
+                .select(ProducerInterceptorBean.class, Identifier.Literal.of("my-producer-interceptor")).get();
+        assertThat(interceptor.getIntercepted())
+                .hasSizeGreaterThanOrEqualTo(10)
+                .extracting(ProducerRecord::headers)
+                .extracting(h -> h.lastHeader("intercept"))
+                .allSatisfy(h -> assertThat(h.value()).asString().isEqualTo("value"));
+        assertThat(interceptor.getAcknowledged())
+                .hasSizeGreaterThanOrEqualTo(10)
+                .extracting(RecordMetadata::offset)
+                .containsExactly(0L, 1L, 2L, 3L, 4L, 5L, 6L, 7L, 8L, 9L);
+        assertThat(interceptor.getConfig()).isNotEmpty();
+    }
+
+    @ApplicationScoped
+    @Identifier("my-producer-interceptor")
+    public static class ProducerInterceptorBean implements ProducerInterceptor<Integer, String> {
+
+        List<ProducerRecord<Integer, String>> intercepted = new CopyOnWriteArrayList<>();
+        List<RecordMetadata> acknowledged = new CopyOnWriteArrayList<>();
+        Map<String, Object> config = new HashMap<>();
+        volatile boolean closed = false;
+
+        @Override
+        public ProducerRecord<Integer, String> onSend(ProducerRecord<Integer, String> producerRecord) {
+            producerRecord.headers().add("intercept", "value".getBytes());
+            intercepted.add(producerRecord);
+            if (producerRecord.key() == 3) {
+                throw new IllegalArgumentException("boom on intercepted send");
+            }
+            return producerRecord;
+        }
+
+        @Override
+        public void onAcknowledgement(RecordMetadata recordMetadata, Exception e) {
+            acknowledged.add(recordMetadata);
+            if (recordMetadata.offset() == 6) {
+                throw new IllegalArgumentException("boom on intercepted acknowledge");
+            }
+        }
+
+        @Override
+        public void close() {
+            closed = true;
+        }
+
+        @Override
+        public void configure(Map<String, ?> map) {
+            config.putAll(map);
+        }
+
+        public List<ProducerRecord<Integer, String>> getIntercepted() {
+            return intercepted;
+        }
+
+        public List<RecordMetadata> getAcknowledged() {
+            return acknowledged;
+        }
+
+        public Map<String, Object> getConfig() {
+            return config;
+        }
+
+        public boolean isClosed() {
+            return closed;
+        }
     }
 
     @ApplicationScoped

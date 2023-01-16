@@ -93,7 +93,7 @@ public class KafkaDeadLetterQueue implements KafkaFailureHandler {
 
             // fire producer event (e.g. bind metrics)
             ReactiveKafkaProducer<Object, Object> producer = new ReactiveKafkaProducer<>(deadQueueProducerConfig,
-                    deadQueueTopic, 10000, false, null, null,
+                    deadQueueTopic, 10000, false, null, null, null,
                     (p, c) -> kafkaCDIEvents.producer().fire(p));
 
             return new KafkaDeadLetterQueue(config.getChannel(), deadQueueTopic, producer, reportFailure);

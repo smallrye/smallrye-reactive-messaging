@@ -310,4 +310,16 @@ public interface KafkaLogging extends BasicLogger {
     @Message(id = 18273, value = "Checkpoint commit strategy processing state type not found for channel %s : %s")
     void checkpointStateTypeNotFound(String channel, String fqcn);
 
+    @LogMessage(level = Logger.Level.INFO)
+    @Message(id = 18274, value = "Error caught in producer interceptor `onSend` for channel %s")
+    void interceptorOnSendError(String channel, @Cause Throwable cause);
+
+    @LogMessage(level = Logger.Level.TRACE)
+    @Message(id = 18275, value = "Error caught in producer interceptor `onAcknowledge` for channel %s")
+    void interceptorOnAcknowledgeError(String channel, @Cause Throwable cause);
+
+    @LogMessage(level = Logger.Level.TRACE)
+    @Message(id = 18276, value = "Error caught in producer interceptor `close` for channel %s")
+    void interceptorCloseError(String channel, @Cause Throwable cause);
+
 }

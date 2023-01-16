@@ -51,7 +51,7 @@ public class LazyInitializedTest extends WeldTestBase {
         MapBasedConfig config = new MapBasedConfig(props);
 
         KafkaSink sink = new KafkaSink(new KafkaConnectorOutgoingConfiguration(config),
-                CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance());
+                CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance());
 
         KafkaProducer<?, ?> producer = sink.getProducer();
         assertThat(producer).isNotNull();
@@ -89,7 +89,7 @@ public class LazyInitializedTest extends WeldTestBase {
 
         assertThatThrownBy(() -> {
             KafkaSink sink = new KafkaSink(new KafkaConnectorOutgoingConfiguration(config),
-                    CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance());
+                    CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance());
         }).hasCauseInstanceOf(KafkaException.class);
 
     }

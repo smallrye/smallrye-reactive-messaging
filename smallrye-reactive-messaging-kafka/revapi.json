@@ -51,6 +51,71 @@
             "code": "java.class.removed",
             "old": "class io.smallrye.reactive.messaging.kafka.tracing.HeaderInjectAdapter",
             "justification": "Replaced by otel instrumentation api"
+        },
+        {
+            "code": "java.annotation.attributeValueChanged",
+            "old": "class io.smallrye.reactive.messaging.kafka.KafkaConnector",
+            "new": "class io.smallrye.reactive.messaging.kafka.KafkaConnector",
+            "annotationType": "io.smallrye.reactive.messaging.annotations.ConnectorAttributes",
+            "attribute": "value",
+            "justification": "Added interceptor-bean to connector attributes"
+        },
+        {
+            "ignore": true,
+            "code": "java.method.numberOfParametersChanged",
+            "old": "method void io.smallrye.reactive.messaging.kafka.impl.KafkaSink::<init>(io.smallrye.reactive.messaging.kafka.KafkaConnectorOutgoingConfiguration, io.smallrye.reactive.messaging.kafka.KafkaCDIEvents, javax.enterprise.inject.Instance<io.smallrye.reactive.messaging.kafka.SerializationFailureHandler<?>>)",
+            "new": "method void io.smallrye.reactive.messaging.kafka.impl.KafkaSink::<init>(io.smallrye.reactive.messaging.kafka.KafkaConnectorOutgoingConfiguration, io.smallrye.reactive.messaging.kafka.KafkaCDIEvents, javax.enterprise.inject.Instance<io.smallrye.reactive.messaging.kafka.SerializationFailureHandler<?>>, javax.enterprise.inject.Instance<org.apache.kafka.clients.producer.ProducerInterceptor<?, ?>>)",
+            "justification": "Added ProducerInterceptor instances to constructor"
+        },
+        {
+            "ignore": true,
+            "code": "java.method.numberOfParametersChanged",
+            "old": "method void io.smallrye.reactive.messaging.kafka.impl.ReactiveKafkaProducer<K, V>::<init>(io.smallrye.reactive.messaging.kafka.KafkaConnectorOutgoingConfiguration, javax.enterprise.inject.Instance<io.smallrye.reactive.messaging.kafka.SerializationFailureHandler<?>>, java.util.function.Consumer<java.lang.Throwable>, java.util.function.BiConsumer<org.apache.kafka.clients.producer.Producer<?, ?>, java.util.Map<java.lang.String, java.lang.Object>>)",
+            "new": "method void io.smallrye.reactive.messaging.kafka.impl.ReactiveKafkaProducer<K, V>::<init>(io.smallrye.reactive.messaging.kafka.KafkaConnectorOutgoingConfiguration, javax.enterprise.inject.Instance<io.smallrye.reactive.messaging.kafka.SerializationFailureHandler<?>>, javax.enterprise.inject.Instance<org.apache.kafka.clients.producer.ProducerInterceptor<?, ?>>, java.util.function.Consumer<java.lang.Throwable>, java.util.function.BiConsumer<org.apache.kafka.clients.producer.Producer<?, ?>, java.util.Map<java.lang.String, java.lang.Object>>)",
+            "justification": "Added ProducerInterceptor instances to constructor"
+        },
+        {
+            "ignore": true,
+            "code": "java.method.numberOfParametersChanged",
+            "old": "method void io.smallrye.reactive.messaging.kafka.impl.ReactiveKafkaProducer<K, V>::<init>(java.util.Map<java.lang.String, java.lang.Object>, java.lang.String, int, boolean, io.smallrye.reactive.messaging.kafka.SerializationFailureHandler<K>, io.smallrye.reactive.messaging.kafka.SerializationFailureHandler<V>, java.util.function.BiConsumer<org.apache.kafka.clients.producer.Producer<?, ?>, java.util.Map<java.lang.String, java.lang.Object>>)",
+            "new": "method void io.smallrye.reactive.messaging.kafka.impl.ReactiveKafkaProducer<K, V>::<init>(java.util.Map<java.lang.String, java.lang.Object>, java.lang.String, int, boolean, org.apache.kafka.clients.producer.ProducerInterceptor<K, V>, io.smallrye.reactive.messaging.kafka.SerializationFailureHandler<K>, io.smallrye.reactive.messaging.kafka.SerializationFailureHandler<V>, java.util.function.BiConsumer<org.apache.kafka.clients.producer.Producer<?, ?>, java.util.Map<java.lang.String, java.lang.Object>>)",
+            "justification": "Added ProducerInterceptor instances to constructor"
+        },
+        {
+            "ignore": true,
+            "code": "java.method.addedToInterface",
+            "new": "method void io.smallrye.reactive.messaging.kafka.i18n.KafkaLogging::interceptorCloseError(java.lang.String, java.lang.Throwable)",
+            "justification": "Added ProducerInterceptor error logs"
+        },
+        {
+            "ignore": true,
+            "code": "java.method.addedToInterface",
+            "new": "method void io.smallrye.reactive.messaging.kafka.i18n.KafkaLogging::interceptorOnAcknowledgeError(java.lang.String, java.lang.Throwable)",
+            "justification": "Added ProducerInterceptor error logs"
+        },
+        {
+            "ignore": true,
+            "code": "java.method.addedToInterface",
+            "new": "method void io.smallrye.reactive.messaging.kafka.i18n.KafkaLogging::interceptorOnSendError(java.lang.String, java.lang.Throwable)",
+            "justification": "Added ProducerInterceptor error logs"
+        },
+        {
+            "ignore": true,
+            "code": "java.method.finalMethodAddedToNonFinalClass",
+            "new": "method void io.smallrye.reactive.messaging.kafka.i18n.KafkaLogging_$logger::interceptorCloseError(java.lang.String, java.lang.Throwable)",
+            "justification": "Added ProducerInterceptor error logs"
+        },
+        {
+            "ignore": true,
+            "code": "java.method.finalMethodAddedToNonFinalClass",
+            "new": "method void io.smallrye.reactive.messaging.kafka.i18n.KafkaLogging_$logger::interceptorOnAcknowledgeError(java.lang.String, java.lang.Throwable)",
+            "justification": "Added ProducerInterceptor error logs"
+        },
+        {
+            "ignore": true,
+            "code": "java.method.finalMethodAddedToNonFinalClass",
+            "new": "method void io.smallrye.reactive.messaging.kafka.i18n.KafkaLogging_$logger::interceptorOnSendError(java.lang.String, java.lang.Throwable)",
+            "justification": "Added ProducerInterceptor error logs"
         }
     ]
   }
