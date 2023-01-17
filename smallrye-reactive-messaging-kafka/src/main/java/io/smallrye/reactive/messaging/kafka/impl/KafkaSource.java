@@ -42,6 +42,7 @@ import io.smallrye.reactive.messaging.kafka.KafkaConsumerRebalanceListener;
 import io.smallrye.reactive.messaging.kafka.KafkaRecord;
 import io.smallrye.reactive.messaging.kafka.commit.ContextHolder;
 import io.smallrye.reactive.messaging.kafka.commit.KafkaCommitHandler;
+import io.smallrye.reactive.messaging.kafka.fault.KafkaDelayedRetryTopic;
 import io.smallrye.reactive.messaging.kafka.fault.KafkaFailureHandler;
 import io.smallrye.reactive.messaging.kafka.health.KafkaSourceHealth;
 import io.smallrye.reactive.messaging.kafka.tracing.KafkaAttributesExtractor;
@@ -144,7 +145,8 @@ public class KafkaSource<K, V> {
         if (failureHandler instanceof ContextHolder) {
             ((ContextHolder) failureHandler).capture(context);
         }
-        this.client.setRebalanceListener(findMatchingListener(config, consumerGroup, consumerRebalanceListeners), commitHandler);
+        this.client.setRebalanceListener(findMatchingListener(config, consumerGroup, consumerRebalanceListeners),
+                commitHandler);
 
         if (!config.getBatch()) {
             Multi<ConsumerRecord<K, V>> multi;
@@ -174,6 +176,11 @@ public class KafkaSource<K, V> {
 
             if (config.getTracingEnabled()) {
                 incomingMulti = incomingMulti.onItem().invoke(record -> incomingTrace(record, false));
+            }
+            if (failureHandler instanceof KafkaDelayedRetryTopic) {
+                Multi<IncomingKafkaRecord<K, V>> retryStream = (Multi<IncomingKafkaRecord<K, V>>) ((KafkaDelayedRetryTopic) failureHandler)
+                        .retryStream();
+                incomingMulti = Multi.createBy().merging().withConcurrency(2).streams(incomingMulti, retryStream);
             }
             this.stream = incomingMulti
                     .onFailure().invoke(t -> reportFailure(t, false));

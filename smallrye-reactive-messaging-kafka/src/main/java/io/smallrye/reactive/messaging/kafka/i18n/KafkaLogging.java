@@ -322,4 +322,21 @@ public interface KafkaLogging extends BasicLogger {
     @Message(id = 18276, value = "Error caught in producer interceptor `close` for channel %s")
     void interceptorCloseError(String channel, @Cause Throwable cause);
 
+    @LogMessage(level = Logger.Level.INFO)
+    @Message(id = 18277, value = "Delayed retry topics configured for channel `%s` with topics `%s`, max retries, `%d`, timeout `%d`ms, dlq topic `%s`")
+    void delayedRetryTopic(String channel, Collection<String> retryTopics, int maxRetries, long timeout,
+            String deadLetterTopic);
+
+    @LogMessage(level = Logger.Level.INFO)
+    @Message(id = 18278, value = "A message sent to channel `%s` has been nacked, sending the record to topic %s")
+    void delayedRetryNack(String channel, String topic);
+
+    @LogMessage(level = Logger.Level.WARN)
+    @Message(id = 18279, value = "A message sent to channel `%s` reached delayed retry timeout `%s` milliseconds reached for record `%s`")
+    void delayedRetryTimeout(String channel, long timeout, String record);
+
+    @LogMessage(level = Logger.Level.WARN)
+    @Message(id = 18280, value = "A message sent to channel `%s` has been nacked and won't be retried again. Configure `dead-letter-queue.topic` for sending the record to a dead letter topic")
+    void delayedRetryNoDlq(String channel);
+
 }

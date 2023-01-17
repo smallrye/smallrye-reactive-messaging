@@ -178,7 +178,15 @@ strategy is applied. The Kafka connector supports 3 strategies:
     processed correctly is committed, but the record is written to a
     (Kafka) *dead letter queue* topic.
 
+-   `delayed-retry-topic` - the offset of the record that has not been
+    processed correctly is still committed, but the record is written to
+    a series of Kafka topics for retrying the processing with some delay.
+    This allows retrying failed records by reconsuming them later without
+    blocking the processing of the latest records.
+
 The strategy is selected using the `failure-strategy` attribute.
+
+### Dead Letter Queue
 
 In the case of `dead-letter-queue`, you can configure the following
 attributes:
@@ -238,6 +246,81 @@ If the instance is present, the following properties will be used:
 
 -   headers; combined with the original record’s headers, as well as the
     `dead-letter-*` headers described above
+
+### Delayed Retry Topic
+
+!!!Experimental
+    Delayed retry topic feature is experimental.
+
+The delayed retry topic strategy allows failed records to be automatically retried by forwarding them to a series of retry topics.
+Each retry topic is associated with a specific delay time, which is expressed in milliseconds.
+When a record processing fails, it is forwarded to the first retry topic.
+The failure strategy then consumes these records and dispatches them to be retried again once the delay time of the topic has elapsed.
+
+If the processing of a record fails again, the message is forwarded to the next topic in the list, with possibly a longer delay time.
+If the processing of a record keeps failing, it will eventually be abandoned.
+Alternatively, if the `dead-letter-queue.topic` property is configured, the record will be sent to the dead letter queue.
+
+The Kafka producer client used when forwarding records to retry topics can be configured using the *dead-letter-queue* properties
+namely, `dead-letter-queue.producer-client-id`, `dead-letter-queue.key.serializer` and `dead-letter-queue.value.serializer`.
+
+Delayed retry topics and delays can be configured with following attributes:
+
+- `delayed-retry-topic.topics` :
+The comma-separated list of retry topics, each one suffixed with `_[DELAY_IN_MILLISECONDS]` for indicating the delay time.
+For example, `my_retry_topic_2000,my_retry_topic_4000,my_retry_topic_10000` will use three topics
+*my_retry_topic_2000*, *my_retry_topic_4000* and *my_retry_topic_10000*, with 2000ms 4000ms and 10000ms respectively.
+
+    If not configured the source channel name is used, with 10, 20 and 50 seconds of delay,
+    ex. for a channel named `source`, retry topics will be `source_retry_10000`, `source_retry_20000`, `source_retry_50000`.
+
+- `delayed-retry-topic.max-retries` :
+The maximum number of retries before abandoning the retries.
+If configured higher than the number of retry topics the last topic is used until maximum number of retries is reached.
+This can be configured to use a single retry topic with a fixed delay and multiple retries.
+
+    For example, `delayed-retry-topic.topics=source_retry_10000` and `delayed-retry-topic.max-retries=4` will forward failed records
+    to the topic *source_retry_10000* with maximum of 4 retries.
+
+- `delayed-retry-topic.timeout` :
+The global timeout in milliseconds for a retried record.
+The timeout is calculated from the first failure for a record.
+If the next retry will reach the timeout, instead of forwarding to the retry topic the retry is abandoned and,
+if configured, the record is forwarded to the dead letter queue.
+
+    The default is 120 seconds.
+
+!!!Important
+    While you can use [Smallrye Fault Tolerance to retry processing](#retrying-processing),
+    it will block the processing of further messages until the retried record is processed successfully, or abandoned.
+
+    Delayed retry topic failure strategy allows effectively implementing non-blocking retries.
+    But it will not preserve the order of messages inside a topic-partition.
+
+The record written on the delayed retry topics will preserve the key and partition of the original record.
+It also contains the original record’s headers, as well as a set of additional headers about the original record:
+
+- `delayed-retry-count` the current number of retries
+- `delayed-retry-original-timestamp` the original timestamp of the record
+- `delayed-retry-first-processing-timestamp` the first processing timestamp of the record
+- `delayed-retry-reason` the reason of the failure (the `Throwable` passed to `nack()`)
+- `delayed-retry-cause` the cause of the failure (the `getCause()` of the `Throwable` passed to `nack()`), if any
+- `delayed-retry-topic` the original topic of the record
+- `delayed-retry-partition` the original partition of the record
+- `delayed-retry-offset` the original offset of the record
+- `delayed-retry-exception-class-name` the class name of the throwable passed to `nack()`
+- `delayed-retry-cause-class-name` the class name of the the `getCause()` of the `Throwable` passed to `nack()`, if any
+
+As for the dead letter queue it is possible to change forwarded values by providing a `OutgoingKafkaRecordMetadata`
+when the message is nacked using `Message.nack(Throwable, Metadata)`.
+
+!!! Note "Multiple partitions"
+    The delayed retry topic strategy does not create retry topics automatically.
+    If the source topic has multiple partitions, delayed retry and dead letter queue topics would need to be setup with the same number of partitions.
+
+    It is possible to scale consumer application instances according to the number of partitions.
+    But it is not guaranteed that the retry topics consumer will be assigned the same partition(s) as the main topic consumer.
+    Therefore, retry processing of a record can happen in an other instance.
 
 ## Custom commit and failure strategies
 

@@ -351,7 +351,7 @@ public class ReactiveKafkaConsumer<K, V> implements io.smallrye.reactive.messagi
     }
 
     @SuppressWarnings({ "unchecked" })
-    private static <T> DeserializationFailureHandler<T> createDeserializationFailureHandler(boolean isKey,
+    public static <T> DeserializationFailureHandler<T> createDeserializationFailureHandler(boolean isKey,
             Instance<DeserializationFailureHandler<?>> deserializationFailureHandlers,
             KafkaConnectorIncomingConfiguration configuration) {
         String name = isKey ? configuration.getKeyDeserializationFailureHandler().orElse(null)
