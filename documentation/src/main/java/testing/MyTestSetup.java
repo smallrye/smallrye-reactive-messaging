@@ -3,7 +3,7 @@ package testing;
 import java.util.HashMap;
 import java.util.Map;
 
-import io.smallrye.reactive.messaging.providers.connectors.InMemoryConnector;
+import io.smallrye.reactive.messaging.memory.InMemoryConnector;
 
 public class MyTestSetup {
 

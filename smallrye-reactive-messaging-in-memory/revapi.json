@@ -24,7 +24,53 @@
     "criticality" : "highlight",
     "minSeverity" : "POTENTIALLY_BREAKING",
     "minCriticality" : "documented",
-    "differences" : [ ]
+    "differences" : [
+        {
+            "code": "java.class.removed",
+            "old": "class io.smallrye.reactive.messaging.providers.connectors.InMemoryConnector",
+            "justification": "Split package resolution: moved to package io.smallrye.reactive.messaging.memory"
+        },
+        {
+            "code": "java.class.removed",
+            "old": "interface io.smallrye.reactive.messaging.providers.connectors.InMemorySink<T>",
+            "justification": "Split package resolution: moved to package io.smallrye.reactive.messaging.memory"
+        },
+        {
+            "code": "java.class.removed",
+            "old": "interface io.smallrye.reactive.messaging.providers.connectors.InMemorySource<T>",
+            "justification": "Split package resolution: moved to package io.smallrye.reactive.messaging.memory"
+        },
+        {
+            "code": "java.class.removed",
+            "old": "interface io.smallrye.reactive.messaging.providers.connectors.i18n.InMemoryExceptions",
+            "justification": "Split package resolution: moved to package io.smallrye.reactive.messaging.memory"
+        },
+        {
+            "code": "java.class.removed",
+            "old": "class io.smallrye.reactive.messaging.providers.connectors.i18n.InMemoryExceptions_$bundle",
+            "justification": "Split package resolution: moved to package io.smallrye.reactive.messaging.memory"
+        },
+        {
+            "code": "java.class.removed",
+            "old": "interface io.smallrye.reactive.messaging.providers.connectors.i18n.InMemoryLogging",
+            "justification": "Split package resolution: moved to package io.smallrye.reactive.messaging.memory"
+        },
+        {
+            "code": "java.class.removed",
+            "old": "class io.smallrye.reactive.messaging.providers.connectors.i18n.InMemoryLogging_$logger",
+            "justification": "Split package resolution: moved to package io.smallrye.reactive.messaging.memory"
+        },
+        {
+            "code": "java.class.removed",
+            "old": "interface io.smallrye.reactive.messaging.providers.connectors.i18n.InMemoryMessages",
+            "justification": "Split package resolution: moved to package io.smallrye.reactive.messaging.memory"
+        },
+        {
+            "code": "java.class.removed",
+            "old": "class io.smallrye.reactive.messaging.providers.connectors.i18n.InMemoryMessages_$bundle",
+            "justification": "Split package resolution: moved to package io.smallrye.reactive.messaging.memory"
+        }
+    ]
   }
 }, {
   "extension" : "revapi.reporter.json",

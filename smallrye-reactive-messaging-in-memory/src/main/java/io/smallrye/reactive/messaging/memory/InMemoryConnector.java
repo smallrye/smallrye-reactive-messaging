@@ -1,6 +1,4 @@
-package io.smallrye.reactive.messaging.providers.connectors;
-
-import static io.smallrye.reactive.messaging.providers.connectors.i18n.InMemoryExceptions.ex;
+package io.smallrye.reactive.messaging.memory;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -26,6 +24,7 @@ import org.reactivestreams.Processor;
 
 import io.smallrye.mutiny.operators.multi.processors.BroadcastProcessor;
 import io.smallrye.mutiny.operators.multi.processors.UnicastProcessor;
+import io.smallrye.reactive.messaging.memory.i18n.InMemoryExceptions;
 
 /**
  * An implementation of connector used for testing applications without having to use external broker.
@@ -76,7 +75,7 @@ public class InMemoryConnector implements IncomingConnectorFactory, OutgoingConn
         Map<String, String> properties = new LinkedHashMap<>();
         for (String channel : channels) {
             if (channel == null || channel.trim().isEmpty()) {
-                throw ex.illegalArgumentChannelNameNull();
+                throw InMemoryExceptions.ex.illegalArgumentChannelNameNull();
             }
             String key = "mp.messaging.incoming." + channel + ".connector";
             properties.put(key, CONNECTOR);
@@ -119,7 +118,7 @@ public class InMemoryConnector implements IncomingConnectorFactory, OutgoingConn
         Map<String, String> properties = new LinkedHashMap<>();
         for (String channel : channels) {
             if (channel == null || channel.trim().isEmpty()) {
-                throw ex.illegalArgumentChannelNameNull();
+                throw InMemoryExceptions.ex.illegalArgumentChannelNameNull();
             }
             String key = "mp.messaging.outgoing." + channel + ".connector";
             properties.put(key, CONNECTOR);
@@ -144,7 +143,7 @@ public class InMemoryConnector implements IncomingConnectorFactory, OutgoingConn
     @Override
     public PublisherBuilder<? extends Message<?>> getPublisherBuilder(Config config) {
         String name = config.getOptionalValue("channel-name", String.class)
-                .orElseThrow(ex::illegalArgumentInvalidIncomingConfig);
+                .orElseThrow(InMemoryExceptions.ex::illegalArgumentInvalidIncomingConfig);
 
         boolean broadcast = config.getOptionalValue("broadcast", Boolean.class)
                 .orElse(false);
@@ -154,7 +153,7 @@ public class InMemoryConnector implements IncomingConnectorFactory, OutgoingConn
     @Override
     public SubscriberBuilder<? extends Message<?>, Void> getSubscriberBuilder(Config config) {
         String name = config.getOptionalValue("channel-name", String.class)
-                .orElseThrow(ex::illegalArgumentInvalidOutgoingConfig);
+                .orElseThrow(InMemoryExceptions.ex::illegalArgumentInvalidOutgoingConfig);
         return sinks.computeIfAbsent(name, InMemorySinkImpl::new).sink;
     }
 
@@ -174,11 +173,11 @@ public class InMemoryConnector implements IncomingConnectorFactory, OutgoingConn
      */
     public <T> InMemorySource<T> source(String channel) {
         if (channel == null) {
-            throw ex.illegalArgumentChannelMustNotBeNull();
+            throw InMemoryExceptions.ex.illegalArgumentChannelMustNotBeNull();
         }
         InMemorySourceImpl<?> source = sources.get(channel);
         if (source == null) {
-            throw ex.illegalArgumentUnknownChannel(channel);
+            throw InMemoryExceptions.ex.illegalArgumentUnknownChannel(channel);
         }
         //noinspection unchecked
         return (InMemorySource<T>) source;
@@ -199,11 +198,11 @@ public class InMemoryConnector implements IncomingConnectorFactory, OutgoingConn
      */
     public <T> InMemorySink<T> sink(String channel) {
         if (channel == null) {
-            throw ex.illegalArgumentChannelMustNotBeNull();
+            throw InMemoryExceptions.ex.illegalArgumentChannelMustNotBeNull();
         }
         InMemorySink<?> sink = sinks.get(channel);
         if (sink == null) {
-            throw ex.illegalArgumentUnknownChannel(channel);
+            throw InMemoryExceptions.ex.illegalArgumentUnknownChannel(channel);
         }
         //noinspection unchecked
         return (InMemorySink<T>) sink;
