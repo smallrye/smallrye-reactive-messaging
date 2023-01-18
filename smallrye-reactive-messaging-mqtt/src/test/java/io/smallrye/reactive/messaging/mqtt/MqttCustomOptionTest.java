@@ -48,7 +48,7 @@ public class MqttCustomOptionTest extends MqttTestBase {
             MqttConnector connector = container.getBeanManager().createInstance().select(MqttConnector.class,
                     ConnectorLiteral.of(MqttConnector.CONNECTOR_NAME)).get();
 
-            await().pollDelay(Duration.ofSeconds(1)).until(() -> !connector.isReady());
+            await().pollDelay(Duration.ofSeconds(1)).until(() -> !connector.getReadiness().isOk());
         }
     }
 

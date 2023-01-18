@@ -52,6 +52,7 @@ public class MqttSinkTest extends MqttTestBase {
         MqttSink sink = new MqttSink(vertx, new MqttConnectorOutgoingConfiguration(new MapBasedConfig(config)), null);
 
         Subscriber<? extends Message<?>> subscriber = sink.getSink().build();
+
         Multi.createFrom().range(0, 10)
                 .map(Message::of)
                 .subscribe((Subscriber<? super Message<Integer>>) subscriber);
@@ -63,7 +64,7 @@ public class MqttSinkTest extends MqttTestBase {
 
     @SuppressWarnings("unchecked")
     @Test
-    public void testSinkUsingChannelName() throws InterruptedException {
+    public void testSinkUsingIntegerAndChannelNameAsTopic() throws InterruptedException {
         String topic = UUID.randomUUID().toString();
         CountDownLatch latch = new CountDownLatch(1);
         AtomicInteger expected = new AtomicInteger(0);
@@ -116,8 +117,9 @@ public class MqttSinkTest extends MqttTestBase {
     }
 
     @RepeatedTest(5)
+    @Test
     public void testABeanProducingMessagesSentToMQTT() throws InterruptedException {
-        Clients.clear();
+
         Weld weld = baseWeld(getConfig());
         weld.addBeanClass(ProducingBean.class);
 
@@ -127,7 +129,9 @@ public class MqttSinkTest extends MqttTestBase {
                 v -> latch.countDown());
 
         container = weld.initialize();
-        assertThat(latch.await(1, TimeUnit.MINUTES)).isTrue();
+
+        assertThat(latch.await(10, TimeUnit.SECONDS)).isTrue();
+
     }
 
     private MapBasedConfig getConfig() {

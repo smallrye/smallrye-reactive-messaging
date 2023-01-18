@@ -70,7 +70,7 @@ public class LocalPropagationAckTest extends MqttTestBase {
     public void waitUntilReady(WeldContainer container) {
         MqttConnector connector = container.select(MqttConnector.class,
                 ConnectorLiteral.of(MqttConnector.CONNECTOR_NAME)).get();
-        await().until(connector::isReady);
+        await().until(() -> connector.getReadiness().isOk());
     }
 
     @BeforeEach

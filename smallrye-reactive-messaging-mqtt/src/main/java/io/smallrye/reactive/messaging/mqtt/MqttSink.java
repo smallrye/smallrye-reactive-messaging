@@ -13,13 +13,17 @@ import javax.enterprise.inject.Instance;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
+import org.reactivestreams.Processor;
+import org.reactivestreams.Subscriber;
+import org.reactivestreams.Subscription;
 
 import io.netty.handler.codec.mqtt.MqttQoS;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.vertx.AsyncResultUni;
 import io.smallrye.reactive.messaging.OutgoingMessageMetadata;
+import io.smallrye.reactive.messaging.health.HealthReport.HealthReportBuilder;
+import io.smallrye.reactive.messaging.mqtt.Clients.ClientHolder;
 import io.smallrye.reactive.messaging.mqtt.internal.MqttHelpers;
-import io.smallrye.reactive.messaging.mqtt.session.MqttClientSession;
 import io.smallrye.reactive.messaging.mqtt.session.MqttClientSessionOptions;
 import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonArray;
@@ -29,46 +33,118 @@ import io.vertx.mutiny.core.buffer.Buffer;
 
 public class MqttSink {
 
+    private final String channel;
     private final String topic;
     private final int qos;
+    private final boolean healthEnabled;
 
     private final SubscriberBuilder<? extends Message<?>, Void> sink;
+
+    private final AtomicBoolean started = new AtomicBoolean();
     private final AtomicBoolean ready = new AtomicBoolean();
+    private final AtomicReference<Clients.ClientHolder> reference = new AtomicReference<>();
 
     public MqttSink(Vertx vertx, MqttConnectorOutgoingConfiguration config,
             Instance<MqttClientSessionOptions> instances) {
+
         MqttClientSessionOptions options = MqttHelpers.createClientOptions(config, instances);
-        topic = config.getTopic().orElseGet(config::getChannel);
+
+        channel = config.getChannel();
+        topic = config.getTopic().orElse(channel);
         qos = config.getQos();
+        healthEnabled = config.getHealthEnabled();
 
-        AtomicReference<Clients.ClientHolder> reference = new AtomicReference<>();
         sink = ReactiveStreams.<Message<?>> builder()
-                .flatMapCompletionStage(msg -> {
-                    Clients.ClientHolder client = reference.get();
-                    if (client == null) {
-                        client = Clients.getHolder(vertx, options);
-                        reference.set(client);
-                    }
-
-                    return client.start()
-                            .onSuccess(ignore -> ready.set(true))
-                            .map(ignore -> msg)
-                            .toCompletionStage();
-                })
-                .flatMapCompletionStage(msg -> send(reference, msg))
-                .onComplete(() -> {
-                    Clients.ClientHolder c = reference.getAndSet(null);
-                    if (c != null) {
-                        c.close()
-                                .onComplete(ignore -> ready.set(false));
-                    }
-                })
+                .via(new ConnectOnSubscribeProcessor(vertx, options))
+                .flatMapCompletionStage(msg -> send(msg))
                 .onError(log::errorWhileSendingMessageToBroker)
                 .ignore();
+
     }
 
-    private CompletionStage<?> send(AtomicReference<Clients.ClientHolder> reference, Message<?> msg) {
-        MqttClientSession client = reference.get().getClient();
+    /*
+     * This processor let che client mqtt to connect on su
+     */
+    private class ConnectOnSubscribeProcessor implements Processor<Message<?>, Message<?>> {
+
+        private Vertx vertx;
+        private MqttClientSessionOptions options;
+        private Subscriber<? super Message<?>> subscriber;
+        private Subscription subscription;
+        private long requestedItem;
+        private Object lock = new Object();
+
+        public ConnectOnSubscribeProcessor(Vertx vertx, MqttClientSessionOptions options) {
+            this.vertx = vertx;
+            this.options = options;
+        }
+
+        @Override
+        public void subscribe(Subscriber<? super Message<?>> subscriber) {
+            System.out.println("subscribe");
+            this.subscriber = subscriber;
+            subscriber.onSubscribe(new Subscription() {
+                @Override
+                public void request(long n) {
+                    if (ready.get()) {
+                        subscription.request(n);
+                    } else {
+                        synchronized (lock) {
+                            if (ready.get()) {
+                                subscription.request(n);
+                            } else {
+                                requestedItem = n;
+                            }
+                        }
+                    }
+                }
+
+                @Override
+                public void cancel() {
+                    subscription.cancel();
+                }
+            });
+        }
+
+        @Override
+        public void onSubscribe(Subscription subscription) {
+            System.out.println("onSubscribe");
+            this.subscription = subscription;
+            ClientHolder client = Clients.getHolder(vertx, options);
+            reference.set(client);
+            client.start().onSuccess(ignore -> {
+                started.set(true);
+                synchronized (lock) {
+                    ready.set(true);
+                    if (requestedItem > 0)
+                        subscription.request(requestedItem);
+                }
+            }).toCompletionStage();
+        }
+
+        @Override
+        public void onNext(Message<?> t) {
+            subscriber.onNext(t);
+        }
+
+        @Override
+        public void onError(Throwable t) {
+            subscriber.onError(t);
+        }
+
+        @Override
+        public void onComplete() {
+            subscriber.onComplete();
+            Clients.ClientHolder c = reference.getAndSet(null);
+            if (c != null) {
+                c.close()
+                        .onComplete(ignore -> ready.set(false));
+            }
+        }
+    };
+
+    private CompletionStage<?> send(Message<?> msg) {
+
         final String actualTopicToBeUsed;
         final MqttQoS actualQoS;
         final boolean isRetain;
@@ -91,9 +167,11 @@ public class MqttSink {
         }
 
         return AsyncResultUni
-                .<Integer> toUni(h -> client
-                        .publish(actualTopicToBeUsed, convert(msg.getPayload()).getDelegate(), actualQoS, false, isRetain)
-                        .onComplete(h))
+                .<Integer> toUni(h -> {
+                    reference.get().getClient()
+                            .publish(actualTopicToBeUsed, convert(msg.getPayload()).getDelegate(), actualQoS, false, isRetain)
+                            .onComplete(h);
+                })
                 .onItemOrFailure().transformToUni((s, f) -> {
                     if (f != null) {
                         return Uni.createFrom().completionStage(msg.nack(f).thenApply(x -> msg));
@@ -132,7 +210,19 @@ public class MqttSink {
         return sink;
     }
 
-    public boolean isReady() {
-        return ready.get();
+    public void isStarted(HealthReportBuilder builder) {
+        if (healthEnabled)
+            builder.add(channel, started.get());
     }
+
+    public void isReady(HealthReportBuilder builder) {
+        if (healthEnabled)
+            builder.add(channel, ready.get());
+    }
+
+    public void isAlive(HealthReportBuilder builder) {
+        if (healthEnabled)
+            builder.add(channel, reference == null ? false : reference.get().getClient().isConnected());
+    }
+
 }

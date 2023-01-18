@@ -49,7 +49,7 @@ public class SecureMqttSourceTest extends SecureMqttTestBase {
         List<MqttMessage<?>> messages = new ArrayList<>();
         PublisherBuilder<MqttMessage<?>> stream = source.getSource();
         stream.forEach(messages::add).run();
-        await().until(source::isReady);
+        awaitUntilReady(source);
         pause();
         AtomicInteger counter = new AtomicInteger();
         new Thread(() -> usage.produceIntegers(topic, 10, null,

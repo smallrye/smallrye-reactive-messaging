@@ -1,6 +1,7 @@
 package io.smallrye.reactive.messaging.mqtt;
 
 import static io.smallrye.reactive.messaging.mqtt.MqttTestBase.awaitForMosquittoToBeReady;
+import static org.awaitility.Awaitility.await;
 
 import org.eclipse.microprofile.config.ConfigProvider;
 import org.junit.jupiter.api.AfterAll;
@@ -14,6 +15,7 @@ import org.testcontainers.containers.output.Slf4jLogConsumer;
 import org.testcontainers.containers.wait.strategy.Wait;
 
 import io.smallrye.config.SmallRyeConfigProviderResolver;
+import io.smallrye.reactive.messaging.health.HealthReport;
 import io.vertx.mutiny.core.Vertx;
 
 public class SecureMqttTestBase {
@@ -33,6 +35,14 @@ public class SecureMqttTestBase {
     public static void startBroker() {
         mosquitto.start();
         awaitForMosquittoToBeReady(mosquitto);
+    }
+
+    public void awaitUntilReady(MqttSource source) {
+        await().until(() -> {
+            HealthReport.HealthReportBuilder builder = HealthReport.builder();
+            source.isReady(builder);
+            return builder.build().isOk();
+        });
     }
 
     @AfterAll

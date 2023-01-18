@@ -44,7 +44,8 @@ public class MqttSourceTest extends MqttTestBase {
         List<MqttMessage<?>> messages = new ArrayList<>();
         PublisherBuilder<MqttMessage<?>> stream = source.getSource();
         stream.forEach(messages::add).run();
-        await().until(source::isReady);
+        awaitUntilReady(source);
+
         AtomicInteger counter = new AtomicInteger();
         new Thread(() -> usage.produceIntegers(topic, 10, null,
                 counter::getAndIncrement)).start();
@@ -71,7 +72,7 @@ public class MqttSourceTest extends MqttTestBase {
         List<MqttMessage<?>> messages = new ArrayList<>();
         PublisherBuilder<MqttMessage<?>> stream = source.getSource();
         stream.forEach(messages::add).run();
-        await().until(source::isReady);
+        awaitUntilReady(source);
         AtomicInteger counter = new AtomicInteger();
         new Thread(() -> usage.produceIntegers(topic, 10, null,
                 counter::getAndIncrement)).start();
@@ -104,7 +105,7 @@ public class MqttSourceTest extends MqttTestBase {
         stream.forEach(messages1::add).run();
         stream.forEach(messages2::add).run();
 
-        await().until(source::isReady);
+        awaitUntilReady(source);
 
         AtomicInteger counter = new AtomicInteger();
         new Thread(() -> usage.produceIntegers(topic, 10, null,
@@ -146,7 +147,7 @@ public class MqttSourceTest extends MqttTestBase {
         List<MqttMessage<?>> messages = new ArrayList<>();
         PublisherBuilder<MqttMessage<?>> stream = source.getSource();
         stream.forEach(messages::add).run();
-        await().until(source::isReady);
+        awaitUntilReady(source);
         new Thread(() -> usage.produce(topic, 10, null,
                 () -> large)).start();
 
@@ -176,8 +177,9 @@ public class MqttSourceTest extends MqttTestBase {
     public void testABeanConsumingTheMQTTMessages() {
         ConsumptionBean bean = deploy();
 
-        await()
-                .until(() -> container.select(MqttConnector.class, ConnectorLiteral.of("smallrye-mqtt")).get().isReady());
+        MqttConnector mqttConnector = this.container.select(MqttConnector.class, ConnectorLiteral.of("smallrye-mqtt")).get();
+
+        await().until(() -> mqttConnector.getReadiness().isOk());
 
         List<Integer> list = bean.getResults();
         assertThat(list).isEmpty();

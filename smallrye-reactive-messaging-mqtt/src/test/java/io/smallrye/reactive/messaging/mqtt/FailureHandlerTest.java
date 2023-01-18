@@ -52,7 +52,7 @@ public class FailureHandlerTest extends MqttTestBase {
 
         MqttConnector connector = container.getBeanManager().createInstance().select(MqttConnector.class,
                 ConnectorLiteral.of(MqttConnector.CONNECTOR_NAME)).get();
-        await().until(connector::isReady);
+        await().until(() -> connector.getReadiness().isOk());
 
         usage.produceStrings("fail", 10, null, () -> Integer.toString(counter.getAndIncrement()));
 
@@ -69,7 +69,7 @@ public class FailureHandlerTest extends MqttTestBase {
 
         MqttConnector connector = container.getBeanManager().createInstance().select(MqttConnector.class,
                 ConnectorLiteral.of(MqttConnector.CONNECTOR_NAME)).get();
-        await().until(connector::isReady);
+        await().until(() -> connector.getReadiness().isOk());
 
         usage.produceStrings("ignore", 10, null, () -> Integer.toString(counter.getAndIncrement()));
 
