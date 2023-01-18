@@ -1278,6 +1278,7 @@ public class AmqpSinkTest extends AmqpTestBase {
         config.put("name", "the name");
         config.put("host", "localhost");
         config.put("port", port);
+        config.put("tracing-enabled", false);
 
         return config;
     }
