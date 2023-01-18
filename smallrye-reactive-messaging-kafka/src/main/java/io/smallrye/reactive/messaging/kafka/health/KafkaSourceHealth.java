@@ -4,7 +4,11 @@ import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Pattern;
 
+import org.apache.kafka.clients.admin.DescribeTopicsOptions;
+import org.apache.kafka.clients.admin.ListTopicsOptions;
+import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.common.Metric;
 import org.apache.kafka.common.TopicPartition;
@@ -21,16 +25,23 @@ public class KafkaSourceHealth extends BaseHealth {
     private final KafkaAdmin admin;
     private final KafkaSource<?, ?> source;
     private final ReactiveKafkaConsumer<?, ?> client;
+    private final Set<String> topics;
+    private final Pattern pattern;
     private final Duration adminClientTimeout;
     private Metric metric;
 
     public KafkaSourceHealth(KafkaSource<?, ?> source, KafkaConnectorIncomingConfiguration config,
-            ReactiveKafkaConsumer<?, ?> client) {
-        super(config.getChannel());
+            ReactiveKafkaConsumer<?, ?> client, Set<String> topics, Pattern pattern) {
+        super(config.getChannel(),
+                config.getHealthReadinessTopicVerification().orElse(config.getHealthTopicVerificationEnabled()),
+                config.getHealthTopicVerificationStartupDisabled(),
+                config.getHealthTopicVerificationReadinessDisabled());
         this.adminClientTimeout = Duration.ofMillis(
                 config.getHealthReadinessTimeout().orElse(config.getHealthTopicVerificationTimeout()));
         this.source = source;
         this.client = client;
+        this.topics = topics;
+        this.pattern = pattern;
         if (config.getHealthReadinessTopicVerification().orElse(config.getHealthTopicVerificationEnabled())) {
             // Do not create the client if the readiness health checks are disabled
             Map<String, Object> adminConfiguration = new HashMap<>(client.configuration());
@@ -75,16 +86,49 @@ public class KafkaSourceHealth extends BaseHealth {
 
     @Override
     protected void clientBasedStartupCheck(HealthReport.HealthReportBuilder builder) {
-        try {
-            admin.listTopics()
-                    .await().atMost(adminClientTimeout);
-            builder.add(channel, true);
-        } catch (Exception failed) {
-            builder.add(channel, false, "Failed to get response from broker for channel "
-                    + channel + " : " + failed);
+        if (pattern == null) {
+            checkTopicExists(builder);
+        } else {
+            checkTopicExistsForPattern(builder);
         }
     }
 
+    private void checkTopicExists(HealthReport.HealthReportBuilder builder) {
+        try {
+            Map<String, TopicDescription> found = admin.describeTopics(topics, new DescribeTopicsOptions()
+                    .includeAuthorizedOperations(false)
+                    .timeoutMs((int) adminClientTimeout.toMillis()))
+                    .await().atMost(adminClientTimeout);
+            if (found.keySet().containsAll(topics)) {
+                if (topics.stream().allMatch(t -> found.get(t).partitions().stream().allMatch(info -> info.leader() != null))) {
+                    builder.add(channel, true);
+                } else {
+                    builder.add(channel, false, "Unable to find leaders for all partitions of topics " + topics);
+                }
+            } else {
+                builder.add(channel, false, "Unable to find topic(s) " + topics + " in " + found.keySet());
+            }
+        } catch (Exception failed) {
+            builder.add(channel, false, "No response from broker for topics " + topics + " : " + failed);
+        }
+    }
+
+    private void checkTopicExistsForPattern(HealthReport.HealthReportBuilder builder) {
+        try {
+            Set<String> found = admin.listTopics(new ListTopicsOptions()
+                    .timeoutMs((int) adminClientTimeout.toMillis()))
+                    .await().atMost(adminClientTimeout);
+            if (found.stream().anyMatch(t -> pattern.matcher(t).matches())) {
+                builder.add(channel, true);
+            } else {
+                builder.add(channel, false, "Unable to find topic(s) matching pattern " + pattern + " in " + found);
+            }
+        } catch (Exception failed) {
+            builder.add(channel, false, "No response from broker for topic(s) " + pattern + " : " + failed);
+        }
+    }
+
+    @Override
     protected void clientBasedReadinessCheck(HealthReport.HealthReportBuilder builder) {
         if (source.hasSubscribers()) {
             Set<TopicPartition> partitions;

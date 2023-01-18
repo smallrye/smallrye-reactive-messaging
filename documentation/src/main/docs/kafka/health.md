@@ -1,54 +1,39 @@
 # Health reporting
 
-The Kafka connector reports the readiness and liveness of each channel
+The Kafka connector reports the startup, readiness and liveness of each channel
 managed by the connector.
 
 !!!note
     To disable health reporting, set the `health-enabled` attribute for the
     channel to `false`.
 
-## Readiness
+## Startup & Readiness
 
-On the inbound side, two strategies are available to check the readiness
-of the application. The default strategy verifies that we have at least
-one active connection with the broker. This strategy is lightweight.
-
-You can also enable another strategy by setting the
-`health-readiness-topic-verification` attribute to `true`. In this case,
-the check verifies that:
-
--   the broker is available
-
--   the Kafka topic is created (available in the broker).
-
--   no failures have been caught
-
-With this second strategy, if you consume multiple topics using the
-`topics` attribute, the readiness check verifies that all the consumed
-topics are available. If you use a pattern (using the `pattern`
-attribute), the readiness check verifies that at least one existing
-topic matches the pattern.
-
-On the outbound side (writing records to Kafka), two strategies are also
-offered. The default strategy just verifies that the producer has at
-least one active connection with the broker.
+By default, both inbound and outbound channels use underlying Kafka client metrics
+to check if at least one active connection exists with the broker.
+This strategy is lightweight.
 
 You can also enable another strategy by setting the
-`health-readiness-topic-verification` attribute to `true`. In this case,
-teh check verifies that
-
--   the broker is available
-
--   the Kafka topic is created (available in the broker).
-
-With this second strategy, the readiness check uses a Kafka Admin Client
-to retrieve the existing topics. Retrieving the topics can be a lengthy
+`health-topic-verification-enabled` attribute to `true`.
+With this second strategy, the health checks use a Kafka Admin Client
+to access the broker. Retrieving the topics can be a lengthy
 operation. You can configure a timeout using the
-`health-readiness-timeout` attribute. The default timeout is set to 2
+`health-topic-verification-timeout` attribute. The default timeout is set to 2
 seconds.
 
-Also, you can disable the readiness checks altogether by setting
-`health-readiness-enabled` to `false`.
+!!!depreciation
+`health-readiness-topic-verification` and `health-readiness-timeout` attributes are deprecated and replaced by
+`health-topic-verification-enabled` and `health-topic-verification-timeout`.
+
+For **startup** checks both _inbound_ and _outbound_ side verify that the Kafka topic is created and its partitions are available in the broker.
+If multiple topics are consumed using the `topics` attribute, the readiness check verifies that all the consumed topics are available.
+If you use a pattern (using the `pattern` attribute), the readiness check verifies that at least one existing topic matches the pattern.
+
+For **readiness** checks inbound channels verify that the underlying consumer is assigned at least a partition to consume.
+On the outbound side (writing records to Kafka) verify that the broker is still accessible.
+
+!!!note
+    If `health-topic-verification-enabled` is enabled, both for startup and readiness checks use this strategy. They can be disabled explicitly using `health-topic-verification-startup-disabled` and `health-topic-verification-readiness-disabled` flags.
 
 ## Liveness
 
