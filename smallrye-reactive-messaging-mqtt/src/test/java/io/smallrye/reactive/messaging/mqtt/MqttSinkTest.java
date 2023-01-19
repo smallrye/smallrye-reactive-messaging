@@ -15,7 +15,6 @@ import org.eclipse.microprofile.reactive.messaging.Message;
 import org.jboss.weld.environment.se.Weld;
 import org.jboss.weld.environment.se.WeldContainer;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
 import org.reactivestreams.Subscriber;
 
@@ -116,7 +115,6 @@ public class MqttSinkTest extends MqttTestBase {
         assertThat(expected).hasValue(10);
     }
 
-    @RepeatedTest(5)
     @Test
     public void testABeanProducingMessagesSentToMQTT() throws InterruptedException {
 

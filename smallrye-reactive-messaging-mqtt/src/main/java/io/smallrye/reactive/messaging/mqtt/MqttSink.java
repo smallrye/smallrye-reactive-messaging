@@ -81,7 +81,6 @@ public class MqttSink {
 
         @Override
         public void subscribe(Subscriber<? super Message<?>> subscriber) {
-            System.out.println("subscribe");
             this.subscriber = subscriber;
             subscriber.onSubscribe(new Subscription() {
                 @Override
@@ -108,7 +107,6 @@ public class MqttSink {
 
         @Override
         public void onSubscribe(Subscription subscription) {
-            System.out.println("onSubscribe");
             this.subscription = subscription;
             ClientHolder client = Clients.getHolder(vertx, options);
             reference.set(client);
@@ -168,17 +166,17 @@ public class MqttSink {
 
         return AsyncResultUni
                 .<Integer> toUni(h -> {
-                    reference.get().getClient()
-                            .publish(actualTopicToBeUsed, convert(msg.getPayload()).getDelegate(), actualQoS, false, isRetain)
-                            .onComplete(h);
+            reference.get().getClient()
+                    .publish(actualTopicToBeUsed, convert(msg.getPayload()).getDelegate(), actualQoS, false, isRetain)
+                    .onComplete(h);
                 })
                 .onItemOrFailure().transformToUni((s, f) -> {
-                    if (f != null) {
-                        return Uni.createFrom().completionStage(msg.nack(f).thenApply(x -> msg));
-                    } else {
-                        OutgoingMessageMetadata.setResultOnMessage(msg, s);
-                        return Uni.createFrom().completionStage(msg.ack().thenApply(x -> msg));
-                    }
+            if (f != null) {
+                return Uni.createFrom().completionStage(msg.nack(f).thenApply(x -> msg));
+            } else {
+                OutgoingMessageMetadata.setResultOnMessage(msg, s);
+                return Uni.createFrom().completionStage(msg.ack().thenApply(x -> msg));
+            }
                 })
                 .subscribeAsCompletionStage();
     }
