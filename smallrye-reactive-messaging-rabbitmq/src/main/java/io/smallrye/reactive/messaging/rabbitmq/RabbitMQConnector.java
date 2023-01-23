@@ -10,7 +10,6 @@ import static java.time.Duration.ofSeconds;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Collectors;
 
 import javax.annotation.PostConstruct;
@@ -157,7 +156,7 @@ public class RabbitMQConnector implements IncomingConnectorFactory, OutgoingConn
     }
 
     // The list of RabbitMQClient's currently managed by this connector
-    private final List<RabbitMQClient> clients = new CopyOnWriteArrayList<>();
+    private final Map<String, RabbitMQClient> clients = new ConcurrentHashMap<>();
 
     // Keyed on channel name, value is the channel connection state
     private final Map<String, ChannelStatus> incomingChannelStatus = new ConcurrentHashMap<>();
@@ -165,7 +164,7 @@ public class RabbitMQConnector implements IncomingConnectorFactory, OutgoingConn
     private final Map<String, ChannelStatus> outgoingChannelStatus = new ConcurrentHashMap<>();
 
     // The list of RabbitMQMessageSender's currently managed by this connector
-    private final List<Subscription> subscriptions = new CopyOnWriteArrayList<>();
+    private final Map<String, Subscription> subscriptions = new ConcurrentHashMap<>();
 
     @Inject
     ExecutionHolder executionHolder;
@@ -388,7 +387,7 @@ public class RabbitMQConnector implements IncomingConnectorFactory, OutgoingConn
         final RabbitMQMessageSender processor = new RabbitMQMessageSender(
                 oc,
                 getSender);
-        subscriptions.add(processor);
+        subscriptions.put(oc.getChannel(), processor);
 
         // Return a SubscriberBuilder
         return ReactiveStreams.<Message<?>> builder()
@@ -435,8 +434,8 @@ public class RabbitMQConnector implements IncomingConnectorFactory, OutgoingConn
      */
     public void terminate(
             @SuppressWarnings("unused") @Observes(notifyObserver = Reception.IF_EXISTS) @Priority(50) @BeforeDestroyed(ApplicationScoped.class) Object ignored) {
-        subscriptions.forEach(Subscription::cancel);
-        clients.forEach(RabbitMQClient::stopAndForget);
+        subscriptions.forEach((channel, subscription) -> subscription.cancel());
+        clients.forEach((channel, rabbitMQClient) -> rabbitMQClient.stopAndAwait());
         clients.clear();
     }
 
@@ -444,8 +443,8 @@ public class RabbitMQConnector implements IncomingConnectorFactory, OutgoingConn
         return executionHolder.vertx();
     }
 
-    public void addClient(RabbitMQClient client) {
-        clients.add(client);
+    public void addClient(String channel, RabbitMQClient client) {
+        clients.put(channel, client);
     }
 
     /**
@@ -589,6 +588,14 @@ public class RabbitMQConnector implements IncomingConnectorFactory, OutgoingConn
     public void reportIncomingFailure(String channel, Throwable reason) {
         log.failureReported(channel, reason);
         incomingChannelStatus.put(channel, ChannelStatus.NOT_CONNECTED);
-        terminate(null);
+        Subscription subscription = subscriptions.remove(channel);
+        if (subscription != null) {
+            subscription.cancel();
+        }
+        RabbitMQClient client = clients.remove(channel);
+        if (client != null) {
+            // Called on vertx context, we can't block: stop clients without waiting
+            client.stopAndForget();
+        }
     }
 }

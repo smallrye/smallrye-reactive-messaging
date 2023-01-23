@@ -47,7 +47,7 @@ public class RabbitMQClientHelper {
                 options.setMetricsName("rabbitmq|" + config.getChannel());
             }
             RabbitMQClient client = RabbitMQClient.create(vertx, options);
-            connector.addClient(client);
+            connector.addClient(config.getChannel(), client);
             return client;
         } catch (Exception e) {
             log.unableToCreateClient(e);
