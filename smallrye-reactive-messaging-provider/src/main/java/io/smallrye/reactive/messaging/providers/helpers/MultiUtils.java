@@ -2,7 +2,9 @@ package io.smallrye.reactive.messaging.providers.helpers;
 
 import static io.smallrye.mutiny.helpers.ParameterValidation.nonNull;
 
+import java.util.Objects;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -15,6 +17,8 @@ import org.reactivestreams.Subscription;
 
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
+import io.smallrye.mutiny.helpers.ParameterValidation;
+import io.smallrye.mutiny.helpers.Subscriptions;
 import io.smallrye.mutiny.subscription.MultiSubscriber;
 import io.smallrye.reactive.messaging.MediatorConfiguration;
 
@@ -82,6 +86,104 @@ public class MultiUtils {
                 processor.onComplete();
             }
         };
+    }
+
+    public static <T, R> Subscriber<T> via(Function<Multi<T>, Multi<R>> function) {
+        return via(NoopProcessor.create(), function);
+    }
+
+    public static class NoopProcessor<T> implements Processor<T, T>, Subscription {
+
+        private volatile boolean done = false;
+        private volatile boolean cancelled = false;
+
+        private volatile Subscription upstream = null;
+        private static final AtomicReferenceFieldUpdater<NoopProcessor, Subscription> UPSTREAM_UPDATER = AtomicReferenceFieldUpdater
+                .newUpdater(NoopProcessor.class, Subscription.class, "upstream");
+        private volatile Subscriber<? super T> downstream = null;
+        private static final AtomicReferenceFieldUpdater<NoopProcessor, Subscriber> DOWNSTREAM_UPDATER = AtomicReferenceFieldUpdater
+                .newUpdater(NoopProcessor.class, Subscriber.class, "downstream");
+
+        public static <I> NoopProcessor<I> create() {
+            return new NoopProcessor<>();
+        }
+
+        private NoopProcessor() {
+        }
+
+        @Override
+        public void subscribe(Subscriber<? super T> downstream) {
+            ParameterValidation.nonNull(downstream, "downstream");
+            if (DOWNSTREAM_UPDATER.compareAndSet(this, null, downstream)) {
+                if (upstream != null) {
+                    downstream.onSubscribe(this);
+                }
+            } else {
+                Subscriptions.fail(downstream, new IllegalStateException("Already subscribed"));
+            }
+        }
+
+        @Override
+        public void onSubscribe(Subscription upstream) {
+            if (isDoneOrCancelled() || !UPSTREAM_UPDATER.compareAndSet(this, null, upstream)) {
+                upstream.cancel();
+                return;
+            }
+            Subscriber<? super T> subscriber = downstream;
+            if (subscriber != null) {
+                subscriber.onSubscribe(this);
+            }
+        }
+
+        @Override
+        public void onNext(T t) {
+            if (isDoneOrCancelled()) {
+                return;
+            }
+            Subscriber<? super T> subscriber = downstream;
+            if (subscriber != null) {
+                subscriber.onNext(t);
+            }
+        }
+
+        private boolean isDoneOrCancelled() {
+            return done || cancelled;
+        }
+
+        @Override
+        public void onError(Throwable failure) {
+            Objects.requireNonNull(failure);
+            if (isDoneOrCancelled()) {
+                return;
+            }
+
+            this.done = true;
+        }
+
+        @Override
+        public void onComplete() {
+            if (isDoneOrCancelled()) {
+                return;
+            }
+            this.done = true;
+        }
+
+        @Override
+        public void request(long n) {
+            if (n > 0) {
+                UPSTREAM_UPDATER.get(this).request(n);
+            }
+        }
+
+        @Override
+        public void cancel() {
+            if (cancelled) {
+                return;
+            }
+            this.cancelled = true;
+            DOWNSTREAM_UPDATER.getAndSet(this, null);
+        }
+
     }
 
 }
