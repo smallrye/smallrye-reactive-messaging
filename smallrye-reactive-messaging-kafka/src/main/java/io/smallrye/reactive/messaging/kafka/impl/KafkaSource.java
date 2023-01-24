@@ -273,6 +273,7 @@ public class KafkaSource<K, V> {
             KafkaTrace kafkaTrace = new KafkaTrace.Builder()
                     .withPartition(kafkaRecord.getPartition())
                     .withTopic(kafkaRecord.getTopic())
+                    .withOffset(kafkaRecord.getOffset())
                     .withHeaders(kafkaRecord.getHeaders())
                     .withGroupId(client.get(ConsumerConfig.GROUP_ID_CONFIG))
                     .withClientId(client.get(ConsumerConfig.CLIENT_ID_CONFIG))

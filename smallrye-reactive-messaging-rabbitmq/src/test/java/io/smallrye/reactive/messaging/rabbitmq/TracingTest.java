@@ -10,6 +10,7 @@ import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
 import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -93,9 +94,9 @@ public class TracingTest extends WeldTestBase {
 
             SpanData consumer = spans.get(0);
             assertEquals(SpanKind.CONSUMER, consumer.getKind());
-            assertEquals("smallrye-rabbitmq", consumer.getAttributes().get(MESSAGING_SYSTEM));
-            assertEquals("AMQP", consumer.getAttributes().get(MESSAGING_PROTOCOL));
-            assertEquals("1.0", consumer.getAttributes().get(MESSAGING_PROTOCOL_VERSION));
+            assertEquals("rabbitmq", consumer.getAttributes().get(MESSAGING_SYSTEM));
+            assertNull(consumer.getAttributes().get(MESSAGING_PROTOCOL));
+            assertNull(consumer.getAttributes().get(MESSAGING_PROTOCOL_VERSION));
             assertEquals("queue", consumer.getAttributes().get(MESSAGING_DESTINATION_KIND));
             assertEquals(queue, consumer.getAttributes().get(MESSAGING_DESTINATION));
             assertEquals(queue + " receive", consumer.getName());

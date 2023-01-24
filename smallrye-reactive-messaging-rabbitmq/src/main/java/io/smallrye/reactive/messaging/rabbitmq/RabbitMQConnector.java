@@ -217,7 +217,8 @@ public class RabbitMQConnector implements IncomingConnectorFactory, OutgoingConn
                 .plug(m -> {
                     if (isTracingEnabled) {
                         return m.map(msg -> {
-                            TracingUtils.traceIncoming(instrumenter, msg, RabbitMQTrace.trace(queueName, msg.getHeaders()));
+                            TracingUtils.traceIncoming(instrumenter, msg, RabbitMQTrace.traceQueue(queueName,
+                                    msg.message.envelope().getRoutingKey(), msg.getHeaders()));
                             return msg;
                         });
                     }

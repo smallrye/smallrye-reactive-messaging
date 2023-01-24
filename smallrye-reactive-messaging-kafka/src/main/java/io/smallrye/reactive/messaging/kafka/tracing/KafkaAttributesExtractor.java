@@ -3,13 +3,13 @@ package io.smallrye.reactive.messaging.kafka.tracing;
 import static io.opentelemetry.semconv.trace.attributes.SemanticAttributes.MESSAGING_CONSUMER_ID;
 import static io.opentelemetry.semconv.trace.attributes.SemanticAttributes.MESSAGING_KAFKA_CLIENT_ID;
 import static io.opentelemetry.semconv.trace.attributes.SemanticAttributes.MESSAGING_KAFKA_CONSUMER_GROUP;
+import static io.opentelemetry.semconv.trace.attributes.SemanticAttributes.MESSAGING_KAFKA_MESSAGE_OFFSET;
 import static io.opentelemetry.semconv.trace.attributes.SemanticAttributes.MESSAGING_KAFKA_PARTITION;
 
 import io.opentelemetry.api.common.AttributesBuilder;
 import io.opentelemetry.context.Context;
 import io.opentelemetry.instrumentation.api.instrumenter.AttributesExtractor;
 import io.opentelemetry.instrumentation.api.instrumenter.messaging.MessagingAttributesGetter;
-import io.smallrye.reactive.messaging.kafka.KafkaConnector;
 
 public class KafkaAttributesExtractor implements AttributesExtractor<KafkaTrace, Void> {
     private final MessagingAttributesGetter<KafkaTrace, Void> messagingAttributesGetter;
@@ -22,6 +22,9 @@ public class KafkaAttributesExtractor implements AttributesExtractor<KafkaTrace,
     public void onStart(final AttributesBuilder attributes, final Context parentContext, final KafkaTrace kafkaTrace) {
         if (kafkaTrace.getPartition() != -1) {
             attributes.put(MESSAGING_KAFKA_PARTITION, kafkaTrace.getPartition());
+        }
+        if (kafkaTrace.getOffset() != -1) {
+            attributes.put(MESSAGING_KAFKA_MESSAGE_OFFSET, kafkaTrace.getOffset());
         }
 
         String groupId = kafkaTrace.getGroupId();
@@ -58,7 +61,7 @@ public class KafkaAttributesExtractor implements AttributesExtractor<KafkaTrace,
     private static final class KafkaMessagingAttributesGetter implements MessagingAttributesGetter<KafkaTrace, Void> {
         @Override
         public String system(final KafkaTrace kafkaTrace) {
-            return KafkaConnector.CONNECTOR_NAME;
+            return "kafka";
         }
 
         @Override

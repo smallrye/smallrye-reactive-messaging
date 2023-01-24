@@ -4,7 +4,6 @@ import io.opentelemetry.api.common.AttributesBuilder;
 import io.opentelemetry.context.Context;
 import io.opentelemetry.instrumentation.api.instrumenter.AttributesExtractor;
 import io.opentelemetry.instrumentation.api.instrumenter.messaging.MessagingAttributesGetter;
-import io.smallrye.reactive.messaging.amqp.AmqpConnector;
 import io.smallrye.reactive.messaging.amqp.AmqpMessage;
 
 public class AmqpAttributesExtractor implements AttributesExtractor<AmqpMessage<?>, Void> {
@@ -39,7 +38,7 @@ public class AmqpAttributesExtractor implements AttributesExtractor<AmqpMessage<
         // Required
         @Override
         public String system(final AmqpMessage<?> amqpMessage) {
-            return AmqpConnector.CONNECTOR_NAME;
+            return "AMQP 1.0";
         }
 
         // Required if the message destination is either a queue or topic
