@@ -81,6 +81,7 @@ jobs:
                 run: |
                     mvn -s .github/ci-maven-settings.xml -B \
                         clean install sonar:sonar -Pcoverage \
+                        -Drevapi.skip=true \
                         -Dsonar.projectKey=smallrye_smallrye-reactive-messaging \
                         -Dsonar.projectName="SmallRye Reactive Messaging" \
                         -Dsonar.organization=smallrye \
