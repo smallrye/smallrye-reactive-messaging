@@ -39,6 +39,7 @@ public class ConfigurationCleaner {
             "key-serialization-failure-handler",
             "value-serialization-failure-handler",
             "merge",
+            "interceptor-bean",
 
             // Remove most common attributes, may have been configured from the default config
             "key.deserializer",

@@ -17,6 +17,7 @@ import javax.enterprise.inject.Instance;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.clients.producer.ProducerInterceptor;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.errors.InvalidTopicException;
@@ -85,7 +86,8 @@ public class KafkaSink {
     private final Instrumenter<KafkaTrace, Void> instrumenter;
 
     public KafkaSink(KafkaConnectorOutgoingConfiguration config, KafkaCDIEvents kafkaCDIEvents,
-            Instance<SerializationFailureHandler<?>> serializationFailureHandlers) {
+            Instance<SerializationFailureHandler<?>> serializationFailureHandlers,
+            Instance<ProducerInterceptor<?, ?>> producerInterceptors) {
         this.isTracingEnabled = config.getTracingEnabled();
         this.partition = config.getPartition();
         this.retries = config.getRetries();
@@ -93,7 +95,8 @@ public class KafkaSink {
         this.key = config.getKey().orElse(null);
         this.channel = config.getChannel();
 
-        this.client = new ReactiveKafkaProducer<>(config, serializationFailureHandlers, this::reportFailure,
+        this.client = new ReactiveKafkaProducer<>(config, serializationFailureHandlers, producerInterceptors,
+                this::reportFailure,
                 (p, c) -> {
                     log.connectedToKafka(getClientId(c), config.getBootstrapServers(), topic);
                     // fire producer event (e.g. bind metrics)
@@ -235,7 +238,8 @@ public class KafkaSink {
 
                 Uni<Void> uni = sendUni.onItem().transformToUni(recordMetadata -> {
                     OutgoingMessageMetadata.setResultOnMessage(message, recordMetadata);
-                    log.successfullyToTopic(message, record.topic(), recordMetadata.partition(), recordMetadata.offset());
+                    log.successfullyToTopic(message, recordMetadata.topic(), recordMetadata.partition(),
+                            recordMetadata.offset());
                     return Uni.createFrom().completionStage(message.ack());
                 });
 

@@ -284,6 +284,27 @@ can also be used for producing messages:
     This is an advanced feature. The `ProducerRecord` is sent to Kafka as
     is. Any possible metadata attached through `Message<ProducerRecord<K, V>>` are ignored and lost.
 
+## Producer Interceptors
+
+Producer interceptors can be configured for Kafka producer clients using the standard `interceptor.classes` property.
+Configured classes will be instantiated by the Kafka producer on client creation.
+
+Alternatively, producer clients can be configured with a CDI managed-bean implementing {{ javadoc('org.apache.kafka.clients.producer.ProducerInterceptor', True, 'org.apache.kafka/kafka-clients') }} interface:
+
+To achieve this, the bean must be exposed with the `@Identifier` qualifier specifying the name of the bean:
+
+
+``` java
+{{ insert('kafka/outbound/ProducerInterceptorBeanExample.java') }}
+```
+
+Then, in the channel configuration, specify the following attribute:
+`mp.messaging.incoming.$channel.interceptor-bean=my-producer-interceptor`.
+
+!!!warning
+    The `onSend` method will be called on the producer *sending thread* and `onAcknowledgement` will be called on the *Kafka producer I/O thread*.
+    In both cases if implementations are not fast, sending of messages could be delayed.
+
 ## Configuration Reference
 
 {{ insert('../../../target/connectors/smallrye-kafka-outgoing.md') }}

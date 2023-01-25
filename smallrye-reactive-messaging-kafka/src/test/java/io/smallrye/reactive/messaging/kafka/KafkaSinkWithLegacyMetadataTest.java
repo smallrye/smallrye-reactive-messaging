@@ -61,7 +61,8 @@ public class KafkaSinkWithLegacyMetadataTest extends KafkaCompanionTestBase {
                 .with("partition", 0)
                 .with("channel-name", "testSinkUsingInteger");
         KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
-        sink = new KafkaSink(oc, CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance());
+        sink = new KafkaSink(oc, CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(),
+                UnsatisfiedInstance.instance());
 
         Subscriber<? extends Message<?>> subscriber = sink.getSink();
         Multi.createFrom().range(0, 10)
@@ -81,7 +82,8 @@ public class KafkaSinkWithLegacyMetadataTest extends KafkaCompanionTestBase {
                 .with("value.serializer", IntegerSerializer.class.getName())
                 .with("partition", 0);
         KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
-        sink = new KafkaSink(oc, CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance());
+        sink = new KafkaSink(oc, CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(),
+                UnsatisfiedInstance.instance());
 
         Subscriber<? extends Message<?>> subscriber = sink.getSink();
         Multi.createFrom().range(0, 10)
@@ -102,7 +104,8 @@ public class KafkaSinkWithLegacyMetadataTest extends KafkaCompanionTestBase {
                 .with("partition", 0)
                 .with("channel-name", "testSinkUsingString");
         KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
-        sink = new KafkaSink(oc, CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance());
+        sink = new KafkaSink(oc, CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(),
+                UnsatisfiedInstance.instance());
 
         Subscriber<? extends Message<?>> subscriber = sink.getSink();
         Multi.createFrom().range(0, 10)
@@ -234,7 +237,7 @@ public class KafkaSinkWithLegacyMetadataTest extends KafkaCompanionTestBase {
                 .with("retries", 0L); // disable retry.
         KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
         CountKafkaCdiEvents testCdiEvents = new CountKafkaCdiEvents();
-        sink = new KafkaSink(oc, testCdiEvents, UnsatisfiedInstance.instance());
+        sink = new KafkaSink(oc, testCdiEvents, UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance());
 
         await().until(() -> {
             HealthReport.HealthReportBuilder builder = HealthReport.builder();
@@ -283,7 +286,8 @@ public class KafkaSinkWithLegacyMetadataTest extends KafkaCompanionTestBase {
                 .with("retries", 0L)
                 .with("channel-name", "testInvalidTypeWithDefaultInflightMessages");
         KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
-        sink = new KafkaSink(oc, CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance());
+        sink = new KafkaSink(oc, CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(),
+                UnsatisfiedInstance.instance());
 
         Subscriber subscriber = sink.getSink();
         Multi.createFrom().range(0, 5)
