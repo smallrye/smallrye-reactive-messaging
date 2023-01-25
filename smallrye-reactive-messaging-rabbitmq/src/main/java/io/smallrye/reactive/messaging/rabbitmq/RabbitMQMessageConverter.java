@@ -78,7 +78,8 @@ public class RabbitMQMessageConverter {
             if (isTracingEnabled) {
                 // Create a new span for the outbound message and record updated tracing information in
                 // the headers; this has to be done before we build the properties below
-                TracingUtils.traceOutgoing(instrumenter, message, RabbitMQTrace.trace(exchange, sourceHeaders));
+                TracingUtils.traceOutgoing(instrumenter, message,
+                        RabbitMQTrace.traceExchange(exchange, routingKey, sourceHeaders));
             }
 
             // Reconstruct the properties from the source, except with the (possibly) modified headers;
@@ -120,7 +121,8 @@ public class RabbitMQMessageConverter {
             if (isTracingEnabled) {
                 // Create a new span for the outbound message and record updated tracing information in
                 // the message headers; this has to be done before we build the properties below
-                TracingUtils.traceOutgoing(instrumenter, message, RabbitMQTrace.trace(exchange, metadata.getHeaders()));
+                TracingUtils.traceOutgoing(instrumenter, message,
+                        RabbitMQTrace.traceExchange(exchange, routingKey, metadata.getHeaders()));
             }
 
             final Date timestamp = (metadata.getTimestamp() != null) ? Date.from(metadata.getTimestamp().toInstant()) : null;

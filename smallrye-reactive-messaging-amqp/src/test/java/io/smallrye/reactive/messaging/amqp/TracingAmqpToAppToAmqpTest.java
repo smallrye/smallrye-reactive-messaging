@@ -129,7 +129,7 @@ public class TracingAmqpToAppToAmqpTest extends AmqpBrokerTestBase {
 
             SpanData consumer = parentSpans.get(0);
             assertEquals(CONSUMER, consumer.getKind());
-            assertEquals("smallrye-amqp", consumer.getAttributes().get(MESSAGING_SYSTEM));
+            assertEquals("AMQP 1.0", consumer.getAttributes().get(MESSAGING_SYSTEM));
             assertEquals("AMQP", consumer.getAttributes().get(MESSAGING_PROTOCOL));
             assertEquals("1.0", consumer.getAttributes().get(MESSAGING_PROTOCOL_VERSION));
             assertEquals("queue", consumer.getAttributes().get(MESSAGING_DESTINATION_KIND));

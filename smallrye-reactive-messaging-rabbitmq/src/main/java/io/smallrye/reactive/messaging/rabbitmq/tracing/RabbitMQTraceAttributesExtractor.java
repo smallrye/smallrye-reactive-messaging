@@ -1,10 +1,11 @@
 package io.smallrye.reactive.messaging.rabbitmq.tracing;
 
+import static io.opentelemetry.semconv.trace.attributes.SemanticAttributes.MESSAGING_RABBITMQ_ROUTING_KEY;
+
 import io.opentelemetry.api.common.AttributesBuilder;
 import io.opentelemetry.context.Context;
 import io.opentelemetry.instrumentation.api.instrumenter.AttributesExtractor;
 import io.opentelemetry.instrumentation.api.instrumenter.messaging.MessagingAttributesGetter;
-import io.smallrye.reactive.messaging.rabbitmq.RabbitMQConnector;
 
 public class RabbitMQTraceAttributesExtractor implements AttributesExtractor<RabbitMQTrace, Void> {
     private final MessagingAttributesGetter<RabbitMQTrace, Void> messagingAttributesGetter;
@@ -21,9 +22,7 @@ public class RabbitMQTraceAttributesExtractor implements AttributesExtractor<Rab
     public void onStart(
             final AttributesBuilder attributes,
             final Context parentContext, final RabbitMQTrace rabbitMQTrace) {
-        // TODO - radcortez - What to add here?
-        // attributes.put(MESSAGING_CONSUMER_ID, null);
-        // attributes.put(MESSAGING_RABBITMQ_ROUTING_KEY, null);
+        attributes.put(MESSAGING_RABBITMQ_ROUTING_KEY, rabbitMQTrace.getRoutingKey());
     }
 
     @Override
@@ -36,12 +35,12 @@ public class RabbitMQTraceAttributesExtractor implements AttributesExtractor<Rab
     private final static class RabbitMQMessagingAttributesGetter implements MessagingAttributesGetter<RabbitMQTrace, Void> {
         @Override
         public String system(final RabbitMQTrace rabbitMQTrace) {
-            return RabbitMQConnector.CONNECTOR_NAME;
+            return "rabbitmq";
         }
 
         @Override
         public String destinationKind(final RabbitMQTrace rabbitMQTrace) {
-            return "queue";
+            return rabbitMQTrace.getDestinationKind();
         }
 
         @Override
@@ -56,12 +55,12 @@ public class RabbitMQTraceAttributesExtractor implements AttributesExtractor<Rab
 
         @Override
         public String protocol(final RabbitMQTrace rabbitMQTrace) {
-            return "AMQP";
+            return null;
         }
 
         @Override
         public String protocolVersion(final RabbitMQTrace rabbitMQTrace) {
-            return "1.0";
+            return null;
         }
 
         @Override
