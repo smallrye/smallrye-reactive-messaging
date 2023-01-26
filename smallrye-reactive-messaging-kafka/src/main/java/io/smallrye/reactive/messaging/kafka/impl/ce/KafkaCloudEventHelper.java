@@ -3,6 +3,7 @@ package io.smallrye.reactive.messaging.kafka.impl.ce;
 import static io.smallrye.reactive.messaging.ce.CloudEventMetadata.*;
 import static io.smallrye.reactive.messaging.kafka.IncomingKafkaCloudEventMetadata.CE_KAFKA_KEY;
 import static io.smallrye.reactive.messaging.kafka.IncomingKafkaCloudEventMetadata.CE_KAFKA_TOPIC;
+import static java.time.format.DateTimeFormatter.ISO_OFFSET_DATE_TIME;
 
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
@@ -53,6 +54,7 @@ public class KafkaCloudEventHelper {
     public static final String KAFKA_HEADER_FOR_SUBJECT = CE_HEADER_PREFIX + CloudEventMetadata.CE_ATTRIBUTE_SUBJECT;
     public static final String KAFKA_HEADER_FOR_TIME = CE_HEADER_PREFIX + CloudEventMetadata.CE_ATTRIBUTE_TIME;
 
+    // TODO Should be replaced with DateTimeFormatter.ISO_OFFSET_DATE_TIME, there for read retro-compatibility
     public static final DateTimeFormatter RFC3339_DATE_FORMAT = new DateTimeFormatterBuilder()
             .appendPattern("yyyy-MM-dd'T'HH:mm:ss")
             .appendFraction(ChronoField.NANO_OF_SECOND, 0, 9, true)
@@ -249,15 +251,15 @@ public class KafkaCloudEventHelper {
         if (ts.isPresent()) {
             ZonedDateTime time = ts.get();
             headers.add(new RecordHeader(KAFKA_HEADER_FOR_TIME,
-                    RFC3339_DATE_FORMAT.format(time).getBytes(StandardCharsets.UTF_8)));
+                    ISO_OFFSET_DATE_TIME.format(time).getBytes(StandardCharsets.UTF_8)));
         } else if (timestamp != null) {
             Instant instant = Instant.ofEpochMilli(timestamp);
             headers.add(new RecordHeader(KAFKA_HEADER_FOR_TIME,
-                    RFC3339_DATE_FORMAT.format(instant).getBytes(StandardCharsets.UTF_8)));
+                    ISO_OFFSET_DATE_TIME.format(instant).getBytes(StandardCharsets.UTF_8)));
         } else if (configuration.getCloudEventsInsertTimestamp()) {
             ZonedDateTime now = ZonedDateTime.now();
             headers.add(new RecordHeader(KAFKA_HEADER_FOR_TIME,
-                    RFC3339_DATE_FORMAT.format(now).getBytes(StandardCharsets.UTF_8)));
+                    ISO_OFFSET_DATE_TIME.format(now).getBytes(StandardCharsets.UTF_8)));
         }
 
         // Extensions
