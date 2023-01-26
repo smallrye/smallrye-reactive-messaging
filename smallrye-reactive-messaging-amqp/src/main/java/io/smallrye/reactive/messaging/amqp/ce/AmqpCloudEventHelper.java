@@ -1,6 +1,7 @@
 package io.smallrye.reactive.messaging.amqp.ce;
 
 import static io.smallrye.reactive.messaging.ce.CloudEventMetadata.*;
+import static java.time.format.DateTimeFormatter.ISO_OFFSET_DATE_TIME;
 
 import java.net.URI;
 import java.time.Instant;
@@ -40,6 +41,7 @@ public class AmqpCloudEventHelper {
     public static final String AMQP_HEADER_FOR_SUBJECT = CE_HEADER_PREFIX + CloudEventMetadata.CE_ATTRIBUTE_SUBJECT;
     public static final String AMQP_HEADER_FOR_TIME = CE_HEADER_PREFIX + CloudEventMetadata.CE_ATTRIBUTE_TIME;
 
+    // TODO Should be replaced with DateTimeFormatter.ISO_OFFSET_DATE_TIME, there for read retro-compatibility
     public static final DateTimeFormatter RFC3339_DATE_FORMAT = new DateTimeFormatterBuilder()
             .appendPattern("yyyy-MM-dd'T'HH:mm:ss")
             .appendFraction(ChronoField.NANO_OF_SECOND, 0, 9, true)
@@ -216,12 +218,10 @@ public class AmqpCloudEventHelper {
         Optional<ZonedDateTime> ts = ceMetadata.getTimeStamp();
         if (ts.isPresent()) {
             ZonedDateTime time = ts.get();
-            app.put(AMQP_HEADER_FOR_TIME,
-                    RFC3339_DATE_FORMAT.format(time));
+            app.put(AMQP_HEADER_FOR_TIME, ISO_OFFSET_DATE_TIME.format(time));
         } else if (configuration.getCloudEventsInsertTimestamp()) {
             ZonedDateTime now = ZonedDateTime.now();
-            app.put(AMQP_HEADER_FOR_TIME,
-                    RFC3339_DATE_FORMAT.format(now));
+            app.put(AMQP_HEADER_FOR_TIME, ISO_OFFSET_DATE_TIME.format(now));
         }
 
         // Extensions
