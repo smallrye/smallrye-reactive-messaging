@@ -72,7 +72,7 @@ public class MqttSink {
     }
 
     private Uni<? extends Message<?>> send(Message<?> msg) {
-        MqttClientSession client = reference.get().getClient();
+        final MqttClientSession client = reference.get().getClient();
         final String actualTopicToBeUsed;
         final MqttQoS actualQoS;
         final boolean isRetain;
@@ -88,7 +88,7 @@ public class MqttSink {
             isRetain = false;
             actualQoS = MqttQoS.valueOf(this.qos);
         }
-
+        
         if (actualTopicToBeUsed == null) {
             log.ignoringNoTopicSet();
             return Uni.createFrom().item(msg);
