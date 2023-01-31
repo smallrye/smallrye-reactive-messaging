@@ -28,7 +28,7 @@ public class MqttSource {
     private final PublisherBuilder<MqttMessage<?>> source;
 
     private final AtomicBoolean started = new AtomicBoolean();
-    private final AtomicBoolean ready = new AtomicBoolean();
+    private final AtomicBoolean alive = new AtomicBoolean();
     private final Clients.ClientHolder holder;
 
     public MqttSource(Vertx vertx, MqttConnectorIncomingConfiguration config,
@@ -60,7 +60,7 @@ public class MqttSource {
                 .onFailure(outcome -> log.info("Subscription failed!"))
                 .onSuccess(outcome -> {
                     log.info("Subscription success on topic " + topic + ", Max QoS " + outcome + ".");
-                    ready.set(true);
+                    alive.set(true);
                 });
 
         this.source = ReactiveStreams.fromPublisher(
@@ -74,7 +74,7 @@ public class MqttSource {
                         })
                         .onOverflow().buffer(config.getBufferSize())
                         .onCancellation().call(() -> {
-                            ready.set(false);
+                            alive.set(false);
                             if (config.getUnsubscribeOnDisconnection())
                                 return Uni
                                         .createFrom()
@@ -83,7 +83,10 @@ public class MqttSource {
                             else
                                 return Uni.createFrom().voidItem();
                         })
-                        .onFailure().invoke(log::unableToConnectToBroker));
+                        .onFailure().invoke(e -> {
+                            alive.set(false);
+                            log.unableToConnectToBroker(e);
+                        }));
     }
 
     private MqttFailureHandler createFailureHandler(MqttFailureHandler.Strategy strategy, String channel) {
@@ -108,12 +111,12 @@ public class MqttSource {
 
     public void isReady(HealthReportBuilder builder) {
         if (healthEnabled)
-            builder.add(channel, ready.get());
+            builder.add(channel, alive.get());
     }
 
     public void isAlive(HealthReportBuilder builder) {
         if (healthEnabled)
-            builder.add(channel, holder.getClient().isConnected());
+            builder.add(channel, !holder.getClient().isDisconnected());
     }
 
 }

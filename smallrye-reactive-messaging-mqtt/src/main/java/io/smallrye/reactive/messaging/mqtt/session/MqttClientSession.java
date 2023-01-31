@@ -129,6 +129,15 @@ public interface MqttClientSession {
     }
 
     /**
+     * Check if the session is currently disconnected.
+     *
+     * @return {@code true} if the session is currently disconnected, {@code false} otherwise.
+     */
+    default boolean isDisconnected() {
+        return getState() == SessionState.DISCONNECTED;
+    }
+
+    /**
      * Subscribes to a single topic with related QoS level.
      *
      * @param topic The topic to subscribe to.

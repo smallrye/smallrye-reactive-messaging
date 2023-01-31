@@ -38,6 +38,7 @@ public class MqttSink {
     private final SubscriberBuilder<? extends Message<?>, Void> sink;
 
     private final AtomicBoolean started = new AtomicBoolean();
+    private final AtomicBoolean alive = new AtomicBoolean();
     private final AtomicReference<Clients.ClientHolder> reference = new AtomicReference<>();
 
     public MqttSink(Vertx vertx, MqttConnectorOutgoingConfiguration config,
@@ -58,16 +59,22 @@ public class MqttSink {
                         reference.set(client);
                     }
                     return AsyncResultUni.<Void> toUni(h -> reference.get().start().onComplete(h))
-                            .onItem().invoke(() -> started.set(true));
+                            .onItem().invoke(() -> {
+                                started.set(true);
+                                alive.set(true);
+                            });
                 })
                 .onItem().transformToUniAndConcatenate(this::send)
                 .onCompletion().invoke(() -> {
                     Clients.ClientHolder c = reference.getAndSet(null);
-                    if (c != null) {
-                        c.close().onComplete(ignore -> started.set(false));
-                    }
+                    if (c != null)
+                        c.close();
+                    alive.set(false);
                 })
-                .onFailure().invoke(log::errorWhileSendingMessageToBroker));
+                .onFailure().invoke(e -> {
+                    alive.set(false);
+                    log.errorWhileSendingMessageToBroker(e);
+                }));
         sink = ReactiveStreams.fromSubscriber(subscriber);
     }
 
@@ -88,7 +95,7 @@ public class MqttSink {
             isRetain = false;
             actualQoS = MqttQoS.valueOf(this.qos);
         }
-        
+
         if (actualTopicToBeUsed == null) {
             log.ignoringNoTopicSet();
             return Uni.createFrom().item(msg);
@@ -139,6 +146,10 @@ public class MqttSink {
         return reference.get() != null && reference.get().getClient().isConnected();
     }
 
+    private boolean isDisconnected() {
+        return reference.get() != null && reference.get().getClient().isDisconnected();
+    }
+
     public void isStarted(HealthReportBuilder builder) {
         if (healthEnabled)
             builder.add(channel, started.get());
@@ -151,7 +162,7 @@ public class MqttSink {
 
     public void isAlive(HealthReportBuilder builder) {
         if (healthEnabled)
-            builder.add(channel, isConnected());
+            builder.add(channel, !isDisconnected());
     }
 
 }
