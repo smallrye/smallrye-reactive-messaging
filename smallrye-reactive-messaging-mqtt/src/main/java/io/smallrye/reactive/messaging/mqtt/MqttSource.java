@@ -12,6 +12,7 @@ import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 
 import io.smallrye.mutiny.Uni;
+import io.smallrye.reactive.messaging.health.HealthReport.HealthReportBuilder;
 import io.smallrye.reactive.messaging.mqtt.internal.MqttHelpers;
 import io.smallrye.reactive.messaging.mqtt.internal.MqttTopicHelper;
 import io.smallrye.reactive.messaging.mqtt.session.MqttClientSessionOptions;
@@ -20,17 +21,26 @@ import io.vertx.mutiny.core.Vertx;
 
 public class MqttSource {
 
-    private final PublisherBuilder<MqttMessage<?>> source;
-    private final AtomicBoolean ready = new AtomicBoolean();
+    private final String channel;
     private final Pattern pattern;
+    private final boolean healthEnabled;
+
+    private final PublisherBuilder<MqttMessage<?>> source;
+
+    private final AtomicBoolean started = new AtomicBoolean();
+    private final AtomicBoolean alive = new AtomicBoolean();
+    private final Clients.ClientHolder holder;
 
     public MqttSource(Vertx vertx, MqttConnectorIncomingConfiguration config,
             Instance<MqttClientSessionOptions> instances) {
         MqttClientSessionOptions options = MqttHelpers.createClientOptions(config, instances);
 
-        String topic = config.getTopic().orElseGet(config::getChannel);
+        channel = config.getChannel();
+        String topic = config.getTopic().orElse(channel);
         int qos = config.getQos();
         boolean broadcast = config.getBroadcast();
+        healthEnabled = config.getHealthEnabled();
+
         MqttFailureHandler.Strategy strategy = MqttFailureHandler.Strategy.from(config.getFailureStrategy());
         MqttFailureHandler onNack = createFailureHandler(strategy, config.getChannel());
 
@@ -43,26 +53,28 @@ public class MqttSource {
             pattern = null;
         }
 
-        Clients.ClientHolder holder = Clients.getHolder(vertx, options);
-        holder.start();
+        holder = Clients.getHolder(vertx, options);
+        holder.start().onSuccess(ignore -> started.set(true));
         holder.getClient()
                 .subscribe(topic, RequestedQoS.valueOf(qos))
-                .onComplete(outcome -> log.info("Subscription outcome: " + outcome))
-                .onSuccess(ignore -> ready.set(true));
+                .onFailure(outcome -> log.info("Subscription failed!"))
+                .onSuccess(outcome -> {
+                    log.info("Subscription success on topic " + topic + ", Max QoS " + outcome + ".");
+                    alive.set(true);
+                });
 
         this.source = ReactiveStreams.fromPublisher(
                 holder.stream()
                         .select().where(m -> MqttTopicHelper.matches(topic, pattern, m))
                         .onItem().transform(m -> new ReceivingMqttMessage(m, onNack))
                         .stage(multi -> {
-                            if (broadcast) {
+                            if (broadcast)
                                 return multi.broadcast().toAllSubscribers();
-                            }
                             return multi;
                         })
                         .onOverflow().buffer(config.getBufferSize())
                         .onCancellation().call(() -> {
-                            ready.set(false);
+                            alive.set(false);
                             if (config.getUnsubscribeOnDisconnection())
                                 return Uni
                                         .createFrom()
@@ -71,7 +83,10 @@ public class MqttSource {
                             else
                                 return Uni.createFrom().voidItem();
                         })
-                        .onFailure().invoke(log::unableToConnectToBroker));
+                        .onFailure().invoke(e -> {
+                            alive.set(false);
+                            log.unableToConnectToBroker(e);
+                        }));
     }
 
     private MqttFailureHandler createFailureHandler(MqttFailureHandler.Strategy strategy, String channel) {
@@ -89,8 +104,19 @@ public class MqttSource {
         return source;
     }
 
-    public boolean isReady() {
-        return ready.get();
+    public void isStarted(HealthReportBuilder builder) {
+        if (healthEnabled)
+            builder.add(channel, started.get());
+    }
+
+    public void isReady(HealthReportBuilder builder) {
+        if (healthEnabled)
+            builder.add(channel, holder.getClient().isConnected());
+    }
+
+    public void isAlive(HealthReportBuilder builder) {
+        if (healthEnabled)
+            builder.add(channel, alive.get());
     }
 
 }

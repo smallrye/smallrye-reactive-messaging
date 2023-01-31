@@ -42,11 +42,11 @@ public class DynamicMqttTopicSourceTest extends MqttTestBase {
     private void awaitAndVerify() {
         DynamicTopicApp bean = container.getBeanManager().createInstance().select(DynamicTopicApp.class).get();
         MqttConnector connector = this.container
-                .select(MqttConnector.class, ConnectorLiteral.of("smallrye-mqtt")).get();
+                .select(MqttConnector.class, ConnectorLiteral.of(MqttConnector.CONNECTOR_NAME)).get();
 
         await()
                 .pollInterval(Duration.ofSeconds(1))
-                .until(connector::isSourceReady);
+                .until(() -> connector.getReadiness().isOk());
 
         bean.publish();
 
@@ -112,7 +112,9 @@ public class DynamicMqttTopicSourceTest extends MqttTestBase {
     public void testWithSpecialWord() {
         Weld weld = baseWeld(getConfig("$/app/#"));
         weld.addBeanClass(DynamicTopicApp.class);
+
         container = weld.initialize();
+
         awaitAndVerify();
     }
 
@@ -128,7 +130,7 @@ public class DynamicMqttTopicSourceTest extends MqttTestBase {
             config.put(prefix + "password", System.getProperty("mqtt-pwd"));
         }
 
-        prefix = "mp.messaging.incoming.mqtt.";
+        prefix = "mp.messaging.incoming.in.";
         config.put(prefix + "topic", pattern);
         config.put(prefix + "connector", MqttConnector.CONNECTOR_NAME);
         config.put(prefix + "host", System.getProperty("mqtt-host"));
@@ -170,7 +172,7 @@ public class DynamicMqttTopicSourceTest extends MqttTestBase {
                             MqttQoS.EXACTLY_ONCE));
         }
 
-        @Incoming("mqtt")
+        @Incoming("in")
         public CompletionStage<Void> received(MqttMessage<byte[]> message) {
             messages.add(message);
             return message.ack();

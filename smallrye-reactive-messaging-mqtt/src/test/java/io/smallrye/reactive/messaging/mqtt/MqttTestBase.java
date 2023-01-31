@@ -1,5 +1,7 @@
 package io.smallrye.reactive.messaging.mqtt;
 
+import static org.awaitility.Awaitility.await;
+
 import java.io.File;
 import java.time.Duration;
 
@@ -15,11 +17,13 @@ import org.testcontainers.shaded.org.awaitility.Awaitility;
 import org.testcontainers.utility.MountableFile;
 
 import io.smallrye.config.SmallRyeConfigProviderResolver;
+import io.smallrye.reactive.messaging.health.HealthReport;
 import io.smallrye.reactive.messaging.providers.MediatorFactory;
 import io.smallrye.reactive.messaging.providers.connectors.ExecutionHolder;
 import io.smallrye.reactive.messaging.providers.connectors.WorkerPoolRegistry;
 import io.smallrye.reactive.messaging.providers.extension.EmitterFactoryImpl;
 import io.smallrye.reactive.messaging.providers.extension.EmitterImpl;
+import io.smallrye.reactive.messaging.providers.extension.HealthCenter;
 import io.smallrye.reactive.messaging.providers.extension.LegacyEmitterFactoryImpl;
 import io.smallrye.reactive.messaging.providers.extension.MediatorManager;
 import io.smallrye.reactive.messaging.providers.extension.MutinyEmitterFactoryImpl;
@@ -80,6 +84,22 @@ public class MqttTestBase {
         v.closeAndAwait();
     }
 
+    public void awaitUntilReady(MqttSource source) {
+        await().until(() -> {
+            HealthReport.HealthReportBuilder builder = HealthReport.builder();
+            source.isReady(builder);
+            return builder.build().isOk();
+        });
+    }
+
+    public void awaitUntilReady(MqttSink sink) {
+        await().until(() -> {
+            HealthReport.HealthReportBuilder builder = HealthReport.builder();
+            sink.isReady(builder);
+            return builder.build().isOk();
+        });
+    }
+
     @AfterAll
     public static void stopBroker() {
         mosquitto.stop();
@@ -132,6 +152,7 @@ public class MqttTestBase {
         weld.addBeanClass(EmitterFactoryImpl.class);
         weld.addBeanClass(MutinyEmitterFactoryImpl.class);
         weld.addBeanClass(LegacyEmitterFactoryImpl.class);
+        weld.addBeanClass(HealthCenter.class);
 
         // Add SmallRye Config
         weld.addExtension(new io.smallrye.config.inject.ConfigExtension());
