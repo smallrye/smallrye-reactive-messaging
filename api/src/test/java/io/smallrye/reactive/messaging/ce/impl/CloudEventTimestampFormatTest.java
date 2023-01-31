@@ -27,13 +27,14 @@ public class CloudEventTimestampFormatTest {
 
     static Stream<Arguments> testFormatIsoAndParseCustom_args() {
         return Stream.of(
-                Arguments.of(ZonedDateTime.of(2023, 1, 2, 3, 4, 5, 6789123, ZoneOffset.ofHours(-7)), "2023-01-02T03:04:05.006789123-07:00"),
-                Arguments.of(ZonedDateTime.of(2023, 1, 2, 3, 4, 5, 370582000, ZoneOffset.ofHours(-7)), "2023-01-02T03:04:05.370582-07:00"),
+                Arguments.of(ZonedDateTime.of(2023, 1, 2, 3, 4, 5, 6789123, ZoneOffset.ofHours(-7)),
+                        "2023-01-02T03:04:05.006789123-07:00"),
+                Arguments.of(ZonedDateTime.of(2023, 1, 2, 3, 4, 5, 370582000, ZoneOffset.ofHours(-7)),
+                        "2023-01-02T03:04:05.370582-07:00"),
                 Arguments.of(ZonedDateTime.of(2023, 1, 2, 3, 4, 5, 0, ZoneOffset.ofHours(-7)), "2023-01-02T03:04:05-07:00"),
                 Arguments.of(ZonedDateTime.of(2023, 1, 2, 3, 4, 5, 6789123, ZoneOffset.UTC), "2023-01-02T03:04:05.006789123Z"),
                 Arguments.of(ZonedDateTime.of(2023, 1, 2, 3, 4, 5, 370582000, ZoneOffset.UTC), "2023-01-02T03:04:05.370582Z"),
-                Arguments.of(ZonedDateTime.of(2023, 1, 2, 3, 4, 5, 0, ZoneOffset.UTC), "2023-01-02T03:04:05Z")
-        );
+                Arguments.of(ZonedDateTime.of(2023, 1, 2, 3, 4, 5, 0, ZoneOffset.UTC), "2023-01-02T03:04:05Z"));
     }
 
     @ParameterizedTest
@@ -47,13 +48,14 @@ public class CloudEventTimestampFormatTest {
 
     static Stream<Arguments> testFormatCustomAndParseIso_args() {
         return Stream.of(
-                Arguments.of(ZonedDateTime.of(2023, 1, 2, 3, 4, 5, 6789123, ZoneOffset.ofHours(-7)), "2023-01-02T03:04:05.006789123-07:00"),
-                Arguments.of(ZonedDateTime.of(2023, 1, 2, 3, 4, 5, 370582000, ZoneOffset.ofHours(-7)), "2023-01-02T03:04:05.370582-07:00"),
+                Arguments.of(ZonedDateTime.of(2023, 1, 2, 3, 4, 5, 6789123, ZoneOffset.ofHours(-7)),
+                        "2023-01-02T03:04:05.006789123-07:00"),
+                Arguments.of(ZonedDateTime.of(2023, 1, 2, 3, 4, 5, 370582000, ZoneOffset.ofHours(-7)),
+                        "2023-01-02T03:04:05.370582-07:00"),
                 Arguments.of(ZonedDateTime.of(2023, 1, 2, 3, 4, 5, 0, ZoneOffset.ofHours(-7)), "2023-01-02T03:04:05-07:00"),
                 Arguments.of(ZonedDateTime.of(2023, 1, 2, 3, 4, 5, 6789123, ZoneOffset.UTC), "2023-01-02T03:04:05.006789123Z"),
                 Arguments.of(ZonedDateTime.of(2023, 1, 2, 3, 4, 5, 370582000, ZoneOffset.UTC), "2023-01-02T03:04:05.370582Z"),
-                Arguments.of(ZonedDateTime.of(2023, 1, 2, 3, 4, 5, 0, ZoneOffset.UTC), "2023-01-02T03:04:05Z")
-        );
+                Arguments.of(ZonedDateTime.of(2023, 1, 2, 3, 4, 5, 0, ZoneOffset.UTC), "2023-01-02T03:04:05Z"));
     }
 
     @ParameterizedTest
@@ -67,13 +69,17 @@ public class CloudEventTimestampFormatTest {
 
     static Stream<Arguments> testFormatCustomAndParseIsoFailed_args() {
         return Stream.of(
-                Arguments.of(ZonedDateTime.of(2023, 1, 2, 3, 4, 5, 6789123, ZoneId.of("GMT")), "2023-01-02T03:04:05.006789123GMT"),
-                Arguments.of(ZonedDateTime.of(2023, 1, 2, 3, 4, 5, 370582000, ZoneId.of("GMT")), "2023-01-02T03:04:05.370582GMT"),
+                Arguments.of(ZonedDateTime.of(2023, 1, 2, 3, 4, 5, 6789123, ZoneId.of("GMT")),
+                        "2023-01-02T03:04:05.006789123GMT"),
+                Arguments.of(ZonedDateTime.of(2023, 1, 2, 3, 4, 5, 370582000, ZoneId.of("GMT")),
+                        "2023-01-02T03:04:05.370582GMT"),
                 Arguments.of(ZonedDateTime.of(2023, 1, 2, 3, 4, 5, 0, ZoneId.of("GMT")), "2023-01-02T03:04:05GMT"),
-                Arguments.of(ZonedDateTime.of(2023, 1, 2, 3, 4, 5, 6789123, ZoneId.of("Europe/Paris")), "2023-01-02T03:04:05.006789123Europe/Paris"),
-                Arguments.of(ZonedDateTime.of(2023, 1, 2, 3, 4, 5, 370582000, ZoneId.of("Europe/Paris")), "2023-01-02T03:04:05.370582Europe/Paris"),
-                Arguments.of(ZonedDateTime.of(2023, 1, 2, 3, 4, 5, 0, ZoneId.of("Europe/Paris")), "2023-01-02T03:04:05Europe/Paris")
-        );
+                Arguments.of(ZonedDateTime.of(2023, 1, 2, 3, 4, 5, 6789123, ZoneId.of("Europe/Paris")),
+                        "2023-01-02T03:04:05.006789123Europe/Paris"),
+                Arguments.of(ZonedDateTime.of(2023, 1, 2, 3, 4, 5, 370582000, ZoneId.of("Europe/Paris")),
+                        "2023-01-02T03:04:05.370582Europe/Paris"),
+                Arguments.of(ZonedDateTime.of(2023, 1, 2, 3, 4, 5, 0, ZoneId.of("Europe/Paris")),
+                        "2023-01-02T03:04:05Europe/Paris"));
     }
 
     @ParameterizedTest
@@ -93,8 +99,7 @@ public class CloudEventTimestampFormatTest {
                 Arguments.of("2023-01-25T19:07:06.006789123-07:00", "2023-01-25T19:07:06.006789123-07:00"),
                 Arguments.of("2023-01-25T19:07:06Z", "2023-01-25T19:07:06Z"),
                 Arguments.of("2023-01-25T19:07:06Europe/Paris", "2023-01-25T19:07:06+01:00"),
-                Arguments.of("2023-01-25T19:07:06+02:00", "2023-01-25T19:07:06+02:00")
-        );
+                Arguments.of("2023-01-25T19:07:06+02:00", "2023-01-25T19:07:06+02:00"));
     }
 
     @ParameterizedTest
@@ -110,8 +115,7 @@ public class CloudEventTimestampFormatTest {
                 Arguments.of("2023-01-25T19:07:06.370582Z", "2023-01-25T19:07:06.370582Z"),
                 Arguments.of("2023-01-25T19:07:06Z", "2023-01-25T19:07:06Z"),
                 Arguments.of("2023-01-02T03:04:05.006789123-07:00", "2023-01-02T03:04:05.006789123-07:00"),
-                Arguments.of("2023-01-02T03:04:05-07:00", "2023-01-02T03:04:05-07:00")
-        );
+                Arguments.of("2023-01-02T03:04:05-07:00", "2023-01-02T03:04:05-07:00"));
     }
 
     @ParameterizedTest
@@ -125,8 +129,7 @@ public class CloudEventTimestampFormatTest {
     static Stream<Arguments> testParseIsoFailed_args() {
         return Stream.of(
                 Arguments.of("2023-01-25T19:07:06.370582GMT"),
-                Arguments.of("2023-01-25T19:07:06GMT")
-        );
+                Arguments.of("2023-01-25T19:07:06GMT"));
     }
 
     @ParameterizedTest
