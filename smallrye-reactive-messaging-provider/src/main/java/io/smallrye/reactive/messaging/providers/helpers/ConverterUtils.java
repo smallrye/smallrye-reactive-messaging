@@ -5,7 +5,7 @@ import static io.smallrye.reactive.messaging.providers.helpers.CDIUtils.getSorte
 import java.lang.reflect.Type;
 import java.util.function.Function;
 
-import javax.enterprise.inject.Instance;
+import jakarta.enterprise.inject.Instance;
 
 import org.eclipse.microprofile.reactive.messaging.Message;
 

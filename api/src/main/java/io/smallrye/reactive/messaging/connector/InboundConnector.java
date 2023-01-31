@@ -59,7 +59,7 @@ import org.reactivestreams.Publisher;
  * In the previous configuration, smallrye reactive messaging would need to find the
  * {@link InboundConnector} qualified using the {@link Connector} qualifier with the value
  * {@code acme.kafka} class to create the {@code my-channel} channel. Note that if the
- * connector cannot be found, the deployment must be failed with a {@link javax.enterprise.inject.spi.DeploymentException}.
+ * connector cannot be found, the deployment must be failed with a {@link jakarta.enterprise.inject.spi.DeploymentException}.
  * <p>
  * The {@link #getPublisher(Config)} is called for every channel that needs to be created. The {@link Config} object
  * passed to the method contains a subset of the global configuration, and with the prefixes removed. So for the previous
@@ -79,7 +79,7 @@ import org.reactivestreams.Publisher;
  * <p>
  * If the configuration is invalid, the {@link #getPublisher(Config)} method must throw an
  * {@link IllegalArgumentException}, caught by smallrye reactive messaging and failing the deployment by
- * throwing a {@link javax.enterprise.inject.spi.DeploymentException} wrapping the exception.
+ * throwing a {@link jakarta.enterprise.inject.spi.DeploymentException} wrapping the exception.
  * <p>
  *
  * This class is specific to SmallRye and is uses internally instead of

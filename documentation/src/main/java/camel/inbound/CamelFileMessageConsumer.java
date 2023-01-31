@@ -3,7 +3,7 @@ package camel.inbound;
 import java.io.File;
 import java.util.concurrent.CompletionStage;
 
-import javax.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.context.ApplicationScoped;
 
 import org.apache.camel.component.file.GenericFile;
 import org.eclipse.microprofile.reactive.messaging.Incoming;

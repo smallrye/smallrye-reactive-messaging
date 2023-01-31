@@ -10,7 +10,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.Consumer;
 
-import javax.jms.Message;
+import jakarta.jms.Message;
 
 import io.smallrye.reactive.messaging.jms.impl.JmsTask;
 
