@@ -146,10 +146,6 @@ public class MqttSink {
         return reference.get() != null && reference.get().getClient().isConnected();
     }
 
-    private boolean isDisconnected() {
-        return reference.get() != null && reference.get().getClient().isDisconnected();
-    }
-
     public void isStarted(HealthReportBuilder builder) {
         if (healthEnabled)
             builder.add(channel, started.get());
@@ -162,7 +158,7 @@ public class MqttSink {
 
     public void isAlive(HealthReportBuilder builder) {
         if (healthEnabled)
-            builder.add(channel, !isDisconnected());
+            builder.add(channel, alive.get());
     }
 
 }

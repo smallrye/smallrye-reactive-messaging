@@ -59,10 +59,10 @@ public class HealthCheckTest extends MqttTestBase {
 
         await()
                 .pollInterval(Duration.ofSeconds(1))
-                .until(() -> !connector.getLiveness().isOk());
+                .until(() -> !connector.getReadiness().isOk());
 
         liveness = getHealth().getLiveness();
-        assertThat(liveness.isOk()).isFalse();
+        assertThat(liveness.isOk()).isTrue();
 
     }
 

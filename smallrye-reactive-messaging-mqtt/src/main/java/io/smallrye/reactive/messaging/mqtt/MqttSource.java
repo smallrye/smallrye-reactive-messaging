@@ -111,12 +111,12 @@ public class MqttSource {
 
     public void isReady(HealthReportBuilder builder) {
         if (healthEnabled)
-            builder.add(channel, alive.get());
+            builder.add(channel, holder.getClient().isConnected());
     }
 
     public void isAlive(HealthReportBuilder builder) {
         if (healthEnabled)
-            builder.add(channel, !holder.getClient().isDisconnected());
+            builder.add(channel, alive.get());
     }
 
 }
