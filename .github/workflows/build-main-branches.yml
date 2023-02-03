@@ -5,8 +5,7 @@ on:
     push:
         branches:
             - main
-            - 2.x
-            - jakarta
+            - 3.x
         paths-ignore:
             - '.github/**'
 
