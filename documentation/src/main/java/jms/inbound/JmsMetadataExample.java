@@ -2,7 +2,7 @@ package jms.inbound;
 
 import java.util.Optional;
 
-import javax.jms.Destination;
+import jakarta.jms.Destination;
 
 import org.eclipse.microprofile.reactive.messaging.Message;
 

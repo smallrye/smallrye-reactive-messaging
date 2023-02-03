@@ -17,8 +17,8 @@ the following MicroProfile Config properties:
 
 ## Selecting the ConnectionFactory
 
-The JMS Connector requires a `javax.jms.ConnectionFactory` to be exposed
-as a CDI bean. The connector looks for a `javax.jms.ConnectionFactory`
+The JMS Connector requires a `jakarta.jms.ConnectionFactory` to be exposed
+as a CDI bean. The connector looks for a `jakarta.jms.ConnectionFactory`
 and delegate the interaction with the JMS server to this factory.
 
 In case you have several connection factories, you can use the

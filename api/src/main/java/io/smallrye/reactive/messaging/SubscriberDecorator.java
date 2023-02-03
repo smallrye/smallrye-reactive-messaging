@@ -2,7 +2,7 @@ package io.smallrye.reactive.messaging;
 
 import java.util.List;
 
-import javax.enterprise.inject.spi.Prioritized;
+import jakarta.enterprise.inject.spi.Prioritized;
 
 import org.eclipse.microprofile.reactive.messaging.Message;
 

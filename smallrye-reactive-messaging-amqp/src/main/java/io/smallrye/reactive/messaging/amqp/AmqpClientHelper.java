@@ -6,8 +6,8 @@ import static io.vertx.core.net.ClientOptionsBase.DEFAULT_METRICS_NAME;
 
 import java.util.Optional;
 
-import javax.enterprise.inject.Instance;
-import javax.enterprise.inject.literal.NamedLiteral;
+import jakarta.enterprise.inject.Instance;
+import jakarta.enterprise.inject.literal.NamedLiteral;
 import javax.net.ssl.SSLContext;
 
 import io.netty.handler.ssl.ApplicationProtocolConfig;

@@ -1,7 +1,7 @@
 package io.smallrye.reactive.messaging.rabbitmq;
 
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.inject.Produces;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Produces;
 
 import io.smallrye.common.annotation.Identifier;
 import io.vertx.rabbitmq.RabbitMQOptions;

@@ -5,7 +5,7 @@ Reactive Messaging `Messages`.
 
 ## Example
 
-Let’s imagine you have a `javax.jms.ConnectionFactory` bean exposed and
+Let’s imagine you have a `jakarta.jms.ConnectionFactory` bean exposed and
 connected to your JMS server. Don’t forget that it’s required to use the
 JMS connector.
 

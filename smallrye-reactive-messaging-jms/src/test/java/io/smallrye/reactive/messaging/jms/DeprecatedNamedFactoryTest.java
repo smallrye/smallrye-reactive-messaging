@@ -6,11 +6,11 @@ import static org.awaitility.Awaitility.await;
 import java.util.HashMap;
 import java.util.Map;
 
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.inject.Produces;
-import javax.enterprise.inject.spi.DeploymentException;
-import javax.inject.Named;
-import javax.jms.ConnectionFactory;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Produces;
+import jakarta.enterprise.inject.spi.DeploymentException;
+import jakarta.inject.Named;
+import jakarta.jms.ConnectionFactory;
 
 import org.apache.activemq.artemis.jms.client.ActiveMQJMSConnectionFactory;
 import org.jboss.weld.environment.se.WeldContainer;
@@ -57,7 +57,7 @@ public class DeprecatedNamedFactoryTest extends JmsTestBase {
             deploy(PayloadConsumerBean.class, ProducerBean.class);
         } catch (DeploymentException de) {
             assertThat(de).hasCauseInstanceOf(IllegalStateException.class)
-                    .hasMessageContaining("javax.jms.ConnectionFactory bean");
+                    .hasMessageContaining("jakarta.jms.ConnectionFactory bean");
         }
     }
 
@@ -75,7 +75,7 @@ public class DeprecatedNamedFactoryTest extends JmsTestBase {
             deploy(PayloadConsumerBean.class, ProducerBean.class);
         } catch (DeploymentException de) {
             assertThat(de).hasCauseInstanceOf(IllegalStateException.class)
-                    .hasMessageContaining("javax.jms.ConnectionFactory bean named");
+                    .hasMessageContaining("jakarta.jms.ConnectionFactory bean named");
         }
     }
 
@@ -93,7 +93,7 @@ public class DeprecatedNamedFactoryTest extends JmsTestBase {
             deploy(PayloadConsumerBean.class, ProducerBean.class);
         } catch (DeploymentException de) {
             assertThat(de).hasCauseInstanceOf(IllegalStateException.class)
-                    .hasMessageContaining("javax.jms.ConnectionFactory bean named");
+                    .hasMessageContaining("jakarta.jms.ConnectionFactory bean named");
         }
     }
 

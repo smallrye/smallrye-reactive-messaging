@@ -37,19 +37,19 @@ mp.messaging.incoming.[channel-name].connector=smallrye-jms
 mp.messaging.outgoing.[channel-name].connector=smallrye-jms
 ```
 
-The JMS Connector requires a `javax.jms.ConnectionFactory` to be exposed
-(as CDI bean). The connector looks for a `javax.jms.ConnectionFactory`
+The JMS Connector requires a `jakarta.jms.ConnectionFactory` to be exposed
+(as CDI bean). The connector looks for a `jakarta.jms.ConnectionFactory`
 and delegate the interaction with the JMS server to this factory. In
 other words, it creates the JMS connection and context using this
 factory.
 
 So, in order to use this connector you would need to expose a
-`javax.jms.ConnectionFactory`:
+`jakarta.jms.ConnectionFactory`:
 
 ``` java
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.inject.Produces;
-import javax.jms.ConnectionFactory;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Produces;
+import jakarta.jms.ConnectionFactory;
 
 import org.apache.activemq.artemis.jms.client.ActiveMQJMSConnectionFactory;
 
