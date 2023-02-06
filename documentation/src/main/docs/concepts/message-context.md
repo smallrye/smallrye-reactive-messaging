@@ -56,9 +56,9 @@ Message context works with:
 
 However, message context are **NOT** enforced when using methods consuming or producing:
 
-* `Multi`, `Publisher` and `PublisherBuilder`
-* `Subscriber` and `SubscriberBuilder`
-* `Processor` and `ProcessorBuilder`
+* `Multi`, `Flow.Publisher`, `Publisher` and `PublisherBuilder`
+* `Subscriber`, `Flow.Subscriber`, and `SubscriberBuilder`
+* `Processor`, `Flow.Processor`, and `ProcessorBuilder`
 
 
 ## Under the hood
