@@ -88,7 +88,7 @@
 
     <jboss-log-manager.version>2.1.19.Final</jboss-log-manager.version>
 
-    <kafka.version>3.3.2</kafka.version>
+    <kafka.version>3.4.0</kafka.version>
 
     <opentelemetry.version>1.22.1-alpha</opentelemetry.version>
 
