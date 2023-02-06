@@ -1,12 +1,12 @@
 ## Prerequisites
 
-The build process requires Apache Maven and Java 8+ and can be performed using:
+The build process requires Apache Maven and Java 11+ and can be performed using:
 
 ```bash
 mvn clean install
 ```
 
-Some of the build uses [Testcontainers](https://www.testcontainers.org) 
+Some of the build uses [Testcontainers](https://www.testcontainers.org)
 so you need to have a running [Docker](https://docs.docker.com/engine/install/) environment.
 
 ### Docker Troubleshooting

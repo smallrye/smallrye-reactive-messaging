@@ -19,7 +19,8 @@ into [CDI](http://www.cdi-spec.org/) beans,or [JAX-RS](https://github.com/eclips
 
 ## Branches
 
-* main - 3.x development stream. Uses Vert.x 4.x and Microprofile 4.x
+* main - 4.x development stream. Uses Vert.x 4.x, Microprofile 5.x and Jakarta 9
+* 3.x - Previous development stream. Uses Vert.x 4.x and Microprofile 4.x
 * 2.x - Not under development anymore. Uses Vert.x 3.x and Microprofile 3.x
 
 ## Getting started
@@ -28,7 +29,7 @@ into [CDI](http://www.cdi-spec.org/) beans,or [JAX-RS](https://github.com/eclips
 
 See [PREREQUISITES.md](PREREQUISITES.md) for details.
 
-The build process requires Apache Maven and Java 8+ and can be performed using:
+The build process requires Apache Maven and Java 11+ and can be performed using:
 
 ```bash
 mvn clean install
@@ -47,8 +48,8 @@ import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.inject.se.SeContainerInitializer;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.se.SeContainerInitializer;
 
 @ApplicationScoped
 public class QuickStart {

@@ -1,6 +1,6 @@
 package mqtt.customization;
 
-import javax.enterprise.inject.Produces;
+import jakarta.enterprise.inject.Produces;
 
 import io.smallrye.common.annotation.Identifier;
 import io.smallrye.reactive.messaging.mqtt.session.MqttClientSessionOptions;

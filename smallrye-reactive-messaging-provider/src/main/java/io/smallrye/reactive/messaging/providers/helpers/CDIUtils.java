@@ -6,9 +6,9 @@ import java.util.List;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
-import javax.enterprise.inject.Instance;
-import javax.enterprise.inject.literal.NamedLiteral;
-import javax.enterprise.inject.spi.Prioritized;
+import jakarta.enterprise.inject.Instance;
+import jakarta.enterprise.inject.literal.NamedLiteral;
+import jakarta.enterprise.inject.spi.Prioritized;
 
 import io.smallrye.common.annotation.Identifier;
 import io.smallrye.reactive.messaging.providers.i18n.ProviderLogging;

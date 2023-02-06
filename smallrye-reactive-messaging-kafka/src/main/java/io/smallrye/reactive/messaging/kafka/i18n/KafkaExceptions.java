@@ -2,8 +2,8 @@ package io.smallrye.reactive.messaging.kafka.i18n;
 
 import java.util.NoSuchElementException;
 
-import javax.enterprise.inject.AmbiguousResolutionException;
-import javax.enterprise.inject.UnsatisfiedResolutionException;
+import jakarta.enterprise.inject.AmbiguousResolutionException;
+import jakarta.enterprise.inject.UnsatisfiedResolutionException;
 
 import org.jboss.logging.Messages;
 import org.jboss.logging.annotations.Cause;

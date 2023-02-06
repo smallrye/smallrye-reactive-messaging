@@ -9,8 +9,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 
 import org.eclipse.microprofile.reactive.messaging.Channel;
 import org.eclipse.microprofile.reactive.messaging.Emitter;
@@ -23,7 +23,6 @@ import org.junit.jupiter.api.Test;
 import io.reactivex.Flowable;
 import io.reactivex.Scheduler;
 import io.reactivex.schedulers.Schedulers;
-import io.smallrye.mutiny.subscription.BackPressureFailure;
 import io.smallrye.reactive.messaging.WeldTestBaseWithoutTails;
 
 public class DefaultOverflowStrategyTest extends WeldTestBaseWithoutTails {
@@ -58,7 +57,7 @@ public class DefaultOverflowStrategyTest extends WeldTestBaseWithoutTails {
         await().until(() -> bean.exception() != null);
         assertThat(bean.output()).doesNotContain("999");
         assertThat(bean.output()).hasSizeBetween(0, 998);
-        assertThat(bean.failure()).isNotNull().isInstanceOf(BackPressureFailure.class);
+        assertThat(bean.exception()).isNotNull().isInstanceOf(IllegalStateException.class);
     }
 
     @ApplicationScoped

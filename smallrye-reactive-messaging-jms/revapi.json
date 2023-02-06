@@ -1,56 +1,43 @@
-[
-    {
-        "extension": "revapi.java",
-        "id": "java",
-        "configuration": {
-            "missing-classes": {
-                "behavior": "report",
-                "ignoreMissingAnnotations": false
-            }
-        }
-    },
-    {
-        "extension": "revapi.filter",
-        "configuration": {
-            "elements": {
-                "include": [
-                    "class io.smallrye.reactive.messaging.jms.IncomingJmsMessage",
-                    "class io.smallrye.reactive.messaging.jms.JmsMessageMetadata",
-                    "class io.smallrye.reactive.messaging.jms.JmsProperties",
-                    "class io.smallrye.reactive.messaging.jms.IncomingJmsMessageMetadata",
-                    "class io.smallrye.reactive.messaging.jms.OutgoingJmsMessageMetadata"
-                ]
-            }
-        }
-    },
-    {
-        "extension": "revapi.differences",
-        "id": "breaking-changes",
-        "configuration": {
-            "criticality": "highlight",
-            "minSeverity": "POTENTIALLY_BREAKING",
-            "minCriticality": "documented",
-            "differences": [
-            ]
-        }
-    },
-    {
-        "extension": "revapi.reporter.json",
-        "configuration": {
-            "minSeverity": "POTENTIALLY_BREAKING",
-            "minCriticality": "documented",
-            "output": "target/compatibility.json",
-            "indent": true,
-            "append": false,
-            "keepEmptyFile": true
-        }
-    },
-    {
-        "extension": "revapi.reporter.text",
-        "configuration": {
-            "minSeverity": "POTENTIALLY_BREAKING",
-            "minCriticality": "documented",
-            "output": "out"
-        }
+[ {
+  "extension" : "revapi.java",
+  "id" : "java",
+  "configuration" : {
+    "missing-classes" : {
+      "behavior" : "report",
+      "ignoreMissingAnnotations" : false
     }
-]
+  }
+}, {
+  "extension" : "revapi.filter",
+  "configuration" : {
+    "elements" : {
+      "include" : [ "class io.smallrye.reactive.messaging.jms.IncomingJmsMessage", "class io.smallrye.reactive.messaging.jms.JmsMessageMetadata", "class io.smallrye.reactive.messaging.jms.JmsProperties", "class io.smallrye.reactive.messaging.jms.IncomingJmsMessageMetadata", "class io.smallrye.reactive.messaging.jms.OutgoingJmsMessageMetadata" ]
+    }
+  }
+}, {
+  "extension" : "revapi.differences",
+  "id" : "breaking-changes",
+  "configuration" : {
+    "criticality" : "highlight",
+    "minSeverity" : "POTENTIALLY_BREAKING",
+    "minCriticality" : "documented",
+    "differences" : [ ]
+  }
+}, {
+  "extension" : "revapi.reporter.json",
+  "configuration" : {
+    "minSeverity" : "POTENTIALLY_BREAKING",
+    "minCriticality" : "documented",
+    "output" : "target/compatibility.json",
+    "indent" : true,
+    "append" : false,
+    "keepEmptyFile" : true
+  }
+}, {
+  "extension" : "revapi.reporter.text",
+  "configuration" : {
+    "minSeverity" : "POTENTIALLY_BREAKING",
+    "minCriticality" : "documented",
+    "output" : "out"
+  }
+} ]

@@ -56,7 +56,8 @@ import org.reactivestreams.Subscriber;
  * In the previous configuration, the smallrye reactive messaging would need to find the
  * {@link OutboundConnector} implementation qualified with the {@link Connector} qualifier with the value
  * {@code acme.kafka} to create the {@code my-channel} <em>subscriber</em>. Note that if
- * the connector cannot be found, the deployment must be failed with a {@link javax.enterprise.inject.spi.DeploymentException}.
+ * the connector cannot be found, the deployment must be failed with a
+ * {@link jakarta.enterprise.inject.spi.DeploymentException}.
  * <p>
  * The {@link #getSubscriber(Config)} is called for every <em>channel</em> that needs to be created. The
  * {@link Config} object passed to the method contains a subset of the global configuration, and with the prefixes
