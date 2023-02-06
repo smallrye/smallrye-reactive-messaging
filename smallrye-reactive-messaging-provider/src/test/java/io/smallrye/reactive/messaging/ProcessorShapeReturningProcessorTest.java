@@ -8,8 +8,18 @@ import io.smallrye.reactive.messaging.beans.BeanProducingAProcessorBuilderOfMess
 import io.smallrye.reactive.messaging.beans.BeanProducingAProcessorBuilderOfPayloads;
 import io.smallrye.reactive.messaging.beans.BeanProducingAProcessorOfMessages;
 import io.smallrye.reactive.messaging.beans.BeanProducingAProcessorOfPayloads;
+import io.smallrye.reactive.messaging.beans.BeanProducingARSProcessorOfMessages;
+import io.smallrye.reactive.messaging.beans.BeanProducingARSProcessorOfPayloads;
 
 public class ProcessorShapeReturningProcessorTest extends WeldTestBase {
+
+    @Test
+    public void testBeanProducingARSProcessorOfMessages() {
+        addBeanClass(BeanProducingARSProcessorOfMessages.class);
+        initialize();
+        MyCollector collector = container.select(MyCollector.class).get();
+        assertThat(collector.payloads()).isEqualTo(EXPECTED);
+    }
 
     @Test
     public void testBeanProducingAProcessorOfMessages() {
@@ -30,6 +40,14 @@ public class ProcessorShapeReturningProcessorTest extends WeldTestBase {
     @Test
     public void testBeanProducingAProcessorOfPayloads() {
         addBeanClass(BeanProducingAProcessorOfPayloads.class);
+        initialize();
+        MyCollector collector = container.select(MyCollector.class).get();
+        assertThat(collector.payloads()).isEqualTo(EXPECTED);
+    }
+
+    @Test
+    public void testBeanProducingARSProcessorOfPayloads() {
+        addBeanClass(BeanProducingARSProcessorOfPayloads.class);
         initialize();
         MyCollector collector = container.select(MyCollector.class).get();
         assertThat(collector.payloads()).isEqualTo(EXPECTED);

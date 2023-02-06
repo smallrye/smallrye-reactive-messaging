@@ -11,16 +11,23 @@
   "extension" : "revapi.filter",
   "configuration" : {
     "elements" : {
-      "include" : [ "class io.smallrye.reactive.messaging.providers.PublisherDecorator", {
-        "matcher" : "java-package",
-        "match" : "io.smallrye.reactive.messaging.providers.connectors"
-      }, {
-        "matcher" : "java-package",
-        "match" : "io.smallrye.reactive.messaging.providers.locals"
-      }, {
-        "matcher" : "java-package",
-        "match" : "io.smallrye.reactive.messaging.providers.wiring"
-      } ]
+      "include" : [
+          "class io.smallrye.reactive.messaging.providers.PublisherDecorator",
+          "class io.smallrye.reactive.messaging.connectors.ExecutionHolder",
+          "class io.smallrye.reactive.messaging.connectors.WorkerPoolRegistry",
+          "class io.smallrye.reactive.messaging.locals.ContextAwareMessage",
+          "class io.smallrye.reactive.messaging.locals.ContextDecorator",
+          "class io.smallrye.reactive.messaging.locals.ContextOperator",
+          "class io.smallrye.reactive.messaging.locals.LocalContextMetadata",
+          "class io.smallrye.reactive.messaging.locals.CycleException",
+          "class io.smallrye.reactive.messaging.locals.Graph",
+          "class io.smallrye.reactive.messaging.locals.OpenGraphException",
+          "class io.smallrye.reactive.messaging.locals.TooManyDownstreamCandidatesException",
+          "class io.smallrye.reactive.messaging.locals.TooManyUpstreamCandidatesException",
+          "class io.smallrye.reactive.messaging.locals.UnsatisfiedBroadcastException",
+          "class io.smallrye.reactive.messaging.locals.Wiring",
+          "class io.smallrye.reactive.messaging.locals.WiringException"
+      ]
     }
   }
 }, {

@@ -6,16 +6,16 @@ import static io.smallrye.reactive.messaging.jms.i18n.JmsLogging.log;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Flow;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
-import jakarta.jms.*;
-
-import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
-import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
-import org.reactivestreams.Publisher;
-import org.reactivestreams.Subscriber;
-import org.reactivestreams.Subscription;
+import jakarta.jms.Destination;
+import jakarta.jms.IllegalStateRuntimeException;
+import jakarta.jms.JMSConsumer;
+import jakarta.jms.JMSContext;
+import jakarta.jms.Message;
+import jakarta.jms.Topic;
 
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.helpers.Subscriptions;
@@ -23,7 +23,7 @@ import io.smallrye.reactive.messaging.json.JsonMapping;
 
 class JmsSource {
 
-    private final PublisherBuilder<IncomingJmsMessage<?>> source;
+    private final Flow.Publisher<IncomingJmsMessage<?>> source;
 
     private final JmsPublisher publisher;
 
@@ -48,13 +48,12 @@ class JmsSource {
 
         publisher = new JmsPublisher(consumer);
 
+        Multi<IncomingJmsMessage<?>> multi = Multi.createFrom().publisher(publisher)
+                .map(m -> new IncomingJmsMessage<>(m, executor, jsonMapping));
         if (!broadcast) {
-            source = ReactiveStreams.fromPublisher(publisher).map(m -> new IncomingJmsMessage<>(m, executor, jsonMapping));
+            source = multi;
         } else {
-            source = ReactiveStreams.fromPublisher(
-                    Multi.createFrom().publisher(publisher)
-                            .map(m -> new IncomingJmsMessage<>(m, executor, jsonMapping))
-                            .broadcast().toAllSubscribers());
+            source = multi.broadcast().toAllSubscribers();
         }
     }
 
@@ -77,15 +76,15 @@ class JmsSource {
 
     }
 
-    PublisherBuilder<IncomingJmsMessage<?>> getSource() {
+    Flow.Publisher<IncomingJmsMessage<?>> getSource() {
         return source;
     }
 
     @SuppressWarnings("PublisherImplementation")
-    private static class JmsPublisher implements Publisher<Message>, Subscription {
+    private static class JmsPublisher implements Flow.Publisher<Message>, Flow.Subscription {
 
         private final AtomicLong requests = new AtomicLong();
-        private final AtomicReference<Subscriber<? super Message>> downstream = new AtomicReference<>();
+        private final AtomicReference<Flow.Subscriber<? super Message>> downstream = new AtomicReference<>();
         private final JMSConsumer consumer;
         private final ExecutorService executor;
         private boolean unbounded;
@@ -96,7 +95,7 @@ class JmsSource {
         }
 
         void close() {
-            Subscriber<? super Message> subscriber = downstream.getAndSet(null);
+            Flow.Subscriber<? super Message> subscriber = downstream.getAndSet(null);
             if (subscriber != null) {
                 subscriber.onComplete();
             }
@@ -105,7 +104,7 @@ class JmsSource {
         }
 
         @Override
-        public void subscribe(Subscriber<? super Message> s) {
+        public void subscribe(Flow.Subscriber<? super Message> s) {
             if (downstream.compareAndSet(null, s)) {
                 s.onSubscribe(this);
             } else {

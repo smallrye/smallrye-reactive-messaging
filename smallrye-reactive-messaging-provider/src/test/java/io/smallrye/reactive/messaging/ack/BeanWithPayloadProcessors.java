@@ -5,6 +5,7 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Flow;
 
 import jakarta.enterprise.context.ApplicationScoped;
 
@@ -15,7 +16,6 @@ import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.eclipse.microprofile.reactive.streams.operators.ProcessorBuilder;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 import org.reactivestreams.Processor;
-import org.reactivestreams.Publisher;
 
 import io.smallrye.mutiny.Multi;
 
@@ -81,7 +81,7 @@ public class BeanWithPayloadProcessors extends SpiedBeanHelper {
     }
 
     @Outgoing(NO_ACKNOWLEDGMENT)
-    public Publisher<Message<String>> sourceToNoAck() {
+    public Flow.Publisher<Message<String>> sourceToNoAck() {
         return Multi.createFrom().items("a", "b", "c", "d", "e")
                 .map(payload -> Message.of(payload, () -> {
                     nap();
@@ -100,7 +100,7 @@ public class BeanWithPayloadProcessors extends SpiedBeanHelper {
     }
 
     @Outgoing(DEFAULT_ACKNOWLEDGMENT)
-    public Publisher<Message<String>> sourceToAutoAck() {
+    public Flow.Publisher<Message<String>> sourceToAutoAck() {
         return Multi.createFrom().items("a", "b", "c", "d", "e")
                 .map(payload -> Message.of(payload, () -> {
                     nap();
@@ -120,7 +120,7 @@ public class BeanWithPayloadProcessors extends SpiedBeanHelper {
     }
 
     @Outgoing(PRE_ACKNOWLEDGMENT)
-    public Publisher<Message<String>> sourceToPreAck() {
+    public Flow.Publisher<Message<String>> sourceToPreAck() {
         return Multi.createFrom().items("a", "b", "c", "d", "e")
                 .map(payload -> Message.of(payload, () -> {
                     nap();
@@ -139,7 +139,7 @@ public class BeanWithPayloadProcessors extends SpiedBeanHelper {
     }
 
     @Outgoing(NO_ACKNOWLEDGMENT_BUILDER)
-    public Publisher<Message<String>> sourceToNoAckWithBuilder() {
+    public Flow.Publisher<Message<String>> sourceToNoAckWithBuilder() {
         return Multi.createFrom().items("a", "b", "c", "d", "e")
                 .map(payload -> Message.of(payload, () -> {
                     nap();
@@ -157,7 +157,7 @@ public class BeanWithPayloadProcessors extends SpiedBeanHelper {
     }
 
     @Outgoing(DEFAULT_ACKNOWLEDGMENT_BUILDER)
-    public Publisher<Message<String>> sourceToAutoAckWithBuilder() {
+    public Flow.Publisher<Message<String>> sourceToAutoAckWithBuilder() {
         return Multi.createFrom().items("a", "b", "c", "d", "e")
                 .map(payload -> Message.of(payload, () -> {
                     nap();
@@ -176,7 +176,7 @@ public class BeanWithPayloadProcessors extends SpiedBeanHelper {
     }
 
     @Outgoing(PRE_ACKNOWLEDGMENT_BUILDER)
-    public Publisher<Message<String>> sourceToPreAckWithBuilder() {
+    public Flow.Publisher<Message<String>> sourceToPreAckWithBuilder() {
         return Multi.createFrom().items("a", "b", "c", "d", "e")
                 .map(payload -> Message.of(payload, () -> {
                     nap();

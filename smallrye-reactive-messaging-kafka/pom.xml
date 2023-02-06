@@ -100,7 +100,7 @@
     <dependency>
       <groupId>io.smallrye.reactive</groupId>
       <artifactId>mutiny-zero-reactive-streams-junit5-tck</artifactId>
-      <version>${mutiny-zero-reactive-streams-junit5-tck.version}</version>
+      <version>${mutiny-zero.version}</version>
       <scope>test</scope>
       <classifier>tests</classifier>
     </dependency>

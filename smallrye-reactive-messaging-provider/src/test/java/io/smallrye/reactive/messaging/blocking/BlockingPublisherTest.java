@@ -4,11 +4,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 import java.util.List;
+import java.util.concurrent.Flow;
 import java.util.stream.Collectors;
 
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.junit.jupiter.api.Test;
-import org.reactivestreams.Publisher;
 
 import io.smallrye.reactive.messaging.PublisherShapeTest;
 import io.smallrye.reactive.messaging.WeldTestBaseWithoutTails;
@@ -23,7 +23,7 @@ public class BlockingPublisherTest extends WeldTestBaseWithoutTails {
         addBeanClass(PublisherShapeTest.InfiniteSubscriber.class);
         initialize();
 
-        List<Publisher<? extends Message<?>>> producer = registry(container).getPublishers("infinite-producer");
+        List<Flow.Publisher<? extends Message<?>>> producer = registry(container).getPublishers("infinite-producer");
         assertThat(producer).isNotEmpty();
         PublisherShapeTest.InfiniteSubscriber subscriber = get(PublisherShapeTest.InfiniteSubscriber.class);
         await().until(() -> subscriber.list().size() == 4);
@@ -44,7 +44,7 @@ public class BlockingPublisherTest extends WeldTestBaseWithoutTails {
         addBeanClass(PublisherShapeTest.InfiniteSubscriber.class);
         initialize();
 
-        List<Publisher<? extends Message<?>>> producer = registry(container).getPublishers("infinite-producer");
+        List<Flow.Publisher<? extends Message<?>>> producer = registry(container).getPublishers("infinite-producer");
         assertThat(producer).isNotEmpty();
         PublisherShapeTest.InfiniteSubscriber subscriber = get(PublisherShapeTest.InfiniteSubscriber.class);
         await().until(() -> subscriber.list().size() == 4);

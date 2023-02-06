@@ -9,13 +9,13 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.Flow;
 import java.util.function.Function;
 
 import jakarta.enterprise.inject.Instance;
 
 import org.eclipse.microprofile.reactive.messaging.Acknowledgment;
 import org.eclipse.microprofile.reactive.messaging.Message;
-import org.reactivestreams.Subscriber;
 
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
@@ -162,7 +162,7 @@ public abstract class AbstractMediator {
         return configuration.methodAsString();
     }
 
-    public Subscriber<Message<?>> getComputedSubscriber() {
+    public Flow.Subscriber<Message<?>> getComputedSubscriber() {
         return null;
     }
 

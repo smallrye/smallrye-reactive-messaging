@@ -8,6 +8,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Flow;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -22,7 +23,6 @@ import org.apache.qpid.proton.amqp.transport.Target;
 import org.eclipse.microprofile.config.ConfigProvider;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.spi.ConnectorFactory;
-import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 import org.jboss.weld.environment.se.Weld;
 import org.jboss.weld.environment.se.WeldContainer;
 import org.junit.jupiter.api.AfterEach;
@@ -76,11 +76,11 @@ public class AmqpSinkTest extends AmqpTestBase {
 
         server = setupMockServerForTypeTest(messagesReceived, msgsReceived, attachAddress);
 
-        SubscriberBuilder<? extends Message<?>, Void> sink = createProviderAndSink(topic, server.actualPort());
+        Flow.Subscriber<? extends Message<?>> sink = createProviderAndSink(topic, server.actualPort());
         //noinspection unchecked
         Multi.createFrom().range(0, msgCount)
                 .map(Message::of)
-                .subscribe((Subscriber<? super Message<Integer>>) sink.build());
+                .subscribe((Flow.Subscriber<? super Message<Integer>>) sink);
 
         assertThat(msgsReceived.await(6, TimeUnit.SECONDS)).isTrue();
 
@@ -109,12 +109,12 @@ public class AmqpSinkTest extends AmqpTestBase {
 
         server = setupMockServerForTypeTest(messagesReceived, msgsReceived, attachAddress);
 
-        SubscriberBuilder<? extends Message<?>, Void> sink = createProviderAndNonAnonymousSink(topic,
+        Flow.Subscriber<? extends Message<?>> sink = createProviderAndNonAnonymousSink(topic,
                 server.actualPort());
         //noinspection unchecked
         Multi.createFrom().range(0, 10)
                 .map(Message::of)
-                .subscribe((Subscriber<? super Message<Integer>>) sink.build());
+                .subscribe((Flow.Subscriber<? super Message<Integer>>) sink);
 
         assertThat(msgsReceived.await(6, TimeUnit.SECONDS)).isTrue();
 
@@ -141,14 +141,14 @@ public class AmqpSinkTest extends AmqpTestBase {
 
         server = setupMockServerForTypeTest(messagesReceived, msgsReceived);
 
-        SubscriberBuilder<? extends Message<?>, Void> sink = createProviderAndNonAnonymousSink(
+        Flow.Subscriber<? extends Message<?>> sink = createProviderAndNonAnonymousSink(
                 UUID.randomUUID().toString(),
                 server.actualPort());
         //noinspection unchecked
         Multi.createFrom().range(0, 10)
                 .map(i -> Integer.toString(i))
                 .map(Message::of)
-                .subscribe((Subscriber<? super Message<String>>) sink.build());
+                .subscribe((Flow.Subscriber<? super Message<String>>) sink);
 
         assertThat(msgsReceived.await(6, TimeUnit.SECONDS)).isTrue();
 
@@ -222,7 +222,7 @@ public class AmqpSinkTest extends AmqpTestBase {
 
         server = setupMockServerForTypeTest(messagesReceived, msgsReceived);
 
-        SubscriberBuilder<? extends Message<?>, Void> sink = createProviderAndSink(UUID.randomUUID().toString(),
+        Flow.Subscriber<? extends Message<?>> sink = createProviderAndSink(UUID.randomUUID().toString(),
                 server.actualPort());
         //noinspection unchecked
         Multi.createFrom().range(0, 10)
@@ -232,7 +232,7 @@ public class AmqpSinkTest extends AmqpTestBase {
                     return p;
                 })
                 .map(Message::of)
-                .subscribe((Subscriber<? super Message<Person>>) sink.build());
+                .subscribe((Flow.Subscriber<? super Message<Person>>) sink);
 
         assertThat(msgsReceived.await(6, TimeUnit.SECONDS)).isTrue();
 
@@ -277,7 +277,7 @@ public class AmqpSinkTest extends AmqpTestBase {
 
         server = setupMockServerForTypeTest(messagesReceived, msgsReceived);
 
-        SubscriberBuilder<? extends Message<?>, Void> sink = createProviderAndSink(UUID.randomUUID().toString(),
+        Flow.Subscriber<? extends Message<?>> sink = createProviderAndSink(UUID.randomUUID().toString(),
                 server.actualPort());
         //noinspection unchecked
         Multi.createFrom().range(0, 10)
@@ -296,7 +296,7 @@ public class AmqpSinkTest extends AmqpTestBase {
                     nack.incrementAndGet();
                     return CompletableFuture.completedFuture(null);
                 }))
-                .subscribe((Subscriber<? super Message<Person>>) sink.build());
+                .subscribe((Flow.Subscriber<? super Message<Person>>) sink);
 
         assertThat(msgsReceived.await(6, TimeUnit.SECONDS)).isTrue();
         await().until(() -> nack.get() == 5);
@@ -329,13 +329,13 @@ public class AmqpSinkTest extends AmqpTestBase {
 
         server = setupMockServerForTypeTest(messagesReceived, msgsReceived);
 
-        SubscriberBuilder<? extends Message<?>, Void> sink = createProviderAndSink(UUID.randomUUID().toString(),
+        Flow.Subscriber<? extends Message<?>> sink = createProviderAndSink(UUID.randomUUID().toString(),
                 server.actualPort());
         //noinspection unchecked
         Multi.createFrom().range(0, 10)
                 .map(i -> new JsonObject().put(ID, HELLO + i))
                 .map(Message::of)
-                .subscribe((Subscriber<? super Message<?>>) sink.build());
+                .subscribe((Flow.Subscriber<? super Message<?>>) sink);
 
         assertThat(msgsReceived.await(6, TimeUnit.SECONDS)).isTrue();
 
@@ -367,13 +367,13 @@ public class AmqpSinkTest extends AmqpTestBase {
 
         server = setupMockServerForTypeTest(messagesReceived, msgsReceived);
 
-        SubscriberBuilder<? extends Message<?>, Void> sink = createProviderAndSink(UUID.randomUUID().toString(),
+        Flow.Subscriber<? extends Message<?>> sink = createProviderAndSink(UUID.randomUUID().toString(),
                 server.actualPort());
         //noinspection unchecked
         Multi.createFrom().range(0, 10)
                 .map(i -> new JsonArray().add(HELLO + i).add(FOO))
                 .map(Message::of)
-                .subscribe((Subscriber<? super Message<?>>) sink.build());
+                .subscribe((Flow.Subscriber<? super Message<?>>) sink);
 
         assertThat(msgsReceived.await(6, TimeUnit.SECONDS)).isTrue();
 
@@ -406,7 +406,7 @@ public class AmqpSinkTest extends AmqpTestBase {
 
         server = setupMockServerForTypeTest(messagesReceived, msgsReceived);
 
-        SubscriberBuilder<? extends Message<?>, Void> sink = createProviderAndSink(UUID.randomUUID().toString(),
+        Flow.Subscriber<? extends Message<?>> sink = createProviderAndSink(UUID.randomUUID().toString(),
                 server.actualPort());
         //noinspection unchecked
         Multi.createFrom().range(0, 10)
@@ -417,7 +417,7 @@ public class AmqpSinkTest extends AmqpTestBase {
                     return res;
                 })
                 .map(Message::of)
-                .subscribe((Subscriber<? super Message<?>>) sink.build());
+                .subscribe((Flow.Subscriber<? super Message<?>>) sink);
 
         assertThat(msgsReceived.await(6, TimeUnit.SECONDS)).isTrue();
 
@@ -449,13 +449,13 @@ public class AmqpSinkTest extends AmqpTestBase {
 
         server = setupMockServerForTypeTest(messagesReceived, msgsReceived);
 
-        SubscriberBuilder<? extends Message<?>, Void> sink = createProviderAndSink(UUID.randomUUID().toString(),
+        Flow.Subscriber<? extends Message<?>> sink = createProviderAndSink(UUID.randomUUID().toString(),
                 server.actualPort());
         //noinspection unchecked
         Multi.createFrom().range(0, 10)
                 .map(i -> new JsonObject().put(ID, HELLO + i).toBuffer())
                 .map(Message::of)
-                .subscribe((Subscriber<? super Message<?>>) sink.build());
+                .subscribe((Flow.Subscriber<? super Message<?>>) sink);
 
         assertThat(msgsReceived.await(6, TimeUnit.SECONDS)).isTrue();
 
@@ -486,13 +486,13 @@ public class AmqpSinkTest extends AmqpTestBase {
 
         server = setupMockServerForTypeTest(messagesReceived, msgsReceived);
 
-        SubscriberBuilder<? extends Message<?>, Void> sink = createProviderAndSink(UUID.randomUUID().toString(),
+        Flow.Subscriber<? extends Message<?>> sink = createProviderAndSink(UUID.randomUUID().toString(),
                 server.actualPort());
         //noinspection unchecked
         Multi.createFrom().range(0, 10)
                 .map(i -> new Buffer(new JsonObject().put(ID, HELLO + i).toBuffer()))
                 .map(Message::of)
-                .subscribe((Subscriber<? super Message<?>>) sink.build());
+                .subscribe((Flow.Subscriber<? super Message<?>>) sink);
 
         assertThat(msgsReceived.await(6, TimeUnit.SECONDS)).isTrue();
 
@@ -523,13 +523,13 @@ public class AmqpSinkTest extends AmqpTestBase {
 
         server = setupMockServerForTypeTest(messagesReceived, msgsReceived);
 
-        SubscriberBuilder<? extends Message<?>, Void> sink = createProviderAndSink(UUID.randomUUID().toString(),
+        Flow.Subscriber<? extends Message<?>> sink = createProviderAndSink(UUID.randomUUID().toString(),
                 server.actualPort());
         //noinspection unchecked
         Multi.createFrom().range(0, 10)
                 .map(i -> new JsonObject().put(ID, HELLO + i).toBuffer().getBytes())
                 .map(Message::of)
-                .subscribe((Subscriber<? super Message<?>>) sink.build());
+                .subscribe((Flow.Subscriber<? super Message<?>>) sink);
 
         assertThat(msgsReceived.await(6, TimeUnit.SECONDS)).isTrue();
 
@@ -691,7 +691,7 @@ public class AmqpSinkTest extends AmqpTestBase {
 
         server = setupMockServerForTypeTest(messagesReceived, msgsReceived);
 
-        SubscriberBuilder<? extends Message<?>, Void> sink = createProviderAndSink(UUID.randomUUID().toString(),
+        Flow.Subscriber<? extends Message<?>> sink = createProviderAndSink(UUID.randomUUID().toString(),
                 server.actualPort());
 
         //noinspection unchecked
@@ -700,7 +700,7 @@ public class AmqpSinkTest extends AmqpTestBase {
                         .withBody(HELLO + v)
                         .withSubject("foo")
                         .build())
-                .subscribe((Subscriber<? super Message<?>>) sink.build());
+                .subscribe((Flow.Subscriber<? super Message<?>>) sink);
 
         assertThat(msgsReceived.await(6, TimeUnit.SECONDS)).isTrue();
 
@@ -734,7 +734,7 @@ public class AmqpSinkTest extends AmqpTestBase {
         server = setupMockServerForTypeTest(messagesReceived, msgsReceived, attachAddress);
 
         String address = UUID.randomUUID().toString();
-        SubscriberBuilder<? extends Message<?>, Void> sink = createProviderAndNonAnonymousSink(address,
+        Flow.Subscriber<? extends Message<?>> sink = createProviderAndNonAnonymousSink(address,
                 server.actualPort());
 
         //noinspection unchecked
@@ -744,7 +744,7 @@ public class AmqpSinkTest extends AmqpTestBase {
                         .withSubject("foo")
                         .withAddress("unused")
                         .build())
-                .subscribe((Subscriber<? super AmqpMessage<String>>) sink.build());
+                .subscribe((Flow.Subscriber<? super AmqpMessage<String>>) sink);
 
         assertThat(msgsReceived.await(6, TimeUnit.SECONDS)).isTrue();
 
@@ -780,7 +780,7 @@ public class AmqpSinkTest extends AmqpTestBase {
 
         server = setupMockServerForTypeTest(messagesReceived, msgsReceived);
 
-        SubscriberBuilder<? extends Message<?>, Void> sink = createProviderAndSink(UUID.randomUUID().toString(),
+        Flow.Subscriber<? extends Message<?>> sink = createProviderAndSink(UUID.randomUUID().toString(),
                 server.actualPort());
 
         //noinspection unchecked
@@ -793,7 +793,7 @@ public class AmqpSinkTest extends AmqpTestBase {
                     message.setSubject("bar");
                     return Message.of(message);
                 })
-                .subscribe((Subscriber<? super Message<?>>) sink.build());
+                .subscribe((Flow.Subscriber<? super Message<?>>) sink);
 
         assertThat(msgsReceived.await(6, TimeUnit.SECONDS)).isTrue();
 
@@ -825,10 +825,9 @@ public class AmqpSinkTest extends AmqpTestBase {
 
         server = setupMockServerForTypeTest(messagesReceived, msgsReceived);
 
-        SubscriberBuilder<? extends Message<?>, Void> sink = createProviderAndSink(UUID.randomUUID().toString(),
+        Flow.Subscriber<? extends Message<?>> sink = createProviderAndSink(UUID.randomUUID().toString(),
                 server.actualPort());
 
-        //noinspection unchecked
         Multi.createFrom().range(0, 10)
                 .map(v -> io.vertx.mutiny.amqp.AmqpMessage.create()
                         .withBufferAsBody(Buffer.buffer((HELLO + v).getBytes(StandardCharsets.UTF_8)))
@@ -836,7 +835,7 @@ public class AmqpSinkTest extends AmqpTestBase {
                         .subject("bar")
                         .build())
                 .map(Message::of)
-                .subscribe((Subscriber<? super Message<io.vertx.mutiny.amqp.AmqpMessage>>) sink.build());
+                .subscribe((Flow.Subscriber<? super Message<io.vertx.mutiny.amqp.AmqpMessage>>) sink);
 
         assertThat(msgsReceived.await(6, TimeUnit.SECONDS)).isTrue();
 
@@ -868,10 +867,9 @@ public class AmqpSinkTest extends AmqpTestBase {
 
         server = setupMockServerForTypeTest(messagesReceived, msgsReceived);
 
-        SubscriberBuilder<? extends Message<?>, Void> sink = createProviderAndSink(UUID.randomUUID().toString(),
+        Flow.Subscriber<? extends Message<?>> sink = createProviderAndSink(UUID.randomUUID().toString(),
                 server.actualPort());
 
-        //noinspection unchecked
         Multi.createFrom().range(0, 10)
                 .map(v -> {
                     io.vertx.mutiny.amqp.AmqpMessageBuilder builder = io.vertx.mutiny.amqp.AmqpMessageBuilder.create();
@@ -880,7 +878,7 @@ public class AmqpSinkTest extends AmqpTestBase {
                             .subject("baz");
                     return Message.of(builder.build());
                 })
-                .subscribe((Subscriber<? super Message<?>>) sink.build());
+                .subscribe((Flow.Subscriber<? super Message<?>>) sink);
 
         assertThat(msgsReceived.await(6, TimeUnit.SECONDS)).isTrue();
 
@@ -912,10 +910,9 @@ public class AmqpSinkTest extends AmqpTestBase {
 
         server = setupMockServerForTypeTest(messagesReceived, msgsReceived);
 
-        SubscriberBuilder<? extends Message<?>, Void> sink = createProviderAndSink(UUID.randomUUID().toString(),
+        Flow.Subscriber<? extends Message<?>> sink = createProviderAndSink(UUID.randomUUID().toString(),
                 server.actualPort());
 
-        //noinspection unchecked
         Multi.createFrom().range(0, 10)
                 .map(v -> {
                     io.vertx.amqp.AmqpMessageBuilder builder = io.vertx.amqp.AmqpMessageBuilder.create();
@@ -924,7 +921,7 @@ public class AmqpSinkTest extends AmqpTestBase {
                             .contentType("text/plain");
                     return Message.of(builder.build());
                 })
-                .subscribe((Subscriber<? super Message<?>>) sink.build());
+                .subscribe((Flow.Subscriber<? super Message<?>>) sink);
 
         assertThat(msgsReceived.await(6, TimeUnit.SECONDS)).isTrue();
 
@@ -959,13 +956,12 @@ public class AmqpSinkTest extends AmqpTestBase {
 
         server = setupMockServerForTypeTest(messagesReceived, msgsReceived, attachAddress);
 
-        SubscriberBuilder<? extends Message<?>, Void> sink = createProviderAndSinkUsingChannelName(topic,
+        Flow.Subscriber<? extends Message<?>> sink = createProviderAndSinkUsingChannelName(topic,
                 server.actualPort());
 
-        //noinspection unchecked
         Multi.createFrom().range(0, 10)
                 .map(v -> AmqpMessage.<String> builder().withBody(HELLO + v).withSubject("foo").build())
-                .subscribe((Subscriber<? super AmqpMessage<String>>) sink.build());
+                .subscribe((Flow.Subscriber<? super AmqpMessage<String>>) sink);
 
         assertThat(msgsReceived.await(6, TimeUnit.SECONDS)).isTrue();
 
@@ -1000,7 +996,7 @@ public class AmqpSinkTest extends AmqpTestBase {
 
         server = setupMockServerForTypeTest(messagesReceived, msgsReceived);
 
-        SubscriberBuilder<? extends Message<?>, Void> sink = createProviderAndSink(address, server.actualPort());
+        Flow.Subscriber<? extends Message<?>> sink = createProviderAndSink(address, server.actualPort());
 
         //noinspection unchecked
         Multi.createFrom().range(0, 10)
@@ -1021,7 +1017,7 @@ public class AmqpSinkTest extends AmqpTestBase {
                         .withApplicationProperties(new JsonObject().put("key", "value"))
                         .withFooter("my-trailer", "hello-footer")
                         .build()))
-                .subscribe((Subscriber<? super Message<Integer>>) sink.build());
+                .subscribe((Flow.Subscriber<? super Message<Integer>>) sink);
 
         assertThat(msgsReceived.await(6, TimeUnit.SECONDS)).isTrue();
 
@@ -1077,7 +1073,7 @@ public class AmqpSinkTest extends AmqpTestBase {
 
         server = setupMockServerForTypeTest(messagesReceived, msgsReceived);
 
-        SubscriberBuilder<? extends Message<?>, Void> sink = createProviderAndSinkWithConnectorTtl(address,
+        Flow.Subscriber<? extends Message<?>> sink = createProviderAndSinkWithConnectorTtl(address,
                 server.actualPort(),
                 3000);
 
@@ -1099,7 +1095,7 @@ public class AmqpSinkTest extends AmqpTestBase {
                         .withApplicationProperties(new JsonObject().put("key", "value"))
                         .withFooter("my-trailer", "hello-footer")
                         .build()))
-                .subscribe((Subscriber<? super Message<Integer>>) sink.build());
+                .subscribe((Flow.Subscriber<? super Message<Integer>>) sink);
 
         assertThat(msgsReceived.await(6, TimeUnit.SECONDS)).isTrue();
 
@@ -1155,7 +1151,7 @@ public class AmqpSinkTest extends AmqpTestBase {
 
         server = setupMockServerForTypeTest(messagesReceived, msgsReceived);
 
-        SubscriberBuilder<? extends Message<?>, Void> sink = createProviderAndSinkWithConnectorTtl(address,
+        Flow.Subscriber<? extends Message<?>> sink = createProviderAndSinkWithConnectorTtl(address,
                 server.actualPort(),
                 3000);
 
@@ -1178,7 +1174,7 @@ public class AmqpSinkTest extends AmqpTestBase {
                         .withApplicationProperties(new JsonObject().put("key", "value"))
                         .withFooter("my-trailer", "hello-footer")
                         .build()))
-                .subscribe((Subscriber<? super Message<Integer>>) sink.build());
+                .subscribe((Flow.Subscriber<? super Message<Integer>>) sink);
 
         assertThat(msgsReceived.await(6, TimeUnit.SECONDS)).isTrue();
 
@@ -1234,12 +1230,12 @@ public class AmqpSinkTest extends AmqpTestBase {
 
         server = setupMockServerForTypeTest(messagesReceived, msgsReceived);
 
-        SubscriberBuilder<? extends Message<?>, Void> sink = createProviderAndSink(address, server.actualPort());
+        Flow.Subscriber<? extends Message<?>> sink = createProviderAndSink(address, server.actualPort());
 
         //noinspection unchecked
         Multi.createFrom().range(0, 10)
                 .map(Message::of)
-                .subscribe((Subscriber<? super Message<Integer>>) sink.build());
+                .subscribe((Flow.Subscriber<? super Message<Integer>>) sink);
 
         assertThat(msgsReceived.await(6, TimeUnit.SECONDS)).isTrue();
 
@@ -1265,11 +1261,11 @@ public class AmqpSinkTest extends AmqpTestBase {
         assertThat(count.get()).isEqualTo(msgCount);
     }
 
-    private SubscriberBuilder<? extends Message<?>, Void> getSubscriberBuilder(Map<String, Object> config) {
+    private Flow.Subscriber<? extends Message<?>> getSubscriberBuilder(Map<String, Object> config) {
         this.provider = new AmqpConnector();
         provider.setup(executionHolder);
         provider.init();
-        return this.provider.getSubscriberBuilder(new MapBasedConfig(config));
+        return this.provider.getSubscriber(new MapBasedConfig(config));
     }
 
     private Map<String, Object> createBaseConfig(String topic, int port) {
@@ -1283,7 +1279,7 @@ public class AmqpSinkTest extends AmqpTestBase {
         return config;
     }
 
-    private SubscriberBuilder<? extends Message<?>, Void> createProviderAndSink(String topic, int port) {
+    private Flow.Subscriber<? extends Message<?>> createProviderAndSink(String topic, int port) {
         Map<String, Object> config = createBaseConfig(topic, port);
         config.put("address", topic);
 
@@ -1291,7 +1287,7 @@ public class AmqpSinkTest extends AmqpTestBase {
     }
 
     @SuppressWarnings("SameParameterValue")
-    private SubscriberBuilder<? extends Message<?>, Void> createProviderAndSinkWithConnectorTtl(String topic, int port,
+    private Flow.Subscriber<? extends Message<?>> createProviderAndSinkWithConnectorTtl(String topic, int port,
             long ttl) {
         Map<String, Object> config = createBaseConfig(topic, port);
         config.put("address", topic);
@@ -1300,7 +1296,7 @@ public class AmqpSinkTest extends AmqpTestBase {
         return getSubscriberBuilder(config);
     }
 
-    private SubscriberBuilder<? extends Message<?>, Void> createProviderAndNonAnonymousSink(String topic, int port) {
+    private Flow.Subscriber<? extends Message<?>> createProviderAndNonAnonymousSink(String topic, int port) {
         Map<String, Object> config = createBaseConfig(topic, port);
         config.put("address", topic);
         config.put("use-anonymous-sender", false);
@@ -1308,7 +1304,7 @@ public class AmqpSinkTest extends AmqpTestBase {
         return getSubscriberBuilder(config);
     }
 
-    private SubscriberBuilder<? extends Message<?>, Void> createProviderAndSinkUsingChannelName(String topic,
+    private Flow.Subscriber<? extends Message<?>> createProviderAndSinkUsingChannelName(String topic,
             int port) {
         Map<String, Object> config = createBaseConfig(topic, port);
         // We don't add the address config element, relying on the channel name instead

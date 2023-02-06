@@ -1,12 +1,12 @@
 package io.smallrye.reactive.messaging.connector;
 
 import java.util.NoSuchElementException;
+import java.util.concurrent.Flow.Subscriber;
 
 import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.spi.Connector;
 import org.eclipse.microprofile.reactive.messaging.spi.ConnectorFactory;
-import org.reactivestreams.Subscriber;
 
 /**
  * SPI used to implement a connector managing a sink of messages for a specific <em>transport</em>. For example, to
@@ -78,7 +78,7 @@ import org.reactivestreams.Subscriber;
  * This class is specific to SmallRye and is uses internally instead of
  * {@link org.eclipse.microprofile.reactive.messaging.spi.OutgoingConnectorFactory}. Instead of a
  * {@link org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder}, it returns a
- * {@link org.reactivestreams.Subscriber}.
+ * {@link Subscriber}.
  */
 public interface OutboundConnector extends ConnectorFactory {
 

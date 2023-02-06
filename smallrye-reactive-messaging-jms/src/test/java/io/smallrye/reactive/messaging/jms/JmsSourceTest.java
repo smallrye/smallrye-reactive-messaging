@@ -7,6 +7,10 @@ import static org.hamcrest.core.IsNull.notNullValue;
 
 import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.Flow;
+import java.util.concurrent.Flow.Publisher;
+import java.util.concurrent.Flow.Subscriber;
+import java.util.concurrent.Flow.Subscription;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -15,15 +19,12 @@ import jakarta.jms.*;
 import jakarta.jms.Queue;
 
 import org.apache.activemq.artemis.jms.client.ActiveMQJMSConnectionFactory;
-import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.jboss.weld.environment.se.WeldContainer;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.reactivestreams.Publisher;
-import org.reactivestreams.Subscriber;
-import org.reactivestreams.Subscription;
 
+import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.support.JmsTestBase;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 
@@ -153,7 +154,7 @@ public class JmsSourceTest extends JmsTestBase {
         JmsSource source = new JmsSource(jms,
                 new JmsConnectorIncomingConfiguration(new MapBasedConfig().put("channel-name", "queue")),
                 null, null);
-        Publisher<IncomingJmsMessage<?>> publisher = source.getSource().buildRs();
+        Publisher<IncomingJmsMessage<?>> publisher = source.getSource();
 
         new Thread(() -> {
             JMSContext context = factory.createContext();
@@ -205,12 +206,12 @@ public class JmsSourceTest extends JmsTestBase {
                 new JmsConnectorIncomingConfiguration(new MapBasedConfig()
                         .with("channel-name", "queue").with("broadcast", true)),
                 null, null);
-        PublisherBuilder<IncomingJmsMessage<?>> publisher = source.getSource();
+        Flow.Publisher<IncomingJmsMessage<?>> publisher = source.getSource();
 
         List<IncomingJmsMessage<?>> list1 = new ArrayList<>();
         List<IncomingJmsMessage<?>> list2 = new ArrayList<>();
 
-        publisher.peek(list1::add).ignore().run();
+        Multi.createFrom().publisher(publisher).subscribe().with(list1::add);
 
         new Thread(() -> {
             JMSContext context = factory.createContext();
@@ -221,7 +222,7 @@ public class JmsSourceTest extends JmsTestBase {
             }
         }).start();
 
-        publisher.peek(list2::add).ignore().run();
+        Multi.createFrom().publisher(publisher).subscribe().with(list2::add);
 
         await().until(() -> list1.size() == 50);
         await().until(() -> list2.size() == 50);

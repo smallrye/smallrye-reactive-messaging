@@ -2,13 +2,13 @@ package io.smallrye.reactive.messaging.kafka;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.Flow.Publisher;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import jakarta.enterprise.context.ApplicationScoped;
 
 import org.apache.kafka.common.header.internals.RecordHeader;
 import org.eclipse.microprofile.reactive.messaging.*;
-import org.reactivestreams.Publisher;
 
 import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.kafka.api.OutgoingKafkaRecordMetadata;

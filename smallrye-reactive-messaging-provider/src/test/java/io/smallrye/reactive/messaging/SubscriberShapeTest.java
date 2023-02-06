@@ -6,6 +6,7 @@ import static org.awaitility.Awaitility.await;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.Flow;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.se.SeContainer;
@@ -14,7 +15,6 @@ import jakarta.enterprise.inject.spi.DeploymentException;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.junit.jupiter.api.Test;
-import org.reactivestreams.Subscriber;
 
 import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.beans.*;
@@ -35,10 +35,26 @@ public class SubscriberShapeTest extends WeldTestBaseWithoutTails {
     }
 
     @Test
+    public void testBeanProducingARSSubscriberOfMessages() {
+        initializer.addBeanClasses(BeanReturningARSSubscriberOfMessages.class);
+        initialize();
+        BeanReturningARSSubscriberOfMessages collector = container.select(BeanReturningARSSubscriberOfMessages.class).get();
+        assertThat(collector.payloads()).isEqualTo(EXPECTED);
+    }
+
+    @Test
     public void testBeanProducingASubscriberOfPayloads() {
         initializer.addBeanClasses(BeanReturningASubscriberOfPayloads.class);
         initialize();
         BeanReturningASubscriberOfPayloads collector = container.select(BeanReturningASubscriberOfPayloads.class).get();
+        assertThat(collector.payloads()).isEqualTo(EXPECTED);
+    }
+
+    @Test
+    public void testBeanProducingARSSubscriberOfPayloads() {
+        initializer.addBeanClasses(BeanReturningARSSubscriberOfPayloads.class);
+        initialize();
+        BeanReturningARSSubscriberOfPayloads collector = container.select(BeanReturningARSSubscriberOfPayloads.class).get();
         assertThat(collector.payloads()).isEqualTo(EXPECTED);
     }
 
@@ -151,7 +167,7 @@ public class SubscriberShapeTest extends WeldTestBaseWithoutTails {
 
     private void assertThatSubscriberWasPublished(SeContainer container) {
         assertThat(registry(container).getOutgoingNames()).contains("subscriber");
-        List<Subscriber<? extends Message<?>>> subscriber = registry(container).getSubscribers("subscriber");
+        List<Flow.Subscriber<? extends Message<?>>> subscriber = registry(container).getSubscribers("subscriber");
         assertThat(subscriber).isNotEmpty();
     }
 }

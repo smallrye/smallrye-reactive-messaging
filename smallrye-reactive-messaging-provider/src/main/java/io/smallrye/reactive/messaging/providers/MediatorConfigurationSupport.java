@@ -6,6 +6,7 @@ import static io.smallrye.reactive.messaging.providers.i18n.ProviderLogging.log;
 import java.lang.reflect.Type;
 import java.util.List;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.Flow;
 import java.util.function.Supplier;
 
 import org.eclipse.microprofile.reactive.messaging.Acknowledgment;
@@ -43,8 +44,8 @@ public class MediatorConfigurationSupport {
 
     public Shape determineShape(List<?> incomingValue, Object outgoingValue) {
         if (!incomingValue.isEmpty() && outgoingValue != null) {
-            if (isPublisherOrPublisherBuilder(returnType)
-                    && isConsumingAPublisherOrAPublisherBuilder(parameterTypes)) {
+            if (isPublisherOrReactiveStreamsPublisherOrPublisherBuilder(returnType)
+                    && isConsumingAPublisherOrReactiveStreamsPublisherOrAPublisherBuilder(parameterTypes)) {
                 return Shape.STREAM_TRANSFORMER;
             } else {
                 return Shape.PROCESSOR;
@@ -56,16 +57,18 @@ public class MediatorConfigurationSupport {
         }
     }
 
-    private boolean isPublisherOrPublisherBuilder(Class<?> returnType) {
-        return ClassUtils.isAssignable(returnType, Publisher.class)
+    private boolean isPublisherOrReactiveStreamsPublisherOrPublisherBuilder(Class<?> returnType) {
+        return ClassUtils.isAssignable(returnType, Flow.Publisher.class)
+                || ClassUtils.isAssignable(returnType, Publisher.class)
                 || ClassUtils.isAssignable(returnType, PublisherBuilder.class);
     }
 
-    private boolean isConsumingAPublisherOrAPublisherBuilder(Class<?>[] parameterTypes) {
+    private boolean isConsumingAPublisherOrReactiveStreamsPublisherOrAPublisherBuilder(Class<?>[] parameterTypes) {
         if (parameterTypes.length >= 1) {
             Class<?> type = parameterTypes[0];
-            return ClassUtils.isAssignable(type, Publisher.class) || ClassUtils
-                    .isAssignable(type, PublisherBuilder.class);
+            return ClassUtils.isAssignable(type, Flow.Publisher.class)
+                    || ClassUtils.isAssignable(type, Publisher.class)
+                    || ClassUtils.isAssignable(type, PublisherBuilder.class);
         }
         return false;
     }
@@ -100,14 +103,15 @@ public class MediatorConfigurationSupport {
         final MediatorConfiguration.Production production = MediatorConfiguration.Production.NONE;
 
         // Supported signatures:
-        // 1. Subscriber<Message<I>> method() or SubscriberBuilder<Message<I>, ?> method()
-        // 2. Subscriber<I> method() or SubscriberBuilder<I, ?> method()
+        // 1. Flow.Subscriber<Message<I>> method() or Subscriber<Message<I>> method() or SubscriberBuilder<Message<I>, ?> method()
+        // 2. Flow.Subscriber<I> method() or Subscriber<I> method() or SubscriberBuilder<I, ?> method()
         // 3. CompletionStage<Void> method(Message<I> m) - generic parameter must be Void, + Uni variant
         // 4. CompletionStage<Void> method(I i) - generic parameter must be Void, + Uni variant
         // 5. void/? method(Message<I> m) - this signature has been dropped as it forces blocking acknowledgment. Recommendation: use case 3.
         // 6. void method(I i) - return must ve void
 
-        if (ClassUtils.isAssignable(returnType, Subscriber.class)
+        if (ClassUtils.isAssignable(returnType, Flow.Subscriber.class)
+                || ClassUtils.isAssignable(returnType, Subscriber.class)
                 || ClassUtils.isAssignable(returnType, SubscriberBuilder.class)) {
             // Case 1 or 2.
             // Validation -> No parameter
@@ -129,12 +133,13 @@ public class MediatorConfigurationSupport {
                 payloadType = returnTypeAssignable.getType(0);
             }
 
-            boolean builder = ClassUtils.isAssignable(returnType, SubscriberBuilder.class);
+            boolean useBuilderType = ClassUtils.isAssignable(returnType, SubscriberBuilder.class);
+            boolean useReactiveStreams = ClassUtils.isAssignable(returnType, Subscriber.class);
             if (payloadType == null) {
                 log.unableToExtractIngestedPayloadType(methodAsString,
                         "Cannot extract the type from the method signature");
             }
-            return new ValidationOutput(production, consumption, builder, payloadType);
+            return new ValidationOutput(production, consumption, useBuilderType, useReactiveStreams, payloadType);
         }
 
         if (ClassUtils.isAssignable(returnType, CompletionStage.class)) {
@@ -218,10 +223,8 @@ public class MediatorConfigurationSupport {
         final MediatorConfiguration.Consumption consumption = MediatorConfiguration.Consumption.NONE;
 
         // Supported signatures:
-        // 1. Publisher<Message<O>> method()
-        // 2. Publisher<O> method()
-        // 3. PublisherBuilder<Message<O>> method()
-        // 4. PublisherBuilder<O> method()
+        // 1. Flow.Publisher<Message<O>> method(), Publisher<Message<O>>, PublisherBuilder<Message<O>>
+        // 2. Flow.Publisher<O> method(), Publisher<O>, PublisherBuilder<O>
         // 5. O method() O cannot be Void
         // 6. Message<O> method()
         // 7. CompletionStage<Message<O>> method(), Uni<Message<O>>
@@ -235,10 +238,12 @@ public class MediatorConfigurationSupport {
             throw ex.definitionNoParametersExpected("@Outgoing", methodAsString);
         }
 
-        if (ClassUtils.isAssignable(returnType, Publisher.class)) {
+        if (ClassUtils.isAssignable(returnType, Flow.Publisher.class)
+                || ClassUtils.isAssignable(returnType, Publisher.class)
+                || ClassUtils.isAssignable(returnType, PublisherBuilder.class)) {
             GenericTypeAssignable.Result assignableToMessageCheck = returnTypeAssignable.check(Message.class, 0);
             if (assignableToMessageCheck == GenericTypeAssignable.Result.NotGeneric) {
-                throw ex.definitionMustDeclareParam("@Outgoing", methodAsString, "Publisher");
+                throw ex.definitionMustDeclareParam("@Outgoing", methodAsString, returnType.getSimpleName());
             }
 
             // Case 1 or 2
@@ -246,21 +251,10 @@ public class MediatorConfigurationSupport {
                     assignableToMessageCheck == GenericTypeAssignable.Result.Assignable
                             ? MediatorConfiguration.Production.STREAM_OF_MESSAGE
                             : MediatorConfiguration.Production.STREAM_OF_PAYLOAD,
-                    consumption, null);
-        }
-
-        if (ClassUtils.isAssignable(returnType, PublisherBuilder.class)) {
-            GenericTypeAssignable.Result assignableToMessageCheck = returnTypeAssignable.check(Message.class, 0);
-            if (assignableToMessageCheck == GenericTypeAssignable.Result.NotGeneric) {
-                throw ex.definitionMustDeclareParam("@Outgoing", methodAsString, "PublisherBuilder");
-            }
-
-            // Case 3 or 4
-            return new ValidationOutput(
-                    assignableToMessageCheck == GenericTypeAssignable.Result.Assignable
-                            ? MediatorConfiguration.Production.STREAM_OF_MESSAGE
-                            : MediatorConfiguration.Production.STREAM_OF_PAYLOAD,
-                    consumption, true, null);
+                    consumption,
+                    ClassUtils.isAssignable(returnType, PublisherBuilder.class),
+                    ClassUtils.isAssignable(returnType, Publisher.class),
+                    null);
         }
 
         if (ClassUtils.isAssignable(returnType, Message.class)) {
@@ -320,9 +314,11 @@ public class MediatorConfigurationSupport {
         MediatorConfiguration.Production production;
         MediatorConfiguration.Consumption consumption;
         boolean useBuilderTypes = false;
+        boolean useReactiveStreams = false;
         Type payloadType;
 
-        if (ClassUtils.isAssignable(returnType, Processor.class)
+        if (ClassUtils.isAssignable(returnType, Flow.Processor.class)
+                || ClassUtils.isAssignable(returnType, Processor.class)
                 || ClassUtils.isAssignable(returnType, ProcessorBuilder.class)) {
             // Case 1, 2 or 3, 4
 
@@ -352,8 +348,10 @@ public class MediatorConfigurationSupport {
                     : MediatorConfiguration.Production.STREAM_OF_PAYLOAD;
 
             useBuilderTypes = ClassUtils.isAssignable(returnType, ProcessorBuilder.class);
+            useReactiveStreams = ClassUtils.isAssignable(returnType, Processor.class);
 
-        } else if (ClassUtils.isAssignable(returnType, Publisher.class)
+        } else if (ClassUtils.isAssignable(returnType, Flow.Publisher.class)
+                || ClassUtils.isAssignable(returnType, Publisher.class)
                 || ClassUtils.isAssignable(returnType, PublisherBuilder.class)) {
             // Case 5, 6, 7, 8
             if (parameterTypes.length != 1) {
@@ -376,6 +374,7 @@ public class MediatorConfigurationSupport {
                     parameterTypes[0]);
 
             useBuilderTypes = ClassUtils.isAssignable(returnType, PublisherBuilder.class);
+            useReactiveStreams = ClassUtils.isAssignable(returnType, Publisher.class);
         } else {
             // Case 9, 10, 11, 12
             Class<?> param = parameterTypes[0];
@@ -429,7 +428,7 @@ public class MediatorConfigurationSupport {
             throw ex.illegalStateForValidateProcessor(methodAsString);
         }
 
-        return new ValidationOutput(production, consumption, useBuilderTypes, payloadType);
+        return new ValidationOutput(production, consumption, useBuilderTypes, useReactiveStreams, payloadType);
     }
 
     private Type extractIngestedTypeFromFirstParameter(MediatorConfiguration.Consumption consumption,
@@ -458,12 +457,13 @@ public class MediatorConfigurationSupport {
         MediatorConfiguration.Production production;
         MediatorConfiguration.Consumption consumption;
         boolean useBuilderTypes;
+        boolean useReactiveStreams;
         Type payloadType;
 
         // The mediator produces and consumes a stream
         GenericTypeAssignable.Result returnTypeGenericCheck = returnTypeAssignable.check(Message.class, 0);
         if (returnTypeGenericCheck == GenericTypeAssignable.Result.NotGeneric) {
-            throw ex.definitionExpectedReturnedParam("@Outgoing", methodAsString, "Publisher");
+            throw ex.definitionExpectedReturnedParam("@Outgoing", methodAsString, returnType.getSimpleName());
         }
         production = returnTypeGenericCheck == GenericTypeAssignable.Result.Assignable
                 ? MediatorConfiguration.Production.STREAM_OF_MESSAGE
@@ -472,13 +472,11 @@ public class MediatorConfigurationSupport {
         GenericTypeAssignable.Result firstParamTypeGenericCheck = firstMethodParamTypeAssignable
                 .check(Message.class, 0);
         if (firstParamTypeGenericCheck == GenericTypeAssignable.Result.NotGeneric) {
-            throw ex.definitionExpectedConsumedParam("@Incoming", methodAsString, "Publisher");
+            throw ex.definitionExpectedConsumedParam("@Incoming", methodAsString, parameterTypes[0].getSimpleName());
         }
         consumption = firstParamTypeGenericCheck == GenericTypeAssignable.Result.Assignable
                 ? MediatorConfiguration.Consumption.STREAM_OF_MESSAGE
                 : MediatorConfiguration.Consumption.STREAM_OF_PAYLOAD;
-
-        useBuilderTypes = ClassUtils.isAssignable(returnType, PublisherBuilder.class);
 
         // Post Acknowledgement is not supported
         if (acknowledgment == Acknowledgment.Strategy.POST_PROCESSING) {
@@ -502,23 +500,29 @@ public class MediatorConfigurationSupport {
             payloadType = firstMethodParamTypeAssignable.getType(0);
         }
 
-        if (useBuilderTypes) {
-            //TODO Test validation.
-
-            // Ensure that the parameter is also using the MP Reactive Streams Operator types.
-            Class<?> paramClass = parameterTypes[0];
-            if (!ClassUtils.isAssignable(paramClass, PublisherBuilder.class)) {
-                throw ex.definitionProduceConsume("@Incoming & @Outgoing", methodAsString);
-            }
+        // Ensure that the parameter is also using the MP Reactive Streams Operator types.
+        boolean builderParameter = ClassUtils.isAssignable(parameterTypes[0], PublisherBuilder.class);
+        boolean builderReturn = ClassUtils.isAssignable(returnType, PublisherBuilder.class);
+        if (builderParameter == builderReturn) {
+            useBuilderTypes = builderParameter;
+        } else {
+            throw ex.definitionProduceConsume("@Incoming & @Outgoing", methodAsString, PublisherBuilder.class.getSimpleName());
         }
 
-        // TODO Ensure that the parameter is also a publisher builder.
+        // Ensure that the parameter is also using the ReactiveStreams type.
+        boolean rsParameter = ClassUtils.isAssignable(parameterTypes[0], Publisher.class);
+        boolean rsReturn = ClassUtils.isAssignable(returnType, Publisher.class);
+        if (rsParameter == rsReturn) {
+            useReactiveStreams = rsParameter;
+        } else {
+            throw ex.definitionProduceConsume("@Incoming & @Outgoing", methodAsString, Publisher.class.getSimpleName());
+        }
 
         if (payloadType == null) {
             log.unableToExtractIngestedPayloadType(methodAsString, "Cannot extract the type from the method signature");
         }
 
-        return new ValidationOutput(production, consumption, useBuilderTypes, payloadType);
+        return new ValidationOutput(production, consumption, useBuilderTypes, useReactiveStreams, payloadType);
     }
 
     public Acknowledgment.Strategy processDefaultAcknowledgement(Shape shape,
@@ -612,19 +616,21 @@ public class MediatorConfigurationSupport {
         private final MediatorConfiguration.Production production;
         private final MediatorConfiguration.Consumption consumption;
         private final boolean useBuilderTypes;
+        private final boolean useReactiveStreams;
         private final Type ingestedPayloadType;
 
         public ValidationOutput(MediatorConfiguration.Production production,
                 MediatorConfiguration.Consumption consumption, Type ingestedPayloadType) {
-            this(production, consumption, false, ingestedPayloadType);
+            this(production, consumption, false, false, ingestedPayloadType);
         }
 
         public ValidationOutput(MediatorConfiguration.Production production,
                 MediatorConfiguration.Consumption consumption,
-                boolean useBuilderTypes, Type ingestedPayloadType) {
+                boolean useBuilderTypes, boolean useReactiveStreams, Type ingestedPayloadType) {
             this.production = production;
             this.consumption = consumption;
             this.useBuilderTypes = useBuilderTypes;
+            this.useReactiveStreams = useReactiveStreams;
             this.ingestedPayloadType = ingestedPayloadType;
         }
 
@@ -642,6 +648,10 @@ public class MediatorConfigurationSupport {
 
         public Type getIngestedPayloadType() {
             return ingestedPayloadType;
+        }
+
+        public boolean getUseReactiveStreams() {
+            return useReactiveStreams;
         }
     }
 

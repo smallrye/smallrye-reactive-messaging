@@ -7,6 +7,7 @@ import static org.awaitility.Awaitility.await;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.Flow;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Consumer;
 
@@ -57,14 +58,15 @@ public class LazyInitializedTest extends WeldTestBase {
         assertThat(producer).isNotNull();
         assertThat(producer.unwrap()).isNull();
 
-        Subscriber<Message<?>> subscriber = (Subscriber<Message<?>>) sink.getSink();
+        Flow.Subscriber<? extends Message<?>> subscriber = sink.getSink();
         await().untilAsserted(() -> {
             assertThat(getHealthReport(sink::isStarted).isOk()).isTrue();
             assertThat(getHealthReport(sink::isReady).isOk()).isTrue();
             assertThat(getHealthReport(sink::isAlive).isOk()).isTrue();
         });
 
-        Multi.createFrom().item(KafkaRecord.of(1, "")).subscribe(subscriber);
+        Multi.createFrom().<Message<?>> item(KafkaRecord.of(1, ""))
+                .subscribe((Flow.Subscriber<? super Message<?>>) subscriber);
         await().untilAsserted(() -> {
             assertThat(getHealthReport(sink::isStarted).isOk()).isTrue();
             assertThat(getHealthReport(sink::isReady).isOk()).isTrue();

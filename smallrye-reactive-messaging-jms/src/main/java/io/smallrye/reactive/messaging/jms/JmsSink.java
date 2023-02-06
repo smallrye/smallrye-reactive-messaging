@@ -3,24 +3,29 @@ package io.smallrye.reactive.messaging.jms;
 import static io.smallrye.reactive.messaging.jms.i18n.JmsExceptions.ex;
 import static io.smallrye.reactive.messaging.jms.i18n.JmsLogging.log;
 
-import java.lang.IllegalStateException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
+import java.util.concurrent.Flow;
 
-import jakarta.jms.*;
+import jakarta.jms.BytesMessage;
+import jakarta.jms.DeliveryMode;
+import jakarta.jms.Destination;
+import jakarta.jms.JMSContext;
+import jakarta.jms.JMSException;
+import jakarta.jms.JMSProducer;
 
 import org.eclipse.microprofile.reactive.messaging.Message;
-import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
-import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 
+import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.json.JsonMapping;
+import io.smallrye.reactive.messaging.providers.helpers.MultiUtils;
 
 class JmsSink {
 
     private final JMSProducer producer;
     private final Destination destination;
-    private final SubscriberBuilder<Message<?>, Void> sink;
+    private final Flow.Subscriber<Message<?>> sink;
     private final JMSContext context;
     private final JsonMapping jsonMapping;
     private final Executor executor;
@@ -62,16 +67,13 @@ class JmsSink {
             producer.setJMSReplyTo(replyToDestination);
         });
 
-        sink = ReactiveStreams.<Message<?>> builder()
-                .flatMapCompletionStage(m -> {
-                    try {
-                        return send(m);
-                    } catch (JMSException e) {
-                        throw new IllegalStateException(e);
-                    }
-                })
-                .onError(t -> log.unableToSend(t))
-                .ignore();
+        sink = MultiUtils.via(m -> m.onItem().transformToUniAndConcatenate(message -> Uni.createFrom().completionStage(() -> {
+            try {
+                return send(message);
+            } catch (JMSException e) {
+                return CompletableFuture.failedStage(new IllegalStateException(e));
+            }
+        })).onFailure().invoke(log::unableToSend));
 
     }
 
@@ -170,7 +172,7 @@ class JmsSink {
 
     }
 
-    SubscriberBuilder<Message<?>, Void> getSink() {
+    Flow.Subscriber<Message<?>> getSink() {
         return sink;
     }
 
