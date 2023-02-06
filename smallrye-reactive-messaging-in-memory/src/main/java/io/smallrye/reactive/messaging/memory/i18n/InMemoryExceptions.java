@@ -1,4 +1,4 @@
-package io.smallrye.reactive.messaging.providers.connectors.i18n;
+package io.smallrye.reactive.messaging.memory.i18n;
 
 import org.jboss.logging.Messages;
 import org.jboss.logging.annotations.Message;

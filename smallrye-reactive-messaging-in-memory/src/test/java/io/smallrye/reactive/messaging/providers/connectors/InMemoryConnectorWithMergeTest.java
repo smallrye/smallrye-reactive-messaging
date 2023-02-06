@@ -15,6 +15,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import io.smallrye.mutiny.Multi;
+import io.smallrye.reactive.messaging.memory.InMemoryConnector;
+import io.smallrye.reactive.messaging.memory.InMemorySink;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 
 public class InMemoryConnectorWithMergeTest extends WeldTestBase {

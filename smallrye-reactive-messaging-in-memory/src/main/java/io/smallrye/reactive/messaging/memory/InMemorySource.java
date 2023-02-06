@@ -1,4 +1,4 @@
-package io.smallrye.reactive.messaging.providers.connectors;
+package io.smallrye.reactive.messaging.memory;
 
 /**
  * Allows interacting with an in-memory source.
