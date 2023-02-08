@@ -367,6 +367,40 @@ class RabbitMQTest extends RabbitMQBrokerTestBase {
     }
 
     /**
+     * Verifies that messages can be sent to RabbitMQ.
+     *
+     * @throws InterruptedException
+     */
+    @Test
+    void testSendingNullPayloadsToRabbitMQ() throws InterruptedException {
+        final String exchangeName = "exchg1";
+        final String routingKey = "normal";
+
+        CountDownLatch latch = new CountDownLatch(10);
+        usage.consume(exchangeName, routingKey, v -> latch.countDown());
+
+        weld.addBeanClass(NullProducingBean.class);
+
+        new MapBasedConfig()
+                .put("mp.messaging.outgoing.sink.exchange.name", exchangeName)
+                .put("mp.messaging.outgoing.sink.exchange.declare", false)
+                .put("mp.messaging.outgoing.sink.default-routing-key", routingKey)
+                .put("mp.messaging.outgoing.sink.connector", RabbitMQConnector.CONNECTOR_NAME)
+                .put("mp.messaging.outgoing.sink.host", host)
+                .put("mp.messaging.outgoing.sink.port", port)
+                .put("mp.messaging.outgoing.sink.tracing.enabled", false)
+                .put("rabbitmq-username", username)
+                .put("rabbitmq-password", password)
+                .put("rabbitmq-reconnect-attempts", 0)
+                .write();
+
+        container = weld.initialize();
+        await().until(() -> isRabbitMQConnectorAvailable(container));
+
+        assertThat(latch.await(3, TimeUnit.MINUTES)).isTrue();
+    }
+
+    /**
      * Verifies that messages can be received from RabbitMQ.
      */
     @Test

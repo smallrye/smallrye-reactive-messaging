@@ -132,6 +132,22 @@ public class MqttSinkTest extends MqttTestBase {
 
     }
 
+    @Test
+    public void testABeanProducingNullPayloadsSentToMQTT() throws InterruptedException {
+
+        Weld weld = baseWeld(getConfig());
+        weld.addBeanClass(NullProducingBean.class);
+
+        CountDownLatch latch = new CountDownLatch(1);
+        usage.consumeStrings("sink", 10, 10, TimeUnit.SECONDS, latch::countDown, v -> {
+        });
+
+        container = weld.initialize();
+
+        assertThat(latch.await(10, TimeUnit.SECONDS)).isTrue();
+
+    }
+
     private MapBasedConfig getConfig() {
         String prefix = "mp.messaging.outgoing.sink.";
         Map<String, Object> config = new HashMap<>();

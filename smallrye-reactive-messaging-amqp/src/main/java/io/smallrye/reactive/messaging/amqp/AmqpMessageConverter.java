@@ -83,7 +83,9 @@ public class AmqpMessageConverter {
         }
 
         // Application data section:
-        if (payload instanceof String || isPrimitive(payload.getClass()) || payload instanceof UUID) {
+        if (payload == null) {
+            output.setBody(new AmqpValue(null));
+        } else if (payload instanceof String || isPrimitive(payload.getClass()) || payload instanceof UUID) {
             output.setBody(new AmqpValue(payload));
 
         } else if (payload instanceof Buffer) {

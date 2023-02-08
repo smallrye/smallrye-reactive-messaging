@@ -71,6 +71,13 @@ public class MessageExamples {
         // </copy>
     }
 
+    public void nullPayload() {
+        // <null-payload>
+        // Create a message with null payload
+        Message<Price> m6 = Message.of(null, Metadata.of(new PriceMetadata()));
+        // </null-payload>
+    }
+
     public static class Price {
         final double price;
 
