@@ -159,6 +159,9 @@ public class RabbitMQMessageConverter {
      * @return a buffer encapsulation of the payload
      */
     private static Buffer getBodyFromPayload(final Object payload) {
+        if (payload == null) {
+            return Buffer.buffer();
+        }
         if (isPrimitive(payload.getClass())) {
             // Anything representable as a string is rendered as a String
             return Buffer.buffer(payload.toString());
@@ -185,6 +188,9 @@ public class RabbitMQMessageConverter {
      * @return the default content typ
      */
     private static String getDefaultContentTypeForPayload(final Object payload) {
+        if (payload == null) {
+            return HttpHeaderValues.APPLICATION_OCTET_STREAM.toString();
+        }
         if (isPrimitive(payload.getClass())) {
             // Anything representable a string is rendered as a String
             return HttpHeaderValues.TEXT_PLAIN.toString();

@@ -138,8 +138,9 @@ public class RabbitMQUsage {
             Consumer<io.vertx.mutiny.rabbitmq.RabbitMQMessage> consumerFunction) {
         final String queue = "tempConsumeMessages";
         // Start by the machinery to receive the messages
-        client.exchangeDeclareAndAwait(exchange, "topic", false, false);
-        client.queueDeclareAndAwait(queue, false, false, false);
+        client.startAndAwait();
+        client.exchangeDeclareAndAwait(exchange, "topic", false, true);
+        client.queueDeclareAndAwait(queue, false, false, true);
         client.queueBindAndAwait(queue, exchange, routingKey);
 
         // Now set up a consumer

@@ -39,8 +39,6 @@ public class MessageTest {
         assertThat(message.ack().toCompletableFuture().join()).isNull();
         assertThat(message.nack(new Exception("cause")).toCompletableFuture().join()).isNull();
 
-        assertThatThrownBy(() -> Message.of(null, Metadata.of(myMetadata))).isInstanceOf(IllegalArgumentException.class);
-
         message = Message.of("foo", (Metadata) null);
         assertThat(message.getPayload()).isEqualTo("foo");
         assertThat(message.getMetadata()).isEmpty();
@@ -61,8 +59,6 @@ public class MessageTest {
         assertThat(message.ack().toCompletableFuture().join()).isNull();
         assertThat(message.nack(new Exception("cause")).toCompletableFuture().join()).isNull();
 
-        assertThatThrownBy(() -> Message.of(null, metadata)).isInstanceOf(IllegalArgumentException.class);
-
         assertThatThrownBy(() -> Message.of("x", (Iterable<Object>) null)).isInstanceOf(IllegalArgumentException.class);
     }
 
@@ -82,8 +78,6 @@ public class MessageTest {
         assertThat(message.nack(new Exception("cause")).toCompletableFuture().join()).isNull();
         assertThat(count).hasValue(1);
 
-        assertThatThrownBy(() -> Message.of(null, () -> CompletableFuture.completedFuture(null)))
-                .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
@@ -101,9 +95,6 @@ public class MessageTest {
         assertThat(message.ack().toCompletableFuture().join()).isNull();
         assertThat(message.nack(new Exception("cause")).toCompletableFuture().join()).isNull();
         assertThat(count).hasValue(1);
-
-        assertThatThrownBy(() -> Message.of(null, Metadata.of(myMetadata), () -> CompletableFuture.completedFuture(null)))
-                .isInstanceOf(IllegalArgumentException.class);
 
         assertThat(Message.of("foo", null, () -> CompletableFuture.completedFuture(null)).getMetadata())
                 .isEmpty();
@@ -125,9 +116,6 @@ public class MessageTest {
         assertThat(message.ack().toCompletableFuture().join()).isNull();
         assertThat(message.nack(new Exception("cause")).toCompletableFuture().join()).isNull();
         assertThat(count).hasValue(1);
-
-        assertThatThrownBy(() -> Message.of(null, metadata, () -> CompletableFuture.completedFuture(null)))
-                .isInstanceOf(IllegalArgumentException.class);
 
         assertThatThrownBy(() -> Message.of("foo", (Iterable<Object>) null, () -> CompletableFuture.completedFuture(null)))
                 .isInstanceOf(IllegalArgumentException.class);
