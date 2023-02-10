@@ -78,7 +78,7 @@
     <smallrye-common.version>2.0.0</smallrye-common.version>
     <smallrye-health.version>4.0.0</smallrye-health.version>
     <smallrye-testing.version>2.2.0</smallrye-testing.version>
-    <smallrye-fault-tolerance.version>6.1.0</smallrye-fault-tolerance.version>
+    <smallrye-fault-tolerance.version>6.2.0</smallrye-fault-tolerance.version>
 
     <micrometer.version>1.10.3</micrometer.version>
 
