@@ -65,7 +65,7 @@
     <rxjava.version>2.2.21</rxjava.version>
     <cloudevent.version>1.1.0</cloudevent.version>
     <weld.version>5.1.0.Final</weld.version>
-    <camel.version>3.20.1</camel.version>
+    <camel.version>4.0.0-M1</camel.version>
 
     <microprofile-reactive-messaging.version>3.0</microprofile-reactive-messaging.version>
     <microprofile-reactive-streams.version>3.0</microprofile-reactive-streams.version>
@@ -129,7 +129,6 @@
     <module>smallrye-reactive-messaging-kafka-api</module>
     <module>smallrye-reactive-messaging-kafka-test-companion</module>
     <module>smallrye-reactive-messaging-mqtt</module>
-    <!--<module>smallrye-reactive-messaging-camel</module>-->
     <module>smallrye-reactive-messaging-amqp</module>
     <module>smallrye-reactive-messaging-jms</module>
     <module>smallrye-reactive-messaging-jsonb</module>
@@ -677,6 +676,15 @@
         <excludedGroups></excludedGroups>
         <groups>slow,flaky</groups>
       </properties>
+    </profile>
+    <profile>
+      <id>camel</id>
+      <activation>
+        <jdk>17</jdk>
+      </activation>
+      <modules>
+        <module>smallrye-reactive-messaging-camel</module>
+      </modules>
     </profile>
   </profiles>
 </project>
