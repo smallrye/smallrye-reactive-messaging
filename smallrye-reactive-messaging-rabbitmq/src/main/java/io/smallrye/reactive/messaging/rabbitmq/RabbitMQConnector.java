@@ -258,6 +258,13 @@ public class RabbitMQConnector implements InboundConnector, OutboundConnector, H
                     client.getDelegate().addConnectionEstablishedCallback(promise -> {
                         // Ensure we create the queues (and exchanges) from which messages will be read
                         Uni.createFrom().nullItem()
+                                .onItem().call(ignored -> {
+                                    if (ic.getMaxOutstandingMessages().isPresent()) {
+                                        return client.basicQos(ic.getMaxOutstandingMessages().get(), false);
+                                    } else {
+                                        return Uni.createFrom().nullItem();
+                                    }
+                                })
                                 .onItem().call(() -> establishQueue(client, ic))
                                 .onItem().call(() -> establishDLQ(client, ic))
                                 .subscribe().with(ignored -> promise.complete(), promise::fail);
@@ -283,13 +290,6 @@ public class RabbitMQConnector implements InboundConnector, OutboundConnector, H
 
     private Uni<RabbitMQConsumer> createConsumer(RabbitMQConnectorIncomingConfiguration ic, RabbitMQClient client) {
         return Uni.createFrom().nullItem()
-                .onItem().call(ignored -> {
-                    if (ic.getMaxOutstandingMessages().isPresent()) {
-                        return client.basicQos(ic.getMaxOutstandingMessages().get(), false);
-                    } else {
-                        return Uni.createFrom().nullItem();
-                    }
-                })
                 .onItem().transformToUni(ignored -> client.basicConsumer(serverQueueName(ic.getQueueName()), new QueueOptions()
                         .setAutoAck(ic.getAutoAcknowledgement())
                         .setMaxInternalQueueSize(ic.getMaxIncomingInternalQueueSize())
