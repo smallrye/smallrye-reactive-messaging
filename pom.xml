@@ -648,9 +648,9 @@
     </profile>
 
     <profile>
-      <id>java16</id>
+      <id>illegal-access-permit</id>
       <activation>
-        <jdk>16</jdk>
+        <jdk>[16, 19]</jdk>
       </activation>
       <properties>
         <argLine>--illegal-access=permit</argLine>
@@ -680,7 +680,7 @@
     <profile>
       <id>camel</id>
       <activation>
-        <jdk>17</jdk>
+        <jdk>[17, 19]</jdk>
       </activation>
       <modules>
         <module>smallrye-reactive-messaging-camel</module>

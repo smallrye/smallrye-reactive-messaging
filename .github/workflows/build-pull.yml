@@ -20,14 +20,8 @@ jobs:
                         'build_opts': '-Drevapi.skip=true'
                     },
                     {
-                        'version': '11',
-                        'build_opts': '-Dkafka-container-version=2.8.1 -pl smallrye-reactive-messaging-kafka --also-make -Drevapi.skip=true',
-                        'name': 'Kafka tests against Kafka Broker 2.8.0'
-                    },
-                    {
                         'name': '',
                         'version': '17',
-                        'opts': '--illegal-access=permit' # required for kotlin
                     },
                     {
                         'version': '11',
