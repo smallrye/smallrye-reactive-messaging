@@ -147,7 +147,6 @@
 
     <module>test-common</module>
     <module>tck</module>
-    <module>documentation</module>
   </modules>
 
   <dependencyManagement>
@@ -678,12 +677,13 @@
       </properties>
     </profile>
     <profile>
-      <id>camel</id>
+      <id>with-camel</id>
       <activation>
         <jdk>[17, 19]</jdk>
       </activation>
       <modules>
         <module>smallrye-reactive-messaging-camel</module>
+        <module>documentation</module>
       </modules>
     </profile>
   </profiles>

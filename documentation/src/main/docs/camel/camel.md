@@ -9,6 +9,10 @@ several hundred of components used to access databases, message queues,
 APIs or basically [anything under the
 sun](https://camel.apache.org/components/latest/).
 
+!!!important
+    Smallrye Reactive Messaging 4.x moved from `javax` to `jakarta` APIs therefore only supports Camel 4 releases.
+    Similarly, this connector drops the Java 11 support as this is the case for Camel 4.
+
 ## Introduction
 
 Camel is not a messaging broker. But, it allows your Reactive Messaging
