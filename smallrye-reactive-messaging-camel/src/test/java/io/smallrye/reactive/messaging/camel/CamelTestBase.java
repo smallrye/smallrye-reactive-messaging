@@ -21,6 +21,7 @@ public class CamelTestBase {
     @BeforeEach
     public void init() {
         weld = new Weld();
+        weld.addBeanClass(CamelCdiLite.class);
         clear();
         SmallRyeConfigProviderResolver.instance().releaseConfig(ConfigProvider.getConfig());
     }

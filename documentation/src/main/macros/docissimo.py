@@ -12,13 +12,14 @@ For example, if the imported file contains:
 ```
 attributes:
   versions:
+    camel: 3.13.0
     spec: 2.0.1
     mutiny: 1.1.2
   project-version: '3.14.0-SNAPSHOT'
   smallrye-config-version: '2.7.0'
 ```
 
-You can access values using `{{ attributes.versions.spec}}` or `{{ attributes['project-version'] }}`.
+You can access values using `{{ attributes.versions.camel}}` or `{{ attributes['project-version'] }}`.
 
 The loaded file is `docs/variables.yaml` by default. The location can be configured in the `mkdocs.yml` file with:
 

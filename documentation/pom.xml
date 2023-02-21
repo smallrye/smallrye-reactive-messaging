@@ -46,6 +46,11 @@
     </dependency>
     <dependency>
       <groupId>io.smallrye.reactive</groupId>
+      <artifactId>smallrye-reactive-messaging-camel</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.smallrye.reactive</groupId>
       <artifactId>smallrye-reactive-messaging-jms</artifactId>
       <version>${project.version}</version>
     </dependency>
@@ -68,6 +73,12 @@
       <groupId>io.smallrye.reactive</groupId>
       <artifactId>smallrye-reactive-messaging-in-memory</artifactId>
       <version>${project.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.apache.camel</groupId>
+      <artifactId>camel-file</artifactId>
+      <version>${camel.version}</version>
     </dependency>
 
     <dependency>

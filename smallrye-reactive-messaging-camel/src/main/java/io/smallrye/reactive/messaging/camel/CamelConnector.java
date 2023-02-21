@@ -21,14 +21,13 @@ import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.config.ConfigProvider;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.spi.Connector;
-import org.eclipse.microprofile.reactive.messaging.spi.IncomingConnectorFactory;
-import org.eclipse.microprofile.reactive.messaging.spi.OutgoingConnectorFactory;
-import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
-import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
-import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
+import org.reactivestreams.Subscriber;
 
+import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.annotations.ConnectorAttribute;
 import io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Direction;
+import io.smallrye.reactive.messaging.connector.InboundConnector;
+import io.smallrye.reactive.messaging.connector.OutboundConnector;
 import mutiny.zero.flow.adapters.AdaptersToFlow;
 import mutiny.zero.flow.adapters.AdaptersToReactiveStreams;
 
@@ -37,7 +36,7 @@ import mutiny.zero.flow.adapters.AdaptersToReactiveStreams;
 @ConnectorAttribute(name = "endpoint-uri", description = "The URI of the Camel endpoint (read from or written to)", mandatory = true, type = "string", direction = Direction.INCOMING_AND_OUTGOING)
 @ConnectorAttribute(name = "failure-strategy", type = "string", direction = Direction.INCOMING, description = "Specify the failure strategy to apply when a message produced from a Camel exchange is nacked. Values can be `fail` (default) or `ignore`", defaultValue = "fail")
 @ConnectorAttribute(name = "merge", direction = OUTGOING, description = "Whether the connector should allow multiple upstreams", type = "boolean", defaultValue = "false")
-public class CamelConnector implements IncomingConnectorFactory, OutgoingConnectorFactory {
+public class CamelConnector implements InboundConnector, OutboundConnector {
 
     private static final String REACTIVE_STREAMS_SCHEME = "reactive-streams:";
     public static final String CONNECTOR_NAME = "smallrye-camel";
@@ -48,7 +47,8 @@ public class CamelConnector implements IncomingConnectorFactory, OutgoingConnect
     private CamelReactiveStreamsService reactive;
 
     @Produces
-    public CamelReactiveStreamsService getCamelReactive() {
+    @ApplicationScoped
+    public synchronized CamelReactiveStreamsService getCamelReactive() {
         if (this.reactive != null) {
             return this.reactive;
         }
@@ -84,7 +84,7 @@ public class CamelConnector implements IncomingConnectorFactory, OutgoingConnect
     }
 
     @Override
-    public PublisherBuilder<? extends Message<?>> getPublisherBuilder(Config config) {
+    public Flow.Publisher<? extends Message<?>> getPublisher(Config config) {
         CamelConnectorIncomingConfiguration ic = new CamelConnectorIncomingConfiguration(config);
         String name = ic.getEndpointUri();
         CamelFailureHandler.Strategy strategy = CamelFailureHandler.Strategy.from(ic.getFailureStrategy());
@@ -101,29 +101,48 @@ public class CamelConnector implements IncomingConnectorFactory, OutgoingConnect
             publisher = AdaptersToFlow.publisher(getCamelReactive().from(name));
         }
 
-        return ReactiveStreams.fromPublisher(AdaptersToReactiveStreams.publisher(publisher))
-                .map(ex -> new CamelMessage<>(ex, onNack));
+        return Multi.createFrom().publisher(publisher).map(ex -> new CamelMessage<>(ex, onNack));
     }
 
     @Override
-    public SubscriberBuilder<? extends Message<?>, Void> getSubscriberBuilder(Config config) {
+    public Flow.Subscriber<? extends Message<?>> getSubscriber(Config config) {
         String name = new CamelConnectorOutgoingConfiguration(config).getEndpointUri();
 
-        SubscriberBuilder<? extends Message<?>, Void> subscriber;
+        Flow.Subscriber<? extends Message<?>> subscriber;
         if (name.startsWith(REACTIVE_STREAMS_SCHEME)) {
             // The endpoint is a reactive streams.
             name = name.substring(REACTIVE_STREAMS_SCHEME.length());
             log.creatingSubscriberFromStream(name);
-            subscriber = ReactiveStreams.<Message<?>> builder()
-                    .map(this::createExchangeFromMessage)
-                    .to(getCamelReactive().streamSubscriber(name));
+            subscriber = getMessageSubscriber(getCamelReactive().streamSubscriber(name));
         } else {
             log.creatingSubscriberFromEndpoint(name);
-            subscriber = ReactiveStreams.<Message<?>> builder()
-                    .map(this::createExchangeFromMessage)
-                    .to(getCamelReactive().subscriber(name));
+            subscriber = getMessageSubscriber(getCamelReactive().subscriber(name));
         }
         return subscriber;
+    }
+
+    private Flow.Subscriber<Message<?>> getMessageSubscriber(Subscriber<Exchange> s) {
+        return new Flow.Subscriber<>() {
+            @Override
+            public void onSubscribe(Flow.Subscription subscription) {
+                s.onSubscribe(AdaptersToReactiveStreams.subscription(subscription));
+            }
+
+            @Override
+            public void onNext(Message<?> item) {
+                s.onNext(createExchangeFromMessage(item));
+            }
+
+            @Override
+            public void onError(Throwable throwable) {
+                s.onError(throwable);
+            }
+
+            @Override
+            public void onComplete() {
+                s.onComplete();
+            }
+        };
     }
 
     private Exchange createExchangeFromMessage(Message<?> message) {
