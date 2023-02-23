@@ -2,6 +2,7 @@ package io.smallrye.reactive.messaging.providers.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.*;
 
@@ -122,6 +123,7 @@ public class ConfiguredStreamFactoryTest {
         assertThat(config1.getOptionalValue("a", String.class)).contains("A");
         assertThat(config1.getOptionalValue("b", String.class)).contains("B2");
         assertThat(config1.getOptionalValue("c", String.class)).isEmpty();
+        assertThrows(NoSuchElementException.class, () -> config1.getValue("missing", String.class));
 
         ConnectorConfig config2 = map.get("name2");
         assertThat(config2.getPropertyNames()).hasSize(6).contains("a", "b", "k1", "k2", "connector", "channel-name");

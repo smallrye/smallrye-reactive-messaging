@@ -154,7 +154,7 @@ public interface ProviderExceptions {
     @Message(id = 44, value = "Invalid channel configuration -  the `channel-name` attribute cannot be used in configuration (channel `%s`)")
     IllegalArgumentException illegalArgumentInvalidChannelConfiguration(String name);
 
-    @Message(id = 45, value = "Cannot find attribute `%s` for channel `%s`. Has been tried: % and %s")
+    @Message(id = 45, value = "Cannot find attribute `%s` for channel `%s`. Has been tried: %s and %s")
     NoSuchElementException noSuchElementForAttribute(String propertyName, String name, String channelKey, String connectorKey);
 
     @Message(id = 46, value = "%ss must contain a non-empty array of %s")
