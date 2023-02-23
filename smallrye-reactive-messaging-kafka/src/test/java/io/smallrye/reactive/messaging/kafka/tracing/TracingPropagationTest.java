@@ -1,7 +1,7 @@
 package io.smallrye.reactive.messaging.kafka.tracing;
 
-import static io.opentelemetry.semconv.trace.attributes.SemanticAttributes.MESSAGING_DESTINATION;
 import static io.opentelemetry.semconv.trace.attributes.SemanticAttributes.MESSAGING_DESTINATION_KIND;
+import static io.opentelemetry.semconv.trace.attributes.SemanticAttributes.MESSAGING_DESTINATION_NAME;
 import static io.opentelemetry.semconv.trace.attributes.SemanticAttributes.MESSAGING_SYSTEM;
 import static io.smallrye.reactive.messaging.kafka.companion.RecordQualifiers.until;
 import static java.util.stream.Collectors.toList;
@@ -113,7 +113,7 @@ public class TracingPropagationTest extends KafkaCompanionTestBase {
             assertEquals(SpanKind.PRODUCER, span.getKind());
             assertEquals("kafka", span.getAttributes().get(MESSAGING_SYSTEM));
             assertEquals("topic", span.getAttributes().get(MESSAGING_DESTINATION_KIND));
-            assertEquals(topic, span.getAttributes().get(MESSAGING_DESTINATION));
+            assertEquals(topic, span.getAttributes().get(MESSAGING_DESTINATION_NAME));
             assertEquals(topic + " send", span.getName());
         });
     }
@@ -147,7 +147,7 @@ public class TracingPropagationTest extends KafkaCompanionTestBase {
             assertEquals(SpanKind.PRODUCER, span.getKind());
             assertEquals("kafka", span.getAttributes().get(MESSAGING_SYSTEM));
             assertEquals("topic", span.getAttributes().get(MESSAGING_DESTINATION_KIND));
-            assertEquals(topic, span.getAttributes().get(MESSAGING_DESTINATION));
+            assertEquals(topic, span.getAttributes().get(MESSAGING_DESTINATION_NAME));
             assertEquals(topic + " send", span.getName());
         });
     }
@@ -181,7 +181,7 @@ public class TracingPropagationTest extends KafkaCompanionTestBase {
             assertEquals(SpanKind.PRODUCER, span.getKind());
             assertEquals("kafka", span.getAttributes().get(MESSAGING_SYSTEM));
             assertEquals("topic", span.getAttributes().get(MESSAGING_DESTINATION_KIND));
-            assertEquals(topic, span.getAttributes().get(MESSAGING_DESTINATION));
+            assertEquals(topic, span.getAttributes().get(MESSAGING_DESTINATION_NAME));
             assertEquals(topic + " send", span.getName());
         });
     }
@@ -223,7 +223,7 @@ public class TracingPropagationTest extends KafkaCompanionTestBase {
             SpanData consumer = parentSpans.get(0);
             assertEquals(SpanKind.CONSUMER, consumer.getKind());
             assertEquals("topic", consumer.getAttributes().get(MESSAGING_DESTINATION_KIND));
-            assertEquals(parentTopic, consumer.getAttributes().get(MESSAGING_DESTINATION));
+            assertEquals(parentTopic, consumer.getAttributes().get(MESSAGING_DESTINATION_NAME));
             assertEquals(parentTopic + " receive", consumer.getName());
 
             SpanData producer = spans.stream().filter(spanData -> spanData.getParentSpanId().equals(consumer.getSpanId()))
@@ -231,7 +231,7 @@ public class TracingPropagationTest extends KafkaCompanionTestBase {
             assertEquals(SpanKind.PRODUCER, producer.getKind());
             assertEquals("kafka", producer.getAttributes().get(MESSAGING_SYSTEM));
             assertEquals("topic", producer.getAttributes().get(MESSAGING_DESTINATION_KIND));
-            assertEquals(resultTopic, producer.getAttributes().get(MESSAGING_DESTINATION));
+            assertEquals(resultTopic, producer.getAttributes().get(MESSAGING_DESTINATION_NAME));
             assertEquals(resultTopic + " send", producer.getName());
         });
     }
@@ -282,7 +282,7 @@ public class TracingPropagationTest extends KafkaCompanionTestBase {
                     .findFirst().get();
             assertEquals("kafka", consumer.getAttributes().get(MESSAGING_SYSTEM));
             assertEquals("topic", consumer.getAttributes().get(MESSAGING_DESTINATION_KIND));
-            assertEquals(parentTopic, consumer.getAttributes().get(MESSAGING_DESTINATION));
+            assertEquals(parentTopic, consumer.getAttributes().get(MESSAGING_DESTINATION_NAME));
             assertEquals(parentTopic + " receive", consumer.getName());
         });
     }
