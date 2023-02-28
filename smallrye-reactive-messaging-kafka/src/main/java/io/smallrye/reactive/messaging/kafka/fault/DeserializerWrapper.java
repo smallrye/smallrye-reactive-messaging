@@ -1,6 +1,7 @@
 package io.smallrye.reactive.messaging.kafka.fault;
 
 import java.util.Map;
+import java.util.function.BiConsumer;
 import java.util.function.Supplier;
 
 import org.apache.kafka.common.KafkaException;
@@ -12,7 +13,6 @@ import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.kafka.DeserializationFailureHandler;
 import io.smallrye.reactive.messaging.kafka.i18n.KafkaExceptions;
 import io.smallrye.reactive.messaging.kafka.i18n.KafkaLogging;
-import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
 
 /**
  * Wraps a delegate deserializer to handle config and deserialization failures.
@@ -26,15 +26,16 @@ public class DeserializerWrapper<T> implements Deserializer<T> {
     private final boolean handleKeys;
 
     private final DeserializationFailureHandler<T> deserializationFailureHandler;
-    private final KafkaSource<?, ?> source;
+    private final BiConsumer<Throwable, Boolean> reportFailure;
+
     private final boolean failOnDeserializationErrorWithoutHandler;
 
     public DeserializerWrapper(String className, boolean key, DeserializationFailureHandler<T> failureHandler,
-            KafkaSource<?, ?> source, boolean failByDefault) {
+            BiConsumer<Throwable, Boolean> reportFailure, boolean failByDefault) {
         this.delegate = createDelegateDeserializer(className);
         this.handleKeys = key;
         this.deserializationFailureHandler = failureHandler;
-        this.source = source;
+        this.reportFailure = reportFailure;
         this.failOnDeserializationErrorWithoutHandler = failByDefault;
     }
 
@@ -50,7 +51,7 @@ public class DeserializerWrapper<T> implements Deserializer<T> {
             delegate.configure(configs, isKey);
         } catch (Exception e) {
             // The deserializer cannot be configured - fails and marks the application as unhealthy
-            source.reportFailure(e, true);
+            reportFailure.accept(e, true);
             throw new KafkaException(e);
         }
     }
@@ -95,7 +96,7 @@ public class DeserializerWrapper<T> implements Deserializer<T> {
                         topic, this.handleKeys, delegate.getClass().getName(), data, headers);
             } catch (Exception e) {
                 KafkaLogging.log.deserializationFailureHandlerFailure(deserializationFailureHandler.toString(), e);
-                source.reportFailure(e, true);
+                reportFailure.accept(e, true);
                 if (e instanceof KafkaException) {
                     throw (KafkaException) e;
                 }
@@ -107,7 +108,7 @@ public class DeserializerWrapper<T> implements Deserializer<T> {
             } catch (Exception e) {
                 if (failOnDeserializationErrorWithoutHandler) {
                     KafkaLogging.log.unableToDeserializeMessage(topic, e);
-                    source.reportFailure(e, true);
+                    reportFailure.accept(e, true);
                     if (e instanceof KafkaException) {
                         throw (KafkaException) e;
                     }

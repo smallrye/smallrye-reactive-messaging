@@ -20,7 +20,10 @@ public class ConfigurationCleaner {
             "tracing-enabled",
             "cloud-events",
             "client-id-prefix",
-            "lazy-client");
+            "lazy-client",
+            "delayed-retry-topic.topics",
+            "delayed-retry-topic.max-retries",
+            "delayed-retry-topic.timeout");
 
     private static final List<String> PRODUCER = Arrays.asList(
             "key",

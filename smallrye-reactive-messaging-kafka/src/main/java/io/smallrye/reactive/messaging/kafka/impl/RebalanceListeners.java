@@ -21,64 +21,64 @@ public class RebalanceListeners {
 
     static ConsumerRebalanceListener createRebalanceListener(
             ReactiveKafkaConsumer<?, ?> reactiveKafkaConsumer,
-            KafkaConnectorIncomingConfiguration config,
             String consumerGroup,
-            Instance<KafkaConsumerRebalanceListener> instances,
+            KafkaConsumerRebalanceListener listener,
             KafkaCommitHandler commitHandler) {
-        Optional<KafkaConsumerRebalanceListener> rebalanceListener = findMatchingListener(config, consumerGroup, instances);
+        return new WrappedConsumerRebalanceListener(consumerGroup, listener, reactiveKafkaConsumer, commitHandler);
+    }
 
-        if (rebalanceListener.isPresent()) {
-            KafkaConsumerRebalanceListener listener = rebalanceListener.get();
-            return new ConsumerRebalanceListener() {
-                @Override
-                public void onPartitionsRevoked(Collection<TopicPartition> partitions) {
-                    log.executingConsumerRevokedRebalanceListener(consumerGroup);
-                    try {
-                        reactiveKafkaConsumer.removeFromQueueRecordsFromTopicPartitions(partitions);
-                        commitHandler.partitionsRevoked(partitions);
-                        listener.onPartitionsRevoked(reactiveKafkaConsumer.unwrap(), partitions);
-                        log.executedConsumerRevokedRebalanceListener(consumerGroup);
-                    } catch (RuntimeException e) {
-                        log.unableToExecuteConsumerRevokedRebalanceListener(consumerGroup, e);
-                        throw e;
-                    }
-                }
+    public static class WrappedConsumerRebalanceListener implements ConsumerRebalanceListener {
 
-                @Override
-                public void onPartitionsAssigned(Collection<TopicPartition> partitions) {
-                    try {
-                        if (reactiveKafkaConsumer.isPaused()) {
-                            reactiveKafkaConsumer.unwrap().pause(partitions);
-                        }
-                        commitHandler.partitionsAssigned(partitions);
-                        listener.onPartitionsAssigned(reactiveKafkaConsumer.unwrap(), partitions);
-                        log.executedConsumerAssignedRebalanceListener(consumerGroup);
-                    } catch (RuntimeException e) {
-                        log.reEnablingConsumerForGroup(consumerGroup);
-                        throw e;
-                    }
-                }
-            };
-        } else {
-            return new ConsumerRebalanceListener() {
-                @Override
-                public void onPartitionsRevoked(Collection<TopicPartition> partitions) {
-                    reactiveKafkaConsumer.removeFromQueueRecordsFromTopicPartitions(partitions);
-                    commitHandler.partitionsRevoked(partitions);
-                }
+        private final String consumerGroup;
+        private final KafkaConsumerRebalanceListener listener;
+        private final ReactiveKafkaConsumer<?, ?> reactiveKafkaConsumer;
+        private final KafkaCommitHandler commitHandler;
 
-                @Override
-                public void onPartitionsAssigned(Collection<TopicPartition> partitions) {
-                    if (reactiveKafkaConsumer.isPaused()) {
-                        reactiveKafkaConsumer.unwrap().pause(partitions);
-                    }
-                    commitHandler.partitionsAssigned(partitions);
+        public WrappedConsumerRebalanceListener(String consumerGroup,
+                KafkaConsumerRebalanceListener listener,
+                ReactiveKafkaConsumer<?, ?> reactiveKafkaConsumer,
+                KafkaCommitHandler commitHandler) {
+            this.consumerGroup = consumerGroup;
+            this.listener = listener;
+            this.reactiveKafkaConsumer = reactiveKafkaConsumer;
+            this.commitHandler = commitHandler;
+        }
+
+        @Override
+        public void onPartitionsRevoked(Collection<TopicPartition> partitions) {
+            log.executingConsumerRevokedRebalanceListener(consumerGroup);
+            try {
+                reactiveKafkaConsumer.removeFromQueueRecordsFromTopicPartitions(partitions);
+                commitHandler.partitionsRevoked(partitions);
+                if (listener != null) {
+                    listener.onPartitionsRevoked(reactiveKafkaConsumer.unwrap(), partitions);
+                    log.executedConsumerRevokedRebalanceListener(consumerGroup);
                 }
-            };
+            } catch (RuntimeException e) {
+                log.unableToExecuteConsumerRevokedRebalanceListener(consumerGroup, e);
+                throw e;
+            }
+        }
+
+        @Override
+        public void onPartitionsAssigned(Collection<TopicPartition> partitions) {
+            try {
+                if (reactiveKafkaConsumer.isPaused()) {
+                    reactiveKafkaConsumer.unwrap().pause(partitions);
+                }
+                commitHandler.partitionsAssigned(partitions);
+                if (listener != null) {
+                    listener.onPartitionsAssigned(reactiveKafkaConsumer.unwrap(), partitions);
+                    log.executedConsumerAssignedRebalanceListener(consumerGroup);
+                }
+            } catch (RuntimeException e) {
+                log.reEnablingConsumerForGroup(consumerGroup);
+                throw e;
+            }
         }
     }
 
-    private static Optional<KafkaConsumerRebalanceListener> findMatchingListener(
+    public static KafkaConsumerRebalanceListener findMatchingListener(
             KafkaConnectorIncomingConfiguration config, String consumerGroup,
             Instance<KafkaConsumerRebalanceListener> instances) {
         return config.getConsumerRebalanceListenerName()
@@ -118,7 +118,7 @@ public class RebalanceListeners {
                         return Optional.of(matching.get());
                     }
                     return Optional.empty();
-                });
+                }).orElse(null);
     }
 
 }

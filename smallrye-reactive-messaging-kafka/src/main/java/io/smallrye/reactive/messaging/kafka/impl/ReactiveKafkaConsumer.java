@@ -12,6 +12,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.regex.Pattern;
 
@@ -29,6 +30,8 @@ import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.kafka.DeserializationFailureHandler;
 import io.smallrye.reactive.messaging.kafka.KafkaConnectorIncomingConfiguration;
+import io.smallrye.reactive.messaging.kafka.KafkaConsumerRebalanceListener;
+import io.smallrye.reactive.messaging.kafka.commit.KafkaCommitHandler;
 import io.smallrye.reactive.messaging.kafka.fault.DeserializerWrapper;
 import io.smallrye.reactive.messaging.providers.i18n.ProviderLogging;
 import io.vertx.core.Context;
@@ -41,11 +44,11 @@ public class ReactiveKafkaConsumer<K, V> implements io.smallrye.reactive.messagi
      * Avoid concurrent call to `poll`
      */
     private final AtomicBoolean polling = new AtomicBoolean(false);
-    private final KafkaSource<K, V> source;
     private final Uni<Consumer<K, V>> consumerUni;
     private final AtomicReference<Consumer<K, V>> consumerRef = new AtomicReference<>();
-    private final KafkaConnectorIncomingConfiguration configuration;
+    private final RuntimeKafkaSourceConfiguration configuration;
     private final Duration pollTimeout;
+    private final String consumerGroup;
     private ConsumerRebalanceListener rebalanceListener;
 
     private final AtomicBoolean paused = new AtomicBoolean();
@@ -55,36 +58,60 @@ public class ReactiveKafkaConsumer<K, V> implements io.smallrye.reactive.messagi
     private final KafkaRecordBatchStream<K, V> batchStream;
     private final Map<String, Object> kafkaConfiguration;
 
-    public ReactiveKafkaConsumer(KafkaConnectorIncomingConfiguration config, KafkaSource<K, V> source,
+    public ReactiveKafkaConsumer(KafkaConnectorIncomingConfiguration config,
+            Instance<DeserializationFailureHandler<?>> deserializationFailureHandlers,
+            String consumerGroup, int index,
+            BiConsumer<Throwable, Boolean> reportFailure,
+            Context context,
             java.util.function.Consumer<Consumer<K, V>> onConsumerCreated) {
-        this.configuration = config;
-        this.source = source;
-        kafkaConfiguration = getKafkaConsumerConfiguration(configuration, source.getConsumerGroup(),
-                source.getConsumerIndex());
+        this(getKafkaConsumerConfiguration(config, consumerGroup, index),
+                createDeserializationFailureHandler(true, deserializationFailureHandlers, config),
+                createDeserializationFailureHandler(false, deserializationFailureHandlers, config),
+                RuntimeKafkaSourceConfiguration.buildFromConfiguration(config),
+                config.getLazyClient(),
+                config.getPollTimeout(),
+                config.getFailOnDeserializationFailure(),
+                onConsumerCreated,
+                reportFailure,
+                context);
+    }
 
-        Instance<DeserializationFailureHandler<?>> failureHandlers = source.getDeserializationFailureHandlers();
+    public ReactiveKafkaConsumer(Map<String, Object> kafkaConfiguration,
+            DeserializationFailureHandler<K> keyDeserializationFailureHandler,
+            DeserializationFailureHandler<V> valueDeserializationFailureHandler,
+            RuntimeKafkaSourceConfiguration config,
+            boolean lazyClient,
+            int pollTimeout,
+            boolean failOnDeserializationFailure,
+            java.util.function.Consumer<Consumer<K, V>> onConsumerCreated,
+            BiConsumer<Throwable, Boolean> reportFailure,
+            Context context) {
+        this.configuration = config;
+        this.kafkaConfiguration = kafkaConfiguration;
+
         String keyDeserializerCN = (String) kafkaConfiguration.get(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG);
         String valueDeserializerCN = (String) kafkaConfiguration.get(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG);
+        this.consumerGroup = (String) kafkaConfiguration.get(ConsumerConfig.GROUP_ID_CONFIG);
 
         if (valueDeserializerCN == null) {
             throw ex.missingValueDeserializer(config.getChannel(), config.getChannel());
         }
 
         Deserializer<K> keyDeserializer = new DeserializerWrapper<>(keyDeserializerCN, true,
-                getDeserializationHandler(true, failureHandlers), source, config.getFailOnDeserializationFailure());
+                keyDeserializationFailureHandler, reportFailure, failOnDeserializationFailure);
         Deserializer<V> valueDeserializer = new DeserializerWrapper<>(valueDeserializerCN, false,
-                getDeserializationHandler(false, failureHandlers), source, config.getFailOnDeserializationFailure());
+                valueDeserializationFailureHandler, reportFailure, failOnDeserializationFailure);
 
         // Configure the underlying deserializers
         keyDeserializer.configure(kafkaConfiguration, true);
         valueDeserializer.configure(kafkaConfiguration, false);
 
-        pollTimeout = Duration.ofMillis(config.getPollTimeout());
+        this.pollTimeout = Duration.ofMillis(pollTimeout);
 
         kafkaWorker = Executors.newSingleThreadScheduledExecutor(KafkaPollingThread::new);
 
-        stream = new KafkaRecordStream<>(this, config, source.getContext().getDelegate());
-        batchStream = new KafkaRecordBatchStream<>(this, config, source.getContext().getDelegate());
+        stream = new KafkaRecordStream<>(this, config, context);
+        batchStream = new KafkaRecordBatchStream<>(this, config, context);
         consumerUni = Uni.createFrom().item(() -> consumerRef.updateAndGet(c -> {
             if (c != null) {
                 return c;
@@ -96,7 +123,7 @@ public class ReactiveKafkaConsumer<K, V> implements io.smallrye.reactive.messagi
             }
         })).memoize().until(closed::get)
                 .runSubscriptionOn(kafkaWorker);
-        if (!config.getLazyClient()) {
+        if (!lazyClient) {
             consumerUni.await().indefinitely();
         }
     }
@@ -105,14 +132,18 @@ public class ReactiveKafkaConsumer<K, V> implements io.smallrye.reactive.messagi
         return consumerUni;
     }
 
-    public void setRebalanceListener() {
+    public void setRebalanceListener(KafkaConsumerRebalanceListener listener, KafkaCommitHandler commitHandler) {
         try {
-            rebalanceListener = RebalanceListeners.createRebalanceListener(this, configuration, source.getConsumerGroup(),
-                    source.getConsumerRebalanceListeners(), source.getCommitHandler());
+            rebalanceListener = RebalanceListeners.createRebalanceListener(this, consumerGroup,
+                    listener, commitHandler);
         } catch (Exception e) {
             close();
             throw e;
         }
+    }
+
+    public String getConsumerGroup() {
+        return consumerGroup;
     }
 
     // Visible to use for rebalance on MockConsumer which doesn't call listeners
@@ -319,14 +350,8 @@ public class ReactiveKafkaConsumer<K, V> implements io.smallrye.reactive.messagi
         return map;
     }
 
-    private <T> DeserializationFailureHandler<T> getDeserializationHandler(boolean isKey,
-            Instance<DeserializationFailureHandler<?>> deserializationFailureHandlers) {
-        return createDeserializationFailureHandler(isKey, deserializationFailureHandlers, configuration);
-
-    }
-
     @SuppressWarnings({ "unchecked" })
-    private static <T> DeserializationFailureHandler<T> createDeserializationFailureHandler(boolean isKey,
+    public static <T> DeserializationFailureHandler<T> createDeserializationFailureHandler(boolean isKey,
             Instance<DeserializationFailureHandler<?>> deserializationFailureHandlers,
             KafkaConnectorIncomingConfiguration configuration) {
         String name = isKey ? configuration.getKeyDeserializationFailureHandler().orElse(null)
@@ -395,8 +420,7 @@ public class ReactiveKafkaConsumer<K, V> implements io.smallrye.reactive.messagi
     }
 
     public void close() {
-        int timeout = configuration.config()
-                .getOptionalValue(ConsumerConfig.DEFAULT_API_TIMEOUT_MS_CONFIG, Integer.class).orElse(1000);
+        int timeout = configuration.getCloseTimeout();
         if (closed.compareAndSet(false, true)) {
             Uni<Void> uni = runOnPollingThread(c -> {
                 if (System.getSecurityManager() == null) {

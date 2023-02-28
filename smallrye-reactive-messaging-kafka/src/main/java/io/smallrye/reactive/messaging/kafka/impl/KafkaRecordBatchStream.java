@@ -14,19 +14,18 @@ import org.apache.kafka.common.TopicPartition;
 
 import io.smallrye.mutiny.operators.AbstractMulti;
 import io.smallrye.mutiny.subscription.MultiSubscriber;
-import io.smallrye.reactive.messaging.kafka.KafkaConnectorIncomingConfiguration;
 import io.vertx.core.Context;
 
 public class KafkaRecordBatchStream<K, V> extends AbstractMulti<ConsumerRecords<K, V>> {
 
     private final ReactiveKafkaConsumer<K, V> client;
-    private final KafkaConnectorIncomingConfiguration config;
+    private final RuntimeKafkaSourceConfiguration config;
     private final Context context;
     private final Set<KafkaRecordStreamSubscription<K, V, ConsumerRecords<K, V>>> subscriptions = Collections
             .newSetFromMap(new ConcurrentHashMap<>());
 
     public KafkaRecordBatchStream(ReactiveKafkaConsumer<K, V> client,
-            KafkaConnectorIncomingConfiguration config, Context context) {
+            RuntimeKafkaSourceConfiguration config, Context context) {
         this.config = config;
         this.client = client;
         this.context = context;

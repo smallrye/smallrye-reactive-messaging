@@ -12,9 +12,22 @@
   "configuration" : {
     "elements" : {
       "include" : [ {
-        "matcher" : "java-package",
-        "match" : "io.smallrye.reactive.messaging.kafka"
-      } ]
+        "matcher" : "java",
+        "match" : "type ^io.smallrye.reactive.messaging.kafka.* {}"
+      }, {
+          "matcher" : "java",
+          "match" : "type ^io.smallrye.reactive.messaging.kafka.converters.* {}"
+      }, {
+          "matcher" : "java",
+          "match" : "interface ^io.smallrye.reactive.messaging.kafka.commit.* {}"
+      }, {
+          "matcher" : "java",
+          "match" : "interface ^io.smallrye.reactive.messaging.kafka.fault.* {}"
+      }, {
+          "matcher" : "java",
+          "match" : "interface ^io.smallrye.reactive.messaging.kafka.transactions.* {}"
+      }
+      ]
     }
   }
 }, {
@@ -24,7 +37,16 @@
     "criticality" : "highlight",
     "minSeverity" : "POTENTIALLY_BREAKING",
     "minCriticality" : "documented",
-    "differences" : [ ]
+    "differences" : [
+        {
+            "code": "java.annotation.attributeValueChanged",
+            "old": "class io.smallrye.reactive.messaging.kafka.KafkaConnector",
+            "new": "class io.smallrye.reactive.messaging.kafka.KafkaConnector",
+            "annotationType": "io.smallrye.reactive.messaging.annotations.ConnectorAttributes",
+            "attribute": "value",
+            "justification": "Added delayed-retry-topic to connector attributes"
+        }
+    ]
   }
 }, {
   "extension" : "revapi.reporter.json",
