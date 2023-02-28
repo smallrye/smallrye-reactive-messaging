@@ -56,15 +56,12 @@ public interface Message<T> {
      * Create a message with the given payload and metadata.
      * The acknowledgement and negative-acknowledgement are immediate.
      *
-     * @param payload The payload, must not be {@code null}.
+     * @param payload The payload.
      * @param metadata The metadata, if {@code null} an empty set of metadata is used.
      * @param <T> The type of payload
      * @return A message with the given payload, metadata and no-op ack and nack functions.
      */
     static <T> Message<T> of(T payload, Metadata metadata) {
-        if (payload == null) {
-            throw new IllegalArgumentException("`payload` must not be `null`");
-        }
         if (metadata == null) {
             metadata = Metadata.empty();
         }
@@ -86,15 +83,12 @@ public interface Message<T> {
      * Create a message with the given payload and metadata.
      * The acknowledgement and negative-acknowledgement are immediate.
      *
-     * @param payload The payload, must not be {@code null}
+     * @param payload The payload.
      * @param metadata The metadata, must not be {@code null}, must not contain {@code null} values, can be empty
      * @param <T> The type of payload
      * @return A message with the given payload, metadata and no-op ack and nack functions.
      */
     static <T> Message<T> of(T payload, Iterable<Object> metadata) {
-        if (payload == null) {
-            throw new IllegalArgumentException("`payload` must not be `null`");
-        }
         Metadata validated = Metadata.from(metadata);
         return new Message<T>() {
             @Override
@@ -114,15 +108,12 @@ public interface Message<T> {
      * No metadata are associated with the message.
      * Negative-acknowledgement is immediate.
      *
-     * @param payload The payload, must not be {@code null}.
+     * @param payload The payload.
      * @param ack The ack function, this will be invoked when the returned messages {@link #ack()} method is invoked.
      * @param <T> the type of payload
      * @return A message with the given payload, no metadata and ack function.
      */
     static <T> Message<T> of(T payload, Supplier<CompletionStage<Void>> ack) {
-        if (payload == null) {
-            throw new IllegalArgumentException("`payload` must not be `null`");
-        }
         return new Message<T>() {
             @Override
             public T getPayload() {
@@ -145,7 +136,7 @@ public interface Message<T> {
      * Create a message with the given payload, metadata and ack function.
      * Negative-acknowledgement is immediate.
      *
-     * @param payload The payload, must not be {@code null}.
+     * @param payload The payload.
      * @param metadata the metadata, if {@code null}, empty metadata are used.
      * @param ack The ack function, this will be invoked when the returned messages {@link #ack()} method is invoked.
      * @param <T> the type of payload
@@ -153,9 +144,6 @@ public interface Message<T> {
      */
     static <T> Message<T> of(T payload, Metadata metadata,
             Supplier<CompletionStage<Void>> ack) {
-        if (payload == null) {
-            throw new IllegalArgumentException("`payload` must not be `null`");
-        }
         if (metadata == null) {
             metadata = Metadata.empty();
         }
@@ -190,9 +178,6 @@ public interface Message<T> {
      */
     static <T> Message<T> of(T payload, Iterable<Object> metadata,
             Supplier<CompletionStage<Void>> ack) {
-        if (payload == null) {
-            throw new IllegalArgumentException("`payload` must not be `null`");
-        }
         Metadata validated = Metadata.from(metadata);
         return new Message<T>() {
             @Override
@@ -300,9 +285,6 @@ public interface Message<T> {
     @Experimental("nack support is a SmallRye-only feature")
     static <T> Message<T> of(T payload, Metadata metadata,
             Supplier<CompletionStage<Void>> ack, Function<Throwable, CompletionStage<Void>> nack) {
-        if (payload == null) {
-            throw new IllegalArgumentException("`payload` must not be `null`");
-        }
         if (metadata == null) {
             metadata = Metadata.empty();
         }

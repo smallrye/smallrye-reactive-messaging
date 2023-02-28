@@ -72,6 +72,12 @@ Creating `Messages` is done using the {{ javadoc('io.eclipse.microprofile.reacti
 {{ insert('messages/MessageExamples.java', 'creation') }}
 ```
 
+Messages accept `null` as payload.
+Channels connected to outbound connectors interpret messages with `null` payload differently depending on the technology.
+``` java
+{{ insert('messages/MessageExamples.java', 'null-payload') }}
+```
+
 You can also create new instance of `Message` from an existing one:
 
 ``` java
