@@ -95,7 +95,8 @@ public class KafkaTransactionsImpl<T> extends MutinyEmitterImpl<T> implements Ka
                     VOID_UNI,
                     /* after abort */
                     t -> consumer.resetToLastCommittedPositions()
-                            .chain(() -> Uni.createFrom().failure(t))).execute(work);
+                            .chain(() -> Uni.createFrom().failure(t)))
+                    .execute(work);
         }
         throw KafkaExceptions.ex.transactionInProgress(name);
     }

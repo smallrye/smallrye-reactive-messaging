@@ -31,7 +31,7 @@ public class PublisherPropagationTest extends WeldTestBaseWithoutTails {
                     .map(m -> m.v)).hasValue("hello");
             assertThat(message.getMetadata(SimplePropagationTest.CounterMetadata.class)
                     .map(SimplePropagationTest.CounterMetadata::getCount))
-                            .hasValueSatisfying(x -> assertThat(x).isNotEqualTo(0));
+                    .hasValueSatisfying(x -> assertThat(x).isNotEqualTo(0));
             assertThat(message.getMetadata()).hasSize(3);
         }).hasSize(40);
     }

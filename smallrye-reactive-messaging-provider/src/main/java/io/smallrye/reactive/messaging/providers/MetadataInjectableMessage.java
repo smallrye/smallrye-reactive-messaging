@@ -11,7 +11,7 @@ public interface MetadataInjectableMessage<T> extends Message<T> {
 
     /**
      * Inject the given metadata object
-     * 
+     *
      * @param metadataObject metadata object
      */
     void injectMetadata(Object metadataObject);

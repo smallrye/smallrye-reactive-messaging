@@ -38,8 +38,8 @@ public class InjectionWithoutSubscriberTest extends WeldTestBaseWithoutTails {
         assertThatThrownBy(() -> app.emitter().send(Message.of("test",
                 () -> CompletableFuture.completedFuture(null),
                 t -> CompletableFuture.completedFuture(null))))
-                        .isInstanceOf(IllegalStateException.class)
-                        .hasMessageContaining("no subscriber");
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("no subscriber");
 
         app.channel().subscribe().with(list::add);
 

@@ -80,7 +80,7 @@ import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
  * The {@link #getPublisherBuilder(Config)} is called for every channel that needs to be created. The {@link Config} object
  * passed to the method contains a subset of the global configuration, and with the prefixes removed. So for the previous
  * configuration, it would be:
- * 
+ *
  * <pre>
  * bootstrap.servers = localhost:9092
  * topic = my-topic

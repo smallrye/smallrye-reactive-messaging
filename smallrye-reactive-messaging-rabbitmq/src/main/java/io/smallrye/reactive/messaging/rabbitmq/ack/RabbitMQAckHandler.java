@@ -24,7 +24,7 @@ public interface RabbitMQAckHandler {
 
     /**
      * Handle the request to acknowledge a message.
-     * 
+     *
      * @param message the message to acknowledge
      * @param context the {@link Context} in which the acknowledgement should take place
      * @param <V> message body type

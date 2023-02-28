@@ -459,7 +459,8 @@ public class KafkaSourceWithLegacyMetadataTest extends KafkaCompanionTestBase {
         assertThat(
                 getStartFromFifthOffsetFromLatestConsumerRebalanceListener(
                         "my-group-starting-on-fifth-fail-on-first-attempt")
-                                .getRebalanceCount()).isEqualTo(1);
+                        .getRebalanceCount())
+                .isEqualTo(1);
     }
 
     @Test

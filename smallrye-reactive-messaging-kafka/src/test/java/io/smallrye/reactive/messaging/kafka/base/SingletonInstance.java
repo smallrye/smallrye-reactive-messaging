@@ -60,6 +60,16 @@ public class SingletonInstance<T> implements Instance<T> {
     }
 
     @Override
+    public Handle<T> getHandle() {
+        return null;
+    }
+
+    @Override
+    public Iterable<? extends Handle<T>> handles() {
+        return null;
+    }
+
+    @Override
     public Iterator<T> iterator() {
         return Collections.singleton(instance).iterator();
     }

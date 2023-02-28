@@ -423,7 +423,7 @@ public class DeprecatedCommitStrategiesTest extends WeldTestBase {
                 new KafkaConnectorIncomingConfiguration(config), commitHandlerFactories, failureHandlerFactories,
                 getConsumerRebalanceListeners(),
                 CountKafkaCdiEvents.noCdiEvents, getDeserializationFailureHandlers(), -1))
-                        .isInstanceOf(DeploymentException.class).hasMessageContaining("mine");
+                .isInstanceOf(DeploymentException.class).hasMessageContaining("mine");
     }
 
     @Test

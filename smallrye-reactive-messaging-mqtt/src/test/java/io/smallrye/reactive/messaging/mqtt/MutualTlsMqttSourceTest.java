@@ -60,7 +60,7 @@ public class MutualTlsMqttSourceTest extends MutualTlsMqttTestBase {
                 .map(x -> (byte[]) x)
                 .map(bytes -> Integer.valueOf(new String(bytes)))
                 .collect(Collectors.toList()))
-                        .containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
+                .containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
     }
 
     void pause() {

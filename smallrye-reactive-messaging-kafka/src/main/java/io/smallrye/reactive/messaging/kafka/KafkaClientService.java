@@ -33,7 +33,7 @@ public interface KafkaClientService {
      * Gets the list of managed Kafka Consumer for the given channel.
      * This method returns a reactive consumers, in the order of creation for multi-consumer channels.
      * <p>
-     * 
+     *
      * @param channel the channel, must not be {@code null}
      * @param <K> the type of the key
      * @param <V> the type of the value

@@ -29,7 +29,7 @@ public class ProxiedStrimziKafkaContainer extends StrimziKafkaContainer {
     private final ToxiproxyContainer toxiproxy = new ToxiproxyContainer(DockerImageName.parse(
             System.getProperty(TOXIPROXY_IMAGE_NAME_PROPERTY_KEY, DEFAULT_TOXIPROXY_IMAGE_NAME))
             .asCompatibleSubstituteFor("shopify/toxiproxy"))
-                    .withNetworkAliases(TOXIPROXY_NETWORK_ALIAS);
+            .withNetworkAliases(TOXIPROXY_NETWORK_ALIAS);
     private KafkaProxy kafkaProxy;
 
     public ProxiedStrimziKafkaContainer() {

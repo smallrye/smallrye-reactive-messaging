@@ -405,7 +405,7 @@ public class CommitStrategiesTest extends WeldTestBase {
                 new KafkaConnectorIncomingConfiguration(config), commitHandlerFactories, failureHandlerFactories,
                 getConsumerRebalanceListeners(),
                 CountKafkaCdiEvents.noCdiEvents, getDeserializationFailureHandlers(), -1))
-                        .isInstanceOf(AmbiguousResolutionException.class).hasMessageContaining("mine");
+                .isInstanceOf(AmbiguousResolutionException.class).hasMessageContaining("mine");
     }
 
     @Test
