@@ -32,11 +32,11 @@ public class RabbitMQBrokerTestBase {
 
     private static final GenericContainer<?> RABBIT = new GenericContainer<>(
             DockerImageName.parse("rabbitmq:3-management"))
-                    .withExposedPorts(5672, 15672)
-                    .withLogConsumer(of -> LOGGER.info(of.getUtf8String()))
-                    .waitingFor(Wait.forLogMessage(".*Server startup complete.*\\n", 1))
-                    .withCopyFileToContainer(MountableFile.forClasspathResource("rabbitmq/enabled_plugins"),
-                            "/etc/rabbitmq/enabled_plugins");
+            .withExposedPorts(5672, 15672)
+            .withLogConsumer(of -> LOGGER.info(of.getUtf8String()))
+            .waitingFor(Wait.forLogMessage(".*Server startup complete.*\\n", 1))
+            .withCopyFileToContainer(MountableFile.forClasspathResource("rabbitmq/enabled_plugins"),
+                    "/etc/rabbitmq/enabled_plugins");
 
     protected static String host;
     protected static int port;

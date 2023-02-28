@@ -6,7 +6,7 @@ import org.apache.kafka.common.header.Headers;
 
 /**
  * Common interface for
- * 
+ *
  * @param <K> the Kafka record key type
  */
 public interface KafkaMessageMetadata<K> {

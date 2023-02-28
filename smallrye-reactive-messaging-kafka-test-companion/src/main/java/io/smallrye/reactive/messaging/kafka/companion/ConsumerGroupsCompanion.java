@@ -82,7 +82,7 @@ public class ConsumerGroupsCompanion {
                 new RemoveMembersFromConsumerGroupOptions(Arrays.stream(groupInstanceIds)
                         .map(MemberToRemove::new).collect(Collectors.toList())))
                 .all())
-                        .await().atMost(kafkaApiTimeout);
+                .await().atMost(kafkaApiTimeout);
     }
 
     /*

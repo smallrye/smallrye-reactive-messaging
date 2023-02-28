@@ -10,7 +10,7 @@ public interface JmsProperties {
 
     /**
      * Creates a builder object to create JMS Properties
-     * 
+     *
      * @return the builder.
      */
     static JmsPropertiesBuilder builder() {

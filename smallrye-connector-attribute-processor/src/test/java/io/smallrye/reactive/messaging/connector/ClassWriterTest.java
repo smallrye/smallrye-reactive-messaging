@@ -75,47 +75,47 @@ class ClassWriterTest {
         assertThat(
                 ClassWriter.getTargetDotClassName(
                         new ConnectorAttributeLiteral("a", "a", "boolean", true, ConnectorAttribute.Direction.INCOMING)))
-                                .isEqualTo("Boolean.class");
+                .isEqualTo("Boolean.class");
 
         assertThat(
                 ClassWriter.getTargetDotClassName(
                         new ConnectorAttributeLiteral("a", "a", "int", true, ConnectorAttribute.Direction.INCOMING)))
-                                .isEqualTo("Integer.class");
+                .isEqualTo("Integer.class");
 
         assertThat(
                 ClassWriter.getTargetDotClassName(
                         new ConnectorAttributeLiteral("a", "a", "double", true, ConnectorAttribute.Direction.INCOMING)))
-                                .isEqualTo("Double.class");
+                .isEqualTo("Double.class");
 
         assertThat(
                 ClassWriter.getTargetDotClassName(
                         new ConnectorAttributeLiteral("a", "a", "string", true, ConnectorAttribute.Direction.INCOMING)))
-                                .isEqualTo("String.class");
+                .isEqualTo("String.class");
 
         assertThat(
                 ClassWriter.getTargetDotClassName(
                         new ConnectorAttributeLiteral("a", "a", "float", true, ConnectorAttribute.Direction.INCOMING)))
-                                .isEqualTo("Float.class");
+                .isEqualTo("Float.class");
 
         assertThat(
                 ClassWriter.getTargetDotClassName(
                         new ConnectorAttributeLiteral("a", "a", "short", true, ConnectorAttribute.Direction.INCOMING)))
-                                .isEqualTo("Short.class");
+                .isEqualTo("Short.class");
 
         assertThat(
                 ClassWriter.getTargetDotClassName(
                         new ConnectorAttributeLiteral("a", "a", "long", true, ConnectorAttribute.Direction.INCOMING)))
-                                .isEqualTo("Long.class");
+                .isEqualTo("Long.class");
 
         assertThat(
                 ClassWriter.getTargetDotClassName(
                         new ConnectorAttributeLiteral("a", "a", "byte", true, ConnectorAttribute.Direction.INCOMING)))
-                                .isEqualTo("Byte.class");
+                .isEqualTo("Byte.class");
 
         assertThat(
                 ClassWriter.getTargetDotClassName(
                         new ConnectorAttributeLiteral("a", "a", "Other", true, ConnectorAttribute.Direction.INCOMING)))
-                                .isEqualTo("Other.class");
+                .isEqualTo("Other.class");
     }
 
     @Test
@@ -123,47 +123,47 @@ class ClassWriterTest {
         assertThat(
                 ClassWriter.getTargetType(
                         new ConnectorAttributeLiteral("a", "a", "boolean", true, ConnectorAttribute.Direction.INCOMING)))
-                                .isEqualTo("Boolean");
+                .isEqualTo("Boolean");
 
         assertThat(
                 ClassWriter.getTargetType(
                         new ConnectorAttributeLiteral("a", "a", "int", true, ConnectorAttribute.Direction.INCOMING)))
-                                .isEqualTo("Integer");
+                .isEqualTo("Integer");
 
         assertThat(
                 ClassWriter.getTargetType(
                         new ConnectorAttributeLiteral("a", "a", "double", true, ConnectorAttribute.Direction.INCOMING)))
-                                .isEqualTo("Double");
+                .isEqualTo("Double");
 
         assertThat(
                 ClassWriter.getTargetType(
                         new ConnectorAttributeLiteral("a", "a", "string", true, ConnectorAttribute.Direction.INCOMING)))
-                                .isEqualTo("String");
+                .isEqualTo("String");
 
         assertThat(
                 ClassWriter.getTargetType(
                         new ConnectorAttributeLiteral("a", "a", "float", true, ConnectorAttribute.Direction.INCOMING)))
-                                .isEqualTo("Float");
+                .isEqualTo("Float");
 
         assertThat(
                 ClassWriter.getTargetType(
                         new ConnectorAttributeLiteral("a", "a", "short", true, ConnectorAttribute.Direction.INCOMING)))
-                                .isEqualTo("Short");
+                .isEqualTo("Short");
 
         assertThat(
                 ClassWriter.getTargetType(
                         new ConnectorAttributeLiteral("a", "a", "long", true, ConnectorAttribute.Direction.INCOMING)))
-                                .isEqualTo("Long");
+                .isEqualTo("Long");
 
         assertThat(
                 ClassWriter.getTargetType(
                         new ConnectorAttributeLiteral("a", "a", "byte", true, ConnectorAttribute.Direction.INCOMING)))
-                                .isEqualTo("Byte");
+                .isEqualTo("Byte");
 
         assertThat(
                 ClassWriter.getTargetType(
                         new ConnectorAttributeLiteral("a", "a", "Other", true, ConnectorAttribute.Direction.INCOMING)))
-                                .isEqualTo("Other");
+                .isEqualTo("Other");
     }
 
     @Test

@@ -98,7 +98,7 @@ public class AmqpSourceTest extends AmqpTestBase {
                 .peek(m -> m.ack().toCompletableFuture().join())
                 .map(Message::getPayload)
                 .collect(Collectors.toList()))
-                        .containsExactly(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
+                .containsExactly(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
 
         await().atMost(2, TimeUnit.SECONDS).until(() -> dispositionsReceived.size() >= msgCount);
 
@@ -190,11 +190,11 @@ public class AmqpSourceTest extends AmqpTestBase {
         assertThat(messages1.stream().peek(m -> m.ack().toCompletableFuture().join())
                 .map(Message::getPayload)
                 .collect(Collectors.toList()))
-                        .containsExactly(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
+                .containsExactly(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
         assertThat(messages2.stream().peek(m -> m.ack().toCompletableFuture().join())
                 .map(Message::getPayload)
                 .collect(Collectors.toList()))
-                        .containsExactly(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
+                .containsExactly(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
 
         await().atMost(2, TimeUnit.SECONDS).until(() -> dispositionsReceived.size() >= msgCount);
 
@@ -293,7 +293,7 @@ public class AmqpSourceTest extends AmqpTestBase {
                 .peek(m -> m.ack().toCompletableFuture().join())
                 .map(Message::getPayload)
                 .collect(Collectors.toList()))
-                        .containsExactly("foo".getBytes(StandardCharsets.UTF_8));
+                .containsExactly("foo".getBytes(StandardCharsets.UTF_8));
 
         await().atMost(2, TimeUnit.SECONDS).until(() -> !dispositionsReceived.isEmpty());
 
@@ -335,7 +335,7 @@ public class AmqpSourceTest extends AmqpTestBase {
                 .peek(m -> m.ack().toCompletableFuture().join())
                 .map(Message::getPayload)
                 .collect(Collectors.toList()))
-                        .containsExactly("foo".getBytes(StandardCharsets.UTF_8));
+                .containsExactly("foo".getBytes(StandardCharsets.UTF_8));
 
         await().atMost(2, TimeUnit.SECONDS).until(() -> !dispositionsReceived.isEmpty());
 

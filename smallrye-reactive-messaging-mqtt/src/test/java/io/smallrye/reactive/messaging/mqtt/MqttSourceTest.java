@@ -56,7 +56,7 @@ public class MqttSourceTest extends MqttTestBase {
                 .map(x -> (byte[]) x)
                 .map(bytes -> Integer.valueOf(new String(bytes)))
                 .collect(Collectors.toList()))
-                        .containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
+                .containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
     }
 
     @Test
@@ -83,7 +83,7 @@ public class MqttSourceTest extends MqttTestBase {
                 .map(x -> (byte[]) x)
                 .map(bytes -> Integer.valueOf(new String(bytes)))
                 .collect(Collectors.toList()))
-                        .containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
+                .containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
     }
 
     @Test
@@ -118,14 +118,14 @@ public class MqttSourceTest extends MqttTestBase {
                 .map(x -> (byte[]) x)
                 .map(bytes -> Integer.valueOf(new String(bytes)))
                 .collect(Collectors.toList()))
-                        .containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
+                .containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
 
         assertThat(messages2.stream()
                 .map(Message::getPayload)
                 .map(x -> (byte[]) x)
                 .map(bytes -> Integer.valueOf(new String(bytes)))
                 .collect(Collectors.toList()))
-                        .containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
+                .containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
     }
 
     @Test
@@ -156,7 +156,7 @@ public class MqttSourceTest extends MqttTestBase {
                 .map(Message::getPayload)
                 .map(x -> (byte[]) x)
                 .collect(Collectors.toList()))
-                        .contains(large);
+                .contains(large);
     }
 
     static MapBasedConfig getConfig() {

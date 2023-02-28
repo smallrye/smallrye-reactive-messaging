@@ -113,14 +113,14 @@ public class ConsumerTest extends KafkaCompanionTestBase {
         assertThat(companion.consumeWithDeserializers(IntegerDeserializer.class, StringDeserializer.class)
                 .fromTopics(topic, 3)
                 .awaitCompletion().getRecords())
-                        .hasSize(3)
-                        .extracting(ConsumerRecord::key).containsExactly(1, 2, 3);
+                .hasSize(3)
+                .extracting(ConsumerRecord::key).containsExactly(1, 2, 3);
 
         assertThat(companion.consumeWithDeserializers(new IntegerDeserializer(), new StringDeserializer())
                 .fromTopics(topic, 3)
                 .awaitCompletion().getRecords())
-                        .hasSize(3)
-                        .extracting(ConsumerRecord::key).containsExactly(1, 2, 3);
+                .hasSize(3)
+                .extracting(ConsumerRecord::key).containsExactly(1, 2, 3);
     }
 
     @Test

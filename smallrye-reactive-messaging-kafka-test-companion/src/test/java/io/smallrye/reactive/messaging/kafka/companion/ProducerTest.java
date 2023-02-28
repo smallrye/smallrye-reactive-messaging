@@ -46,9 +46,9 @@ public class ProducerTest extends KafkaCompanionTestBase {
 
         assertThat(companion.consume(Integer.class, String.class).fromTopics(topic, 10)
                 .awaitCompletion().getRecords())
-                        .hasSize(10)
-                        .allSatisfy(c -> assertThat(c.key()).isEqualTo(1))
-                        .extracting(ConsumerRecord::value).containsExactly("0", "1", "2", "3", "4", "5", "6", "7", "8", "9");
+                .hasSize(10)
+                .allSatisfy(c -> assertThat(c.key()).isEqualTo(1))
+                .extracting(ConsumerRecord::value).containsExactly("0", "1", "2", "3", "4", "5", "6", "7", "8", "9");
 
         companion.produceWithSerializers(new IntegerSerializer(), new StringSerializer())
                 .usingGenerator(i -> new ProducerRecord<>(topic, 2, Integer.toString(i)), 10);
@@ -57,9 +57,9 @@ public class ProducerTest extends KafkaCompanionTestBase {
         offsets.put(tp(topic, 0), 10L);
         assertThat(companion.consume(Integer.class, String.class).fromOffsets(offsets, 10)
                 .awaitCompletion().getRecords())
-                        .hasSize(10)
-                        .allSatisfy(c -> assertThat(c.key()).isEqualTo(2))
-                        .extracting(ConsumerRecord::value).containsExactly("0", "1", "2", "3", "4", "5", "6", "7", "8", "9");
+                .hasSize(10)
+                .allSatisfy(c -> assertThat(c.key()).isEqualTo(2))
+                .extracting(ConsumerRecord::value).containsExactly("0", "1", "2", "3", "4", "5", "6", "7", "8", "9");
     }
 
     @Test

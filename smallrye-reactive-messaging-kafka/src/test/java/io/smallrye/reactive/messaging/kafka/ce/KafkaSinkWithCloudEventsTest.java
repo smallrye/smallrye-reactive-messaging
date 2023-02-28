@@ -227,7 +227,7 @@ public class KafkaSinkWithCloudEventsTest extends KafkaCompanionTestBase {
 
         assertThatThrownBy(() -> new KafkaSink(oc, CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(),
                 UnsatisfiedInstance.instance()))
-                        .isInstanceOf(IllegalStateException.class);
+                .isInstanceOf(IllegalStateException.class);
     }
 
     @SuppressWarnings({ "unchecked", "rawtypes" })

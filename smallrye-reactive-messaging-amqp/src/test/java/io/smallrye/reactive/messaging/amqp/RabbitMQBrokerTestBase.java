@@ -25,12 +25,12 @@ public class RabbitMQBrokerTestBase {
 
     private static final GenericContainer<?> RABBIT = new GenericContainer<>(
             DockerImageName.parse("rabbitmq:3-management"))
-                    .withExposedPorts(5672, 15672)
-                    .withLogConsumer(of -> LOGGER.info(of.getUtf8String()))
-                    .waitingFor(
-                            Wait.forLogMessage(".*Server startup complete; 4 plugins started.*\\n", 1))
-                    .withFileSystemBind("src/test/resources/rabbitmq/enabled_plugins", "/etc/rabbitmq/enabled_plugins",
-                            BindMode.READ_ONLY);
+            .withExposedPorts(5672, 15672)
+            .withLogConsumer(of -> LOGGER.info(of.getUtf8String()))
+            .waitingFor(
+                    Wait.forLogMessage(".*Server startup complete; 4 plugins started.*\\n", 1))
+            .withFileSystemBind("src/test/resources/rabbitmq/enabled_plugins", "/etc/rabbitmq/enabled_plugins",
+                    BindMode.READ_ONLY);
 
     protected static String host;
     protected static int port;

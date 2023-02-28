@@ -238,10 +238,10 @@ public class ValueDeserializerConfigurationTest extends KafkaCompanionTestBase {
                                         .isEqualTo(exception.getMessage());
                                 assertThat(
                                         headers.lastHeader(DeserializationFailureHandler.DESERIALIZATION_FAILURE_DATA).value())
-                                                .isEqualTo(data);
+                                        .isEqualTo(data);
                                 assertThat(
                                         getHeader(headers, DeserializationFailureHandler.DESERIALIZATION_FAILURE_DESERIALIZER))
-                                                .isEqualTo(deserializer);
+                                        .isEqualTo(deserializer);
 
                                 return fallback;
                             }
@@ -468,9 +468,9 @@ public class ValueDeserializerConfigurationTest extends KafkaCompanionTestBase {
                 new KafkaConnectorIncomingConfiguration(config), commitHandlerFactories, failureHandlerFactories,
                 UnsatisfiedInstance.instance(),
                 CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), -1))
-                        .isInstanceOf(KafkaException.class)
-                        .hasCauseInstanceOf(IllegalArgumentException.class)
-                        .hasStackTraceContaining("boom");
+                .isInstanceOf(KafkaException.class)
+                .hasCauseInstanceOf(IllegalArgumentException.class)
+                .hasStackTraceContaining("boom");
 
     }
 

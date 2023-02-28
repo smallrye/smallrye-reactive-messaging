@@ -57,17 +57,17 @@ public class MetadataTest {
     public void cannotCreateFromNull() {
         assertThatThrownBy(
                 () -> Metadata.of((Object) null))
-                        .isInstanceOf(IllegalArgumentException.class);
+                .isInstanceOf(IllegalArgumentException.class);
         assertThatThrownBy(
                 () -> Metadata.of(new MessageTest.MyMetadata<>("a"), null, "hello"))
-                        .isInstanceOf(IllegalArgumentException.class);
+                .isInstanceOf(IllegalArgumentException.class);
 
         // Test with duplicated keys
         assertThatThrownBy(() -> Metadata
                 .of(new MessageTest.MyMetadata<>("a"),
                         "hello",
                         new MessageTest.MyMetadata<>("b")))
-                                .isInstanceOf(IllegalArgumentException.class);
+                .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
