@@ -608,6 +608,16 @@
 
   <profiles>
     <profile>
+      <id>with-camel</id>
+      <activation>
+        <jdk>[17, 19]</jdk>
+      </activation>
+      <modules>
+        <module>smallrye-reactive-messaging-camel</module>
+        <module>documentation</module>
+      </modules>
+    </profile>
+    <profile>
       <id>release</id>
       <modules>
         <module>release</module>
@@ -682,16 +692,6 @@
         <excludedGroups></excludedGroups>
         <groups>slow,flaky</groups>
       </properties>
-    </profile>
-    <profile>
-      <id>with-camel</id>
-      <activation>
-        <jdk>[17, 19]</jdk>
-      </activation>
-      <modules>
-        <module>smallrye-reactive-messaging-camel</module>
-        <module>documentation</module>
-      </modules>
     </profile>
   </profiles>
 </project>
