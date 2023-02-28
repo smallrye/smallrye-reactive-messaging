@@ -21,6 +21,7 @@ import org.apache.kafka.common.serialization.IntegerSerializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Message;
+import org.eclipse.microprofile.reactive.messaging.Metadata;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -382,6 +383,25 @@ public class KafkaSinkTest extends KafkaCompanionTestBase {
     }
 
     @Test
+    public void testABeanProducingMessagesNoValue() {
+        ConsumerTask<Integer, String> consumed = companion.consume(Integer.class, String.class)
+                .fromTopics(topic, 10);
+
+        runApplication(getKafkaSinkConfigForRecordProducingBean(topic), BeanProducingKafkaMessageNoValue.class);
+
+        await().until(this::isReady);
+        await().until(this::isAlive);
+
+        assertThat(consumed.awaitCompletion(Duration.ofMinutes(1)).count()).isEqualTo(10);
+        assertThat(consumed.getRecords())
+                .extracting(ConsumerRecord::key)
+                .containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
+        assertThat(consumed.getRecords())
+                .extracting(ConsumerRecord::value)
+                .containsExactly(null, null, null, null, null, null, null, null, null, null);
+    }
+
+    @Test
     public void testABeanProducingRecordsNoValueNoKey() throws InterruptedException {
         ConsumerTask<Integer, String> consumed = companion.consume(Integer.class, String.class)
                 .fromTopics(topic, 10);
@@ -569,6 +589,23 @@ public class KafkaSinkTest extends KafkaCompanionTestBase {
         @Outgoing("output-record")
         public Record<Integer, String> process(int input) {
             return Record.of(input, null);
+        }
+
+        @Outgoing("data")
+        public Publisher<Integer> source() {
+            return Multi.createFrom().range(0, 10);
+        }
+
+    }
+
+    @ApplicationScoped
+    public static class BeanProducingKafkaMessageNoValue {
+
+        @Incoming("data")
+        @Outgoing("output-record")
+        public Message<String> process(int input) {
+            return Message.of(null, Metadata.of(OutgoingKafkaRecordMetadata.builder()
+                    .withKey(input).build()));
         }
 
         @Outgoing("data")

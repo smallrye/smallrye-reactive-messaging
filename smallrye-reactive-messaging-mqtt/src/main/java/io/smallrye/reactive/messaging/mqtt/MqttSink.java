@@ -116,6 +116,9 @@ public class MqttSink {
     }
 
     private Buffer convert(Object payload) {
+        if (payload == null) {
+            return Buffer.buffer();
+        }
         if (payload instanceof JsonObject) {
             return new Buffer(((JsonObject) payload).toBuffer());
         }
