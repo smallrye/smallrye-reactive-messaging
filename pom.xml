@@ -103,7 +103,7 @@
     <junit-pioneer.version>2.0.0</junit-pioneer.version>
     <junit-platform-commons.version>1.9.2</junit-platform-commons.version>
 
-    <jakarta.jms.api.version>3.0.0</jakarta.jms.api.version>
+    <jakarta.jms.api.version>3.1.0</jakarta.jms.api.version>
     <jackson.version>2.14.2</jackson.version>
     <yasson.version>2.0.3</yasson.version>
 
