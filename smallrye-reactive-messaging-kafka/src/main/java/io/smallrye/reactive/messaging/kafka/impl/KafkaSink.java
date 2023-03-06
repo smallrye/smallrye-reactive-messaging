@@ -32,13 +32,6 @@ import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.eclipse.microprofile.reactive.messaging.Message;
 
-import io.opentelemetry.api.GlobalOpenTelemetry;
-import io.opentelemetry.instrumentation.api.instrumenter.Instrumenter;
-import io.opentelemetry.instrumentation.api.instrumenter.InstrumenterBuilder;
-import io.opentelemetry.instrumentation.api.instrumenter.messaging.MessageOperation;
-import io.opentelemetry.instrumentation.api.instrumenter.messaging.MessagingAttributesExtractor;
-import io.opentelemetry.instrumentation.api.instrumenter.messaging.MessagingAttributesGetter;
-import io.opentelemetry.instrumentation.api.instrumenter.messaging.MessagingSpanNameExtractor;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.OutgoingMessageMetadata;
 import io.smallrye.reactive.messaging.ce.OutgoingCloudEventMetadata;
@@ -52,11 +45,9 @@ import io.smallrye.reactive.messaging.kafka.api.IncomingKafkaRecordMetadata;
 import io.smallrye.reactive.messaging.kafka.api.OutgoingKafkaRecordMetadata;
 import io.smallrye.reactive.messaging.kafka.health.KafkaSinkHealth;
 import io.smallrye.reactive.messaging.kafka.impl.ce.KafkaCloudEventHelper;
-import io.smallrye.reactive.messaging.kafka.tracing.KafkaAttributesExtractor;
+import io.smallrye.reactive.messaging.kafka.tracing.KafkaOpenTelemetryInstrumenter;
 import io.smallrye.reactive.messaging.kafka.tracing.KafkaTrace;
-import io.smallrye.reactive.messaging.kafka.tracing.KafkaTraceTextMapSetter;
 import io.smallrye.reactive.messaging.providers.helpers.MultiUtils;
-import io.smallrye.reactive.messaging.tracing.TracingUtils;
 
 @SuppressWarnings("jol")
 public class KafkaSink {
@@ -83,7 +74,7 @@ public class KafkaSink {
 
     private final RuntimeKafkaSinkConfiguration runtimeConfiguration;
 
-    private final Instrumenter<KafkaTrace, Void> instrumenter;
+    private final KafkaOpenTelemetryInstrumenter kafkaInstrumenter;
 
     public KafkaSink(KafkaConnectorOutgoingConfiguration config, KafkaCDIEvents kafkaCDIEvents,
             Instance<SerializationFailureHandler<?>> serializationFailureHandlers,
@@ -140,18 +131,11 @@ public class KafkaSink {
             reportFailure(f);
         }));
 
-        KafkaAttributesExtractor kafkaAttributesExtractor = new KafkaAttributesExtractor();
-        MessagingAttributesGetter<KafkaTrace, Void> messagingAttributesGetter = kafkaAttributesExtractor
-                .getMessagingAttributesGetter();
-        InstrumenterBuilder<KafkaTrace, Void> builder = Instrumenter.builder(GlobalOpenTelemetry.get(),
-                "io.smallrye.reactive.messaging",
-                MessagingSpanNameExtractor.create(messagingAttributesGetter, MessageOperation.SEND));
-
-        instrumenter = builder
-                .addAttributesExtractor(MessagingAttributesExtractor.create(messagingAttributesGetter, MessageOperation.SEND))
-                .addAttributesExtractor(kafkaAttributesExtractor)
-                .buildProducerInstrumenter(KafkaTraceTextMapSetter.INSTANCE);
-
+        if (isTracingEnabled) {
+            kafkaInstrumenter = KafkaOpenTelemetryInstrumenter.createForSink();
+        } else {
+            kafkaInstrumenter = null;
+        }
     }
 
     private static String getClientId(Map<String, Object> config) {
@@ -222,13 +206,14 @@ public class KafkaSink {
                 }
 
                 if (isTracingEnabled) {
-                    TracingUtils.traceOutgoing(instrumenter, message, new KafkaTrace.Builder()
+                    KafkaTrace kafkaTrace = new KafkaTrace.Builder()
                             .withPartition(record.partition() != null ? record.partition() : -1)
                             .withTopic(record.topic())
                             .withHeaders(record.headers())
                             .withGroupId(client.get(ConsumerConfig.GROUP_ID_CONFIG))
                             .withClientId(client.get(ConsumerConfig.CLIENT_ID_CONFIG))
-                            .build());
+                            .build();
+                    kafkaInstrumenter.traceOutgoing(message, kafkaTrace);
                 }
 
                 log.sendingMessageToTopic(message, actualTopic);

@@ -21,14 +21,6 @@ import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.errors.RebalanceInProgressException;
 
-import io.opentelemetry.api.GlobalOpenTelemetry;
-import io.opentelemetry.context.Context;
-import io.opentelemetry.instrumentation.api.instrumenter.Instrumenter;
-import io.opentelemetry.instrumentation.api.instrumenter.InstrumenterBuilder;
-import io.opentelemetry.instrumentation.api.instrumenter.messaging.MessageOperation;
-import io.opentelemetry.instrumentation.api.instrumenter.messaging.MessagingAttributesExtractor;
-import io.opentelemetry.instrumentation.api.instrumenter.messaging.MessagingAttributesGetter;
-import io.opentelemetry.instrumentation.api.instrumenter.messaging.MessagingSpanNameExtractor;
 import io.smallrye.common.annotation.Identifier;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
@@ -45,10 +37,8 @@ import io.smallrye.reactive.messaging.kafka.commit.KafkaCommitHandler;
 import io.smallrye.reactive.messaging.kafka.fault.KafkaDelayedRetryTopic;
 import io.smallrye.reactive.messaging.kafka.fault.KafkaFailureHandler;
 import io.smallrye.reactive.messaging.kafka.health.KafkaSourceHealth;
-import io.smallrye.reactive.messaging.kafka.tracing.KafkaAttributesExtractor;
+import io.smallrye.reactive.messaging.kafka.tracing.KafkaOpenTelemetryInstrumenter;
 import io.smallrye.reactive.messaging.kafka.tracing.KafkaTrace;
-import io.smallrye.reactive.messaging.kafka.tracing.KafkaTraceTextMapGetter;
-import io.smallrye.reactive.messaging.tracing.TracingUtils;
 import io.vertx.core.impl.EventLoopContext;
 import io.vertx.core.impl.VertxInternal;
 import io.vertx.mutiny.core.Vertx;
@@ -78,7 +68,7 @@ public class KafkaSource<K, V> {
     private final ReactiveKafkaConsumer<K, V> client;
     private final EventLoopContext context;
 
-    private final Instrumenter<KafkaTrace, Void> instrumenter;
+    private final KafkaOpenTelemetryInstrumenter kafkaInstrumenter;
 
     public KafkaSource(Vertx vertx,
             String consumerGroup,
@@ -217,18 +207,11 @@ public class KafkaSource<K, V> {
             this.stream = null;
         }
 
-        KafkaAttributesExtractor kafkaAttributesExtractor = new KafkaAttributesExtractor();
-        MessagingAttributesGetter<KafkaTrace, Void> messagingAttributesGetter = kafkaAttributesExtractor
-                .getMessagingAttributesGetter();
-        InstrumenterBuilder<KafkaTrace, Void> builder = Instrumenter.builder(GlobalOpenTelemetry.get(),
-                "io.smallrye.reactive.messaging",
-                MessagingSpanNameExtractor.create(messagingAttributesGetter, MessageOperation.RECEIVE));
-
-        instrumenter = builder
-                .addAttributesExtractor(
-                        MessagingAttributesExtractor.create(messagingAttributesGetter, MessageOperation.RECEIVE))
-                .addAttributesExtractor(kafkaAttributesExtractor)
-                .buildConsumerInstrumenter(KafkaTraceTextMapGetter.INSTANCE);
+        if (isTracingEnabled) {
+            kafkaInstrumenter = KafkaOpenTelemetryInstrumenter.createForSource();
+        } else {
+            kafkaInstrumenter = null;
+        }
     }
 
     private Set<String> getTopics(KafkaConnectorIncomingConfiguration config) {
@@ -288,7 +271,7 @@ public class KafkaSource<K, V> {
                     .withClientId(client.get(ConsumerConfig.CLIENT_ID_CONFIG))
                     .build();
 
-            TracingUtils.traceIncoming(instrumenter, kafkaRecord, kafkaTrace, !insideBatch);
+            kafkaInstrumenter.traceIncoming(kafkaRecord, kafkaTrace, !insideBatch);
         }
     }
 
