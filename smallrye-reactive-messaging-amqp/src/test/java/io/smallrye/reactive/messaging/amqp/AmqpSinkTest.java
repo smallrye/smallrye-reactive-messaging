@@ -1264,7 +1264,6 @@ public class AmqpSinkTest extends AmqpTestBase {
     private Flow.Subscriber<? extends Message<?>> getSubscriberBuilder(Map<String, Object> config) {
         this.provider = new AmqpConnector();
         provider.setup(executionHolder);
-        provider.init();
         return this.provider.getSubscriber(new MapBasedConfig(config));
     }
 

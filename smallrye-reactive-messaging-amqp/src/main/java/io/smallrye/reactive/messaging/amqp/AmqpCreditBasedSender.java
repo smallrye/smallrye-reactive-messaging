@@ -15,22 +15,13 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.eclipse.microprofile.reactive.messaging.Message;
 
-import io.opentelemetry.api.GlobalOpenTelemetry;
-import io.opentelemetry.instrumentation.api.instrumenter.Instrumenter;
-import io.opentelemetry.instrumentation.api.instrumenter.InstrumenterBuilder;
-import io.opentelemetry.instrumentation.api.instrumenter.messaging.MessageOperation;
-import io.opentelemetry.instrumentation.api.instrumenter.messaging.MessagingAttributesExtractor;
-import io.opentelemetry.instrumentation.api.instrumenter.messaging.MessagingAttributesGetter;
-import io.opentelemetry.instrumentation.api.instrumenter.messaging.MessagingSpanNameExtractor;
 import io.smallrye.common.annotation.CheckReturnValue;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.helpers.Subscriptions;
 import io.smallrye.mutiny.tuples.Tuple2;
 import io.smallrye.reactive.messaging.amqp.ce.AmqpCloudEventHelper;
-import io.smallrye.reactive.messaging.amqp.tracing.AmqpAttributesExtractor;
-import io.smallrye.reactive.messaging.amqp.tracing.AmqpMessageTextMapSetter;
+import io.smallrye.reactive.messaging.amqp.tracing.AmqpOpenTelemetryInstrumenter;
 import io.smallrye.reactive.messaging.ce.OutgoingCloudEventMetadata;
-import io.smallrye.reactive.messaging.tracing.TracingUtils;
 import io.vertx.amqp.impl.AmqpMessageImpl;
 import io.vertx.mutiny.amqp.AmqpSender;
 
@@ -55,7 +46,7 @@ public class AmqpCreditBasedSender implements Processor<Message<?>, Message<?>>,
     private final int retryAttempts;
     private final int retryInterval;
 
-    private final Instrumenter<AmqpMessage<?>, Void> instrumenter;
+    private final AmqpOpenTelemetryInstrumenter amqpInstrumenter;
 
     private volatile boolean isAnonymous;
 
@@ -83,18 +74,11 @@ public class AmqpCreditBasedSender implements Processor<Message<?>, Message<?>>,
         this.retryAttempts = configuration.getReconnectAttempts();
         this.retryInterval = configuration.getReconnectInterval();
 
-        AmqpAttributesExtractor amqpAttributesExtractor = new AmqpAttributesExtractor();
-        MessagingAttributesGetter<AmqpMessage<?>, Void> messagingAttributesGetter = amqpAttributesExtractor
-                .getMessagingAttributesGetter();
-        InstrumenterBuilder<AmqpMessage<?>, Void> builder = Instrumenter.builder(GlobalOpenTelemetry.get(),
-                "io.smallrye.reactive.messaging",
-                MessagingSpanNameExtractor.create(messagingAttributesGetter, MessageOperation.SEND));
-
-        instrumenter = builder
-                .addAttributesExtractor(
-                        MessagingAttributesExtractor.create(messagingAttributesGetter, MessageOperation.SEND))
-                .addAttributesExtractor(amqpAttributesExtractor)
-                .buildProducerInstrumenter(AmqpMessageTextMapSetter.INSTANCE);
+        if (tracingEnabled) {
+            amqpInstrumenter = AmqpOpenTelemetryInstrumenter.createForSender();
+        } else {
+            amqpInstrumenter = null;
+        }
     }
 
     @Override
@@ -324,7 +308,7 @@ public class AmqpCreditBasedSender implements Processor<Message<?>, Message<?>>,
         }
 
         if (tracingEnabled) {
-            TracingUtils.traceOutgoing(instrumenter, msg, new AmqpMessage<>(amqp, null, null, false, true));
+            amqpInstrumenter.traceOutgoing(msg, new AmqpMessage<>(amqp, null, null, false, true));
         }
 
         log.sendingMessageToAddress(actualAddress);
