@@ -37,7 +37,7 @@
     <server>
       <id>google-maven-central</id>
       <configuration>
-        <requestTimeout>300000</requestTimeout> <!-- 5 minutes in milliseconds -->
+        <readTimeout>300000</readTimeout> <!-- 5 minutes in milliseconds -->
       </configuration>
     </server>
   </servers>
