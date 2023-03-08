@@ -24,7 +24,14 @@
     "criticality" : "highlight",
     "minSeverity" : "POTENTIALLY_BREAKING",
     "minCriticality" : "documented",
-    "differences" : [ ]
+    "differences" : [
+        {
+            "code": "java.field.constantValueChanged",
+            "old": "field io.smallrye.reactive.messaging.kafka.companion.test.KafkaBrokerExtension.KAFKA_VERSION",
+            "new": "field io.smallrye.reactive.messaging.kafka.companion.test.KafkaBrokerExtension.KAFKA_VERSION",
+            "justification": "Kafka broker version used for tests from 3.1.0 to 3.3.2"
+        }
+    ]
   }
 }, {
   "extension" : "revapi.reporter.json",
