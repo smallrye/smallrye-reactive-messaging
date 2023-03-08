@@ -55,7 +55,7 @@ jobs:
                 env:
                     MAVEN_OPTS: ${{ matrix.java.opts }}
                 run: |
-                    mvn -s .github/ci-maven-settings.xml -B \
+                    mvn -s .github/ci-maven-settings.xml -Dmaven.resolver.transport=wagon -B \
                       clean verify -Dtest-containers=true ${{ matrix.java.build_opts }}
 
     quality:
@@ -80,6 +80,7 @@ jobs:
                 run: |
                     mvn -s .github/ci-maven-settings.xml -B \
                         clean install sonar:sonar -Pcoverage \
+                        -Dmaven.resolver.transport=wagon \
                         -Drevapi.skip=true \
                         -Dsonar.projectKey=smallrye_smallrye-reactive-messaging \
                         -Dsonar.projectName="SmallRye Reactive Messaging" \
