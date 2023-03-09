@@ -42,6 +42,7 @@ import io.opentelemetry.sdk.trace.export.SimpleSpanProcessor;
 import io.opentelemetry.sdk.trace.samplers.Sampler;
 import io.smallrye.config.SmallRyeConfigProviderResolver;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
+import io.vertx.core.json.JsonObject;
 import io.vertx.mutiny.amqp.AmqpMessage;
 
 public class TracingAmqpToAppToAmqpTest extends AmqpBrokerTestBase {
@@ -98,8 +99,8 @@ public class TracingAmqpToAppToAmqpTest extends AmqpBrokerTestBase {
         await().until(() -> isAmqpConnectorReady(container));
         await().until(() -> isAmqpConnectorAlive(container));
 
-        List<Integer> payloads = new CopyOnWriteArrayList<>();
-        usage.consumeIntegers("result-topic", payloads::add);
+        List<AmqpMessage> messages = new CopyOnWriteArrayList<>();
+        usage.consume("result-topic", messages::add);
 
         AtomicInteger count = new AtomicInteger();
         usage.produce("parent-topic", 10, () -> AmqpMessage.create()
@@ -108,8 +109,13 @@ public class TracingAmqpToAppToAmqpTest extends AmqpBrokerTestBase {
                 .withIntegerAsBody(count.getAndIncrement())
                 .build());
 
-        await().until(() -> payloads.size() >= 10);
-        assertThat(payloads).containsExactly(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
+        await().until(() -> messages.size() >= 10);
+        assertThat(messages)
+                .extracting(AmqpMessage::bodyAsInteger)
+                .containsExactly(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
+        assertThat(messages)
+                .extracting(m -> m.applicationProperties().getMap())
+                .allSatisfy(m -> assertThat(m).containsKey("my-property").containsKey("traceparent"));
 
         CompletableResultCode completableResultCode = tracerProvider.forceFlush();
         completableResultCode.whenComplete(() -> {
@@ -148,7 +154,10 @@ public class TracingAmqpToAppToAmqpTest extends AmqpBrokerTestBase {
         @Incoming("parent-topic")
         @Outgoing("result-topic")
         public Message<Integer> processMessage(Message<Integer> input) {
-            return input.withPayload(input.getPayload() + 1);
+            int newPayload = input.getPayload() + 1;
+            return input.withPayload(newPayload)
+                    .addMetadata(OutgoingAmqpMetadata.builder()
+                            .withApplicationProperties(JsonObject.of("my-property", newPayload)).build());
         }
     }
 }
