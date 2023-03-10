@@ -16,8 +16,25 @@ public abstract class BaseHealth {
 
     protected final String channel;
 
-    public BaseHealth(String channel) {
+    private final boolean topicVerificationEnabled;
+    protected final boolean startupTopicVerificationDisabled;
+
+    protected final boolean readinessTopicVerificationDisabled;
+
+    public BaseHealth(String channel, boolean topicVerificationEnabled,
+            boolean startupTopicVerificationDisabled, boolean readinessTopicVerificationDisabled) {
         this.channel = channel;
+        this.topicVerificationEnabled = topicVerificationEnabled;
+        this.startupTopicVerificationDisabled = startupTopicVerificationDisabled;
+        this.readinessTopicVerificationDisabled = readinessTopicVerificationDisabled;
+    }
+
+    public boolean isReadinessTopicVerificationEnabled() {
+        return topicVerificationEnabled && !readinessTopicVerificationDisabled;
+    }
+
+    public boolean isStartupTopicVerificationEnabled() {
+        return topicVerificationEnabled && !startupTopicVerificationDisabled;
     }
 
     public void close() {
@@ -32,8 +49,7 @@ public abstract class BaseHealth {
     }
 
     public void isStarted(HealthReport.HealthReportBuilder builder) {
-        KafkaAdmin admin = getAdmin();
-        if (admin != null) {
+        if (isStartupTopicVerificationEnabled()) {
             clientBasedStartupCheck(builder);
         } else {
             metricsBasedStartupCheck(builder);
@@ -41,8 +57,7 @@ public abstract class BaseHealth {
     }
 
     public void isReady(HealthReport.HealthReportBuilder builder) {
-        KafkaAdmin admin = getAdmin();
-        if (admin != null) {
+        if (isReadinessTopicVerificationEnabled()) {
             clientBasedReadinessCheck(builder);
         } else {
             metricsBasedReadinessCheck(builder);

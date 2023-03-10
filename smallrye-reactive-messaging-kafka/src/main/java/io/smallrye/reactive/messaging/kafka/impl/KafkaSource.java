@@ -128,7 +128,7 @@ public class KafkaSource<K, V> {
         commitHandler = createCommitHandler(vertx, commitStrategy);
         failureHandler = createFailureHandler(vertx);
         if (configuration.getHealthEnabled()) {
-            health = new KafkaSourceHealth(this, configuration, client);
+            health = new KafkaSourceHealth(this, configuration, client, topics, pattern);
         } else {
             health = null;
         }

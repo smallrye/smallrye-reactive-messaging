@@ -10,12 +10,12 @@ import java.util.concurrent.Flow;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
-import org.apache.kafka.clients.consumer.ConsumerConfig;
-import org.apache.kafka.clients.producer.ProducerRecord;
-import org.apache.kafka.common.serialization.IntegerDeserializer;
 import org.apache.kafka.common.serialization.IntegerSerializer;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
-import org.eclipse.microprofile.reactive.messaging.*;
+import org.eclipse.microprofile.reactive.messaging.Acknowledgment;
+import org.eclipse.microprofile.reactive.messaging.Incoming;
+import org.eclipse.microprofile.reactive.messaging.Message;
+import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.junit.jupiter.api.Test;
 
 import io.smallrye.mutiny.Multi;
@@ -24,22 +24,24 @@ import io.smallrye.reactive.messaging.kafka.api.OutgoingKafkaRecordMetadata;
 import io.smallrye.reactive.messaging.kafka.base.KafkaCompanionTestBase;
 import io.smallrye.reactive.messaging.kafka.base.KafkaMapBasedConfig;
 import io.smallrye.reactive.messaging.kafka.companion.ConsumerTask;
-import io.smallrye.reactive.messaging.kafka.companion.ProducerTask;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 
-public class HealthCheckTest extends KafkaCompanionTestBase {
+public class SinkHealthCheckTest extends KafkaCompanionTestBase {
+
+    private KafkaMapBasedConfig getKafkaSinkConfigForProducingBean() {
+        return kafkaConfig("mp.messaging.outgoing.output")
+                .put("value.serializer", IntegerSerializer.class.getName());
+    }
 
     @Test
-    public void testHealthOfApplicationWithoutOutgoingTopic() {
+    public void testWithoutOutgoingTopic() {
         MapBasedConfig config = new MapBasedConfig(getKafkaSinkConfigForProducingBean());
         config.put("my.topic", topic);
         runApplication(config, ProducingBean.class);
 
-        ConsumerTask<String, Integer> records = companion.consumeIntegers().fromTopics(topic, 10, Duration.ofSeconds(10));
+        await().until(() -> isStarted() && isReady() && isAlive());
 
-        await().until(this::isStarted);
-        await().until(this::isReady);
-        await().until(this::isAlive);
+        ConsumerTask<String, Integer> records = companion.consumeIntegers().fromTopics(topic, 10, Duration.ofSeconds(10));
 
         await().until(() -> records.count() == 10);
         HealthReport startup = getHealth().getStartup();
@@ -56,20 +58,45 @@ public class HealthCheckTest extends KafkaCompanionTestBase {
     }
 
     @Test
-    void testHealthOfApplicationWithOutgoingTopicUsingTopicVerification() {
+    public void testWithoutOutgoingTopicReadinessDisabled() {
+        MapBasedConfig config = new MapBasedConfig(getKafkaSinkConfigForProducingBean()
+                .put("health-readiness-enabled", false));
+        config.put("my.topic", topic);
+        runApplication(config, ProducingBean.class);
+
+        await().until(() -> isStarted() && isReady() && isAlive());
+
+        ConsumerTask<String, Integer> records = companion.consumeIntegers().fromTopics(topic, 10, Duration.ofSeconds(10));
+
+        await().until(() -> records.count() == 10);
+        HealthReport startup = getHealth().getStartup();
+        HealthReport liveness = getHealth().getLiveness();
+        HealthReport readiness = getHealth().getReadiness();
+
+        assertThat(startup.isOk()).isTrue();
+        assertThat(liveness.isOk()).isTrue();
+        assertThat(readiness.isOk()).isTrue();
+        assertThat(startup.getChannels()).hasSize(1);
+        assertThat(liveness.getChannels()).hasSize(1);
+        assertThat(readiness.getChannels()).hasSize(0);
+        assertThat(liveness.getChannels().get(0).getChannel()).isEqualTo("output");
+    }
+
+    @Test
+    void testWithOutgoingTopicUsingTopicVerification() {
         String outputTopic = UUID.randomUUID().toString();
-        companion.topics().createAndWait(outputTopic, 1, Duration.ofMinutes(1));
         MapBasedConfig config = new MapBasedConfig(getKafkaSinkConfigForProducingBean()
                 .put("health-topic-verification-enabled", true)
                 .put("topic", outputTopic));
         config.put("my.topic", topic);
         runApplication(config, ProducingBean.class);
 
+        await().until(() -> isReady() && !isStarted());
+
+        companion.topics().createAndWait(outputTopic, 1, Duration.ofMinutes(1));
         ConsumerTask<String, Integer> consume = companion.consumeIntegers().fromTopics(topic, 10, Duration.ofSeconds(10));
 
-        await().until(this::isStarted);
-        await().until(this::isReady);
-        await().until(this::isAlive);
+        await().until(() -> isStarted() && isReady() && isAlive());
 
         await().until(() -> consume.count() == 10);
         HealthReport startup = getHealth().getStartup();
@@ -86,19 +113,21 @@ public class HealthCheckTest extends KafkaCompanionTestBase {
     }
 
     @Test
-    public void testHealthOfApplicationWithoutOutgoingTopicReadinessDisabled() {
+    void testWithOutgoingTopicUsingTopicVerificationStartupDisabled() {
+        String outputTopic = UUID.randomUUID().toString();
         MapBasedConfig config = new MapBasedConfig(getKafkaSinkConfigForProducingBean()
-                .put("health-readiness-enabled", false));
+                .put("health-topic-verification-enabled", true)
+                .put("health-topic-verification-startup-disabled", true)
+                .put("topic", outputTopic));
         config.put("my.topic", topic);
         runApplication(config, ProducingBean.class);
 
-        ConsumerTask<String, Integer> records = companion.consumeIntegers().fromTopics(topic, 10, Duration.ofSeconds(10));
+        await().until(() -> isStarted() && isReady() && isAlive());
 
-        await().until(this::isStarted);
-        await().until(this::isReady);
-        await().until(this::isAlive);
+        companion.topics().createAndWait(outputTopic, 1, Duration.ofMinutes(1));
+        ConsumerTask<String, Integer> consume = companion.consumeIntegers().fromTopics(topic, 10, Duration.ofSeconds(10));
 
-        await().until(() -> records.count() == 10);
+        await().until(() -> consume.count() == 10);
         HealthReport startup = getHealth().getStartup();
         HealthReport liveness = getHealth().getLiveness();
         HealthReport readiness = getHealth().getReadiness();
@@ -108,43 +137,26 @@ public class HealthCheckTest extends KafkaCompanionTestBase {
         assertThat(readiness.isOk()).isTrue();
         assertThat(startup.getChannels()).hasSize(1);
         assertThat(liveness.getChannels()).hasSize(1);
-        assertThat(readiness.getChannels()).hasSize(0);
+        assertThat(readiness.getChannels()).hasSize(1);
         assertThat(liveness.getChannels().get(0).getChannel()).isEqualTo("output");
     }
 
-    private KafkaMapBasedConfig getKafkaSinkConfigForProducingBean() {
-        return kafkaConfig("mp.messaging.outgoing.output")
-                .put("value.serializer", IntegerSerializer.class.getName());
-    }
-
-    private KafkaMapBasedConfig getKafkaSourceConfig(String topic) {
-        return kafkaConfig("mp.messaging.incoming.input")
-                .put("value.deserializer", IntegerDeserializer.class.getName())
-                .put("topic", topic)
-                .put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
-    }
-
     @Test
-    public void testHealthOfApplicationWithChannelUsingTopicVerification() {
-        KafkaMapBasedConfig config = getKafkaSourceConfig(topic)
-                .put("health-readiness-topic-verification", true);
-        LazyConsumingBean bean = runApplication(config, LazyConsumingBean.class);
+    void testWithOutgoingTopicUsingTopicVerificationReadinessDisabled() {
+        String outputTopic = UUID.randomUUID().toString();
+        MapBasedConfig config = new MapBasedConfig(getKafkaSinkConfigForProducingBean()
+                .put("health-topic-verification-enabled", true)
+                .put("health-topic-verification-startup-disabled", true)
+                .put("topic", outputTopic));
+        config.put("my.topic", topic);
+        runApplication(config, ProducingBean.class);
 
-        companion.produceIntegers().usingGenerator(i -> new ProducerRecord<>(topic, "key", i), 10);
+        await().until(() -> isStarted() && isReady() && isAlive());
 
-        await().until(this::isStarted);
-        await().until(this::isReady);
-        await().until(this::isAlive);
-        // before subscription to channel
+        companion.topics().createAndWait(outputTopic, 1, Duration.ofMinutes(1));
+        ConsumerTask<String, Integer> consume = companion.consumeIntegers().fromTopics(topic, 10, Duration.ofSeconds(10));
 
-        Multi<Integer> channel = bean.getChannel();
-        channel
-                .select().first(10)
-                .collect().asList()
-                .await().atMost(Duration.ofSeconds(10));
-
-        // after subscription to channel
-
+        await().until(() -> consume.count() == 10);
         HealthReport startup = getHealth().getStartup();
         HealthReport liveness = getHealth().getLiveness();
         HealthReport readiness = getHealth().getReadiness();
@@ -155,37 +167,7 @@ public class HealthCheckTest extends KafkaCompanionTestBase {
         assertThat(startup.getChannels()).hasSize(1);
         assertThat(liveness.getChannels()).hasSize(1);
         assertThat(readiness.getChannels()).hasSize(1);
-    }
-
-    @Test
-    public void testHealthOfApplicationWithChannel() {
-        KafkaMapBasedConfig config = getKafkaSourceConfig(topic);
-        LazyConsumingBean bean = runApplication(config, LazyConsumingBean.class);
-
-        ProducerTask produced = companion.produceIntegers().usingGenerator(i -> new ProducerRecord<>(topic, "key", i), 10);
-
-        await().until(this::isStarted);
-        await().until(this::isReady);
-        await().until(this::isAlive);
-
-        produced.awaitCompletion(Duration.ofMinutes(1));
-
-        Multi<Integer> channel = bean.getChannel();
-        channel
-                .select().first(10)
-                .collect().asList()
-                .await().atMost(Duration.ofSeconds(10));
-
-        HealthReport startup = getHealth().getStartup();
-        HealthReport liveness = getHealth().getLiveness();
-        HealthReport readiness = getHealth().getReadiness();
-
-        assertThat(startup.isOk()).isTrue();
-        assertThat(liveness.isOk()).isTrue();
-        assertThat(readiness.isOk()).isTrue();
-        assertThat(startup.getChannels()).hasSize(1);
-        assertThat(liveness.getChannels()).hasSize(1);
-        assertThat(readiness.getChannels()).hasSize(1);
+        assertThat(liveness.getChannels().get(0).getChannel()).isEqualTo("output");
     }
 
     @ApplicationScoped
@@ -208,18 +190,6 @@ public class HealthCheckTest extends KafkaCompanionTestBase {
             return Multi.createFrom().range(0, 10);
         }
 
-    }
-
-    @ApplicationScoped
-    public static class LazyConsumingBean {
-
-        @Inject
-        @Channel("input")
-        Multi<Integer> channel;
-
-        public Multi<Integer> getChannel() {
-            return channel;
-        }
     }
 
 }
