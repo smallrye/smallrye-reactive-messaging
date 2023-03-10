@@ -24,6 +24,7 @@ import jakarta.enterprise.inject.spi.CDI;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.eclipse.microprofile.reactive.messaging.spi.ConnectorLiteral;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -69,6 +70,11 @@ public class TracingTest extends WeldTestBase {
                 .setPropagators(ContextPropagators.create(W3CTraceContextPropagator.getInstance()))
                 .setTracerProvider(tracerProvider)
                 .buildAndRegisterGlobal();
+    }
+
+    @AfterAll
+    static void shutdown() {
+        GlobalOpenTelemetry.resetForTest();
     }
 
     @Test
