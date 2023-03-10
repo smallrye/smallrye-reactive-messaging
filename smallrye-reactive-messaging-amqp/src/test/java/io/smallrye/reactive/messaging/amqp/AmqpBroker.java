@@ -33,6 +33,7 @@ public class AmqpBroker {
                 config.setLargeMessagesDirectory("target/data/large-messages");
                 config.addAcceptorConfiguration("in-vm", "vm://0");
                 config.addAcceptorConfiguration("tcp", "tcp://127.0.0.1:" + port);
+                config.setMaxDiskUsage(99);
                 server.setConfiguration(config);
             } else {
                 server.setConfigResourcePath(brokerXmlName);
