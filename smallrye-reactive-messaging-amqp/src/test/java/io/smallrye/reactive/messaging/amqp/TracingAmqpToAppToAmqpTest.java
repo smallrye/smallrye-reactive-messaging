@@ -2,11 +2,9 @@ package io.smallrye.reactive.messaging.amqp;
 
 import static io.opentelemetry.api.trace.SpanKind.CONSUMER;
 import static io.opentelemetry.api.trace.SpanKind.PRODUCER;
-import static io.opentelemetry.semconv.trace.attributes.SemanticAttributes.MESSAGING_DESTINATION;
 import static io.opentelemetry.semconv.trace.attributes.SemanticAttributes.MESSAGING_DESTINATION_KIND;
+import static io.opentelemetry.semconv.trace.attributes.SemanticAttributes.MESSAGING_DESTINATION_NAME;
 import static io.opentelemetry.semconv.trace.attributes.SemanticAttributes.MESSAGING_OPERATION;
-import static io.opentelemetry.semconv.trace.attributes.SemanticAttributes.MESSAGING_PROTOCOL;
-import static io.opentelemetry.semconv.trace.attributes.SemanticAttributes.MESSAGING_PROTOCOL_VERSION;
 import static io.opentelemetry.semconv.trace.attributes.SemanticAttributes.MESSAGING_SYSTEM;
 import static java.util.stream.Collectors.toList;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -130,10 +128,8 @@ public class TracingAmqpToAppToAmqpTest extends AmqpBrokerTestBase {
             SpanData consumer = parentSpans.get(0);
             assertEquals(CONSUMER, consumer.getKind());
             assertEquals("AMQP 1.0", consumer.getAttributes().get(MESSAGING_SYSTEM));
-            assertEquals("AMQP", consumer.getAttributes().get(MESSAGING_PROTOCOL));
-            assertEquals("1.0", consumer.getAttributes().get(MESSAGING_PROTOCOL_VERSION));
             assertEquals("queue", consumer.getAttributes().get(MESSAGING_DESTINATION_KIND));
-            assertEquals("parent-topic", consumer.getAttributes().get(MESSAGING_DESTINATION));
+            assertEquals("parent-topic", consumer.getAttributes().get(MESSAGING_DESTINATION_NAME));
             assertEquals("parent-topic receive", consumer.getName());
             assertEquals("receive", consumer.getAttributes().get(MESSAGING_OPERATION));
 
@@ -141,7 +137,7 @@ public class TracingAmqpToAppToAmqpTest extends AmqpBrokerTestBase {
                     .get();
             assertEquals(PRODUCER, producer.getKind());
             assertEquals("queue", producer.getAttributes().get(MESSAGING_DESTINATION_KIND));
-            assertEquals("result-topic", producer.getAttributes().get(MESSAGING_DESTINATION));
+            assertEquals("result-topic", producer.getAttributes().get(MESSAGING_DESTINATION_NAME));
             assertEquals("result-topic send", producer.getName());
             assertNull(producer.getAttributes().get(MESSAGING_OPERATION));
         });
