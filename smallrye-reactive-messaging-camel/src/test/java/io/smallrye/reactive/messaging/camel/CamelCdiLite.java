@@ -5,6 +5,7 @@ import jakarta.enterprise.inject.Instance;
 import jakarta.enterprise.inject.Produces;
 import jakarta.inject.Inject;
 
+import org.apache.camel.ExtendedCamelContext;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.component.reactive.streams.ReactiveStreamsComponent;
 import org.apache.camel.impl.DefaultCamelContext;
@@ -22,10 +23,11 @@ public class CamelCdiLite {
         DefaultCamelContext context = new DefaultCamelContext();
         context.disableJMX();
         context.setApplicationContextClassLoader(CamelConnector.class.getClassLoader());
-        context.setRegistry(new DefaultRegistry());
+        ExtendedCamelContext camelContextExtension = context.getCamelContextExtension();
+        camelContextExtension.setRegistry(new DefaultRegistry());
         context.setLoadTypeConverters(false);
         context.build();
-        context.setComponentNameResolver(new DefaultComponentNameResolver());
+        camelContextExtension.setComponentNameResolver(new DefaultComponentNameResolver());
 
         context.addComponent("reactive-streams", new ReactiveStreamsComponent());
 
