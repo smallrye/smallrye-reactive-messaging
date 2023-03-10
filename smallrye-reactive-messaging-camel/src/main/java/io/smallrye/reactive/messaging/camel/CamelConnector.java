@@ -168,7 +168,7 @@ public class CamelConnector implements InboundConnector, OutboundConnector {
         }
 
         exchange.getIn().setBody(message.getPayload());
-        exchange.addOnCompletion(new Synchronization() {
+        exchange.getExchangeExtension().addOnCompletion(new Synchronization() {
             @Override
             public void onComplete(Exchange exchange) {
                 message.ack();

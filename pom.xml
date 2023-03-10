@@ -65,7 +65,7 @@
     <rxjava.version>2.2.21</rxjava.version>
     <cloudevent.version>1.1.0</cloudevent.version>
     <weld.version>5.1.0.Final</weld.version>
-    <camel.version>4.0.0-M1</camel.version>
+    <camel.version>4.0.0-M2</camel.version>
 
     <microprofile-reactive-messaging.version>3.0</microprofile-reactive-messaging.version>
     <microprofile-reactive-streams.version>3.0</microprofile-reactive-streams.version>
