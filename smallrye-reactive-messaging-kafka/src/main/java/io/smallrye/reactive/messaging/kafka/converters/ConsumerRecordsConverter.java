@@ -9,6 +9,7 @@ import org.eclipse.microprofile.reactive.messaging.Message;
 
 import io.smallrye.reactive.messaging.MessageConverter;
 import io.smallrye.reactive.messaging.kafka.api.IncomingKafkaRecordBatchMetadata;
+import io.smallrye.reactive.messaging.providers.helpers.TypeUtils;
 
 /**
  * Convert an incoming Kafka batch message into a {@link ConsumerRecords}.
@@ -18,7 +19,7 @@ public class ConsumerRecordsConverter implements MessageConverter {
     @Override
     public boolean canConvert(Message<?> in, Type target) {
         return in.getMetadata(IncomingKafkaRecordBatchMetadata.class).isPresent()
-                && target.equals(ConsumerRecords.class);
+                && TypeUtils.getRawTypeIfParameterized(target).equals(ConsumerRecords.class);
     }
 
     @SuppressWarnings("rawtypes")

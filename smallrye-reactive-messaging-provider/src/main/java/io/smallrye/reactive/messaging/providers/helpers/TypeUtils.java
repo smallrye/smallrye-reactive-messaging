@@ -811,6 +811,19 @@ public class TypeUtils {
     }
 
     /**
+     * Returns the raw type if the given type is parameterized, if not returns the type.
+     *
+     * @param type the type to convert
+     * @return the raw type if parameterized
+     */
+    public static Type getRawTypeIfParameterized(Type type) {
+        if (type instanceof ParameterizedType) {
+            return ((ParameterizedType) type).getRawType();
+        }
+        return type;
+    }
+
+    /**
      * Check equality of types.
      *
      * @param t1 the first type
