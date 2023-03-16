@@ -14,6 +14,7 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.eclipse.microprofile.reactive.messaging.Channel;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
+import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.junit.jupiter.api.Test;
 
 import io.smallrye.mutiny.Multi;
@@ -91,6 +92,25 @@ class ConsumerRecordConverterTest extends KafkaCompanionTestBase {
         });
     }
 
+    @Test
+    public void testStreamProcessorBeanUsingConverter() {
+        String sinkTopic = topic + "-sink";
+        KafkaMapBasedConfig config = kafkaConfig("mp.messaging.incoming.data")
+                .with("value.deserializer", "org.apache.kafka.common.serialization.StringDeserializer")
+                .with("auto.offset.reset", "earliest")
+                .with("topic", topic)
+                .withPrefix("mp.messaging.outgoing.sink")
+                .with("topic", sinkTopic)
+                .with("value.serializer", "org.apache.kafka.common.serialization.StringSerializer");
+
+        addBeans(ConsumerRecordConverter.class, RecordConverter.class);
+        runApplication(config, MyStreamProcessorBean.class);
+
+        companion.produceStrings().usingGenerator(i -> new ProducerRecord<>(topic, "k-" + i, "v-" + i), 10);
+
+        companion.consumeStrings().fromTopics(sinkTopic, 10).awaitCompletion();
+    }
+
     @ApplicationScoped
     public static class MyBean {
 
@@ -118,6 +138,24 @@ class ConsumerRecordConverterTest extends KafkaCompanionTestBase {
 
         public void consume() {
             recordMulti.subscribe().with(records::add);
+        }
+
+        public List<ConsumerRecord<String, String>> list() {
+            return records;
+        }
+
+    }
+
+    @ApplicationScoped
+    public static class MyStreamProcessorBean {
+
+        private final List<ConsumerRecord<String, String>> records = new CopyOnWriteArrayList<>();
+
+        @Incoming("data")
+        @Outgoing("sink")
+        public Multi<String> process(Multi<ConsumerRecord<String, String>> recordMulti) {
+            return recordMulti.onItem().invoke(records::add)
+                    .map(ConsumerRecord::value);
         }
 
         public List<ConsumerRecord<String, String>> list() {
