@@ -34,57 +34,57 @@ public class RabbitMQTraceAttributesExtractor implements AttributesExtractor<Rab
 
     private final static class RabbitMQMessagingAttributesGetter implements MessagingAttributesGetter<RabbitMQTrace, Void> {
         @Override
-        public String system(final RabbitMQTrace rabbitMQTrace) {
+        public String getSystem(final RabbitMQTrace rabbitMQTrace) {
             return "rabbitmq";
         }
 
         @Override
-        public String destinationKind(final RabbitMQTrace rabbitMQTrace) {
+        public String getDestinationKind(final RabbitMQTrace rabbitMQTrace) {
             return rabbitMQTrace.getDestinationKind();
         }
 
         @Override
-        public String destination(final RabbitMQTrace rabbitMQTrace) {
+        public String getDestination(final RabbitMQTrace rabbitMQTrace) {
             return rabbitMQTrace.getDestination();
         }
 
         @Override
-        public boolean temporaryDestination(final RabbitMQTrace rabbitMQTrace) {
+        public boolean isTemporaryDestination(RabbitMQTrace rabbitMQTrace) {
             return false;
         }
 
         @Override
-        public String protocol(final RabbitMQTrace rabbitMQTrace) {
+        public String getProtocol(final RabbitMQTrace rabbitMQTrace) {
             return null;
         }
 
         @Override
-        public String protocolVersion(final RabbitMQTrace rabbitMQTrace) {
+        public String getProtocolVersion(final RabbitMQTrace rabbitMQTrace) {
             return null;
         }
 
         @Override
-        public String url(final RabbitMQTrace rabbitMQTrace) {
+        public String getUrl(final RabbitMQTrace rabbitMQTrace) {
             return null;
         }
 
         @Override
-        public String conversationId(final RabbitMQTrace rabbitMQTrace) {
+        public String getConversationId(final RabbitMQTrace rabbitMQTrace) {
             return null;
         }
 
         @Override
-        public Long messagePayloadSize(final RabbitMQTrace rabbitMQTrace) {
+        public Long getMessagePayloadSize(final RabbitMQTrace rabbitMQTrace) {
             return null;
         }
 
         @Override
-        public Long messagePayloadCompressedSize(final RabbitMQTrace rabbitMQTrace) {
+        public Long getMessagePayloadCompressedSize(final RabbitMQTrace rabbitMQTrace) {
             return null;
         }
 
         @Override
-        public String messageId(final RabbitMQTrace rabbitMQTrace, final Void unused) {
+        public String getMessageId(final RabbitMQTrace rabbitMQTrace, final Void unused) {
             return null;
         }
     }
