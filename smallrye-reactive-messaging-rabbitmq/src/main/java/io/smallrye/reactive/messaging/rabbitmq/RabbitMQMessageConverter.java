@@ -14,9 +14,8 @@ import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.BasicProperties;
 
 import io.netty.handler.codec.http.HttpHeaderValues;
-import io.opentelemetry.instrumentation.api.instrumenter.Instrumenter;
+import io.smallrye.reactive.messaging.rabbitmq.tracing.RabbitMQOpenTelemetryInstrumenter;
 import io.smallrye.reactive.messaging.rabbitmq.tracing.RabbitMQTrace;
-import io.smallrye.reactive.messaging.tracing.TracingUtils;
 import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
@@ -55,7 +54,7 @@ public class RabbitMQMessageConverter {
      * @return an {@link OutgoingRabbitMQMessage}
      */
     public static OutgoingRabbitMQMessage convert(
-            final Instrumenter<RabbitMQTrace, Void> instrumenter,
+            final RabbitMQOpenTelemetryInstrumenter instrumenter,
             final Message<?> message,
             final String exchange,
             final String defaultRoutingKey,
@@ -78,8 +77,7 @@ public class RabbitMQMessageConverter {
             if (isTracingEnabled) {
                 // Create a new span for the outbound message and record updated tracing information in
                 // the headers; this has to be done before we build the properties below
-                TracingUtils.traceOutgoing(instrumenter, message,
-                        RabbitMQTrace.traceExchange(exchange, routingKey, sourceHeaders));
+                instrumenter.traceOutgoing(message, RabbitMQTrace.traceExchange(exchange, routingKey, sourceHeaders));
             }
 
             // Reconstruct the properties from the source, except with the (possibly) modified headers;
@@ -121,8 +119,7 @@ public class RabbitMQMessageConverter {
             if (isTracingEnabled) {
                 // Create a new span for the outbound message and record updated tracing information in
                 // the message headers; this has to be done before we build the properties below
-                TracingUtils.traceOutgoing(instrumenter, message,
-                        RabbitMQTrace.traceExchange(exchange, routingKey, metadata.getHeaders()));
+                instrumenter.traceOutgoing(message, RabbitMQTrace.traceExchange(exchange, routingKey, metadata.getHeaders()));
             }
 
             final Date timestamp = (metadata.getTimestamp() != null) ? Date.from(metadata.getTimestamp().toInstant()) : null;
