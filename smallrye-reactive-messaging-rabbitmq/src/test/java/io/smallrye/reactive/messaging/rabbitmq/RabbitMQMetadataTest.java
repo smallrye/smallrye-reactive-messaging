@@ -17,6 +17,8 @@ import com.rabbitmq.client.Envelope;
 import io.opentelemetry.api.OpenTelemetry;
 import io.opentelemetry.instrumentation.api.instrumenter.Instrumenter;
 import io.smallrye.reactive.messaging.rabbitmq.RabbitMQMessageConverter.OutgoingRabbitMQMessage;
+import io.smallrye.reactive.messaging.rabbitmq.tracing.RabbitMQOpenTelemetryInstrumenter;
+import io.smallrye.reactive.messaging.rabbitmq.tracing.RabbitMQTrace;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.rabbitmq.RabbitMQMessage;
 
@@ -101,7 +103,7 @@ public class RabbitMQMetadataTest {
                 .build();
 
         OutgoingRabbitMQMessage message = RabbitMQMessageConverter.convert(
-                (Instrumenter) Instrumenter.builder(OpenTelemetry.noop(), "noop", o -> "noop").buildInstrumenter(),
+                TestInstrumenter.create(),
                 Message.of("", Metadata.of(metadata)),
                 "test",
                 "#",
@@ -122,6 +124,18 @@ public class RabbitMQMetadataTest {
         assertThat(props.getReplyTo()).isEqualTo("test-source");
         assertThat(props.getTimestamp()).isEqualTo(Date.from(timestamp.toInstant()));
         assertThat(props.getType()).isEqualTo("test-type");
+    }
+
+    private static class TestInstrumenter extends RabbitMQOpenTelemetryInstrumenter {
+
+        public TestInstrumenter(Instrumenter<RabbitMQTrace, Void> instrumenter) {
+            super(instrumenter);
+        }
+
+        static RabbitMQOpenTelemetryInstrumenter create() {
+            return new TestInstrumenter(
+                    (Instrumenter) Instrumenter.builder(OpenTelemetry.noop(), "noop", o -> "noop").buildInstrumenter());
+        }
     }
 
 }

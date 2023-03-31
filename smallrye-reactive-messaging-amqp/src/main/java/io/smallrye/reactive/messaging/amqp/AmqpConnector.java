@@ -20,7 +20,6 @@ import java.util.stream.Collectors;
 
 import javax.net.ssl.SSLContext;
 
-import jakarta.annotation.PostConstruct;
 import jakarta.annotation.Priority;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.context.BeforeDestroyed;
@@ -34,13 +33,6 @@ import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.spi.Connector;
 
-import io.opentelemetry.api.GlobalOpenTelemetry;
-import io.opentelemetry.instrumentation.api.instrumenter.Instrumenter;
-import io.opentelemetry.instrumentation.api.instrumenter.InstrumenterBuilder;
-import io.opentelemetry.instrumentation.api.instrumenter.messaging.MessageOperation;
-import io.opentelemetry.instrumentation.api.instrumenter.messaging.MessagingAttributesExtractor;
-import io.opentelemetry.instrumentation.api.instrumenter.messaging.MessagingAttributesGetter;
-import io.opentelemetry.instrumentation.api.instrumenter.messaging.MessagingSpanNameExtractor;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.operators.multi.processors.BroadcastProcessor;
@@ -51,8 +43,7 @@ import io.smallrye.reactive.messaging.amqp.fault.AmqpModifiedFailed;
 import io.smallrye.reactive.messaging.amqp.fault.AmqpModifiedFailedAndUndeliverableHere;
 import io.smallrye.reactive.messaging.amqp.fault.AmqpReject;
 import io.smallrye.reactive.messaging.amqp.fault.AmqpRelease;
-import io.smallrye.reactive.messaging.amqp.tracing.AmqpAttributesExtractor;
-import io.smallrye.reactive.messaging.amqp.tracing.AmqpMessageTextMapGetter;
+import io.smallrye.reactive.messaging.amqp.tracing.AmqpOpenTelemetryInstrumenter;
 import io.smallrye.reactive.messaging.annotations.ConnectorAttribute;
 import io.smallrye.reactive.messaging.connector.InboundConnector;
 import io.smallrye.reactive.messaging.connector.OutboundConnector;
@@ -60,7 +51,6 @@ import io.smallrye.reactive.messaging.health.HealthReport;
 import io.smallrye.reactive.messaging.health.HealthReporter;
 import io.smallrye.reactive.messaging.providers.connectors.ExecutionHolder;
 import io.smallrye.reactive.messaging.providers.helpers.MultiUtils;
-import io.smallrye.reactive.messaging.tracing.TracingUtils;
 import io.vertx.amqp.AmqpClientOptions;
 import io.vertx.amqp.AmqpReceiverOptions;
 import io.vertx.amqp.AmqpSenderOptions;
@@ -154,7 +144,7 @@ public class AmqpConnector implements InboundConnector, OutboundConnector, Healt
      */
     private final Map<String, ConnectionHolder> holders = new ConcurrentHashMap<>();
 
-    private Instrumenter<AmqpMessage<?>, Void> instrumenter;
+    private volatile AmqpOpenTelemetryInstrumenter amqpInstrumenter;
 
     void setup(ExecutionHolder executionHolder) {
         this.executionHolder = executionHolder;
@@ -162,23 +152,6 @@ public class AmqpConnector implements InboundConnector, OutboundConnector, Healt
 
     AmqpConnector() {
         // used for proxies
-    }
-
-    @PostConstruct
-    void init() {
-        // TODO - radcortez - We may want to move this to the constructor injection. SR OTel provides CDI Producer for OTel
-        AmqpAttributesExtractor amqpAttributesExtractor = new AmqpAttributesExtractor();
-        MessagingAttributesGetter<AmqpMessage<?>, Void> messagingAttributesGetter = amqpAttributesExtractor
-                .getMessagingAttributesGetter();
-        InstrumenterBuilder<AmqpMessage<?>, Void> builder = Instrumenter.builder(GlobalOpenTelemetry.get(),
-                "io.smallrye.reactive.messaging",
-                MessagingSpanNameExtractor.create(messagingAttributesGetter, MessageOperation.RECEIVE));
-
-        instrumenter = builder
-                .addAttributesExtractor(
-                        MessagingAttributesExtractor.create(messagingAttributesGetter, MessageOperation.RECEIVE))
-                .addAttributesExtractor(amqpAttributesExtractor)
-                .buildConsumerInstrumenter(AmqpMessageTextMapGetter.INSTANCE);
     }
 
     @SuppressWarnings({ "rawtypes", "unchecked" })
@@ -214,7 +187,7 @@ public class AmqpConnector implements InboundConnector, OutboundConnector, Healt
 
                     if (tracingEnabled) {
                         stream = stream.onItem()
-                                .transform(m -> TracingUtils.traceIncoming(instrumenter, m, (AmqpMessage<?>) m));
+                                .transform(m -> amqpInstrumenter.traceIncoming(m, (AmqpMessage<?>) m));
                     }
 
                     return Multi.createBy().merging().streams(stream, processor);
@@ -246,6 +219,10 @@ public class AmqpConnector implements InboundConnector, OutboundConnector, Healt
         holders.put(ic.getChannel(), holder);
 
         AmqpFailureHandler onNack = createFailureHandler(ic);
+
+        if (tracing && amqpInstrumenter == null) {
+            amqpInstrumenter = AmqpOpenTelemetryInstrumenter.createForConnector();
+        }
 
         Multi<? extends Message<?>> multi = holder.getOrEstablishConnection()
                 .onItem().transformToUni(connection -> connection.createReceiver(address, options))

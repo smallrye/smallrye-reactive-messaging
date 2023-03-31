@@ -1,6 +1,5 @@
 package io.smallrye.reactive.messaging.rabbitmq;
 
-import static io.opentelemetry.instrumentation.api.instrumenter.messaging.MessageOperation.RECEIVE;
 import static io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Direction.INCOMING;
 import static io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Direction.INCOMING_AND_OUTGOING;
 import static io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Direction.OUTGOING;
@@ -8,12 +7,14 @@ import static io.smallrye.reactive.messaging.rabbitmq.i18n.RabbitMQExceptions.ex
 import static io.smallrye.reactive.messaging.rabbitmq.i18n.RabbitMQLogging.log;
 import static java.time.Duration.ofSeconds;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Flow;
 import java.util.stream.Collectors;
 
-import jakarta.annotation.PostConstruct;
 import jakarta.annotation.Priority;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.context.BeforeDestroyed;
@@ -32,12 +33,6 @@ import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.impl.CredentialsProvider;
 
-import io.opentelemetry.api.GlobalOpenTelemetry;
-import io.opentelemetry.instrumentation.api.instrumenter.Instrumenter;
-import io.opentelemetry.instrumentation.api.instrumenter.InstrumenterBuilder;
-import io.opentelemetry.instrumentation.api.instrumenter.messaging.MessagingAttributesExtractor;
-import io.opentelemetry.instrumentation.api.instrumenter.messaging.MessagingAttributesGetter;
-import io.opentelemetry.instrumentation.api.instrumenter.messaging.MessagingSpanNameExtractor;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.tuples.Tuple2;
@@ -55,10 +50,8 @@ import io.smallrye.reactive.messaging.rabbitmq.fault.RabbitMQAccept;
 import io.smallrye.reactive.messaging.rabbitmq.fault.RabbitMQFailStop;
 import io.smallrye.reactive.messaging.rabbitmq.fault.RabbitMQFailureHandler;
 import io.smallrye.reactive.messaging.rabbitmq.fault.RabbitMQReject;
+import io.smallrye.reactive.messaging.rabbitmq.tracing.RabbitMQOpenTelemetryInstrumenter;
 import io.smallrye.reactive.messaging.rabbitmq.tracing.RabbitMQTrace;
-import io.smallrye.reactive.messaging.rabbitmq.tracing.RabbitMQTraceAttributesExtractor;
-import io.smallrye.reactive.messaging.rabbitmq.tracing.RabbitMQTraceTextMapGetter;
-import io.smallrye.reactive.messaging.tracing.TracingUtils;
 import io.vertx.core.json.JsonObject;
 import io.vertx.mutiny.core.Vertx;
 import io.vertx.mutiny.rabbitmq.RabbitMQClient;
@@ -177,7 +170,7 @@ public class RabbitMQConnector implements InboundConnector, OutboundConnector, H
     @Any
     Instance<CredentialsProvider> credentialsProviders;
 
-    private Instrumenter<RabbitMQTrace, Void> instrumenter;
+    private volatile RabbitMQOpenTelemetryInstrumenter instrumenter;
 
     RabbitMQConnector() {
         // used for proxies
@@ -185,19 +178,6 @@ public class RabbitMQConnector implements InboundConnector, OutboundConnector, H
 
     public static String getExchangeName(final RabbitMQConnectorCommonConfiguration config) {
         return config.getExchangeName().map(s -> "\"\"".equals(s) ? "" : s).orElse(config.getChannel());
-    }
-
-    @PostConstruct
-    void init() {
-        RabbitMQTraceAttributesExtractor rabbitMQAttributesExtractor = new RabbitMQTraceAttributesExtractor();
-        MessagingAttributesGetter<RabbitMQTrace, Void> messagingAttributesGetter = rabbitMQAttributesExtractor
-                .getMessagingAttributesGetter();
-        InstrumenterBuilder<RabbitMQTrace, Void> builder = Instrumenter.builder(GlobalOpenTelemetry.get(),
-                "io.smallrye.reactive.messaging", MessagingSpanNameExtractor.create(messagingAttributesGetter, RECEIVE));
-
-        instrumenter = builder.addAttributesExtractor(rabbitMQAttributesExtractor)
-                .addAttributesExtractor(MessagingAttributesExtractor.create(messagingAttributesGetter, RECEIVE))
-                .buildConsumerInstrumenter(RabbitMQTraceTextMapGetter.INSTANCE);
     }
 
     private Multi<? extends Message<?>> getStreamOfMessages(
@@ -217,8 +197,10 @@ public class RabbitMQConnector implements InboundConnector, OutboundConnector, H
                 .plug(m -> {
                     if (isTracingEnabled) {
                         return m.map(msg -> {
-                            TracingUtils.traceIncoming(instrumenter, msg, RabbitMQTrace.traceQueue(queueName,
-                                    msg.message.envelope().getRoutingKey(), msg.getHeaders()));
+                            instrumenter.traceIncoming(
+                                    msg,
+                                    RabbitMQTrace.traceQueue(queueName, msg.message.envelope().getRoutingKey(),
+                                            msg.getHeaders()));
                             return msg;
                         });
                     }
@@ -244,6 +226,9 @@ public class RabbitMQConnector implements InboundConnector, OutboundConnector, H
     @Override
     public Flow.Publisher<? extends Message<?>> getPublisher(final Config config) {
         final RabbitMQConnectorIncomingConfiguration ic = new RabbitMQConnectorIncomingConfiguration(config);
+        if (ic.getTracingEnabled() && instrumenter == null) {
+            instrumenter = RabbitMQOpenTelemetryInstrumenter.createForConnector();
+        }
         incomingChannelStatus.put(ic.getChannel(), ChannelStatus.INITIALISING);
 
         final RabbitMQFailureHandler onNack = createFailureHandler(ic);
