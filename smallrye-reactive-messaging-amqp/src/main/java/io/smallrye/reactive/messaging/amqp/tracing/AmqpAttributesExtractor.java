@@ -37,68 +37,68 @@ public class AmqpAttributesExtractor implements AttributesExtractor<AmqpMessage<
     private static class AmqpMessagingAttributesGetter implements MessagingAttributesGetter<AmqpMessage<?>, Void> {
         // Required
         @Override
-        public String system(final AmqpMessage<?> amqpMessage) {
+        public String getSystem(final AmqpMessage<?> amqpMessage) {
             return "AMQP 1.0";
         }
 
         // Required if the message destination is either a queue or topic
         @Override
-        public String destinationKind(final AmqpMessage<?> amqpMessage) {
+        public String getDestinationKind(final AmqpMessage<?> amqpMessage) {
             return "queue";
         }
 
         // Required
         @Override
-        public String destination(final AmqpMessage<?> amqpMessage) {
+        public String getDestination(final AmqpMessage<?> amqpMessage) {
             return amqpMessage.getAddress();
         }
 
         @Override
-        public boolean temporaryDestination(final AmqpMessage<?> amqpMessage) {
+        public boolean isTemporaryDestination(final AmqpMessage<?> amqpMessage) {
             return false;
         }
 
         // Recommended
         @Override
-        public String protocol(final AmqpMessage<?> amqpMessage) {
+        public String getProtocol(final AmqpMessage<?> amqpMessage) {
             return "AMQP";
         }
 
         // Recommended
         @Override
-        public String protocolVersion(final AmqpMessage<?> amqpMessage) {
+        public String getProtocolVersion(final AmqpMessage<?> amqpMessage) {
             return "1.0";
         }
 
         // Recommended
         @Override
-        public String url(final AmqpMessage<?> amqpMessage) {
+        public String getUrl(final AmqpMessage<?> amqpMessage) {
             // TODO - radcortez - Need to get it from the configuration
             return null;
         }
 
         // Recommended
         @Override
-        public String conversationId(final AmqpMessage<?> amqpMessage) {
+        public String getConversationId(final AmqpMessage<?> amqpMessage) {
             Object correlationId = amqpMessage.getCorrelationId();
             return correlationId instanceof String ? (String) correlationId : null;
         }
 
         // Recommended
         @Override
-        public Long messagePayloadSize(final AmqpMessage<?> amqpMessage) {
+        public Long getMessagePayloadSize(final AmqpMessage<?> amqpMessage) {
             return null;
         }
 
         // Recommended
         @Override
-        public Long messagePayloadCompressedSize(final AmqpMessage<?> amqpMessage) {
+        public Long getMessagePayloadCompressedSize(final AmqpMessage<?> amqpMessage) {
             return null;
         }
 
         // Recommended
         @Override
-        public String messageId(final AmqpMessage<?> amqpMessage, final Void unused) {
+        public String getMessageId(final AmqpMessage<?> amqpMessage, final Void unused) {
             Object messageId = amqpMessage.getMessageId();
             return messageId instanceof String ? (String) messageId : null;
         }

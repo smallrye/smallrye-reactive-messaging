@@ -60,57 +60,57 @@ public class KafkaAttributesExtractor implements AttributesExtractor<KafkaTrace,
 
     private static final class KafkaMessagingAttributesGetter implements MessagingAttributesGetter<KafkaTrace, Void> {
         @Override
-        public String system(final KafkaTrace kafkaTrace) {
+        public String getSystem(final KafkaTrace kafkaTrace) {
             return "kafka";
         }
 
         @Override
-        public String destinationKind(final KafkaTrace kafkaTrace) {
+        public String getDestinationKind(final KafkaTrace kafkaTrace) {
             return "topic";
         }
 
         @Override
-        public String destination(final KafkaTrace kafkaTrace) {
+        public String getDestination(final KafkaTrace kafkaTrace) {
             return kafkaTrace.getTopic();
         }
 
         @Override
-        public boolean temporaryDestination(final KafkaTrace kafkaTrace) {
+        public boolean isTemporaryDestination(final KafkaTrace kafkaTrace) {
             return false;
         }
 
         @Override
-        public String protocol(final KafkaTrace kafkaTrace) {
+        public String getProtocol(final KafkaTrace kafkaTrace) {
             return null;
         }
 
         @Override
-        public String protocolVersion(final KafkaTrace kafkaTrace) {
+        public String getProtocolVersion(final KafkaTrace kafkaTrace) {
             return null;
         }
 
         @Override
-        public String url(final KafkaTrace kafkaTrace) {
+        public String getUrl(final KafkaTrace kafkaTrace) {
             return null;
         }
 
         @Override
-        public String conversationId(final KafkaTrace kafkaTrace) {
+        public String getConversationId(final KafkaTrace kafkaTrace) {
             return null;
         }
 
         @Override
-        public Long messagePayloadSize(final KafkaTrace kafkaTrace) {
+        public Long getMessagePayloadSize(final KafkaTrace kafkaTrace) {
             return null;
         }
 
         @Override
-        public Long messagePayloadCompressedSize(final KafkaTrace kafkaTrace) {
+        public Long getMessagePayloadCompressedSize(final KafkaTrace kafkaTrace) {
             return null;
         }
 
         @Override
-        public String messageId(final KafkaTrace kafkaTrace, final Void unused) {
+        public String getMessageId(final KafkaTrace kafkaTrace, final Void unused) {
             return null;
         }
     }
