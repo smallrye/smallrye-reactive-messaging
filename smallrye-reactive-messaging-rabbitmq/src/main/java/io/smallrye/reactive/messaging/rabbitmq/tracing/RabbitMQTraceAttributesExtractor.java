@@ -54,21 +54,6 @@ public class RabbitMQTraceAttributesExtractor implements AttributesExtractor<Rab
         }
 
         @Override
-        public String getProtocol(final RabbitMQTrace rabbitMQTrace) {
-            return null;
-        }
-
-        @Override
-        public String getProtocolVersion(final RabbitMQTrace rabbitMQTrace) {
-            return null;
-        }
-
-        @Override
-        public String getUrl(final RabbitMQTrace rabbitMQTrace) {
-            return null;
-        }
-
-        @Override
         public String getConversationId(final RabbitMQTrace rabbitMQTrace) {
             return null;
         }

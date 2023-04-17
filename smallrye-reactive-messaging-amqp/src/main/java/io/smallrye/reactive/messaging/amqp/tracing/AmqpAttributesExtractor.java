@@ -60,25 +60,6 @@ public class AmqpAttributesExtractor implements AttributesExtractor<AmqpMessage<
 
         // Recommended
         @Override
-        public String getProtocol(final AmqpMessage<?> amqpMessage) {
-            return "AMQP";
-        }
-
-        // Recommended
-        @Override
-        public String getProtocolVersion(final AmqpMessage<?> amqpMessage) {
-            return "1.0";
-        }
-
-        // Recommended
-        @Override
-        public String getUrl(final AmqpMessage<?> amqpMessage) {
-            // TODO - radcortez - Need to get it from the configuration
-            return null;
-        }
-
-        // Recommended
-        @Override
         public String getConversationId(final AmqpMessage<?> amqpMessage) {
             Object correlationId = amqpMessage.getCorrelationId();
             return correlationId instanceof String ? (String) correlationId : null;
