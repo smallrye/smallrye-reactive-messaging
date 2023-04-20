@@ -15,19 +15,18 @@
         "matcher" : "java",
         "match" : "type ^io.smallrye.reactive.messaging.kafka.* {}"
       }, {
-          "matcher" : "java",
-          "match" : "type ^io.smallrye.reactive.messaging.kafka.converters.* {}"
+        "matcher" : "java",
+        "match" : "type ^io.smallrye.reactive.messaging.kafka.converters.* {}"
       }, {
-          "matcher" : "java",
-          "match" : "interface ^io.smallrye.reactive.messaging.kafka.commit.* {}"
+        "matcher" : "java",
+        "match" : "interface ^io.smallrye.reactive.messaging.kafka.commit.* {}"
       }, {
-          "matcher" : "java",
-          "match" : "interface ^io.smallrye.reactive.messaging.kafka.fault.* {}"
+        "matcher" : "java",
+        "match" : "interface ^io.smallrye.reactive.messaging.kafka.fault.* {}"
       }, {
-          "matcher" : "java",
-          "match" : "interface ^io.smallrye.reactive.messaging.kafka.transactions.* {}"
-      }
-      ]
+        "matcher" : "java",
+        "match" : "interface ^io.smallrye.reactive.messaging.kafka.transactions.* {}"
+      } ]
     }
   }
 }, {
@@ -37,54 +36,7 @@
     "criticality" : "highlight",
     "minSeverity" : "POTENTIALLY_BREAKING",
     "minCriticality" : "documented",
-    "differences" : [
-        {
-            "code": "java.annotation.attributeValueChanged",
-            "old": "class io.smallrye.reactive.messaging.kafka.KafkaConnector",
-            "new": "class io.smallrye.reactive.messaging.kafka.KafkaConnector",
-            "annotationType": "io.smallrye.reactive.messaging.annotations.ConnectorAttributes",
-            "attribute": "value",
-            "justification": "Added delayed-retry-topic to connector attributes"
-        },
-        {
-            "code": "java.method.addedToInterface",
-            "new": "method io.smallrye.mutiny.Uni<java.util.Collection<org.apache.kafka.common.Node>> io.smallrye.reactive.messaging.kafka.KafkaAdmin::describeCluster()",
-            "justification": "Options added to admin client methods"
-        },
-        {
-            "code": "java.method.addedToInterface",
-            "new": "method io.smallrye.mutiny.Uni<java.util.Collection<org.apache.kafka.common.Node>> io.smallrye.reactive.messaging.kafka.KafkaAdmin::describeCluster(org.apache.kafka.clients.admin.DescribeClusterOptions)",
-            "justification": "Options added to admin client methods"
-        },
-        {
-            "code": "java.method.addedToInterface",
-            "new": "method io.smallrye.mutiny.Uni<java.util.Map<java.lang.String, org.apache.kafka.clients.admin.TopicDescription>> io.smallrye.reactive.messaging.kafka.KafkaAdmin::describeTopics(java.util.Collection<java.lang.String>)",
-            "justification": "Options added to admin client methods"
-        },
-        {
-            "code": "java.method.addedToInterface",
-            "new": "method io.smallrye.mutiny.Uni<java.util.Map<java.lang.String, org.apache.kafka.clients.admin.TopicDescription>> io.smallrye.reactive.messaging.kafka.KafkaAdmin::describeTopics(java.util.Collection<java.lang.String>, org.apache.kafka.clients.admin.DescribeTopicsOptions)",
-            "justification": "Options added to admin client methods"
-        },
-        {
-            "code": "java.method.addedToInterface",
-            "new": "method io.smallrye.mutiny.Uni<java.util.Set<java.lang.String>> io.smallrye.reactive.messaging.kafka.KafkaAdmin::listTopics(org.apache.kafka.clients.admin.ListTopicsOptions)",
-            "justification": "Options added to admin client methods"
-        },
-        {
-            "code": "java.method.numberOfParametersChanged",
-            "old": "method void io.smallrye.reactive.messaging.kafka.health.KafkaSourceHealth::<init>(io.smallrye.reactive.messaging.kafka.impl.KafkaSource<?, ?>, io.smallrye.reactive.messaging.kafka.KafkaConnectorIncomingConfiguration, io.smallrye.reactive.messaging.kafka.impl.ReactiveKafkaConsumer<?, ?>)",
-            "new": "method void io.smallrye.reactive.messaging.kafka.health.KafkaSourceHealth::<init>(io.smallrye.reactive.messaging.kafka.impl.KafkaSource<?, ?>, io.smallrye.reactive.messaging.kafka.KafkaConnectorIncomingConfiguration, io.smallrye.reactive.messaging.kafka.impl.ReactiveKafkaConsumer<?, ?>, java.util.Set<java.lang.String>, java.util.regex.Pattern)",
-            "justification": "Kafka Source Health checks for topic existence on startup"
-        },
-        {
-            "code": "java.annotation.attributeValueChanged",
-            "old": "class io.smallrye.reactive.messaging.kafka.KafkaConnector",
-            "new": "class io.smallrye.reactive.messaging.kafka.KafkaConnector",
-            "annotationType": "io.smallrye.reactive.messaging.annotations.ConnectorAttributes",
-            "justification": "Added health-topic-verification-startup-disabled and health-topic-verification-readiness-disabled flags"
-        }
-    ]
+    "differences" : [ ]
   }
 }, {
   "extension" : "revapi.reporter.json",
