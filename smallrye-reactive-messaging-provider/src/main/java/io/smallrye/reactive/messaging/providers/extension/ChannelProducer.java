@@ -1,6 +1,7 @@
 package io.smallrye.reactive.messaging.providers.extension;
 
 import static io.smallrye.reactive.messaging.providers.helpers.ConverterUtils.convert;
+import static io.smallrye.reactive.messaging.providers.helpers.KeyExtractorUtils.extractKeyValueFunction;
 import static io.smallrye.reactive.messaging.providers.i18n.ProviderExceptions.ex;
 
 import java.lang.annotation.Annotation;
@@ -26,9 +27,7 @@ import org.reactivestreams.Publisher;
 
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
-import io.smallrye.reactive.messaging.ChannelRegistry;
-import io.smallrye.reactive.messaging.MessageConverter;
-import io.smallrye.reactive.messaging.MutinyEmitter;
+import io.smallrye.reactive.messaging.*;
 import io.smallrye.reactive.messaging.providers.helpers.MultiUtils;
 import io.smallrye.reactive.messaging.providers.helpers.TypeUtils;
 import io.smallrye.reactive.messaging.providers.i18n.ProviderExceptions;
@@ -47,6 +46,22 @@ public class ChannelProducer {
     @Inject
     // @Any would only be needed if we wanted to allow implementations with qualifiers
     Instance<MessageConverter> converters;
+
+    @Inject
+    // @Any would only be needed if we wanted to allow implementations with qualifiers
+    Instance<MessageKeyValueExtractor> keyExtractors;
+
+    @Produces
+    @Typed({ Table.class })
+    @Channel("") // Stream name is ignored during type-safe resolution – Table<K, V>
+    <K, V> Table<K, V> produceTable(InjectionPoint injectionPoint) {
+        Type keyType = getFirstParameter(injectionPoint.getType()); // K key
+        Type payloadType = getSecondParameter(injectionPoint.getType()); // V payload
+        Multi<? extends Message<V>> source = cast(convert(getPublisher(injectionPoint), converters, payloadType));
+        Type injectedKeyType = getRawTypeIfParameterized(keyType);
+        Type injectedPayloadType = getRawTypeIfParameterized(payloadType);
+        return new DefaultTable<>(source, extractKeyValueFunction(keyExtractors, injectedKeyType, injectedPayloadType));
+    }
 
     /**
      * Injects {@code Multi<Message<X>>} and {@code Multi<X>}. It also matches the injection of
@@ -243,6 +258,13 @@ public class ChannelProducer {
     private Type getFirstParameter(Type type) {
         if (type instanceof ParameterizedType) {
             return ((ParameterizedType) type).getActualTypeArguments()[0];
+        }
+        return null;
+    }
+
+    private Type getSecondParameter(Type type) {
+        if (type instanceof ParameterizedType) {
+            return ((ParameterizedType) type).getActualTypeArguments()[1];
         }
         return null;
     }
