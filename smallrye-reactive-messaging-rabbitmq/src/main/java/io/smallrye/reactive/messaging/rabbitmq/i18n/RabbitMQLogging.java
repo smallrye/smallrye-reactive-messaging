@@ -87,8 +87,8 @@ public interface RabbitMQLogging extends BasicLogger {
     void unableToEstablishBinding(String queueName, String exchangeName, @Cause Throwable ex);
 
     @LogMessage(level = Logger.Level.DEBUG)
-    @Message(id = 17027, value = "Established binding of queue `%s` to exchange '%s' using routing key '%s'")
-    void bindingEstablished(String queueName, String exchangeName, String routingKey);
+    @Message(id = 17027, value = "Established binding of queue `%s` to exchange '%s' using routing key '%s' and arguments '%s'")
+    void bindingEstablished(String queueName, String exchangeName, String routingKey, String arguments);
 
     @LogMessage(level = Logger.Level.ERROR)
     @Message(id = 17028, value = "Unable to establish queue `%s`")

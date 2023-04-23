@@ -104,6 +104,7 @@ class RabbitMQTest extends RabbitMQBrokerTestBase {
         final String queueMode = "default";
 
         final String routingKeys = "urgent, normal";
+        final String arguments = "key1:value1,key2:value2";
 
         weld.addBeanClass(IncomingBean.class);
 
@@ -124,6 +125,7 @@ class RabbitMQTest extends RabbitMQBrokerTestBase {
                 .put("mp.messaging.incoming.data.queue.x-queue-mode", queueMode)
                 .put("mp.messaging.incoming.data.queue.single-active-consumer", true)
                 .put("mp.messaging.incoming.data.routing-keys", routingKeys)
+                .put("mp.messaging.incoming.data.arguments", arguments)
                 .put("mp.messaging.incoming.data.connector", RabbitMQConnector.CONNECTOR_NAME)
                 .put("mp.messaging.incoming.data.host", host)
                 .put("mp.messaging.incoming.data.port", port)
@@ -178,6 +180,10 @@ class RabbitMQTest extends RabbitMQBrokerTestBase {
         assertThat(binding1.getString("destination")).isEqualTo(queueName);
         assertThat(binding1.getString("destination_type")).isEqualTo("queue");
         assertThat(binding1.getString("routing_key")).isEqualTo("normal");
+
+        final JsonObject binding1Arguments = binding1.getJsonObject("arguments");
+        assertThat(binding1Arguments.getString("key1")).isEqualTo("value1");
+        assertThat(binding1Arguments.getString("key2")).isEqualTo("value2");
 
         final JsonObject binding2 = (JsonObject) bindings.get(1);
         assertThat(binding2).isNotNull();

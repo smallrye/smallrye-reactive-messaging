@@ -8,9 +8,11 @@ import static io.smallrye.reactive.messaging.rabbitmq.i18n.RabbitMQLogging.log;
 import static java.time.Duration.ofSeconds;
 
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Flow;
 import java.util.stream.Collectors;
@@ -126,7 +128,8 @@ import io.vertx.rabbitmq.RabbitMQPublisherOptions;
 @ConnectorAttribute(name = "broadcast", direction = INCOMING, description = "Whether the received RabbitMQ messages must be dispatched to multiple _subscribers_", type = "boolean", defaultValue = "false")
 @ConnectorAttribute(name = "auto-acknowledgement", direction = INCOMING, description = "Whether the received RabbitMQ messages must be acknowledged when received; if true then delivery constitutes acknowledgement", type = "boolean", defaultValue = "false")
 @ConnectorAttribute(name = "keep-most-recent", direction = INCOMING, description = "Whether to discard old messages instead of recent ones", type = "boolean", defaultValue = "false")
-@ConnectorAttribute(name = "routing-keys", direction = INCOMING, description = "A comma-separated list of routing keys to bind the queue to the exchange", type = "string", defaultValue = "#")
+@ConnectorAttribute(name = "routing-keys", direction = INCOMING, description = "A comma-separated list of routing keys to bind the queue to the exchange. Relevant only if exchange.type is topic or direct", type = "string", defaultValue = "#")
+@ConnectorAttribute(name = "arguments", direction = INCOMING, description = "A comma-separated list of arguments [key1:value1,key2:value2,...] to bind the queue to the exchange. Relevant only if exchange.type is headers", type = "string")
 @ConnectorAttribute(name = "content-type-override", direction = INCOMING, description = "Override the content_type attribute of the incoming message, should be a valid MINE type", type = "string")
 @ConnectorAttribute(name = "max-outstanding-messages", direction = INCOMING, description = "The maximum number of outstanding/unacknowledged messages being processed by the connector at a time; must be a positive number", type = "int")
 
@@ -319,7 +322,7 @@ public class RabbitMQConnector implements InboundConnector, OutboundConnector, H
                                 .call(v -> client.queueBind(deadLetterQueueName, deadLetterExchangeName, deadLetterRoutingKey))
                                 .onItem()
                                 .invoke(() -> log.bindingEstablished(deadLetterQueueName, deadLetterExchangeName,
-                                        deadLetterRoutingKey))
+                                        deadLetterRoutingKey, ""))
                                 .onFailure()
                                 .invoke(ex -> log.unableToEstablishBinding(deadLetterQueueName, deadLetterExchangeName, ex))
                                 .onItem().transform(v -> deadLetterQueueName));
@@ -529,15 +532,34 @@ public class RabbitMQConnector implements InboundConnector, OutboundConnector, H
         final String queueName = ic.getQueueName();
         final List<String> routingKeys = Arrays.stream(ic.getRoutingKeys().split(","))
                 .map(String::trim).collect(Collectors.toList());
+        final Map<String, Object> arguments = parseArguments(ic.getArguments());
 
         // Skip queue bindings if exchange name is default ("")
         if (exchangeName.length() == 0) {
             return Multi.createFrom().empty();
         }
         return Multi.createFrom().iterable(routingKeys)
-                .onItem().call(routingKey -> client.queueBind(serverQueueName(queueName), exchangeName, routingKey))
-                .onItem().invoke(routingKey -> log.bindingEstablished(queueName, exchangeName, routingKey))
+                .onItem().call(routingKey -> client.queueBind(serverQueueName(queueName), exchangeName, routingKey, arguments))
+                .onItem().invoke(routingKey -> log.bindingEstablished(queueName, exchangeName, routingKey, arguments.toString()))
                 .onFailure().invoke(ex -> log.unableToEstablishBinding(queueName, exchangeName, ex));
+    }
+
+    private Map<String, Object> parseArguments(
+            final Optional<String> argumentsConfig) {
+        Map<String, Object> argumentsBinding = new HashMap<>();
+        if(argumentsConfig.isPresent()) {
+            final List<String> argumentsKeyValue = Arrays.stream(argumentsConfig.get().split(","))
+                                                         .map(String::trim).collect(Collectors.toList());
+            argumentsKeyValue.forEach(argumentKeyValue -> {
+                String[] argumentKeyValueSplit = argumentKeyValue.split(":");
+                if (argumentKeyValueSplit.length == 2) {
+                    String key = argumentKeyValueSplit[0];
+                    String value = argumentKeyValueSplit[1];
+                    argumentsBinding.put(key, value);
+                }
+            });
+        }
+        return argumentsBinding;
     }
 
     private RabbitMQFailureHandler createFailureHandler(RabbitMQConnectorIncomingConfiguration config) {
