@@ -3,8 +3,12 @@ package io.smallrye.reactive.messaging.kafka.companion;
 import static io.smallrye.reactive.messaging.kafka.companion.KafkaCompanion.toUni;
 
 import java.time.Duration;
-import java.util.*;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.kafka.clients.admin.AdminClient;
@@ -33,7 +37,7 @@ public class TopicsCompanion {
      * @param newTopics the set of {@link NewTopic}s to create
      */
     public void create(Collection<NewTopic> newTopics) {
-        toUni(adminClient.createTopics(newTopics).all())
+        toUni(() -> adminClient.createTopics(newTopics).all())
                 .await().atMost(kafkaApiTimeout);
     }
 
@@ -81,27 +85,20 @@ public class TopicsCompanion {
     }
 
     /**
-     * Wait for topic
+     * Wait for topic. Waits at most the duration of the given kafkaApiTimeout, with 10 retries.
      *
      * @param topic name
+     * @throws IllegalStateException if the topic is not found at the end of the timeout or retries
      * @return the Uni of the {@link TopicDescription} for the created topic
      */
     public Uni<TopicDescription> waitForTopic(String topic) {
-        AtomicInteger retries = new AtomicInteger(0);
-        return Uni.createFrom().item(this::describeAll)
-                .onItem().ifNull().continueWith(Collections.emptyMap())
-                .repeat()
-                .withDelay(Duration.ofMillis(1000))
-                .until(topics -> {
-                    if (retries.incrementAndGet() >= 10) {
-                        throw new IllegalStateException("Max number of attempts reached, the topic "
-                                + topic + " was not created after 10 attempts");
-                    }
-                    return !checkIfTheTopicIsCreated(topic, topics);
-                })
-                .select().first(Objects::nonNull)
-                .toUni()
-                .map(topics -> topics.get(topic));
+        int retries = 10;
+        Duration maxBackOff = kafkaApiTimeout.dividedBy(retries);
+        return toUni(() -> adminClient.describeTopics(Collections.singletonList(topic)).allTopicNames())
+                .onFailure().retry().withBackOff(maxBackOff, maxBackOff).atMost(retries)
+                .onItem().transform(m -> m.get(topic))
+                .onFailure().recoverWithUni(e -> Uni.createFrom().failure(new IllegalStateException(
+                        "Max number of attempts reached, the topic " + topic + " was not created after 10 attempts", e)));
     }
 
     boolean checkIfTheTopicIsCreated(String topic, Map<String, TopicDescription> description) {
@@ -126,15 +123,15 @@ public class TopicsCompanion {
      * @return the set of topic names
      */
     public Set<String> list() {
-        return toUni(adminClient.listTopics().names()).await().atMost(kafkaApiTimeout);
+        return toUni(() -> adminClient.listTopics().names()).await().atMost(kafkaApiTimeout);
     }
 
     /**
      * @return the map of topic names to topic descriptions
      */
     public Map<String, TopicDescription> describeAll() {
-        return toUni(adminClient.listTopics().names())
-                .onItem().transformToUni(topics -> toUni(adminClient.describeTopics(topics).allTopicNames()))
+        return toUni(() -> adminClient.listTopics().names())
+                .onItem().transformToUni(topics -> toUni(() -> adminClient.describeTopics(topics).allTopicNames()))
                 .await().atMost(kafkaApiTimeout);
     }
 
@@ -146,7 +143,7 @@ public class TopicsCompanion {
         if (topics.length == 0) {
             return describeAll();
         }
-        return toUni(adminClient.describeTopics(Arrays.asList(topics)).allTopicNames()).await().atMost(kafkaApiTimeout);
+        return toUni(() -> adminClient.describeTopics(Arrays.asList(topics)).allTopicNames()).await().atMost(kafkaApiTimeout);
     }
 
     /**
@@ -155,11 +152,11 @@ public class TopicsCompanion {
      * @param topics the topic names to clear
      */
     public void clear(String... topics) {
-        toUni(adminClient.describeTopics(Arrays.asList(topics)).allTopicNames())
+        toUni(() -> adminClient.describeTopics(Arrays.asList(topics)).allTopicNames())
                 .map(m -> m.values().stream()
                         .flatMap(t -> t.partitions().stream().map(p -> new TopicPartition(t.name(), p.partition())))
                         .collect(Collectors.toMap(t -> t, t -> RecordsToDelete.beforeOffset(-1))))
-                .chain(m -> toUni(adminClient.deleteRecords(m).all()))
+                .chain(m -> toUni(() -> adminClient.deleteRecords(m).all()))
                 .await().atMost(kafkaApiTimeout);
     }
 
@@ -167,7 +164,7 @@ public class TopicsCompanion {
      * @param topics the collection of topic names to delete
      */
     public void delete(Collection<String> topics) {
-        toUni(adminClient.deleteTopics(topics).all())
+        toUni(() -> adminClient.deleteTopics(topics).all())
                 .await().atMost(kafkaApiTimeout);
     }
 

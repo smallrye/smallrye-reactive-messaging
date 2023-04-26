@@ -19,6 +19,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.BooleanSupplier;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.RecordsToDelete;
@@ -140,8 +141,13 @@ public class KafkaCompanion implements AutoCloseable {
                 .select().last().toUni();
     }
 
+    @Deprecated(forRemoval = true)
     protected static <T> Uni<T> toUni(KafkaFuture<T> kafkaFuture) {
         return Uni.createFrom().completionStage(kafkaFuture.toCompletionStage());
+    }
+
+    protected static <T> Uni<T> toUni(Supplier<KafkaFuture<T>> kafkaFutureSupplier) {
+        return Uni.createFrom().completionStage(() -> kafkaFutureSupplier.get().toCompletionStage());
     }
 
     /*
@@ -182,7 +188,7 @@ public class KafkaCompanion implements AutoCloseable {
     }
 
     public void deleteRecords(Map<TopicPartition, RecordsToDelete> offsetsToDelete) {
-        toUni(getOrCreateAdminClient().deleteRecords(offsetsToDelete).all())
+        toUni(() -> getOrCreateAdminClient().deleteRecords(offsetsToDelete).all())
                 .await().atMost(kafkaApiTimeout);
     }
 
