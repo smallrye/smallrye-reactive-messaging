@@ -11,6 +11,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import org.junit.jupiter.api.Test;
 
 import io.smallrye.reactive.messaging.MutinyEmitter;
+import io.smallrye.reactive.messaging.Table;
 import io.smallrye.reactive.messaging.WeldTestBaseWithoutTails;
 import io.smallrye.reactive.messaging.providers.extension.TupleKeyValueExtractor;
 
@@ -63,4 +64,71 @@ public class TableInjectionTest extends WeldTestBaseWithoutTails {
         await().untilAsserted(() -> assertThat(bean.getHello().toMap()).containsKeys("h", "e", "l", "o"));
     }
 
+    @Test
+    void testFilterTable() {
+        addBeanClass(SourceBean.class, PayloadKeyValueExtractor.class, TupleKeyValueExtractor.class);
+        BeanInjectedWithATable bean = installInitializeAndGet(BeanInjectedWithATable.class);
+        Table<String, String> lTable = bean.getHello().filterKey("l");
+        List<String> lKeys = new CopyOnWriteArrayList<>();
+        lTable.subscribe().with(t -> lKeys.add(t.getItem1()));
+        MutinyEmitter<String> emitter = bean.getHelloEmitter();
+        emitter.send("h").await().indefinitely();
+        emitter.send("e").await().indefinitely();
+        emitter.send("l").await().indefinitely();
+        emitter.send("l").await().indefinitely();
+        emitter.send("o").await().indefinitely();
+        await().untilAsserted(() -> assertThat(lKeys).containsOnly("l", "l"));
+        await().untilAsserted(() -> assertThat(lTable.toMap()).containsOnlyKeys("l"));
+    }
+
+    @Test
+    void testMapTable() {
+        addBeanClass(SourceBean.class, PayloadKeyValueExtractor.class, TupleKeyValueExtractor.class);
+        BeanInjectedWithATable bean = installInitializeAndGet(BeanInjectedWithATable.class);
+        Table<String, String> vTable = bean.getHello().map((k, v) -> "value-" + v);
+        List<String> values = new CopyOnWriteArrayList<>();
+        vTable.subscribe().with(t -> values.add(t.getItem2()));
+        MutinyEmitter<String> emitter = bean.getHelloEmitter();
+        emitter.send("h").await().indefinitely();
+        emitter.send("e").await().indefinitely();
+        emitter.send("l").await().indefinitely();
+        emitter.send("l").await().indefinitely();
+        emitter.send("o").await().indefinitely();
+        await().untilAsserted(() -> assertThat(values).containsOnly("value-h", "value-e", "value-l", "value-l", "value-o"));
+        await().untilAsserted(() -> assertThat(vTable.toMap()).containsOnlyKeys("h", "e", "l", "o"));
+    }
+
+    @Test
+    void testMapKeyTable() {
+        addBeanClass(SourceBean.class, PayloadKeyValueExtractor.class, TupleKeyValueExtractor.class);
+        BeanInjectedWithATable bean = installInitializeAndGet(BeanInjectedWithATable.class);
+        Table<String, String> vTable = bean.getHello().mapKey((k, v) -> "k-" + v);
+        List<String> values = new CopyOnWriteArrayList<>();
+        vTable.subscribe().with(t -> values.add(t.getItem1()));
+        MutinyEmitter<String> emitter = bean.getHelloEmitter();
+        emitter.send("h").await().indefinitely();
+        emitter.send("e").await().indefinitely();
+        emitter.send("l").await().indefinitely();
+        emitter.send("l").await().indefinitely();
+        emitter.send("o").await().indefinitely();
+        await().untilAsserted(() -> assertThat(values).containsOnly("k-h", "k-e", "k-l", "k-l", "k-o"));
+        await().untilAsserted(() -> assertThat(vTable.toMap()).containsOnlyKeys("k-h", "k-e", "k-l", "k-o"));
+    }
+
+    @Test
+    void testWithEmitOnChange() {
+        addBeanClass(SourceBean.class, PayloadKeyValueExtractor.class, TupleKeyValueExtractor.class);
+        BeanInjectedWithATable bean = installInitializeAndGet(BeanInjectedWithATable.class);
+        Table<String, String> hello = bean.getHello().withEmitOnChange();
+        List<String> values = new CopyOnWriteArrayList<>();
+        hello.subscribe().with(t -> values.add(t.getItem2()));
+        MutinyEmitter<String> emitter = bean.getHelloEmitter();
+        emitter.send("h").await().indefinitely();
+        emitter.send("e").await().indefinitely();
+        emitter.send("l").await().indefinitely();
+        emitter.send("l").await().indefinitely();
+        emitter.send("o").await().indefinitely();
+        await().untilAsserted(() -> assertThat(values).containsOnly("h", "e", "l", "o"));
+        await().untilAsserted(() -> assertThat(hello.toMap()).containsOnlyKeys("h", "e", "l", "o"));
+    }
 }
