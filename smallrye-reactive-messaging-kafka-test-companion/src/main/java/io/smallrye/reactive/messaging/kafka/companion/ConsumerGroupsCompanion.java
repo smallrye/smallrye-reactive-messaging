@@ -42,7 +42,7 @@ public class ConsumerGroupsCompanion {
      * @return the list of consumer groups
      */
     public Collection<ConsumerGroupListing> list() {
-        return toUni(adminClient.listConsumerGroups().all())
+        return toUni(() -> adminClient.listConsumerGroups().all())
                 .await().atMost(kafkaApiTimeout);
     }
 
@@ -51,7 +51,7 @@ public class ConsumerGroupsCompanion {
      * @return the map of consumer group descriptions by id
      */
     public Map<String, ConsumerGroupDescription> describe(String... groupId) {
-        return toUni(adminClient.describeConsumerGroups(Arrays.asList(groupId)).all())
+        return toUni(() -> adminClient.describeConsumerGroups(Arrays.asList(groupId)).all())
                 .await().atMost(kafkaApiTimeout);
     }
 
@@ -60,7 +60,7 @@ public class ConsumerGroupsCompanion {
      * @return the consumer group description
      */
     public ConsumerGroupDescription describe(String groupId) {
-        return toUni(adminClient.describeConsumerGroups(Collections.singleton(groupId)).all())
+        return toUni(() -> adminClient.describeConsumerGroups(Collections.singleton(groupId)).all())
                 .onItem().transform(result -> result.get(groupId))
                 .await().atMost(kafkaApiTimeout);
     }
@@ -69,7 +69,7 @@ public class ConsumerGroupsCompanion {
      * @param groupId consumer group ids
      */
     public void delete(String... groupId) {
-        toUni(adminClient.deleteConsumerGroups(Arrays.asList(groupId)).all())
+        toUni(() -> adminClient.deleteConsumerGroups(Arrays.asList(groupId)).all())
                 .await().atMost(kafkaApiTimeout);
     }
 
@@ -78,7 +78,7 @@ public class ConsumerGroupsCompanion {
      * @param groupInstanceIds group instance ids
      */
     public void removeMembers(String groupId, String... groupInstanceIds) {
-        toUni(adminClient.removeMembersFromConsumerGroup(groupId,
+        toUni(() -> adminClient.removeMembersFromConsumerGroup(groupId,
                 new RemoveMembersFromConsumerGroupOptions(Arrays.stream(groupInstanceIds)
                         .map(MemberToRemove::new).collect(Collectors.toList())))
                 .all())
@@ -91,7 +91,7 @@ public class ConsumerGroupsCompanion {
 
     private Uni<Map<TopicPartition, OffsetAndMetadata>> consumerGroupUni(String groupId,
             List<TopicPartition> topicPartitions) {
-        return toUni(adminClient.listConsumerGroupOffsets(groupId, new ListConsumerGroupOffsetsOptions()
+        return toUni(() -> adminClient.listConsumerGroupOffsets(groupId, new ListConsumerGroupOffsetsOptions()
                 .topicPartitions(topicPartitions)).partitionsToOffsetAndMetadata());
     }
 
@@ -100,7 +100,7 @@ public class ConsumerGroupsCompanion {
      * @return the map of topic partitions to offset
      */
     public Map<TopicPartition, OffsetAndMetadata> offsets(String groupId) {
-        return toUni(adminClient.listConsumerGroupOffsets(groupId).partitionsToOffsetAndMetadata())
+        return toUni(() -> adminClient.listConsumerGroupOffsets(groupId).partitionsToOffsetAndMetadata())
                 .await().atMost(kafkaApiTimeout);
     }
 
@@ -129,7 +129,7 @@ public class ConsumerGroupsCompanion {
      * @return map of consumer group id to topic partitions offset
      */
     public Map<String, Map<TopicPartition, OffsetAndMetadata>> offsets(List<TopicPartition> topicPartitions) {
-        return toUni(adminClient.listConsumerGroups().all())
+        return toUni(() -> adminClient.listConsumerGroups().all())
                 .onItem().transformToMulti(groups -> Multi.createFrom().iterable(groups))
                 .onItem()
                 .transformToUniAndMerge(group -> consumerGroupUni(group.groupId(), topicPartitions)
@@ -143,7 +143,7 @@ public class ConsumerGroupsCompanion {
      * @param topicPartitionOffsets the map of topic partitions to offset
      */
     public void alterOffsets(String groupId, Map<TopicPartition, OffsetAndMetadata> topicPartitionOffsets) {
-        toUni(adminClient.alterConsumerGroupOffsets(groupId, topicPartitionOffsets).all())
+        toUni(() -> adminClient.alterConsumerGroupOffsets(groupId, topicPartitionOffsets).all())
                 .await().atMost(kafkaApiTimeout);
     }
 
@@ -162,7 +162,7 @@ public class ConsumerGroupsCompanion {
      * @param topicPartitions list of topic partitions
      */
     public void deleteOffsets(String groupId, List<TopicPartition> topicPartitions) {
-        toUni(adminClient.deleteConsumerGroupOffsets(groupId, new HashSet<>(topicPartitions)).all())
+        toUni(() -> adminClient.deleteConsumerGroupOffsets(groupId, new HashSet<>(topicPartitions)).all())
                 .await().atMost(kafkaApiTimeout);
     }
 }

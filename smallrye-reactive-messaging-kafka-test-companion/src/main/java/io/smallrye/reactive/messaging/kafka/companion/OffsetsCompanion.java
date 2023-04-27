@@ -35,7 +35,7 @@ public class OffsetsCompanion {
      */
     public Map<TopicPartition, ListOffsetsResult.ListOffsetsResultInfo> list(
             Map<TopicPartition, OffsetSpec> partitions) {
-        return toUni(adminClient.listOffsets(partitions).all())
+        return toUni(() -> adminClient.listOffsets(partitions).all())
                 .await().atMost(kafkaApiTimeout);
     }
 
@@ -55,7 +55,7 @@ public class OffsetsCompanion {
     public ListOffsetsResult.ListOffsetsResultInfo get(TopicPartition topicPartition, OffsetSpec offsetSpec) {
         Map<TopicPartition, OffsetSpec> offsets = new HashMap<>();
         offsets.put(topicPartition, offsetSpec);
-        return toUni(adminClient.listOffsets(offsets).partitionResult(topicPartition))
+        return toUni(() -> adminClient.listOffsets(offsets).partitionResult(topicPartition))
                 .await().atMost(kafkaApiTimeout);
     }
 

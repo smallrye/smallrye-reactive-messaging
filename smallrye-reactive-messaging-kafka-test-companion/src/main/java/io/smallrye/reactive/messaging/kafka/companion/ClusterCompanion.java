@@ -27,28 +27,28 @@ public class ClusterCompanion {
      * @return the collection of {@link Node}s of the cluster
      */
     public Collection<Node> nodes() {
-        return toUni(adminClient.describeCluster().nodes()).await().atMost(kafkaApiTimeout);
+        return toUni(() -> adminClient.describeCluster().nodes()).await().atMost(kafkaApiTimeout);
     }
 
     /**
      * @return the controller {@link Node} of the cluster
      */
     public Node controller() {
-        return toUni(adminClient.describeCluster().controller()).await().atMost(kafkaApiTimeout);
+        return toUni(() -> adminClient.describeCluster().controller()).await().atMost(kafkaApiTimeout);
     }
 
     /**
      * @return the cluster id
      */
     public String clusterId() {
-        return toUni(adminClient.describeCluster().clusterId()).await().atMost(kafkaApiTimeout);
+        return toUni(() -> adminClient.describeCluster().clusterId()).await().atMost(kafkaApiTimeout);
     }
 
     /**
      * @return the set of {@link AclOperation}s
      */
     public Set<AclOperation> aclOperations() {
-        return toUni(adminClient.describeCluster(new DescribeClusterOptions().includeAuthorizedOperations(true))
+        return toUni(() -> adminClient.describeCluster(new DescribeClusterOptions().includeAuthorizedOperations(true))
                 .authorizedOperations()).await().atMost(kafkaApiTimeout);
     }
 
