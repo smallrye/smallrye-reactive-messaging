@@ -101,7 +101,7 @@
     <sonar.coverage.jacoco.xmlReportPaths>${project.basedir}/target/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
     <mockito.version>4.8.1</mockito.version>
     <junit-pioneer.version>2.0.1</junit-pioneer.version>
-    <junit-platform-commons.version>1.9.2</junit-platform-commons.version>
+    <junit-platform-commons.version>1.9.3</junit-platform-commons.version>
 
     <jakarta.jms.api.version>3.1.0</jakarta.jms.api.version>
     <jackson.version>2.14.2</jackson.version>
@@ -423,12 +423,6 @@
       <groupId>org.junit-pioneer</groupId>
       <artifactId>junit-pioneer</artifactId>
       <version>${junit-pioneer.version}</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.junit.platform</groupId>
-      <artifactId>junit-platform-commons</artifactId>
-      <version>${junit-platform-commons.version}</version>
       <scope>test</scope>
     </dependency>
   </dependencies>
