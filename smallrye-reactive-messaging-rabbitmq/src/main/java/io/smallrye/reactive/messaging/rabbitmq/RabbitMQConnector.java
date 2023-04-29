@@ -15,7 +15,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Flow;
 import java.util.stream.Collectors;
 
-import io.smallrye.reactive.messaging.TracingMetadata;
 import jakarta.annotation.Priority;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.context.BeforeDestroyed;
@@ -193,23 +192,16 @@ public class RabbitMQConnector implements InboundConnector, OutboundConnector, H
         final String contentTypeOverride = ic.getContentTypeOverride().orElse(null);
         log.receiverListeningAddress(queueName);
 
-        return receiver.toMulti()
-                .map(m -> new IncomingRabbitMQMessage<>(m, holder, onNack, onAck, contentTypeOverride))
-                .plug(m -> {
-                    if (isTracingEnabled) {
-                        return m.map(msg -> {
-                            var traceMessage = instrumenter.traceIncoming(
-                                    msg,
-                                    RabbitMQTrace.traceQueue(queueName, msg.message.envelope().getRoutingKey(),
-                                            msg.getHeaders()));
-                            if (traceMessage.getMetadata().get(TracingMetadata.class).isPresent()) {
-                                msg.injectTracingMetadata(traceMessage.getMetadata().get(TracingMetadata.class).get());
-                            }
-                            return msg;
-                        });
-                    }
-                    return m;
-                });
+        if (isTracingEnabled) {
+            return receiver.toMulti()
+                    .map(m -> new IncomingRabbitMQMessage<>(m, holder, onNack, onAck, contentTypeOverride))
+                    .map(msg -> instrumenter.traceIncoming(msg,
+                            RabbitMQTrace.traceQueue(queueName, msg.message.envelope().getRoutingKey(),
+                                    msg.getHeaders())));
+        } else {
+            return receiver.toMulti()
+                    .map(m -> new IncomingRabbitMQMessage<>(m, holder, onNack, onAck, contentTypeOverride));
+        }
     }
 
     /**

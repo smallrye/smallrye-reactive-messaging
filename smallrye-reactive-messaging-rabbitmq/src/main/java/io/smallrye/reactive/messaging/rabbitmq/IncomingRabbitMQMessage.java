@@ -16,7 +16,7 @@ import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Metadata;
 
 import io.netty.handler.codec.http.HttpHeaderValues;
-import io.smallrye.reactive.messaging.TracingMetadata;
+import io.smallrye.reactive.messaging.providers.MetadataInjectableMessage;
 import io.smallrye.reactive.messaging.providers.locals.ContextAwareMessage;
 import io.smallrye.reactive.messaging.rabbitmq.ack.RabbitMQAckHandler;
 import io.smallrye.reactive.messaging.rabbitmq.fault.RabbitMQFailureHandler;
@@ -29,7 +29,7 @@ import io.vertx.mutiny.rabbitmq.RabbitMQMessage;
  *
  * @param <T> the message body type
  */
-public class IncomingRabbitMQMessage<T> implements ContextAwareMessage<T> {
+public class IncomingRabbitMQMessage<T> implements ContextAwareMessage<T>, MetadataInjectableMessage<T> {
 
     /**
      * Used to ignore duplicate attempts to ack/nack because RabbitMQ considers this a connection level error.
@@ -244,8 +244,9 @@ public class IncomingRabbitMQMessage<T> implements ContextAwareMessage<T> {
         return new io.vertx.mutiny.rabbitmq.RabbitMQMessage(message);
     }
 
-    public synchronized void injectTracingMetadata(TracingMetadata tracingMetadata) {
-        metadata = metadata.with(tracingMetadata);
+    @Override
+    public synchronized void injectMetadata(Object metadataObject) {
+        this.metadata = this.metadata.with(metadata);
     }
 
 }
