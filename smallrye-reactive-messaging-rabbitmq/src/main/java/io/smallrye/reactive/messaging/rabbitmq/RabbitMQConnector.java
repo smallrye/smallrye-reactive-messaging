@@ -15,6 +15,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Flow;
 import java.util.stream.Collectors;
 
+import io.smallrye.reactive.messaging.TracingMetadata;
 import jakarta.annotation.Priority;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.context.BeforeDestroyed;
@@ -197,10 +198,13 @@ public class RabbitMQConnector implements InboundConnector, OutboundConnector, H
                 .plug(m -> {
                     if (isTracingEnabled) {
                         return m.map(msg -> {
-                            instrumenter.traceIncoming(
+                            var traceMessage = instrumenter.traceIncoming(
                                     msg,
                                     RabbitMQTrace.traceQueue(queueName, msg.message.envelope().getRoutingKey(),
                                             msg.getHeaders()));
+                            if (traceMessage.getMetadata().get(TracingMetadata.class).isPresent()) {
+                                msg.injectTracingMetadata(traceMessage.getMetadata().get(TracingMetadata.class).get());
+                            }
                             return msg;
                         });
                     }

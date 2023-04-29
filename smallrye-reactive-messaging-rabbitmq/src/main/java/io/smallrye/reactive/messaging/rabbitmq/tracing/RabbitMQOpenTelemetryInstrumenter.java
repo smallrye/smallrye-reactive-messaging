@@ -54,7 +54,7 @@ public class RabbitMQOpenTelemetryInstrumenter {
         TracingUtils.traceOutgoing(instrumenter, message, trace);
     }
 
-    public void traceIncoming(IncomingRabbitMQMessage<Object> msg, RabbitMQTrace trace) {
-        TracingUtils.traceIncoming(instrumenter, msg, trace);
+    public <T> Message<?> traceIncoming(IncomingRabbitMQMessage<Object> msg, RabbitMQTrace trace) {
+        return TracingUtils.traceIncoming(instrumenter, msg, trace);
     }
 }
