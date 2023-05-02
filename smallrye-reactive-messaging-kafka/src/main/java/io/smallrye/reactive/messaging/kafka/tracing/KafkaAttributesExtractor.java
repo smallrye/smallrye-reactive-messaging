@@ -80,6 +80,21 @@ public class KafkaAttributesExtractor implements AttributesExtractor<KafkaTrace,
         }
 
         @Override
+        public String getProtocol(final KafkaTrace kafkaTrace) {
+            return null;
+        }
+
+        @Override
+        public String getProtocolVersion(final KafkaTrace kafkaTrace) {
+            return null;
+        }
+
+        @Override
+        public String getUrl(final KafkaTrace kafkaTrace) {
+            return null;
+        }
+
+        @Override
         public String getConversationId(final KafkaTrace kafkaTrace) {
             return null;
         }
