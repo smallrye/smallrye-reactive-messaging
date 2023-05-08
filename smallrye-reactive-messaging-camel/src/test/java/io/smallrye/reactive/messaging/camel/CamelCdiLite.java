@@ -9,7 +9,6 @@ import org.apache.camel.ExtendedCamelContext;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.component.reactive.streams.ReactiveStreamsComponent;
 import org.apache.camel.impl.DefaultCamelContext;
-import org.apache.camel.impl.engine.DefaultComponentNameResolver;
 import org.apache.camel.support.DefaultRegistry;
 
 public class CamelCdiLite {
@@ -27,7 +26,6 @@ public class CamelCdiLite {
         camelContextExtension.setRegistry(new DefaultRegistry());
         context.setLoadTypeConverters(false);
         context.build();
-        camelContextExtension.setComponentNameResolver(new DefaultComponentNameResolver());
 
         context.addComponent("reactive-streams", new ReactiveStreamsComponent());
 
