@@ -150,10 +150,6 @@ public class MediatorConfigurationSupport {
 
         if (ClassUtils.isAssignable(returnType, CompletionStage.class)) {
             // Case 3 or 4
-            // Expected parameter 1, Message or payload
-            if (parameterTypes.length != 1) {
-                throw ex.definitionOnParam("@Incoming", methodAsString, "CompletionStage");
-            }
             if (strict && returnTypeAssignable.check(Void.class, 0) != GenericTypeAssignable.Result.Assignable) {
                 throw ex.definitionCompletionStageOfVoid(methodAsString);
             }
@@ -174,10 +170,6 @@ public class MediatorConfigurationSupport {
 
         if (ClassUtils.isAssignable(returnType, Uni.class)) {
             // Case 3 or 4 - Uni variants
-            // Expected parameter 1, Message or payload
-            if (parameterTypes.length != 1) {
-                throw ex.definitionOnParam("@Incoming", methodAsString, "Uni");
-            }
             if (strict && returnTypeAssignable.check(Void.class, 0) != GenericTypeAssignable.Result.Assignable) {
                 throw ex.definitionCompletionStageOfVoid(methodAsString);
             }
@@ -202,7 +194,7 @@ public class MediatorConfigurationSupport {
         }
 
         // Case 5 and 6, void
-        if (parameterTypes.length == 1) {
+        if (parameterTypes.length >= 1) {
             // TODO Revisit it with injected parameters
             Class<?> param = parameterTypes[0];
             // Distinction between 5 and 6
@@ -361,10 +353,6 @@ public class MediatorConfigurationSupport {
                 || ClassUtils.isAssignable(returnType, Publisher.class)
                 || ClassUtils.isAssignable(returnType, PublisherBuilder.class)) {
             // Case 5, 6, 7, 8
-            if (parameterTypes.length != 1) {
-                throw ex.illegalArgumentForValidateProcessor(methodAsString);
-            }
-
             GenericTypeAssignable.Result assignableToMessageCheck = returnTypeAssignable.check(Message.class, 0);
             if (assignableToMessageCheck == GenericTypeAssignable.Result.NotGeneric) {
                 throw ex.definitionExpectedReturnedParam("@Outgoing", methodAsString, "Publisher");

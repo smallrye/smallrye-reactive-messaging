@@ -137,7 +137,7 @@ public class StreamTransformerMediator extends AbstractMediator {
 
     @SuppressWarnings("unchecked")
     private <T> Flow.Publisher<T> convertToDesiredPublisherType(Multi<T> multi) {
-        Class<?> parameterType = configuration.getParameterTypes()[0];
+        Class<?> parameterType = configuration.getParameterDescriptor().getTypes().get(0);
         if (parameterType.equals(Multi.class)) {
             return multi;
         }
@@ -151,7 +151,7 @@ public class StreamTransformerMediator extends AbstractMediator {
 
     @SuppressWarnings("unchecked")
     private <T> Publisher<T> convertToDesiredReactiveStreamPublisherType(Multi<T> multi) {
-        Class<?> parameterType = configuration.getParameterTypes()[0];
+        Class<?> parameterType = configuration.getParameterDescriptor().getTypes().get(0);
         Optional<? extends ReactiveTypeConverter<?>> converter = Registry.lookup(parameterType);
         Publisher<T> argument = AdaptersToReactiveStreams.publisher(multi);
         if (converter.isPresent()) {

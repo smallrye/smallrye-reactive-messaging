@@ -21,6 +21,7 @@ import org.eclipse.microprofile.reactive.messaging.Outgoing;
 
 import io.smallrye.reactive.messaging.Invoker;
 import io.smallrye.reactive.messaging.MediatorConfiguration;
+import io.smallrye.reactive.messaging.MethodParameterDescriptor;
 import io.smallrye.reactive.messaging.Shape;
 import io.smallrye.reactive.messaging.annotations.Blocking;
 import io.smallrye.reactive.messaging.annotations.Broadcast;
@@ -95,6 +96,8 @@ public class DefaultMediatorConfiguration implements MediatorConfiguration {
      */
     private Class<? extends KeyValueExtractor> keyed;
 
+    private final MethodParameterDescriptor descriptor;
+
     public DefaultMediatorConfiguration(Method method, Bean<?> bean) {
         this.method = Objects.requireNonNull(method, msg.methodMustBeSet());
         this.method.setAccessible(true);
@@ -107,6 +110,31 @@ public class DefaultMediatorConfiguration implements MediatorConfiguration {
         }
 
         this.mediatorBean = Objects.requireNonNull(bean, msg.beanMustBeSet());
+
+        MediatorConfigurationSupport.GenericTypeAssignable[] params = new MediatorConfigurationSupport.GenericTypeAssignable[parameterTypes.length];
+        for (int i = 0; i < parameterTypes.length; i++) {
+            params[i] = new MethodParamGenericTypeAssignable(method, i);
+        }
+
+        this.descriptor = new MethodParameterDescriptor() {
+            @Override
+            public List<Class<?>> getTypes() {
+                return Arrays.stream(parameterTypes).collect(Collectors.toList());
+            }
+
+            @Override
+            public Class<?> getGenericParameterType(int paramIndex, int genericIndex) {
+                Type type = params[paramIndex].getType(genericIndex);
+                if (type instanceof Class) {
+                    return (Class<?>) type;
+                }
+                try {
+                    return DefaultMediatorConfiguration.class.getClassLoader().loadClass(type.getTypeName());
+                } catch (ClassNotFoundException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        };
 
         this.mediatorConfigurationSupport = new MediatorConfigurationSupport(methodAsString(), this.returnType,
                 this.parameterTypes,
@@ -225,8 +253,8 @@ public class DefaultMediatorConfiguration implements MediatorConfiguration {
     }
 
     @Override
-    public Class<?>[] getParameterTypes() {
-        return parameterTypes;
+    public MethodParameterDescriptor getParameterDescriptor() {
+        return descriptor;
     }
 
     @Override
