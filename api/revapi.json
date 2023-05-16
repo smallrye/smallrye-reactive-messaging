@@ -27,7 +27,48 @@
     "criticality" : "highlight",
     "minSeverity" : "POTENTIALLY_BREAKING",
     "minCriticality" : "documented",
-    "differences" : [ ]
+    "differences" : [
+        {
+            "ignore": true,
+            "code": "java.field.enumConstantOrderChanged",
+            "old": "field io.smallrye.reactive.messaging.MediatorConfiguration.Consumption.MESSAGE",
+            "new": "field io.smallrye.reactive.messaging.MediatorConfiguration.Consumption.MESSAGE",
+            "justification": "New consumption value to describe KeyedMulti injection"
+        },
+        {
+            "ignore": true,
+            "code": "java.field.enumConstantOrderChanged",
+            "old": "field io.smallrye.reactive.messaging.MediatorConfiguration.Consumption.NONE",
+            "new": "field io.smallrye.reactive.messaging.MediatorConfiguration.Consumption.NONE",
+            "justification": "New consumption value to describe KeyedMulti injection"
+        },
+        {
+            "ignore": true,
+            "code": "java.field.enumConstantOrderChanged",
+            "old": "field io.smallrye.reactive.messaging.MediatorConfiguration.Consumption.PAYLOAD",
+            "new": "field io.smallrye.reactive.messaging.MediatorConfiguration.Consumption.PAYLOAD",
+            "justification": "New consumption value to describe KeyedMulti injection"
+        },
+        {
+            "ignore": true,
+            "code": "java.method.addedToInterface",
+            "new": "method java.lang.reflect.Type io.smallrye.reactive.messaging.MediatorConfiguration::getKeyType()",
+            "justification": "New method to extract the type of the key when using the KeyedMulti"
+
+        },
+        {
+            "ignore": true,
+            "code": "java.method.addedToInterface",
+            "new": "method java.lang.Class<? extends io.smallrye.reactive.messaging.keyed.KeyValueExtractor> io.smallrye.reactive.messaging.MediatorConfiguration::getKeyed()",
+            "justification": "New method to extract the extractor class name (@Keyed) when using the KeyedMulti"
+        },
+        {
+            "ignore": true,
+            "code": "java.method.addedToInterface",
+            "new": "method java.lang.reflect.Type io.smallrye.reactive.messaging.MediatorConfiguration::getValueType()",
+            "justification": "New method to extract the type of the value when using the KeyedMulti"
+        }
+    ]
   }
 }, {
   "extension" : "revapi.reporter.json",

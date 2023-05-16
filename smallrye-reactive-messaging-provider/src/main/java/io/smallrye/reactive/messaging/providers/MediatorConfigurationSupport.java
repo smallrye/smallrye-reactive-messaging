@@ -22,6 +22,8 @@ import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.MediatorConfiguration;
 import io.smallrye.reactive.messaging.Shape;
 import io.smallrye.reactive.messaging.annotations.Merge;
+import io.smallrye.reactive.messaging.keyed.KeyValueExtractor;
+import io.smallrye.reactive.messaging.keyed.KeyedMulti;
 import io.smallrye.reactive.messaging.providers.helpers.ClassUtils;
 
 public class MediatorConfigurationSupport {
@@ -31,15 +33,18 @@ public class MediatorConfigurationSupport {
     private final Class<?>[] parameterTypes;
     private final GenericTypeAssignable returnTypeAssignable;
     private final GenericTypeAssignable firstMethodParamTypeAssignable;
+    private final Class<? extends KeyValueExtractor> keyed;
     private boolean strict;
 
     public MediatorConfigurationSupport(String methodAsString, Class<?> returnType, Class<?>[] parameterTypes,
-            GenericTypeAssignable returnTypeAssignable, GenericTypeAssignable firstMethodParamTypeAssignable) {
+            GenericTypeAssignable returnTypeAssignable, GenericTypeAssignable firstMethodParamTypeAssignable,
+            Class<? extends KeyValueExtractor> keyed) {
         this.methodAsString = methodAsString;
         this.returnType = returnType;
         this.parameterTypes = parameterTypes;
         this.returnTypeAssignable = returnTypeAssignable;
         this.firstMethodParamTypeAssignable = firstMethodParamTypeAssignable;
+        this.keyed = keyed;
     }
 
     public Shape determineShape(List<?> incomingValue, Object outgoingValue) {
@@ -125,6 +130,7 @@ public class MediatorConfigurationSupport {
             // Need to distinguish 1 or 2
             MediatorConfiguration.Consumption consumption;
             Type payloadType;
+
             if (assignableToMessageCheck == GenericTypeAssignable.Result.Assignable) {
                 consumption = MediatorConfiguration.Consumption.STREAM_OF_MESSAGE;
                 payloadType = returnTypeAssignable.getType(0, 0);
@@ -329,6 +335,7 @@ public class MediatorConfigurationSupport {
             if (firstGenericParamOfReturn == GenericTypeAssignable.Result.NotGeneric) {
                 throw ex.definitionExpectedTwoParams("@Incoming & @Outgoing", methodAsString);
             }
+
             consumption = firstGenericParamOfReturn == GenericTypeAssignable.Result.Assignable
                     ? MediatorConfiguration.Consumption.STREAM_OF_MESSAGE
                     : MediatorConfiguration.Consumption.STREAM_OF_PAYLOAD;
@@ -459,6 +466,9 @@ public class MediatorConfigurationSupport {
         boolean useBuilderTypes;
         boolean useReactiveStreams;
         Type payloadType;
+        Type keyType = null;
+        Type valueType = null;
+        Class<? extends KeyValueExtractor> keyed = null;
 
         // The mediator produces and consumes a stream
         GenericTypeAssignable.Result returnTypeGenericCheck = returnTypeAssignable.check(Message.class, 0);
@@ -469,14 +479,18 @@ public class MediatorConfigurationSupport {
                 ? MediatorConfiguration.Production.STREAM_OF_MESSAGE
                 : MediatorConfiguration.Production.STREAM_OF_PAYLOAD;
 
-        GenericTypeAssignable.Result firstParamTypeGenericCheck = firstMethodParamTypeAssignable
-                .check(Message.class, 0);
-        if (firstParamTypeGenericCheck == GenericTypeAssignable.Result.NotGeneric) {
-            throw ex.definitionExpectedConsumedParam("@Incoming", methodAsString, parameterTypes[0].getSimpleName());
+        if (parameterTypes.length == 1 && parameterTypes[0].equals(KeyedMulti.class)) {
+            consumption = MediatorConfiguration.Consumption.KEYED_MULTI;
+        } else {
+            GenericTypeAssignable.Result firstParamTypeGenericCheck = firstMethodParamTypeAssignable
+                    .check(Message.class, 0);
+            if (firstParamTypeGenericCheck == GenericTypeAssignable.Result.NotGeneric) {
+                throw ex.definitionExpectedConsumedParam("@Incoming", methodAsString, parameterTypes[0].getSimpleName());
+            }
+            consumption = firstParamTypeGenericCheck == GenericTypeAssignable.Result.Assignable
+                    ? MediatorConfiguration.Consumption.STREAM_OF_MESSAGE
+                    : MediatorConfiguration.Consumption.STREAM_OF_PAYLOAD;
         }
-        consumption = firstParamTypeGenericCheck == GenericTypeAssignable.Result.Assignable
-                ? MediatorConfiguration.Consumption.STREAM_OF_MESSAGE
-                : MediatorConfiguration.Consumption.STREAM_OF_PAYLOAD;
 
         // Post Acknowledgement is not supported
         if (acknowledgment == Acknowledgment.Strategy.POST_PROCESSING) {
@@ -489,6 +503,11 @@ public class MediatorConfigurationSupport {
             throw ex.definitionManualAckNotSupported("@Incoming & @Outgoing", methodAsString);
         }
 
+        if (consumption == MediatorConfiguration.Consumption.KEYED_MULTI
+                && (acknowledgment == Acknowledgment.Strategy.MANUAL)) {
+            throw ex.definitionManualAckNotSupported("@Incoming & @Outgoing", methodAsString);
+        }
+
         if (production == MediatorConfiguration.Production.STREAM_OF_PAYLOAD
                 && acknowledgment == Acknowledgment.Strategy.MANUAL) {
             throw ex.definitionManualAckNotSupported("@Incoming & @Outgoing", methodAsString);
@@ -496,8 +515,13 @@ public class MediatorConfigurationSupport {
 
         if (consumption == MediatorConfiguration.Consumption.STREAM_OF_MESSAGE) {
             payloadType = firstMethodParamTypeAssignable.getType(0, 0);
-        } else {
+        } else if (consumption == MediatorConfiguration.Consumption.STREAM_OF_PAYLOAD) {
             payloadType = firstMethodParamTypeAssignable.getType(0);
+        } else {
+            payloadType = parameterTypes[0];
+
+            keyType = firstMethodParamTypeAssignable.getType(0);
+            valueType = firstMethodParamTypeAssignable.getType(1);
         }
 
         // Ensure that the parameter is also using the MP Reactive Streams Operator types.
@@ -522,7 +546,8 @@ public class MediatorConfigurationSupport {
             log.unableToExtractIngestedPayloadType(methodAsString, "Cannot extract the type from the method signature");
         }
 
-        return new ValidationOutput(production, consumption, useBuilderTypes, useReactiveStreams, payloadType);
+        return new ValidationOutput(production, consumption, useBuilderTypes, useReactiveStreams, payloadType, keyType,
+                valueType, keyed);
     }
 
     public Acknowledgment.Strategy processDefaultAcknowledgement(Shape shape,
@@ -618,6 +643,10 @@ public class MediatorConfigurationSupport {
         private final boolean useBuilderTypes;
         private final boolean useReactiveStreams;
         private final Type ingestedPayloadType;
+        private final Type keyType;
+        private final Type valueType;
+
+        private final Class<? extends KeyValueExtractor> keyed;
 
         public ValidationOutput(MediatorConfiguration.Production production,
                 MediatorConfiguration.Consumption consumption, Type ingestedPayloadType) {
@@ -627,11 +656,22 @@ public class MediatorConfigurationSupport {
         public ValidationOutput(MediatorConfiguration.Production production,
                 MediatorConfiguration.Consumption consumption,
                 boolean useBuilderTypes, boolean useReactiveStreams, Type ingestedPayloadType) {
+            this(production, consumption, useBuilderTypes, useReactiveStreams, ingestedPayloadType, null, null, null);
+        }
+
+        public ValidationOutput(MediatorConfiguration.Production production,
+                MediatorConfiguration.Consumption consumption,
+                boolean useBuilderTypes, boolean useReactiveStreams, Type ingestedPayloadType, Type keyType, Type valueType,
+                Class<? extends KeyValueExtractor> keyed) {
             this.production = production;
             this.consumption = consumption;
             this.useBuilderTypes = useBuilderTypes;
             this.useReactiveStreams = useReactiveStreams;
             this.ingestedPayloadType = ingestedPayloadType;
+            // Keyed Multi
+            this.keyType = keyType;
+            this.valueType = valueType;
+            this.keyed = keyed;
         }
 
         public MediatorConfiguration.Production getProduction() {
@@ -652,6 +692,18 @@ public class MediatorConfigurationSupport {
 
         public boolean getUseReactiveStreams() {
             return useReactiveStreams;
+        }
+
+        public Type getValueType() {
+            return valueType;
+        }
+
+        public Type getKeyType() {
+            return keyType;
+        }
+
+        public Class<? extends KeyValueExtractor> getKeyed() {
+            return keyed;
         }
     }
 

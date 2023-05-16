@@ -84,4 +84,3 @@ and available acknowledgement strategies (when applicable).
     propagation. Use the `with` (like `withPayload`) methods from the
     incoming message, so it copies the metadata and ack/nack methods. It
     returns a new `Message` with the right content.
-

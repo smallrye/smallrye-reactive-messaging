@@ -19,11 +19,9 @@ import org.eclipse.microprofile.reactive.messaging.Message;
 
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
-import io.smallrye.reactive.messaging.Invoker;
-import io.smallrye.reactive.messaging.MediatorConfiguration;
-import io.smallrye.reactive.messaging.MessageConverter;
+import io.smallrye.reactive.messaging.*;
 import io.smallrye.reactive.messaging.PublisherDecorator;
-import io.smallrye.reactive.messaging.SubscriberDecorator;
+import io.smallrye.reactive.messaging.keyed.KeyValueExtractor;
 import io.smallrye.reactive.messaging.providers.connectors.WorkerPoolRegistry;
 import io.smallrye.reactive.messaging.providers.extension.HealthCenter;
 import io.smallrye.reactive.messaging.providers.helpers.BroadcastHelper;
@@ -42,6 +40,7 @@ public abstract class AbstractMediator {
     private Instance<SubscriberDecorator> subscriberDecorators;
     protected HealthCenter health;
     private Instance<MessageConverter> converters;
+    private Instance<KeyValueExtractor> extractors;
 
     public AbstractMediator(MediatorConfiguration configuration) {
         this.configuration = configuration;
@@ -61,6 +60,10 @@ public abstract class AbstractMediator {
 
     public void setConverters(Instance<MessageConverter> converters) {
         this.converters = converters;
+    }
+
+    public void setExtractors(Instance<KeyValueExtractor> extractors) {
+        this.extractors = extractors;
     }
 
     public void setWorkerPoolRegistry(WorkerPoolRegistry workerPoolRegistry) {
@@ -212,6 +215,10 @@ public abstract class AbstractMediator {
 
     public Multi<? extends Message<?>> convert(Multi<? extends Message<?>> upstream) {
         return ConverterUtils.convert(upstream, converters, configuration.getIngestedPayloadType());
+    }
+
+    public Instance<KeyValueExtractor> extractors() {
+        return extractors;
     }
 
     public void terminate() {

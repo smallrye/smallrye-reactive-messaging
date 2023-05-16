@@ -278,4 +278,13 @@ public interface ProviderExceptions {
 
     @Message(id = 87, value = "The bean %s implements a connector interface but does not use the @Connector qualifier")
     DefinitionException missingConnectorQualifier(String clazz);
+
+    @Message(id = 1001, value = "Cannot extract the key type for the KeyedMulti parameter in %s. Make sure your set the first generic parameter of KeyedMulti<K, V>.")
+    DefinitionException failedToExtractKeyType(String method);
+
+    @Message(id = 1002, value = "Cannot extract the value type for the KeyedMulti parameter in %s. Make sure your set the second generic parameter of KeyedMulti<K, V>.")
+    DefinitionException failedToExtractValueType(String method);
+
+    @Message(id = 1003, value = "Unable to find a matching KeyValueExtractor for method %s. Did you expose a bean implementing the KeyValueExtractor interface and implemented the `canExtract` method correctly?")
+    DeploymentException noMatchingKeyValueExtractor(String method);
 }

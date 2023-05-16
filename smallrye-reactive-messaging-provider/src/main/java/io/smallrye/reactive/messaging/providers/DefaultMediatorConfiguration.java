@@ -26,6 +26,8 @@ import io.smallrye.reactive.messaging.annotations.Blocking;
 import io.smallrye.reactive.messaging.annotations.Broadcast;
 import io.smallrye.reactive.messaging.annotations.Incomings;
 import io.smallrye.reactive.messaging.annotations.Merge;
+import io.smallrye.reactive.messaging.keyed.KeyValueExtractor;
+import io.smallrye.reactive.messaging.keyed.Keyed;
 import io.smallrye.reactive.messaging.providers.helpers.TypeUtils;
 import io.smallrye.reactive.messaging.providers.helpers.Validation;
 
@@ -79,6 +81,19 @@ public class DefaultMediatorConfiguration implements MediatorConfiguration {
     private final MediatorConfigurationSupport mediatorConfigurationSupport;
 
     private Type ingestedPayloadType;
+    /**
+     * Only relevant for the KeyedMulti case.
+     */
+    private Type keyType;
+    /**
+     * Only relevant for the KeyedMulti case.
+     */
+    private Type valueType;
+
+    /**
+     * Only relevant for the KeyedMulti case.
+     */
+    private Class<? extends KeyValueExtractor> keyed;
 
     public DefaultMediatorConfiguration(Method method, Bean<?> bean) {
         this.method = Objects.requireNonNull(method, msg.methodMustBeSet());
@@ -86,13 +101,20 @@ public class DefaultMediatorConfiguration implements MediatorConfiguration {
 
         this.returnType = method.getReturnType();
         this.parameterTypes = method.getParameterTypes();
+        Class<? extends KeyValueExtractor> keyed = null;
+        if (method.getParameters().length == 1 && method.getParameters()[0].getAnnotation(Keyed.class) != null) {
+            keyed = method.getParameters()[0].getAnnotation(Keyed.class).value();
+        }
+
         this.mediatorBean = Objects.requireNonNull(bean, msg.beanMustBeSet());
 
         this.mediatorConfigurationSupport = new MediatorConfigurationSupport(methodAsString(), this.returnType,
                 this.parameterTypes,
                 new ReturnTypeGenericTypeAssignable(method),
                 this.parameterTypes.length == 0 ? new AlwaysInvalidIndexGenericTypeAssignable()
-                        : new MethodParamGenericTypeAssignable(method, 0));
+                        : new MethodParamGenericTypeAssignable(method, 0),
+                keyed);
+        this.keyed = keyed;
     }
 
     public void compute(Incomings incomings, Outgoing outgoing, Blocking blocking) {
@@ -163,6 +185,8 @@ public class DefaultMediatorConfiguration implements MediatorConfiguration {
         }
 
         ingestedPayloadType = validationOutput.getIngestedPayloadType();
+        keyType = validationOutput.getKeyType();
+        valueType = validationOutput.getValueType();
     }
 
     @Override
@@ -276,6 +300,21 @@ public class DefaultMediatorConfiguration implements MediatorConfiguration {
 
     public void strict() {
         this.mediatorConfigurationSupport.strict();
+    }
+
+    @Override
+    public Type getKeyType() {
+        return keyType;
+    }
+
+    @Override
+    public Type getValueType() {
+        return valueType;
+    }
+
+    @Override
+    public Class<? extends KeyValueExtractor> getKeyed() {
+        return keyed;
     }
 
     static class ReflectionGenericTypeAssignable implements MediatorConfigurationSupport.GenericTypeAssignable {

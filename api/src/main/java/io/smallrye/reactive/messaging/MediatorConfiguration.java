@@ -9,6 +9,7 @@ import jakarta.enterprise.inject.spi.Bean;
 import org.eclipse.microprofile.reactive.messaging.Acknowledgment;
 
 import io.smallrye.reactive.messaging.annotations.Merge;
+import io.smallrye.reactive.messaging.keyed.KeyValueExtractor;
 
 public interface MediatorConfiguration {
 
@@ -64,6 +65,18 @@ public interface MediatorConfiguration {
      */
     Type getIngestedPayloadType();
 
+    /**
+     * @return the key type when using the {@link KeyValueExtractor}, {@code null} otherwise.
+     */
+    Type getKeyType();
+
+    /**
+     * @return the value type when using the {@link KeyValueExtractor}, {@code null} otherwise.
+     */
+    Type getValueType();
+
+    Class<? extends KeyValueExtractor> getKeyed();
+
     enum Production {
         STREAM_OF_MESSAGE,
         STREAM_OF_PAYLOAD,
@@ -81,7 +94,7 @@ public interface MediatorConfiguration {
     enum Consumption {
         STREAM_OF_MESSAGE,
         STREAM_OF_PAYLOAD,
-
+        KEYED_MULTI,
         MESSAGE,
         PAYLOAD,
 
