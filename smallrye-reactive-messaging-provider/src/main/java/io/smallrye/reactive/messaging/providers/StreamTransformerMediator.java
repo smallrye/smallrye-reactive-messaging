@@ -1,5 +1,6 @@
 package io.smallrye.reactive.messaging.providers;
 
+import static io.smallrye.reactive.messaging.providers.helpers.KeyMultiUtils.convertToKeyedMulti;
 import static io.smallrye.reactive.messaging.providers.i18n.ProviderExceptions.ex;
 import static io.smallrye.reactive.messaging.providers.i18n.ProviderMessages.msg;
 
@@ -17,6 +18,7 @@ import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.converters.ReactiveTypeConverter;
 import io.smallrye.reactive.converters.Registry;
 import io.smallrye.reactive.messaging.MediatorConfiguration;
+import io.smallrye.reactive.messaging.keyed.KeyedMulti;
 import io.smallrye.reactive.messaging.providers.helpers.MultiUtils;
 import mutiny.zero.flow.adapters.AdaptersToFlow;
 import mutiny.zero.flow.adapters.AdaptersToReactiveStreams;
@@ -37,6 +39,11 @@ public class StreamTransformerMediator extends AbstractMediator {
         }
 
         if (configuration.consumption() == MediatorConfiguration.Consumption.STREAM_OF_PAYLOAD
+                && configuration.production() == MediatorConfiguration.Production.STREAM_OF_MESSAGE) {
+            throw ex.definitionProduceMessageStreamAndConsumePayloadStream(configuration.methodAsString());
+        }
+
+        if (configuration.consumption() == MediatorConfiguration.Consumption.KEYED_MULTI
                 && configuration.production() == MediatorConfiguration.Production.STREAM_OF_MESSAGE) {
             throw ex.definitionProduceMessageStreamAndConsumePayloadStream(configuration.methodAsString());
         }
@@ -86,6 +93,9 @@ public class StreamTransformerMediator extends AbstractMediator {
                 } else {
                     processMethodConsumingAPublisherOfPayload();
                 }
+                break;
+            case KEYED_MULTI:
+                processMethodConsumingAPublisherOfKeyValue();
                 break;
             default:
                 throw ex.illegalArgumentForUnexpectedConsumption(configuration.consumption());
@@ -183,6 +193,18 @@ public class StreamTransformerMediator extends AbstractMediator {
             Objects.requireNonNull(result, msg.methodReturnedNull(configuration.methodAsString()));
             return MultiUtils.publisher(result)
                     .onItem().transform(Message::of);
+        };
+    }
+
+    private void processMethodConsumingAPublisherOfKeyValue() {
+        function = upstream -> {
+            Multi<? extends Message<?>> multi = MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration);
+            Multi<KeyedMulti<?, ?>> groups = convertToKeyedMulti(multi, extractors(), configuration);
+            return groups
+                    .flatMap(km -> {
+                        Flow.Publisher<?> result = invoke(km);
+                        return Objects.requireNonNull(result, msg.methodReturnedNull(configuration.methodAsString()));
+                    }).map(Message::of);
         };
     }
 

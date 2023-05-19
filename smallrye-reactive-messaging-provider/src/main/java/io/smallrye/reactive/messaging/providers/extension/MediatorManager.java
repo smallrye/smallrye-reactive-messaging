@@ -20,6 +20,7 @@ import io.smallrye.reactive.messaging.EmitterConfiguration;
 import io.smallrye.reactive.messaging.PublisherDecorator;
 import io.smallrye.reactive.messaging.SubscriberDecorator;
 import io.smallrye.reactive.messaging.annotations.Incomings;
+import io.smallrye.reactive.messaging.keyed.KeyValueExtractor;
 import io.smallrye.reactive.messaging.providers.AbstractMediator;
 import io.smallrye.reactive.messaging.providers.MediatorFactory;
 import io.smallrye.reactive.messaging.providers.connectors.WorkerPoolRegistry;
@@ -56,6 +57,10 @@ public class MediatorManager {
     @Inject
     // @Any would only be needed if we wanted to allow implementations with qualifiers
     Instance<MessageConverter> converters;
+
+    @Inject
+    // @Any would only be needed if we wanted to allow implementations with qualifiers
+    Instance<KeyValueExtractor> extractors;
 
     private final List<EmitterConfiguration> emitters = new ArrayList<>();
 
@@ -169,6 +174,7 @@ public class MediatorManager {
         mediator.setDecorators(decorators);
         mediator.setSubscriberDecorators(subscriberDecorators);
         mediator.setConverters(converters);
+        mediator.setExtractors(extractors);
         mediator.setHealth(health);
         mediator.setWorkerPoolRegistry(workerPoolRegistry);
 
