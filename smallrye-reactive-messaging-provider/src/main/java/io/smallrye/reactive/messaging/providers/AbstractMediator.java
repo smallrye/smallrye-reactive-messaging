@@ -63,10 +63,10 @@ public abstract class AbstractMediator {
                         extractors[i] = Message::getPayload;
                     } else if (parameters.get(i) == Optional.class) {
                         Class<?> c = configuration.getParameterDescriptor().getGenericParameterType(i, 0);
-                        extractors[i] = msg -> msg.getMetadata(c);
+                        extractors[i] = msg -> msg.getMetadata().get(c);
                     } else {
                         Class<?> type = parameters.get(i);
-                        extractors[i] = msg -> msg.getMetadata(type).orElse(null);
+                        extractors[i] = msg -> msg.getMetadata().get(type).orElse(null);
                     }
                 }
                 mapper = msg -> Arrays.stream(extractors).map(extractor -> extractor.apply(msg)).toArray(Object[]::new);
