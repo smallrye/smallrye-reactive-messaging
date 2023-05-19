@@ -192,20 +192,16 @@ public class RabbitMQConnector implements InboundConnector, OutboundConnector, H
         final String contentTypeOverride = ic.getContentTypeOverride().orElse(null);
         log.receiverListeningAddress(queueName);
 
-        return receiver.toMulti()
-                .map(m -> new IncomingRabbitMQMessage<>(m, holder, onNack, onAck, contentTypeOverride))
-                .plug(m -> {
-                    if (isTracingEnabled) {
-                        return m.map(msg -> {
-                            instrumenter.traceIncoming(
-                                    msg,
-                                    RabbitMQTrace.traceQueue(queueName, msg.message.envelope().getRoutingKey(),
-                                            msg.getHeaders()));
-                            return msg;
-                        });
-                    }
-                    return m;
-                });
+        if (isTracingEnabled) {
+            return receiver.toMulti()
+                    .map(m -> new IncomingRabbitMQMessage<>(m, holder, onNack, onAck, contentTypeOverride))
+                    .map(msg -> instrumenter.traceIncoming(msg,
+                            RabbitMQTrace.traceQueue(queueName, msg.message.envelope().getRoutingKey(),
+                                    msg.getHeaders())));
+        } else {
+            return receiver.toMulti()
+                    .map(m -> new IncomingRabbitMQMessage<>(m, holder, onNack, onAck, contentTypeOverride));
+        }
     }
 
     /**

@@ -9,7 +9,6 @@ import io.opentelemetry.instrumentation.api.instrumenter.messaging.MessageOperat
 import io.opentelemetry.instrumentation.api.instrumenter.messaging.MessagingAttributesExtractor;
 import io.opentelemetry.instrumentation.api.instrumenter.messaging.MessagingAttributesGetter;
 import io.opentelemetry.instrumentation.api.instrumenter.messaging.MessagingSpanNameExtractor;
-import io.smallrye.reactive.messaging.rabbitmq.IncomingRabbitMQMessage;
 import io.smallrye.reactive.messaging.tracing.TracingUtils;
 
 public class RabbitMQOpenTelemetryInstrumenter {
@@ -54,7 +53,7 @@ public class RabbitMQOpenTelemetryInstrumenter {
         TracingUtils.traceOutgoing(instrumenter, message, trace);
     }
 
-    public void traceIncoming(IncomingRabbitMQMessage<Object> msg, RabbitMQTrace trace) {
-        TracingUtils.traceIncoming(instrumenter, msg, trace);
+    public Message<?> traceIncoming(Message<?> msg, RabbitMQTrace trace) {
+        return TracingUtils.traceIncoming(instrumenter, msg, trace);
     }
 }
