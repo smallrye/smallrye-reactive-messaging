@@ -25,8 +25,6 @@ public interface MediatorConfiguration {
 
     Class<?> getReturnType();
 
-    Class<?>[] getParameterTypes();
-
     Consumption consumption();
 
     Production production();
@@ -60,8 +58,7 @@ public interface MediatorConfiguration {
 
     /**
      * @return the discovered ingested payload type. May be {@code null} if there is no consumption or the type cannot be
-     *         extracted.
-     *         Conversion is based on this type.
+     *         extracted. Conversion is based on this type.
      */
     Type getIngestedPayloadType();
 
@@ -76,6 +73,8 @@ public interface MediatorConfiguration {
     Type getValueType();
 
     Class<? extends KeyValueExtractor> getKeyed();
+
+    MethodParameterDescriptor getParameterDescriptor();
 
     enum Production {
         STREAM_OF_MESSAGE,

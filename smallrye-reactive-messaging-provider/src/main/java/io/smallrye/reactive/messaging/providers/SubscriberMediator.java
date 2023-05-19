@@ -159,13 +159,13 @@ public class SubscriberMediator extends AbstractMediator {
         if (configuration.isBlocking()) {
             if (configuration.isBlockingExecutionOrdered()) {
                 this.function = upstream -> MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration)
-                        .onItem().transformToUniAndConcatenate(msg -> invokeBlocking(msg, msg.getPayload())
+                        .onItem().transformToUniAndConcatenate(msg -> invokeBlocking(msg, getArguments(msg))
                                 .onItemOrFailure().transformToUni(handleInvocationResult(msg)))
                         .onFailure()
                         .invoke(failure -> health.reportApplicationFailure(configuration.methodAsString(), failure));
             } else {
                 this.function = upstream -> MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration)
-                        .onItem().transformToUniAndMerge(msg -> invokeBlocking(msg, msg.getPayload())
+                        .onItem().transformToUniAndMerge(msg -> invokeBlocking(msg, getArguments(msg))
                                 .onItemOrFailure().transformToUni(handleInvocationResult(msg)))
                         .onFailure()
                         .invoke(failure -> health.reportApplicationFailure(configuration.methodAsString(), failure));
@@ -174,7 +174,7 @@ public class SubscriberMediator extends AbstractMediator {
             this.function = upstream -> MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration)
                     .onItem()
                     .transformToUniAndConcatenate(
-                            msg -> invokeOnMessageContext(msg, msg.getPayload())
+                            msg -> invokeOnMessageContext(msg, getArguments(msg))
                                     .onItemOrFailure().transformToUni(handleInvocationResult(msg)))
                     .onFailure().invoke(failure -> health.reportApplicationFailure(configuration.methodAsString(), failure));
         }
@@ -203,41 +203,29 @@ public class SubscriberMediator extends AbstractMediator {
 
     private void processMethodReturningACompletionStage() {
         this.subscriber = IgnoringSubscriber.INSTANCE;
-        boolean invokeWithPayload = MediatorConfiguration.Consumption.PAYLOAD == configuration.consumption();
         if (configuration.isBlocking()) {
             if (configuration.isBlockingExecutionOrdered()) {
                 this.function = upstream -> MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration)
-                        .onItem().transformToUniAndConcatenate(msg -> invokeBlockingAndHandleOutcome(invokeWithPayload, msg))
+                        .onItem().transformToUniAndConcatenate(this::invokeBlockingAndHandleOutcome)
                         .onFailure().invoke(this::reportFailure);
             } else {
                 this.function = upstream -> MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration)
-                        .onItem().transformToUniAndMerge(msg -> invokeBlockingAndHandleOutcome(invokeWithPayload, msg))
+                        .onItem().transformToUniAndMerge(this::invokeBlockingAndHandleOutcome)
                         .onFailure().invoke(this::reportFailure);
             }
         } else {
             this.function = upstream -> MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration)
                     .onItem().transformToUniAndConcatenate(msg -> {
-                        Uni<?> uni;
-                        if (invokeWithPayload) {
-                            uni = invokeOnMessageContext(msg, msg.getPayload())
-                                    .onItem().transformToUni(cs -> Uni.createFrom().completionStage((CompletionStage<?>) cs));
-                        } else {
-                            uni = invokeOnMessageContext(msg, msg)
-                                    .onItem().transformToUni(cs -> Uni.createFrom().completionStage((CompletionStage<?>) cs));
-                        }
+                        Uni<?> uni = invokeOnMessageContext(msg, getArguments(msg))
+                                .onItem().transformToUni(cs -> Uni.createFrom().completionStage((CompletionStage<?>) cs));
                         return uni.onItemOrFailure().transformToUni(handleInvocationResult(msg));
                     })
                     .onFailure().invoke(this::reportFailure);
         }
     }
 
-    private Uni<? extends Message<?>> invokeBlockingAndHandleOutcome(boolean invokeWithPayload, Message<?> msg) {
-        Uni<?> uni;
-        if (invokeWithPayload) {
-            uni = invokeBlocking(msg, msg.getPayload());
-        } else {
-            uni = invokeBlocking(msg, msg);
-        }
+    private Uni<? extends Message<?>> invokeBlockingAndHandleOutcome(Message<?> msg) {
+        Uni<?> uni = invokeBlocking(msg, getArguments(msg));
         return uni.onItemOrFailure().transformToUni(handleInvocationResult(msg));
     }
 
@@ -248,28 +236,21 @@ public class SubscriberMediator extends AbstractMediator {
 
     private void processMethodReturningAUni() {
         this.subscriber = IgnoringSubscriber.INSTANCE;
-        boolean invokeWithPayload = MediatorConfiguration.Consumption.PAYLOAD == configuration.consumption();
         if (configuration.isBlocking()) {
             if (configuration.isBlockingExecutionOrdered()) {
                 this.function = upstream -> MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration)
-                        .onItem().transformToUniAndConcatenate(msg -> invokeBlockingAndHandleOutcome(invokeWithPayload, msg))
+                        .onItem().transformToUniAndConcatenate(this::invokeBlockingAndHandleOutcome)
                         .onFailure().invoke(this::reportFailure);
             } else {
                 this.function = upstream -> MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration)
-                        .onItem().transformToUniAndMerge(msg -> invokeBlockingAndHandleOutcome(invokeWithPayload, msg))
+                        .onItem().transformToUniAndMerge(this::invokeBlockingAndHandleOutcome)
                         .onFailure().invoke(this::reportFailure);
             }
         } else {
             this.function = upstream -> MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration)
                     .onItem().transformToUniAndConcatenate(msg -> {
-                        Uni<?> uni;
-                        if (invokeWithPayload) {
-                            uni = invokeOnMessageContext(msg, msg.getPayload())
-                                    .onItem().transformToUni(u -> (Uni<?>) u);
-                        } else {
-                            uni = invokeOnMessageContext(msg, msg)
-                                    .onItem().transformToUni(u -> (Uni<?>) u);
-                        }
+                        Uni<?> uni = invokeOnMessageContext(msg, getArguments(msg))
+                                .onItem().transformToUni(u -> (Uni<?>) u);
                         return uni.onItemOrFailure().transformToUni(handleInvocationResult(msg));
                     })
                     .onFailure().invoke(this::reportFailure);

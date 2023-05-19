@@ -67,6 +67,18 @@
             "code": "java.method.addedToInterface",
             "new": "method java.lang.reflect.Type io.smallrye.reactive.messaging.MediatorConfiguration::getValueType()",
             "justification": "New method to extract the type of the value when using the KeyedMulti"
+        },
+        {
+            "ignore": true,
+            "code": "java.method.addedToInterface",
+            "new": "method io.smallrye.reactive.messaging.MethodParameterDescriptor io.smallrye.reactive.messaging.MediatorConfiguration::getParameterDescriptor()",
+            "justification": "Change how to retrieve parameter types to avoid using reflection"
+        },
+        {
+            "ignore": true,
+            "code": "java.method.removed",
+            "old": "method java.lang.Class<?>[] io.smallrye.reactive.messaging.MediatorConfiguration::getParameterTypes()",
+            "justification": "Switched to a descriptor class"
         }
     ]
   }

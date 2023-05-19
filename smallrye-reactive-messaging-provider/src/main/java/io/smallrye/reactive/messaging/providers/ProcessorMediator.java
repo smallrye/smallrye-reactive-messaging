@@ -25,6 +25,7 @@ import io.smallrye.reactive.messaging.providers.helpers.ClassUtils;
 import io.smallrye.reactive.messaging.providers.helpers.MultiUtils;
 import mutiny.zero.flow.adapters.AdaptersToFlow;
 
+@SuppressWarnings("ReactiveStreamsUnusedPublisher")
 public class ProcessorMediator extends AbstractMediator {
 
     private Function<Multi<? extends Message<?>>, Multi<? extends Message<?>>> mapper;
@@ -254,7 +255,7 @@ public class ProcessorMediator extends AbstractMediator {
         this.mapper = upstream -> {
             Multi<? extends Message<?>> multi = MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration);
             return multi.onItem().transformToMultiAndConcatenate(message -> {
-                PublisherBuilder<?> pb = invoke(message.getPayload());
+                PublisherBuilder<?> pb = invoke(getArguments(message));
                 return MultiUtils.publisher(AdaptersToFlow.publisher(pb.buildRs()))
                         .onItem().transform(payload -> Message.of(payload, message.getMetadata()));
                 // TODO We can handle post-acknowledgement here. -> onCompletion
@@ -266,7 +267,7 @@ public class ProcessorMediator extends AbstractMediator {
         this.mapper = upstream -> {
             Multi<? extends Message<?>> multi = MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration);
             return multi.onItem().transformToMultiAndConcatenate(message -> {
-                Publisher<?> pb = invoke(message.getPayload());
+                Publisher<?> pb = invoke(getArguments(message));
                 return MultiUtils.publisher(AdaptersToFlow.publisher(pb))
                         .onItem().transform(payload -> Message.of(payload, message.getMetadata()));
                 // TODO We can handle post-acknowledgement here. -> onCompletion
@@ -278,7 +279,7 @@ public class ProcessorMediator extends AbstractMediator {
         this.mapper = upstream -> {
             Multi<? extends Message<?>> multi = MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration);
             return multi.onItem().transformToMultiAndConcatenate(message -> {
-                Flow.Publisher<?> pub = invoke(message.getPayload());
+                Flow.Publisher<?> pub = invoke(getArguments(message));
                 return MultiUtils.publisher(pub)
                         .onItem().transform(payload -> Message.of(payload, message.getMetadata()));
                 // TODO We can handle post-acknowledgement here. -> onCompletion
@@ -294,7 +295,7 @@ public class ProcessorMediator extends AbstractMediator {
                     Multi<? extends Message<?>> multi = MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration);
                     return multi
                             .onItem()
-                            .transformToMultiAndConcatenate(message -> invokeBlocking(message, withPayloadOrMessage(message))
+                            .transformToMultiAndConcatenate(message -> invokeBlocking(message, getArguments(message))
                                     .onItemOrFailure()
                                     .transformToUni((o, t) -> this.handlePostInvocationWithMessage((Message<?>) o, t))
                                     .onItem().transformToMulti(this::handleSkip));
@@ -303,7 +304,7 @@ public class ProcessorMediator extends AbstractMediator {
                 this.mapper = upstream -> {
                     Multi<? extends Message<?>> multi = MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration);
                     return multi
-                            .onItem().transformToMultiAndMerge(message -> invokeBlocking(message, withPayloadOrMessage(message))
+                            .onItem().transformToMultiAndMerge(message -> invokeBlocking(message, getArguments(message))
                                     .onItemOrFailure()
                                     .transformToUni((o, t) -> this.handlePostInvocationWithMessage((Message<?>) o, t))
                                     .onItem().transformToMulti(this::handleSkip));
@@ -315,7 +316,7 @@ public class ProcessorMediator extends AbstractMediator {
                 Multi<? extends Message<?>> multi = MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration);
                 return multi
                         .onItem().transformToMultiAndConcatenate(
-                                message -> invokeOnMessageContext(message, withPayloadOrMessage(message))
+                                message -> invokeOnMessageContext(message, getArguments(message))
                                         .onItem().transform(o -> (Message<?>) o)
                                         .onItemOrFailure().transformToUni(this::handlePostInvocationWithMessage)
                                         .onItem().transformToMulti(this::handleSkip));
@@ -333,12 +334,12 @@ public class ProcessorMediator extends AbstractMediator {
             if (configuration.isBlockingExecutionOrdered()) {
                 this.mapper = upstream -> MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration)
                         .onItem()
-                        .transformToMultiAndConcatenate(message -> invokeBlocking(message, withPayloadOrMessage(message))
+                        .transformToMultiAndConcatenate(message -> invokeBlocking(message, getArguments(message))
                                 .onItemOrFailure().transformToUni((r, f) -> handlePostInvocation(message, r, f))
                                 .onItem().transformToMulti(this::handleSkip));
             } else {
                 this.mapper = upstream -> MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration)
-                        .onItem().transformToMultiAndMerge(message -> invokeBlocking(message, withPayloadOrMessage(message))
+                        .onItem().transformToMultiAndMerge(message -> invokeBlocking(message, getArguments(message))
                                 .onItemOrFailure().transformToUni((r, f) -> handlePostInvocation(message, r, f))
                                 .onItem().transformToMulti(this::handleSkip));
             }
@@ -346,7 +347,7 @@ public class ProcessorMediator extends AbstractMediator {
         } else {
             this.mapper = upstream -> MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration)
                     .onItem().transformToMultiAndConcatenate(
-                            message -> invokeOnMessageContext(message, withPayloadOrMessage(message))
+                            message -> invokeOnMessageContext(message, getArguments(message))
                                     .onItemOrFailure().transformToUni((r, f) -> handlePostInvocation(message, r, f))
                                     .onItem().transformToMulti(this::handleSkip));
         }
@@ -400,7 +401,7 @@ public class ProcessorMediator extends AbstractMediator {
     private void processMethodReturningACompletionStageOfMessageAndConsumingIndividualItem() {
         this.mapper = upstream -> MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration)
                 .onItem().transformToMultiAndConcatenate(
-                        message -> invokeOnMessageContext(message, withPayloadOrMessage(message))
+                        message -> invokeOnMessageContext(message, getArguments(message))
                                 .onItem().transformToUni(cs -> Uni.createFrom().completionStage((CompletionStage<?>) cs))
                                 .onItemOrFailure().transformToUni((r, f) -> handlePostInvocationWithMessage((Message<?>) r, f))
                                 .onItem().transformToMulti(this::handleSkip));
@@ -409,7 +410,7 @@ public class ProcessorMediator extends AbstractMediator {
     private void processMethodReturningAUniOfMessageAndConsumingIndividualItem() {
         this.mapper = upstream -> MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration)
                 .onItem().transformToMultiAndConcatenate(
-                        message -> invokeOnMessageContext(message, withPayloadOrMessage(message))
+                        message -> invokeOnMessageContext(message, getArguments(message))
                                 .onItem().transformToUni(u -> (Uni<?>) u)
                                 .onItemOrFailure().transformToUni((r, f) -> handlePostInvocationWithMessage((Message<?>) r, f))
                                 .onItem().transformToMulti(this::handleSkip));
@@ -418,7 +419,7 @@ public class ProcessorMediator extends AbstractMediator {
     private void processMethodReturningACompletionStageOfPayloadAndConsumingIndividualItem() {
         this.mapper = upstream -> MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration)
                 .onItem().transformToMultiAndConcatenate(
-                        message -> invokeOnMessageContext(message, withPayloadOrMessage(message))
+                        message -> invokeOnMessageContext(message, getArguments(message))
                                 .onItem().transformToUni(cs -> Uni.createFrom().completionStage((CompletionStage<?>) cs))
                                 .onItemOrFailure().transformToUni((r, f) -> handlePostInvocation(message, r, f))
                                 .onItem().transformToMulti(this::handleSkip));
@@ -427,7 +428,7 @@ public class ProcessorMediator extends AbstractMediator {
     private void processMethodReturningAUniOfPayloadAndConsumingIndividualItem() {
         this.mapper = upstream -> MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration)
                 .onItem().transformToMultiAndConcatenate(
-                        message -> invokeOnMessageContext(message, withPayloadOrMessage(message))
+                        message -> invokeOnMessageContext(message, getArguments(message))
                                 .onItem().transformToUni(u -> (Uni<?>) u)
                                 .onItemOrFailure().transformToUni((r, f) -> handlePostInvocation(message, r, f))
                                 .onItem().transformToMulti(this::handleSkip));
@@ -445,9 +446,5 @@ public class ProcessorMediator extends AbstractMediator {
         return ClassUtils.isAssignable(returnType, Flow.Processor.class)
                 || ClassUtils.isAssignable(returnType, Processor.class)
                 || ClassUtils.isAssignable(returnType, ProcessorBuilder.class);
-    }
-
-    private Object withPayloadOrMessage(Message<?> message) {
-        return (configuration.consumption() == MediatorConfiguration.Consumption.PAYLOAD) ? message.getPayload() : message;
     }
 }

@@ -5,6 +5,8 @@ import static io.smallrye.reactive.messaging.providers.i18n.ProviderExceptions.e
 import static io.smallrye.reactive.messaging.providers.i18n.ProviderLogging.log;
 import static io.smallrye.reactive.messaging.providers.i18n.ProviderMessages.msg;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -33,6 +35,7 @@ import io.vertx.mutiny.core.Vertx;
 public abstract class AbstractMediator {
 
     protected final MediatorConfiguration configuration;
+    private final Function<Message<?>, Object[]> methodArgumentMapper;
     protected WorkerPoolRegistry workerPoolRegistry;
     private Invoker invoker;
     private Instance<PublisherDecorator> decorators;
@@ -44,6 +47,32 @@ public abstract class AbstractMediator {
 
     public AbstractMediator(MediatorConfiguration configuration) {
         this.configuration = configuration;
+
+        Function<Message<?>, Object[]> mapper = null;
+        if (configuration.consumption() == MediatorConfiguration.Consumption.MESSAGE) {
+            mapper = msg -> new Object[] { msg };
+        } else if (configuration.consumption() == MediatorConfiguration.Consumption.PAYLOAD) {
+            if (configuration.getParameterDescriptor().getTypes().size() == 1) {
+                mapper = msg -> new Object[] { msg.getPayload() };
+            } else {
+                List<Class<?>> parameters = configuration.getParameterDescriptor().getTypes();
+                @SuppressWarnings("unchecked")
+                Function<Message<?>, Object>[] extractors = new Function[parameters.size()];
+                for (int i = 0; i < parameters.size(); i++) {
+                    if (parameters.get(i) == configuration.getIngestedPayloadType()) {
+                        extractors[i] = Message::getPayload;
+                    } else if (parameters.get(i) == Optional.class) {
+                        Class<?> c = configuration.getParameterDescriptor().getGenericParameterType(i, 0);
+                        extractors[i] = msg -> msg.getMetadata().get(c);
+                    } else {
+                        Class<?> type = parameters.get(i);
+                        extractors[i] = msg -> msg.getMetadata().get(type).orElse(null);
+                    }
+                }
+                mapper = msg -> Arrays.stream(extractors).map(extractor -> extractor.apply(msg)).toArray(Object[]::new);
+            }
+        }
+        this.methodArgumentMapper = mapper;
     }
 
     public synchronized void setInvoker(Invoker invoker) {
@@ -113,6 +142,15 @@ public abstract class AbstractMediator {
 
     protected <T> Uni<T> invokeOnMessageContext(Message<?> message, Object... args) {
         return LocalContextMetadata.invokeOnMessageContext(message, x -> invoke(args));
+    }
+
+    protected <T> Object[] getArguments(Message<T> message) {
+        if (methodArgumentMapper != null) {
+            return methodArgumentMapper.apply(message);
+        } else {
+            throw new IllegalArgumentException("Unable to use the argument mapper for method " + configuration.methodAsString()
+                    + ", only methods consuming messages or payloads are supported");
+        }
     }
 
     @SuppressWarnings("unchecked")
