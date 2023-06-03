@@ -42,6 +42,13 @@ public class MapBasedConfig extends LinkedHashMap<String, Object> implements Con
         return put(k, v);
     }
 
+    public MapBasedConfig with(String prefix, String key, Object v) {
+        if (prefix.endsWith(".")) {
+            return put(prefix + key, v);
+        }
+        return put(prefix + "." + key, v);
+    }
+
     public MapBasedConfig without(String s) {
         this.remove(s);
         return this;

@@ -5,6 +5,7 @@ import static org.awaitility.Awaitility.await;
 import java.util.Properties;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BooleanSupplier;
@@ -214,6 +215,8 @@ public class MqttUsage {
             client.close();
         } catch (MqttException e) {
             LOGGER.error("Unable to close the MQTT client", e);
+        } catch (RejectedExecutionException e) {
+            // Ignore.
         }
     }
 }
