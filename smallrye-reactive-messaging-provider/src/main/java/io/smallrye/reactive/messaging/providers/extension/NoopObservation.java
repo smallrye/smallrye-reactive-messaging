@@ -1,7 +1,8 @@
 package io.smallrye.reactive.messaging.providers.extension;
 
-import io.smallrye.reactive.messaging.observation.ReactiveMessagingObservation;
 import org.eclipse.microprofile.reactive.messaging.Message;
+
+import io.smallrye.reactive.messaging.observation.ReactiveMessagingObservation;
 
 public class NoopObservation implements ReactiveMessagingObservation {
 

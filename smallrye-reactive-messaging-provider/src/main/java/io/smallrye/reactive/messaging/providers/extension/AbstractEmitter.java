@@ -1,5 +1,18 @@
 package io.smallrye.reactive.messaging.providers.extension;
 
+import static io.smallrye.reactive.messaging.providers.i18n.ProviderExceptions.ex;
+
+import java.lang.reflect.InvocationTargetException;
+import java.util.concurrent.Flow.Publisher;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
+
+import jakarta.enterprise.inject.Instance;
+import jakarta.enterprise.inject.spi.CDI;
+
+import org.eclipse.microprofile.reactive.messaging.Message;
+import org.eclipse.microprofile.reactive.messaging.OnOverflow;
+
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.subscription.BackPressureStrategy;
 import io.smallrye.mutiny.subscription.MultiEmitter;
@@ -10,17 +23,6 @@ import io.smallrye.reactive.messaging.observation.ReactiveMessagingObservation;
 import io.smallrye.reactive.messaging.providers.ProcessingException;
 import io.smallrye.reactive.messaging.providers.helpers.BroadcastHelper;
 import io.smallrye.reactive.messaging.providers.helpers.NoStackTraceException;
-import jakarta.enterprise.inject.Instance;
-import jakarta.enterprise.inject.spi.CDI;
-import org.eclipse.microprofile.reactive.messaging.Message;
-import org.eclipse.microprofile.reactive.messaging.OnOverflow;
-
-import java.lang.reflect.InvocationTargetException;
-import java.util.concurrent.Flow.Publisher;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Consumer;
-
-import static io.smallrye.reactive.messaging.providers.i18n.ProviderExceptions.ex;
 
 public abstract class AbstractEmitter<T> implements MessagePublisherProvider<T> {
     public static final NoStackTraceException NO_SUBSCRIBER_EXCEPTION = new NoStackTraceException(
@@ -43,7 +45,8 @@ public abstract class AbstractEmitter<T> implements MessagePublisherProvider<T> 
         }
 
         Instance<ObservationCenter> maybeObservationCenter = CDI.current().select(ObservationCenter.class);
-        this.observation = maybeObservationCenter.isResolvable() ? maybeObservationCenter.get().getObservation() : new NoopObservation();
+        this.observation = maybeObservationCenter.isResolvable() ? maybeObservationCenter.get().getObservation()
+                : new NoopObservation();
 
         Consumer<MultiEmitter<? super Message<? extends T>>> deferred = fe -> {
             MultiEmitter<? super Message<? extends T>> previous = internal.getAndSet(fe);
@@ -55,7 +58,8 @@ public abstract class AbstractEmitter<T> implements MessagePublisherProvider<T> 
         Multi<Message<? extends T>> tempPublisher = getPublisherForStrategy(config.overflowBufferStrategy(),
                 config.overflowBufferSize(),
                 defaultBufferSize, deferred)
-                .onItem().invoke(message -> message.getMetadata(ObservationMetadata.class).ifPresent(om -> om.observation().onProcessingStart()));
+                .onItem().invoke(message -> message.getMetadata(ObservationMetadata.class)
+                        .ifPresent(om -> om.observation().onProcessingStart()));
         if (config.broadcast()) {
             publisher = (Multi<Message<? extends T>>) BroadcastHelper
                     .broadcastPublisher(tempPublisher, config.numberOfSubscriberBeforeConnecting());
@@ -92,8 +96,8 @@ public abstract class AbstractEmitter<T> implements MessagePublisherProvider<T> 
     }
 
     Multi<Message<? extends T>> getPublisherForStrategy(OnOverflow.Strategy overFlowStrategy, long bufferSize,
-                                                        long defaultBufferSize,
-                                                        Consumer<MultiEmitter<? super Message<? extends T>>> deferred) {
+            long defaultBufferSize,
+            Consumer<MultiEmitter<? super Message<? extends T>>> deferred) {
         if (overFlowStrategy == null) {
             overFlowStrategy = OnOverflow.Strategy.BUFFER;
         }

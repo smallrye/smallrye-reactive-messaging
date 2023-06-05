@@ -40,7 +40,7 @@ public class IncomingKafkaRecordBatch<K, T> implements KafkaRecordBatch<K, T> {
         for (TopicPartition partition : records.partitions()) {
             for (ConsumerRecord<K, T> record : records.records(partition)) {
                 IncomingKafkaRecord<K, T> rec = new IncomingKafkaRecord<>(record, channel, index, commitHandler, onNack,
-                        cloudEventEnabled, observation);
+                        cloudEventEnabled, null);
                 incomingRecords.add(rec);
                 latestOffsetRecords.put(partition, rec);
             }

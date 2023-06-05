@@ -1,21 +1,23 @@
 package io.smallrye.reactive.messaging.inject;
 
-import io.smallrye.reactive.messaging.WeldTestBaseWithoutTails;
-import io.smallrye.reactive.messaging.observation.ObservationMetadata;
-import io.smallrye.reactive.messaging.observation.ReactiveMessagingObservation;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
+
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
+
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+
 import org.eclipse.microprofile.reactive.messaging.Channel;
 import org.eclipse.microprofile.reactive.messaging.Emitter;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.junit.jupiter.api.Test;
 
-import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.awaitility.Awaitility.await;
+import io.smallrye.reactive.messaging.WeldTestBaseWithoutTails;
+import io.smallrye.reactive.messaging.observation.ObservationMetadata;
+import io.smallrye.reactive.messaging.observation.ReactiveMessagingObservation;
 
 public class EmitterObservationTest extends WeldTestBaseWithoutTails {
 
@@ -68,9 +70,11 @@ public class EmitterObservationTest extends WeldTestBaseWithoutTails {
     }
 
     @ApplicationScoped
-    public static class MyComponentWithAnEmitterOfPayload  {
+    public static class MyComponentWithAnEmitterOfPayload {
 
-        @Inject @Channel("output") Emitter<Integer> emitter;
+        @Inject
+        @Channel("output")
+        Emitter<Integer> emitter;
 
         public void emit(int i) {
             emitter.send(i);
@@ -86,7 +90,9 @@ public class EmitterObservationTest extends WeldTestBaseWithoutTails {
     @ApplicationScoped
     public static class MyComponentWithAnEmitterOfMessage {
 
-        @Inject @Channel("output") Emitter<Integer> emitter;
+        @Inject
+        @Channel("output")
+        Emitter<Integer> emitter;
 
         public void emit(Message<Integer> i) {
             emitter.send(i);
@@ -99,8 +105,6 @@ public class EmitterObservationTest extends WeldTestBaseWithoutTails {
                 throw new IllegalArgumentException("boom");
             }
         }
-
-
 
     }
 
@@ -141,7 +145,6 @@ public class EmitterObservationTest extends WeldTestBaseWithoutTails {
             public Throwable getReason() {
                 return nackReason;
             }
-
 
         }
     }

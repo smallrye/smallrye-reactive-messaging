@@ -74,8 +74,12 @@ public class IncomingKafkaRecord<K, T> implements KafkaRecord<K, T>, MetadataInj
         } else {
             this.payload = payload;
         }
-        tracker = observation.onNewMessage(channel, this);
-        injectMetadata(new ObservationMetadata(tracker));
+        if (observation != null) {
+            tracker = observation.onNewMessage(channel, this);
+            injectMetadata(new ObservationMetadata(tracker));
+        } else {
+            tracker = null;
+        }
     }
 
     @Override
@@ -130,14 +134,22 @@ public class IncomingKafkaRecord<K, T> implements KafkaRecord<K, T>, MetadataInj
     @Override
     public CompletionStage<Void> ack() {
         return commitHandler.handle(this)
-                .onItemOrFailure().invoke((ignored, err) -> tracker.onAckOrNack(err))
+                .onItemOrFailure().invoke((ignored, err) -> {
+                    if (tracker != null) {
+                        tracker.onAckOrNack(err);
+                    }
+                })
                 .subscribeAsCompletionStage();
     }
 
     @Override
     public CompletionStage<Void> nack(Throwable reason, Metadata metadata) {
         return onNack.handle(this, reason, metadata)
-                .onItemOrFailure().invoke((ignored, err) -> this.tracker.onNack(reason))
+                .onItemOrFailure().invoke((ignored, err) -> {
+                    if (tracker != null) {
+                        tracker.onNack(reason);
+                    }
+                })
                 .subscribeAsCompletionStage();
     }
 
@@ -147,6 +159,8 @@ public class IncomingKafkaRecord<K, T> implements KafkaRecord<K, T>, MetadataInj
     }
 
     public void onProcessingStart() {
-        this.tracker.onProcessingStart();
+        if (this.tracker != null) {
+            this.tracker.onProcessingStart();
+        }
     }
 }

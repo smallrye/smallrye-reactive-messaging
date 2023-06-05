@@ -1,18 +1,7 @@
 package io.smallrye.reactive.messaging.providers.connectors;
 
-import io.smallrye.mutiny.Multi;
-import io.smallrye.mutiny.helpers.test.AssertSubscriber;
-import io.smallrye.reactive.messaging.WeldTestBaseWithoutTails;
-import io.smallrye.reactive.messaging.connector.InboundConnector;
-import io.smallrye.reactive.messaging.observation.Observable;
-import io.smallrye.reactive.messaging.observation.ObservationMetadata;
-import io.smallrye.reactive.messaging.observation.ReactiveMessagingObservation;
-import jakarta.enterprise.context.ApplicationScoped;
-import org.eclipse.microprofile.config.Config;
-import org.eclipse.microprofile.reactive.messaging.Message;
-import org.eclipse.microprofile.reactive.messaging.spi.Connector;
-import org.eclipse.microprofile.reactive.messaging.spi.ConnectorLiteral;
-import org.junit.jupiter.api.Test;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
 
 import java.io.IOException;
 import java.net.MalformedURLException;
@@ -20,8 +9,21 @@ import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Flow;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.awaitility.Awaitility.await;
+import jakarta.enterprise.context.ApplicationScoped;
+
+import org.eclipse.microprofile.config.Config;
+import org.eclipse.microprofile.reactive.messaging.Message;
+import org.eclipse.microprofile.reactive.messaging.spi.Connector;
+import org.eclipse.microprofile.reactive.messaging.spi.ConnectorLiteral;
+import org.junit.jupiter.api.Test;
+
+import io.smallrye.mutiny.Multi;
+import io.smallrye.mutiny.helpers.test.AssertSubscriber;
+import io.smallrye.reactive.messaging.WeldTestBaseWithoutTails;
+import io.smallrye.reactive.messaging.connector.InboundConnector;
+import io.smallrye.reactive.messaging.observation.Observable;
+import io.smallrye.reactive.messaging.observation.ObservationMetadata;
+import io.smallrye.reactive.messaging.observation.ReactiveMessagingObservation;
 
 public class ObservationTest extends WeldTestBaseWithoutTails {
 
@@ -64,7 +66,6 @@ public class ObservationTest extends WeldTestBaseWithoutTails {
         subscriber.getItems().get(0).ack();
         await().untilAsserted(() -> assertThat(observation.getObservations().get(0).getCompletionTime()).isNotEqualTo(-1));
 
-
         subscriber.request(10);
         subscriber.awaitCompletion();
 
@@ -88,6 +89,7 @@ public class ObservationTest extends WeldTestBaseWithoutTails {
                 .isInstanceOf(MalformedURLException.class);
     }
 
+    @SuppressWarnings("ReactiveStreamsUnusedPublisher")
     @Connector("test-observation")
     @ApplicationScoped
     public static class MyConnector implements InboundConnector, Observable {
@@ -126,7 +128,7 @@ public class ObservationTest extends WeldTestBaseWithoutTails {
     @ApplicationScoped
     public static class MyReactiveMessagingObservation implements ReactiveMessagingObservation {
 
-        private List<MyMessageObservation> observations = new CopyOnWriteArrayList<>();
+        private final List<MyMessageObservation> observations = new CopyOnWriteArrayList<>();
 
         @Override
         public MessageObservation onNewMessage(String channel, Message<?> message) {
