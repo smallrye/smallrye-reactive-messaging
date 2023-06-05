@@ -130,14 +130,14 @@ public class IncomingKafkaRecord<K, T> implements KafkaRecord<K, T>, MetadataInj
     @Override
     public CompletionStage<Void> ack() {
         return commitHandler.handle(this)
-                .onItemOrFailure().invoke((ignored, err) -> tracker.onAckOrNack(err == null))
+                .onItemOrFailure().invoke((ignored, err) -> tracker.onAckOrNack(err))
                 .subscribeAsCompletionStage();
     }
 
     @Override
     public CompletionStage<Void> nack(Throwable reason, Metadata metadata) {
         return onNack.handle(this, reason, metadata)
-                .onItemOrFailure().invoke((ignored, err) -> this.tracker.onAckOrNack(false))
+                .onItemOrFailure().invoke((ignored, err) -> this.tracker.onNack(reason))
                 .subscribeAsCompletionStage();
     }
 

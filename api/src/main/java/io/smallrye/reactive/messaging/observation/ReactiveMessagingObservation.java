@@ -13,7 +13,7 @@ public interface ReactiveMessagingObservation {
         protected final long creationTime;
         protected volatile long processing = -1;
         protected volatile long completion = -1;
-        protected volatile boolean succeed;
+        protected volatile Throwable nackReason;
 
         public MessageObservation(String channel, Message<?> message) {
             this.channel = channel;
@@ -29,29 +29,21 @@ public interface ReactiveMessagingObservation {
             return message;
         }
 
-        public long creationTime() {
-            return creationTime;
-        }
-
         public void onProcessingStart() {
             this.processing = System.nanoTime();
         }
 
-        public void onAckOrNack(boolean succeed) {
+        public void onAckOrNack(Throwable nackReason) {
             this.completion = System.nanoTime();
-            this.succeed = succeed;
+            this.nackReason = nackReason;
         }
 
-        public long processingStartTime() {
-            return processing;
+        public void onAck() {
+            onAckOrNack(null);
         }
 
-        public long processingEndTime() {
-            return completion;
-        }
-
-        public boolean succeeded() {
-            return succeed;
+        public void onNack(Throwable reason) {
+            onAckOrNack(reason);
         }
 
     }

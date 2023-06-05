@@ -7,6 +7,7 @@ import io.smallrye.reactive.messaging.EmitterConfiguration;
 import io.smallrye.reactive.messaging.MessagePublisherProvider;
 import io.smallrye.reactive.messaging.observation.ObservationMetadata;
 import io.smallrye.reactive.messaging.observation.ReactiveMessagingObservation;
+import io.smallrye.reactive.messaging.providers.ProcessingException;
 import io.smallrye.reactive.messaging.providers.helpers.BroadcastHelper;
 import io.smallrye.reactive.messaging.providers.helpers.NoStackTraceException;
 import jakarta.enterprise.inject.Instance;
@@ -14,6 +15,7 @@ import jakarta.enterprise.inject.spi.CDI;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.OnOverflow;
 
+import java.lang.reflect.InvocationTargetException;
 import java.util.concurrent.Flow.Publisher;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
@@ -177,9 +179,19 @@ public abstract class AbstractEmitter<T> implements MessagePublisherProvider<T> 
         ReactiveMessagingObservation.MessageObservation mo = this.observation.onNewMessage(name, message);
         return message
                 .withAck(() -> message.ack()
-                        .whenComplete((ignored, err) -> mo.onAckOrNack(err == null)))
+                        .whenComplete((ignored, err) -> mo.onAckOrNack(err)))
                 .withNack((failure) -> message.nack(failure)
-                        .whenComplete((ignored, err) -> mo.onAckOrNack(false)))
+                        .whenComplete((ignored, err) -> mo.onAckOrNack(unwrap(failure))))
                 .addMetadata(new ObservationMetadata(mo));
+    }
+
+    private Throwable unwrap(Throwable failure) {
+        if (failure instanceof ProcessingException) {
+            return unwrap(failure.getCause());
+        }
+        if (failure instanceof InvocationTargetException) {
+            return unwrap(failure.getCause());
+        }
+        return failure;
     }
 }

@@ -1,8 +1,7 @@
 package io.smallrye.reactive.messaging.providers.extension;
 
-import org.eclipse.microprofile.reactive.messaging.Message;
-
 import io.smallrye.reactive.messaging.observation.ReactiveMessagingObservation;
+import org.eclipse.microprofile.reactive.messaging.Message;
 
 public class NoopObservation implements ReactiveMessagingObservation {
 
@@ -20,33 +19,13 @@ public class NoopObservation implements ReactiveMessagingObservation {
         }
 
         @Override
-        public long creationTime() {
-            return super.creationTime();
-        }
-
-        @Override
         public void onProcessingStart() {
             // NOOP
         }
 
         @Override
-        public void onAckOrNack(boolean succeed) {
+        public void onAckOrNack(Throwable nackReason) {
             // NOOP
-        }
-
-        @Override
-        public long processingStartTime() {
-            return super.processingStartTime();
-        }
-
-        @Override
-        public long processingEndTime() {
-            return super.processingEndTime();
-        }
-
-        @Override
-        public boolean succeeded() {
-            return super.succeeded();
         }
     }
 }

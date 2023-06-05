@@ -96,7 +96,7 @@ public class IncomingKafkaRecordBatch<K, T> implements KafkaRecordBatch<K, T> {
                         .map(record -> Multi.createFrom().completionStage(record.getAck()))
                         .collect(Collectors.toList()))
                 .toUni()
-                .onItemOrFailure().invoke((ignored, err) -> this.tracker.onAckOrNack(err == null))
+                .onItemOrFailure().invoke((ignored, err) -> this.tracker.onAckOrNack(err))
                 .subscribeAsCompletionStage();
     }
 
@@ -107,7 +107,7 @@ public class IncomingKafkaRecordBatch<K, T> implements KafkaRecordBatch<K, T> {
                         .map(record -> Multi.createFrom().completionStage(() -> record.nack(reason, metadata)))
                         .collect(Collectors.toList()))
                 .toUni()
-                .onItemOrFailure().invoke((ignored, err) -> this.tracker.onAckOrNack(false))
+                .onItemOrFailure().invoke((ignored, err) -> this.tracker.onNack(reason))
                 .subscribeAsCompletionStage();
     }
 
