@@ -36,9 +36,6 @@ public class ReactiveMessagingExtension implements Extension {
     private final List<EmitterFactoryBean<?>> emitterFactoryBeans = new ArrayList<>();
     private final List<WorkerPoolBean<?>> workerPoolBeans = new ArrayList<>();
 
-    @Inject
-    HealthCenter health;
-
     <T> void processClassesContainingMediators(@Observes ProcessManagedBean<T> event) {
         AnnotatedType<?> annotatedType = event.getAnnotatedBeanClass();
         if (annotatedType.getMethods()
@@ -106,8 +103,11 @@ public class ReactiveMessagingExtension implements Extension {
     @SuppressWarnings({ "rawtypes", "unchecked" })
     void afterDeploymentValidation(@Observes AfterDeploymentValidation done, BeanManager beanManager) {
         Instance<Object> instance = beanManager.createInstance();
+        ObservationCenter oc = instance.select(ObservationCenter.class).get();
         MediatorManager mediatorManager = instance.select(MediatorManager.class).get();
         WorkerPoolRegistry workerPoolRegistry = instance.select(WorkerPoolRegistry.class).get();
+
+        oc.init();
 
         List<EmitterConfiguration> emitters = createEmitterConfigurations();
         for (EmitterConfiguration emitter : emitters) {

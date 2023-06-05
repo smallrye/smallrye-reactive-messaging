@@ -32,10 +32,10 @@ import io.smallrye.reactive.messaging.providers.connectors.ExecutionHolder;
 import io.smallrye.reactive.messaging.providers.connectors.WorkerPoolRegistry;
 import io.smallrye.reactive.messaging.providers.extension.ChannelProducer;
 import io.smallrye.reactive.messaging.providers.extension.EmitterFactoryImpl;
-import io.smallrye.reactive.messaging.providers.extension.HealthCenter;
 import io.smallrye.reactive.messaging.providers.extension.LegacyEmitterFactoryImpl;
 import io.smallrye.reactive.messaging.providers.extension.MediatorManager;
 import io.smallrye.reactive.messaging.providers.extension.MutinyEmitterFactoryImpl;
+import io.smallrye.reactive.messaging.providers.extension.ObservationCenter;
 import io.smallrye.reactive.messaging.providers.extension.ReactiveMessagingExtension;
 import io.smallrye.reactive.messaging.providers.impl.ConfiguredChannelFactory;
 import io.smallrye.reactive.messaging.providers.impl.ConnectorFactories;
@@ -79,7 +79,7 @@ public class WeldTestBase {
         weld.addBeanClass(ChannelProducer.class);
         weld.addBeanClass(ExecutionHolder.class);
         weld.addBeanClass(WorkerPoolRegistry.class);
-        weld.addBeanClass(HealthCenter.class);
+        weld.addBeanClass(ObservationCenter.class);
         weld.addBeanClass(Wiring.class);
         weld.addExtension(new ReactiveMessagingExtension());
 
@@ -157,11 +157,11 @@ public class WeldTestBase {
         }
     }
 
-    public HealthCenter getHealth() {
+    public ObservationCenter getHealth() {
         if (container == null) {
             throw new IllegalStateException("Application not started");
         }
-        return container.getBeanManager().createInstance().select(HealthCenter.class).get();
+        return container.getBeanManager().createInstance().select(ObservationCenter.class).get();
     }
 
     public boolean isStarted() {

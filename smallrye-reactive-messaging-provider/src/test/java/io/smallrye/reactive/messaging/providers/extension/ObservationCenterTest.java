@@ -10,19 +10,30 @@ import jakarta.enterprise.inject.se.SeContainerInitializer;
 
 import org.eclipse.microprofile.reactive.messaging.spi.Connector;
 import org.eclipse.microprofile.reactive.messaging.spi.ConnectorLiteral;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 import io.smallrye.reactive.messaging.health.HealthReport;
 import io.smallrye.reactive.messaging.health.HealthReporter;
 
-public class HealthCenterTest {
+public class ObservationCenterTest {
+
+    private SeContainer container;
+
+    @AfterEach
+    void cleanup() {
+        if (container != null) {
+            container.close();
+            container = null;
+        }
+    }
 
     @Test
     public void testWithTwoConnectors() {
         SeContainerInitializer initializer = SeContainerInitializer.newInstance().disableDiscovery();
-        initializer.addBeanClasses(HealthCenter.class, MyReporterA.class, MyReporterB.class);
-        SeContainer container = initializer.initialize();
-        HealthCenter center = container.getBeanManager().createInstance().select(HealthCenter.class).get();
+        initializer.addBeanClasses(ObservationCenter.class, MyReporterA.class, MyReporterB.class);
+        container = initializer.initialize();
+        ObservationCenter center = container.getBeanManager().createInstance().select(ObservationCenter.class).get();
 
         assertThat(center.getLiveness().isOk()).isTrue();
         assertThat(center.getLiveness().getChannels()).hasSize(1);
@@ -49,9 +60,9 @@ public class HealthCenterTest {
     @Test
     public void testWithNoConnector() {
         SeContainerInitializer initializer = SeContainerInitializer.newInstance().disableDiscovery();
-        initializer.addBeanClasses(HealthCenter.class);
-        SeContainer container = initializer.initialize();
-        HealthCenter center = container.getBeanManager().createInstance().select(HealthCenter.class).get();
+        initializer.addBeanClasses(ObservationCenter.class);
+        container = initializer.initialize();
+        ObservationCenter center = container.getBeanManager().createInstance().select(ObservationCenter.class).get();
 
         assertThat(center.getLiveness().isOk()).isTrue();
         assertThat(center.getLiveness().getChannels()).isEmpty();
@@ -62,9 +73,9 @@ public class HealthCenterTest {
     @Test
     public void testWithFailureReporting() {
         SeContainerInitializer initializer = SeContainerInitializer.newInstance().disableDiscovery();
-        initializer.addBeanClasses(HealthCenter.class);
-        SeContainer container = initializer.initialize();
-        HealthCenter center = container.getBeanManager().createInstance().select(HealthCenter.class).get();
+        initializer.addBeanClasses(ObservationCenter.class);
+        container = initializer.initialize();
+        ObservationCenter center = container.getBeanManager().createInstance().select(ObservationCenter.class).get();
 
         assertThat(center.getLiveness().isOk()).isTrue();
         assertThat(center.getLiveness().getChannels()).isEmpty();

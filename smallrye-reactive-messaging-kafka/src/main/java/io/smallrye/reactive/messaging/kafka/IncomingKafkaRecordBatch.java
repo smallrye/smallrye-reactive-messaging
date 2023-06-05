@@ -23,21 +23,24 @@ import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.kafka.api.IncomingKafkaRecordBatchMetadata;
 import io.smallrye.reactive.messaging.kafka.commit.KafkaCommitHandler;
 import io.smallrye.reactive.messaging.kafka.fault.KafkaFailureHandler;
+import io.smallrye.reactive.messaging.observation.ObservationMetadata;
+import io.smallrye.reactive.messaging.observation.ReactiveMessagingObservation;
 
 public class IncomingKafkaRecordBatch<K, T> implements KafkaRecordBatch<K, T> {
 
     private final Metadata metadata;
     private final List<KafkaRecord<K, T>> incomingRecords;
     private final Map<TopicPartition, KafkaRecord<K, T>> latestOffsetRecords;
+    private final ReactiveMessagingObservation.MessageObservation tracker;
 
     public IncomingKafkaRecordBatch(ConsumerRecords<K, T> records, String channel, int index, KafkaCommitHandler commitHandler,
-            KafkaFailureHandler onNack, boolean cloudEventEnabled, boolean tracingEnabled) {
+            KafkaFailureHandler onNack, boolean cloudEventEnabled, ReactiveMessagingObservation observation) {
         List<IncomingKafkaRecord<K, T>> incomingRecords = new ArrayList<>();
         Map<TopicPartition, IncomingKafkaRecord<K, T>> latestOffsetRecords = new HashMap<>();
         for (TopicPartition partition : records.partitions()) {
             for (ConsumerRecord<K, T> record : records.records(partition)) {
                 IncomingKafkaRecord<K, T> rec = new IncomingKafkaRecord<>(record, channel, index, commitHandler, onNack,
-                        cloudEventEnabled, tracingEnabled);
+                        cloudEventEnabled, observation);
                 incomingRecords.add(rec);
                 latestOffsetRecords.put(partition, rec);
             }
@@ -46,7 +49,9 @@ public class IncomingKafkaRecordBatch<K, T> implements KafkaRecordBatch<K, T> {
         this.latestOffsetRecords = Collections.unmodifiableMap(latestOffsetRecords);
         Map<TopicPartition, OffsetAndMetadata> offsets = new HashMap<>();
         latestOffsetRecords.forEach((e, r) -> offsets.put(e, new OffsetAndMetadata(r.getOffset())));
-        this.metadata = captureContextMetadata(new IncomingKafkaRecordBatchMetadata<>(records, channel, index, offsets));
+        Metadata metadata = captureContextMetadata(new IncomingKafkaRecordBatchMetadata<>(records, channel, index, offsets));
+        this.tracker = observation.onNewMessage(channel, this);
+        this.metadata = metadata.with(new ObservationMetadata(this.tracker));
     }
 
     @Override
@@ -90,7 +95,9 @@ public class IncomingKafkaRecordBatch<K, T> implements KafkaRecordBatch<K, T> {
                 .streams(this.latestOffsetRecords.values().stream()
                         .map(record -> Multi.createFrom().completionStage(record.getAck()))
                         .collect(Collectors.toList()))
-                .toUni().subscribeAsCompletionStage();
+                .toUni()
+                .onItemOrFailure().invoke((ignored, err) -> this.tracker.onAckOrNack(err == null))
+                .subscribeAsCompletionStage();
     }
 
     @Override
@@ -99,6 +106,12 @@ public class IncomingKafkaRecordBatch<K, T> implements KafkaRecordBatch<K, T> {
                 .streams(this.incomingRecords.stream()
                         .map(record -> Multi.createFrom().completionStage(() -> record.nack(reason, metadata)))
                         .collect(Collectors.toList()))
-                .toUni().subscribeAsCompletionStage();
+                .toUni()
+                .onItemOrFailure().invoke((ignored, err) -> this.tracker.onAckOrNack(false))
+                .subscribeAsCompletionStage();
+    }
+
+    public void onProcessingStart() {
+        this.tracker.onProcessingStart();
     }
 }

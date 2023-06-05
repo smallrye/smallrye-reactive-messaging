@@ -5,14 +5,14 @@ import jakarta.inject.Inject;
 
 import org.eclipse.microprofile.health.*;
 
-import io.smallrye.reactive.messaging.providers.extension.HealthCenter;
+import io.smallrye.reactive.messaging.providers.extension.ObservationCenter;
 
 @ApplicationScoped
 @Liveness
 public class SmallRyeReactiveMessagingLivenessCheck implements HealthCheck {
 
     @Inject
-    HealthCenter health;
+    ObservationCenter health;
 
     @Override
     public HealthCheckResponse call() {

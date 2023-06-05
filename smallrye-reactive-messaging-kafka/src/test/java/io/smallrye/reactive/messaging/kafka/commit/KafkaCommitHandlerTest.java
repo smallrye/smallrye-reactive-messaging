@@ -38,6 +38,7 @@ import io.smallrye.reactive.messaging.kafka.KafkaRecord;
 import io.smallrye.reactive.messaging.kafka.base.KafkaCompanionTestBase;
 import io.smallrye.reactive.messaging.kafka.base.UnsatisfiedInstance;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
+import io.smallrye.reactive.messaging.providers.extension.NoopObservation;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 
 @SuppressWarnings("unchecked")
@@ -66,7 +67,7 @@ public class KafkaCommitHandlerTest extends KafkaCompanionTestBase {
                 ic,
                 commitHandlerFactories, failureHandlerFactories,
                 UnsatisfiedInstance.instance(),
-                CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), -1);
+                CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), -1, new NoopObservation());
 
         List<Message<?>> messages = Collections.synchronizedList(new ArrayList<>());
         source.getStream().subscribe().with(messages::add);
@@ -109,7 +110,7 @@ public class KafkaCommitHandlerTest extends KafkaCompanionTestBase {
         source = new KafkaSource<>(vertx, "test-source-with-auto-commit-disabled", ic,
                 commitHandlerFactories, failureHandlerFactories,
                 UnsatisfiedInstance.instance(), CountKafkaCdiEvents.noCdiEvents,
-                UnsatisfiedInstance.instance(), -1);
+                UnsatisfiedInstance.instance(), -1, new NoopObservation());
 
         List<Message<?>> messages = Collections.synchronizedList(new ArrayList<>());
         source.getStream().subscribe().with(messages::add);
@@ -149,7 +150,7 @@ public class KafkaCommitHandlerTest extends KafkaCompanionTestBase {
                 commitHandlerFactories, failureHandlerFactories,
                 UnsatisfiedInstance.instance(),
                 CountKafkaCdiEvents.noCdiEvents,
-                UnsatisfiedInstance.instance(), -1);
+                UnsatisfiedInstance.instance(), -1, new NoopObservation());
 
         List<Message<?>> messages = Collections.synchronizedList(new ArrayList<>());
         source.getStream().subscribe().with(messages::add);
@@ -198,7 +199,7 @@ public class KafkaCommitHandlerTest extends KafkaCompanionTestBase {
                 commitHandlerFactories, failureHandlerFactories,
                 UnsatisfiedInstance.instance(),
                 CountKafkaCdiEvents.noCdiEvents,
-                UnsatisfiedInstance.instance(), -1);
+                UnsatisfiedInstance.instance(), -1, new NoopObservation());
 
         List<Message<?>> messages = Collections.synchronizedList(new ArrayList<>());
         source.getStream().subscribe().with(messages::add);
@@ -252,14 +253,14 @@ public class KafkaCommitHandlerTest extends KafkaCompanionTestBase {
                 commitHandlerFactories, failureHandlerFactories,
                 UnsatisfiedInstance.instance(),
                 CountKafkaCdiEvents.noCdiEvents,
-                UnsatisfiedInstance.instance(), -1);
+                UnsatisfiedInstance.instance(), -1, new NoopObservation());
 
         KafkaSource<String, Integer> source2 = new KafkaSource<>(vertx,
                 "test-source-with-throttled-latest-processed-commit", ic2,
                 commitHandlerFactories, failureHandlerFactories,
                 UnsatisfiedInstance.instance(),
                 CountKafkaCdiEvents.noCdiEvents,
-                UnsatisfiedInstance.instance(), -1);
+                UnsatisfiedInstance.instance(), -1, new NoopObservation());
 
         List<Message<?>> messages1 = Collections.synchronizedList(new ArrayList<>());
         source.getStream().subscribe().with(m -> {
@@ -346,14 +347,14 @@ public class KafkaCommitHandlerTest extends KafkaCompanionTestBase {
                 commitHandlerFactories, failureHandlerFactories,
                 UnsatisfiedInstance.instance(),
                 CountKafkaCdiEvents.noCdiEvents,
-                UnsatisfiedInstance.instance(), -1);
+                UnsatisfiedInstance.instance(), -1, new NoopObservation());
 
         KafkaSource<String, Integer> source2 = new KafkaSource<>(vertx,
                 "test-source-with-throttled-latest-processed-commit", ic2,
                 commitHandlerFactories, failureHandlerFactories,
                 UnsatisfiedInstance.instance(),
                 CountKafkaCdiEvents.noCdiEvents,
-                UnsatisfiedInstance.instance(), -1);
+                UnsatisfiedInstance.instance(), -1, new NoopObservation());
 
         // start source1
         List<Message<?>> messages1 = Collections.synchronizedList(new ArrayList<>());

@@ -65,7 +65,7 @@ public class MediatorManager {
     private final List<EmitterConfiguration> emitters = new ArrayList<>();
 
     @Inject
-    HealthCenter health;
+    ObservationCenter health;
     private final List<ChannelConfiguration> channels = new ArrayList<>();
     @Inject
     ChannelRegistry registry;

@@ -10,20 +10,44 @@ import jakarta.inject.Inject;
 
 import io.smallrye.reactive.messaging.health.HealthReport;
 import io.smallrye.reactive.messaging.health.HealthReporter;
+import io.smallrye.reactive.messaging.observation.Observable;
+import io.smallrye.reactive.messaging.observation.ReactiveMessagingObservation;
 
 /**
  * Component responsible to compute the current state of the reactive messaging application.
  */
 @ApplicationScoped
-public class HealthCenter {
+public class ObservationCenter {
 
     @Inject
     @Any
     Instance<HealthReporter> reporters;
 
+    @Inject
+    @Any
+    Instance<Observable> observables;
+
+    @Inject
+    @Any
+    Instance<ReactiveMessagingObservation> observationInstance;
+
     List<ReportedFailure> failures = new CopyOnWriteArrayList<>();
 
     private volatile boolean initialized = false;
+    private ReactiveMessagingObservation observation;
+
+    public void init() {
+        if (observationInstance.isResolvable()) {
+            this.observation = observationInstance.get();
+        } else {
+            this.observation = new NoopObservation();
+        }
+        observables.forEach(o -> o.setReactiveMessageObservation(this.observation));
+    }
+
+    public ReactiveMessagingObservation getObservation() {
+        return this.observation;
+    }
 
     public HealthReport getReadiness() {
         HealthReport.HealthReportBuilder builder = HealthReport.builder();

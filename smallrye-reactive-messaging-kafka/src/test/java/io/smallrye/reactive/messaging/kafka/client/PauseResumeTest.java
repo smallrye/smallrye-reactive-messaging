@@ -24,6 +24,7 @@ import io.smallrye.mutiny.helpers.test.AssertSubscriber;
 import io.smallrye.reactive.messaging.kafka.*;
 import io.smallrye.reactive.messaging.kafka.base.WeldTestBase;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
+import io.smallrye.reactive.messaging.providers.extension.NoopObservation;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 import io.vertx.mutiny.core.Vertx;
 
@@ -59,7 +60,7 @@ public class PauseResumeTest extends WeldTestBase {
         source = new KafkaSource<>(vertx, group,
                 new KafkaConnectorIncomingConfiguration(config), commitHandlerFactories, failureHandlerFactories,
                 getConsumerRebalanceListeners(),
-                CountKafkaCdiEvents.noCdiEvents, getDeserializationFailureHandlers(), -1);
+                CountKafkaCdiEvents.noCdiEvents, getDeserializationFailureHandlers(), -1, new NoopObservation());
         injectMockConsumer(source, consumer);
 
         AssertSubscriber<IncomingKafkaRecord<String, String>> subscriber = source.getStream()
@@ -124,7 +125,7 @@ public class PauseResumeTest extends WeldTestBase {
         source = new KafkaSource<>(vertx, group,
                 new KafkaConnectorIncomingConfiguration(config), commitHandlerFactories, failureHandlerFactories,
                 getConsumerRebalanceListeners(),
-                CountKafkaCdiEvents.noCdiEvents, getDeserializationFailureHandlers(), -1);
+                CountKafkaCdiEvents.noCdiEvents, getDeserializationFailureHandlers(), -1, new NoopObservation());
         injectMockConsumer(source, consumer);
 
         AssertSubscriber<IncomingKafkaRecord<String, String>> subscriber = source.getStream()
@@ -186,7 +187,7 @@ public class PauseResumeTest extends WeldTestBase {
         source = new KafkaSource<>(vertx, group,
                 new KafkaConnectorIncomingConfiguration(config), commitHandlerFactories, failureHandlerFactories,
                 getConsumerRebalanceListeners(),
-                CountKafkaCdiEvents.noCdiEvents, getDeserializationFailureHandlers(), -1);
+                CountKafkaCdiEvents.noCdiEvents, getDeserializationFailureHandlers(), -1, new NoopObservation());
         injectMockConsumer(source, consumer);
 
         AssertSubscriber<IncomingKafkaRecord<String, String>> subscriber = source.getStream()
@@ -252,7 +253,7 @@ public class PauseResumeTest extends WeldTestBase {
         source = new KafkaSource<>(vertx, group,
                 new KafkaConnectorIncomingConfiguration(config), commitHandlerFactories, failureHandlerFactories,
                 getConsumerRebalanceListeners(),
-                CountKafkaCdiEvents.noCdiEvents, getDeserializationFailureHandlers(), -1);
+                CountKafkaCdiEvents.noCdiEvents, getDeserializationFailureHandlers(), -1, new NoopObservation());
         injectMockConsumer(source, consumer);
 
         List<String> items = new ArrayList<>();
@@ -302,7 +303,7 @@ public class PauseResumeTest extends WeldTestBase {
         source = new KafkaSource<>(vertx, group,
                 new KafkaConnectorIncomingConfiguration(config), commitHandlerFactories, failureHandlerFactories,
                 getConsumerRebalanceListeners(),
-                CountKafkaCdiEvents.noCdiEvents, getDeserializationFailureHandlers(), -1);
+                CountKafkaCdiEvents.noCdiEvents, getDeserializationFailureHandlers(), -1, new NoopObservation());
         injectMockConsumer(source, consumer);
 
         List<String> items = new CopyOnWriteArrayList<>();

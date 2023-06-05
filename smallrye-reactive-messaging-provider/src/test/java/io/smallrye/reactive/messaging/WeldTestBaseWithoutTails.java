@@ -27,10 +27,10 @@ import io.smallrye.reactive.messaging.providers.connectors.MyDummyConnector;
 import io.smallrye.reactive.messaging.providers.connectors.WorkerPoolRegistry;
 import io.smallrye.reactive.messaging.providers.extension.ChannelProducer;
 import io.smallrye.reactive.messaging.providers.extension.EmitterFactoryImpl;
-import io.smallrye.reactive.messaging.providers.extension.HealthCenter;
 import io.smallrye.reactive.messaging.providers.extension.LegacyEmitterFactoryImpl;
 import io.smallrye.reactive.messaging.providers.extension.MediatorManager;
 import io.smallrye.reactive.messaging.providers.extension.MutinyEmitterFactoryImpl;
+import io.smallrye.reactive.messaging.providers.extension.ObservationCenter;
 import io.smallrye.reactive.messaging.providers.extension.ReactiveMessagingExtension;
 import io.smallrye.reactive.messaging.providers.impl.ConfiguredChannelFactory;
 import io.smallrye.reactive.messaging.providers.impl.ConnectorFactories;
@@ -110,7 +110,7 @@ public class WeldTestBaseWithoutTails {
                 ConnectorFactories.class,
                 MicrometerDecorator.class,
                 MetricDecorator.class,
-                HealthCenter.class,
+                ObservationCenter.class,
                 ContextDecorator.class,
                 // Messaging provider
                 MyDummyConnector.class,

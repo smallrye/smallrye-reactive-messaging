@@ -752,6 +752,7 @@ public class MutinyEmitterInjectionTest extends WeldTestBaseWithoutTails {
                 return 128;
             }
         };
+        initialize();
         EmitterConfiguration config = new DefaultEmitterConfiguration("my-channel", MUTINY_EMITTER, overflow, null);
         MutinyEmitterImpl<String> emitter = new MutinyEmitterImpl<>(config, 128);
         Flow.Publisher<Message<? extends String>> publisher = emitter.getPublisher();

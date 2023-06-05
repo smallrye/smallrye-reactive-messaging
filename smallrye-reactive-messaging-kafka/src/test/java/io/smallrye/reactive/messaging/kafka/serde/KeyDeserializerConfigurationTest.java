@@ -31,6 +31,7 @@ import io.smallrye.reactive.messaging.kafka.base.KafkaCompanionTestBase;
 import io.smallrye.reactive.messaging.kafka.base.SingletonInstance;
 import io.smallrye.reactive.messaging.kafka.base.UnsatisfiedInstance;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
+import io.smallrye.reactive.messaging.providers.extension.NoopObservation;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 import io.vertx.core.json.JsonObject;
 
@@ -53,7 +54,7 @@ public class KeyDeserializerConfigurationTest extends KafkaCompanionTestBase {
         source = new KafkaSource<>(vertx, group,
                 new KafkaConnectorIncomingConfiguration(config), commitHandlerFactories, failureHandlerFactories,
                 UnsatisfiedInstance.instance(),
-                CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), -1);
+                CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), -1, new NoopObservation());
 
         List<Message<?>> list = new ArrayList<>();
         source.getStream()
@@ -81,7 +82,7 @@ public class KeyDeserializerConfigurationTest extends KafkaCompanionTestBase {
         source = new KafkaSource<>(vertx, group,
                 new KafkaConnectorIncomingConfiguration(config), commitHandlerFactories, failureHandlerFactories,
                 UnsatisfiedInstance.instance(),
-                CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), -1);
+                CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), -1, new NoopObservation());
 
         List<Message<?>> list = new ArrayList<>();
         source.getStream()
@@ -121,7 +122,7 @@ public class KeyDeserializerConfigurationTest extends KafkaCompanionTestBase {
         source = new KafkaSource<>(vertx, group,
                 new KafkaConnectorIncomingConfiguration(config), commitHandlerFactories, failureHandlerFactories,
                 UnsatisfiedInstance.instance(),
-                CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), -1);
+                CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), -1, new NoopObservation());
 
         List<Message<?>> list = new ArrayList<>();
         source.getStream()
@@ -162,7 +163,7 @@ public class KeyDeserializerConfigurationTest extends KafkaCompanionTestBase {
         source = new KafkaSource<>(vertx, group,
                 new KafkaConnectorIncomingConfiguration(config), commitHandlerFactories, failureHandlerFactories,
                 UnsatisfiedInstance.instance(),
-                CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), -1);
+                CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), -1, new NoopObservation());
 
         List<Message<?>> list = new ArrayList<>();
         source.getStream()
@@ -232,7 +233,7 @@ public class KeyDeserializerConfigurationTest extends KafkaCompanionTestBase {
                                 return fallback;
                             }
                         }),
-                -1);
+                -1, new NoopObservation());
 
         List<Message<?>> list = new ArrayList<>();
         source.getStream()
@@ -283,7 +284,7 @@ public class KeyDeserializerConfigurationTest extends KafkaCompanionTestBase {
                                 return null;
                             }
                         }),
-                -1);
+                -1, new NoopObservation());
 
         List<Message<?>> list = new ArrayList<>();
         source.getStream()
@@ -336,7 +337,7 @@ public class KeyDeserializerConfigurationTest extends KafkaCompanionTestBase {
                                     return null;
                                 }
                             }),
-                    -1);
+                    -1, new NoopObservation());
         }).isInstanceOf(UnsatisfiedResolutionException.class).hasMessageContaining("my-deserialization-handler");
     }
 
@@ -371,7 +372,7 @@ public class KeyDeserializerConfigurationTest extends KafkaCompanionTestBase {
                     new KafkaConnectorIncomingConfiguration(config), commitHandlerFactories, failureHandlerFactories,
                     UnsatisfiedInstance.instance(),
                     CountKafkaCdiEvents.noCdiEvents, new DoubleInstance<>("my-deserialization-handler", i1, i2),
-                    -1);
+                    -1, new NoopObservation());
         }).isInstanceOf(AmbiguousResolutionException.class).hasMessageContaining("my-deserialization-handler");
     }
 
@@ -383,7 +384,7 @@ public class KeyDeserializerConfigurationTest extends KafkaCompanionTestBase {
         assertThatThrownBy(() -> source = new KafkaSource<>(vertx, group,
                 new KafkaConnectorIncomingConfiguration(config), commitHandlerFactories, failureHandlerFactories,
                 UnsatisfiedInstance.instance(),
-                CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), -1))
+                CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), -1, new NoopObservation()))
                 .isInstanceOf(KafkaException.class)
                 .hasCauseInstanceOf(IllegalArgumentException.class)
                 .hasStackTraceContaining("boom");

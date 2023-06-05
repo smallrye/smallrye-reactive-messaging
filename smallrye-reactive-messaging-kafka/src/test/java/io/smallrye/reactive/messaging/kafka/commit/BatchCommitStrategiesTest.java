@@ -28,6 +28,7 @@ import io.smallrye.reactive.messaging.kafka.*;
 import io.smallrye.reactive.messaging.kafka.api.IncomingKafkaRecordBatchMetadata;
 import io.smallrye.reactive.messaging.kafka.base.WeldTestBase;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
+import io.smallrye.reactive.messaging.providers.extension.NoopObservation;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 import io.vertx.mutiny.core.Vertx;
 
@@ -63,7 +64,7 @@ public class BatchCommitStrategiesTest extends WeldTestBase {
         source = new KafkaSource<>(vertx, group,
                 new KafkaConnectorIncomingConfiguration(config), commitHandlerFactories, failureHandlerFactories,
                 getConsumerRebalanceListeners(),
-                CountKafkaCdiEvents.noCdiEvents, getDeserializationFailureHandlers(), -1);
+                CountKafkaCdiEvents.noCdiEvents, getDeserializationFailureHandlers(), -1, new NoopObservation());
         injectMockConsumer(source, consumer);
 
         List<Message<?>> list = new ArrayList<>();
@@ -144,7 +145,7 @@ public class BatchCommitStrategiesTest extends WeldTestBase {
         source = new KafkaSource<>(vertx, group,
                 new KafkaConnectorIncomingConfiguration(config), commitHandlerFactories, failureHandlerFactories,
                 getConsumerRebalanceListeners(),
-                CountKafkaCdiEvents.noCdiEvents, getDeserializationFailureHandlers(), -1);
+                CountKafkaCdiEvents.noCdiEvents, getDeserializationFailureHandlers(), -1, new NoopObservation());
         injectMockConsumer(source, consumer);
 
         List<Message<?>> list = new ArrayList<>();
@@ -201,7 +202,7 @@ public class BatchCommitStrategiesTest extends WeldTestBase {
         source = new KafkaSource<>(vertx, group,
                 new KafkaConnectorIncomingConfiguration(config), commitHandlerFactories, failureHandlerFactories,
                 getConsumerRebalanceListeners(),
-                CountKafkaCdiEvents.noCdiEvents, getDeserializationFailureHandlers(), -1);
+                CountKafkaCdiEvents.noCdiEvents, getDeserializationFailureHandlers(), -1, new NoopObservation());
         injectMockConsumer(source, consumer);
 
         List<Message<?>> list = new CopyOnWriteArrayList<>();
@@ -292,7 +293,7 @@ public class BatchCommitStrategiesTest extends WeldTestBase {
         source = new KafkaSource<>(vertx, group,
                 new KafkaConnectorIncomingConfiguration(config), commitHandlerFactories, failureHandlerFactories,
                 getConsumerRebalanceListeners(),
-                CountKafkaCdiEvents.noCdiEvents, getDeserializationFailureHandlers(), -1);
+                CountKafkaCdiEvents.noCdiEvents, getDeserializationFailureHandlers(), -1, new NoopObservation());
         injectMockConsumer(source, consumer);
 
         List<Message<?>> list = new CopyOnWriteArrayList<>();
@@ -360,7 +361,7 @@ public class BatchCommitStrategiesTest extends WeldTestBase {
         source = new KafkaSource<>(vertx, group,
                 new KafkaConnectorIncomingConfiguration(config), commitHandlerFactories, failureHandlerFactories,
                 getConsumerRebalanceListeners(),
-                CountKafkaCdiEvents.noCdiEvents, getDeserializationFailureHandlers(), -1);
+                CountKafkaCdiEvents.noCdiEvents, getDeserializationFailureHandlers(), -1, new NoopObservation());
 
         injectMockConsumer(source, consumer);
 

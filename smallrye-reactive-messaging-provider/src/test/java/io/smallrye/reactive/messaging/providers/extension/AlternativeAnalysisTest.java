@@ -59,7 +59,7 @@ public class AlternativeAnalysisTest {
                 ChannelProducer.class,
                 ConfiguredChannelFactory.class,
                 ConnectorFactories.class,
-                HealthCenter.class,
+                ObservationCenter.class,
                 ContextDecorator.class,
                 // Messaging provider
                 MyDummyConnector.class,

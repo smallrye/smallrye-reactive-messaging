@@ -39,6 +39,8 @@ import io.smallrye.reactive.messaging.kafka.impl.ConfigHelper;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSink;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
 import io.smallrye.reactive.messaging.kafka.impl.TopicPartitions;
+import io.smallrye.reactive.messaging.observation.Observable;
+import io.smallrye.reactive.messaging.observation.ReactiveMessagingObservation;
 import io.smallrye.reactive.messaging.providers.connectors.ExecutionHolder;
 import io.vertx.mutiny.core.Vertx;
 
@@ -121,7 +123,7 @@ import io.vertx.mutiny.core.Vertx;
 @ConnectorAttribute(name = "key-serialization-failure-handler", type = "string", direction = Direction.OUTGOING, description = "The name set in `@Identifier` of a bean that implements `io.smallrye.reactive.messaging.kafka.SerializationFailureHandler`. If set, serialization failure happening when serializing keys are delegated to this handler which may provide a fallback value.")
 @ConnectorAttribute(name = "value-serialization-failure-handler", type = "string", direction = Direction.OUTGOING, description = "The name set in `@Identifier` of a bean that implements `io.smallrye.reactive.messaging.kafka.SerializationFailureHandler`. If set, serialization failure happening when serializing values are delegated to this handler which may provide a fallback value.")
 @ConnectorAttribute(name = "interceptor-bean", type = "string", direction = Direction.OUTGOING, description = "The name set in `@Identifier` of a bean that implements `org.apache.kafka.clients.producer.ProducerInterceptor`. If set, the identified bean will be used as the producer interceptor.")
-public class KafkaConnector implements InboundConnector, OutboundConnector, HealthReporter {
+public class KafkaConnector implements InboundConnector, OutboundConnector, HealthReporter, Observable {
 
     public static final String CONNECTOR_NAME = "smallrye-kafka";
 
@@ -171,6 +173,7 @@ public class KafkaConnector implements InboundConnector, OutboundConnector, Heal
     Instance<Map<String, Object>> configurations;
 
     private Vertx vertx;
+    private ReactiveMessagingObservation observation;
 
     public void terminate(
             @Observes(notifyObserver = Reception.IF_EXISTS) @Priority(50) @BeforeDestroyed(ApplicationScoped.class) Object event) {
@@ -182,6 +185,16 @@ public class KafkaConnector implements InboundConnector, OutboundConnector, Heal
     @PostConstruct
     void init() {
         this.vertx = executionHolder.vertx();
+    }
+
+    /**
+     * The kafka connector reports message events.
+     *
+     * @param observation the observation object, cannot be {@code null}
+     */
+    @Override
+    public void setReactiveMessageObservation(ReactiveMessagingObservation observation) {
+        this.observation = observation;
     }
 
     @Override
@@ -211,7 +224,8 @@ public class KafkaConnector implements InboundConnector, OutboundConnector, Heal
             KafkaSource<Object, Object> source = new KafkaSource<>(vertx, group, ic,
                     commitHandlerFactories, failureHandlerFactories,
                     consumerRebalanceListeners,
-                    kafkaCDIEvents, deserializationFailureHandlers, -1);
+                    kafkaCDIEvents, deserializationFailureHandlers, -1,
+                    observation);
             sources.add(source);
             boolean broadcast = ic.getBroadcast();
             Multi<? extends Message<?>> stream;
@@ -233,7 +247,7 @@ public class KafkaConnector implements InboundConnector, OutboundConnector, Heal
             KafkaSource<Object, Object> source = new KafkaSource<>(vertx, group, ic,
                     commitHandlerFactories, failureHandlerFactories,
                     consumerRebalanceListeners,
-                    kafkaCDIEvents, deserializationFailureHandlers, i);
+                    kafkaCDIEvents, deserializationFailureHandlers, i, observation);
             sources.add(source);
             if (!ic.getBatch()) {
                 streams.add(source.getStream());

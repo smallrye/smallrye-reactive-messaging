@@ -29,7 +29,7 @@ import io.smallrye.reactive.messaging.kafka.KafkaRecordBatch;
 import io.smallrye.reactive.messaging.kafka.base.KafkaCompanionTestBase;
 import io.smallrye.reactive.messaging.kafka.base.KafkaMapBasedConfig;
 import io.smallrye.reactive.messaging.kafka.companion.ConsumerTask;
-import io.smallrye.reactive.messaging.providers.extension.HealthCenter;
+import io.smallrye.reactive.messaging.providers.extension.ObservationCenter;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 
 public class ExactlyOnceProcessingBatchTest extends KafkaCompanionTestBase {
@@ -116,8 +116,8 @@ public class ExactlyOnceProcessingBatchTest extends KafkaCompanionTestBase {
 
         companion.produceIntegers().usingGenerator(i -> new ProducerRecord<>(inTopic, i % 3, "k" + i, i), numberOfRecords);
 
-        HealthCenter healthCenter = get(HealthCenter.class);
-        await().until(() -> !healthCenter.getLiveness().isOk());
+        ObservationCenter observationCenter = get(ObservationCenter.class);
+        await().until(() -> !observationCenter.getLiveness().isOk());
     }
 
     private KafkaMapBasedConfig producerConfig() {

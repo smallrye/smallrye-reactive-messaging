@@ -27,6 +27,7 @@ import io.smallrye.reactive.messaging.kafka.base.KafkaCompanionProxyTestBase;
 import io.smallrye.reactive.messaging.kafka.base.KafkaMapBasedConfig;
 import io.smallrye.reactive.messaging.kafka.base.UnsatisfiedInstance;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
+import io.smallrye.reactive.messaging.providers.extension.NoopObservation;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 
 @Tag(TestTags.SLOW)
@@ -68,7 +69,7 @@ public class HighLatencyTest extends KafkaCompanionProxyTestBase {
         KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
         source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic, commitHandlerFactories, failureHandlerFactories,
                 UnsatisfiedInstance.instance(), CountKafkaCdiEvents.noCdiEvents,
-                UnsatisfiedInstance.instance(), -1);
+                UnsatisfiedInstance.instance(), -1, new NoopObservation());
         List<KafkaRecord<?, ?>> messages1 = new ArrayList<>();
         source.getStream().subscribe().with(messages1::add);
 

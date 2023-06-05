@@ -25,10 +25,10 @@ import io.smallrye.reactive.messaging.providers.connectors.ExecutionHolder;
 import io.smallrye.reactive.messaging.providers.connectors.WorkerPoolRegistry;
 import io.smallrye.reactive.messaging.providers.extension.EmitterFactoryImpl;
 import io.smallrye.reactive.messaging.providers.extension.EmitterImpl;
-import io.smallrye.reactive.messaging.providers.extension.HealthCenter;
 import io.smallrye.reactive.messaging.providers.extension.LegacyEmitterFactoryImpl;
 import io.smallrye.reactive.messaging.providers.extension.MediatorManager;
 import io.smallrye.reactive.messaging.providers.extension.MutinyEmitterFactoryImpl;
+import io.smallrye.reactive.messaging.providers.extension.ObservationCenter;
 import io.smallrye.reactive.messaging.providers.extension.ReactiveMessagingExtension;
 import io.smallrye.reactive.messaging.providers.impl.ConfiguredChannelFactory;
 import io.smallrye.reactive.messaging.providers.impl.ConnectorFactories;
@@ -154,7 +154,7 @@ public class MqttTestBase {
         weld.addBeanClass(EmitterFactoryImpl.class);
         weld.addBeanClass(MutinyEmitterFactoryImpl.class);
         weld.addBeanClass(LegacyEmitterFactoryImpl.class);
-        weld.addBeanClass(HealthCenter.class);
+        weld.addBeanClass(ObservationCenter.class);
         weld.addBeanClass(JsonObjectMessageConverter.class);
         weld.addBeanClass(StringMessageConverter.class);
 

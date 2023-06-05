@@ -29,6 +29,7 @@ import io.smallrye.reactive.messaging.kafka.companion.KafkaCompanion;
 import io.smallrye.reactive.messaging.kafka.companion.test.KafkaBrokerExtension;
 import io.smallrye.reactive.messaging.kafka.companion.test.KafkaBrokerExtension.KafkaBootstrapServers;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
+import io.smallrye.reactive.messaging.providers.extension.NoopObservation;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 import io.vertx.mutiny.core.Vertx;
 import mutiny.zero.flow.adapters.AdaptersToReactiveStreams;
@@ -124,7 +125,7 @@ public class KafkaClientReactiveStreamsPublisherTest
         source = new KafkaSource<>(vertx, groupId, new KafkaConnectorIncomingConfiguration(config), commitHandlerFactories,
                 failureHandlerFactories,
                 UnsatisfiedInstance.instance(),
-                CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), 0);
+                CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), 0, new NoopObservation());
 
         return source;
     }

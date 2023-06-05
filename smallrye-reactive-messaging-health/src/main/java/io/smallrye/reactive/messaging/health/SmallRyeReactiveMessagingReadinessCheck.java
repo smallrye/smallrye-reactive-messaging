@@ -7,14 +7,14 @@ import org.eclipse.microprofile.health.HealthCheck;
 import org.eclipse.microprofile.health.HealthCheckResponse;
 import org.eclipse.microprofile.health.Readiness;
 
-import io.smallrye.reactive.messaging.providers.extension.HealthCenter;
+import io.smallrye.reactive.messaging.providers.extension.ObservationCenter;
 
 @ApplicationScoped
 @Readiness
 public class SmallRyeReactiveMessagingReadinessCheck implements HealthCheck {
 
     @Inject
-    HealthCenter health;
+    ObservationCenter health;
 
     @Override
     public HealthCheckResponse call() {

@@ -21,6 +21,7 @@ import io.smallrye.reactive.messaging.health.HealthReport;
 import io.smallrye.reactive.messaging.kafka.*;
 import io.smallrye.reactive.messaging.kafka.base.WeldTestBase;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
+import io.smallrye.reactive.messaging.providers.extension.NoopObservation;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 import io.vertx.mutiny.core.Vertx;
 
@@ -59,7 +60,7 @@ public class RebalanceTest extends WeldTestBase {
                 new KafkaConnectorIncomingConfiguration(config),
                 commitHandlerFactories, failureHandlerFactories,
                 getConsumerRebalanceListeners(),
-                CountKafkaCdiEvents.noCdiEvents, getDeserializationFailureHandlers(), -1);
+                CountKafkaCdiEvents.noCdiEvents, getDeserializationFailureHandlers(), -1, new NoopObservation());
         injectMockConsumer(source, consumer);
 
         List<Message<?>> list = new ArrayList<>();
@@ -115,7 +116,7 @@ public class RebalanceTest extends WeldTestBase {
                         new ConsumerRecord<>(TOPIC, 1, i, "r", "v1-" + i),
                         "channel", -1,
                         source.getCommitHandler(),
-                        null, false, false);
+                        null, false, new NoopObservation());
                 source.getCommitHandler().received(r).subscribeAsCompletionStage();
             }
         });

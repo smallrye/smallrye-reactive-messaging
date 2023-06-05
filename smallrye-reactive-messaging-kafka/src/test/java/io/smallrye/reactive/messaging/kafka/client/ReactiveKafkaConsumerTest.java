@@ -30,6 +30,7 @@ import io.smallrye.reactive.messaging.kafka.base.KafkaMapBasedConfig;
 import io.smallrye.reactive.messaging.kafka.base.SingletonInstance;
 import io.smallrye.reactive.messaging.kafka.base.UnsatisfiedInstance;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
+import io.smallrye.reactive.messaging.providers.extension.NoopObservation;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 
 public class ReactiveKafkaConsumerTest extends ClientTestBase {
@@ -227,7 +228,7 @@ public class ReactiveKafkaConsumerTest extends ClientTestBase {
 
         source = new KafkaSource<>(vertx, groupId, new KafkaConnectorIncomingConfiguration(config),
                 commitHandlerFactories, failureHandlerFactories,
-                listeners, CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), 0);
+                listeners, CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), 0, new NoopObservation());
 
         AssertSubscriber<IncomingKafkaRecord<Integer, String>> subscriber = source.getStream()
                 .invoke(this::onReceive)
@@ -411,7 +412,7 @@ public class ReactiveKafkaConsumerTest extends ClientTestBase {
         KafkaSource<Integer, String> source2 = new KafkaSource<>(vertx, groupId,
                 new KafkaConnectorIncomingConfiguration(config2), commitHandlerFactories, failureHandlerFactories,
                 UnsatisfiedInstance.instance(),
-                CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), 3);
+                CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), 3, new NoopObservation());
         source2.getStream()
                 .invoke(i -> {
                     list2.add(i);

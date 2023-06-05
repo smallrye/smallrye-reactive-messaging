@@ -18,8 +18,8 @@ import io.smallrye.reactive.messaging.ChannelRegistry;
 import io.smallrye.reactive.messaging.memory.InMemoryConnector;
 import io.smallrye.reactive.messaging.providers.MediatorFactory;
 import io.smallrye.reactive.messaging.providers.extension.ChannelProducer;
-import io.smallrye.reactive.messaging.providers.extension.HealthCenter;
 import io.smallrye.reactive.messaging.providers.extension.MediatorManager;
+import io.smallrye.reactive.messaging.providers.extension.ObservationCenter;
 import io.smallrye.reactive.messaging.providers.extension.ReactiveMessagingExtension;
 import io.smallrye.reactive.messaging.providers.impl.ConfiguredChannelFactory;
 import io.smallrye.reactive.messaging.providers.impl.ConnectorFactories;
@@ -76,7 +76,7 @@ public class WeldTestBase {
                 ConfiguredChannelFactory.class,
                 MetricDecorator.class,
                 MicrometerDecorator.class,
-                HealthCenter.class,
+                ObservationCenter.class,
                 Wiring.class,
 
                 // In memory connector

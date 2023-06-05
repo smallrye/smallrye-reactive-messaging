@@ -52,6 +52,7 @@ import io.smallrye.reactive.messaging.kafka.impl.ConfigurationCleaner;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSink;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
 import io.smallrye.reactive.messaging.kafka.impl.ReactiveKafkaConsumer;
+import io.smallrye.reactive.messaging.providers.extension.NoopObservation;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 
 public class ClientTestBase extends KafkaCompanionTestBase {
@@ -132,7 +133,7 @@ public class ClientTestBase extends KafkaCompanionTestBase {
 
         source = new KafkaSource<>(vertx, groupId, new KafkaConnectorIncomingConfiguration(config), commitHandlerFactories,
                 failureHandlerFactories,
-                listeners, CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), 0);
+                listeners, CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), 0, new NoopObservation());
         sources.add(source);
         return source;
     }
@@ -147,7 +148,7 @@ public class ClientTestBase extends KafkaCompanionTestBase {
 
         source = new KafkaSource<>(vertx, groupId, new KafkaConnectorIncomingConfiguration(config), commitHandlerFactories,
                 failureHandlerFactories,
-                listeners, CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), 0);
+                listeners, CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), 0, new NoopObservation());
         sources.add(source);
         return source;
     }
@@ -162,7 +163,7 @@ public class ClientTestBase extends KafkaCompanionTestBase {
 
         source = new KafkaSource<>(vertx, groupId, new KafkaConnectorIncomingConfiguration(config),
                 commitHandlerFactories, failureHandlerFactories,
-                listeners, CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), 0);
+                listeners, CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), 0, new NoopObservation());
         sources.add(source);
         return source;
     }
@@ -177,7 +178,7 @@ public class ClientTestBase extends KafkaCompanionTestBase {
 
         source = new KafkaSource<>(vertx, groupId, new KafkaConnectorIncomingConfiguration(config),
                 commitHandlerFactories, failureHandlerFactories,
-                listeners, CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), 0);
+                listeners, CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), 0, new NoopObservation());
         sources.add(source);
         return source;
     }
@@ -185,7 +186,8 @@ public class ClientTestBase extends KafkaCompanionTestBase {
     public KafkaSource<Integer, String> createSource(MapBasedConfig config, int index) {
         source = new KafkaSource<>(vertx, "groupId", new KafkaConnectorIncomingConfiguration(config),
                 commitHandlerFactories, failureHandlerFactories,
-                UnsatisfiedInstance.instance(), CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), index);
+                UnsatisfiedInstance.instance(), CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), index,
+                new NoopObservation());
         sources.add(source);
         return source;
     }

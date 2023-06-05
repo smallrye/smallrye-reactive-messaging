@@ -22,7 +22,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 import io.smallrye.reactive.messaging.health.HealthReport;
-import io.smallrye.reactive.messaging.providers.extension.HealthCenter;
+import io.smallrye.reactive.messaging.providers.extension.ObservationCenter;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 
 public class HealthCheckTest extends MqttTestBase {
@@ -98,11 +98,11 @@ public class HealthCheckTest extends MqttTestBase {
         return new MapBasedConfig(config);
     }
 
-    public HealthCenter getHealth() {
+    public ObservationCenter getHealth() {
         if (container == null) {
             throw new IllegalStateException("Application not started");
         }
-        return container.getBeanManager().createInstance().select(HealthCenter.class).get();
+        return container.getBeanManager().createInstance().select(ObservationCenter.class).get();
     }
 
     public boolean isStarted() {

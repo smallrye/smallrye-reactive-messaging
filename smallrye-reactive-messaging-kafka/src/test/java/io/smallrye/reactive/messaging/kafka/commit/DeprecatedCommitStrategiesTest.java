@@ -45,6 +45,7 @@ import io.smallrye.reactive.messaging.kafka.LegacyMetadataTestUtils;
 import io.smallrye.reactive.messaging.kafka.api.IncomingKafkaRecordMetadata;
 import io.smallrye.reactive.messaging.kafka.base.WeldTestBase;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
+import io.smallrye.reactive.messaging.providers.extension.NoopObservation;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 import io.vertx.mutiny.core.Vertx;
 
@@ -87,7 +88,7 @@ public class DeprecatedCommitStrategiesTest extends WeldTestBase {
         source = new KafkaSource<>(vertx, group,
                 new KafkaConnectorIncomingConfiguration(config), commitHandlerFactories, failureHandlerFactories,
                 getConsumerRebalanceListeners(),
-                CountKafkaCdiEvents.noCdiEvents, getDeserializationFailureHandlers(), -1);
+                CountKafkaCdiEvents.noCdiEvents, getDeserializationFailureHandlers(), -1, new NoopObservation());
         injectMockConsumer(source, consumer);
 
         List<Message<?>> list = new ArrayList<>();
@@ -191,7 +192,7 @@ public class DeprecatedCommitStrategiesTest extends WeldTestBase {
         source = new KafkaSource<>(vertx, group,
                 new KafkaConnectorIncomingConfiguration(config), commitHandlerFactories, failureHandlerFactories,
                 getConsumerRebalanceListeners(),
-                CountKafkaCdiEvents.noCdiEvents, getDeserializationFailureHandlers(), -1);
+                CountKafkaCdiEvents.noCdiEvents, getDeserializationFailureHandlers(), -1, new NoopObservation());
         injectMockConsumer(source, consumer);
 
         List<Message<?>> list = new ArrayList<>();
@@ -257,7 +258,7 @@ public class DeprecatedCommitStrategiesTest extends WeldTestBase {
         source = new KafkaSource<>(vertx, group,
                 new KafkaConnectorIncomingConfiguration(config), commitHandlerFactories, failureHandlerFactories,
                 getConsumerRebalanceListeners(),
-                CountKafkaCdiEvents.noCdiEvents, getDeserializationFailureHandlers(), -1);
+                CountKafkaCdiEvents.noCdiEvents, getDeserializationFailureHandlers(), -1, new NoopObservation());
         injectMockConsumer(source, consumer);
 
         List<Message<?>> list = new ArrayList<>();
@@ -338,7 +339,7 @@ public class DeprecatedCommitStrategiesTest extends WeldTestBase {
         source = new KafkaSource<>(vertx, group,
                 new KafkaConnectorIncomingConfiguration(config), commitHandlerFactories, failureHandlerFactories,
                 getConsumerRebalanceListeners(),
-                CountKafkaCdiEvents.noCdiEvents, getDeserializationFailureHandlers(), -1);
+                CountKafkaCdiEvents.noCdiEvents, getDeserializationFailureHandlers(), -1, new NoopObservation());
         injectMockConsumer(source, consumer);
 
         List<Message<?>> list = new ArrayList<>();
@@ -407,7 +408,7 @@ public class DeprecatedCommitStrategiesTest extends WeldTestBase {
             new KafkaSource<>(vertx, group,
                     new KafkaConnectorIncomingConfiguration(config), commitHandlerFactories, failureHandlerFactories,
                     getConsumerRebalanceListeners(),
-                    CountKafkaCdiEvents.noCdiEvents, getDeserializationFailureHandlers(), -1);
+                    CountKafkaCdiEvents.noCdiEvents, getDeserializationFailureHandlers(), -1, new NoopObservation());
         }).isInstanceOf(UnsatisfiedResolutionException.class);
     }
 
@@ -422,7 +423,7 @@ public class DeprecatedCommitStrategiesTest extends WeldTestBase {
         assertThatThrownBy(() -> new KafkaSource<>(vertx, group,
                 new KafkaConnectorIncomingConfiguration(config), commitHandlerFactories, failureHandlerFactories,
                 getConsumerRebalanceListeners(),
-                CountKafkaCdiEvents.noCdiEvents, getDeserializationFailureHandlers(), -1))
+                CountKafkaCdiEvents.noCdiEvents, getDeserializationFailureHandlers(), -1, new NoopObservation()))
                 .isInstanceOf(DeploymentException.class).hasMessageContaining("mine");
     }
 
@@ -438,7 +439,7 @@ public class DeprecatedCommitStrategiesTest extends WeldTestBase {
         source = new KafkaSource<>(vertx, group,
                 new KafkaConnectorIncomingConfiguration(config), commitHandlerFactories, failureHandlerFactories,
                 getConsumerRebalanceListeners(),
-                CountKafkaCdiEvents.noCdiEvents, getDeserializationFailureHandlers(), -1);
+                CountKafkaCdiEvents.noCdiEvents, getDeserializationFailureHandlers(), -1, new NoopObservation());
 
         injectMockConsumer(source, consumer);
 

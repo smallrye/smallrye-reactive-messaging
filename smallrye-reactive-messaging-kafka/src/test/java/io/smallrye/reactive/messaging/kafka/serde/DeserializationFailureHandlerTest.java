@@ -21,7 +21,7 @@ import io.smallrye.reactive.messaging.kafka.Record;
 import io.smallrye.reactive.messaging.kafka.base.JsonObjectSerde;
 import io.smallrye.reactive.messaging.kafka.base.KafkaCompanionTestBase;
 import io.smallrye.reactive.messaging.kafka.converters.RecordConverter;
-import io.smallrye.reactive.messaging.providers.extension.HealthCenter;
+import io.smallrye.reactive.messaging.providers.extension.ObservationCenter;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 import io.vertx.core.json.JsonObject;
 
@@ -171,8 +171,8 @@ public class DeserializationFailureHandlerTest extends KafkaCompanionTestBase {
         companion.produce(JsonObject.class, Double.class).fromRecords(new ProducerRecord<>(topic, key, 698745231.56));
 
         // Wait for failure report
-        HealthCenter healthCenter = get(HealthCenter.class);
-        await().until(() -> !healthCenter.getLiveness().isOk());
+        ObservationCenter observationCenter = get(ObservationCenter.class);
+        await().until(() -> !observationCenter.getLiveness().isOk());
     }
 
     @ApplicationScoped

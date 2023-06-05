@@ -20,7 +20,6 @@ import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.junit.jupiter.api.Test;
-import org.reactivestreams.Subscriber;
 
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.helpers.test.AssertSubscriber;
@@ -34,6 +33,7 @@ import io.smallrye.reactive.messaging.kafka.base.UnsatisfiedInstance;
 import io.smallrye.reactive.messaging.kafka.base.WeldTestBase;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSink;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
+import io.smallrye.reactive.messaging.providers.extension.NoopObservation;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 import io.vertx.mutiny.core.Vertx;
 
@@ -116,7 +116,7 @@ public class LazyInitializedTest extends WeldTestBase {
                 UnsatisfiedInstance.instance(),
                 CountKafkaCdiEvents.noCdiEvents,
                 UnsatisfiedInstance.instance(),
-                0);
+                0, new NoopObservation());
 
         assertThat(source.getConsumer().unwrap()).isNull();
         await().untilAsserted(() -> {
@@ -155,7 +155,7 @@ public class LazyInitializedTest extends WeldTestBase {
                     UnsatisfiedInstance.instance(),
                     CountKafkaCdiEvents.noCdiEvents,
                     UnsatisfiedInstance.instance(),
-                    0);
+                    0, new NoopObservation());
         }).hasCauseInstanceOf(KafkaException.class);
 
     }

@@ -50,6 +50,7 @@ import io.smallrye.reactive.messaging.kafka.base.UnsatisfiedInstance;
 import io.smallrye.reactive.messaging.kafka.companion.ConsumerTask;
 import io.smallrye.reactive.messaging.kafka.companion.ProducerTask;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
+import io.smallrye.reactive.messaging.providers.extension.NoopObservation;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 import io.vertx.core.json.JsonObject;
 import io.vertx.mutiny.core.buffer.Buffer;
@@ -125,7 +126,7 @@ public class FileCheckpointStateStoreTest extends KafkaCompanionTestBase {
                 checkpointFactory,
                 failureHandlerFactories,
                 UnsatisfiedInstance.instance(),
-                CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), -1);
+                CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), -1, new NoopObservation());
 
         List<Message<?>> messages = Collections.synchronizedList(new ArrayList<>());
         source.getStream().onItem().transformToUniAndConcatenate(m -> {
@@ -151,7 +152,7 @@ public class FileCheckpointStateStoreTest extends KafkaCompanionTestBase {
                 checkpointFactory,
                 failureHandlerFactories,
                 UnsatisfiedInstance.instance(),
-                CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), -1);
+                CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), -1, new NoopObservation());
 
         List<Message<?>> messages2 = Collections.synchronizedList(new ArrayList<>());
         source2.getStream().onItem().transformToUniAndConcatenate(m -> {

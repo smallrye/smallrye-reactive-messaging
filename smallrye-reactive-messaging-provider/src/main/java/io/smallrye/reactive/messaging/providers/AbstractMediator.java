@@ -25,7 +25,7 @@ import io.smallrye.reactive.messaging.*;
 import io.smallrye.reactive.messaging.PublisherDecorator;
 import io.smallrye.reactive.messaging.keyed.KeyValueExtractor;
 import io.smallrye.reactive.messaging.providers.connectors.WorkerPoolRegistry;
-import io.smallrye.reactive.messaging.providers.extension.HealthCenter;
+import io.smallrye.reactive.messaging.providers.extension.ObservationCenter;
 import io.smallrye.reactive.messaging.providers.helpers.BroadcastHelper;
 import io.smallrye.reactive.messaging.providers.helpers.ConverterUtils;
 import io.smallrye.reactive.messaging.providers.locals.LocalContextMetadata;
@@ -41,7 +41,7 @@ public abstract class AbstractMediator {
     private Instance<PublisherDecorator> decorators;
 
     private Instance<SubscriberDecorator> subscriberDecorators;
-    protected HealthCenter health;
+    protected ObservationCenter health;
     private Instance<MessageConverter> converters;
     private Instance<KeyValueExtractor> extractors;
 
@@ -247,7 +247,7 @@ public abstract class AbstractMediator {
         return input;
     }
 
-    public void setHealth(HealthCenter health) {
+    public void setHealth(ObservationCenter health) {
         this.health = health;
     }
 

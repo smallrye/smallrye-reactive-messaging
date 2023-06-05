@@ -10,7 +10,7 @@ import org.junit.jupiter.api.BeforeEach;
 
 import io.smallrye.config.SmallRyeConfigProviderResolver;
 import io.smallrye.reactive.messaging.providers.connectors.ExecutionHolder;
-import io.smallrye.reactive.messaging.providers.extension.HealthCenter;
+import io.smallrye.reactive.messaging.providers.extension.ObservationCenter;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 import io.vertx.mutiny.core.Vertx;
 
@@ -65,7 +65,7 @@ public class AmqpBrokerTestBase {
     }
 
     public boolean isAmqpConnectorReady(SeContainer container) {
-        HealthCenter health = container.getBeanManager().createInstance().select(HealthCenter.class).get();
+        ObservationCenter health = container.getBeanManager().createInstance().select(ObservationCenter.class).get();
         return health.getReadiness().isOk();
     }
 
@@ -74,7 +74,7 @@ public class AmqpBrokerTestBase {
     }
 
     public boolean isAmqpConnectorAlive(SeContainer container) {
-        HealthCenter health = container.getBeanManager().createInstance().select(HealthCenter.class).get();
+        ObservationCenter health = container.getBeanManager().createInstance().select(ObservationCenter.class).get();
         return health.getLiveness().isOk();
     }
 

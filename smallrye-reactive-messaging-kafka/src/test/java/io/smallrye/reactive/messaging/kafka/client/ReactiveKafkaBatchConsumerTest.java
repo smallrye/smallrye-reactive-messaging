@@ -11,6 +11,7 @@ import io.smallrye.reactive.messaging.kafka.*;
 import io.smallrye.reactive.messaging.kafka.base.SingletonInstance;
 import io.smallrye.reactive.messaging.kafka.base.UnsatisfiedInstance;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
+import io.smallrye.reactive.messaging.providers.extension.NoopObservation;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 
 public class ReactiveKafkaBatchConsumerTest extends ClientTestBase {
@@ -49,7 +50,7 @@ public class ReactiveKafkaBatchConsumerTest extends ClientTestBase {
 
         source = new KafkaSource<>(vertx, groupId, new KafkaConnectorIncomingConfiguration(config),
                 commitHandlerFactories, failureHandlerFactories,
-                listeners, CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), 0);
+                listeners, CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), 0, new NoopObservation());
         return source;
     }
 

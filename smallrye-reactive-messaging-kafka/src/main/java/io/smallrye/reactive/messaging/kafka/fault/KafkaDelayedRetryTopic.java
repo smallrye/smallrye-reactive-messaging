@@ -52,6 +52,7 @@ import io.smallrye.reactive.messaging.kafka.impl.ConfigurationCleaner;
 import io.smallrye.reactive.messaging.kafka.impl.ReactiveKafkaConsumer;
 import io.smallrye.reactive.messaging.kafka.impl.ReactiveKafkaProducer;
 import io.smallrye.reactive.messaging.kafka.impl.RuntimeKafkaSourceConfiguration;
+import io.smallrye.reactive.messaging.providers.extension.NoopObservation;
 import io.vertx.core.impl.VertxInternal;
 import io.vertx.mutiny.core.Vertx;
 
@@ -206,8 +207,7 @@ public class KafkaDelayedRetryTopic extends ContextHolder implements KafkaFailur
         return subscribe.onItem().transform(record -> new IncomingKafkaRecord<>(record, channel, -1,
                 latestCommit,
                 this,
-                configuration.getCloudEvents(),
-                configuration.getTracingEnabled())).onItem().transformToUni(record -> {
+                configuration.getCloudEvents(), new NoopObservation())).onItem().transformToUni(record -> {
                     incrementRetryHeader(record.getHeaders());
                     Duration between = getDelay(record);
                     if (between.isNegative()) {

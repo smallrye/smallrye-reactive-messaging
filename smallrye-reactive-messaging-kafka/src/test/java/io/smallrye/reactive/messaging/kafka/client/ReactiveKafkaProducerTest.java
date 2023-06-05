@@ -14,7 +14,6 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.junit.jupiter.api.Test;
-import org.reactivestreams.Subscriber;
 
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.subscription.MultiEmitter;

@@ -15,6 +15,7 @@ import org.junit.jupiter.api.Test;
 import io.smallrye.reactive.messaging.kafka.base.KafkaCompanionTestBase;
 import io.smallrye.reactive.messaging.kafka.base.UnsatisfiedInstance;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
+import io.smallrye.reactive.messaging.providers.extension.NoopObservation;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 
 public class SourceCloseTest extends KafkaCompanionTestBase {
@@ -51,11 +52,11 @@ public class SourceCloseTest extends KafkaCompanionTestBase {
         KafkaSource<String, Integer> source1 = new KafkaSource<>(vertx, groupId,
                 new KafkaConnectorIncomingConfiguration(config1), commitHandlerFactories, failureHandlerFactories,
                 UnsatisfiedInstance.instance(),
-                CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), 0);
+                CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), 0, new NoopObservation());
         KafkaSource<String, Integer> source2 = new KafkaSource<>(vertx, groupId,
                 new KafkaConnectorIncomingConfiguration(config2), commitHandlerFactories, failureHandlerFactories,
                 UnsatisfiedInstance.instance(),
-                CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), 0);
+                CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), 0, new NoopObservation());
 
         source1.getStream()
                 .subscribe().with(l -> {

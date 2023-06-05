@@ -26,7 +26,7 @@ public class HealthWithSubscriberTest extends WeldTestBaseWithoutTails {
         addBeanClass(MyBean.class);
 
         initialize();
-        HealthCenter center = container.getBeanManager().createInstance().select(HealthCenter.class).get();
+        ObservationCenter center = container.getBeanManager().createInstance().select(ObservationCenter.class).get();
         MyBean bean = container.getBeanManager().createInstance().select(MyBean.class).get();
 
         assertThat(center.getLiveness().isOk()).isTrue();

@@ -26,6 +26,7 @@ import io.smallrye.reactive.messaging.kafka.api.IncomingKafkaRecordMetadata;
 import io.smallrye.reactive.messaging.kafka.commit.KafkaCommitHandler;
 import io.smallrye.reactive.messaging.kafka.commit.KafkaIgnoreCommit;
 import io.smallrye.reactive.messaging.kafka.fault.KafkaFailureHandler;
+import io.smallrye.reactive.messaging.providers.extension.NoopObservation;
 
 public class KafkaRecordBatchTest {
 
@@ -64,7 +65,7 @@ public class KafkaRecordBatchTest {
     @Test
     void testGetPayload() {
         IncomingKafkaRecordBatch<String, Integer> batchRecords = new IncomingKafkaRecordBatch<>(records, "test", -1,
-                commitHandler, onNack, false, false);
+                commitHandler, onNack, false, new NoopObservation());
 
         List<Integer> batchPayload = batchRecords.getPayload();
         assertThat(batchPayload).hasSize(7);
@@ -74,7 +75,7 @@ public class KafkaRecordBatchTest {
     @Test
     void testGetRecords() {
         IncomingKafkaRecordBatch<String, Integer> batchRecords = new IncomingKafkaRecordBatch<>(records, "test", -1,
-                commitHandler, onNack, false, false);
+                commitHandler, onNack, false, new NoopObservation());
 
         List<KafkaRecord<String, Integer>> batchIncomingRecords = batchRecords.getRecords();
         assertThat(batchIncomingRecords).hasSize(7);
@@ -88,7 +89,7 @@ public class KafkaRecordBatchTest {
     @Test
     void testAckLatestOffsetRecords() {
         IncomingKafkaRecordBatch<String, Integer> batchRecords = new IncomingKafkaRecordBatch<>(records, "test", -1,
-                commitHandler, null, false, false);
+                commitHandler, null, false, new NoopObservation());
 
         batchRecords.ack().toCompletableFuture().join();
 
@@ -100,7 +101,7 @@ public class KafkaRecordBatchTest {
     @Test
     void testNackAllRecords() {
         IncomingKafkaRecordBatch<String, Integer> batchRecords = new IncomingKafkaRecordBatch<>(records, "test", -1,
-                new KafkaIgnoreCommit(), onNack, false, false);
+                new KafkaIgnoreCommit(), onNack, false, new NoopObservation());
 
         batchRecords.nack(new IllegalArgumentException()).toCompletableFuture().join();
 

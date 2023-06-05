@@ -14,11 +14,14 @@ import io.smallrye.reactive.messaging.ce.CloudEventMetadata;
 import io.smallrye.reactive.messaging.kafka.commit.KafkaCommitHandler;
 import io.smallrye.reactive.messaging.kafka.fault.KafkaFailureHandler;
 import io.smallrye.reactive.messaging.kafka.impl.ce.KafkaCloudEventHelper;
+import io.smallrye.reactive.messaging.observation.ObservationMetadata;
+import io.smallrye.reactive.messaging.observation.ReactiveMessagingObservation;
 import io.smallrye.reactive.messaging.providers.MetadataInjectableMessage;
 import io.smallrye.reactive.messaging.providers.locals.ContextAwareMessage;
 
 public class IncomingKafkaRecord<K, T> implements KafkaRecord<K, T>, MetadataInjectableMessage<T> {
 
+    private final ReactiveMessagingObservation.MessageObservation tracker;
     private Metadata metadata;
     // TODO add as a normal import once we have removed IncomingKafkaRecordMetadata in this package
     private final io.smallrye.reactive.messaging.kafka.api.IncomingKafkaRecordMetadata<K, T> kafkaMetadata;
@@ -33,7 +36,7 @@ public class IncomingKafkaRecord<K, T> implements KafkaRecord<K, T>, MetadataInj
             KafkaCommitHandler commitHandler,
             KafkaFailureHandler onNack,
             boolean cloudEventEnabled,
-            boolean tracingEnabled) {
+            ReactiveMessagingObservation observation) {
         this.commitHandler = commitHandler;
         this.kafkaMetadata = new io.smallrye.reactive.messaging.kafka.api.IncomingKafkaRecordMetadata<>(record, channel, index);
         // TODO remove this duplication once we have removed IncomingKafkaRecordMetadata from this package
@@ -71,6 +74,8 @@ public class IncomingKafkaRecord<K, T> implements KafkaRecord<K, T>, MetadataInj
         } else {
             this.payload = payload;
         }
+        tracker = observation.onNewMessage(channel, this);
+        injectMetadata(new ObservationMetadata(tracker));
     }
 
     @Override
@@ -124,12 +129,16 @@ public class IncomingKafkaRecord<K, T> implements KafkaRecord<K, T>, MetadataInj
 
     @Override
     public CompletionStage<Void> ack() {
-        return commitHandler.handle(this).subscribeAsCompletionStage();
+        return commitHandler.handle(this)
+                .onItemOrFailure().invoke((ignored, err) -> tracker.onAckOrNack(err == null))
+                .subscribeAsCompletionStage();
     }
 
     @Override
     public CompletionStage<Void> nack(Throwable reason, Metadata metadata) {
-        return onNack.handle(this, reason, metadata).subscribeAsCompletionStage();
+        return onNack.handle(this, reason, metadata)
+                .onItemOrFailure().invoke((ignored, err) -> this.tracker.onAckOrNack(false))
+                .subscribeAsCompletionStage();
     }
 
     @Override
@@ -137,4 +146,7 @@ public class IncomingKafkaRecord<K, T> implements KafkaRecord<K, T>, MetadataInj
         this.metadata = this.metadata.with(metadata);
     }
 
+    public void onProcessingStart() {
+        this.tracker.onProcessingStart();
+    }
 }

@@ -36,7 +36,24 @@
     "criticality" : "highlight",
     "minSeverity" : "POTENTIALLY_BREAKING",
     "minCriticality" : "documented",
-    "differences" : [ ]
+    "differences" : [
+        {
+            "ignore": true,
+            "code": "java.method.parameterTypeChanged",
+            "old": "parameter void io.smallrye.reactive.messaging.kafka.IncomingKafkaRecord<K, T>::<init>(org.apache.kafka.clients.consumer.ConsumerRecord<K, T>, java.lang.String, int, io.smallrye.reactive.messaging.kafka.commit.KafkaCommitHandler, io.smallrye.reactive.messaging.kafka.fault.KafkaFailureHandler, boolean, ===boolean===)",
+            "new": "parameter void io.smallrye.reactive.messaging.kafka.IncomingKafkaRecord<K, T>::<init>(org.apache.kafka.clients.consumer.ConsumerRecord<K, T>, java.lang.String, int, io.smallrye.reactive.messaging.kafka.commit.KafkaCommitHandler, io.smallrye.reactive.messaging.kafka.fault.KafkaFailureHandler, boolean, ===io.smallrye.reactive.messaging.observation.ReactiveMessagingObservation===)",
+            "parameterIndex": "6",
+            "justification": "Pass the observation object - not part of the public API"
+        },
+        {
+            "ignore": true,
+            "code": "java.method.parameterTypeChanged",
+            "old": "parameter void io.smallrye.reactive.messaging.kafka.IncomingKafkaRecordBatch<K, T>::<init>(org.apache.kafka.clients.consumer.ConsumerRecords<K, T>, java.lang.String, int, io.smallrye.reactive.messaging.kafka.commit.KafkaCommitHandler, io.smallrye.reactive.messaging.kafka.fault.KafkaFailureHandler, boolean, ===boolean===)",
+            "new": "parameter void io.smallrye.reactive.messaging.kafka.IncomingKafkaRecordBatch<K, T>::<init>(org.apache.kafka.clients.consumer.ConsumerRecords<K, T>, java.lang.String, int, io.smallrye.reactive.messaging.kafka.commit.KafkaCommitHandler, io.smallrye.reactive.messaging.kafka.fault.KafkaFailureHandler, boolean, ===io.smallrye.reactive.messaging.observation.ReactiveMessagingObservation===)",
+            "parameterIndex": "6",
+            "justification": "Pass the observation object - not part of the public API"
+        }
+    ]
   }
 }, {
   "extension" : "revapi.reporter.json",

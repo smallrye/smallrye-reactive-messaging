@@ -39,6 +39,7 @@ import io.smallrye.reactive.messaging.kafka.fault.KafkaFailureHandler;
 import io.smallrye.reactive.messaging.kafka.health.KafkaSourceHealth;
 import io.smallrye.reactive.messaging.kafka.tracing.KafkaOpenTelemetryInstrumenter;
 import io.smallrye.reactive.messaging.kafka.tracing.KafkaTrace;
+import io.smallrye.reactive.messaging.observation.ReactiveMessagingObservation;
 import io.vertx.core.impl.EventLoopContext;
 import io.vertx.core.impl.VertxInternal;
 import io.vertx.mutiny.core.Vertx;
@@ -56,6 +57,7 @@ public class KafkaSource<K, V> {
     private final boolean isHealthReadinessEnabled;
     private final boolean isCloudEventEnabled;
     private final String channel;
+    private final ReactiveMessagingObservation observation;
     private volatile boolean subscribed;
     private final KafkaSourceHealth health;
 
@@ -78,7 +80,7 @@ public class KafkaSource<K, V> {
             Instance<KafkaConsumerRebalanceListener> consumerRebalanceListeners,
             KafkaCDIEvents kafkaCDIEvents,
             Instance<DeserializationFailureHandler<?>> deserializationFailureHandlers,
-            int index) {
+            int index, ReactiveMessagingObservation observation) {
 
         this.group = consumerGroup;
         this.commitHandlerFactory = commitHandlerFactories;
@@ -86,6 +88,7 @@ public class KafkaSource<K, V> {
         this.index = index;
         this.deserializationFailureHandlers = deserializationFailureHandlers;
         this.consumerRebalanceListeners = consumerRebalanceListeners;
+        this.observation = observation;
 
         topics = getTopics(config);
 
@@ -160,20 +163,23 @@ public class KafkaSource<K, V> {
 
             Multi<IncomingKafkaRecord<K, V>> incomingMulti = multi.onItem().transformToUni(rec -> {
                 IncomingKafkaRecord<K, V> record = new IncomingKafkaRecord<>(rec, channel, index, commitHandler,
-                        failureHandler, isCloudEventEnabled, isTracingEnabled);
+                        failureHandler, isCloudEventEnabled, observation);
                 return commitHandler.received(record);
             }).concatenate();
 
             if (config.getTracingEnabled()) {
                 incomingMulti = incomingMulti.onItem().invoke(record -> incomingTrace(record, false));
             }
+
             if (failureHandler instanceof KafkaDelayedRetryTopic) {
                 Multi<IncomingKafkaRecord<K, V>> retryStream = (Multi<IncomingKafkaRecord<K, V>>) ((KafkaDelayedRetryTopic) failureHandler)
                         .retryStream();
                 incomingMulti = Multi.createBy().merging().withConcurrency(2).streams(incomingMulti, retryStream);
             }
             this.stream = incomingMulti
-                    .onFailure().invoke(t -> reportFailure(t, false));
+                    .onFailure().invoke(t -> reportFailure(t, false))
+                    .onItem().invoke(IncomingKafkaRecord::onProcessingStart);
+            ;
             this.batchStream = null;
         } else {
             Multi<ConsumerRecords<K, V>> multi;
@@ -195,7 +201,7 @@ public class KafkaSource<K, V> {
 
             Multi<IncomingKafkaRecordBatch<K, V>> incomingMulti = multi.onItem().transformToUni(rec -> {
                 IncomingKafkaRecordBatch<K, V> batch = new IncomingKafkaRecordBatch<>(rec, channel, index,
-                        commitHandler, failureHandler, isCloudEventEnabled, isTracingEnabled);
+                        commitHandler, failureHandler, isCloudEventEnabled, observation);
                 return receiveBatchRecord(batch);
             }).concatenate();
 
@@ -203,7 +209,8 @@ public class KafkaSource<K, V> {
                 incomingMulti = incomingMulti.onItem().invoke(this::incomingTrace);
             }
             this.batchStream = incomingMulti
-                    .onFailure().invoke(t -> reportFailure(t, false));
+                    .onFailure().invoke(t -> reportFailure(t, false))
+                    .onItem().invoke(IncomingKafkaRecordBatch::onProcessingStart);
             this.stream = null;
         }
 

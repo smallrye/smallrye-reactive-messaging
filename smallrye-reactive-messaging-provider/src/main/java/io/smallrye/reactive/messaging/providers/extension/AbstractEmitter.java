@@ -1,21 +1,24 @@
 package io.smallrye.reactive.messaging.providers.extension;
 
-import static io.smallrye.reactive.messaging.providers.i18n.ProviderExceptions.ex;
-
-import java.util.concurrent.Flow.Publisher;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Consumer;
-
-import org.eclipse.microprofile.reactive.messaging.Message;
-import org.eclipse.microprofile.reactive.messaging.OnOverflow;
-
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.subscription.BackPressureStrategy;
 import io.smallrye.mutiny.subscription.MultiEmitter;
 import io.smallrye.reactive.messaging.EmitterConfiguration;
 import io.smallrye.reactive.messaging.MessagePublisherProvider;
+import io.smallrye.reactive.messaging.observation.ObservationMetadata;
+import io.smallrye.reactive.messaging.observation.ReactiveMessagingObservation;
 import io.smallrye.reactive.messaging.providers.helpers.BroadcastHelper;
 import io.smallrye.reactive.messaging.providers.helpers.NoStackTraceException;
+import jakarta.enterprise.inject.Instance;
+import jakarta.enterprise.inject.spi.CDI;
+import org.eclipse.microprofile.reactive.messaging.Message;
+import org.eclipse.microprofile.reactive.messaging.OnOverflow;
+
+import java.util.concurrent.Flow.Publisher;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
+
+import static io.smallrye.reactive.messaging.providers.i18n.ProviderExceptions.ex;
 
 public abstract class AbstractEmitter<T> implements MessagePublisherProvider<T> {
     public static final NoStackTraceException NO_SUBSCRIBER_EXCEPTION = new NoStackTraceException(
@@ -27,6 +30,7 @@ public abstract class AbstractEmitter<T> implements MessagePublisherProvider<T> 
 
     protected final AtomicReference<Throwable> synchronousFailure = new AtomicReference<>();
     private final OnOverflow.Strategy overflow;
+    private final ReactiveMessagingObservation observation;
 
     @SuppressWarnings("unchecked")
     public AbstractEmitter(EmitterConfiguration config, long defaultBufferSize) {
@@ -35,6 +39,9 @@ public abstract class AbstractEmitter<T> implements MessagePublisherProvider<T> 
         if (defaultBufferSize <= 0) {
             throw ex.illegalArgumentForDefaultBuffer();
         }
+
+        Instance<ObservationCenter> maybeObservationCenter = CDI.current().select(ObservationCenter.class);
+        this.observation = maybeObservationCenter.isResolvable() ? maybeObservationCenter.get().getObservation() : new NoopObservation();
 
         Consumer<MultiEmitter<? super Message<? extends T>>> deferred = fe -> {
             MultiEmitter<? super Message<? extends T>> previous = internal.getAndSet(fe);
@@ -45,8 +52,8 @@ public abstract class AbstractEmitter<T> implements MessagePublisherProvider<T> 
 
         Multi<Message<? extends T>> tempPublisher = getPublisherForStrategy(config.overflowBufferStrategy(),
                 config.overflowBufferSize(),
-                defaultBufferSize, deferred);
-
+                defaultBufferSize, deferred)
+                .onItem().invoke(message -> message.getMetadata(ObservationMetadata.class).ifPresent(om -> om.observation().onProcessingStart()));
         if (config.broadcast()) {
             publisher = (Multi<Message<? extends T>>) BroadcastHelper
                     .broadcastPublisher(tempPublisher, config.numberOfSubscriberBeforeConnecting());
@@ -83,8 +90,8 @@ public abstract class AbstractEmitter<T> implements MessagePublisherProvider<T> 
     }
 
     Multi<Message<? extends T>> getPublisherForStrategy(OnOverflow.Strategy overFlowStrategy, long bufferSize,
-            long defaultBufferSize,
-            Consumer<MultiEmitter<? super Message<? extends T>>> deferred) {
+                                                        long defaultBufferSize,
+                                                        Consumer<MultiEmitter<? super Message<? extends T>>> deferred) {
         if (overFlowStrategy == null) {
             overFlowStrategy = OnOverflow.Strategy.BUFFER;
         }
@@ -119,21 +126,6 @@ public abstract class AbstractEmitter<T> implements MessagePublisherProvider<T> 
         }
     }
 
-    /**
-     * Creates the stream when using the default buffer size.
-     *
-     * @param defaultBufferSize the default buffer size
-     * @param stream the upstream
-     * @return the stream.
-     */
-    Multi<Message<? extends T>> getPublisherUsingBufferStrategy(long defaultBufferSize,
-            Multi<Message<? extends T>> stream) {
-        int size = (int) defaultBufferSize;
-        return stream
-                .onOverflow().buffer(size - 2)
-                .onFailure().invoke(synchronousFailure::set);
-    }
-
     @Override
     public Publisher<Message<? extends T>> getPublisher() {
         return publisher;
@@ -143,13 +135,13 @@ public abstract class AbstractEmitter<T> implements MessagePublisherProvider<T> 
         if (message == null) {
             throw ex.illegalArgumentForNullValue();
         }
-
         MultiEmitter<? super Message<? extends T>> emitter = verify();
+        Message<? extends T> observable = createObervableMessage(message);
         if (emitter == null) {
             if (overflow == OnOverflow.Strategy.DROP) {
                 // There are no subscribers, but because we use the DROP strategy, just ignore the event.
                 // However, nack the message, so the sender can be aware of the rejection.
-                message.nack(NO_SUBSCRIBER_EXCEPTION);
+                observable.nack(NO_SUBSCRIBER_EXCEPTION);
             }
             return;
         }
@@ -159,7 +151,7 @@ public abstract class AbstractEmitter<T> implements MessagePublisherProvider<T> 
         if (emitter.isCancelled()) {
             throw ex.illegalStateForDownstreamCancel();
         }
-        emitter.emit(message);
+        emitter.emit(observable);
         if (synchronousFailure.get() != null) {
             throw ex.illegalStateForEmitterWhileEmitting(synchronousFailure.get());
         }
@@ -179,5 +171,15 @@ public abstract class AbstractEmitter<T> implements MessagePublisherProvider<T> 
             throw ex.illegalStateForCancelledSubscriber(name);
         }
         return emitter;
+    }
+
+    private Message<? extends T> createObervableMessage(Message<? extends T> message) {
+        ReactiveMessagingObservation.MessageObservation mo = this.observation.onNewMessage(name, message);
+        return message
+                .withAck(() -> message.ack()
+                        .whenComplete((ignored, err) -> mo.onAckOrNack(err == null)))
+                .withNack((failure) -> message.nack(failure)
+                        .whenComplete((ignored, err) -> mo.onAckOrNack(false)))
+                .addMetadata(new ObservationMetadata(mo));
     }
 }
