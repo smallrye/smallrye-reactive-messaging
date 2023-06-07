@@ -15,7 +15,6 @@ import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -27,65 +26,72 @@ import io.smallrye.reactive.messaging.WeldTestBaseWithoutTails;
 
 public class KeyedMultiInjectionTest extends WeldTestBaseWithoutTails {
 
-    static class MyParameters implements ArgumentsProvider {
+    static class SuccessCaseParameters implements ArgumentsProvider {
 
         @Override
         public Stream<? extends Arguments> provideArguments(ExtensionContext context) {
             // Tuple of: Name, List of bean classes, Success / Failure
             return Stream.of(
                     Arguments.of("Extractor using payload",
-                            List.of(AppWithDefault.class, ExtractorFromPayload.class, PayloadSource.class), true),
+                            List.of(AppWithDefault.class, ExtractorFromPayload.class, PayloadSource.class)),
                     Arguments.of("Extractor using metadata",
-                            List.of(AppWithDefault.class, ExtractorFromMetadata.class, MessageSource.class), true),
-                    Arguments.of("No extractor", List.of(AppWithDefault.class, MessageSource.class), false),
-                    Arguments.of("No matching extractor",
-                            List.of(AppWithDefault.class, ExtractorFromMetadata.class, PayloadSource.class), false),
+                            List.of(AppWithDefault.class, ExtractorFromMetadata.class, MessageSource.class)),
                     Arguments.of("Two matching extractors",
                             List.of(AppWithDefault.class, ExtractorFromMetadata.class,
-                                    ExtractorFromMetadataWithHigherPriority.class, MessageSource.class),
-                            true),
+                                    ExtractorFromMetadataWithHigherPriority.class, MessageSource.class)),
                     Arguments.of("Two matching extractors (reversed order)",
                             List.of(AppWithDefault.class, ExtractorFromMetadataWithHigherPriority.class,
-                                    ExtractorFromMetadata.class, MessageSource.class),
-                            true),
+                                    ExtractorFromMetadata.class, MessageSource.class)),
                     Arguments.of("Application using @Keyed",
-                            List.of(AppWithKeyed.class, ExtractorFromPayloadSelectedUsingKeyed.class, PayloadSource.class),
-                            true),
-                    Arguments.of("Application using @Keyed but not extractor", List.of(AppWithKeyed.class, PayloadSource.class),
-                            false),
+                            List.of(AppWithKeyed.class, ExtractorFromPayloadSelectedUsingKeyed.class,
+                                    PayloadSource.class)));
+        }
+    }
+
+    static class FailingCaseParameters implements ArgumentsProvider {
+
+        @Override
+        public Stream<? extends Arguments> provideArguments(ExtensionContext context) {
+            // Tuple of: Name, List of bean classes, Success / Failure
+            return Stream.of(
+                    Arguments.of("No extractor",
+                            List.of(AppWithDefault.class, MessageSource.class)),
+                    Arguments.of("No matching extractor",
+                            List.of(AppWithDefault.class, ExtractorFromMetadata.class, PayloadSource.class)),
+                    Arguments.of("Application using @Keyed but not extractor",
+                            List.of(AppWithKeyed.class, PayloadSource.class)),
                     Arguments.of("Application using @Keyed but no matching",
-                            List.of(AppWithKeyed.class, ExtractorFromMetadata.class, PayloadSource.class), false),
+                            List.of(AppWithKeyed.class, ExtractorFromMetadata.class, PayloadSource.class)),
                     Arguments.of("Extractor failing in `canExtract`",
-                            List.of(AppWithDefault.class, ExtractorFromPayloadThrowingInCanExtract.class, PayloadSource.class),
-                            false),
+                            List.of(AppWithDefault.class, ExtractorFromPayloadThrowingInCanExtract.class, PayloadSource.class)),
                     Arguments.of("Extractor failing in `extractKey`",
                             List.of(AppWithDefault.class, ExtractorFromPayloadThrowingWhileExtractingTheKey.class,
-                                    PayloadSource.class),
-                            false),
+                                    PayloadSource.class)),
                     Arguments.of("Extractor failing in `extractValue`",
                             List.of(AppWithDefault.class, ExtractorFromPayloadThrowingWhileExtractingTheValue.class,
-                                    PayloadSource.class),
-                            false),
-                    Arguments.of("Extractor selected with @Keyed failing in `extractKey`", List.of(AppWithKeyed.class,
-                            ExtractorFromPayloadSelectedUsingKeyedFailingWhileExtractingTheKey.class, PayloadSource.class),
-                            false),
-                    Arguments.of("Extractor selected with @Keyed  failing in `extractValue`", List.of(AppWithKeyed.class,
-                            ExtractorFromPayloadSelectedUsingKeyedFailingWhileExtractingTheValue.class, PayloadSource.class),
-                            false),
+                                    PayloadSource.class)),
+                    Arguments.of("Extractor selected with @Keyed failing in `extractKey`",
+                            List.of(AppWithKeyed.class,
+                                    ExtractorFromPayloadSelectedUsingKeyedFailingWhileExtractingTheKey.class,
+                                    PayloadSource.class)),
+                    Arguments.of("Extractor selected with @Keyed  failing in `extractValue`",
+                            List.of(AppWithKeyed.class,
+                                    ExtractorFromPayloadSelectedUsingKeyedFailingWhileExtractingTheValue.class,
+                                    PayloadSource.class)),
                     Arguments.of("Extractor using payload returning wrong key type",
-                            List.of(AppWithDefault.class, ExtractorFromPayloadReturningWrongKeyType.class, PayloadSource.class),
-                            false),
-                    Arguments.of("Extractor using payload returning wrong value type", List.of(AppWithDefault.class,
-                            ExtractorFromPayloadReturningWrongValueType.class, PayloadSource.class), false)
+                            List.of(AppWithDefault.class, ExtractorFromPayloadReturningWrongKeyType.class,
+                                    PayloadSource.class)),
+                    Arguments.of("Extractor using payload returning wrong value type",
+                            List.of(AppWithDefault.class, ExtractorFromPayloadReturningWrongValueType.class,
+                                    PayloadSource.class))
 
             );
         }
     }
 
-    @DisplayName("KeyedMultiTest")
-    @ArgumentsSource(MyParameters.class)
+    @ArgumentsSource(SuccessCaseParameters.class)
     @ParameterizedTest(name = "{0}")
-    void test(String name, List<Class<?>> classes, boolean success) {
+    void testSuccessCase(String name, List<Class<?>> classes) {
         addBeanClass(Sink.class);
         classes.forEach(this::addBeanClass);
 
@@ -94,16 +100,34 @@ public class KeyedMultiInjectionTest extends WeldTestBaseWithoutTails {
         try {
             initialize();
         } catch (Exception e) {
-            if (success) {
-                Assertions.fail("Initialization not expected to fail", e);
-            }
+            Assertions.fail("Initialization not expected to fail", e);
             return;
         }
 
-        if (!success) {
-            Assertions.fail("Initialization expected to fail");
+        Sink sink = get(Sink.class);
+        await().until(() -> sink.list().size() == 11);
+        assertThat(sink.list())
+                .containsExactlyInAnyOrder(
+                        "A-0", "B-0", "C-0",
+                        "A-1", "A-2", "A-3", "A-4",
+                        "B-1", "B-2", "C-1", "C-2");
+    }
+
+    @ArgumentsSource(FailingCaseParameters.class)
+    @ParameterizedTest(name = "{0}")
+    void testFailingCases(String name, List<Class<?>> classes) {
+        addBeanClass(Sink.class);
+        classes.forEach(this::addBeanClass);
+
+        // Failures are captured during the initialization because these tests are not async (the sources are immediate)
+
+        try {
+            initialize();
+        } catch (Exception e) {
             return;
         }
+
+        Assertions.fail("Initialization expected to fail");
 
         Sink sink = get(Sink.class);
         await().until(() -> sink.list().size() == 11);
