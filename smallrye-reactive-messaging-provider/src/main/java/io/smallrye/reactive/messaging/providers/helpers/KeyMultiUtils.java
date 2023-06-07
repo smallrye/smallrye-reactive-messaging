@@ -47,7 +47,7 @@ public class KeyMultiUtils {
                     .group().by(m -> reference.get().extractKey(m, keyType), m -> reference.get().extractValue(m, valueType))
                     .map(gm -> new DefaultKeyedMulti<>(gm.key(), gm));
         } else {
-            KeyValueExtractor extractor = findExtractor(configuration.getKeyed());
+            KeyValueExtractor extractor = findExtractor(extractors, configuration.getKeyed());
             return multi
                     .group().by(m -> extractor.extractKey(m, keyType), m -> extractor.extractValue(m, valueType))
                     .map(gm -> new DefaultKeyedMulti<>(gm.key(), gm));
@@ -60,8 +60,8 @@ public class KeyMultiUtils {
                 .findAny().orElseThrow(() -> ProviderExceptions.ex.noMatchingKeyValueExtractor(configuration.methodAsString()));
     }
 
-    private static KeyValueExtractor findExtractor(Class<? extends KeyValueExtractor> clazz) {
+    private static KeyValueExtractor findExtractor(Instance<KeyValueExtractor> extractors, Class<? extends KeyValueExtractor> clazz) {
         // Throw an unsatisfied exception if not found
-        return CDI.current().select(clazz).get();
+        return extractors.select(clazz).get();
     }
 }
