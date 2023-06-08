@@ -1,8 +1,8 @@
 # Configuring Pulsar clients, consumers and producers
 
-Pulsar clients, consumers and producers receive are very customizable to configure how a Pulsar client application behaves.
+Pulsar clients, consumers and producers are very customizable to configure how a Pulsar client application behaves.
 
-Pulsar connector creates client and, consumer or producer per channel, each with sensible defaults to ease their configuration.
+The Pulsar connector creates a Pulsar client and, a consumer or a producer per channel, each with sensible defaults to ease their configuration.
 Although the creation is handled, all available configuration options remain configurable through Pulsar channels.
 
 While idiomatic way of creating `PulsarClient`, `PulsarConsumer` or `PulsarProducer` are through builder APIs, in its essence
@@ -16,20 +16,20 @@ For example, the broker authentication information for `PulsarClient` is receive
 In order to configure the authentication for the incoming channel `data` :
 
 ```properties
-    mp.messaging.incoming.data.connector=smallrye-pulsar
-    mp.messaging.incoming.data.serviceUrl=pulsar://localhost:6650
-    mp.messaging.incoming.data.topic=topic
-    mp.messaging.incoming.data.subscriptionInitialPosition=Earliest
-    mp.messaging.incoming.data.schema=INT32
-    mp.messaging.incoming.data.authPluginClassName=org.apache.pulsar.client.impl.auth.AuthenticationBasic
-    mp.messaging.incoming.data.authParams={"userId":"superuser","password":"admin"}
+mp.messaging.incoming.data.connector=smallrye-pulsar
+mp.messaging.incoming.data.serviceUrl=pulsar://localhost:6650
+mp.messaging.incoming.data.topic=topic
+mp.messaging.incoming.data.subscriptionInitialPosition=Earliest
+mp.messaging.incoming.data.schema=INT32
+mp.messaging.incoming.data.authPluginClassName=org.apache.pulsar.client.impl.auth.AuthenticationBasic
+mp.messaging.incoming.data.authParams={"userId":"superuser","password":"admin"}
 ```
 
 Note that the Pulsar consumer property `subscriptionInitialPosition` is also configured with the `Earliest` value which represents with enum value `SubscriptionInitialPosition.Earliest`.
 
-This approach cover most of the configuration cases.
+This approach covers most of the configuration cases.
 However, non-serializable objects such as `CryptoKeyReader`, `ServiceUrlProvider` etc. cannot be configured this way.
-Pulsar Connector allows taking into account instances of Pulsar configuration data objects –
+The Pulsar Connector allows taking into account instances of Pulsar configuration data objects –
 `ClientConfigurationData`, `ConsumerConfigurationData`, `ProducerConfigurationData`:
 
 ```java
@@ -43,7 +43,7 @@ You need to indicate the name of the client using the `client-configuration`, `c
 mp.messaging.incoming.prices.consumer-configuration=my-consumer-options
 ```
 
-If no `[client|consumer|producer]-configuration` is configured the connector will look for instances identified with the channel name:
+If no `[client|consumer|producer]-configuration` is configured, the connector will look for instances identified with the channel name:
 
 ```java
 {{ insert('pulsar/configuration/PulsarClientConfigProducers.java', 'client') }}
@@ -56,8 +56,7 @@ You also can provide a `Map<String, Object>` containing configuration values by 
 ```
 
 
-In the order of precedence, the least to the highest, each step overriding the previous one,
-following are the different sources of configuration:
+Different configuration sources are loaded in the following order of precedence, from the least important to the highest:
 
 1. `Map<String, Object>` config map produced with default config identifier, `default-pulsar-client`, `default-pulsar-consumer`, `default-pulsar-producer`.
 2. `Map<String, Object>` config map produced with identifier in the configuration or channel name

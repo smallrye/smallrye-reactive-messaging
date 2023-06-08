@@ -26,29 +26,28 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Modifier;
 
 /**
- * Script run after the release.
- * The script does the following action in this order:
- * - checks that the previous milestone is closed, close it if not
- * - checks that the next milestone exists, or create it if not
- * - creates the Github release and compute the release notes
+ * Script run to write configuration reference for Pulsar client config options.
+ * The script loads configuration classes and write a markdown table with the following columns
+ * - Attribute
+ * - Description
+ * - Type
+ * - Config file (whether the property is settable from a configuration file
+ * - Default value
  * <p>
- * Run with `./PostRelease.java --token=GITHUB_TOKEN --release-version=version
+ * Run with `.github/PulsarConfigDoc.java -d documentation/src/main/docs/pulsar/config`
  * <p>
- * 1. The github token is mandatory.
- * <p>
- * The version is taken from the last tag if not set.
  */
 @CommandLine.Command(name = "pulsar-config-doc", mixinStandardHelpOptions = true, version = "0.1",
         description = "Pulsar Config Object Documentation")
 public class PulsarConfigDoc implements Callable<Integer> {
 
-    @CommandLine.Parameters(description = "The config type", arity = "0..n")
+    @CommandLine.Parameters(description = "Pulsar config type", arity = "0..n")
     private ConfigType[] configType = ConfigType.values();
 
-    @CommandLine.Option(names = {"-f", "--file"}, required = false, defaultValue = "true")
+    @CommandLine.Option(names = {"-f", "--file"}, description = { "Whether to write the markdown to file or not" }, required = false, defaultValue = "true")
     private boolean toFile;
 
-    @CommandLine.Option(names = {"-d", "--directory"}, required = false, defaultValue = "./")
+    @CommandLine.Option(names = {"-d", "--directory"}, description = { "Target directory to write the markdown file" }, required = false, defaultValue = "./")
     private Path directory;
 
     enum ConfigType {
@@ -105,8 +104,11 @@ public class PulsarConfigDoc implements Callable<Integer> {
         }
 
         if (toFile) {
-            Files.writeString(directory.resolve("smallrye-pulsar-" + configType.name().toLowerCase()+".md"), sb);
+            Path path = directory.resolve("smallrye-pulsar-" + configType.name().toLowerCase()+".md");
+            System.out.println("Writing " + configType + " documentation to file " + path);
+            Files.writeString(path, sb);
         } else {
+            System.out.println("Writing " + configType + " documentation to stdout...");
             System.out.println(sb);
         }
     }

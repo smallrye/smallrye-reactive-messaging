@@ -16,9 +16,7 @@ mp.messaging.outgoing.prices.schema=DOUBLE # <3>
 ```
 
 1.  Sets the connector for the `prices` channel
-
 2.  Configure the Pulsar broker service url.
-
 3.  Configure the schema to consume prices as Double.
 
 !!!note

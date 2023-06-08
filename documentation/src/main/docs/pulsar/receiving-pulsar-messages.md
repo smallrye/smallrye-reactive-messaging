@@ -18,11 +18,8 @@ mp.messaging.incoming.prices.subscriptionInitialPosition=Earliest # <4>
 ```
 
 1.  Sets the connector for the `prices` channel
-
 2.  Configure the Pulsar broker service url.
-
 3.  Configure the schema to consume prices as Double.
-
 4.  Make sure consumer subscription starts receiving messages from the `Earliest` position.
 
 
@@ -72,7 +69,7 @@ It provides the key, topic, partitions, headers and so on:
 ## Acknowledgement
 
 When a message produced from a Pulsar Message is *acknowledged*, the connector sends an [acknowledgement request](https://pulsar.apache.org/docs/3.0.x/concepts-messaging/#acknowledgment) to the Pulsar broker.
-All Reactive Messaging messages needs to be *acknowledged*, and in most cases this is handled automatically.
+All Reactive Messaging messages need to be *acknowledged*, which is handled automatically in most cases.
 Acknowledgement requests can be sent to the Pulsar broker using the following two strategies:
 
 -   **Individual acknowledgement** is the default strategy, an acknowledgement request is to the broker for each message.
