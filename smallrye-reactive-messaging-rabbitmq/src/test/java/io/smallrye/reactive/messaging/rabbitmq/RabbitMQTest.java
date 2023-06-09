@@ -217,6 +217,9 @@ class RabbitMQTest extends RabbitMQBrokerTestBase {
         final String dlxRoutingKey = "failure";
         final String dlqQueueType = "classic";
         final String dlqQueueMode = "default";
+        final long dlqTtl = 10000L;
+        final String dlqDlx = "dlqIncomingDlx";
+        final String dlqDlxRoutingKey = "failure";
 
         final String routingKeys = "urgent, normal";
 
@@ -241,6 +244,9 @@ class RabbitMQTest extends RabbitMQBrokerTestBase {
                 .put("mp.messaging.incoming.data.dead-letter-exchange", dlxName)
                 .put("mp.messaging.incoming.data.dead-letter-exchange-type", dlxType)
                 .put("mp.messaging.incoming.data.dead-letter-routing-key", dlxRoutingKey)
+                .put("mp.messaging.incoming.data.dead-letter-ttl", dlqTtl)
+                .put("mp.messaging.incoming.data.dead-letter-dlx", dlqDlx)
+                .put("mp.messaging.incoming.data.dead-letter-dlx-routing-key", dlqDlxRoutingKey)
                 .put("mp.messaging.incoming.data.dlx.declare", true)
                 .put("mp.messaging.incoming.data.dead-letter-queue-type", dlqQueueType)
                 .put("mp.messaging.incoming.data.dead-letter-queue-mode", dlqQueueMode)
@@ -300,6 +306,9 @@ class RabbitMQTest extends RabbitMQBrokerTestBase {
         assertThat(dlqArguments.fieldNames()).isNotNull();
         assertThat(dlqArguments.getString("x-queue-type")).isEqualTo(dlqQueueType);
         assertThat(dlqArguments.getString("x-queue-mode")).isEqualTo(dlqQueueMode);
+        assertThat(dlqArguments.getString("x-dead-letter-exchange")).isEqualTo(dlqDlx);
+        assertThat(dlqArguments.getString("x-dead-letter-routing-key")).isEqualTo(dlqDlxRoutingKey);
+        assertThat(dlqArguments.getLong("x-message-ttl")).isEqualTo(dlqTtl);
 
         // verify bindings
         final JsonArray queueBindings = usage.getBindings(exchangeName, queueName);
