@@ -81,7 +81,7 @@ public class PulsarOutgoingChannel<T> {
             builder.addEncryptionKey(encryptionKey);
         }
         this.producer = builder.create();
-        log.createdProducerWithConfig(channel, conf);
+        log.createdProducerWithConfig(channel, SchemaResolver.getSchemaName(schema), conf);
         long requests = oc.getMaxPendingMessages();
         if (requests <= 0) {
             requests = Long.MAX_VALUE;

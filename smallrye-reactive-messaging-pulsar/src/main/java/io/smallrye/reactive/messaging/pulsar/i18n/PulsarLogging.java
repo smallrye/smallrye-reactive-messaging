@@ -41,12 +41,12 @@ public interface PulsarLogging extends BasicLogger {
     void noSubscriptionName(String randomName);
 
     @LogMessage(level = Logger.Level.INFO)
-    @Message(id = 19011, value = "Created consumer for channel `%s` with configuration: %s")
-    void createdConsumerWithConfig(String channel, Object consumerConf);
+    @Message(id = 19011, value = "Created consumer for channel `%s` with schema '%s' and configuration: %s")
+    void createdConsumerWithConfig(String channel, String schema, Object consumerConf);
 
     @LogMessage(level = Logger.Level.INFO)
-    @Message(id = 19012, value = "Created producer for channel `%s` with configuration: %s")
-    void createdProducerWithConfig(String channel, Object producerConf);
+    @Message(id = 19012, value = "Created producer for channel `%s` with schema '%s' configuration: %s")
+    void createdProducerWithConfig(String channel, String schema, Object producerConf);
 
     @LogMessage(level = Logger.Level.WARN)
     @Message(id = 19013, value = "A message sent to channel `%s` has been nacked, fail-stopping the processing")
@@ -80,8 +80,8 @@ public interface PulsarLogging extends BasicLogger {
     @Message(id = 19020, value = "Created client with configuration: %s")
     void createdClientWithConfig(Object clientConf);
 
-    @LogMessage(level = Logger.Level.INFO)
-    @Message(id = 19021, value = "No schema with name %s found for the channel %s")
+    @LogMessage(level = Logger.Level.DEBUG)
+    @Message(id = 19021, value = "No schema type %s found for the channel %s")
     void primitiveSchemaNotFound(String schemaName, String channel);
 
     @LogMessage(level = Logger.Level.WARN)

@@ -50,4 +50,9 @@ public class SchemaResolver {
             return defaultSchema;
         });
     }
+
+    public static String getSchemaName(Schema<?> schema) {
+        SchemaInfo schemaInfo = schema.getSchemaInfo();
+        return schemaInfo != null ? schemaInfo.getName() : schema.getClass().getSimpleName();
+    }
 }
