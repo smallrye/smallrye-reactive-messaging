@@ -96,9 +96,8 @@ You can disable this by setting the `waitForWriteCompletion` attribute to `false
 If a record cannot be written, the message is `nacked`.
 
 !!!Important
-    The Pulsar connector applies a default value of 30 seconds to the `sendTimeoutMs` property of the Pulsar producer.
-    In case of send failure, the connector retries publishing the message to the broker until the *send timeout*,
-    or until the number of `retries` is exceeded.
+    The Pulsar client automatically retries sending messages in case of failure, until the *send timeout* is reached.
+    The *send timeout* is configurable with `sendTimeoutMs` attribute and by default is is 30 seconds.
 
 ## Back-pressure and inflight records
 

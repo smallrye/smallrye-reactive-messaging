@@ -2,7 +2,6 @@ package io.smallrye.reactive.messaging.pulsar;
 
 import static io.smallrye.reactive.messaging.pulsar.i18n.PulsarLogging.log;
 
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -11,7 +10,6 @@ import java.util.Optional;
 import java.util.concurrent.Flow;
 import java.util.stream.Collectors;
 
-import org.apache.pulsar.client.api.MessageId;
 import org.apache.pulsar.client.api.Producer;
 import org.apache.pulsar.client.api.ProducerBuilder;
 import org.apache.pulsar.client.api.PulsarClient;
@@ -41,8 +39,6 @@ import io.smallrye.reactive.messaging.tracing.TracingUtils;
 
 public class PulsarOutgoingChannel<T> {
 
-    private static final String SEND_TIMEOUT_MS_CONFIG = "sendTimeoutMs";
-    private static final long DEFAULT_SEND_TIMEOUT_MS = 30000;
     private final Producer<T> producer;
     private final PulsarSenderProcessor processor;
     private final Flow.Subscriber<? extends Message<?>> subscriber;
@@ -50,8 +46,6 @@ public class PulsarOutgoingChannel<T> {
     private final boolean healthEnabled;
     private final List<Throwable> failures = new ArrayList<>();
     private final boolean tracingEnabled;
-    private final long retries;
-    private final long sendTimeoutMs;
     private final Instrumenter<PulsarTrace, Void> instrumenter;
 
     public PulsarOutgoingChannel(PulsarClient client, Schema<T> schema, PulsarConnectorOutgoingConfiguration oc,
@@ -59,7 +53,6 @@ public class PulsarOutgoingChannel<T> {
         this.channel = oc.getChannel();
         this.healthEnabled = oc.getHealthEnabled();
         this.tracingEnabled = oc.getTracingEnabled();
-        this.retries = oc.getRetries();
         ProducerConfigurationData conf = configResolver.getProducerConf(oc);
         if (conf.getProducerName() == null) {
             conf.setProducerName(channel);
@@ -68,7 +61,6 @@ public class PulsarOutgoingChannel<T> {
             conf.setTopicName(oc.getTopic().orElse(channel));
         }
         Map<String, Object> producerConf = configResolver.configToMap(conf);
-        this.sendTimeoutMs = getSendTimeoutMs(producerConf);
         ProducerBuilder<T> builder = client.newProducer(schema)
                 .loadConf(producerConf);
         if (conf.getBatcherBuilder() != null) {
@@ -106,24 +98,10 @@ public class PulsarOutgoingChannel<T> {
                 .buildProducerInstrumenter(PulsarTraceTextMapSetter.INSTANCE);
     }
 
-    private static long getSendTimeoutMs(Map<String, Object> config) {
-        return (Long) config.getOrDefault(SEND_TIMEOUT_MS_CONFIG, DEFAULT_SEND_TIMEOUT_MS);
-    }
-
     private Uni<Void> sendMessage(Message<?> message) {
         return Uni.createFrom().item(message)
                 .onItem().transform(m -> toMessageBuilder(m, producer))
-                .onItem().transformToUni(mb -> {
-                    Uni<MessageId> send = Uni.createFrom().completionStage(mb.sendAsync());
-                    if (this.retries == Integer.MAX_VALUE) {
-                        send = send.onFailure().retry()
-                                .withBackOff(Duration.ofSeconds(1), Duration.ofSeconds(20)).expireIn(sendTimeoutMs);
-                    } else if (this.retries > 0) {
-                        send = send.onFailure().retry()
-                                .withBackOff(Duration.ofSeconds(1), Duration.ofSeconds(20)).atMost(this.retries);
-                    }
-                    return send;
-                })
+                .onItem().transformToUni(mb -> Uni.createFrom().completionStage(mb.sendAsync()))
                 .onItemOrFailure().transformToUni((mid, t) -> {
                     if (t == null) {
                         OutgoingMessageMetadata.setResultOnMessage(message, mid);

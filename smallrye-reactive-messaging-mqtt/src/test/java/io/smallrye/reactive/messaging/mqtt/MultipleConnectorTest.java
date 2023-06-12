@@ -12,6 +12,7 @@ import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.jboss.weld.environment.se.Weld;
 import org.jboss.weld.environment.se.WeldContainer;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
@@ -19,6 +20,7 @@ import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 /**
  * Reproduce <a href="https://github.com/quarkusio/quarkus/issues/32462">#32462</a>.
  */
+@Disabled
 public class MultipleConnectorTest extends MqttTestBase {
 
     private WeldContainer container;

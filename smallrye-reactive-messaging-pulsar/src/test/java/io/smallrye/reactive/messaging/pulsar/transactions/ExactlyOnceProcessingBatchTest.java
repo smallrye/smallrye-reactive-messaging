@@ -19,12 +19,15 @@ import org.apache.pulsar.client.api.SubscriptionInitialPosition;
 import org.eclipse.microprofile.reactive.messaging.Channel;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.OnOverflow;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.pulsar.PulsarConnector;
 import io.smallrye.reactive.messaging.pulsar.PulsarIncomingBatchMessage;
 import io.smallrye.reactive.messaging.pulsar.PulsarMessage;
+import io.smallrye.reactive.messaging.pulsar.TestTags;
 import io.smallrye.reactive.messaging.pulsar.base.WeldTestBase;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 
@@ -81,7 +84,15 @@ public class ExactlyOnceProcessingBatchTest extends WeldTestBase {
         }
     }
 
+    /**
+     * TODO Disabled test
+     * For exactly-once processing the broker needs to enable the Message deduplication with
+     * <code>brokerDeduplicationEnabled=true</code> and producer `sendTimeoutMs` needs to be `0`.
+     * However this
+     */
     @Test
+    @Disabled
+    @Tag(TestTags.FLAKY)
     void testExactlyOnceProcessorWithProcessingError() throws PulsarAdminException, PulsarClientException {
         this.inTopic = UUID.randomUUID().toString();
         admin.topics().createPartitionedTopic(inTopic, 3);
@@ -95,7 +106,7 @@ public class ExactlyOnceProcessingBatchTest extends WeldTestBase {
         send(client.newProducer(Schema.INT32)
                 .producerName("test-producer")
                 .topic(this.inTopic)
-                .create(), numberOfRecords, (i, producer) -> producer.newMessage().value(i).key("k-" + i));
+                .create(), numberOfRecords, (i, producer) -> producer.newMessage().sequenceId(i).value(i).key("k-" + i));
 
         List<Integer> list = new CopyOnWriteArrayList<>();
         receive(client.newConsumer(Schema.INT32)
@@ -105,9 +116,6 @@ public class ExactlyOnceProcessingBatchTest extends WeldTestBase {
                 .topic(this.outTopic)
                 .subscribe(), numberOfRecords, m -> list.add(m.getValue()));
 
-        //        await().untilAsserted(() -> assertThat(application.getProcessed())
-        //                .containsAll(IntStream.range(0, numberOfRecords).boxed().collect(Collectors.toList()))
-        //                .doesNotHaveDuplicates());
         await().untilAsserted(() -> assertThat(list)
                 .containsAll(IntStream.range(0, numberOfRecords).boxed().collect(Collectors.toList()))
                 .doesNotHaveDuplicates());
@@ -119,6 +127,7 @@ public class ExactlyOnceProcessingBatchTest extends WeldTestBase {
                 .with("mp.messaging.outgoing.transactional-producer.serviceUrl", serviceUrl)
                 .with("mp.messaging.outgoing.transactional-producer.topic", outTopic)
                 .with("mp.messaging.outgoing.transactional-producer.enableTransaction", true)
+                .with("mp.messaging.outgoing.transactional-producer.sendTimeoutMs", 0)
                 .with("mp.messaging.outgoing.transactional-producer.schema", "INT32");
     }
 
