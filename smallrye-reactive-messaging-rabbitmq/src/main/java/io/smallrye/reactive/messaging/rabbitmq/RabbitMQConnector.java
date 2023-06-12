@@ -14,6 +14,7 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Flow;
 import java.util.stream.Collectors;
 
@@ -33,6 +34,7 @@ import org.eclipse.microprofile.reactive.messaging.spi.IncomingConnectorFactory;
 import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 
 import com.rabbitmq.client.AMQP;
+import com.rabbitmq.client.AlreadyClosedException;
 import com.rabbitmq.client.impl.CredentialsProvider;
 
 import io.smallrye.mutiny.Multi;
@@ -151,16 +153,26 @@ public class RabbitMQConnector implements InboundConnector, OutboundConnector, H
         INITIALISING;
     }
 
-    // The list of RabbitMQClient's currently managed by this connector
+    /**
+     * The list of RabbitMQClient's currently managed by this connector
+     */
     private final Map<String, RabbitMQClient> clients = new ConcurrentHashMap<>();
+
+    /**
+     * The list of RabbitMQ consumers.
+     * This list is maintained to clean up the resources on termination.
+     */
+    private final List<RabbitMQConsumer> consumers = new CopyOnWriteArrayList<>();
+
+    /**
+     * The list of RabbitMQMessageSender's currently managed by this connector
+     */
+    private final Map<String, Flow.Subscription> subscriptions = new ConcurrentHashMap<>();
 
     // Keyed on channel name, value is the channel connection state
     private final Map<String, ChannelStatus> incomingChannelStatus = new ConcurrentHashMap<>();
 
     private final Map<String, ChannelStatus> outgoingChannelStatus = new ConcurrentHashMap<>();
-
-    // The list of RabbitMQMessageSender's currently managed by this connector
-    private final Map<String, Flow.Subscription> subscriptions = new ConcurrentHashMap<>();
 
     @Inject
     ExecutionHolder executionHolder;
@@ -273,11 +285,11 @@ public class RabbitMQConnector implements InboundConnector, OutboundConnector, H
     }
 
     private Uni<RabbitMQConsumer> createConsumer(RabbitMQConnectorIncomingConfiguration ic, RabbitMQClient client) {
-        return Uni.createFrom().nullItem()
-                .onItem().transformToUni(ignored -> client.basicConsumer(serverQueueName(ic.getQueueName()), new QueueOptions()
-                        .setAutoAck(ic.getAutoAcknowledgement())
-                        .setMaxInternalQueueSize(ic.getMaxIncomingInternalQueueSize())
-                        .setKeepMostRecent(ic.getKeepMostRecent())));
+        return client.basicConsumer(serverQueueName(ic.getQueueName()), new QueueOptions()
+                .setAutoAck(ic.getAutoAcknowledgement())
+                .setMaxInternalQueueSize(ic.getMaxIncomingInternalQueueSize())
+                .setKeepMostRecent(ic.getKeepMostRecent()))
+                .onItem().invoke(cons -> consumers.add(cons));
     }
 
     /**
@@ -417,6 +429,14 @@ public class RabbitMQConnector implements InboundConnector, OutboundConnector, H
     public void terminate(
             @SuppressWarnings("unused") @Observes(notifyObserver = Reception.IF_EXISTS) @Priority(50) @BeforeDestroyed(ApplicationScoped.class) Object ignored) {
         subscriptions.forEach((channel, subscription) -> subscription.cancel());
+        consumers.forEach(consumer -> {
+            try {
+                consumer.cancelAndAwait();
+            } catch (AlreadyClosedException x) {
+                // Ignoring - already closed.
+            }
+        });
+        consumers.clear();
         clients.forEach((channel, rabbitMQClient) -> rabbitMQClient.stopAndAwait());
         clients.clear();
     }
