@@ -27,7 +27,29 @@
     "criticality" : "highlight",
     "minSeverity" : "POTENTIALLY_BREAKING",
     "minCriticality" : "documented",
-    "differences" : [ ]
+    "differences" : [
+        {
+            "ignore": true,
+            "code": "java.field.enumConstantOrderChanged",
+            "old": "field io.smallrye.reactive.messaging.MediatorConfiguration.Consumption.MESSAGE",
+            "new": "field io.smallrye.reactive.messaging.MediatorConfiguration.Consumption.MESSAGE",
+            "justification": "New value for KeyedMulti with Messages"
+        },
+        {
+            "ignore": true,
+            "code": "java.field.enumConstantOrderChanged",
+            "old": "field io.smallrye.reactive.messaging.MediatorConfiguration.Consumption.NONE",
+            "new": "field io.smallrye.reactive.messaging.MediatorConfiguration.Consumption.NONE",
+            "justification": "New value for KeyedMulti with Messages"
+        },
+        {
+            "ignore": true,
+            "code": "java.field.enumConstantOrderChanged",
+            "old": "field io.smallrye.reactive.messaging.MediatorConfiguration.Consumption.PAYLOAD",
+            "new": "field io.smallrye.reactive.messaging.MediatorConfiguration.Consumption.PAYLOAD",
+            "justification": "New value for KeyedMulti with Messages"
+        }
+    ]
   }
 }, {
   "extension" : "revapi.reporter.json",

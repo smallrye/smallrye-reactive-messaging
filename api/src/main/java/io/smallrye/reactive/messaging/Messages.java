@@ -49,7 +49,7 @@ public class Messages {
         };
         Metadata metadata = list.get(0).getMetadata();
         for (int i = 1; i < list.size(); i++) {
-            Metadata other = list.get(1).getMetadata();
+            Metadata other = list.get(i).getMetadata();
             metadata = merge(metadata, other);
         }
 

@@ -3,6 +3,7 @@ package io.smallrye.reactive.messaging.providers;
 import static io.smallrye.reactive.messaging.providers.i18n.ProviderExceptions.ex;
 import static io.smallrye.reactive.messaging.providers.i18n.ProviderLogging.log;
 
+import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.List;
 import java.util.concurrent.CompletionStage;
@@ -33,18 +34,15 @@ public class MediatorConfigurationSupport {
     private final Class<?>[] parameterTypes;
     private final GenericTypeAssignable returnTypeAssignable;
     private final GenericTypeAssignable firstMethodParamTypeAssignable;
-    private final Class<? extends KeyValueExtractor> keyed;
     private boolean strict;
 
     public MediatorConfigurationSupport(String methodAsString, Class<?> returnType, Class<?>[] parameterTypes,
-            GenericTypeAssignable returnTypeAssignable, GenericTypeAssignable firstMethodParamTypeAssignable,
-            Class<? extends KeyValueExtractor> keyed) {
+            GenericTypeAssignable returnTypeAssignable, GenericTypeAssignable firstMethodParamTypeAssignable) {
         this.methodAsString = methodAsString;
         this.returnType = returnType;
         this.parameterTypes = parameterTypes;
         this.returnTypeAssignable = returnTypeAssignable;
         this.firstMethodParamTypeAssignable = firstMethodParamTypeAssignable;
-        this.keyed = keyed;
     }
 
     public Shape determineShape(List<?> incomingValue, Object outgoingValue) {
@@ -468,7 +466,14 @@ public class MediatorConfigurationSupport {
                 : MediatorConfiguration.Production.STREAM_OF_PAYLOAD;
 
         if (parameterTypes.length == 1 && parameterTypes[0].equals(KeyedMulti.class)) {
-            consumption = MediatorConfiguration.Consumption.KEYED_MULTI;
+            // Check whether it's a KeyMulti receiving payloads or messages
+            if (firstMethodParamTypeAssignable.getType(1) instanceof ParameterizedType &&
+                    ((ParameterizedType) firstMethodParamTypeAssignable.getType(1)).getRawType().getTypeName()
+                            .equals(Message.class.getName())) {
+                consumption = MediatorConfiguration.Consumption.KEYED_MULTI_MESSAGE;
+            } else {
+                consumption = MediatorConfiguration.Consumption.KEYED_MULTI;
+            }
         } else {
             GenericTypeAssignable.Result firstParamTypeGenericCheck = firstMethodParamTypeAssignable
                     .check(Message.class, 0);
@@ -496,6 +501,8 @@ public class MediatorConfigurationSupport {
             throw ex.definitionManualAckNotSupported("@Incoming & @Outgoing", methodAsString);
         }
 
+        // TODO Check that post processing is not used on a keyed_multi_message.
+
         if (production == MediatorConfiguration.Production.STREAM_OF_PAYLOAD
                 && acknowledgment == Acknowledgment.Strategy.MANUAL) {
             throw ex.definitionManualAckNotSupported("@Incoming & @Outgoing", methodAsString);
@@ -505,11 +512,15 @@ public class MediatorConfigurationSupport {
             payloadType = firstMethodParamTypeAssignable.getType(0, 0);
         } else if (consumption == MediatorConfiguration.Consumption.STREAM_OF_PAYLOAD) {
             payloadType = firstMethodParamTypeAssignable.getType(0);
-        } else {
+        } else if (consumption == MediatorConfiguration.Consumption.KEYED_MULTI) {
             payloadType = parameterTypes[0];
-
             keyType = firstMethodParamTypeAssignable.getType(0);
             valueType = firstMethodParamTypeAssignable.getType(1);
+        } else {
+            // KEYED_MULTI_MESSAGE
+            payloadType = firstMethodParamTypeAssignable.getType(1, 0);
+            keyType = firstMethodParamTypeAssignable.getType(0);
+            valueType = firstMethodParamTypeAssignable.getType(1, 0);
         }
 
         // Ensure that the parameter is also using the MP Reactive Streams Operator types.

@@ -140,8 +140,7 @@ public class DefaultMediatorConfiguration implements MediatorConfiguration {
                 this.parameterTypes,
                 new ReturnTypeGenericTypeAssignable(method),
                 this.parameterTypes.length == 0 ? new AlwaysInvalidIndexGenericTypeAssignable()
-                        : new MethodParamGenericTypeAssignable(method, 0),
-                keyed);
+                        : new MethodParamGenericTypeAssignable(method, 0));
         this.keyed = keyed;
     }
 
