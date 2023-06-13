@@ -51,6 +51,7 @@ nav:
         - 'Health Checks': amqp/health.md
         - 'Client Customization': amqp/client-customization.md
         - 'Using RabbitMQ': amqp/rabbitmq.md
+
   - RabbitMQ:
         - rabbitmq/rabbitmq.md
         - 'Receiving messages' : rabbitmq/receiving-messages-from-rabbitmq.md
@@ -58,6 +59,17 @@ nav:
         - 'Health Checks' : rabbitmq/rabbitmq-health.md
         - 'Client Customization' : rabbitmq/rabbitmq-client-customization.md
         - 'Connecting to managed instances' : rabbitmq/rabbitmq-cloud.md
+
+
+  - Pulsar:
+        - pulsar/pulsar.md
+        - 'Receiving messages': pulsar/receiving-pulsar-messages.md
+        - 'Sending messages': pulsar/sending-messages-to-pulsar.md
+        - 'Configuring the Schema': pulsar/schema-configuration.md
+        - 'Configuring the Pulsar client': pulsar/client-configuration.md
+        - 'Health Checks': pulsar/health.md
+        - 'Accessing the client': pulsar/client-service.md
+        - 'Pulsar Transactions and Exactly-Once Processing': pulsar/transactions.md
 
   - Apache Camel:
        -  camel/camel.md
@@ -77,6 +89,7 @@ nav:
         - 'Receiving MQTT messages': mqtt/receiving-mqtt-messages.md
         - 'Sending MQTT messages': mqtt/sending-messages-to-mqtt.md
         - 'Customizing the MQTT client': mqtt/client-customization.md
+
 
 plugins:
   - search

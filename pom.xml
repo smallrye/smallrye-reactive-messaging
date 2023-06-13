@@ -137,6 +137,7 @@
     <module>smallrye-reactive-messaging-health</module>
     <module>smallrye-reactive-messaging-rabbitmq</module>
     <module>smallrye-reactive-messaging-gcp-pubsub</module>
+    <module>smallrye-reactive-messaging-pulsar</module>
     <module>examples/quickstart</module>
     <module>examples/kafka-quickstart</module>
     <module>examples/kafka-quickstart-kotlin</module>
@@ -616,7 +617,7 @@
     <profile>
       <id>with-camel</id>
       <activation>
-        <jdk>[17, 19]</jdk>
+        <jdk>[17, 20]</jdk>
       </activation>
       <modules>
         <module>smallrye-reactive-messaging-camel</module>

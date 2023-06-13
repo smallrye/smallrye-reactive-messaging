@@ -5,7 +5,6 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
 import jakarta.enterprise.inject.Instance;
-import jakarta.enterprise.inject.spi.CDI;
 
 import org.eclipse.microprofile.reactive.messaging.Message;
 
@@ -60,7 +59,8 @@ public class KeyMultiUtils {
                 .findAny().orElseThrow(() -> ProviderExceptions.ex.noMatchingKeyValueExtractor(configuration.methodAsString()));
     }
 
-    private static KeyValueExtractor findExtractor(Instance<KeyValueExtractor> extractors, Class<? extends KeyValueExtractor> clazz) {
+    private static KeyValueExtractor findExtractor(Instance<KeyValueExtractor> extractors,
+            Class<? extends KeyValueExtractor> clazz) {
         // Throw an unsatisfied exception if not found
         return extractors.select(clazz).get();
     }
