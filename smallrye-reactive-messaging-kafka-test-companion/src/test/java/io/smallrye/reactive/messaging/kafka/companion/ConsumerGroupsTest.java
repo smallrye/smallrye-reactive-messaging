@@ -116,7 +116,7 @@ public class ConsumerGroupsTest extends KafkaCompanionTestBase {
         companion.consumerGroups().deleteOffsets(consumer.groupId(), Collections.singletonList(tp(topic, 0)));
 
         // Consume again, but this time check that 5 records are consumed
-        ConsumerTask<String, Integer> consumer3 = consumer.fromTopics(topic, 5);
+        ConsumerTask<String, Integer> consumer3 = companion.consumeIntegers().fromTopics(topic, 5);
         assertThat(consumer3.awaitCompletion().count()).isEqualTo(5L);
     }
 }
