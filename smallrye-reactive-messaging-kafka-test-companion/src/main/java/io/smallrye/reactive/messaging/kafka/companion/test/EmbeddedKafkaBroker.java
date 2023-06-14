@@ -34,7 +34,6 @@ import kafka.server.KafkaConfig;
 import kafka.server.KafkaRaftServer;
 import kafka.server.MetaProperties;
 import kafka.tools.StorageTool;
-import scala.Option;
 import scala.collection.immutable.Seq;
 import scala.jdk.CollectionConverters;
 import scala.jdk.javaapi.StreamConverters;
@@ -373,7 +372,7 @@ public class EmbeddedKafkaBroker implements Closeable {
     }
 
     public static KafkaRaftServer createServer(final KafkaConfig config) {
-        KafkaRaftServer server = new KafkaRaftServer(config, Time.SYSTEM, Option.apply(COMPANION_BROKER_PREFIX));
+        KafkaRaftServer server = new KafkaRaftServer(config, Time.SYSTEM);
         server.startup();
         return server;
     }
