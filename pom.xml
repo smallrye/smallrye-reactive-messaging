@@ -90,7 +90,7 @@
 
     <kafka.version>3.5.0</kafka.version>
 
-    <opentelemetry.version>1.25.0-alpha</opentelemetry.version>
+    <opentelemetry.version>1.27.0-alpha</opentelemetry.version>
 
     <smallrye-vertx-mutiny-clients.version>3.3.0</smallrye-vertx-mutiny-clients.version>
     <smallrye-reactive-converters.version>3.0.0</smallrye-reactive-converters.version>
