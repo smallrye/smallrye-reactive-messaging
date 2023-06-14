@@ -40,7 +40,7 @@ public class PulsarAuthenticationTest extends WeldTestBaseWithoutExtension {
     static PulsarContainer container;
 
     @BeforeAll
-    static void beforeAll() throws PulsarClientException {
+    static void beforeAll() throws PulsarClientException, InterruptedException {
         container = new PulsarContainer()
                 .withCopyToContainer(MountableFile.forClasspathResource("htpasswd"), "/pulsar/conf/.htpasswd")
                 .withEnv("PULSAR_PREFIX_authenticationEnabled", "true")

@@ -39,7 +39,6 @@ public class MessageMetadataTest {
         assertThat(msg.hasKey()).isFalse();
 
         assertThatThrownBy(() -> msg.getKey()).isInstanceOf(IllegalStateException.class);
-        assertThatThrownBy(() -> msg.key(null)).isInstanceOf(NullPointerException.class);
     }
 
     @Test

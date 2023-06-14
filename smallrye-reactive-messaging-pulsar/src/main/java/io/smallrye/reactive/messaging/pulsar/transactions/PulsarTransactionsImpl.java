@@ -147,21 +147,17 @@ public class PulsarTransactionsImpl<T> extends MutinyEmitterImpl<T> implements P
 
         private Uni<Transaction> createTransaction() {
             return Uni.createFrom().emitter(emitter -> {
-                try {
-                    TransactionBuilder builder = pulsarClient.newTransaction();
-                    if (txnTimeout != null) {
-                        builder = builder.withTransactionTimeout(txnTimeout.toMillis(), TimeUnit.MILLISECONDS);
-                    }
-                    builder.build().whenComplete((transaction, throwable) -> {
-                        if (throwable == null) {
-                            emitter.complete(transaction);
-                        } else {
-                            emitter.fail(throwable);
-                        }
-                    });
-                } catch (PulsarClientException e) {
-                    emitter.fail(e);
+                TransactionBuilder builder = pulsarClient.newTransaction();
+                if (txnTimeout != null) {
+                    builder = builder.withTransactionTimeout(txnTimeout.toMillis(), TimeUnit.MILLISECONDS);
                 }
+                builder.build().whenComplete((transaction, throwable) -> {
+                    if (throwable == null) {
+                        emitter.complete(transaction);
+                    } else {
+                        emitter.fail(throwable);
+                    }
+                });
             });
         }
 

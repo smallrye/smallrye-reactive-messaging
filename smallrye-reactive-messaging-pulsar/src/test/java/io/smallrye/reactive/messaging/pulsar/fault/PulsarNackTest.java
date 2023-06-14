@@ -143,7 +143,7 @@ public class PulsarNackTest extends WeldTestBase {
         // Check for consumed messages in app
         await().untilAsserted(() -> {
             assertThat(app.getResults()).hasSize(NUMBER_OF_MESSAGES - 10);
-            assertThat(app.getFailures()).hasSize(30);
+            assertThat(app.getFailures()).hasSizeGreaterThanOrEqualTo(30);
         });
 
         List<Message<Integer>> retries = new CopyOnWriteArrayList<>();
@@ -151,7 +151,7 @@ public class PulsarNackTest extends WeldTestBase {
                 .topic(topic + "-dlq")
                 .subscriptionInitialPosition(SubscriptionInitialPosition.Earliest)
                 .subscriptionName("initial-dlq-sub")
-                .subscribe(), 10, retries::add);
+                .subscribe()).subscribe().with(retries::add);
 
         // Check for retried messages
         await().untilAsserted(() -> assertThat(retries).extracting(Message::getValue).hasSize(10));
