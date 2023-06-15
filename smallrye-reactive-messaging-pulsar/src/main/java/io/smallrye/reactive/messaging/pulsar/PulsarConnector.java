@@ -70,7 +70,7 @@ public class PulsarConnector implements InboundConnector, OutboundConnector, Hea
 
     public static final String CONNECTOR_NAME = "smallrye-pulsar";
 
-    private final Map<ClientConfigurationData, PulsarClient> clients = new ConcurrentHashMap<>();
+    private final Map<String, PulsarClient> clients = new ConcurrentHashMap<>();
     private final Map<String, PulsarClient> clientsByChannel = new ConcurrentHashMap<>();
     private final List<PulsarOutgoingChannel<?>> outgoingChannels = new CopyOnWriteArrayList<>();
     private final List<PulsarIncomingChannel<?>> incomingChannels = new CopyOnWriteArrayList<>();
@@ -103,7 +103,8 @@ public class PulsarConnector implements InboundConnector, OutboundConnector, Hea
     public Flow.Publisher<? extends Message<?>> getPublisher(Config config) {
         PulsarConnectorIncomingConfiguration ic = new PulsarConnectorIncomingConfiguration(config);
 
-        PulsarClient client = clients.computeIfAbsent(configResolver.getClientConf(ic), this::createPulsarClient);
+        ClientConfigurationData clientConf = configResolver.getClientConf(ic);
+        PulsarClient client = clients.computeIfAbsent(clientHash(clientConf), ignored -> createPulsarClient(clientConf));
         clientsByChannel.put(ic.getChannel(), client);
 
         try {
@@ -122,7 +123,8 @@ public class PulsarConnector implements InboundConnector, OutboundConnector, Hea
     public Flow.Subscriber<? extends Message<?>> getSubscriber(Config config) {
         PulsarConnectorOutgoingConfiguration oc = new PulsarConnectorOutgoingConfiguration(config);
 
-        PulsarClient client = clients.computeIfAbsent(configResolver.getClientConf(oc), this::createPulsarClient);
+        ClientConfigurationData clientConf = configResolver.getClientConf(oc);
+        PulsarClient client = clients.computeIfAbsent(clientHash(clientConf), ignored -> createPulsarClient(clientConf));
         clientsByChannel.put(oc.getChannel(), client);
 
         try {
@@ -133,6 +135,11 @@ public class PulsarConnector implements InboundConnector, OutboundConnector, Hea
         } catch (PulsarClientException e) {
             throw ex.illegalStateUnableToBuildProducer(e);
         }
+    }
+
+    // the idea is to share clients if possible since one PulsarClient can be used for multiple producers and consumers
+    private String clientHash(ClientConfigurationData clientConf) {
+        return HashUtil.sha256(clientConf.toString());
     }
 
     public void terminate(
