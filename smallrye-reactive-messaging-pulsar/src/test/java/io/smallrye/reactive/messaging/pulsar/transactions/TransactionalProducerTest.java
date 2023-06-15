@@ -6,6 +6,7 @@ import static org.awaitility.Awaitility.await;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 
@@ -16,6 +17,7 @@ import org.apache.pulsar.client.admin.PulsarAdminException;
 import org.apache.pulsar.client.api.PulsarClientException;
 import org.apache.pulsar.client.api.Schema;
 import org.apache.pulsar.client.api.SubscriptionInitialPosition;
+import org.apache.pulsar.client.api.SubscriptionType;
 import org.assertj.core.api.Assertions;
 import org.eclipse.microprofile.reactive.messaging.Channel;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
@@ -165,11 +167,13 @@ public class TransactionalProducerTest extends WeldTestBase {
         List<Integer> received = new CopyOnWriteArrayList<>();
         receive(client.newConsumer(Schema.INT32)
                 .consumerName("test-consumer")
+                .subscriptionType(SubscriptionType.Shared)
                 .subscriptionName("test-subscription")
                 .subscriptionInitialPosition(SubscriptionInitialPosition.Earliest)
                 .topic(topic)
                 .subscribe(), numberOfRecords, integerMessage -> received.add(integerMessage.getValue()));
-        assertThat(received).hasSize(0);
+        await().pollDelay(3, TimeUnit.SECONDS)
+                .untilAsserted(() -> assertThat(received).hasSize(0));
     }
 
     @Test
@@ -190,12 +194,15 @@ public class TransactionalProducerTest extends WeldTestBase {
 
         List<Integer> received = new CopyOnWriteArrayList<>();
         receive(client.newConsumer(Schema.INT32)
+                .subscriptionType(SubscriptionType.Shared)
                 .consumerName("test-consumer")
                 .subscriptionName("test-subscription")
                 .subscriptionInitialPosition(SubscriptionInitialPosition.Earliest)
                 .topic(topic)
                 .subscribe(), numberOfRecords, integerMessage -> received.add(integerMessage.getValue()));
-        assertThat(received).hasSize(0);
+
+        await().pollDelay(3, TimeUnit.SECONDS)
+                .untilAsserted(() -> assertThat(received).hasSize(0));
     }
 
     @ApplicationScoped

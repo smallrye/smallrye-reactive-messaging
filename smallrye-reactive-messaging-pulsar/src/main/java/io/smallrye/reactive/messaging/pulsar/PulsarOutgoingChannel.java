@@ -101,7 +101,7 @@ public class PulsarOutgoingChannel<T> {
     private Uni<Void> sendMessage(Message<?> message) {
         return Uni.createFrom().item(message)
                 .onItem().transform(m -> toMessageBuilder(m, producer))
-                .onItem().transformToUni(mb -> Uni.createFrom().completionStage(mb.sendAsync()))
+                .onItem().transformToUni(mb -> Uni.createFrom().completionStage(mb::sendAsync))
                 .onItemOrFailure().transformToUni((mid, t) -> {
                     if (t == null) {
                         OutgoingMessageMetadata.setResultOnMessage(message, mid);
@@ -110,6 +110,13 @@ public class PulsarOutgoingChannel<T> {
                         return Uni.createFrom().completionStage(message.nack(t));
                     }
                 });
+    }
+
+    private TypedMessageBuilder<T> createMessageBuilder(Message<?> message, Transaction fallback) {
+        Transaction transaction = message.getMetadata(PulsarTransactionMetadata.class)
+                .map(PulsarTransactionMetadata::getTransaction)
+                .orElse(fallback);
+        return transaction != null ? producer.newMessage(transaction) : producer.newMessage();
     }
 
     private TypedMessageBuilder<T> toMessageBuilder(Message<?> message, Producer<T> producer) {
@@ -124,10 +131,7 @@ public class PulsarOutgoingChannel<T> {
                         .withTopic(producer.getTopic())
                         .build());
             }
-            Transaction transaction = message.getMetadata(PulsarTransactionMetadata.class)
-                    .map(PulsarTransactionMetadata::getTransaction)
-                    .orElse(metadata.getTransaction());
-            messageBuilder = transaction != null ? producer.newMessage(transaction) : producer.newMessage();
+            messageBuilder = createMessageBuilder(message, metadata.getTransaction());
 
             if (metadata.hasKey()) {
                 if (metadata.getKeyBytes() != null) {
@@ -158,7 +162,7 @@ public class PulsarOutgoingChannel<T> {
                 messageBuilder.deliverAt(metadata.getDeliverAt());
             }
         } else {
-            messageBuilder = producer.newMessage();
+            messageBuilder = createMessageBuilder(message, null);
             if (tracingEnabled) {
                 Map<String, String> properties = new HashMap<>();
                 TracingUtils.traceOutgoing(instrumenter, message, new PulsarTrace.Builder()

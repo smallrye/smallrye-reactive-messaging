@@ -100,7 +100,7 @@ public class PulsarClientBaseTest {
         return Multi.createFrom().range(0, Integer.MAX_VALUE)
                 .runSubscriptionOn(executor)
                 .onItem().transform(generator)
-                .onItem().transformToUni(v -> Uni.createFrom().completionStage(producer.sendAsync(v))).merge();
+                .onItem().transformToUni(v -> Uni.createFrom().completionStage(() -> producer.sendAsync(v))).merge();
     }
 
     public static <T> Multi<MessageId> send(Producer<T> producer,
@@ -108,14 +108,14 @@ public class PulsarClientBaseTest {
         return Multi.createFrom().range(0, Integer.MAX_VALUE)
                 .runSubscriptionOn(executor)
                 .onItem().transform(i -> generator.apply(i, producer))
-                .onItem().transformToUni(m -> Uni.createFrom().completionStage(m.sendAsync())).merge();
+                .onItem().transformToUni(m -> Uni.createFrom().completionStage(m::sendAsync)).merge();
     }
 
     public static <T> List<MessageId> send(Producer<T> producer, int numberOfMessages, Function<Integer, T> generator) {
         return Multi.createFrom().range(0, numberOfMessages)
                 .runSubscriptionOn(executor)
                 .onItem().transform(generator)
-                .onItem().transformToUni(v -> Uni.createFrom().completionStage(producer.sendAsync(v))).merge()
+                .onItem().transformToUni(v -> Uni.createFrom().completionStage(() -> producer.sendAsync(v))).merge()
                 .subscribe().asStream().collect(Collectors.toList());
     }
 
@@ -124,7 +124,7 @@ public class PulsarClientBaseTest {
         return Multi.createFrom().range(0, numberOfMessages)
                 .runSubscriptionOn(executor)
                 .onItem().transform(i -> generator.apply(i, producer))
-                .onItem().transformToUni(m -> Uni.createFrom().completionStage(m.sendAsync())).merge()
+                .onItem().transformToUni(m -> Uni.createFrom().completionStage(m::sendAsync)).merge()
                 .subscribe().asStream().collect(Collectors.toList());
     }
 
