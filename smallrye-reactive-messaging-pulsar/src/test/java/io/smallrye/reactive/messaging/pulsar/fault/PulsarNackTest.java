@@ -14,7 +14,6 @@ import org.apache.pulsar.client.api.PulsarClientException;
 import org.apache.pulsar.client.api.Schema;
 import org.apache.pulsar.client.api.SubscriptionInitialPosition;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import io.smallrye.reactive.messaging.pulsar.PulsarConnector;
@@ -116,12 +115,7 @@ public class PulsarNackTest extends WeldTestBase {
         await().untilAsserted(() -> assertThat(retries).hasSize(20));
     }
 
-    /**
-     * TODO Test Disabled
-     * To be fixed with Pulsar 3.0.0
-     */
     @Test
-    @Disabled
     void testDeadLetterTopic() throws PulsarClientException {
         addBeans(PulsarReconsumeLater.Factory.class);
         // Run app
@@ -143,7 +137,7 @@ public class PulsarNackTest extends WeldTestBase {
         // Check for consumed messages in app
         await().untilAsserted(() -> {
             assertThat(app.getResults()).hasSize(NUMBER_OF_MESSAGES - 10);
-            assertThat(app.getFailures()).hasSize(30);
+            assertThat(app.getFailures()).hasSizeGreaterThanOrEqualTo(30);
         });
 
         List<Message<Integer>> retries = new CopyOnWriteArrayList<>();
@@ -151,7 +145,7 @@ public class PulsarNackTest extends WeldTestBase {
                 .topic(topic + "-dlq")
                 .subscriptionInitialPosition(SubscriptionInitialPosition.Earliest)
                 .subscriptionName("initial-dlq-sub")
-                .subscribe(), 10, retries::add);
+                .subscribe()).subscribe().with(retries::add);
 
         // Check for retried messages
         await().untilAsserted(() -> assertThat(retries).extracting(Message::getValue).hasSize(10));

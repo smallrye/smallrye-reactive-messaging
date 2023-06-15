@@ -21,6 +21,7 @@ import jakarta.enterprise.inject.Any;
 import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
 
+import org.apache.pulsar.client.api.AuthenticationFactory;
 import org.apache.pulsar.client.api.Consumer;
 import org.apache.pulsar.client.api.Producer;
 import org.apache.pulsar.client.api.PulsarClient;
@@ -38,6 +39,7 @@ import io.smallrye.reactive.messaging.health.HealthReport;
 import io.smallrye.reactive.messaging.health.HealthReporter;
 import io.smallrye.reactive.messaging.providers.connectors.ExecutionHolder;
 import io.smallrye.reactive.messaging.providers.helpers.CDIUtils;
+import io.smallrye.reactive.messaging.providers.helpers.Validation;
 import io.vertx.mutiny.core.Vertx;
 
 @ApplicationScoped
@@ -68,7 +70,7 @@ public class PulsarConnector implements InboundConnector, OutboundConnector, Hea
 
     public static final String CONNECTOR_NAME = "smallrye-pulsar";
 
-    private final Map<ClientConfigurationData, PulsarClient> clients = new ConcurrentHashMap<>();
+    private final Map<String, PulsarClient> clients = new ConcurrentHashMap<>();
     private final Map<String, PulsarClient> clientsByChannel = new ConcurrentHashMap<>();
     private final List<PulsarOutgoingChannel<?>> outgoingChannels = new CopyOnWriteArrayList<>();
     private final List<PulsarIncomingChannel<?>> incomingChannels = new CopyOnWriteArrayList<>();
@@ -101,7 +103,8 @@ public class PulsarConnector implements InboundConnector, OutboundConnector, Hea
     public Flow.Publisher<? extends Message<?>> getPublisher(Config config) {
         PulsarConnectorIncomingConfiguration ic = new PulsarConnectorIncomingConfiguration(config);
 
-        PulsarClient client = clients.computeIfAbsent(configResolver.getClientConf(ic), this::createPulsarClient);
+        ClientConfigurationData clientConf = configResolver.getClientConf(ic);
+        PulsarClient client = clients.computeIfAbsent(clientHash(clientConf), ignored -> createPulsarClient(clientConf));
         clientsByChannel.put(ic.getChannel(), client);
 
         try {
@@ -120,7 +123,8 @@ public class PulsarConnector implements InboundConnector, OutboundConnector, Hea
     public Flow.Subscriber<? extends Message<?>> getSubscriber(Config config) {
         PulsarConnectorOutgoingConfiguration oc = new PulsarConnectorOutgoingConfiguration(config);
 
-        PulsarClient client = clients.computeIfAbsent(configResolver.getClientConf(oc), this::createPulsarClient);
+        ClientConfigurationData clientConf = configResolver.getClientConf(oc);
+        PulsarClient client = clients.computeIfAbsent(clientHash(clientConf), ignored -> createPulsarClient(clientConf));
         clientsByChannel.put(oc.getChannel(), client);
 
         try {
@@ -131,6 +135,11 @@ public class PulsarConnector implements InboundConnector, OutboundConnector, Hea
         } catch (PulsarClientException e) {
             throw ex.illegalStateUnableToBuildProducer(e);
         }
+    }
+
+    // the idea is to share clients if possible since one PulsarClient can be used for multiple producers and consumers
+    private String clientHash(ClientConfigurationData clientConf) {
+        return HashUtil.sha256(clientConf.toString());
     }
 
     public void terminate(
@@ -152,10 +161,32 @@ public class PulsarConnector implements InboundConnector, OutboundConnector, Hea
 
     private PulsarClientImpl createPulsarClient(ClientConfigurationData configuration) {
         try {
+            setAuth(configuration);
             log.createdClientWithConfig(configuration);
             return new PulsarClientImpl(configuration, vertx.nettyEventLoopGroup());
         } catch (PulsarClientException e) {
             throw ex.illegalStateUnableToBuildClient(e);
+        }
+    }
+
+    /**
+     * Sets the authentication object in the given configuration object using
+     * `authPluginClassName` and `authParams`/`authParamMap` attributes
+     * This use to be done by the PulsarClientImpl
+     *
+     * @param conf client configuration
+     * @throws PulsarClientException
+     */
+    private void setAuth(ClientConfigurationData conf) throws PulsarClientException {
+        if (Validation.isBlank(conf.getAuthPluginClassName())
+                || (Validation.isBlank(conf.getAuthParams()) && conf.getAuthParamMap() == null)) {
+            return;
+        }
+
+        if (!Validation.isBlank(conf.getAuthParams())) {
+            conf.setAuthentication(AuthenticationFactory.create(conf.getAuthPluginClassName(), conf.getAuthParams()));
+        } else if (conf.getAuthParamMap() != null) {
+            conf.setAuthentication(AuthenticationFactory.create(conf.getAuthPluginClassName(), conf.getAuthParamMap()));
         }
     }
 

@@ -73,7 +73,7 @@ public class PulsarIncomingBatchMessage<T> implements PulsarBatchMessage<T>, Met
                         return stream;
                     }
                 })
-                .onItem().transformToUniAndConcatenate(m -> Uni.createFrom().completionStage(m.getAck()))
+                .onItem().transformToUniAndMerge(m -> Uni.createFrom().completionStage(m.getAck()))
                 .toUni().subscribeAsCompletionStage();
     }
 
@@ -85,7 +85,7 @@ public class PulsarIncomingBatchMessage<T> implements PulsarBatchMessage<T>, Met
     @Override
     public CompletionStage<Void> nack(Throwable reason, Metadata metadata) {
         return Multi.createFrom().iterable(incomingMessages)
-                .onItem().transformToUniAndConcatenate(m -> Uni.createFrom().completionStage(m.nack(reason, metadata)))
+                .onItem().transformToUniAndMerge(m -> Uni.createFrom().completionStage(() -> m.nack(reason, metadata)))
                 .toUni().subscribeAsCompletionStage();
     }
 
