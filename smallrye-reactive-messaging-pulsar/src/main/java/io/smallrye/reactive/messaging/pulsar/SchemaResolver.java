@@ -14,6 +14,7 @@ import org.apache.pulsar.common.schema.SchemaInfo;
 import org.apache.pulsar.common.schema.SchemaType;
 
 import io.smallrye.reactive.messaging.providers.helpers.CDIUtils;
+import io.smallrye.reactive.messaging.providers.helpers.Validation;
 
 @ApplicationScoped
 public class SchemaResolver {
@@ -53,6 +54,10 @@ public class SchemaResolver {
 
     public static String getSchemaName(Schema<?> schema) {
         SchemaInfo schemaInfo = schema.getSchemaInfo();
-        return schemaInfo != null ? schemaInfo.getName() : schema.getClass().getSimpleName();
+        if (schemaInfo == null || Validation.isBlank(schemaInfo.getName())) {
+            return schema.getClass().getSimpleName();
+        } else {
+            return schemaInfo.getName();
+        }
     }
 }

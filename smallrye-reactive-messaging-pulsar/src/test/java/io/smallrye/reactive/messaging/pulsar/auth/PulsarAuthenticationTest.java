@@ -26,7 +26,6 @@ import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.testcontainers.utility.MountableFile;
 
 import io.smallrye.reactive.messaging.pulsar.PulsarConnector;
 import io.smallrye.reactive.messaging.pulsar.base.PulsarContainer;
@@ -42,11 +41,11 @@ public class PulsarAuthenticationTest extends WeldTestBaseWithoutExtension {
     @BeforeAll
     static void beforeAll() throws PulsarClientException, InterruptedException {
         container = new PulsarContainer()
-                .withCopyToContainer(MountableFile.forClasspathResource("htpasswd"), "/pulsar/conf/.htpasswd")
                 .withEnv("PULSAR_PREFIX_authenticationEnabled", "true")
                 .withEnv("PULSAR_PREFIX_authenticationProviders",
                         "org.apache.pulsar.broker.authentication.AuthenticationProviderBasic")
-                .withEnv("PULSAR_PREFIX_basicAuthConf", "file:///pulsar/conf/.htpasswd")
+                // base64 of htpasswd
+                .withEnv("PULSAR_PREFIX_basicAuthConf", "c3VwZXJ1c2VyOiRhcHIxJHpMOHY4VTZsJGNHTWdkckVja25RNHkzeC9ndWROajE=")
                 .withEnv("PULSAR_PREFIX_brokerClientAuthenticationEnabled", "true")
                 .withEnv("PULSAR_PREFIX_brokerClientAuthenticationPlugin",
                         "org.apache.pulsar.client.impl.auth.AuthenticationBasic")
