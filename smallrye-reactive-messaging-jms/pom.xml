@@ -13,7 +13,7 @@
   <name>SmallRye Reactive Messaging : Connector :: JMS</name>
 
   <properties>
-    <artemis.version>2.28.0</artemis.version>
+    <artemis.version>2.29.0</artemis.version>
     <revapi.skip>false</revapi.skip>
   </properties>
 
