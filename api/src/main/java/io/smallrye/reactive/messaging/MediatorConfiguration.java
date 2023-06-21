@@ -94,6 +94,7 @@ public interface MediatorConfiguration {
         STREAM_OF_MESSAGE,
         STREAM_OF_PAYLOAD,
         KEYED_MULTI,
+        KEYED_MULTI_MESSAGE,
         MESSAGE,
         PAYLOAD,
 

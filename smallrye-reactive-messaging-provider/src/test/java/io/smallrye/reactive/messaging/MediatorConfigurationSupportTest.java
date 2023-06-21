@@ -43,8 +43,7 @@ public class MediatorConfigurationSupportTest {
                         new DefaultMediatorConfiguration.ReturnTypeGenericTypeAssignable(m),
                         m.getParameterTypes().length == 0
                                 ? new DefaultMediatorConfiguration.AlwaysInvalidIndexGenericTypeAssignable()
-                                : new DefaultMediatorConfiguration.MethodParamGenericTypeAssignable(m, 0),
-                        keyed);
+                                : new DefaultMediatorConfiguration.MethodParamGenericTypeAssignable(m, 0));
             }
         }
         fail("Unable to find method " + method);
@@ -407,37 +406,37 @@ public class MediatorConfigurationSupportTest {
 
     @Test
     void testDetermineShape() {
-        assertThat(new MediatorConfigurationSupport("mymethod", String.class, new Class[] { String.class }, null, null, keyed)
+        assertThat(new MediatorConfigurationSupport("mymethod", String.class, new Class[] { String.class }, null, null)
                 .determineShape(Collections.singletonList("incoming"), "outgoing")).isEqualTo(Shape.PROCESSOR);
 
         assertThat(
-                new MediatorConfigurationSupport("mymethod", Multi.class, new Class[] { Publisher.class }, null, null, keyed)
+                new MediatorConfigurationSupport("mymethod", Multi.class, new Class[] { Publisher.class }, null, null)
                         .determineShape(Collections.singletonList("incoming"), "outgoing"))
                 .isEqualTo(Shape.STREAM_TRANSFORMER);
 
         assertThat(
                 new MediatorConfigurationSupport("mymethod", PublisherBuilder.class, new Class[] { PublisherBuilder.class },
-                        null, null, keyed)
+                        null, null)
                         .determineShape(Collections.singletonList("incoming"), "outgoing"))
                 .isEqualTo(Shape.STREAM_TRANSFORMER);
 
         assertThat(
                 new MediatorConfigurationSupport("mymethod", PublisherBuilder.class, new Class[] { String.class }, null,
-                        null, keyed)
+                        null)
                         .determineShape(Collections.singletonList("incoming"), "outgoing"))
                 .isEqualTo(Shape.PROCESSOR);
 
-        assertThat(new MediatorConfigurationSupport("mymethod", String.class, new Class[0], null, null, keyed)
+        assertThat(new MediatorConfigurationSupport("mymethod", String.class, new Class[0], null, null)
                 .determineShape(Collections.emptyList(), "outgoing")).isEqualTo(Shape.PUBLISHER);
 
-        assertThat(new MediatorConfigurationSupport("mymethod", Void.class, new Class[] { String.class }, null, null, keyed)
+        assertThat(new MediatorConfigurationSupport("mymethod", Void.class, new Class[] { String.class }, null, null)
                 .determineShape(Collections.singletonList("incoming"), null)).isEqualTo(Shape.SUBSCRIBER);
     }
 
     @Test
     void testProcessSuppliedAcknowledgement() {
         MediatorConfigurationSupport support = new MediatorConfigurationSupport("mymethod", String.class,
-                new Class[] { String.class }, null, null, keyed);
+                new Class[] { String.class }, null, null);
 
         assertThat(support
                 .processSuppliedAcknowledgement(Collections.singletonList("hello"), () -> Acknowledgment.Strategy.MANUAL))
@@ -457,7 +456,7 @@ public class MediatorConfigurationSupportTest {
     @Test
     void testProcessDefaultAcknowledgement() {
         MediatorConfigurationSupport support = new MediatorConfigurationSupport("mymethod", String.class,
-                new Class[] { String.class }, null, null, keyed);
+                new Class[] { String.class }, null, null);
 
         assertThat(support.processDefaultAcknowledgement(Shape.SUBSCRIBER, MediatorConfiguration.Consumption.PAYLOAD,
                 MediatorConfiguration.Production.NONE))
@@ -493,7 +492,7 @@ public class MediatorConfigurationSupportTest {
     @Test
     void testProcessMerge() {
         MediatorConfigurationSupport support = new MediatorConfigurationSupport("mymethod", String.class,
-                new Class[] { String.class }, null, null, keyed);
+                new Class[] { String.class }, null, null);
 
         assertThat(support.processMerge(Arrays.asList("a", "b"), () -> Merge.Mode.MERGE)).isEqualTo(Merge.Mode.MERGE);
 
@@ -507,7 +506,7 @@ public class MediatorConfigurationSupportTest {
     @Test
     void testProcessBroadcast() {
         MediatorConfigurationSupport support = new MediatorConfigurationSupport("mymethod", String.class,
-                new Class[] { String.class }, null, null, keyed);
+                new Class[] { String.class }, null, null);
         assertThat(support.processBroadcast("hello", () -> 1)).isEqualTo(1);
         assertThatThrownBy(() -> support.processBroadcast(null, () -> 1)).isInstanceOf(DefinitionException.class);
 
@@ -517,7 +516,7 @@ public class MediatorConfigurationSupportTest {
     @Test
     void testValidateBlocking() {
         MediatorConfigurationSupport support = new MediatorConfigurationSupport("mymethod", String.class,
-                new Class[] { String.class }, null, null, keyed);
+                new Class[] { String.class }, null, null);
 
         support.validateBlocking(
                 new MediatorConfigurationSupport.ValidationOutput(MediatorConfiguration.Production.INDIVIDUAL_PAYLOAD,

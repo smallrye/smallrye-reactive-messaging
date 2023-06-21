@@ -1,6 +1,7 @@
 package io.smallrye.reactive.messaging.providers;
 
 import static io.smallrye.reactive.messaging.providers.helpers.KeyMultiUtils.convertToKeyedMulti;
+import static io.smallrye.reactive.messaging.providers.helpers.KeyMultiUtils.convertToKeyedMultiMessage;
 import static io.smallrye.reactive.messaging.providers.i18n.ProviderExceptions.ex;
 import static io.smallrye.reactive.messaging.providers.i18n.ProviderMessages.msg;
 
@@ -46,6 +47,11 @@ public class StreamTransformerMediator extends AbstractMediator {
         if (configuration.consumption() == MediatorConfiguration.Consumption.KEYED_MULTI
                 && configuration.production() == MediatorConfiguration.Production.STREAM_OF_MESSAGE) {
             throw ex.definitionProduceMessageStreamAndConsumePayloadStream(configuration.methodAsString());
+        }
+
+        if (configuration.consumption() == MediatorConfiguration.Consumption.KEYED_MULTI_MESSAGE
+                && configuration.production() == MediatorConfiguration.Production.STREAM_OF_PAYLOAD) {
+            throw ex.definitionProducePayloadStreamAndConsumeMessageStream(configuration.methodAsString());
         }
     }
 
@@ -96,6 +102,9 @@ public class StreamTransformerMediator extends AbstractMediator {
                 break;
             case KEYED_MULTI:
                 processMethodConsumingAPublisherOfKeyValue();
+                break;
+            case KEYED_MULTI_MESSAGE:
+                processMethodConsumingAPublisherOfKeyValueMessage();
                 break;
             default:
                 throw ex.illegalArgumentForUnexpectedConsumption(configuration.consumption());
@@ -205,6 +214,18 @@ public class StreamTransformerMediator extends AbstractMediator {
                         Flow.Publisher<?> result = invoke(km);
                         return Objects.requireNonNull(result, msg.methodReturnedNull(configuration.methodAsString()));
                     }).map(Message::of);
+        };
+    }
+
+    private void processMethodConsumingAPublisherOfKeyValueMessage() {
+        function = upstream -> {
+            Multi<? extends Message<?>> multi = MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration);
+            Multi<KeyedMulti<?, Message<?>>> groups = convertToKeyedMultiMessage(multi, extractors(), configuration);
+            return groups
+                    .flatMap(km -> {
+                        Flow.Publisher<Message<?>> result = invoke(km);
+                        return Objects.requireNonNull(result, msg.methodReturnedNull(configuration.methodAsString()));
+                    });
         };
     }
 
