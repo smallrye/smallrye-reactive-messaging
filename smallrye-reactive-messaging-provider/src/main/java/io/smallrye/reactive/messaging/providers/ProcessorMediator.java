@@ -21,6 +21,7 @@ import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.MediatorConfiguration;
 import io.smallrye.reactive.messaging.Shape;
+import io.smallrye.reactive.messaging.providers.helpers.AcknowledgementCoordinator;
 import io.smallrye.reactive.messaging.providers.helpers.ClassUtils;
 import io.smallrye.reactive.messaging.providers.helpers.MultiUtils;
 import mutiny.zero.flow.adapters.AdaptersToFlow;
@@ -256,9 +257,15 @@ public class ProcessorMediator extends AbstractMediator {
             Multi<? extends Message<?>> multi = MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration);
             return multi.onItem().transformToMultiAndConcatenate(message -> {
                 PublisherBuilder<?> pb = invoke(getArguments(message));
-                return MultiUtils.publisher(AdaptersToFlow.publisher(pb.buildRs()))
-                        .onItem().transform(payload -> Message.of(payload, message.getMetadata()));
-                // TODO We can handle post-acknowledgement here. -> onCompletion
+                if (configuration.getAcknowledgment() == Acknowledgment.Strategy.POST_PROCESSING) {
+                    // POST_PROCESSING must not be used when returning an infinite stream
+                    AcknowledgementCoordinator coordinator = new AcknowledgementCoordinator(message);
+                    return MultiUtils.publisher(AdaptersToFlow.publisher(pb.buildRs()))
+                            .onItem().transform(payload -> coordinator.track(Message.of(payload, message.getMetadata())));
+                } else {
+                    return MultiUtils.publisher(AdaptersToFlow.publisher(pb.buildRs()))
+                            .onItem().transform(payload -> Message.of(payload, message.getMetadata()));
+                }
             });
         };
     }
@@ -267,10 +274,16 @@ public class ProcessorMediator extends AbstractMediator {
         this.mapper = upstream -> {
             Multi<? extends Message<?>> multi = MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration);
             return multi.onItem().transformToMultiAndConcatenate(message -> {
-                Publisher<?> pb = invoke(getArguments(message));
-                return MultiUtils.publisher(AdaptersToFlow.publisher(pb))
-                        .onItem().transform(payload -> Message.of(payload, message.getMetadata()));
-                // TODO We can handle post-acknowledgement here. -> onCompletion
+                Publisher<?> pub = invoke(getArguments(message));
+                if (configuration.getAcknowledgment() == Acknowledgment.Strategy.POST_PROCESSING) {
+                    // POST_PROCESSING must not be used when returning an infinite stream
+                    AcknowledgementCoordinator coordinator = new AcknowledgementCoordinator(message);
+                    return MultiUtils.publisher(AdaptersToFlow.publisher(pub))
+                            .onItem().transform(payload -> coordinator.track(Message.of(payload, message.getMetadata())));
+                } else {
+                    return MultiUtils.publisher(AdaptersToFlow.publisher(pub))
+                            .onItem().transform(payload -> Message.of(payload, message.getMetadata()));
+                }
             });
         };
     }
@@ -280,9 +293,15 @@ public class ProcessorMediator extends AbstractMediator {
             Multi<? extends Message<?>> multi = MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration);
             return multi.onItem().transformToMultiAndConcatenate(message -> {
                 Flow.Publisher<?> pub = invoke(getArguments(message));
-                return MultiUtils.publisher(pub)
-                        .onItem().transform(payload -> Message.of(payload, message.getMetadata()));
-                // TODO We can handle post-acknowledgement here. -> onCompletion
+                if (configuration.getAcknowledgment() == Acknowledgment.Strategy.POST_PROCESSING) {
+                    // POST_PROCESSING must not be used when returning an infinite stream
+                    AcknowledgementCoordinator coordinator = new AcknowledgementCoordinator(message);
+                    return MultiUtils.publisher(pub)
+                            .onItem().transform(payload -> coordinator.track(Message.of(payload, message.getMetadata())));
+                } else {
+                    return MultiUtils.publisher(pub)
+                            .onItem().transform(payload -> Message.of(payload, message.getMetadata()));
+                }
             });
         };
     }

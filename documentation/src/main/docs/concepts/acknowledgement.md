@@ -90,6 +90,15 @@ of the outcome).
 {{ insert('ack/StreamAckExamples.java', 'payload') }}
 ```
 
+For method receiving a single payload and producing a stream of payloads, it defaults to pre-processing acknowledgement.
+However, in this case, post-processing is supported.
+It waits for all the produced messages to be acknowledged before acknowledging the received one.
+If one of the produced message is nacked, the received one is nacked immediately.
+
+``` java
+{{ insert('ack/StreamAckExamples.java', 'payload-to-multi') }}
+```
+
 ## Controlling acknowledgement
 
 The  {{ javadoc('org.eclipse.microprofile.reactive.messaging.Acknowledgment') }}

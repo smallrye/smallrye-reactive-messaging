@@ -2,6 +2,7 @@ package ack;
 
 import java.util.concurrent.Flow.Publisher;
 
+import org.eclipse.microprofile.reactive.messaging.Acknowledgment;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
@@ -28,4 +29,14 @@ public class StreamAckExamples {
                 .map(String::toUpperCase);
     }
     // </payload>
+
+    // <payload-to-multi>
+    @Incoming("in")
+    @Outgoing("out")
+    // Defaults to pre-processing, but post-processing is also supported
+    @Acknowledgment(Acknowledgment.Strategy.POST_PROCESSING)
+    public Multi<String> transformPayload(String one) {
+        return Multi.createFrom().items(one, one);
+    }
+    // </payload-to-multi>
 }
