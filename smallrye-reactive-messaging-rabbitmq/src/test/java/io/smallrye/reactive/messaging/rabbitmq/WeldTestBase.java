@@ -30,6 +30,9 @@ import io.smallrye.reactive.messaging.providers.locals.ContextDecorator;
 import io.smallrye.reactive.messaging.providers.metrics.MetricDecorator;
 import io.smallrye.reactive.messaging.providers.metrics.MicrometerDecorator;
 import io.smallrye.reactive.messaging.providers.wiring.Wiring;
+import io.smallrye.reactive.messaging.rabbitmq.fault.RabbitMQAccept;
+import io.smallrye.reactive.messaging.rabbitmq.fault.RabbitMQFailStop;
+import io.smallrye.reactive.messaging.rabbitmq.fault.RabbitMQReject;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 
 public class WeldTestBase extends RabbitMQBrokerTestBase {
@@ -69,6 +72,9 @@ public class WeldTestBase extends RabbitMQBrokerTestBase {
         weld.addBeanClass(MetricDecorator.class);
         weld.addBeanClass(MicrometerDecorator.class);
         weld.addBeanClass(ContextDecorator.class);
+        weld.addBeanClass(RabbitMQAccept.Factory.class);
+        weld.addBeanClass(RabbitMQFailStop.Factory.class);
+        weld.addBeanClass(RabbitMQReject.Factory.class);
         weld.disableDiscovery();
     }
 
