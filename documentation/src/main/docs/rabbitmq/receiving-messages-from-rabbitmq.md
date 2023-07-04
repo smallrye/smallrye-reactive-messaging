@@ -173,6 +173,14 @@ controlled by the `failure-strategy` channel setting:
 -   `reject` - this strategy marks the RabbitMQ message as rejected
     (default). The processing continues with the next message.
 
+!!!warning "Experimental"
+    `RabbitMQFailureHandler` is experimental and APIs are subject to change in the future
+
+In addition, you can also provide your own failure strategy. To provide a failure strategy implement a bean exposing the interface
+{{ javadoc('io.smallrye.reactive.messaging.rabbitmq.fault.RabbitMQFailureHandler') }}, qualified with a `@Identifier`. Set the name of the bean
+as the `failure-strategy` channel setting.
+
+
 ## Configuration Reference
 
 {{ insert('../../../target/connectors/smallrye-rabbitmq-incoming.md') }}

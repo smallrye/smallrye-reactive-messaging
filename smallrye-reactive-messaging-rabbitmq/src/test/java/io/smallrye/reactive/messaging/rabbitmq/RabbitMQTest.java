@@ -348,6 +348,50 @@ class RabbitMQTest extends RabbitMQBrokerTestBase {
     }
 
     /**
+     * Verifies that Exchanges, Queues and Bindings are correctly declared as a result of
+     * incoming connector configuration that specifies Quorum/Delivery limit overrides.
+     */
+    @Test
+    void testIncomingDeclarationsWithQuorum() throws Exception {
+
+        final String queueName = "qIncomingDeclareTestWithDeliveryLimit";
+        final boolean queueDurable = true;
+        final String queueType = "quorum";
+        final long queueDeliveryLimit = 10;
+
+        weld.addBeanClass(IncomingBean.class);
+
+        new MapBasedConfig()
+                .put("mp.messaging.incoming.data.queue.name", queueName)
+                .put("mp.messaging.incoming.data.queue.declare", true)
+                .put("mp.messaging.incoming.data.queue.durable", queueDurable)
+                .put("mp.messaging.incoming.data.queue.x-queue-type", queueType)
+                .put("mp.messaging.incoming.data.queue.x-delivery-limit", queueDeliveryLimit)
+                .put("mp.messaging.incoming.data.connector", RabbitMQConnector.CONNECTOR_NAME)
+                .put("mp.messaging.incoming.data.host", host)
+                .put("mp.messaging.incoming.data.port", port)
+                .put("mp.messaging.incoming.data.tracing.enabled", false)
+                .put("rabbitmq-username", username)
+                .put("rabbitmq-password", password)
+                .put("rabbitmq-reconnect-attempts", 0)
+                .write();
+
+        container = weld.initialize();
+        await().until(() -> isRabbitMQConnectorAvailable(container));
+
+        // verify queue
+        final JsonObject queue = usage.getQueue(queueName);
+        assertThat(queue).isNotNull();
+        assertThat(queue.getString("name")).isEqualTo(queueName);
+        assertThat(queue.getBoolean("durable")).isEqualTo(queueDurable);
+
+        final JsonObject queueArguments = queue.getJsonObject("arguments");
+        assertThat(queueArguments).isNotNull();
+        assertThat(queueArguments.getString("x-queue-type")).isEqualTo(queueType);
+        assertThat(queueArguments.getLong("x-delivery-limit")).isEqualTo(queueDeliveryLimit);
+    }
+
+    /**
      * Verifies that messages can be sent to RabbitMQ.
      *
      * @throws InterruptedException

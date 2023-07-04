@@ -46,14 +46,12 @@ import io.smallrye.reactive.messaging.connector.OutboundConnector;
 import io.smallrye.reactive.messaging.health.HealthReport;
 import io.smallrye.reactive.messaging.health.HealthReporter;
 import io.smallrye.reactive.messaging.providers.connectors.ExecutionHolder;
+import io.smallrye.reactive.messaging.providers.helpers.CDIUtils;
 import io.smallrye.reactive.messaging.providers.helpers.MultiUtils;
 import io.smallrye.reactive.messaging.rabbitmq.ack.RabbitMQAck;
 import io.smallrye.reactive.messaging.rabbitmq.ack.RabbitMQAckHandler;
 import io.smallrye.reactive.messaging.rabbitmq.ack.RabbitMQAutoAck;
-import io.smallrye.reactive.messaging.rabbitmq.fault.RabbitMQAccept;
-import io.smallrye.reactive.messaging.rabbitmq.fault.RabbitMQFailStop;
 import io.smallrye.reactive.messaging.rabbitmq.fault.RabbitMQFailureHandler;
-import io.smallrye.reactive.messaging.rabbitmq.fault.RabbitMQReject;
 import io.smallrye.reactive.messaging.rabbitmq.tracing.RabbitMQOpenTelemetryInstrumenter;
 import io.smallrye.reactive.messaging.rabbitmq.tracing.RabbitMQTrace;
 import io.vertx.core.json.JsonObject;
@@ -114,6 +112,7 @@ import io.vertx.rabbitmq.RabbitMQPublisherOptions;
 @ConnectorAttribute(name = "max-incoming-internal-queue-size", direction = INCOMING, description = "The maximum size of the incoming internal queue", type = "int", defaultValue = "500000")
 @ConnectorAttribute(name = "connection-count", direction = INCOMING, description = "The number of RabbitMQ connections to create for consuming from this queue. This might be necessary to consume from a sharded queue with a single client.", type = "int", defaultValue = "1")
 @ConnectorAttribute(name = "queue.x-max-priority", direction = INCOMING, description = "Define priority level queue consumer", type = "int")
+@ConnectorAttribute(name = "queue.x-delivery-limit", direction = INCOMING, description = "If queue.x-queue-type is quorum, when a message has been returned more times than the limit the message will be dropped or dead-lettered", type = "long")
 
 // DLQs
 @ConnectorAttribute(name = "auto-bind-dlq", direction = INCOMING, description = "Whether to automatically declare the DLQ and bind it to the binder DLX", type = "boolean", defaultValue = "false")
@@ -129,7 +128,7 @@ import io.vertx.rabbitmq.RabbitMQPublisherOptions;
 @ConnectorAttribute(name = "dead-letter-dlx-routing-key", direction = INCOMING, description = "If specified, a dead letter routing key to assign to the DLQ. Relevant only if auto-bind-dlq is true", type = "string")
 
 // Message consumer
-@ConnectorAttribute(name = "failure-strategy", direction = INCOMING, description = "The failure strategy to apply when a RabbitMQ message is nacked. Accepted values are `fail`, `accept`, `reject` (default)", type = "string", defaultValue = "reject")
+@ConnectorAttribute(name = "failure-strategy", direction = INCOMING, description = "The failure strategy to apply when a RabbitMQ message is nacked. Accepted values are `fail`, `accept`, `reject` (default) or name of a bean", type = "string", defaultValue = "reject")
 @ConnectorAttribute(name = "broadcast", direction = INCOMING, description = "Whether the received RabbitMQ messages must be dispatched to multiple _subscribers_", type = "boolean", defaultValue = "false")
 @ConnectorAttribute(name = "auto-acknowledgement", direction = INCOMING, description = "Whether the received RabbitMQ messages must be acknowledged when received; if true then delivery constitutes acknowledgement", type = "boolean", defaultValue = "false")
 @ConnectorAttribute(name = "keep-most-recent", direction = INCOMING, description = "Whether to discard old messages instead of recent ones", type = "boolean", defaultValue = "false")
@@ -189,6 +188,10 @@ public class RabbitMQConnector implements InboundConnector, OutboundConnector, H
     Instance<CredentialsProvider> credentialsProviders;
 
     private volatile RabbitMQOpenTelemetryInstrumenter instrumenter;
+
+    @Inject
+    @Any
+    Instance<RabbitMQFailureHandler.Factory> failureHandlerFactories;
 
     RabbitMQConnector() {
         // used for proxies
@@ -464,6 +467,13 @@ public class RabbitMQConnector implements InboundConnector, OutboundConnector, H
         clients.put(channel, client);
     }
 
+    public void establishQueue(String channel, RabbitMQConnectorIncomingConfiguration ic) {
+        final RabbitMQClient client = clients.get(channel);
+        client.getDelegate().addConnectionEstablishedCallback(promise -> {
+            establishQueue(client, ic).subscribe().with((ignored) -> promise.complete(), promise::fail);
+        });
+    }
+
     /**
      * Uses a {@link RabbitMQClient} to ensure the required exchange is created.
      *
@@ -521,7 +531,9 @@ public class RabbitMQConnector implements InboundConnector, OutboundConnector, H
             }
         });
         //x-max-priority
-        ic.getQueueXMaxPriority().ifPresent(maxPriority -> queueArgs.put("x-max-priority", ic.getQueueXMaxPriority()));
+        ic.getQueueXMaxPriority().ifPresent(maxPriority -> queueArgs.put("x-max-priority", maxPriority));
+        //x-delivery-limit
+        ic.getQueueXDeliveryLimit().ifPresent(deliveryLimit -> queueArgs.put("x-delivery-limit", deliveryLimit));
 
         return establishExchange(client, ic)
                 .onItem().transform(v -> Boolean.TRUE.equals(ic.getQueueDeclare()) ? null : queueName)
@@ -596,23 +608,13 @@ public class RabbitMQConnector implements InboundConnector, OutboundConnector, H
 
     private RabbitMQFailureHandler createFailureHandler(RabbitMQConnectorIncomingConfiguration config) {
         String strategy = config.getFailureStrategy();
-        RabbitMQFailureHandler.Strategy actualStrategy = RabbitMQFailureHandler.Strategy.from(strategy);
-        switch (actualStrategy) {
-            case FAIL:
-                return new RabbitMQFailStop(this, config.getChannel());
-            case ACCEPT:
-                return new RabbitMQAccept(config.getChannel());
-            case REJECT:
-                return new RabbitMQReject(config.getChannel());
-            default:
-                throw ex.illegalArgumentInvalidFailureStrategy(strategy);
+        Instance<RabbitMQFailureHandler.Factory> failureHandlerFactory = CDIUtils.getInstanceById(failureHandlerFactories,
+                strategy);
+        if (failureHandlerFactory.isResolvable()) {
+            return failureHandlerFactory.get().create(config, this);
+        } else {
+            throw ex.illegalArgumentInvalidFailureStrategy(strategy);
         }
-
-    }
-
-    private RabbitMQAckHandler createAckHandler(RabbitMQConnectorIncomingConfiguration ic) {
-        return (Boolean.TRUE.equals(ic.getAutoAcknowledgement())) ? new RabbitMQAutoAck(ic.getChannel())
-                : new RabbitMQAck(ic.getChannel());
     }
 
     private String serverQueueName(String name) {
@@ -634,5 +636,10 @@ public class RabbitMQConnector implements InboundConnector, OutboundConnector, H
             // Called on vertx context, we can't block: stop clients without waiting
             client.stopAndForget();
         }
+    }
+
+    public RabbitMQAckHandler createAckHandler(RabbitMQConnectorIncomingConfiguration ic) {
+        return (Boolean.TRUE.equals(ic.getAutoAcknowledgement())) ? new RabbitMQAutoAck(ic.getChannel())
+                : new RabbitMQAck(ic.getChannel());
     }
 }

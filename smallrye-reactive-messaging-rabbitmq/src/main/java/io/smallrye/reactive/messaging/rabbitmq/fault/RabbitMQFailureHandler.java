@@ -1,50 +1,36 @@
 package io.smallrye.reactive.messaging.rabbitmq.fault;
 
-import static io.smallrye.reactive.messaging.rabbitmq.i18n.RabbitMQExceptions.ex;
-
 import java.util.concurrent.CompletionStage;
 
+import io.smallrye.common.annotation.Experimental;
 import io.smallrye.reactive.messaging.rabbitmq.IncomingRabbitMQMessage;
+import io.smallrye.reactive.messaging.rabbitmq.RabbitMQConnector;
+import io.smallrye.reactive.messaging.rabbitmq.RabbitMQConnectorIncomingConfiguration;
 import io.vertx.mutiny.core.Context;
 
 /**
  * Implemented to provide message failure strategies.
  */
+@Experimental("Experimental API")
 public interface RabbitMQFailureHandler {
 
-    enum Strategy {
-        /**
-         * Mark the message as {@code rejected} and die.
-         */
-        FAIL,
-        /**
-         * Mark the message as {@code accepted} and continue.
-         */
-        ACCEPT,
-        /**
-         * Mark the message as {@code released} and continue.
-         */
-        RELEASE,
-        /**
-         * Mark the message as {@code rejected} and continue.
-         */
-        REJECT;
+    /**
+     * Identifiers of default failure strategies
+     */
+    interface Strategy {
+        String FAIL = "fail";
+        String ACCEPT = "accept";
+        String RELEASE = "release";
+        String REJECT = "reject";
+    }
 
-        public static Strategy from(String s) {
-            if (s == null || s.equalsIgnoreCase("fail")) {
-                return FAIL;
-            }
-            if (s.equalsIgnoreCase("accept")) {
-                return ACCEPT;
-            }
-            if (s.equalsIgnoreCase("release")) {
-                return RELEASE;
-            }
-            if (s.equalsIgnoreCase("reject")) {
-                return REJECT;
-            }
-            throw ex.illegalArgumentUnknownFailureStrategy(s);
-        }
+    /**
+     * Factory interface for {@link RabbitMQFailureHandler}
+     */
+    interface Factory {
+        RabbitMQFailureHandler create(
+                RabbitMQConnectorIncomingConfiguration config,
+                RabbitMQConnector connector);
     }
 
     /**
