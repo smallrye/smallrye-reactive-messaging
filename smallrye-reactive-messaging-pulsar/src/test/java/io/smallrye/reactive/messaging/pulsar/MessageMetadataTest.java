@@ -7,11 +7,28 @@ import java.nio.charset.StandardCharsets;
 
 import org.apache.pulsar.client.api.Schema;
 import org.apache.pulsar.client.impl.TypedMessageBuilderImpl;
+import org.apache.pulsar.common.schema.KeyValue;
 import org.junit.jupiter.api.Test;
 
 import com.github.dockerjava.zerodep.shaded.org.apache.commons.codec.binary.Base64;
 
 public class MessageMetadataTest {
+
+    @Test
+    void testOutgoingMessageWithKeyValueAndKeyValueSchema() {
+        TypedMessageBuilderImpl<KeyValue<Integer, String>> messageBuilder = new TypedMessageBuilderImpl<>(null,
+                Schema.KeyValue(Schema.INT32, Schema.STRING));
+
+        TypedMessageBuilderImpl<KeyValue<Integer, String>> msg = (TypedMessageBuilderImpl<KeyValue<Integer, String>>) messageBuilder
+                .value(new KeyValue<>(1, "value"));
+
+        assertThat(msg.getMetadataBuilder().hasNullValue()).isFalse();
+        assertThat(msg.getMetadataBuilder().hasNullPartitionKey()).isFalse();
+        assertThat(msg.getMetadataBuilder().hasPartitionKey()).isFalse();
+        assertThat(msg.hasKey()).isFalse();
+
+        assertThatThrownBy(() -> msg.getKey()).isInstanceOf(IllegalStateException.class);
+    }
 
     @Test
     void testOutgoingMessageWithNullKeyValueAndKeyValueSchema() {

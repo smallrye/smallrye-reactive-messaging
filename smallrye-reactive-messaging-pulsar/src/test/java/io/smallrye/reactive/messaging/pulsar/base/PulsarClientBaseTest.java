@@ -128,4 +128,12 @@ public class PulsarClientBaseTest {
                 .subscribe().asStream().collect(Collectors.toList());
     }
 
+    public static <T> List<MessageId> sendMessages(Producer<T> producer,
+            Function<Producer<T>, List<TypedMessageBuilder<T>>> generator) {
+        return Multi.createFrom().iterable(generator.apply(producer))
+                .runSubscriptionOn(executor)
+                .onItem().transformToUni(m -> Uni.createFrom().completionStage(m::sendAsync)).merge()
+                .subscribe().asStream().collect(Collectors.toList());
+    }
+
 }

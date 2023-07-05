@@ -85,6 +85,7 @@ The Pulsar connector supports 4 strategies:
 The negative acknowledgment can be further configured using `negativeAckRedeliveryDelayMicros` and `negativeAck.redeliveryBackoff` properties.
 -   `fail` fail the application, no more messages will be processed.
 -   `ignore` the failure is logged, but the acknowledgement strategy will be applied and the processing will continue.
+-   `continue` the failure is logged, but processing continues without applying acknowledgement or negative acknowledgement. This strategy can be used with [acknowledgement timeout](#acknowledgement-timeout) configuration.
 -   `reconsume-later` sends the message to the [retry letter topic](https://pulsar.apache.org/docs/3.0.x/concepts-messaging/#retry-letter-topic) using the `reconsumeLater` API to be reconsumed with a delay.
 The delay can be configured using the `reconsumeLater.delay` property and defaults to 3 seconds.
 Custom delay or properties per message can be configured by adding an instance of {{ javadoc('io.smallrye.reactive.messaging.pulsar.PulsarReconsumeLaterMetadata') }} to the failure metadata.
@@ -113,7 +114,7 @@ The `ackTimeout.redeliveryBackoff` value accepts comma separated values of min d
 
 ```properties
 mp.messaging.incoming.data.connector=smallrye-pulsar
-mp.messaging.incoming.data.failure-strategy=ignore
+mp.messaging.incoming.data.failure-strategy=continue
 mp.messaging.incoming.data.ackTimeoutMillis=10000
 mp.messaging.incoming.data.ackTimeout.redeliveryBackoff=1000,60000,2
 ```

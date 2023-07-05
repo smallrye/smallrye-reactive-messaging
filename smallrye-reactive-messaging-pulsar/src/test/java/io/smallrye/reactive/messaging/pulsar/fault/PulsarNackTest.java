@@ -6,6 +6,7 @@ import static org.awaitility.Awaitility.await;
 import java.util.List;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.TimeUnit;
 
 import jakarta.enterprise.context.ApplicationScoped;
 
@@ -60,6 +61,29 @@ public class PulsarNackTest extends WeldTestBase {
         await().untilAsserted(() -> {
             assertThat(app.getResults()).hasSize(NUMBER_OF_MESSAGES - 10);
             assertThat(app.getFailures()).hasSize(10);
+        });
+    }
+
+    @Test
+    void testContinue() throws PulsarClientException {
+        addBeans(PulsarContinue.Factory.class);
+        // Run app
+        FailingConsumingApp app = runApplication(config()
+                .with("mp.messaging.incoming.data.failure-strategy", "continue")
+                .with("mp.messaging.incoming.data.ackTimeoutMillis", "100")
+                .with("mp.messaging.incoming.data.ackTimeout.redeliveryBackoff", "100,1000,2")
+                , FailingConsumingApp.class);
+        // Produce messages
+        send(client.newProducer(Schema.INT32)
+                .producerName("test-producer")
+                .enableBatching(false) // avoid receiving acked messages with producer batching
+                .topic(topic)
+                .create(), NUMBER_OF_MESSAGES, i -> i);
+
+        // Check for consumed messages in app
+        await().pollDelay(3, TimeUnit.SECONDS).untilAsserted(() -> {
+            assertThat(app.getResults()).hasSize(NUMBER_OF_MESSAGES - 10);
+            assertThat(app.getFailures()).hasSizeGreaterThan(10);
         });
     }
 
