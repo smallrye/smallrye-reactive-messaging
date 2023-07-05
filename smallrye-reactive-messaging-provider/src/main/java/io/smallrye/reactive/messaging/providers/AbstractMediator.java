@@ -202,6 +202,10 @@ public abstract class AbstractMediator {
         return null;
     }
 
+    public Multi<? extends Message<?>> getStream(String outgoing) {
+        return getStream();
+    }
+
     public MediatorConfiguration getConfiguration() {
         return configuration;
     }
@@ -233,13 +237,26 @@ public abstract class AbstractMediator {
         }
 
         for (PublisherDecorator decorator : getSortedInstances(decorators)) {
-            input = decorator.decorate(input, getConfiguration().getOutgoing(), false);
+            input = decorator.decorate(input, getConfiguration().getOutgoings(), false);
         }
 
-        if (configuration.getBroadcast()) {
-            return BroadcastHelper.broadcastPublisher(input, configuration.getNumberOfSubscriberBeforeConnecting());
+        if (getBroadcast()) {
+            return BroadcastHelper.broadcastPublisher(input, getNumberOfSubscriberBeforeConnecting());
         } else {
             return input;
+        }
+    }
+
+    boolean getBroadcast() {
+        return configuration.getBroadcast() || configuration.getOutgoings().size() > 1;
+    }
+
+    int getNumberOfSubscriberBeforeConnecting() {
+        int outgoings = configuration.getOutgoings().size();
+        if (outgoings > 1) {
+            return outgoings;
+        } else {
+            return configuration.getNumberOfSubscriberBeforeConnecting();
         }
     }
 

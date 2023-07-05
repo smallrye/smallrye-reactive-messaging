@@ -15,7 +15,10 @@ public interface MediatorConfiguration {
 
     Shape shape();
 
+    @Deprecated(since = "4.8.0")
     String getOutgoing();
+
+    List<String> getOutgoings();
 
     List<String> getIncoming();
 
@@ -86,6 +89,8 @@ public interface MediatorConfiguration {
         COMPLETION_STAGE_OF_MESSAGE,
         UNI_OF_PAYLOAD,
         UNI_OF_MESSAGE,
+        SPLIT_MULTI_OF_PAYLOAD,
+        SPLIT_MULTI_OF_MESSAGE,
 
         NONE
     }

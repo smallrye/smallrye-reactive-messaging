@@ -27,7 +27,37 @@
     "criticality" : "highlight",
     "minSeverity" : "POTENTIALLY_BREAKING",
     "minCriticality" : "documented",
-    "differences" : [ ]
+    "differences" : [
+        {
+            "ignore": true,
+            "code": "java.field.enumConstantOrderChanged",
+            "old": "field io.smallrye.reactive.messaging.MediatorConfiguration.Production.NONE",
+            "new": "field io.smallrye.reactive.messaging.MediatorConfiguration.Production.NONE",
+            "justification": "Repeatable @Outgoing annotation"
+        },
+        {
+            "ignore": true,
+            "code": "java.method.addedToInterface",
+            "new": "method java.util.List<java.lang.String> io.smallrye.reactive.messaging.MediatorConfiguration::getOutgoings()",
+            "justification": "Repeatable @Outgoing annotation"
+        },
+        {
+            "ignore": true,
+            "code": "java.annotation.added",
+            "old": "@interface org.eclipse.microprofile.reactive.messaging.Outgoing",
+            "new": "@interface org.eclipse.microprofile.reactive.messaging.Outgoing",
+            "annotation": "@io.smallrye.common.annotation.Experimental(\"The repeatability is a SmallRye-specific feature\")",
+            "justification": "Repeatable @Outgoing annotation"
+        },
+        {
+            "ignore": true,
+            "code": "java.annotation.added",
+            "old": "@interface org.eclipse.microprofile.reactive.messaging.Outgoing",
+            "new": "@interface org.eclipse.microprofile.reactive.messaging.Outgoing",
+            "annotation": "@java.lang.annotation.Repeatable(io.smallrye.reactive.messaging.annotations.Outgoings.class)",
+            "justification": "Repeatable @Outgoing annotation"
+        }
+    ]
   }
 }, {
   "extension" : "revapi.reporter.json",

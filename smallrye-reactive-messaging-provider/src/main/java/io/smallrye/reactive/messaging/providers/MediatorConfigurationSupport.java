@@ -20,6 +20,7 @@ import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
 
 import io.smallrye.mutiny.Uni;
+import io.smallrye.mutiny.operators.multi.split.MultiSplitter;
 import io.smallrye.reactive.messaging.MediatorConfiguration;
 import io.smallrye.reactive.messaging.Shape;
 import io.smallrye.reactive.messaging.annotations.Merge;
@@ -45,8 +46,8 @@ public class MediatorConfigurationSupport {
         this.firstMethodParamTypeAssignable = firstMethodParamTypeAssignable;
     }
 
-    public Shape determineShape(List<?> incomingValue, Object outgoingValue) {
-        if (!incomingValue.isEmpty() && outgoingValue != null) {
+    public Shape determineShape(List<?> incomingValue, List<?> outgoingValue) {
+        if (!incomingValue.isEmpty() && !outgoingValue.isEmpty()) {
             if (isPublisherOrReactiveStreamsPublisherOrPublisherBuilder(returnType)
                     && isConsumingAPublisherOrReactiveStreamsPublisherOrAPublisherBuilder(parameterTypes)) {
                 return Shape.STREAM_TRANSFORMER;
@@ -63,6 +64,7 @@ public class MediatorConfigurationSupport {
     private boolean isPublisherOrReactiveStreamsPublisherOrPublisherBuilder(Class<?> returnType) {
         return ClassUtils.isAssignable(returnType, Flow.Publisher.class)
                 || ClassUtils.isAssignable(returnType, Publisher.class)
+                || ClassUtils.isAssignable(returnType, MultiSplitter.class)
                 || ClassUtils.isAssignable(returnType, PublisherBuilder.class);
     }
 
@@ -461,10 +463,16 @@ public class MediatorConfigurationSupport {
         if (returnTypeGenericCheck == GenericTypeAssignable.Result.NotGeneric) {
             throw ex.definitionExpectedReturnedParam("@Outgoing", methodAsString, returnType.getSimpleName());
         }
-        production = returnTypeGenericCheck == GenericTypeAssignable.Result.Assignable
-                ? MediatorConfiguration.Production.STREAM_OF_MESSAGE
-                : MediatorConfiguration.Production.STREAM_OF_PAYLOAD;
-
+        if (ClassUtils.isAssignable(returnType, MultiSplitter.class)) {
+            GenericTypeAssignable.Result multiSplitter = returnTypeAssignable.check(Message.class, 0);
+            production = multiSplitter == GenericTypeAssignable.Result.Assignable
+                    ? MediatorConfiguration.Production.SPLIT_MULTI_OF_MESSAGE
+                    : MediatorConfiguration.Production.SPLIT_MULTI_OF_PAYLOAD;
+        } else {
+            production = returnTypeGenericCheck == GenericTypeAssignable.Result.Assignable
+                    ? MediatorConfiguration.Production.STREAM_OF_MESSAGE
+                    : MediatorConfiguration.Production.STREAM_OF_PAYLOAD;
+        }
         if (parameterTypes.length == 1 && parameterTypes[0].equals(KeyedMulti.class)) {
             // Check whether it's a KeyMulti receiving payloads or messages
             if (firstMethodParamTypeAssignable.getType(1) instanceof ParameterizedType &&

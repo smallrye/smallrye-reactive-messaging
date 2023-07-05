@@ -1,5 +1,7 @@
 package io.smallrye.reactive.messaging;
 
+import java.util.List;
+
 import jakarta.enterprise.inject.spi.Prioritized;
 
 import org.eclipse.microprofile.reactive.messaging.Message;
@@ -33,6 +35,19 @@ public interface PublisherDecorator extends Prioritized {
      */
     Multi<? extends Message<?>> decorate(Multi<? extends Message<?>> publisher, String channelName,
             boolean isConnector);
+
+    /**
+     * Decorate a Multi
+     *
+     * @param publisher the multi to decorate
+     * @param @param channelName the list of channel names from which this publisher publishes
+     * @param isConnector {@code true} if decorated channel is connector
+     * @return the extended multi
+     */
+    default Multi<? extends Message<?>> decorate(Multi<? extends Message<?>> publisher, List<String> channelName,
+            boolean isConnector) {
+        return decorate(publisher, channelName.isEmpty() ? null : channelName.get(0), isConnector);
+    }
 
     @Override
     default int getPriority() {

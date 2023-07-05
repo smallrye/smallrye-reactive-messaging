@@ -19,12 +19,16 @@
 package org.eclipse.microprofile.reactive.messaging;
 
 import java.lang.annotation.ElementType;
+import java.lang.annotation.Repeatable;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 import org.eclipse.microprofile.reactive.streams.operators.ProcessorBuilder;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
+
+import io.smallrye.common.annotation.Experimental;
+import io.smallrye.reactive.messaging.annotations.Outgoings;
 
 /**
  * Used to signify a publisher of outgoing messages.
@@ -66,6 +70,8 @@ import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
  */
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)
+@Repeatable(Outgoings.class)
+@Experimental("The repeatability is a SmallRye-specific feature")
 public @interface Outgoing {
 
     /**

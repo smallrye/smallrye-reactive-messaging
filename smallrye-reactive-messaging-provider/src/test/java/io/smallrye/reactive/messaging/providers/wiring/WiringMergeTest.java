@@ -31,7 +31,8 @@ public class WiringMergeTest {
         when(bean.getBeanClass()).thenReturn(WiringTest.class);
 
         DefaultMediatorConfiguration processor = new DefaultMediatorConfiguration(getMethod("processWithMerge"), bean);
-        processor.compute(Collections.singletonList(IncomingLiteral.of("a")), OutgoingLiteral.of("b"), null);
+        processor.compute(Collections.singletonList(IncomingLiteral.of("a")),
+                Collections.singletonList(OutgoingLiteral.of("b")), null);
 
         EmitterConfiguration ec = new DefaultEmitterConfiguration("a", EMITTER, null, null);
         ChannelConfiguration cc1 = new ChannelConfiguration("b");
@@ -54,7 +55,8 @@ public class WiringMergeTest {
         when(bean.getBeanClass()).thenReturn(WiringTest.class);
 
         DefaultMediatorConfiguration processor = new DefaultMediatorConfiguration(getMethod("process"), bean);
-        processor.compute(Collections.singletonList(IncomingLiteral.of("a")), OutgoingLiteral.of("b"), null);
+        processor.compute(Collections.singletonList(IncomingLiteral.of("a")),
+                Collections.singletonList(OutgoingLiteral.of("b")), null);
 
         EmitterConfiguration ec = new DefaultEmitterConfiguration("a", EMITTER, null, null);
         ChannelConfiguration cc1 = new ChannelConfiguration("b");
@@ -76,7 +78,7 @@ public class WiringMergeTest {
         when(bean.getBeanClass()).thenReturn(WiringTest.class);
 
         DefaultMediatorConfiguration subscriber = new DefaultMediatorConfiguration(getMethod("consume"), bean);
-        subscriber.compute(Collections.singletonList(IncomingLiteral.of("a")), null, null);
+        subscriber.compute(Collections.singletonList(IncomingLiteral.of("a")), Collections.emptyList(), null);
 
         EmitterConfiguration ec = new DefaultEmitterConfiguration("a", EMITTER, null, null);
 

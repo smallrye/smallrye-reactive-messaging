@@ -407,30 +407,32 @@ public class MediatorConfigurationSupportTest {
     @Test
     void testDetermineShape() {
         assertThat(new MediatorConfigurationSupport("mymethod", String.class, new Class[] { String.class }, null, null)
-                .determineShape(Collections.singletonList("incoming"), "outgoing")).isEqualTo(Shape.PROCESSOR);
+                .determineShape(Collections.singletonList("incoming"), Collections.singletonList("outgoing")))
+                .isEqualTo(Shape.PROCESSOR);
 
         assertThat(
                 new MediatorConfigurationSupport("mymethod", Multi.class, new Class[] { Publisher.class }, null, null)
-                        .determineShape(Collections.singletonList("incoming"), "outgoing"))
+                        .determineShape(Collections.singletonList("incoming"), Collections.singletonList("outgoing")))
                 .isEqualTo(Shape.STREAM_TRANSFORMER);
 
         assertThat(
                 new MediatorConfigurationSupport("mymethod", PublisherBuilder.class, new Class[] { PublisherBuilder.class },
                         null, null)
-                        .determineShape(Collections.singletonList("incoming"), "outgoing"))
+                        .determineShape(Collections.singletonList("incoming"), Collections.singletonList("outgoing")))
                 .isEqualTo(Shape.STREAM_TRANSFORMER);
 
         assertThat(
                 new MediatorConfigurationSupport("mymethod", PublisherBuilder.class, new Class[] { String.class }, null,
                         null)
-                        .determineShape(Collections.singletonList("incoming"), "outgoing"))
+                        .determineShape(Collections.singletonList("incoming"), Collections.singletonList("outgoing")))
                 .isEqualTo(Shape.PROCESSOR);
 
         assertThat(new MediatorConfigurationSupport("mymethod", String.class, new Class[0], null, null)
-                .determineShape(Collections.emptyList(), "outgoing")).isEqualTo(Shape.PUBLISHER);
+                .determineShape(Collections.emptyList(), Collections.singletonList("outgoing")))
+                .isEqualTo(Shape.PUBLISHER);
 
         assertThat(new MediatorConfigurationSupport("mymethod", Void.class, new Class[] { String.class }, null, null)
-                .determineShape(Collections.singletonList("incoming"), null)).isEqualTo(Shape.SUBSCRIBER);
+                .determineShape(Collections.singletonList("incoming"), Collections.emptyList())).isEqualTo(Shape.SUBSCRIBER);
     }
 
     @Test

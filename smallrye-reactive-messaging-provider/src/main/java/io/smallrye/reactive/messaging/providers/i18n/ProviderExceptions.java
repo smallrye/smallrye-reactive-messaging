@@ -287,4 +287,7 @@ public interface ProviderExceptions {
 
     @Message(id = 1003, value = "Unable to find a matching KeyValueExtractor for method %s. Did you expose a bean implementing the KeyValueExtractor interface and implemented the `canExtract` method correctly?")
     DeploymentException noMatchingKeyValueExtractor(String method);
+
+    @Message(id = 1004, value = "Multiple Outgoings count does not match the number of split branches in %s. %d, %d")
+    IllegalStateException outgoingsDoesNotMatchMultiSplitterTarget(String method, int outgoings, int splitTarget);
 }
