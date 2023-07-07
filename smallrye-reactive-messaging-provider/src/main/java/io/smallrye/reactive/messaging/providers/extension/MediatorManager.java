@@ -1,5 +1,7 @@
 package io.smallrye.reactive.messaging.providers.extension;
 
+import static io.smallrye.reactive.messaging.providers.connectors.WorkerPoolRegistry.WORKER_CONCURRENCY;
+import static io.smallrye.reactive.messaging.providers.connectors.WorkerPoolRegistry.WORKER_CONFIG_PREFIX;
 import static io.smallrye.reactive.messaging.providers.i18n.ProviderLogging.log;
 
 import java.lang.reflect.Constructor;
@@ -11,10 +13,12 @@ import jakarta.enterprise.inject.Instance;
 import jakarta.enterprise.inject.spi.*;
 import jakarta.inject.Inject;
 
+import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
 
+import io.smallrye.mutiny.helpers.queues.Queues;
 import io.smallrye.reactive.messaging.*;
 import io.smallrye.reactive.messaging.EmitterConfiguration;
 import io.smallrye.reactive.messaging.PublisherDecorator;
@@ -79,6 +83,9 @@ public class MediatorManager {
     @ConfigProperty(name = STRICT_MODE_PROPERTY, defaultValue = "false")
     boolean strictMode;
 
+    @Inject
+    Instance<Config> configInstance;
+
     public <T> void analyze(AnnotatedType<T> annotatedType, Bean<T> bean) {
 
         if (strictMode) {
@@ -95,6 +102,22 @@ public class MediatorManager {
                         collected.add(method.getJavaMember(), bean);
                     }
                 });
+    }
+
+    private int getWorkerMaxConcurrency(MediatorConfiguration configuration) {
+        // max concurrency is not relevant if not blocking
+        if (!configuration.isBlocking()) {
+            return -1;
+        }
+        String poolName = configuration.getWorkerPoolName();
+        // if the poll name is null we are on the default worker pool, set the default concurrent requests
+        if (poolName == null) {
+            return Queues.BUFFER_S;
+        }
+        String concurrencyConfigKey = WORKER_CONFIG_PREFIX + "." + poolName + "." + WORKER_CONCURRENCY;
+        Optional<Integer> concurrency = configInstance.get().getOptionalValue(concurrencyConfigKey, Integer.class);
+        // Fallback to the default concurrent requests if setting is not found
+        return concurrency.orElse(Queues.BUFFER_S);
     }
 
     /**
@@ -177,6 +200,7 @@ public class MediatorManager {
         mediator.setExtractors(extractors);
         mediator.setHealth(health);
         mediator.setWorkerPoolRegistry(workerPoolRegistry);
+        mediator.setMaxConcurrency(getWorkerMaxConcurrency(configuration));
 
         try {
             Object beanInstance = beanManager.getReference(configuration.getBean(), Object.class,
