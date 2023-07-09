@@ -13,6 +13,9 @@ import io.smallrye.reactive.messaging.pulsar.PulsarConnectorIncomingConfiguratio
 import io.smallrye.reactive.messaging.pulsar.PulsarFailureHandler;
 import io.smallrye.reactive.messaging.pulsar.PulsarIncomingMessage;
 
+/**
+ * Failure strategy `nack` which calls negative acknowledgement for the message and continues the stream
+ */
 public class PulsarNack implements PulsarFailureHandler {
     public static final String STRATEGY_NAME = "nack";
 

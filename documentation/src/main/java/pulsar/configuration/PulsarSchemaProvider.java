@@ -1,7 +1,5 @@
 package pulsar.configuration;
 
-import java.util.regex.Pattern;
-
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Produces;
 
@@ -13,8 +11,6 @@ import io.smallrye.common.annotation.Identifier;
 
 @ApplicationScoped
 public class PulsarSchemaProvider {
-
-    Pattern linkPattern = Pattern.compile("\\{@link\\s(.*)}");
 
     @Produces
     @Identifier("user-schema")

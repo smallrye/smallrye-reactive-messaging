@@ -19,6 +19,9 @@ import io.smallrye.reactive.messaging.pulsar.PulsarFailureHandler;
 import io.smallrye.reactive.messaging.pulsar.PulsarIncomingMessage;
 import io.smallrye.reactive.messaging.pulsar.PulsarReconsumeLaterMetadata;
 
+/**
+ * Failure strategy `reconsume-later` which calls reconsume later for the message
+ */
 public class PulsarReconsumeLater implements PulsarFailureHandler {
     public static final String STRATEGY_NAME = "reconsume-later";
 

@@ -49,7 +49,7 @@ public class OutgoingMessage<T> {
 
     public OutgoingMessage(String key, T value) {
         this(value);
-        this.key = key;
+        withKey(key);
     }
 
     public boolean hasKey() {
