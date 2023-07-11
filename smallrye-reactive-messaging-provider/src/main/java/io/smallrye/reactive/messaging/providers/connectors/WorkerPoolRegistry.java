@@ -35,8 +35,8 @@ import io.vertx.mutiny.core.WorkerExecutor;
 
 @ApplicationScoped
 public class WorkerPoolRegistry {
-    private static final String WORKER_CONFIG_PREFIX = "smallrye.messaging.worker";
-    private static final String WORKER_CONCURRENCY = "max-concurrency";
+    public static final String WORKER_CONFIG_PREFIX = "smallrye.messaging.worker";
+    public static final String WORKER_CONCURRENCY = "max-concurrency";
 
     @Inject
     Instance<ExecutionHolder> executionHolder;

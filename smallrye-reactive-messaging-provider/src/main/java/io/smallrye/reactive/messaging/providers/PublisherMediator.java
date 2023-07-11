@@ -143,7 +143,7 @@ public class PublisherMediator extends AbstractMediator {
                         .onItem().transform(o -> (Message<?>) o));
             } else {
                 this.publisher = decorate(MultiUtils.createFromGenerator(this::invokeBlocking)
-                        .onItem().transformToUniAndMerge(u -> u)
+                        .onItem().transformToUni(u -> u).merge(maxConcurrency())
                         .onItem().transform(o -> (Message<?>) o));
             }
         } else {
@@ -163,7 +163,7 @@ public class PublisherMediator extends AbstractMediator {
                         .onItem().transform(Message::of));
             } else {
                 this.publisher = decorate(MultiUtils.createFromGenerator(this::invokeBlocking)
-                        .onItem().transformToUniAndMerge(u -> u)
+                        .onItem().transformToUni(u -> u).merge(maxConcurrency())
                         .onItem().transform(Message::of));
             }
         } else {

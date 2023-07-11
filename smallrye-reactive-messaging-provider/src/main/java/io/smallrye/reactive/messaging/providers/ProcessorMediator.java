@@ -323,10 +323,11 @@ public class ProcessorMediator extends AbstractMediator {
                 this.mapper = upstream -> {
                     Multi<? extends Message<?>> multi = MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration);
                     return multi
-                            .onItem().transformToMultiAndMerge(message -> invokeBlocking(message, getArguments(message))
+                            .onItem().transformToMulti(message -> invokeBlocking(message, getArguments(message))
                                     .onItemOrFailure()
                                     .transformToUni((o, t) -> this.handlePostInvocationWithMessage((Message<?>) o, t))
-                                    .onItem().transformToMulti(this::handleSkip));
+                                    .onItem().transformToMulti(this::handleSkip))
+                            .merge(maxConcurrency());
                 };
             }
 
@@ -358,9 +359,10 @@ public class ProcessorMediator extends AbstractMediator {
                                 .onItem().transformToMulti(this::handleSkip));
             } else {
                 this.mapper = upstream -> MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration)
-                        .onItem().transformToMultiAndMerge(message -> invokeBlocking(message, getArguments(message))
+                        .onItem().transformToMulti(message -> invokeBlocking(message, getArguments(message))
                                 .onItemOrFailure().transformToUni((r, f) -> handlePostInvocation(message, r, f))
-                                .onItem().transformToMulti(this::handleSkip));
+                                .onItem().transformToMulti(this::handleSkip))
+                        .merge(maxConcurrency());
             }
 
         } else {

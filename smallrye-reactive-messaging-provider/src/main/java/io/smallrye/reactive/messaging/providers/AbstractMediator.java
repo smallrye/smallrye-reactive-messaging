@@ -44,6 +44,7 @@ public abstract class AbstractMediator {
     protected HealthCenter health;
     private Instance<MessageConverter> converters;
     private Instance<KeyValueExtractor> extractors;
+    private int maxConcurrency;
 
     public AbstractMediator(MediatorConfiguration configuration) {
         this.configuration = configuration;
@@ -97,6 +98,10 @@ public abstract class AbstractMediator {
 
     public void setWorkerPoolRegistry(WorkerPoolRegistry workerPoolRegistry) {
         this.workerPoolRegistry = workerPoolRegistry;
+    }
+
+    public void setMaxConcurrency(int maxConcurrency) {
+        this.maxConcurrency = maxConcurrency;
     }
 
     public void run() {
@@ -259,8 +264,11 @@ public abstract class AbstractMediator {
         return extractors;
     }
 
+    public int maxConcurrency() {
+        return maxConcurrency;
+    }
+
     public void terminate() {
         // Do nothing by default.
     }
-
 }

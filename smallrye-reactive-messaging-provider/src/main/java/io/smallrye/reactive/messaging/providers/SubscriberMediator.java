@@ -165,8 +165,9 @@ public class SubscriberMediator extends AbstractMediator {
                         .invoke(failure -> health.reportApplicationFailure(configuration.methodAsString(), failure));
             } else {
                 this.function = upstream -> MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration)
-                        .onItem().transformToUniAndMerge(msg -> invokeBlocking(msg, getArguments(msg))
+                        .onItem().transformToUni(msg -> invokeBlocking(msg, getArguments(msg))
                                 .onItemOrFailure().transformToUni(handleInvocationResult(msg)))
+                        .merge(maxConcurrency())
                         .onFailure()
                         .invoke(failure -> health.reportApplicationFailure(configuration.methodAsString(), failure));
             }
@@ -210,7 +211,7 @@ public class SubscriberMediator extends AbstractMediator {
                         .onFailure().invoke(this::reportFailure);
             } else {
                 this.function = upstream -> MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration)
-                        .onItem().transformToUniAndMerge(this::invokeBlockingAndHandleOutcome)
+                        .onItem().transformToUni(this::invokeBlockingAndHandleOutcome).merge(maxConcurrency())
                         .onFailure().invoke(this::reportFailure);
             }
         } else {
@@ -243,7 +244,7 @@ public class SubscriberMediator extends AbstractMediator {
                         .onFailure().invoke(this::reportFailure);
             } else {
                 this.function = upstream -> MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration)
-                        .onItem().transformToUniAndMerge(this::invokeBlockingAndHandleOutcome)
+                        .onItem().transformToUni(this::invokeBlockingAndHandleOutcome).merge(maxConcurrency())
                         .onFailure().invoke(this::reportFailure);
             }
         } else {
