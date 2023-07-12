@@ -71,8 +71,7 @@ public class PulsarNackTest extends WeldTestBase {
         FailingConsumingApp app = runApplication(config()
                 .with("mp.messaging.incoming.data.failure-strategy", "continue")
                 .with("mp.messaging.incoming.data.ackTimeoutMillis", "100")
-                .with("mp.messaging.incoming.data.ackTimeout.redeliveryBackoff", "100,1000,2")
-                , FailingConsumingApp.class);
+                .with("mp.messaging.incoming.data.ackTimeout.redeliveryBackoff", "100,1000,2"), FailingConsumingApp.class);
         // Produce messages
         send(client.newProducer(Schema.INT32)
                 .producerName("test-producer")
