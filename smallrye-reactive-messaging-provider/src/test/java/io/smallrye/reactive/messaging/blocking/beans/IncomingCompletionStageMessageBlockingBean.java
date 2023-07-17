@@ -1,7 +1,6 @@
 package io.smallrye.reactive.messaging.blocking.beans;
 
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.CopyOnWriteArrayList;
 
@@ -16,13 +15,15 @@ import io.smallrye.reactive.messaging.annotations.Blocking;
 public class IncomingCompletionStageMessageBlockingBean {
     private List<String> list = new CopyOnWriteArrayList<>();
     private List<String> threads = new CopyOnWriteArrayList<>();
+    private List<String> completedReturns = new CopyOnWriteArrayList<>();
 
     @Incoming("in")
     @Blocking
     public CompletionStage<Void> consume(Message<String> m) {
         threads.add(Thread.currentThread().getName());
         list.add(m.getPayload());
-        return CompletableFuture.completedFuture(null);
+        return m.ack()
+                .thenAccept(x -> completedReturns.add(m.getPayload()));
     }
 
     public List<String> list() {
@@ -31,5 +32,9 @@ public class IncomingCompletionStageMessageBlockingBean {
 
     public List<String> threads() {
         return threads;
+    }
+
+    public List<String> completedReturns() {
+        return completedReturns;
     }
 }
