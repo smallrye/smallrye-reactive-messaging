@@ -154,6 +154,7 @@ class BlockingSubscriberTest extends WeldTestBaseWithoutTails {
 
         await().until(() -> bean.list().size() == 6);
         assertThat(bean.list()).contains("a", "b", "c", "d", "e", "f");
+        assertThat(bean.completedReturns()).contains("a", "b", "c", "d", "e", "f");
 
         List<String> threadNames = bean.threads().stream().distinct().collect(Collectors.toList());
         assertThat(threadNames.contains(Thread.currentThread().getName())).isFalse();
@@ -173,6 +174,7 @@ class BlockingSubscriberTest extends WeldTestBaseWithoutTails {
 
         await().until(() -> bean.list().size() == 6);
         assertThat(bean.list()).contains("a", "b", "c", "d", "e", "f");
+        assertThat(bean.completedReturns()).contains("a", "b", "c", "d", "e", "f");
 
         List<String> threadNames = bean.threads().stream().distinct().collect(Collectors.toList());
         assertThat(threadNames.contains(Thread.currentThread().getName())).isFalse();
@@ -192,6 +194,7 @@ class BlockingSubscriberTest extends WeldTestBaseWithoutTails {
 
         await().until(() -> bean.list().size() == 6);
         assertThat(bean.list()).contains("a", "b", "c", "d", "e", "f");
+        assertThat(bean.completedReturns()).contains("a", "b", "c", "d", "e", "f");
 
         List<String> threadNames = bean.threads().stream().distinct().collect(Collectors.toList());
         assertThat(threadNames.contains(Thread.currentThread().getName())).isFalse();
@@ -211,6 +214,7 @@ class BlockingSubscriberTest extends WeldTestBaseWithoutTails {
 
         await().until(() -> bean.list().size() == 6);
         assertThat(bean.list()).contains("a", "b", "c", "d", "e", "f");
+        assertThat(bean.completedReturns()).contains("a", "b", "c", "d", "e", "f");
 
         List<String> threadNames = bean.threads().stream().distinct().collect(Collectors.toList());
         assertThat(threadNames.contains(Thread.currentThread().getName())).isFalse();

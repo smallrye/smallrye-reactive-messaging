@@ -15,13 +15,15 @@ import io.smallrye.reactive.messaging.annotations.Blocking;
 public class IncomingUniMessageBlockingBean {
     private List<String> list = new CopyOnWriteArrayList<>();
     private List<String> threads = new CopyOnWriteArrayList<>();
+    private List<String> completedReturns = new CopyOnWriteArrayList<>();
 
     @Incoming("in")
     @Blocking
     public Uni<Void> consume(Message<String> m) {
         threads.add(Thread.currentThread().getName());
         list.add(m.getPayload());
-        return Uni.createFrom().voidItem();
+        return Uni.createFrom().completionStage(m::ack)
+                .invoke(() -> completedReturns.add(m.getPayload()));
     }
 
     public List<String> list() {
@@ -30,5 +32,9 @@ public class IncomingUniMessageBlockingBean {
 
     public List<String> threads() {
         return threads;
+    }
+
+    public List<String> completedReturns() {
+        return completedReturns;
     }
 }

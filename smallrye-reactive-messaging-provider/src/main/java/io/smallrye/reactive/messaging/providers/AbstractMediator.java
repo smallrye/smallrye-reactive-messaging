@@ -166,17 +166,19 @@ public abstract class AbstractMediator {
             Context currentContext = metadata.map(m -> Context.newInstance(m.context()))
                     .orElseGet(Vertx::currentContext);
             return workerPoolRegistry.executeWork(currentContext,
-                    Uni.createFrom().emitter(emitter -> {
+                    Uni.createFrom().deferred(() -> {
                         try {
                             Object result = this.invoker.invoke(args);
                             if (result instanceof CompletionStage) {
-                                ((CompletionStage<?>) result).thenAccept(x -> emitter.complete((T) x));
+                                return Uni.createFrom().completionStage((CompletionStage<T>) result);
+                            } else if (result instanceof Uni) {
+                                return (Uni<T>) result;
                             } else {
-                                emitter.complete((T) result);
+                                return Uni.createFrom().item((T) result);
                             }
                         } catch (RuntimeException e) {
                             log.methodException(configuration().methodAsString(), e);
-                            emitter.fail(e);
+                            return Uni.createFrom().failure(e);
                         }
                     }),
                     configuration.getWorkerPoolName(),

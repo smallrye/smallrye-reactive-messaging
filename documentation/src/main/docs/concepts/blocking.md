@@ -51,15 +51,17 @@ following configuration property to be defined:
 `@Blocking` does not support every signature. The following table lists
 the supported ones.
 
-| Shape      | Signature                                                             | Comment                                                                                                               |
-|------------|-----------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------|
-| Publisher  | `@Outgoing("in") @Blocking O generator()`                             | Invokes the generator from a worker thread. If `ordered` is set to `false`, the generator can be called concurrently. |
-| Publisher  | `@Outgoing("in")  @Blocking  Message<O> generator()`                  | Invokes the generator from a worker thread. If `ordered` is set to `false`, the generator can be called concurrently. |
-| Processor  | `@Incoming("in") @Outgoing("bar") @Blocking O process(I in)`          | Invokes the method on a worker thread. If `ordered` is set to `false`, the method can be called concurrently.         |
-| Processor  | `@Incoming("in") @Outgoing("bar") @Blocking Message<O> process(I in)` | Invokes the method on a worker thread. If `ordered` is set to `false`, the method can be called concurrently.         |
-| Subscriber | `@Incoming("in") @Blocking void consume(I in)`                        | Invokes the method on a worker thread. If `ordered` is set to `false`, the method can be called concurrently.         |
-| Subscriber | `@Incoming("in") @Blocking Uni<Void> consume(I in)`                   | Invokes the method on a worker thread. If `ordered` is set to `false`, the method can be called concurrently.         |
-| Subscriber | `@Incoming("in") @Blocking CompletionStage<Void> consume(I in)`       | Invokes the method on a worker thread. If `ordered` is set to `false`, the method can be called concurrently.         |
+| Shape      | Signature                                                                 | Comment                                                                                                               |
+|------------|---------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------|
+| Publisher  | `@Outgoing("in") @Blocking O generator()`                                 | Invokes the generator from a worker thread. If `ordered` is set to `false`, the generator can be called concurrently. |
+| Publisher  | `@Outgoing("in")  @Blocking  Message<O> generator()`                      | Invokes the generator from a worker thread. If `ordered` is set to `false`, the generator can be called concurrently. |
+| Processor  | `@Incoming("in") @Outgoing("bar") @Blocking O process(I in)`              | Invokes the method on a worker thread. If `ordered` is set to `false`, the method can be called concurrently.         |
+| Processor  | `@Incoming("in") @Outgoing("bar") @Blocking Message<O> process(I in)`     | Invokes the method on a worker thread. If `ordered` is set to `false`, the method can be called concurrently.         |
+| Subscriber | `@Incoming("in") @Blocking void consume(I in)`                            | Invokes the method on a worker thread. If `ordered` is set to `false`, the method can be called concurrently.         |
+| Subscriber | `@Incoming("in") @Blocking Uni<Void> consume(I in)`                       | Invokes the method on a worker thread. If `ordered` is set to `false`, the method can be called concurrently.         |
+| Subscriber | `@Incoming("in") @Blocking Uni<Void> consume(Message<I> msg)`             | Invokes the method on a worker thread. If `ordered` is set to `false`, the method can be called concurrently.         |
+| Subscriber | `@Incoming("in") @Blocking CompletionStage<Void> consume(I in)`           | Invokes the method on a worker thread. If `ordered` is set to `false`, the method can be called concurrently.         |
+| Subscriber | `@Incoming("in") @Blocking CompletionStage<Void> consume(Message<I> msg)` | Invokes the method on a worker thread. If `ordered` is set to `false`, the method can be called concurrently.         |
 
 When a method can be called concurrently, the max concurrency depends on
 the number of threads from the worker thread pool.
