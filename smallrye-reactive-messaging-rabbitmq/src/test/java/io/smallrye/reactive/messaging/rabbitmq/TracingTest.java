@@ -1,9 +1,10 @@
 package io.smallrye.reactive.messaging.rabbitmq;
 
-import static io.opentelemetry.semconv.trace.attributes.SemanticAttributes.MESSAGING_DESTINATION_KIND;
 import static io.opentelemetry.semconv.trace.attributes.SemanticAttributes.MESSAGING_DESTINATION_NAME;
+import static io.opentelemetry.semconv.trace.attributes.SemanticAttributes.MESSAGING_OPERATION;
 import static io.opentelemetry.semconv.trace.attributes.SemanticAttributes.MESSAGING_PROTOCOL;
 import static io.opentelemetry.semconv.trace.attributes.SemanticAttributes.MESSAGING_PROTOCOL_VERSION;
+import static io.opentelemetry.semconv.trace.attributes.SemanticAttributes.MESSAGING_RABBITMQ_ROUTING_KEY;
 import static io.opentelemetry.semconv.trace.attributes.SemanticAttributes.MESSAGING_SYSTEM;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.stream.Collectors.toList;
@@ -101,10 +102,11 @@ public class TracingTest extends WeldTestBase {
             SpanData consumer = spans.get(0);
             assertEquals(SpanKind.CONSUMER, consumer.getKind());
             assertEquals("rabbitmq", consumer.getAttributes().get(MESSAGING_SYSTEM));
+            assertEquals("receive", consumer.getAttributes().get(MESSAGING_OPERATION));
+            assertEquals("normal", consumer.getAttributes().get(MESSAGING_RABBITMQ_ROUTING_KEY));
+            assertEquals(queue, consumer.getAttributes().get(MESSAGING_DESTINATION_NAME));
             assertNull(consumer.getAttributes().get(MESSAGING_PROTOCOL));
             assertNull(consumer.getAttributes().get(MESSAGING_PROTOCOL_VERSION));
-            assertEquals("queue", consumer.getAttributes().get(MESSAGING_DESTINATION_KIND));
-            assertEquals(queue, consumer.getAttributes().get(MESSAGING_DESTINATION_NAME));
             assertEquals(queue + " receive", consumer.getName());
         });
     }

@@ -1,6 +1,5 @@
 package io.smallrye.reactive.messaging.pulsar.tracing;
 
-import static io.opentelemetry.semconv.trace.attributes.SemanticAttributes.MESSAGING_DESTINATION_KIND;
 import static io.opentelemetry.semconv.trace.attributes.SemanticAttributes.MESSAGING_SYSTEM;
 import static java.util.stream.Collectors.toList;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -113,8 +112,7 @@ public class TracingPropagationTest extends WeldTestBase {
             SpanData span = spans.get(0);
             assertEquals(SpanKind.PRODUCER, span.getKind());
             assertEquals("pulsar", span.getAttributes().get(MESSAGING_SYSTEM));
-            assertEquals("topic", span.getAttributes().get(MESSAGING_DESTINATION_KIND));
-            assertEquals(topic + " send", span.getName());
+            assertEquals(topic + " publish", span.getName());
         });
     }
 
@@ -150,8 +148,7 @@ public class TracingPropagationTest extends WeldTestBase {
             SpanData span = spans.get(0);
             assertEquals(SpanKind.PRODUCER, span.getKind());
             assertEquals("kafka", span.getAttributes().get(MESSAGING_SYSTEM));
-            assertEquals("topic", span.getAttributes().get(MESSAGING_DESTINATION_KIND));
-            assertEquals(topic + " send", span.getName());
+            assertEquals(topic + " publish", span.getName());
         });
     }
 
@@ -186,8 +183,7 @@ public class TracingPropagationTest extends WeldTestBase {
             SpanData span = spans.get(0);
             assertEquals(SpanKind.PRODUCER, span.getKind());
             assertEquals("kafka", span.getAttributes().get(MESSAGING_SYSTEM));
-            assertEquals("topic", span.getAttributes().get(MESSAGING_DESTINATION_KIND));
-            assertEquals(topic + " send", span.getName());
+            assertEquals(topic + " publish", span.getName());
         });
     }
 
@@ -229,15 +225,13 @@ public class TracingPropagationTest extends WeldTestBase {
 
             SpanData consumer = parentSpans.get(0);
             assertEquals(SpanKind.CONSUMER, consumer.getKind());
-            assertEquals("topic", consumer.getAttributes().get(MESSAGING_DESTINATION_KIND));
             assertEquals("persistent://public/default/" + parentTopic + " receive", consumer.getName());
 
             SpanData producer = spans.stream().filter(spanData -> spanData.getParentSpanId().equals(consumer.getSpanId()))
                     .findFirst().get();
             assertEquals(SpanKind.PRODUCER, producer.getKind());
             assertEquals("pulsar", producer.getAttributes().get(MESSAGING_SYSTEM));
-            assertEquals("topic", producer.getAttributes().get(MESSAGING_DESTINATION_KIND));
-            assertEquals(resultTopic + " send", producer.getName());
+            assertEquals(resultTopic + " publish", producer.getName());
         });
     }
 
@@ -290,7 +284,6 @@ public class TracingPropagationTest extends WeldTestBase {
             SpanData consumer = spans.stream().filter(spanData -> spanData.getParentSpanId().equals(producer.getSpanId()))
                     .findFirst().get();
             assertEquals("pulsar", consumer.getAttributes().get(MESSAGING_SYSTEM));
-            assertEquals("topic", consumer.getAttributes().get(MESSAGING_DESTINATION_KIND));
             assertEquals("persistent://public/default/" + parentTopic + " receive", consumer.getName());
         });
     }
