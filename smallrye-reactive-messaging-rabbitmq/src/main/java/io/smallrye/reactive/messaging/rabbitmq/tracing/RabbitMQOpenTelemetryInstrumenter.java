@@ -27,7 +27,7 @@ public class RabbitMQOpenTelemetryInstrumenter {
     }
 
     private static RabbitMQOpenTelemetryInstrumenter create(boolean sender) {
-        MessageOperation messageOperation = sender ? MessageOperation.SEND : MessageOperation.RECEIVE;
+        MessageOperation messageOperation = sender ? MessageOperation.PUBLISH : MessageOperation.RECEIVE;
 
         RabbitMQTraceAttributesExtractor rabbitMQAttributesExtractor = new RabbitMQTraceAttributesExtractor();
         MessagingAttributesGetter<RabbitMQTrace, Void> messagingAttributesGetter = rabbitMQAttributesExtractor

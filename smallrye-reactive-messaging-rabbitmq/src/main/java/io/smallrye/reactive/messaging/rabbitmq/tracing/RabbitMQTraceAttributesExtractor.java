@@ -39,11 +39,6 @@ public class RabbitMQTraceAttributesExtractor implements AttributesExtractor<Rab
         }
 
         @Override
-        public String getDestinationKind(final RabbitMQTrace rabbitMQTrace) {
-            return rabbitMQTrace.getDestinationKind();
-        }
-
-        @Override
         public String getDestination(final RabbitMQTrace rabbitMQTrace) {
             return rabbitMQTrace.getDestination();
         }
