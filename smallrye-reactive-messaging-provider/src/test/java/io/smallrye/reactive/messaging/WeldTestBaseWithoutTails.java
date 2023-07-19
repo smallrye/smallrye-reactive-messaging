@@ -9,7 +9,6 @@ import java.nio.file.Files;
 import java.util.Collections;
 import java.util.List;
 
-import io.smallrye.reactive.messaging.providers.IncomingInterceptorDecorator;
 import jakarta.enterprise.inject.se.SeContainer;
 import jakarta.enterprise.inject.se.SeContainerInitializer;
 import jakarta.enterprise.inject.spi.Extension;
@@ -21,6 +20,7 @@ import org.junit.jupiter.api.BeforeEach;
 
 import io.smallrye.config.SmallRyeConfigProviderResolver;
 import io.smallrye.mutiny.Multi;
+import io.smallrye.reactive.messaging.providers.IncomingInterceptorDecorator;
 import io.smallrye.reactive.messaging.providers.MediatorFactory;
 import io.smallrye.reactive.messaging.providers.OutgoingInterceptorDecorator;
 import io.smallrye.reactive.messaging.providers.connectors.ExecutionHolder;

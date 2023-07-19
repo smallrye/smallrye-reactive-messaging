@@ -47,11 +47,11 @@ public class IncomingInterceptorDecorator implements PublisherDecorator {
             if (!matching.isEmpty()) {
                 IncomingInterceptor interceptor = matching.get(0);
                 multi = multi.map(m -> {
-                    Message<?> before = interceptor.onMessage(m);
-                    Message<?> withAck = before.withAck(() -> before.ack()
+                    Message<?> before = interceptor.afterMessageReceive(m);
+                    Message<?> withAck = before.withAckWithMetadata(metadata -> before.ack(metadata)
                             .thenAccept(Unchecked.consumer(x -> interceptor.onMessageAck(before))));
-                    return withAck.withNack(t -> withAck.nack(t)
-                            .thenAccept(Unchecked.consumer(x -> interceptor.onMessageNack(withAck, t))));
+                    return withAck.withNackWithMetadata((reason, metadata) -> withAck.nack(reason, metadata)
+                            .thenAccept(Unchecked.consumer(x -> interceptor.onMessageNack(withAck, reason))));
                 });
             }
         }

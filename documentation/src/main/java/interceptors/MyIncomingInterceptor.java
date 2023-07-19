@@ -1,16 +1,18 @@
 package interceptors;
 
+import jakarta.enterprise.context.ApplicationScoped;
+
+import org.eclipse.microprofile.reactive.messaging.Message;
+
 import io.smallrye.common.annotation.Identifier;
 import io.smallrye.reactive.messaging.IncomingInterceptor;
-import jakarta.enterprise.context.ApplicationScoped;
-import org.eclipse.microprofile.reactive.messaging.Message;
 
 @Identifier("channel-a")
 @ApplicationScoped
 public class MyIncomingInterceptor implements IncomingInterceptor {
 
     @Override
-    public Message<?> onMessage(Message<?> message) {
+    public Message<?> afterMessageReceive(Message<?> message) {
         return message.withPayload("changed " + message.getPayload());
     }
 

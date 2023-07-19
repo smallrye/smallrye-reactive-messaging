@@ -29,7 +29,7 @@ public interface IncomingInterceptor extends Prioritized {
      * @param message received message
      * @return the message to dispatch for consumer methods, possibly mutated
      */
-    default Message<?> onMessage(Message<?> message) {
+    default Message<?> afterMessageReceive(Message<?> message) {
         return message;
     }
 

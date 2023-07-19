@@ -53,7 +53,7 @@ To provide an incoming interceptor implement a bean exposing the interface {{ ja
 
 An `IncomingInterceptor` can implement these three methods:
 
-- `Message<?> onMessage(Message<?> message)` : Called after receiving the message from an incoming connector.
+- `Message<?> afterMessageReceive(Message<?> message)` : Called after receiving the message from an incoming connector.
   The message can be altered by returning a new message from this method. The modified message will be consumed in incoming channels.
 - `void onMessageAck(Message<?> message)` : Called after message acknowledgment.
 - `void onMessageNack(Message<?> message, Throwable failure)` : Called after message negative-acknowledgment.
@@ -72,7 +72,7 @@ To provide an outgoing interceptor implement a bean exposing the interface {{ ja
 
 An `OutgoingInterceptor` can implement these three methods:
 
-- `Message<?> onMessage(Message<?> message)` : Called before passing the message to the outgoing connector for transmission.
+- `Message<?> beforeMessageSend(Message<?> message)` : Called before passing the message to the outgoing connector for transmission.
 The message can be altered by returning a new message from this method.
 - `void onMessageAck(Message<?> message)` : Called after message acknowledgment.
 This callback can access `OutgoingMessageMetadata` which will hold the result of the message transmission to the broker, if supported by the connector. This is only supported by MQTT and Kafka connectors.
