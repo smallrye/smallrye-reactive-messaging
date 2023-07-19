@@ -21,7 +21,7 @@ nav:
             - 'Skipping Messages': concepts/skipping.md
             - 'Message Converters': concepts/converters.md
             - 'Keyed Streams': concepts/keyed-multi.md
-            - 'Channel Decorators': concepts/decorators.md
+            - 'Channel Decorators and Interceptors': concepts/decorators.md
             - 'Broadcast' : concepts/broadcast.md
             - 'Merge channels' : concepts/merge.md
             - 'Incoming Channel Concurrency' : concepts/incoming-concurrency.md

@@ -9,6 +9,7 @@ import java.nio.file.Files;
 import java.util.Collections;
 import java.util.List;
 
+import io.smallrye.reactive.messaging.providers.IncomingInterceptorDecorator;
 import jakarta.enterprise.inject.se.SeContainer;
 import jakarta.enterprise.inject.se.SeContainerInitializer;
 import jakarta.enterprise.inject.spi.Extension;
@@ -119,6 +120,7 @@ public class WeldTestBaseWithoutTails {
                 MutinyEmitterFactoryImpl.class,
                 LegacyEmitterFactoryImpl.class,
                 OutgoingInterceptorDecorator.class,
+                IncomingInterceptorDecorator.class,
 
                 // SmallRye config
                 io.smallrye.config.inject.ConfigProducer.class);

@@ -1,16 +1,13 @@
 package interceptors;
 
-import jakarta.enterprise.context.ApplicationScoped;
-
-import org.eclipse.microprofile.reactive.messaging.Message;
-
 import io.smallrye.common.annotation.Identifier;
-import io.smallrye.reactive.messaging.OutgoingInterceptor;
-import io.smallrye.reactive.messaging.OutgoingMessageMetadata;
+import io.smallrye.reactive.messaging.IncomingInterceptor;
+import jakarta.enterprise.context.ApplicationScoped;
+import org.eclipse.microprofile.reactive.messaging.Message;
 
 @Identifier("channel-a")
 @ApplicationScoped
-public class MyInterceptor implements OutgoingInterceptor {
+public class MyIncomingInterceptor implements IncomingInterceptor {
 
     @Override
     public Message<?> onMessage(Message<?> message) {
@@ -19,12 +16,11 @@ public class MyInterceptor implements OutgoingInterceptor {
 
     @Override
     public void onMessageAck(Message<?> message) {
-        message.getMetadata(OutgoingMessageMetadata.class)
-                .ifPresent(m -> m.getResult());
+        // Called after message ack
     }
 
     @Override
     public void onMessageNack(Message<?> message, Throwable failure) {
-
+        // Called after message nack
     }
 }
