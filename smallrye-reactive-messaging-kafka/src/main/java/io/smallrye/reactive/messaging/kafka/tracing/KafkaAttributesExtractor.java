@@ -65,11 +65,6 @@ public class KafkaAttributesExtractor implements AttributesExtractor<KafkaTrace,
         }
 
         @Override
-        public String getDestinationKind(final KafkaTrace kafkaTrace) {
-            return "topic";
-        }
-
-        @Override
         public String getDestination(final KafkaTrace kafkaTrace) {
             return kafkaTrace.getTopic();
         }

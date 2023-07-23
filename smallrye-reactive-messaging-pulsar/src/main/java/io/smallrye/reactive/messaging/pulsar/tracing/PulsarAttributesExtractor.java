@@ -41,11 +41,6 @@ public class PulsarAttributesExtractor implements AttributesExtractor<PulsarTrac
         }
 
         @Override
-        public String getDestinationKind(PulsarTrace pulsarTrace) {
-            return "topic";
-        }
-
-        @Override
         public String getDestination(PulsarTrace pulsarTrace) {
             return pulsarTrace.getTopic();
         }

@@ -90,10 +90,11 @@ public class PulsarOutgoingChannel<T> {
                 .getMessagingAttributesGetter();
         InstrumenterBuilder<PulsarTrace, Void> instrumenterBuilder = Instrumenter.builder(GlobalOpenTelemetry.get(),
                 "io.smallrye.reactive.messaging",
-                MessagingSpanNameExtractor.create(messagingAttributesGetter, MessageOperation.SEND));
+                MessagingSpanNameExtractor.create(messagingAttributesGetter, MessageOperation.PUBLISH));
 
         instrumenter = instrumenterBuilder
-                .addAttributesExtractor(MessagingAttributesExtractor.create(messagingAttributesGetter, MessageOperation.SEND))
+                .addAttributesExtractor(
+                        MessagingAttributesExtractor.create(messagingAttributesGetter, MessageOperation.PUBLISH))
                 .addAttributesExtractor(AttributesExtractor)
                 .buildProducerInstrumenter(PulsarTraceTextMapSetter.INSTANCE);
     }

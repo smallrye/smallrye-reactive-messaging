@@ -41,12 +41,6 @@ public class AmqpAttributesExtractor implements AttributesExtractor<AmqpMessage<
             return "AMQP 1.0";
         }
 
-        // Required if the message destination is either a queue or topic
-        @Override
-        public String getDestinationKind(final AmqpMessage<?> amqpMessage) {
-            return "queue";
-        }
-
         // Required
         @Override
         public String getDestination(final AmqpMessage<?> amqpMessage) {

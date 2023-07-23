@@ -33,7 +33,7 @@ public class KafkaOpenTelemetryInstrumenter {
 
     private static KafkaOpenTelemetryInstrumenter create(boolean source) {
 
-        MessageOperation messageOperation = source ? MessageOperation.RECEIVE : MessageOperation.SEND;
+        MessageOperation messageOperation = source ? MessageOperation.RECEIVE : MessageOperation.PUBLISH;
 
         KafkaAttributesExtractor kafkaAttributesExtractor = new KafkaAttributesExtractor();
         MessagingAttributesGetter<KafkaTrace, Void> messagingAttributesGetter = kafkaAttributesExtractor

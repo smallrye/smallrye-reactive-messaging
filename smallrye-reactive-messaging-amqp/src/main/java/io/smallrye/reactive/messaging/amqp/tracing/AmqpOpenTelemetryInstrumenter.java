@@ -28,7 +28,7 @@ public class AmqpOpenTelemetryInstrumenter {
     }
 
     private static AmqpOpenTelemetryInstrumenter create(boolean sender) {
-        MessageOperation messageOperation = sender ? MessageOperation.SEND : MessageOperation.RECEIVE;
+        MessageOperation messageOperation = sender ? MessageOperation.PUBLISH : MessageOperation.RECEIVE;
         AmqpAttributesExtractor amqpAttributesExtractor = new AmqpAttributesExtractor();
         MessagingAttributesGetter<AmqpMessage<?>, Void> messagingAttributesGetter = amqpAttributesExtractor
                 .getMessagingAttributesGetter();
