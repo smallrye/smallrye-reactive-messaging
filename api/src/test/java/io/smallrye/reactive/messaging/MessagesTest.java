@@ -8,6 +8,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.junit.jupiter.api.Test;
@@ -214,6 +215,147 @@ public class MessagesTest {
     void checkWithEmptyList() {
         assertThat(Messages.merge(List.of(), l -> l).getPayload()).isEqualTo(Collections.emptyList());
         assertThat(Messages.merge(List.of()).getPayload()).isEqualTo(Collections.emptyList());
+    }
+
+    @Test
+    void checkSimpleChainAcknowledgement() {
+        AtomicBoolean o1Ack = new AtomicBoolean();
+        AtomicBoolean o2Ack = new AtomicBoolean();
+        AtomicInteger i1Ack = new AtomicInteger();
+        Message<String> o1 = Message.of("foo", () -> {
+            o1Ack.set(true);
+            return CompletableFuture.completedFuture(null);
+        });
+        Message<String> o2 = Message.of("bar", () -> {
+            o2Ack.set(true);
+            return CompletableFuture.completedFuture(null);
+        });
+
+        Message<Integer> i = Message.of(1, () -> {
+            i1Ack.incrementAndGet();
+            return CompletableFuture.completedFuture(null);
+        });
+
+        List<Message<?>> outcomes = Messages.chain(i).with(o1, o2);
+        assertThat(i1Ack).hasValue(0);
+        assertThat(o1Ack).isFalse();
+        assertThat(o2Ack).isFalse();
+
+        outcomes.get(0).ack();
+        assertThat(i1Ack).hasValue(0);
+        assertThat(o1Ack).isTrue();
+        assertThat(o2Ack).isFalse();
+
+        outcomes.get(1).ack();
+        assertThat(i1Ack).hasValue(1);
+        assertThat(o1Ack).isTrue();
+        assertThat(o1Ack).isTrue();
+
+        outcomes.get(1).ack();
+        outcomes.get(0).ack();
+        assertThat(i1Ack).hasValue(1);
+
+        outcomes.get(1).nack(new Exception("boom"));
+        outcomes.get(0).nack(new Exception("boom"));
+        assertThat(i1Ack).hasValue(1);
+    }
+
+    @Test
+    void checkSimpleChainNegativeAcknowledgement() {
+        AtomicBoolean o1Ack = new AtomicBoolean();
+        AtomicBoolean o2Ack = new AtomicBoolean();
+        AtomicBoolean o1Nack = new AtomicBoolean();
+        AtomicBoolean o2Nack = new AtomicBoolean();
+        AtomicInteger i1Ack = new AtomicInteger();
+        AtomicInteger i1Nack = new AtomicInteger();
+
+        Message<String> o1 = Message.of("foo", () -> {
+            o1Ack.set(true);
+            return CompletableFuture.completedFuture(null);
+        }, t -> {
+            o1Nack.set(true);
+            return CompletableFuture.completedFuture(null);
+        });
+        Message<String> o2 = Message.of("bar", () -> {
+            o2Ack.set(true);
+            return CompletableFuture.completedFuture(null);
+        }, t -> {
+            o2Nack.set(true);
+            return CompletableFuture.completedFuture(null);
+        });
+
+        Message<Integer> i = Message.of(1, () -> {
+            i1Ack.incrementAndGet();
+            return CompletableFuture.completedFuture(null);
+        }, t -> {
+            i1Nack.incrementAndGet();
+            return CompletableFuture.completedFuture(null);
+        });
+
+        List<Message<?>> outcomes = Messages.chain(i).with(o1, o2);
+        assertThat(i1Ack).hasValue(0);
+        assertThat(o1Ack).isFalse();
+        assertThat(o2Ack).isFalse();
+        assertThat(i1Nack).hasValue(0);
+        assertThat(o1Nack).isFalse();
+        assertThat(o2Nack).isFalse();
+
+        outcomes.get(0).ack();
+        assertThat(i1Ack).hasValue(0);
+        assertThat(o1Ack).isTrue();
+        assertThat(o2Ack).isFalse();
+        assertThat(i1Nack).hasValue(0);
+        assertThat(o1Nack).isFalse();
+        assertThat(o2Nack).isFalse();
+
+        outcomes.get(0).nack(new Exception("boom"));
+        assertThat(i1Ack).hasValue(0);
+        assertThat(i1Nack).hasValue(0);
+
+        outcomes.get(1).nack(new Exception("boom"));
+        assertThat(i1Nack).hasValue(1);
+        assertThat(i1Ack).hasValue(0);
+        assertThat(o2Nack).isTrue();
+
+        outcomes.get(1).ack();
+        assertThat(i1Nack).hasValue(1);
+        assertThat(i1Ack).hasValue(0);
+    }
+
+    @Test
+    void testChainWithMetadataSelection() {
+        Message<Integer> i = Message.of(1)
+                .withMetadata(List.of(new NonMergeableMetadata("hello"), new MergeableMetadata("hello"),
+                        new AnotherMetadata("hello")));
+
+        Message<String> m1 = Message.of("a");
+        AnotherMetadata am = new AnotherMetadata("hello");
+        Message<String> m2 = Message.of("b").addMetadata(am);
+
+        // No metadata copied from the original message
+        List<Message<?>> out = Messages.chain(i).withoutMetadata().with(m1, m2);
+        assertThat(out.get(0).getMetadata()).isEmpty();
+        assertThat(out.get(1).getMetadata()).hasSize(1).containsOnly(am);
+
+        // All metadata are copied from the original message
+        out = Messages.chain(i).with(m1, m2);
+        assertThat(out.get(0).getMetadata()).hasSize(3);
+        assertThat(out.get(1).getMetadata()).hasSize(3).doesNotContain(am);
+
+        // All metadata but MergeableMetadata are copied from the original message
+        out = Messages.chain(i).withoutMetadata(MergeableMetadata.class).with(m1, m2);
+        assertThat(out.get(0).getMetadata()).hasSize(2);
+        assertThat(out.get(1).getMetadata()).hasSize(2).doesNotContain(am);
+
+        // All metadata but AnotherMetadata are copied from the original message
+        out = Messages.chain(i).withoutMetadata(AnotherMetadata.class).with(m1, m2);
+        assertThat(out.get(0).getMetadata()).hasSize(2);
+        assertThat(out.get(1).getMetadata()).hasSize(3).contains(am);
+
+        out = Messages.chain(i).withoutMetadata().withMetadata(AnotherMetadata.class).with(m1, m2);
+        assertThat(out.get(0).getMetadata()).hasSize(1);
+        assertThat(out.get(1).getMetadata()).hasSize(1);
+
     }
 
     public static class NonMergeableMetadata {
