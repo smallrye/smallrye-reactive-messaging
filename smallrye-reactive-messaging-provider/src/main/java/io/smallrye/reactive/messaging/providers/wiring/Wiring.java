@@ -592,7 +592,11 @@ public class Wiring {
 
         @Override
         public int getRequiredNumberOfSubscribers() {
-            return configuration.getNumberOfSubscriberBeforeConnecting();
+            if (outgoings().size() > 1) {
+                return Math.max(configuration.getNumberOfSubscriberBeforeConnecting(), downstreams().size());
+            } else {
+                return configuration.getNumberOfSubscriberBeforeConnecting();
+            }
         }
 
         @Override

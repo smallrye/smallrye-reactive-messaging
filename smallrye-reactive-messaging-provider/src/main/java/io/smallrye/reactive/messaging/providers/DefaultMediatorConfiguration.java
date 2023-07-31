@@ -69,6 +69,8 @@ public class DefaultMediatorConfiguration implements MediatorConfiguration {
 
     private boolean useReactiveStreams = false;
 
+    private boolean hasTargetedOutput = false;
+
     /**
      * The merge policy.
      */
@@ -243,6 +245,7 @@ public class DefaultMediatorConfiguration implements MediatorConfiguration {
             this.acknowledgment = this.mediatorConfigurationSupport.processDefaultAcknowledgement(this.shape, this.consumption,
                     this.production);
         }
+        this.hasTargetedOutput = this.mediatorConfigurationSupport.processTargetedOutput();
         this.mergePolicy = this.mediatorConfigurationSupport.processMerge(incomings, () -> {
             Merge annotation = method.getAnnotation(Merge.class);
             return annotation != null ? annotation.value() : null;
@@ -314,6 +317,11 @@ public class DefaultMediatorConfiguration implements MediatorConfiguration {
     @Override
     public MethodParameterDescriptor getParameterDescriptor() {
         return descriptor;
+    }
+
+    @Override
+    public boolean hasTargetedOutput() {
+        return hasTargetedOutput;
     }
 
     @Override

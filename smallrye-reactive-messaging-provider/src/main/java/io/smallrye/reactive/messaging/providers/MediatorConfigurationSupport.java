@@ -23,6 +23,8 @@ import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.operators.multi.split.MultiSplitter;
 import io.smallrye.reactive.messaging.MediatorConfiguration;
 import io.smallrye.reactive.messaging.Shape;
+import io.smallrye.reactive.messaging.Targeted;
+import io.smallrye.reactive.messaging.TargetedMessages;
 import io.smallrye.reactive.messaging.annotations.Merge;
 import io.smallrye.reactive.messaging.keyed.KeyValueExtractor;
 import io.smallrye.reactive.messaging.keyed.KeyedMulti;
@@ -610,6 +612,13 @@ public class MediatorConfigurationSupport {
             throw ex.definitionBroadcastOnlyOutgoing("@Incoming", methodAsString);
         }
         return null;
+    }
+
+    public boolean processTargetedOutput() {
+        return Targeted.class.isAssignableFrom(returnType)
+                || returnTypeAssignable.check(Targeted.class, 0) == GenericTypeAssignable.Result.Assignable
+                || TargetedMessages.class.isAssignableFrom(returnType)
+                || returnTypeAssignable.check(TargetedMessages.class, 0) == GenericTypeAssignable.Result.Assignable;
     }
 
     public void validateBlocking(ValidationOutput validationOutput) {

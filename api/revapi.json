@@ -29,20 +29,29 @@
     "minCriticality" : "documented",
     "differences" : [
         {
-            "ignore": true,
+            "code": "java.class.kindChanged",
+            "old": "class io.smallrye.reactive.messaging.Messages",
+            "new": "interface io.smallrye.reactive.messaging.Messages",
+            "justification": "Messages moved to interface with factory method"
+        },
+        {
+            "code": "java.class.nowAbstract",
+            "old": "class io.smallrye.reactive.messaging.Messages",
+            "new": "interface io.smallrye.reactive.messaging.Messages",
+            "justification": "Messages moved to interface with factory method"
+        },
+        {
             "code": "java.field.enumConstantOrderChanged",
             "old": "field io.smallrye.reactive.messaging.MediatorConfiguration.Production.NONE",
             "new": "field io.smallrye.reactive.messaging.MediatorConfiguration.Production.NONE",
             "justification": "Repeatable @Outgoing annotation"
         },
         {
-            "ignore": true,
             "code": "java.method.addedToInterface",
             "new": "method java.util.List<java.lang.String> io.smallrye.reactive.messaging.MediatorConfiguration::getOutgoings()",
             "justification": "Repeatable @Outgoing annotation"
         },
         {
-            "ignore": true,
             "code": "java.annotation.added",
             "old": "@interface org.eclipse.microprofile.reactive.messaging.Outgoing",
             "new": "@interface org.eclipse.microprofile.reactive.messaging.Outgoing",
@@ -50,11 +59,15 @@
             "justification": "Repeatable @Outgoing annotation"
         },
         {
-            "ignore": true,
             "code": "java.annotation.added",
             "old": "@interface org.eclipse.microprofile.reactive.messaging.Outgoing",
             "new": "@interface org.eclipse.microprofile.reactive.messaging.Outgoing",
             "annotation": "@java.lang.annotation.Repeatable(io.smallrye.reactive.messaging.annotations.Outgoings.class)",
+            "justification": "Repeatable @Outgoing annotation"
+        },
+        {
+            "code": "java.method.addedToInterface",
+            "new": "method boolean io.smallrye.reactive.messaging.MediatorConfiguration::hasTargetedOutput()",
             "justification": "Repeatable @Outgoing annotation"
         }
     ]

@@ -203,6 +203,9 @@ public abstract class AbstractMediator {
     }
 
     public Multi<? extends Message<?>> getStream(String outgoing) {
+        if (configuration.hasTargetedOutput()) {
+            return getStream().onItem().transformToUniAndConcatenate(message -> extractTargetedMessage(outgoing, message));
+        }
         return getStream();
     }
 
@@ -241,6 +244,12 @@ public abstract class AbstractMediator {
         }
 
         if (getBroadcast()) {
+            if (configuration.hasTargetedOutput() && !configuration.production().isMessageType()) {
+                input = input.map(s -> {
+                    TargetedMessages messages = TargetedMessages.from((Targeted) s.getPayload());
+                    return Messages.chain(s).with(messages.getPayload());
+                });
+            }
             return BroadcastHelper.broadcastPublisher(input, getNumberOfSubscriberBeforeConnecting());
         } else {
             return input;
@@ -290,4 +299,13 @@ public abstract class AbstractMediator {
     public void terminate() {
         // Do nothing by default.
     }
+
+    protected Uni<? extends Message<?>> extractTargetedMessage(String outgoing, Message<?> message) {
+        if (message instanceof TargetedMessages) {
+            Message<?> msg = ((TargetedMessages) message).get(outgoing);
+            return Uni.createFrom().item(msg);
+        }
+        return Uni.createFrom().item(message);
+    }
+
 }

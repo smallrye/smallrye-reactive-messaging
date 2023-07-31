@@ -97,7 +97,11 @@ public class StreamTransformerMediator extends AbstractMediator {
 
     @Override
     public Multi<? extends Message<?>> getStream(String outgoing) {
-        return outgoingPublisherMap.get(outgoing);
+        if (configuration.production() == MediatorConfiguration.Production.SPLIT_MULTI_OF_MESSAGE
+                || configuration.production() == MediatorConfiguration.Production.SPLIT_MULTI_OF_PAYLOAD) {
+            return outgoingPublisherMap.get(outgoing);
+        }
+        return super.getStream(outgoing);
     }
 
     @Override
