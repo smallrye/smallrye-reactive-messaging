@@ -12,6 +12,7 @@ import io.smallrye.reactive.messaging.rabbitmq.IncomingRabbitMQMessage;
 import io.smallrye.reactive.messaging.rabbitmq.RabbitMQConnector;
 import io.smallrye.reactive.messaging.rabbitmq.RabbitMQConnectorIncomingConfiguration;
 import io.vertx.mutiny.core.Context;
+import org.eclipse.microprofile.reactive.messaging.Metadata;
 
 /**
  * A {@link RabbitMQFailureHandler} that in effect treats the nack as an ack.
@@ -39,7 +40,7 @@ public class RabbitMQAccept implements RabbitMQFailureHandler {
     }
 
     @Override
-    public <V> CompletionStage<Void> handle(IncomingRabbitMQMessage<V> msg, Context context, Throwable reason) {
+    public <V> CompletionStage<Void> handle(IncomingRabbitMQMessage<V> msg, Metadata metadata, Context context, Throwable reason) {
         // We mark the message as rejected and fail.
         log.nackedAcceptMessage(channel);
         log.fullIgnoredFailure(reason);

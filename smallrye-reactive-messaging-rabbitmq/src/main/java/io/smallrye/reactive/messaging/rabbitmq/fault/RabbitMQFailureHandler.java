@@ -7,6 +7,7 @@ import io.smallrye.reactive.messaging.rabbitmq.IncomingRabbitMQMessage;
 import io.smallrye.reactive.messaging.rabbitmq.RabbitMQConnector;
 import io.smallrye.reactive.messaging.rabbitmq.RabbitMQConnectorIncomingConfiguration;
 import io.vertx.mutiny.core.Context;
+import org.eclipse.microprofile.reactive.messaging.Metadata;
 
 /**
  * Implemented to provide message failure strategies.
@@ -37,11 +38,12 @@ public interface RabbitMQFailureHandler {
      * Handle message failure.
      *
      * @param message the failed message
+     * @param metadata additional nack metadata, may be {@code null}
      * @param context the {@link Context} in which the handling should be done
      * @param reason the reason for the failure
      * @param <V> message body type
      * @return a {@link CompletionStage}
      */
-    <V> CompletionStage<Void> handle(IncomingRabbitMQMessage<V> message, Context context, Throwable reason);
+    <V> CompletionStage<Void> handle(IncomingRabbitMQMessage<V> message, Metadata metadata, Context context, Throwable reason);
 
 }

@@ -10,6 +10,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
+import io.smallrye.reactive.messaging.rabbitmq.fault.RabbitMQFailureHandler;
 import org.eclipse.microprofile.config.ConfigProvider;
 import org.eclipse.microprofile.reactive.messaging.spi.ConnectorLiteral;
 import org.jboss.weld.environment.se.Weld;
@@ -620,4 +621,65 @@ class RabbitMQTest extends RabbitMQBrokerTestBase {
         assertThat(bean.getTypeCasts()).isEqualTo(0);
         assertThat(list).containsExactly(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
     }
+
+    /**
+     * Verifies that messages can be requeued by RabbitMQ.
+     */
+    @Test
+    void testNackWithRejectAndRequeue() {
+        final String exchangeName = "exchg6";
+        final String queueName = "q6";
+        final String dlxName = "dlx6";
+        final String dlqName = "dlq6";
+        final String routingKey = "xyzzy";
+        new MapBasedConfig()
+                .put("mp.messaging.incoming.data.exchange.name", exchangeName)
+                .put("mp.messaging.incoming.data.exchange.durable", false)
+                .put("mp.messaging.incoming.data.queue.name", queueName)
+                .put("mp.messaging.incoming.data.queue.durable", false)
+                .put("mp.messaging.incoming.data.queue.routing-keys", routingKey)
+                .put("mp.messaging.incoming.data.connector", RabbitMQConnector.CONNECTOR_NAME)
+                .put("mp.messaging.incoming.data.host", host)
+                .put("mp.messaging.incoming.data.port", port)
+                .put("mp.messaging.incoming.data.tracing-enabled", false)
+                .put("mp.messaging.incoming.data.failure-strategy", RabbitMQFailureHandler.Strategy.REJECT)
+                .put("mp.messaging.incoming.data.auto-bind-dlq", true)
+                .put("mp.messaging.incoming.data.dead-letter-exchange", dlxName)
+                .put("mp.messaging.incoming.data.dead-letter-queue-name", dlqName)
+                .put("mp.messaging.incoming.data.dlx.declare", true)
+                .put("mp.messaging.incoming.data-dlq.exchange.name", dlxName)
+                .put("mp.messaging.incoming.data-dlq.exchange.type", "direct")
+                .put("mp.messaging.incoming.data-dlq.queue.name", dlqName)
+                .put("mp.messaging.incoming.data-dlq.queue.routing-keys", routingKey)
+                .put("mp.messaging.incoming.data-dlq.connector", RabbitMQConnector.CONNECTOR_NAME)
+                .put("mp.messaging.incoming.data-dlq.host", host)
+                .put("mp.messaging.incoming.data-dlq.port", port)
+                .put("mp.messaging.incoming.data-dlq.tracing-enabled", false)
+                .put("rabbitmq-username", username)
+                .put("rabbitmq-password", password)
+                .put("rabbitmq-reconnect-attempts", 0)
+                .write();
+
+        weld.addBeanClass(RequeueFirstDeliveryBean.class);
+
+        container = weld.initialize();
+        await().until(() -> isRabbitMQConnectorAvailable(container));
+        RequeueFirstDeliveryBean bean = container.getBeanManager().createInstance().select(RequeueFirstDeliveryBean.class).get();
+
+        await().until(() -> isRabbitMQConnectorAvailable(container));
+
+        List<Integer> list = bean.getResults();
+        assertThat(list).isEmpty();
+
+        List<Integer> dlqList = bean.getDlqResults();
+        assertThat(dlqList).isEmpty();
+
+        AtomicInteger counter = new AtomicInteger();
+        usage.produceTenIntegers(exchangeName, queueName, routingKey, counter::getAndIncrement);
+
+        await().atMost(1, TimeUnit.MINUTES).until(() -> list.size() >= 10);
+        assertThat(list).containsExactlyInAnyOrder(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
+        assertThat(dlqList).containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
+    }
+
 }
