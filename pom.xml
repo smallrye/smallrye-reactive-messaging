@@ -108,6 +108,7 @@
     <yasson.version>2.0.3</yasson.version>
 
     <jandex-maven-plugin.version>1.2.3</jandex-maven-plugin.version>
+    <sundr-maven-plugin.version>0.100.1</sundr-maven-plugin.version>
 
     <nats-embedded.version>2.1.1</nats-embedded.version>
     <slf4j-log4j12.version>1.7.36</slf4j-log4j12.version>
@@ -556,6 +557,39 @@
               <goal>parse-version</goal>
             </goals>
             <phase>initialize</phase>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>io.sundr</groupId>
+        <artifactId>sundr-maven-plugin</artifactId>
+        <version>${sundr-maven-plugin.version}</version>
+        <executions>
+          <execution>
+            <inherited>false</inherited>
+            <goals>
+              <goal>generate-bom</goal>
+            </goals>
+            <configuration>
+              <boms>
+                <bom>
+                  <artifactId>smallrye-reactive-messaging-bom</artifactId>
+                  <name>Smallrye Reactive Messaging: BOM</name>
+                  <description>Centralized dependencyManagement for the SmallRye Reactive Messaging Project
+                  </description>
+                  <properties>
+                    <skipStagingRepositoryClose>true</skipStagingRepositoryClose>
+                    <sonar.skip>true</sonar.skip>
+                  </properties>
+                  <modules>
+                    <includes>
+                      <include>*:smallrye-reactive-messaging-*</include>
+                      <include>*:smallrye-connector-attribute-processor</include>
+                    </includes>
+                  </modules>
+                </bom>
+              </boms>
+            </configuration>
           </execution>
         </executions>
       </plugin>
