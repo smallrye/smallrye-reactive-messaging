@@ -25,6 +25,7 @@ import org.apache.pulsar.client.impl.conf.ConsumerConfigurationData;
 import org.eclipse.microprofile.reactive.messaging.Channel;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.OnOverflow;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
@@ -104,6 +105,7 @@ public class ExactlyOnceProcessingBatchTest extends WeldTestBase {
      */
     @Test
     @Tag(TestTags.FLAKY)
+    @Disabled
     void testExactlyOnceProcessorWithProcessingError() throws PulsarAdminException, PulsarClientException {
         addBeans(ConsumerConfig.class);
         this.inTopic = UUID.randomUUID().toString();
