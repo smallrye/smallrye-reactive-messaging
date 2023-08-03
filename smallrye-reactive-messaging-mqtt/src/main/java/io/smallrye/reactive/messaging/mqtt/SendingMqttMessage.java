@@ -2,6 +2,7 @@ package io.smallrye.reactive.messaging.mqtt;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 import org.eclipse.microprofile.reactive.messaging.Metadata;
@@ -32,7 +33,7 @@ public final class SendingMqttMessage<T> implements MqttMessage<T> {
     }
 
     @Override
-    public CompletionStage<Void> ack() {
+    public CompletionStage<Void> ack(Metadata metadata) {
         if (ack != null) {
             return ack.get();
         }
@@ -40,7 +41,7 @@ public final class SendingMqttMessage<T> implements MqttMessage<T> {
     }
 
     @Override
-    public Supplier<CompletionStage<Void>> getAck() {
+    public Function<Metadata, CompletionStage<Void>> getAckWithMetadata() {
         return this::ack;
     }
 

@@ -30,7 +30,7 @@ public class ProducingMessageWithHeaderBean {
                 Metadata.of(
                         OutgoingKafkaRecordMetadata.builder().withKey(Integer.toString(input.getPayload()))
                                 .withHeaders(list).build()),
-                input::ack);
+                m -> input.ack(m));
     }
 
     @Outgoing("data")

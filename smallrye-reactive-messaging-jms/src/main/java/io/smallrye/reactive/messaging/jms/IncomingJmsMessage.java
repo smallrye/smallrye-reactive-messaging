@@ -4,7 +4,7 @@ import static io.smallrye.reactive.messaging.jms.i18n.JmsExceptions.ex;
 
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
-import java.util.function.Supplier;
+import java.util.function.Function;
 
 import jakarta.jms.JMSException;
 import jakarta.jms.Message;
@@ -104,12 +104,12 @@ public class IncomingJmsMessage<T> implements org.eclipse.microprofile.reactive.
     }
 
     @Override
-    public Supplier<CompletionStage<Void>> getAck() {
+    public Function<Metadata, CompletionStage<Void>> getAckWithMetadata() {
         return this::ack;
     }
 
     @Override
-    public CompletionStage<Void> ack() {
+    public CompletionStage<Void> ack(Metadata metadata) {
         return Uni.createFrom().voidItem()
                 .onItem().invoke(m -> {
                     try {

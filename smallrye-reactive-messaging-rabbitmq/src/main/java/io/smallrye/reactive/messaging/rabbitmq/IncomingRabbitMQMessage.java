@@ -9,8 +9,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.function.BiFunction;
 import java.util.function.Function;
-import java.util.function.Supplier;
 
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Metadata;
@@ -83,18 +83,17 @@ public class IncomingRabbitMQMessage<T> implements ContextAwareMessage<T>, Metad
     }
 
     @Override
-    public Supplier<CompletionStage<Void>> getAck() {
+    public Function<Metadata, CompletionStage<Void>> getAckWithMetadata() {
         return this::ack;
-        //return () -> onAck.handle(this, context);
     }
 
     @Override
-    public Function<Throwable, CompletionStage<Void>> getNack() {
+    public BiFunction<Throwable, Metadata, CompletionStage<Void>> getNackWithMetadata() {
         return this::nack;
     }
 
     @Override
-    public CompletionStage<Void> ack() {
+    public CompletionStage<Void> ack(Metadata metadata) {
         try {
             // We must switch to the context having created the message.
             // This context is passed when this instance of message is created.

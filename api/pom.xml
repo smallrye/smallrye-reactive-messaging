@@ -49,6 +49,31 @@
       </dependency>
     </dependencies>
 
+  <build>
+    <plugins>
+      <plugin>
+        <artifactId>maven-dependency-plugin</artifactId>
+        <executions>
+          <execution>
+            <phase>process-test-resources</phase>
+            <goals>
+              <goal>copy</goal>
+            </goals>
+            <configuration>
+              <artifactItems>
+                <artifactItem>
+                  <groupId>org.eclipse.microprofile.reactive.messaging</groupId>
+                  <artifactId>microprofile-reactive-messaging-api</artifactId>
+                </artifactItem>
+              </artifactItems>
+              <stripVersion>true</stripVersion>
+              <outputDirectory>${project.build.directory}/lib</outputDirectory>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
     <profiles>
         <profile>
             <id>coverage</id>

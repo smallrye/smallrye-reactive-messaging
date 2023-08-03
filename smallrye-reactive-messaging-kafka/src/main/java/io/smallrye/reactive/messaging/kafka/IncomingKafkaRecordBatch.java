@@ -9,8 +9,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletionStage;
+import java.util.function.BiFunction;
 import java.util.function.Function;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -75,20 +75,20 @@ public class IncomingKafkaRecordBatch<K, T> implements KafkaRecordBatch<K, T> {
     }
 
     @Override
-    public Supplier<CompletionStage<Void>> getAck() {
+    public Function<Metadata, CompletionStage<Void>> getAckWithMetadata() {
         return this::ack;
     }
 
     @Override
-    public Function<Throwable, CompletionStage<Void>> getNack() {
+    public BiFunction<Throwable, Metadata, CompletionStage<Void>> getNackWithMetadata() {
         return this::nack;
     }
 
     @Override
-    public CompletionStage<Void> ack() {
+    public CompletionStage<Void> ack(Metadata metadata) {
         return Multi.createBy().concatenating().collectFailures()
                 .streams(this.latestOffsetRecords.values().stream()
-                        .map(record -> Multi.createFrom().completionStage(record.getAck()))
+                        .map(record -> Multi.createFrom().completionStage(record.ack(metadata)))
                         .collect(Collectors.toList()))
                 .toUni().subscribeAsCompletionStage();
     }

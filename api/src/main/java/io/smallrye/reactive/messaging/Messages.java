@@ -11,8 +11,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.BiFunction;
 import java.util.function.Function;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import org.eclipse.microprofile.reactive.messaging.Message;
@@ -70,17 +70,17 @@ public interface Messages {
             throw e;
         }
 
-        Supplier<CompletionStage<Void>> ack = () -> {
+        Function<Metadata, CompletionStage<Void>> ack = metadata -> {
             List<CompletableFuture<Void>> acks = new ArrayList<>();
             for (Message<?> message : list) {
-                acks.add(message.ack().toCompletableFuture());
+                acks.add(message.ack(metadata).toCompletableFuture());
             }
             return CompletableFuture.allOf(acks.toArray(new CompletableFuture[0]));
         };
-        Function<Throwable, CompletionStage<Void>> nack = (e) -> {
+        BiFunction<Throwable, Metadata, CompletionStage<Void>> nack = (metadata, throwable) -> {
             List<CompletableFuture<Void>> nacks = new ArrayList<>();
             for (Message<?> message : list) {
-                nacks.add(message.nack(e).toCompletableFuture());
+                nacks.add(message.nack(metadata, throwable).toCompletableFuture());
             }
             return CompletableFuture.allOf(nacks.toArray(new CompletableFuture[0]));
         };
@@ -91,8 +91,8 @@ public interface Messages {
         }
 
         return Message.of(payload)
-                .withAck(ack)
-                .withNack(nack)
+                .withAckWithMetadata(ack)
+                .withNackWithMetadata(nack)
                 .withMetadata(metadata);
     }
 
@@ -115,17 +115,17 @@ public interface Messages {
             return Message.of(Collections.emptyList());
         }
         List<T> payload = list.stream().map(Message::getPayload).collect(Collectors.toList());
-        Supplier<CompletionStage<Void>> ack = () -> {
+        Function<Metadata, CompletionStage<Void>> ack = metadata -> {
             List<CompletableFuture<Void>> acks = new ArrayList<>();
             for (Message<?> message : list) {
-                acks.add(message.ack().toCompletableFuture());
+                acks.add(message.ack(metadata).toCompletableFuture());
             }
             return CompletableFuture.allOf(acks.toArray(new CompletableFuture[0]));
         };
-        Function<Throwable, CompletionStage<Void>> nack = (e) -> {
+        BiFunction<Throwable, Metadata, CompletionStage<Void>> nack = (metadata, throwable) -> {
             List<CompletableFuture<Void>> nacks = new ArrayList<>();
             for (Message<?> message : list) {
-                nacks.add(message.nack(e).toCompletableFuture());
+                nacks.add(message.nack(metadata, throwable).toCompletableFuture());
             }
             return CompletableFuture.allOf(nacks.toArray(new CompletableFuture[0]));
         };
@@ -136,8 +136,8 @@ public interface Messages {
         }
 
         return Message.of(payload)
-                .withAck(ack)
-                .withNack(nack)
+                .withAckWithMetadata(ack)
+                .withNackWithMetadata(nack)
                 .withMetadata(metadata);
     }
 
@@ -249,20 +249,20 @@ public interface Messages {
                     tmp = tmp.addMetadata(metadatum);
                 }
                 outcomes.add(tmp
-                        .withAck(() -> {
-                            CompletionStage<Void> acked = message.ack();
+                        .withAckWithMetadata((metadata) -> {
+                            CompletionStage<Void> acked = message.ack(metadata);
                             if (trackers.remove(message)) {
                                 if (trackers.isEmpty() && done.compareAndSet(false, true)) {
-                                    return acked.thenCompose(x -> input.ack());
+                                    return acked.thenCompose(x -> input.ack(metadata));
                                 }
                             }
                             return acked;
                         })
-                        .withNack((reason) -> {
-                            CompletionStage<Void> nacked = message.nack(reason);
+                        .withNackWithMetadata((reason, metadata) -> {
+                            CompletionStage<Void> nacked = message.nack(reason, metadata);
                             if (trackers.remove(message)) {
                                 if (done.compareAndSet(false, true)) {
-                                    return nacked.thenCompose(x -> input.nack(reason));
+                                    return nacked.thenCompose(x -> input.nack(reason, metadata));
                                 }
                             }
                             return nacked;
@@ -295,20 +295,20 @@ public interface Messages {
                     tmp = tmp.addMetadata(metadatum);
                 }
                 outcomes.put(key, tmp
-                        .withAck(() -> {
-                            CompletionStage<Void> acked = message.ack();
+                        .withAckWithMetadata(metadata -> {
+                            CompletionStage<Void> acked = message.ack(metadata);
                             if (trackers.remove(message)) {
                                 if (trackers.isEmpty() && done.compareAndSet(false, true)) {
-                                    return acked.thenCompose(x -> input.ack());
+                                    return acked.thenCompose(x -> input.ack(metadata));
                                 }
                             }
                             return acked;
                         })
-                        .withNack((reason) -> {
-                            CompletionStage<Void> nacked = message.nack(reason);
+                        .withNackWithMetadata((reason, metadata) -> {
+                            CompletionStage<Void> nacked = message.nack(reason, metadata);
                             if (trackers.remove(message)) {
                                 if (done.compareAndSet(false, true)) {
-                                    return nacked.thenCompose(x -> input.nack(reason));
+                                    return nacked.thenCompose(x -> input.nack(reason, metadata));
                                 }
                             }
                             return nacked;

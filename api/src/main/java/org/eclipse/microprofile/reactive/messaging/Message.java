@@ -21,6 +21,7 @@ package org.eclipse.microprofile.reactive.messaging;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.logging.Logger;
@@ -39,6 +40,137 @@ import io.smallrye.common.annotation.Experimental;
 public interface Message<T> {
 
     Logger LOGGER = Logger.getLogger(Message.class.getName());
+
+    Function<Metadata, CompletionStage<Void>> EMPTY_ACK = m -> CompletableFuture.completedFuture(null);
+    BiFunction<Throwable, Metadata, CompletionStage<Void>> EMPTY_NACK = (t, m) -> CompletableFuture.completedFuture(null);
+
+    private static Function<Metadata, CompletionStage<Void>> validateAck(Function<Metadata, CompletionStage<Void>> ackM) {
+        return (ackM != null) ? ackM : EMPTY_ACK;
+    }
+
+    private static Function<Metadata, CompletionStage<Void>> validateAck(Supplier<CompletionStage<Void>> ack) {
+        return (ack != null) ? m -> ack.get() : EMPTY_ACK;
+    }
+
+    private static BiFunction<Throwable, Metadata, CompletionStage<Void>> validateNack(
+            BiFunction<Throwable, Metadata, CompletionStage<Void>> nackM) {
+        return (nackM != null) ? nackM : EMPTY_NACK;
+    }
+
+    private static BiFunction<Throwable, Metadata, CompletionStage<Void>> validateNack(
+            Function<Throwable, CompletionStage<Void>> nack) {
+        return (nack != null) ? (t, m) -> nack.apply(t) : EMPTY_NACK;
+    }
+
+    private static Function<Metadata, CompletionStage<Void>> wrapAck(Message<?> message) {
+        var ackM = message.getAckWithMetadata();
+        return ackM != EMPTY_ACK ? ackM : validateAck(message.getAck());
+    }
+
+    private static BiFunction<Throwable, Metadata, CompletionStage<Void>> wrapNack(Message<?> message) {
+        var nackM = message.getNackWithMetadata();
+        return nackM != EMPTY_NACK ? nackM : validateNack(message.getNack());
+    }
+
+    private static <T> Message<T> newMessage(T payload, Metadata metadata) {
+        return new Message<>() {
+            @Override
+            public T getPayload() {
+                return payload;
+            }
+
+            @Override
+            public Metadata getMetadata() {
+                return metadata;
+            }
+        };
+    }
+
+    private static <T> Message<T> newMessage(T payload,
+            Function<Metadata, CompletionStage<Void>> actualAck) {
+        return new Message<>() {
+            @Override
+            public T getPayload() {
+                return payload;
+            }
+
+            @Override
+            public Function<Metadata, CompletionStage<Void>> getAckWithMetadata() {
+                return actualAck;
+            }
+
+        };
+    }
+
+    private static <T> Message<T> newMessage(T payload,
+            Metadata metadata,
+            Function<Metadata, CompletionStage<Void>> actualAck) {
+        return new Message<>() {
+            @Override
+            public T getPayload() {
+                return payload;
+            }
+
+            @Override
+            public Metadata getMetadata() {
+                return metadata;
+            }
+
+            @Override
+            public Function<Metadata, CompletionStage<Void>> getAckWithMetadata() {
+                return actualAck;
+            }
+
+        };
+    }
+
+    private static <T> Message<T> newMessage(T payload,
+            Function<Metadata, CompletionStage<Void>> actualAck,
+            BiFunction<Throwable, Metadata, CompletionStage<Void>> actualNack) {
+        return new Message<>() {
+            @Override
+            public T getPayload() {
+                return payload;
+            }
+
+            @Override
+            public Function<Metadata, CompletionStage<Void>> getAckWithMetadata() {
+                return actualAck;
+            }
+
+            @Override
+            public BiFunction<Throwable, Metadata, CompletionStage<Void>> getNackWithMetadata() {
+                return actualNack;
+            }
+        };
+    }
+
+    private static <T> Message<T> newMessage(T payload,
+            Metadata metadata,
+            Function<Metadata, CompletionStage<Void>> actualAck,
+            BiFunction<Throwable, Metadata, CompletionStage<Void>> actualNack) {
+        return new Message<>() {
+            @Override
+            public T getPayload() {
+                return payload;
+            }
+
+            @Override
+            public Metadata getMetadata() {
+                return metadata;
+            }
+
+            @Override
+            public Function<Metadata, CompletionStage<Void>> getAckWithMetadata() {
+                return actualAck;
+            }
+
+            @Override
+            public BiFunction<Throwable, Metadata, CompletionStage<Void>> getNackWithMetadata() {
+                return actualNack;
+            }
+        };
+    }
 
     /**
      * Create a message with the given payload.
@@ -62,21 +194,7 @@ public interface Message<T> {
      * @return A message with the given payload, metadata and no-op ack and nack functions.
      */
     static <T> Message<T> of(T payload, Metadata metadata) {
-        if (metadata == null) {
-            metadata = Metadata.empty();
-        }
-        Metadata actual = metadata;
-        return new Message<T>() {
-            @Override
-            public T getPayload() {
-                return payload;
-            }
-
-            @Override
-            public Metadata getMetadata() {
-                return actual;
-            }
-        };
+        return newMessage(payload, metadata == null ? Metadata.empty() : metadata);
     }
 
     /**
@@ -89,18 +207,7 @@ public interface Message<T> {
      * @return A message with the given payload, metadata and no-op ack and nack functions.
      */
     static <T> Message<T> of(T payload, Iterable<Object> metadata) {
-        Metadata validated = Metadata.from(metadata);
-        return new Message<T>() {
-            @Override
-            public T getPayload() {
-                return payload;
-            }
-
-            @Override
-            public Metadata getMetadata() {
-                return validated;
-            }
-        };
+        return newMessage(payload, Metadata.from(metadata));
     }
 
     /**
@@ -114,22 +221,21 @@ public interface Message<T> {
      * @return A message with the given payload, no metadata and ack function.
      */
     static <T> Message<T> of(T payload, Supplier<CompletionStage<Void>> ack) {
-        return new Message<T>() {
-            @Override
-            public T getPayload() {
-                return payload;
-            }
+        return newMessage(payload, validateAck(ack));
+    }
 
-            @Override
-            public Metadata getMetadata() {
-                return Metadata.empty();
-            }
-
-            @Override
-            public Supplier<CompletionStage<Void>> getAck() {
-                return ack;
-            }
-        };
+    /**
+     * Create a message with the given payload and ack function.
+     * No metadata are associated with the message.
+     * Negative-acknowledgement is immediate.
+     *
+     * @param payload The payload.
+     * @param ackM The ack function, this will be invoked when the returned messages {@link #ack(Metadata)} method is invoked.
+     * @param <T> the type of payload
+     * @return A message with the given payload, no metadata and ack function.
+     */
+    static <T> Message<T> of(T payload, Function<Metadata, CompletionStage<Void>> ackM) {
+        return newMessage(payload, validateAck(ackM));
     }
 
     /**
@@ -144,26 +250,7 @@ public interface Message<T> {
      */
     static <T> Message<T> of(T payload, Metadata metadata,
             Supplier<CompletionStage<Void>> ack) {
-        if (metadata == null) {
-            metadata = Metadata.empty();
-        }
-        Metadata actual = metadata;
-        return new Message<T>() {
-            @Override
-            public T getPayload() {
-                return payload;
-            }
-
-            @Override
-            public Metadata getMetadata() {
-                return actual;
-            }
-
-            @Override
-            public Supplier<CompletionStage<Void>> getAck() {
-                return ack;
-            }
-        };
+        return newMessage(payload, metadata == null ? Metadata.empty() : metadata, validateAck(ack));
     }
 
     /**
@@ -176,25 +263,22 @@ public interface Message<T> {
      * @param <T> the type of payload
      * @return A message with the given payload and ack function.
      */
-    static <T> Message<T> of(T payload, Iterable<Object> metadata,
-            Supplier<CompletionStage<Void>> ack) {
-        Metadata validated = Metadata.from(metadata);
-        return new Message<T>() {
-            @Override
-            public T getPayload() {
-                return payload;
-            }
+    static <T> Message<T> of(T payload, Iterable<Object> metadata, Supplier<CompletionStage<Void>> ack) {
+        return newMessage(payload, Metadata.from(metadata), validateAck(ack));
+    }
 
-            @Override
-            public Metadata getMetadata() {
-                return validated;
-            }
-
-            @Override
-            public Supplier<CompletionStage<Void>> getAck() {
-                return ack;
-            }
-        };
+    /**
+     * Create a message with the given payload, metadata and ack function.
+     * Negative-acknowledgement is immediate.
+     *
+     * @param payload The payload.
+     * @param metadata the metadata, must not be {@code null}, must not contain {@code null} values.
+     * @param ackM The ack function, this will be invoked when the returned messages {@link #ack(Metadata)} method is invoked.
+     * @param <T> the type of payload
+     * @return A message with the given payload and ack function.
+     */
+    static <T> Message<T> of(T payload, Iterable<Object> metadata, Function<Metadata, CompletionStage<Void>> ackM) {
+        return newMessage(payload, Metadata.from(metadata), validateAck(ackM));
     }
 
     /**
@@ -208,29 +292,15 @@ public interface Message<T> {
      * @return A message with the given payload, metadata, ack and nack functions.
      */
     @Experimental("nack support is a SmallRye-only feature")
-    static <T> Message<T> of(T payload,
-            Supplier<CompletionStage<Void>> ack, Function<Throwable, CompletionStage<Void>> nack) {
-        return new Message<T>() {
-            @Override
-            public T getPayload() {
-                return payload;
-            }
+    static <T> Message<T> of(T payload, Supplier<CompletionStage<Void>> ack,
+            Function<Throwable, CompletionStage<Void>> nack) {
+        return newMessage(payload, validateAck(ack), validateNack(nack));
+    }
 
-            @Override
-            public Metadata getMetadata() {
-                return Metadata.empty();
-            }
-
-            @Override
-            public Supplier<CompletionStage<Void>> getAck() {
-                return ack;
-            }
-
-            @Override
-            public Function<Throwable, CompletionStage<Void>> getNack() {
-                return nack;
-            }
-        };
+    @Experimental("nack support is a SmallRye-only feature")
+    static <T> Message<T> of(T payload, Function<Metadata, CompletionStage<Void>> ack,
+            BiFunction<Throwable, Metadata, CompletionStage<Void>> nack) {
+        return newMessage(payload, validateAck(ack), validateNack(nack));
     }
 
     /**
@@ -247,28 +317,25 @@ public interface Message<T> {
     @Experimental("nack support is a SmallRye-only feature")
     static <T> Message<T> of(T payload, Iterable<Object> metadata,
             Supplier<CompletionStage<Void>> ack, Function<Throwable, CompletionStage<Void>> nack) {
-        Metadata validated = Metadata.from(metadata);
-        return new Message<T>() {
-            @Override
-            public T getPayload() {
-                return payload;
-            }
+        return newMessage(payload, Metadata.from(metadata), validateAck(ack), validateNack(nack));
+    }
 
-            @Override
-            public Metadata getMetadata() {
-                return validated;
-            }
-
-            @Override
-            public Supplier<CompletionStage<Void>> getAck() {
-                return ack;
-            }
-
-            @Override
-            public Function<Throwable, CompletionStage<Void>> getNack() {
-                return nack;
-            }
-        };
+    /**
+     * Create a message with the given payload, metadata and ack and nack functions.
+     *
+     * @param payload The payload.
+     * @param metadata the metadata, must not be {@code null}, must not contain {@code null} values.
+     * @param ackM The ack function, this will be invoked when the returned messages {@link #ack(Metadata)} method is invoked.
+     * @param nackM The negative-ack function, this will be invoked when the returned messages
+     *        {@link #nack(Throwable, Metadata)}
+     *        method is invoked.
+     * @param <T> the type of payload
+     * @return A message with the given payload, metadata, ack and nack functions.
+     */
+    @Experimental("nack support is a SmallRye-only feature")
+    static <T> Message<T> of(T payload, Iterable<Object> metadata, Function<Metadata, CompletionStage<Void>> ackM,
+            BiFunction<Throwable, Metadata, CompletionStage<Void>> nackM) {
+        return newMessage(payload, Metadata.from(metadata), validateAck(ackM), validateNack(nackM));
     }
 
     /**
@@ -282,34 +349,27 @@ public interface Message<T> {
      * @param <T> the type of payload
      * @return A message with the given payload, metadata, ack and nack functions.
      */
-    @Experimental("nack support is a SmallRye-only feature")
+    @Experimental("metadata propagation is a SmallRye-specific feature")
     static <T> Message<T> of(T payload, Metadata metadata,
             Supplier<CompletionStage<Void>> ack, Function<Throwable, CompletionStage<Void>> nack) {
-        if (metadata == null) {
-            metadata = Metadata.empty();
-        }
-        Metadata actual = metadata;
-        return new Message<T>() {
-            @Override
-            public T getPayload() {
-                return payload;
-            }
+        return newMessage(payload, metadata == null ? Metadata.empty() : metadata, validateAck(ack), validateNack(nack));
+    }
 
-            @Override
-            public Metadata getMetadata() {
-                return actual;
-            }
-
-            @Override
-            public Supplier<CompletionStage<Void>> getAck() {
-                return ack;
-            }
-
-            @Override
-            public Function<Throwable, CompletionStage<Void>> getNack() {
-                return nack;
-            }
-        };
+    /**
+     * Create a message with the given payload, metadata and ack and nack functions.
+     *
+     * @param payload The payload.
+     * @param metadata the metadata, must not be {@code null}, must not contain {@code null} values.
+     * @param ackM The ack function, this will be invoked when the returned messages {@link #ack()} method is invoked.
+     * @param nackM The negative-ack function, this will be invoked when the returned messages {@link #nack(Throwable)}
+     *        method is invoked.
+     * @param <T> the type of payload
+     * @return A message with the given payload, metadata, ack and nack functions.
+     */
+    @Experimental("metadata propagation is a SmallRye-specific feature")
+    static <T> Message<T> of(T payload, Metadata metadata,
+            Function<Metadata, CompletionStage<Void>> ackM, BiFunction<Throwable, Metadata, CompletionStage<Void>> nackM) {
+        return newMessage(payload, metadata == null ? Metadata.empty() : metadata, validateAck(ackM), validateNack(nackM));
     }
 
     /**
@@ -321,18 +381,18 @@ public interface Message<T> {
      * @return the new instance of {@link Message}
      */
     default <P> Message<P> withPayload(P payload) {
-        return Message.of(payload, Metadata.from(getMetadata()), getAck(), getNack());
+        return Message.of(payload, Metadata.from(getMetadata()), wrapAck(this), wrapNack(this));
     }
 
     /**
      * Creates a new instance of {@link Message} with the specified metadata.
      * The payload and ack/nack functions are taken from the current {@link Message}.
      *
-     * @param metadata the metadata, must not be {@code null}, must not contains {@code null}.
+     * @param metadata the metadata, must not be {@code null}, must not contain {@code null}.
      * @return the new instance of {@link Message}
      */
     default Message<T> withMetadata(Iterable<Object> metadata) {
-        return Message.of(getPayload(), Metadata.from(metadata), getAck(), getNack());
+        return Message.of(getPayload(), Metadata.from(metadata), wrapAck(this), wrapNack(this));
     }
 
     /**
@@ -343,7 +403,7 @@ public interface Message<T> {
      * @return the new instance of {@link Message}
      */
     default Message<T> withMetadata(Metadata metadata) {
-        return Message.of(getPayload(), Metadata.from(metadata), getAck(), getNack());
+        return Message.of(getPayload(), Metadata.from(metadata), wrapAck(this), wrapNack(this));
     }
 
     /**
@@ -354,7 +414,19 @@ public interface Message<T> {
      * @return the new instance of {@link Message}
      */
     default Message<T> withAck(Supplier<CompletionStage<Void>> supplier) {
-        return Message.of(getPayload(), getMetadata(), supplier, getNack());
+        return Message.of(getPayload(), getMetadata(), validateAck(supplier), wrapNack(this));
+    }
+
+    /**
+     * Creates a new instance of {@link Message} with the given acknowledgement supplier.
+     * The payload, metadata and nack function are taken from the current {@link Message}.
+     *
+     * @param supplier the acknowledgement supplier
+     * @return the new instance of {@link Message}
+     */
+    @Experimental("metadata propagation is a SmallRye-specific feature")
+    default Message<T> withAckWithMetadata(Function<Metadata, CompletionStage<Void>> supplier) {
+        return Message.of(getPayload(), getMetadata(), supplier, wrapNack(this));
     }
 
     /**
@@ -364,9 +436,21 @@ public interface Message<T> {
      * @param nack the negative-acknowledgement function
      * @return the new instance of {@link Message}
      */
-    @Experimental("nack support is a SmallRye-only feature")
+    @Experimental("metadata propagation is a SmallRye-specific feature")
     default Message<T> withNack(Function<Throwable, CompletionStage<Void>> nack) {
-        return Message.of(getPayload(), getMetadata(), getAck(), nack);
+        return Message.of(getPayload(), getMetadata(), wrapAck(this), validateNack(nack));
+    }
+
+    /**
+     * Creates a new instance of {@link Message} with the given negative-acknowledgement function.
+     * The payload, metadata and acknowledgment are taken from the current {@link Message}.
+     *
+     * @param nack the negative-acknowledgement function
+     * @return the new instance of {@link Message}
+     */
+    @Experimental("metadata propagation is a SmallRye-specific feature")
+    default Message<T> withNackWithMetadata(BiFunction<Throwable, Metadata, CompletionStage<Void>> nack) {
+        return Message.of(getPayload(), getMetadata(), wrapAck(this), nack);
     }
 
     /**
@@ -408,15 +492,30 @@ public interface Message<T> {
      * @return the supplier used to retrieve the acknowledgement {@link CompletionStage}.
      */
     default Supplier<CompletionStage<Void>> getAck() {
-        return () -> CompletableFuture.completedFuture(null);
+        return () -> getAckWithMetadata().apply(this.getMetadata());
+    }
+
+    /**
+     * @return the supplier used to retrieve the acknowledgement {@link CompletionStage}.
+     */
+    @Experimental("metadata propagation is a SmallRye-specific feature")
+    default Function<Metadata, CompletionStage<Void>> getAckWithMetadata() {
+        return EMPTY_ACK;
     }
 
     /**
      * @return the function used to retrieve the negative-acknowledgement asynchronous function.
      */
-    @Experimental("nack support is a SmallRye-only feature")
     default Function<Throwable, CompletionStage<Void>> getNack() {
-        return reason -> CompletableFuture.completedFuture(null);
+        return reason -> getNackWithMetadata().apply(reason, this.getMetadata());
+    }
+
+    /**
+     * @return the function used to retrieve the negative-acknowledgement asynchronous function.
+     */
+    @Experimental("metadata propagation is a SmallRye-specific feature")
+    default BiFunction<Throwable, Metadata, CompletionStage<Void>> getNackWithMetadata() {
+        return EMPTY_NACK;
     }
 
     /**
@@ -426,11 +525,27 @@ public interface Message<T> {
      *         completion stage propagates the failure.
      */
     default CompletionStage<Void> ack() {
-        Supplier<CompletionStage<Void>> ack = getAck();
-        if (ack == null) {
-            return CompletableFuture.completedFuture(null);
+        return ack(this.getMetadata());
+    }
+
+    /**
+     * Acknowledge this message.
+     *
+     * @return a completion stage completed when the message is acknowledged. If the acknowledgement fails, the
+     *         completion stage propagates the failure.
+     */
+    @Experimental("metadata propagation is a SmallRye-specific feature")
+    default CompletionStage<Void> ack(Metadata metadata) {
+        Function<Metadata, CompletionStage<Void>> ackM = getAckWithMetadata();
+        if (ackM != null) {
+            return ackM.apply(metadata);
         } else {
-            return ack.get();
+            Supplier<CompletionStage<Void>> ack = getAck();
+            if (ack != null) {
+                return ack.get();
+            } else {
+                return CompletableFuture.completedFuture(null);
+            }
         }
     }
 
@@ -442,9 +557,8 @@ public interface Message<T> {
      * @return a completion stage completed when the message is negative-acknowledgement has completed. If the
      *         negative acknowledgement fails, the completion stage propagates the failure.
      */
-    @Experimental("nack support is a SmallRye-only feature")
     default CompletionStage<Void> nack(Throwable reason) {
-        return nack(reason, null);
+        return nack(reason, this.getMetadata());
     }
 
     /**
@@ -463,15 +577,20 @@ public interface Message<T> {
         if (reason == null) {
             throw new IllegalArgumentException("The reason must not be `null`");
         }
-        Function<Throwable, CompletionStage<Void>> nack = getNack();
-        if (nack == null) {
-            LOGGER.warning(
-                    String.format("A message has been nacked, but no nack function has been provided. The reason was: %s",
-                            reason.getMessage()));
-            LOGGER.finer(String.format("The full failure is: %s", reason));
-            return CompletableFuture.completedFuture(null);
+        BiFunction<Throwable, Metadata, CompletionStage<Void>> nackM = getNackWithMetadata();
+        if (nackM != null) {
+            return nackM.apply(reason, metadata);
         } else {
-            return nack.apply(reason);
+            Function<Throwable, CompletionStage<Void>> nack = getNack();
+            if (nack == null) {
+                LOGGER.warning(
+                        String.format("A message has been nacked, but no nack function has been provided. The reason was: %s",
+                                reason.getMessage()));
+                LOGGER.finer(String.format("The full failure is: %s", reason));
+                return CompletableFuture.completedFuture(null);
+            } else {
+                return nack.apply(reason);
+            }
         }
     }
 
@@ -511,6 +630,17 @@ public interface Message<T> {
      * @return the new instance of {@link Message}
      */
     default Message<T> addMetadata(Object metadata) {
-        return Message.of(getPayload(), getMetadata().with(metadata), getAck(), getNack());
+        return Message.of(getPayload(), getMetadata().with(metadata), wrapAck(this), wrapNack(this));
+    }
+
+    /**
+     * Apply the given modifier function to the current message returning the result for further composition
+     *
+     * @param modifier the function to modify the current message
+     * @return the modified message
+     * @param <R> the payload type of the modified message
+     */
+    default <R> Message<R> thenApply(Function<Message<T>, Message<R>> modifier) {
+        return modifier.apply(this);
     }
 }
