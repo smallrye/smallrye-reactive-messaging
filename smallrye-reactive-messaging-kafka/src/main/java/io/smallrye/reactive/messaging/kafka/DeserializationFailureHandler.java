@@ -50,9 +50,24 @@ public interface DeserializationFailureHandler<T> {
     String DESERIALIZATION_FAILURE_DATA = "deserialization-failure-data";
 
     /**
+     * Header name passing the key data that was not able to be deserialized.
+     */
+    String DESERIALIZATION_FAILURE_KEY_DATA = "deserialization-failure-key-data";
+
+    /**
+     * Header name passing the value data that was not able to be deserialized.
+     */
+    String DESERIALIZATION_FAILURE_VALUE_DATA = "deserialization-failure-value-data";
+
+    /**
      * Header name passing the class name of the underlying deserializer.
      */
     String DESERIALIZATION_FAILURE_DESERIALIZER = "deserialization-failure-deserializer";
+
+    /**
+     * Header name passing the class name of the underlying deserializer.
+     */
+    String DESERIALIZATION_FAILURE_DLQ = "deserialization-failure-dlq";
 
     byte[] TRUE_VALUE = "true".getBytes(StandardCharsets.UTF_8);
 
@@ -111,6 +126,7 @@ public interface DeserializationFailureHandler<T> {
 
         if (headers != null) {
             headers.add(DESERIALIZATION_FAILURE_DESERIALIZER, deserializer.getBytes(StandardCharsets.UTF_8));
+            headers.add(DESERIALIZATION_FAILURE_DLQ, TRUE_VALUE);
             headers.add(DESERIALIZATION_FAILURE_TOPIC, topic.getBytes(StandardCharsets.UTF_8));
 
             if (isKey) {
@@ -124,6 +140,12 @@ public interface DeserializationFailureHandler<T> {
                 headers.add(DESERIALIZATION_FAILURE_CAUSE, cause.getBytes(StandardCharsets.UTF_8));
             }
             if (data != null) {
+                if (isKey) {
+                    headers.add(DESERIALIZATION_FAILURE_KEY_DATA, data);
+                } else {
+                    headers.add(DESERIALIZATION_FAILURE_VALUE_DATA, data);
+                }
+                // Do not break retro-compatibility
                 headers.add(DESERIALIZATION_FAILURE_DATA, data);
             }
         }

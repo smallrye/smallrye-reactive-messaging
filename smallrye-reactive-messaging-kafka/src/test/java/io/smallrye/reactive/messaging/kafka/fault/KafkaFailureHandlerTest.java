@@ -1,5 +1,12 @@
 package io.smallrye.reactive.messaging.kafka.fault;
 
+import static io.smallrye.reactive.messaging.kafka.DeserializationFailureHandler.DESERIALIZATION_FAILURE_DATA;
+import static io.smallrye.reactive.messaging.kafka.DeserializationFailureHandler.DESERIALIZATION_FAILURE_DESERIALIZER;
+import static io.smallrye.reactive.messaging.kafka.DeserializationFailureHandler.DESERIALIZATION_FAILURE_DLQ;
+import static io.smallrye.reactive.messaging.kafka.DeserializationFailureHandler.DESERIALIZATION_FAILURE_KEY_DATA;
+import static io.smallrye.reactive.messaging.kafka.DeserializationFailureHandler.DESERIALIZATION_FAILURE_REASON;
+import static io.smallrye.reactive.messaging.kafka.DeserializationFailureHandler.DESERIALIZATION_FAILURE_TOPIC;
+import static io.smallrye.reactive.messaging.kafka.DeserializationFailureHandler.DESERIALIZATION_FAILURE_VALUE_DATA;
 import static io.smallrye.reactive.messaging.kafka.fault.KafkaDeadLetterQueue.DEAD_LETTER_CAUSE;
 import static io.smallrye.reactive.messaging.kafka.fault.KafkaDeadLetterQueue.DEAD_LETTER_CAUSE_CLASS_NAME;
 import static io.smallrye.reactive.messaging.kafka.fault.KafkaDeadLetterQueue.DEAD_LETTER_EXCEPTION_CLASS_NAME;
@@ -31,6 +38,7 @@ import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.common.errors.RecordDeserializationException;
 import org.apache.kafka.common.serialization.IntegerDeserializer;
 import org.apache.kafka.common.serialization.IntegerSerializer;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
@@ -120,10 +128,10 @@ public class KafkaFailureHandlerTest extends KafkaCompanionTestBase {
 
         ConsumerTask<String, Integer> records = companion.consumeIntegers().fromTopics("dead-letter-topic-kafka", 3);
 
-        MyReceiverBean bean = runApplication(getDeadLetterQueueConfig(), MyReceiverBean.class);
+        MyReceiverBean bean = runApplication(getDeadLetterQueueConfig(topic), MyReceiverBean.class);
         await().until(this::isReady);
 
-        companion.produceIntegers().usingGenerator(i -> new ProducerRecord<>("dead-letter-default", i), 10);
+        companion.produceIntegers().usingGenerator(i -> new ProducerRecord<>(topic, i), 10);
 
         await().atMost(2, TimeUnit.MINUTES).until(() -> bean.list().size() >= 10);
         assertThat(bean.list()).containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
@@ -138,9 +146,139 @@ public class KafkaFailureHandlerTest extends KafkaCompanionTestBase {
             assertThat(r.headers().lastHeader(DEAD_LETTER_CAUSE)).isNull();
             assertThat(r.headers().lastHeader(DEAD_LETTER_CAUSE_CLASS_NAME)).isNull();
             assertThat(new String(r.headers().lastHeader(DEAD_LETTER_PARTITION).value())).isEqualTo("0");
-            assertThat(new String(r.headers().lastHeader(DEAD_LETTER_TOPIC).value())).isEqualTo("dead-letter-default");
+            assertThat(new String(r.headers().lastHeader(DEAD_LETTER_TOPIC).value())).isEqualTo(topic);
             assertThat(new String(r.headers().lastHeader(DEAD_LETTER_OFFSET).value())).isNotNull().isIn("3", "6", "9");
         });
+
+        assertThat(isAlive()).isTrue();
+
+        assertThat(bean.consumers()).isEqualTo(1);
+        assertThat(bean.producers()).isEqualTo(1);
+    }
+
+    @Test
+    public void testDeadLetterQueueStrategyWithDeserializationError() {
+        String dlqTopic = topic + "-dlq";
+
+        ConsumerTask<String, String> records = companion.consumeStrings().fromTopics(dlqTopic, 10);
+
+        MyReceiverBean bean = runApplication(getDeadLetterQueueConfig(topic)
+                .with("dead-letter-queue.topic", dlqTopic)
+                .with("fail-on-deserialization-failure", false), MyReceiverBean.class);
+        await().until(this::isReady);
+
+        companion.produceStrings().usingGenerator(i -> new ProducerRecord<>(topic, "boom-" + i), 10);
+
+        String expectedReason = "Size of data received by IntegerDeserializer is not 4";
+        await().atMost(2, TimeUnit.MINUTES).until(() -> records.getRecords().size() == 10);
+        assertThat(records.getRecords()).allSatisfy(r -> {
+            assertThat(r.topic()).isEqualTo(dlqTopic);
+            assertThat(r.value()).startsWith("boom-");
+            assertThat(new String(r.headers().lastHeader(DEAD_LETTER_EXCEPTION_CLASS_NAME).value()))
+                    .isEqualTo(RecordDeserializationException.class.getName());
+            assertThat(new String(r.headers().lastHeader(DEAD_LETTER_REASON).value())).isEqualTo(expectedReason);
+            assertThat(r.headers().lastHeader(DEAD_LETTER_CAUSE)).isNull();
+            assertThat(r.headers().lastHeader(DEAD_LETTER_CAUSE_CLASS_NAME)).isNull();
+            assertThat(new String(r.headers().lastHeader(DEAD_LETTER_PARTITION).value())).isEqualTo("0");
+            assertThat(new String(r.headers().lastHeader(DEAD_LETTER_TOPIC).value())).isEqualTo(topic);
+            assertThat(new String(r.headers().lastHeader(DEAD_LETTER_OFFSET).value())).isNotNull();
+            assertThat(new String(r.headers().lastHeader(DESERIALIZATION_FAILURE_REASON).value())).isEqualTo(expectedReason);
+            assertThat(new String(r.headers().lastHeader(DESERIALIZATION_FAILURE_DATA).value())).startsWith("boom-");
+            assertThat(new String(r.headers().lastHeader(DESERIALIZATION_FAILURE_DESERIALIZER).value()))
+                    .isEqualTo(IntegerDeserializer.class.getName());
+            assertThat(new String(r.headers().lastHeader(DESERIALIZATION_FAILURE_TOPIC).value())).isEqualTo(topic);
+        });
+
+        assertThat(bean.list()).isEmpty();
+
+        assertThat(isAlive()).isTrue();
+
+        assertThat(bean.consumers()).isEqualTo(1);
+        assertThat(bean.producers()).isEqualTo(1);
+    }
+
+    @Test
+    public void testDeadLetterQueueStrategyWithDeserializationErrorAndFailureHandler() {
+        String dlqTopic = topic + "-dlq";
+
+        ConsumerTask<String, String> records = companion.consumeStrings().fromTopics(dlqTopic, 10);
+
+        MyReceiverBean bean = runApplication(getDeadLetterQueueConfig(topic)
+                .with("dead-letter-queue.topic", dlqTopic)
+                .with("fail-on-deserialization-failure", false), MyReceiverBean.class);
+        await().until(this::isReady);
+
+        companion.produceStrings().usingGenerator(i -> new ProducerRecord<>(topic, "boom-" + i), 10);
+
+        String expectedReason = "Size of data received by IntegerDeserializer is not 4";
+        await().atMost(2, TimeUnit.MINUTES).until(() -> records.getRecords().size() == 10);
+        assertThat(records.getRecords()).allSatisfy(r -> {
+            assertThat(r.topic()).isEqualTo(dlqTopic);
+            assertThat(r.value()).startsWith("boom-");
+            assertThat(new String(r.headers().lastHeader(DEAD_LETTER_EXCEPTION_CLASS_NAME).value()))
+                    .isEqualTo(RecordDeserializationException.class.getName());
+            assertThat(new String(r.headers().lastHeader(DEAD_LETTER_REASON).value())).isEqualTo(expectedReason);
+            assertThat(r.headers().lastHeader(DEAD_LETTER_CAUSE)).isNull();
+            assertThat(r.headers().lastHeader(DEAD_LETTER_CAUSE_CLASS_NAME)).isNull();
+            assertThat(new String(r.headers().lastHeader(DEAD_LETTER_PARTITION).value())).isEqualTo("0");
+            assertThat(new String(r.headers().lastHeader(DEAD_LETTER_TOPIC).value())).isEqualTo(topic);
+            assertThat(new String(r.headers().lastHeader(DEAD_LETTER_OFFSET).value())).isNotNull();
+            assertThat(new String(r.headers().lastHeader(DESERIALIZATION_FAILURE_REASON).value())).isEqualTo(expectedReason);
+            assertThat(new String(r.headers().lastHeader(DESERIALIZATION_FAILURE_DATA).value())).startsWith("boom-");
+            assertThat(new String(r.headers().lastHeader(DESERIALIZATION_FAILURE_DESERIALIZER).value()))
+                    .isEqualTo(IntegerDeserializer.class.getName());
+            assertThat(new String(r.headers().lastHeader(DESERIALIZATION_FAILURE_TOPIC).value())).isEqualTo(topic);
+            assertThat(r.headers().lastHeader(DESERIALIZATION_FAILURE_DLQ)).isNull();
+        });
+
+        assertThat(bean.list()).isEmpty();
+
+        assertThat(isAlive()).isTrue();
+
+        assertThat(bean.consumers()).isEqualTo(1);
+        assertThat(bean.producers()).isEqualTo(1);
+    }
+
+    @Test
+    public void testDeadLetterQueueStrategyWithKeyDeserializationError() {
+        String dlqTopic = topic + "-dlq";
+
+        ConsumerTask<Integer, String> records = companion.consume(Integer.class, String.class)
+                .fromTopics(dlqTopic, 10);
+
+        MyReceiverBean bean = runApplication(getDeadLetterQueueConfig(topic)
+                .with("dead-letter-queue.topic", dlqTopic)
+                .with("fail-on-deserialization-failure", false)
+                .with("key.deserializer.encoding", "unknown-encoding"), MyReceiverBean.class);
+        await().until(this::isReady);
+
+        companion.produce(Integer.class, String.class)
+                .usingGenerator(i -> new ProducerRecord<>(topic, i, "boom-" + i), 10);
+
+        String expectedReason = "Size of data received by IntegerDeserializer is not 4";
+        await().atMost(2, TimeUnit.MINUTES).until(() -> records.getRecords().size() == 10);
+        assertThat(records.getRecords()).allSatisfy(r -> {
+            assertThat(r.topic()).isEqualTo(dlqTopic);
+            assertThat(r.key()).isIn(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
+            assertThat(r.value()).startsWith("boom-");
+            assertThat(new String(r.headers().lastHeader(DEAD_LETTER_EXCEPTION_CLASS_NAME).value()))
+                    .isEqualTo(RecordDeserializationException.class.getName());
+            assertThat(new String(r.headers().lastHeader(DEAD_LETTER_REASON).value())).isEqualTo(expectedReason);
+            assertThat(r.headers().lastHeader(DEAD_LETTER_CAUSE)).isNull();
+            assertThat(r.headers().lastHeader(DEAD_LETTER_CAUSE_CLASS_NAME)).isNull();
+            assertThat(new String(r.headers().lastHeader(DEAD_LETTER_PARTITION).value())).isEqualTo("0");
+            assertThat(new String(r.headers().lastHeader(DEAD_LETTER_TOPIC).value())).isEqualTo(topic);
+            assertThat(new String(r.headers().lastHeader(DEAD_LETTER_OFFSET).value())).isNotNull();
+            assertThat(new String(r.headers().lastHeader(DESERIALIZATION_FAILURE_REASON).value())).isEqualTo(expectedReason);
+            assertThat(new String(r.headers().lastHeader(DESERIALIZATION_FAILURE_KEY_DATA).value())).isNotNull();
+            assertThat(new String(r.headers().lastHeader(DESERIALIZATION_FAILURE_VALUE_DATA).value())).startsWith("boom-");
+            assertThat(new String(r.headers().lastHeader(DESERIALIZATION_FAILURE_DESERIALIZER).value()))
+                    .isEqualTo(IntegerDeserializer.class.getName());
+            assertThat(new String(r.headers().lastHeader(DESERIALIZATION_FAILURE_TOPIC).value())).isEqualTo(topic);
+            assertThat(r.headers().lastHeader(DESERIALIZATION_FAILURE_DLQ)).isNull();
+        });
+
+        assertThat(bean.list()).isEmpty();
 
         assertThat(isAlive()).isTrue();
 
@@ -487,9 +625,9 @@ public class KafkaFailureHandlerTest extends KafkaCompanionTestBase {
         return config;
     }
 
-    private KafkaMapBasedConfig getDeadLetterQueueConfig() {
+    private KafkaMapBasedConfig getDeadLetterQueueConfig(String topic) {
         KafkaMapBasedConfig config = kafkaConfig("mp.messaging.incoming.kafka");
-        config.put("topic", "dead-letter-default");
+        config.put("topic", topic);
         config.put("group.id", UUID.randomUUID().toString());
         config.put("value.deserializer", IntegerDeserializer.class.getName());
         config.put("enable.auto.commit", "false");

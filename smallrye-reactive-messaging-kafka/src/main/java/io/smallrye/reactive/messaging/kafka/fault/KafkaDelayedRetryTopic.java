@@ -1,5 +1,6 @@
 package io.smallrye.reactive.messaging.kafka.fault;
 
+import static io.smallrye.reactive.messaging.kafka.DeserializationFailureHandler.DESERIALIZATION_FAILURE_DLQ;
 import static io.smallrye.reactive.messaging.kafka.i18n.KafkaLogging.log;
 import static io.smallrye.reactive.messaging.kafka.impl.ReactiveKafkaConsumer.createDeserializationFailureHandler;
 import static org.apache.kafka.clients.CommonClientConfigs.CLIENT_ID_CONFIG;
@@ -118,9 +119,10 @@ public class KafkaDelayedRetryTopic extends ContextHolder implements KafkaFailur
 
             log.delayedRetryTopic(config.getChannel(), retryTopics, maxRetries, retryTimeout, deadQueueTopic);
 
+            var dlqSerializationHandler = new KafkaDeadLetterSerializationHandler<>();
             // fire producer event (e.g. bind metrics)
             ReactiveKafkaProducer<Object, Object> producer = new ReactiveKafkaProducer<>(delayedRetryTopicProducerConfig,
-                    retryTopics.get(0), 10000, false, null, null, null,
+                    retryTopics.get(0), 10000, false, null, dlqSerializationHandler, dlqSerializationHandler,
                     (p, c) -> kafkaCDIEvents.producer().fire(p));
 
             Map<String, Object> retryConsumerConfig = new HashMap<>(consumer.configuration());
@@ -269,6 +271,8 @@ public class KafkaDelayedRetryTopic extends ContextHolder implements KafkaFailur
         if (outgoing != null && outgoing.getHeaders() != null) {
             outgoing.getHeaders().forEach(header -> retry.headers().add(header));
         }
+        // remove DESERIALIZATION_FAILURE_DLQ header to prevent unconditional DQL in next consume
+        retry.headers().remove(DESERIALIZATION_FAILURE_DLQ);
         log.delayedRetryNack(channel, topic);
         return producer.send(retry)
                 .onFailure().invoke(t -> reportFailure.accept((Throwable) t, true))

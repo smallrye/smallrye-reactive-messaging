@@ -1,5 +1,7 @@
 package io.smallrye.reactive.messaging.kafka.impl;
 
+import static io.smallrye.reactive.messaging.kafka.DeserializationFailureHandler.DESERIALIZATION_FAILURE_DLQ;
+import static io.smallrye.reactive.messaging.kafka.DeserializationFailureHandler.DESERIALIZATION_FAILURE_REASON;
 import static io.smallrye.reactive.messaging.kafka.i18n.KafkaExceptions.ex;
 import static io.smallrye.reactive.messaging.kafka.i18n.KafkaLogging.log;
 import static io.smallrye.reactive.messaging.kafka.impl.RebalanceListeners.findMatchingListener;
@@ -20,6 +22,8 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.errors.RebalanceInProgressException;
+import org.apache.kafka.common.errors.RecordDeserializationException;
+import org.apache.kafka.common.header.Header;
 
 import io.smallrye.common.annotation.Identifier;
 import io.smallrye.mutiny.Multi;
@@ -34,6 +38,7 @@ import io.smallrye.reactive.messaging.kafka.KafkaConsumerRebalanceListener;
 import io.smallrye.reactive.messaging.kafka.KafkaRecord;
 import io.smallrye.reactive.messaging.kafka.commit.ContextHolder;
 import io.smallrye.reactive.messaging.kafka.commit.KafkaCommitHandler;
+import io.smallrye.reactive.messaging.kafka.fault.KafkaDeadLetterQueue;
 import io.smallrye.reactive.messaging.kafka.fault.KafkaDelayedRetryTopic;
 import io.smallrye.reactive.messaging.kafka.fault.KafkaFailureHandler;
 import io.smallrye.reactive.messaging.kafka.health.KafkaSourceHealth;
@@ -161,6 +166,16 @@ public class KafkaSource<K, V> {
             Multi<IncomingKafkaRecord<K, V>> incomingMulti = multi.onItem().transformToUni(rec -> {
                 IncomingKafkaRecord<K, V> record = new IncomingKafkaRecord<>(rec, channel, index, commitHandler,
                         failureHandler, isCloudEventEnabled, isTracingEnabled);
+                if ((failureHandler instanceof KafkaDeadLetterQueue)
+                        && rec.headers() != null
+                        && rec.headers().lastHeader(DESERIALIZATION_FAILURE_DLQ) != null) {
+                    Header reasonMsgHeader = rec.headers().lastHeader(DESERIALIZATION_FAILURE_REASON);
+                    String message = reasonMsgHeader != null ? new String(reasonMsgHeader.value()) : null;
+                    RecordDeserializationException reason = new RecordDeserializationException(
+                            TopicPartitions.getTopicPartition(record), record.getOffset(), message, null);
+                    return failureHandler.handle(record, reason, record.getMetadata())
+                            .onItem().transform(ignore -> null);
+                }
                 return commitHandler.received(record);
             }).concatenate();
 

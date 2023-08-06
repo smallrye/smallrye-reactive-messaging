@@ -1,5 +1,6 @@
 package io.smallrye.reactive.messaging.kafka.fault;
 
+import static io.smallrye.reactive.messaging.kafka.DeserializationFailureHandler.DESERIALIZATION_FAILURE_DLQ;
 import static io.smallrye.reactive.messaging.kafka.i18n.KafkaLogging.log;
 import static org.apache.kafka.clients.CommonClientConfigs.CLIENT_ID_CONFIG;
 import static org.apache.kafka.clients.consumer.ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG;
@@ -91,9 +92,10 @@ public class KafkaDeadLetterQueue implements KafkaFailureHandler {
                     (String) deadQueueProducerConfig.get(KEY_SERIALIZER_CLASS_CONFIG),
                     (String) deadQueueProducerConfig.get(VALUE_SERIALIZER_CLASS_CONFIG));
 
+            var dlqSerializationHandler = new KafkaDeadLetterSerializationHandler<>();
             // fire producer event (e.g. bind metrics)
             ReactiveKafkaProducer<Object, Object> producer = new ReactiveKafkaProducer<>(deadQueueProducerConfig,
-                    deadQueueTopic, 10000, false, null, null, null,
+                    deadQueueTopic, 10000, false, null, dlqSerializationHandler, dlqSerializationHandler,
                     (p, c) -> kafkaCDIEvents.producer().fire(p));
 
             return new KafkaDeadLetterQueue(config.getChannel(), deadQueueTopic, producer, reportFailure);
@@ -153,6 +155,8 @@ public class KafkaDeadLetterQueue implements KafkaFailureHandler {
         if (outgoing != null && outgoing.getHeaders() != null) {
             outgoing.getHeaders().forEach(header -> dead.headers().add(header));
         }
+        // remove DESERIALIZATION_FAILURE_DLQ header to prevent unconditional DQL in next consume
+        dead.headers().remove(DESERIALIZATION_FAILURE_DLQ);
         log.messageNackedDeadLetter(channel, topic);
         return producer.send(dead)
                 .onFailure().invoke(t -> reportFailure.accept((Throwable) t, true))
