@@ -109,18 +109,22 @@ public class HealthCheckTest extends WeldTestBase {
 
         await().until(() -> !isAlive());
 
-        HealthReport startup = getHealth().getStartup();
-        HealthReport liveness = getHealth().getLiveness();
-        HealthReport readiness = getHealth().getReadiness();
+        await().untilAsserted(() -> {
+            HealthReport startup = getHealth().getStartup();
+            HealthReport liveness = getHealth().getLiveness();
+            HealthReport readiness = getHealth().getReadiness();
 
-        assertThat(startup.isOk()).isFalse();
-        assertThat(readiness.isOk()).isFalse();
-        assertThat(liveness.isOk()).isFalse();
-        assertThat(startup.getChannels()).hasSize(1);
-        assertThat(readiness.getChannels()).hasSize(2);
-        assertThat(liveness.getChannels()).hasSize(2);
-        assertThat(liveness.getChannels().get(0).getChannel()).isEqualTo("input");
-        assertThat(liveness.getChannels().get(0).isOk()).isFalse();
+            assertThat(startup.isOk()).isFalse();
+            assertThat(readiness.isOk()).isFalse();
+            assertThat(liveness.isOk()).isFalse();
+            assertThat(startup.getChannels()).hasSize(1);
+            assertThat(readiness.getChannels()).hasSize(2);
+            assertThat(liveness.getChannels()).hasSize(2);
+
+            assertThat(liveness.getChannels())
+                    .anySatisfy(channelInfo -> assertThat(channelInfo.getChannel()).isEqualTo("input"))
+                    .allSatisfy(channelInfo -> assertThat(channelInfo.isOk()).isFalse());
+        });
     }
 
     private MapBasedConfig configProducingBean() {
