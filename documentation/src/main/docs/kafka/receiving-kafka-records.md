@@ -449,6 +449,20 @@ produce a `null` value. To enable this behavior, set the
 `mp.messaging.incoming.$channel.fail-on-deserialization-failure`
 attribute to `false`.
 
+If the `fail-on-deserialization-failure` attribute is set to `false` and
+the `failure-strategy` attribute is `dead-letter-queue` the failed record
+will be sent to the corresponding *dead letter queue* topic.
+The forwarded record will have the original key and value,
+and the following headers set:
+
+- `deserialization-failure-reason`: The deserialization failure message
+- `deserialization-failure-cause`: The deserialization failure cause if any
+- `deserialization-failure-key`: Whether the deserialization failure happened on a key
+- `deserialization-failure-topic`: The topic of the incoming message when a deserialization failure happen
+- `deserialization-failure-deserializer`: The class name of the underlying deserializer
+- `deserialization-failure-key-data`: If applicable the key data that was not able to be deserialized
+- `deserialization-failure-value-data`: If applicable the value data that was not able to be deserialized
+
 ## Receiving Cloud Events
 
 The Kafka connector supports [Cloud Events](https://cloudevents.io/).

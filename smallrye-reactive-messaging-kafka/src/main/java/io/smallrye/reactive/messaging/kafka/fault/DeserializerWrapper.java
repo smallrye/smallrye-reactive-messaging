@@ -1,5 +1,7 @@
 package io.smallrye.reactive.messaging.kafka.fault;
 
+import static io.smallrye.reactive.messaging.kafka.DeserializationFailureHandler.addFailureDetailsToHeaders;
+
 import java.util.Map;
 import java.util.function.BiConsumer;
 import java.util.function.Supplier;
@@ -114,6 +116,9 @@ public class DeserializerWrapper<T> implements Deserializer<T> {
                     }
                     throw new KafkaException(e);
                 }
+                // insert failure details to headers
+                addFailureDetailsToHeaders(delegate.getClass().getName(), topic, handleKeys, headers, data, e);
+                // fallback to null
                 return null;
             }
         }
