@@ -8,10 +8,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.Flow;
-import java.util.concurrent.SynchronousQueue;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
@@ -102,7 +100,7 @@ public class JmsConnector implements InboundConnector, OutboundConnector {
 
     @PostConstruct
     public void init() {
-        this.executor = new ThreadPoolExecutor(0, maxPoolSize, ttl, TimeUnit.SECONDS, new SynchronousQueue<>());
+        this.executor = Executors.newFixedThreadPool(maxPoolSize);
         if (jsonMapper.isUnsatisfied()) {
             log.warn(
                     "Please add one of the additional mapping modules (-jsonb or -jackson) to be able to (de)serialize JSON messages.");

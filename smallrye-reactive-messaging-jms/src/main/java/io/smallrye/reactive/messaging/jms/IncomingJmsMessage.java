@@ -2,7 +2,6 @@ package io.smallrye.reactive.messaging.jms;
 
 import static io.smallrye.reactive.messaging.jms.i18n.JmsExceptions.ex;
 
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
 import java.util.function.Supplier;
@@ -12,6 +11,7 @@ import jakarta.jms.Message;
 
 import org.eclipse.microprofile.reactive.messaging.Metadata;
 
+import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.json.JsonMapping;
 
 public class IncomingJmsMessage<T> implements org.eclipse.microprofile.reactive.messaging.Message<T> {
@@ -110,13 +110,16 @@ public class IncomingJmsMessage<T> implements org.eclipse.microprofile.reactive.
 
     @Override
     public CompletionStage<Void> ack() {
-        return CompletableFuture.runAsync(() -> {
-            try {
-                delegate.acknowledge();
-            } catch (JMSException e) {
-                throw new IllegalArgumentException("Unable to acknowledge message", e);
-            }
-        }, executor);
+        return Uni.createFrom().voidItem()
+                .onItem().invoke(m -> {
+                    try {
+                        delegate.acknowledge();
+                    } catch (JMSException e) {
+                        throw new IllegalArgumentException("Unable to acknowledge message", e);
+                    }
+                })
+                .runSubscriptionOn(executor)
+                .subscribeAsCompletionStage();
     }
 
     @Override

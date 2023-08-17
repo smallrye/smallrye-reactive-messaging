@@ -3,8 +3,6 @@ package io.smallrye.reactive.messaging.jms;
 import static io.smallrye.reactive.messaging.jms.i18n.JmsExceptions.ex;
 import static io.smallrye.reactive.messaging.jms.i18n.JmsLogging.log;
 
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Flow;
 
@@ -67,17 +65,12 @@ class JmsSink {
             producer.setJMSReplyTo(replyToDestination);
         });
 
-        sink = MultiUtils.via(m -> m.onItem().transformToUniAndConcatenate(message -> Uni.createFrom().completionStage(() -> {
-            try {
-                return send(message);
-            } catch (JMSException e) {
-                return CompletableFuture.failedStage(new IllegalStateException(e));
-            }
-        })).onFailure().invoke(log::unableToSend));
+        sink = MultiUtils.via(m -> m.onItem().transformToUniAndConcatenate(this::send)
+                .onFailure().invoke(log::unableToSend));
 
     }
 
-    private CompletionStage<Message<?>> send(Message<?> message) throws JMSException {
+    private Uni<? extends Message<?>> send(Message<?> message) {
         Object payload = message.getPayload();
 
         // If the payload is a JMS Message, send it as it is, ignoring metadata.
@@ -85,62 +78,66 @@ class JmsSink {
             return dispatch(message, () -> producer.send(destination, (jakarta.jms.Message) payload));
         }
 
-        jakarta.jms.Message outgoing;
-        if (payload instanceof String || payload.getClass().isPrimitive() || isPrimitiveBoxed(payload.getClass())) {
-            outgoing = context.createTextMessage(payload.toString());
-            outgoing.setStringProperty("_classname", payload.getClass().getName());
-            outgoing.setJMSType(payload.getClass().getName());
-        } else if (payload.getClass().isArray() && payload.getClass().getComponentType().equals(Byte.TYPE)) {
-            BytesMessage o = context.createBytesMessage();
-            o.writeBytes((byte[]) payload);
-            outgoing = o;
-        } else {
-            outgoing = context.createTextMessage(jsonMapping.toJson(payload));
-            outgoing.setJMSType(payload.getClass().getName());
-            outgoing.setStringProperty("_classname", payload.getClass().getName());
-        }
-
-        OutgoingJmsMessageMetadata metadata = message.getMetadata(OutgoingJmsMessageMetadata.class).orElse(null);
-        Destination actualDestination;
-        if (metadata != null) {
-            String correlationId = metadata.getCorrelationId();
-            Destination replyTo = metadata.getReplyTo();
-            Destination dest = metadata.getDestination();
-            int deliveryMode = metadata.getDeliveryMode();
-            String type = metadata.getType();
-            JmsProperties properties = metadata.getProperties();
-            if (correlationId != null) {
-                outgoing.setJMSCorrelationID(correlationId);
-            }
-            if (replyTo != null) {
-                outgoing.setJMSReplyTo(replyTo);
-            }
-            if (dest != null) {
-                outgoing.setJMSDestination(dest);
-            }
-            if (deliveryMode != -1) {
-                outgoing.setJMSDeliveryMode(deliveryMode);
-            }
-            if (type != null) {
-                outgoing.setJMSType(type);
-            }
-            if (type != null) {
-                outgoing.setJMSType(type);
+        try {
+            jakarta.jms.Message outgoing;
+            if (payload instanceof String || payload.getClass().isPrimitive() || isPrimitiveBoxed(payload.getClass())) {
+                outgoing = context.createTextMessage(payload.toString());
+                outgoing.setStringProperty("_classname", payload.getClass().getName());
+                outgoing.setJMSType(payload.getClass().getName());
+            } else if (payload.getClass().isArray() && payload.getClass().getComponentType().equals(Byte.TYPE)) {
+                BytesMessage o = context.createBytesMessage();
+                o.writeBytes((byte[]) payload);
+                outgoing = o;
+            } else {
+                outgoing = context.createTextMessage(jsonMapping.toJson(payload));
+                outgoing.setJMSType(payload.getClass().getName());
+                outgoing.setStringProperty("_classname", payload.getClass().getName());
             }
 
-            if (properties != null) {
-                if (!(properties instanceof JmsPropertiesBuilder.OutgoingJmsProperties)) {
-                    throw ex.illegalStateUnableToMapProperties(properties.getClass().getName());
+            OutgoingJmsMessageMetadata metadata = message.getMetadata(OutgoingJmsMessageMetadata.class).orElse(null);
+            Destination actualDestination;
+            if (metadata != null) {
+                String correlationId = metadata.getCorrelationId();
+                Destination replyTo = metadata.getReplyTo();
+                Destination dest = metadata.getDestination();
+                int deliveryMode = metadata.getDeliveryMode();
+                String type = metadata.getType();
+                JmsProperties properties = metadata.getProperties();
+                if (correlationId != null) {
+                    outgoing.setJMSCorrelationID(correlationId);
                 }
-                JmsPropertiesBuilder.OutgoingJmsProperties op = ((JmsPropertiesBuilder.OutgoingJmsProperties) properties);
-                op.getProperties().forEach(p -> p.apply(outgoing));
-            }
-            actualDestination = dest != null ? dest : this.destination;
-        } else {
-            actualDestination = this.destination;
-        }
+                if (replyTo != null) {
+                    outgoing.setJMSReplyTo(replyTo);
+                }
+                if (dest != null) {
+                    outgoing.setJMSDestination(dest);
+                }
+                if (deliveryMode != -1) {
+                    outgoing.setJMSDeliveryMode(deliveryMode);
+                }
+                if (type != null) {
+                    outgoing.setJMSType(type);
+                }
+                if (type != null) {
+                    outgoing.setJMSType(type);
+                }
 
-        return dispatch(message, () -> producer.send(actualDestination, outgoing));
+                if (properties != null) {
+                    if (!(properties instanceof JmsPropertiesBuilder.OutgoingJmsProperties)) {
+                        throw ex.illegalStateUnableToMapProperties(properties.getClass().getName());
+                    }
+                    JmsPropertiesBuilder.OutgoingJmsProperties op = ((JmsPropertiesBuilder.OutgoingJmsProperties) properties);
+                    op.getProperties().forEach(p -> p.apply(outgoing));
+                }
+                actualDestination = dest != null ? dest : this.destination;
+            } else {
+                actualDestination = this.destination;
+            }
+
+            return dispatch(message, () -> producer.send(actualDestination, outgoing));
+        } catch (JMSException e) {
+            return Uni.createFrom().failure(new IllegalStateException(e));
+        }
     }
 
     private boolean isPrimitiveBoxed(Class<?> c) {
@@ -154,10 +151,11 @@ class JmsSink {
                 || c.equals(Long.class);
     }
 
-    private CompletionStage<Message<?>> dispatch(Message<?> incoming, Runnable action) {
-        return CompletableFuture.runAsync(action, executor)
-                .thenCompose(x -> incoming.ack())
-                .thenApply(x -> incoming);
+    private Uni<? extends Message<?>> dispatch(Message<?> incoming, Runnable action) {
+        return Uni.createFrom().item(incoming)
+                .invoke(action)
+                .call(message -> Uni.createFrom().completionStage(incoming::ack))
+                .runSubscriptionOn(executor);
     }
 
     private Destination getDestination(JMSContext context, String name, String type) {
