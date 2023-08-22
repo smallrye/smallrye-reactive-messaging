@@ -1,4 +1,4 @@
-package io.smallrye.reactive.messaging.json;
+package io.smallrye.reactive.messaging.json.jackson;
 
 import jakarta.annotation.Priority;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -6,6 +6,8 @@ import jakarta.inject.Inject;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
+import io.smallrye.reactive.messaging.json.JsonMapping;
 
 @ApplicationScoped
 @Priority(value = JsonMapping.DEFAULT_PRIORITY)

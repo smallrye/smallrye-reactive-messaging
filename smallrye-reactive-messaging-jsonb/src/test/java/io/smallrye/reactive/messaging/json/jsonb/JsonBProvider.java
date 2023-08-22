@@ -1,4 +1,4 @@
-package io.smallrye.reactive.messaging.json;
+package io.smallrye.reactive.messaging.json.jsonb;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Produces;
