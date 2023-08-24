@@ -1,4 +1,4 @@
-package io.smallrye.reactive.messaging.json;
+package io.smallrye.reactive.messaging.json.jackson;
 
 public class Person {
 

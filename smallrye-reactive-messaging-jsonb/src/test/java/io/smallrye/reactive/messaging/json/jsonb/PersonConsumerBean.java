@@ -1,4 +1,4 @@
-package io.smallrye.reactive.messaging.json;
+package io.smallrye.reactive.messaging.json.jsonb;
 
 import java.util.ArrayList;
 import java.util.List;
