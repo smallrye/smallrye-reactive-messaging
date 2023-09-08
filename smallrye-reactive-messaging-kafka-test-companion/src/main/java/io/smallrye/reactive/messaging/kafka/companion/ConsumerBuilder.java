@@ -552,6 +552,9 @@ public class ConsumerBuilder<K, V> implements ConsumerRebalanceListener, Closeab
 
     <T> Multi<T> process(Set<String> topics, Function<Multi<ConsumerRecord<K, V>>, Multi<T>> plugFunction) {
         return Multi.createFrom().deferred(() -> {
+            if (!polling.compareAndSet(false, true)) {
+                return Multi.createFrom().failure(new IllegalStateException("Consumer already in use"));
+            }
             getOrCreateConsumer().subscribe(topics, this);
             return getConsumeMulti().plug(plugFunction);
         });
@@ -559,15 +562,15 @@ public class ConsumerBuilder<K, V> implements ConsumerRebalanceListener, Closeab
 
     <T> Multi<T> processBatch(Set<String> topics, Function<ConsumerRecords<K, V>, Multi<T>> consumerRecordFunction) {
         return Multi.createFrom().deferred(() -> {
+            if (!polling.compareAndSet(false, true)) {
+                return Multi.createFrom().failure(new IllegalStateException("Consumer already in use"));
+            }
             getOrCreateConsumer().subscribe(topics, this);
             return getProcessingMulti(consumerRecordFunction);
         });
     }
 
     private <T> Multi<T> getProcessingMulti(Function<ConsumerRecords<K, V>, Multi<T>> consumerRecordFunction) {
-        if (!polling.compareAndSet(false, true)) {
-            return Multi.createFrom().failure(new IllegalStateException("Consumer already in use"));
-        }
         return poll().repeat().indefinitely()
                 .onItem().transformToMulti(consumerRecordFunction)
                 .concatenate()
@@ -577,9 +580,6 @@ public class ConsumerBuilder<K, V> implements ConsumerRebalanceListener, Closeab
     }
 
     private Multi<ConsumerRecord<K, V>> getConsumeMulti() {
-        if (!polling.compareAndSet(false, true)) {
-            return Multi.createFrom().failure(new IllegalStateException("Consumer already in use"));
-        }
         return poll().repeat().indefinitely()
                 .onItem().transformToMulti(cr -> Multi.createFrom().items(StreamSupport.stream(cr.spliterator(), false)))
                 .concatenate()
@@ -625,6 +625,9 @@ public class ConsumerBuilder<K, V> implements ConsumerRebalanceListener, Closeab
     public ConsumerTask<K, V> fromOffsets(Map<TopicPartition, Long> offsets,
             Function<Multi<ConsumerRecord<K, V>>, Multi<ConsumerRecord<K, V>>> plugFunction) {
         return new ConsumerTask<>(Multi.createFrom().deferred(() -> {
+            if (!polling.compareAndSet(false, true)) {
+                return Multi.createFrom().failure(new IllegalStateException("Consumer already in use"));
+            }
             getOrCreateConsumer().unsubscribe();
             Set<TopicPartition> topicPartitions = offsets.keySet();
             getOrCreateConsumer().assign(topicPartitions);
@@ -699,6 +702,9 @@ public class ConsumerBuilder<K, V> implements ConsumerRebalanceListener, Closeab
     public ConsumerTask<K, V> fromTopics(Set<String> topics,
             Function<Multi<ConsumerRecord<K, V>>, Multi<ConsumerRecord<K, V>>> plugFunction) {
         return new ConsumerTask<>(Multi.createFrom().deferred(() -> {
+            if (!polling.compareAndSet(false, true)) {
+                return Multi.createFrom().failure(new IllegalStateException("Consumer already in use"));
+            }
             getOrCreateConsumer().subscribe(topics, this);
             return getConsumeMulti().plug(plugFunction);
         }));
