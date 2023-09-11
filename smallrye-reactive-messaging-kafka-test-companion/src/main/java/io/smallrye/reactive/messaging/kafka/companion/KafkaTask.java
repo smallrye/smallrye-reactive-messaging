@@ -242,9 +242,9 @@ public abstract class KafkaTask<T, SELF extends KafkaTask<T, SELF>> implements I
      *
      * @return self
      */
-    public SELF stop() {
-        subscriber.cancel();
+    public synchronized SELF stop() {
         subscriber.onComplete();
+        subscriber.cancel();
         return self();
     }
 
