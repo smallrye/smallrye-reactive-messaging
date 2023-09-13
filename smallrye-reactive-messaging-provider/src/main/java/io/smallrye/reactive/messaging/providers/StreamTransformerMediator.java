@@ -5,6 +5,7 @@ import static io.smallrye.reactive.messaging.providers.helpers.KeyMultiUtils.con
 import static io.smallrye.reactive.messaging.providers.i18n.ProviderExceptions.ex;
 import static io.smallrye.reactive.messaging.providers.i18n.ProviderMessages.msg;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -186,20 +187,36 @@ public class StreamTransformerMediator extends AbstractMediator {
 
     private <T extends Message<?>, K extends Enum<K>> MultiSplitter<T, K> fillSplitsOfMessages(Flow.Publisher<T> argument) {
         MultiSplitter<T, K> result = invoke(argument);
-        K[] enumConstants = result.keyType().getEnumConstants();
-        List<String> outgoings = configuration.getOutgoings();
-        if (outgoings.size() != enumConstants.length) {
-            throw ex.outgoingsDoesNotMatchMultiSplitterTarget(getMethodAsString(), outgoings.size(), enumConstants.length);
-        }
-        for (int i = 0; i < outgoings.size(); i++) {
-            String outgoing = outgoings.get(i);
-            K key = enumConstants[i];
+        Map<K, String> keyChannelMappings = findKeyOutgoingChannelMappings(result.keyType().getEnumConstants());
+        keyChannelMappings.forEach((key, outgoing) -> {
             Multi<? extends Message<?>> m = result.get(key)
                     // concat map with prefetch handles the request starvation issue with SplitMulti and also syncs requests
                     .onItem().transformToUni(u -> Uni.createFrom().item(u)).concatenate(true);
             outgoingPublisherMap.put(outgoing, m);
-        }
+        });
         return result;
+    }
+
+    private <K extends Enum<K>> Map<K, String> findKeyOutgoingChannelMappings(K[] enumConstants) {
+        List<String> outgoings = configuration.getOutgoings();
+        if (outgoings.size() != enumConstants.length) {
+            throw ex.outgoingsDoesNotMatchMultiSplitterTarget(getMethodAsString(), outgoings.size(), enumConstants.length);
+        }
+        Map<K, String> mappings = new HashMap<>();
+        for (String outgoing : outgoings) {
+            for (K key : enumConstants) {
+                if (outgoing.equalsIgnoreCase(key.toString())) {
+                    mappings.put(key, outgoing);
+                }
+            }
+        }
+        if (mappings.keySet().containsAll(Arrays.asList(enumConstants)) && mappings.values().containsAll(outgoings)) {
+            return mappings;
+        }
+        for (int i = 0; i < outgoings.size(); i++) {
+            mappings.put(enumConstants[i], outgoings.get(i));
+        }
+        return mappings;
     }
 
     private void processMethodConsumingAPublisherOfMessages() {
@@ -270,21 +287,15 @@ public class StreamTransformerMediator extends AbstractMediator {
         };
     }
 
-    private <T extends Enum<T>> MultiSplitter<?, T> fillSplitFunction(Flow.Publisher<?> argument) {
-        MultiSplitter<?, T> result = invoke(argument);
-        T[] enumConstants = result.keyType().getEnumConstants();
-        List<String> outgoings = configuration.getOutgoings();
-        if (outgoings.size() != enumConstants.length) {
-            throw ex.outgoingsDoesNotMatchMultiSplitterTarget(getMethodAsString(), outgoings.size(), enumConstants.length);
-        }
-        for (int i = 0; i < outgoings.size(); i++) {
-            String outgoing = outgoings.get(i);
-            T key = enumConstants[i];
+    private <K extends Enum<K>> MultiSplitter<?, K> fillSplitFunction(Flow.Publisher<?> argument) {
+        MultiSplitter<?, K> result = invoke(argument);
+        Map<K, String> keyChannelMappings = findKeyOutgoingChannelMappings(result.keyType().getEnumConstants());
+        keyChannelMappings.forEach((key, outgoing) -> {
             Multi<? extends Message<?>> m = result.get(key).onItem().transform(Message::of)
                     // concat map with prefetch handles the request starvation issue with SplitMulti and also syncs requests
                     .onItem().transformToUni(u -> Uni.createFrom().item(u)).concatenate(true);
             outgoingPublisherMap.put(outgoing, m);
-        }
+        });
         return result;
     }
 

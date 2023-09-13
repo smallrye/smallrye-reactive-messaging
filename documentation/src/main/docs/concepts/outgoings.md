@@ -43,18 +43,21 @@ which is a `Message` type:
 Note that in this case coordinated acknowledgements is handled explicitly
 using {{ javadoc('io.smallrye.reactive.messaging.Messages') }} utility.
 
-## Branching outgoing channels with `SplitterMulti`
+## Branching outgoing channels with `MultiSplitter`
 
 In stream transformer processors it can be useful to branch out an incoming
 stream into different sub-streams, based on some conditions.
 
-When consuming `Multi`, returning a `SplitterMulti` allows to do that:
-
-// TODO link to usage of `Multi.split` operation.
+When consuming a `Multi`, you can use the `Multi.split`
+(see [Mutiny documentation](https://smallrye.io/smallrye-mutiny/latest/guides/multi-split/))
+operation to define multiple branches.
+The stream transformer method with multiple outgoings must return a
+{{ javadoc('io.smallrye.mutiny.operators.multi.split.MultiSplitter', False, 'io.smallrye.reactive/mutiny') }}.
 
 ``` java
 {{ insert('outgoings/SplitterMultiExample.java', 'code') }}
 ```
 
 In this case the number of outgoing channels must match the number of branches given to `split` operation.
-
+Outgoing channels will be tried to be matched to branch identifier enum `toString` ignoring case.
+If not all branches are matched, it will fall back to one-by-one matching depending on the order of outgoing channel declarations and enum ordinals.

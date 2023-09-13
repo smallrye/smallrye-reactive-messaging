@@ -91,8 +91,8 @@ public class MultiLevelOutgoingsTest extends WeldTestBaseWithoutTails {
         }
 
         @Incoming("z")
-        @Outgoing("w")
         @Outgoing("v")
+        @Outgoing("w")
         public MultiSplitter<String, FLIPFLOP> process(Multi<String> multi) {
             return multi.split(FLIPFLOP.class, s -> i.incrementAndGet() % 2 == 0 ? FLIPFLOP.W : FLIPFLOP.V);
         }

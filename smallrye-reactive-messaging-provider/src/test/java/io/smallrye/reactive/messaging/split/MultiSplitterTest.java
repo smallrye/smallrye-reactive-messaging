@@ -40,6 +40,29 @@ public class MultiSplitterTest extends WeldTestBaseWithoutTails {
                 && sink.listSink3().size() == 2);
         assertThat(sink.listSink1()).contains("ABC", "DEF");
         assertThat(sink.listSink2()).contains("abc", "def");
+        assertThat(sink.listSink3()).contains("AbC", "DeF");
+    }
+
+    @Test
+    void testSplitOfPayloadsWithMatchingChannelNames() {
+        addBeanClass(Sink.class, PayloadSource.class, SplitterMultiWithChannelNames.class);
+
+        // Failures are captured during the initialization because these tests are not async (the sources are immediate)
+
+        try {
+            initialize();
+        } catch (Exception e) {
+            Assertions.fail("Initialization not expected to fail", e);
+            return;
+        }
+
+        Sink sink = get(Sink.class);
+        await().until(() -> sink.listSink1().size() == 2
+                && sink.listSink2().size() == 2
+                && sink.listSink3().size() == 2);
+        assertThat(sink.listSink1()).contains("abc", "def");
+        assertThat(sink.listSink2()).contains("ABC", "DEF");
+        assertThat(sink.listSink3()).contains("AbC", "DeF");
     }
 
     @Test
@@ -105,19 +128,16 @@ public class MultiSplitterTest extends WeldTestBaseWithoutTails {
 
         @Incoming("sink1")
         void all_caps(String s) {
-            System.out.println("sink1 " + s);
             listSink1.add(s);
         }
 
         @Incoming("sink2")
         void all_low(String s) {
-            System.out.println("sink2 " + s);
             listSink2.add(s);
         }
 
         @Incoming("sink3")
         void mixed(String s) {
-            System.out.println("sink3 " + s);
             listSink3.add(s);
         }
 
@@ -156,6 +176,33 @@ public class MultiSplitterTest extends WeldTestBaseWithoutTails {
                     return Caps.ALL_CAPS;
                 } else {
                     return Caps.MIXED;
+                }
+            });
+        }
+
+    }
+
+    @ApplicationScoped
+    public static class SplitterMultiWithChannelNames {
+
+        enum Sinks {
+            SINK1,
+            SINK2,
+            SINK3
+        }
+
+        @Incoming("in")
+        @Outgoing("sink1")
+        @Outgoing("sink2")
+        @Outgoing("sink3")
+        public MultiSplitter<String, Sinks> reshape(Multi<String> in) {
+            return in.split(Sinks.class, s -> {
+                if (Objects.equals(s, s.toLowerCase())) {
+                    return Sinks.SINK1;
+                } else if (Objects.equals(s, s.toUpperCase())) {
+                    return Sinks.SINK2;
+                } else {
+                    return Sinks.SINK3;
                 }
             });
         }
