@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -35,6 +36,8 @@ public class KafkaTransactionsImpl<T> extends MutinyEmitterImpl<T> implements Ka
 
     private volatile Transaction<?> currentTransaction;
 
+    private final ReentrantLock lock = new ReentrantLock();
+
     public KafkaTransactionsImpl(EmitterConfiguration config, long defaultBufferSize, KafkaClientService clientService) {
         super(config, defaultBufferSize);
         this.clientService = clientService;
@@ -42,63 +45,79 @@ public class KafkaTransactionsImpl<T> extends MutinyEmitterImpl<T> implements Ka
     }
 
     @Override
-    public synchronized boolean isTransactionInProgress() {
-        return currentTransaction != null;
+    public boolean isTransactionInProgress() {
+        lock.lock();
+        try {
+            return currentTransaction != null;
+        } finally {
+            lock.unlock();
+        }
     }
 
     @Override
     @CheckReturnValue
-    public synchronized <R> Uni<R> withTransaction(Function<TransactionalEmitter<T>, Uni<R>> work) {
-        if (currentTransaction == null) {
-            return new Transaction<R>().execute(work);
+    public <R> Uni<R> withTransaction(Function<TransactionalEmitter<T>, Uni<R>> work) {
+        lock.lock();
+        try {
+            if (currentTransaction == null) {
+                return new Transaction<R>().execute(work);
+            }
+            throw KafkaExceptions.ex.transactionInProgress(name);
+        } finally {
+            lock.unlock();
         }
-        throw KafkaExceptions.ex.transactionInProgress(name);
     }
 
     @SuppressWarnings("rawtypes")
     @Override
     @CheckReturnValue
-    public synchronized <R> Uni<R> withTransaction(Message<?> message, Function<TransactionalEmitter<T>, Uni<R>> work) {
-        String channel;
-        Map<TopicPartition, OffsetAndMetadata> offsets;
+    public <R> Uni<R> withTransaction(Message<?> message, Function<TransactionalEmitter<T>, Uni<R>> work) {
+        lock.lock();
+        try {
+            String channel;
+            Map<TopicPartition, OffsetAndMetadata> offsets;
 
-        Optional<IncomingKafkaRecordBatchMetadata> batchMetadata = message.getMetadata(IncomingKafkaRecordBatchMetadata.class);
-        Optional<IncomingKafkaRecordMetadata> recordMetadata = message.getMetadata(IncomingKafkaRecordMetadata.class);
-        if (batchMetadata.isPresent()) {
-            IncomingKafkaRecordBatchMetadata<?, ?> metadata = batchMetadata.get();
-            channel = metadata.getChannel();
-            offsets = metadata.getOffsets().entrySet().stream()
-                    .collect(Collectors.toMap(Map.Entry::getKey, e -> new OffsetAndMetadata(e.getValue().offset() + 1)));
-        } else if (recordMetadata.isPresent()) {
-            IncomingKafkaRecordMetadata<?, ?> metadata = recordMetadata.get();
-            channel = metadata.getChannel();
-            offsets = new HashMap<>();
-            offsets.put(TopicPartitions.getTopicPartition(metadata.getTopic(), metadata.getPartition()),
-                    new OffsetAndMetadata(metadata.getOffset() + 1));
-        } else {
-            throw KafkaExceptions.ex.noKafkaMetadataFound(message);
-        }
+            Optional<IncomingKafkaRecordBatchMetadata> batchMetadata = message
+                    .getMetadata(IncomingKafkaRecordBatchMetadata.class);
+            Optional<IncomingKafkaRecordMetadata> recordMetadata = message.getMetadata(IncomingKafkaRecordMetadata.class);
+            if (batchMetadata.isPresent()) {
+                IncomingKafkaRecordBatchMetadata<?, ?> metadata = batchMetadata.get();
+                channel = metadata.getChannel();
+                offsets = metadata.getOffsets().entrySet().stream()
+                        .collect(Collectors.toMap(Map.Entry::getKey, e -> new OffsetAndMetadata(e.getValue().offset() + 1)));
+            } else if (recordMetadata.isPresent()) {
+                IncomingKafkaRecordMetadata<?, ?> metadata = recordMetadata.get();
+                channel = metadata.getChannel();
+                offsets = new HashMap<>();
+                offsets.put(TopicPartitions.getTopicPartition(metadata.getTopic(), metadata.getPartition()),
+                        new OffsetAndMetadata(metadata.getOffset() + 1));
+            } else {
+                throw KafkaExceptions.ex.noKafkaMetadataFound(message);
+            }
 
-        List<KafkaConsumer<Object, Object>> consumers = clientService.getConsumers(channel);
-        if (consumers.isEmpty()) {
-            throw KafkaExceptions.ex.unableToFindConsumerForChannel(channel);
-        } else if (consumers.size() > 1) {
-            throw KafkaExceptions.ex.exactlyOnceProcessingNotSupported(channel);
+            List<KafkaConsumer<Object, Object>> consumers = clientService.getConsumers(channel);
+            if (consumers.isEmpty()) {
+                throw KafkaExceptions.ex.unableToFindConsumerForChannel(channel);
+            } else if (consumers.size() > 1) {
+                throw KafkaExceptions.ex.exactlyOnceProcessingNotSupported(channel);
+            }
+            KafkaConsumer<Object, Object> consumer = consumers.get(0);
+            if (currentTransaction == null) {
+                return new Transaction<R>(
+                        /* before commit */
+                        consumer.consumerGroupMetadata()
+                                .chain(groupMetadata -> producer.sendOffsetsToTransaction(offsets, groupMetadata)),
+                        r -> Uni.createFrom().item(r),
+                        VOID_UNI,
+                        /* after abort */
+                        t -> consumer.resetToLastCommittedPositions()
+                                .chain(() -> Uni.createFrom().failure(t)))
+                        .execute(work);
+            }
+            throw KafkaExceptions.ex.transactionInProgress(name);
+        } finally {
+            lock.unlock();
         }
-        KafkaConsumer<Object, Object> consumer = consumers.get(0);
-        if (currentTransaction == null) {
-            return new Transaction<R>(
-                    /* before commit */
-                    consumer.consumerGroupMetadata()
-                            .chain(groupMetadata -> producer.sendOffsetsToTransaction(offsets, groupMetadata)),
-                    r -> Uni.createFrom().item(r),
-                    VOID_UNI,
-                    /* after abort */
-                    t -> consumer.resetToLastCommittedPositions()
-                            .chain(() -> Uni.createFrom().failure(t)))
-                    .execute(work);
-        }
-        throw KafkaExceptions.ex.transactionInProgress(name);
     }
 
     private static final Uni<Void> VOID_UNI = Uni.createFrom().voidItem();

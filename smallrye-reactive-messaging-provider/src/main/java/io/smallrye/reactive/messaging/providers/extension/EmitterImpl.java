@@ -23,7 +23,7 @@ public class EmitterImpl<T> extends AbstractEmitter<T> implements Emitter<T> {
     }
 
     @Override
-    public synchronized CompletionStage<Void> send(T payload) {
+    public CompletionStage<Void> send(T payload) {
         if (payload == null) {
             throw ex.illegalArgumentForNullValue();
         }
@@ -40,7 +40,7 @@ public class EmitterImpl<T> extends AbstractEmitter<T> implements Emitter<T> {
     }
 
     @Override
-    public synchronized <M extends Message<? extends T>> void send(M msg) {
+    public <M extends Message<? extends T>> void send(M msg) {
         if (msg == null) {
             throw ex.illegalArgumentForNullValue();
         }

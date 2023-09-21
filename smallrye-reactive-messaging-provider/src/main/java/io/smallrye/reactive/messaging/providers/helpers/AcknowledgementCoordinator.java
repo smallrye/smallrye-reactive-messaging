@@ -3,6 +3,7 @@ package io.smallrye.reactive.messaging.providers.helpers;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.locks.ReentrantLock;
 
 import org.eclipse.microprofile.reactive.messaging.Message;
 
@@ -22,47 +23,64 @@ public class AcknowledgementCoordinator {
     private volatile boolean done;
     private final List<Tracker> tracked = new ArrayList<>();
 
+    private final ReentrantLock lock = new ReentrantLock();
+
     public AcknowledgementCoordinator(Message<?> input) {
         this.input = input;
     }
 
-    public synchronized Message<?> track(Message<?> msg) {
-        Tracker tracker = new Tracker();
-        tracked.add(tracker);
-        return msg
-                .withAck(() -> {
-                    onAck(tracker);
-                    return CompletableFuture.completedFuture(null);
-                })
-                .withNack(reason -> {
-                    onNack(reason, tracker);
-                    return CompletableFuture.completedFuture(null);
-                });
+    public Message<?> track(Message<?> msg) {
+        lock.lock();
+        try {
+            Tracker tracker = new Tracker();
+            tracked.add(tracker);
+            return msg
+                    .withAck(() -> {
+                        onAck(tracker);
+                        return CompletableFuture.completedFuture(null);
+                    })
+                    .withNack(reason -> {
+                        onNack(reason, tracker);
+                        return CompletableFuture.completedFuture(null);
+                    });
+        } finally {
+            lock.unlock();
+        }
     }
 
-    private synchronized void onAck(Tracker id) {
-        if (done) {
-            return;
-        }
-        if (tracked.remove(id)) {
-            if (tracked.isEmpty() && !done) {
-                // Done!
-                done = true;
-                input.ack();
+    private void onAck(Tracker id) {
+        lock.lock();
+        try {
+            if (done) {
+                return;
             }
-            // Otherwise not done yet.
+            if (tracked.remove(id)) {
+                if (tracked.isEmpty() && !done) {
+                    // Done!
+                    done = true;
+                    input.ack();
+                }
+                // Otherwise not done yet.
+            }
+        } finally {
+            lock.unlock();
         }
         // Already acked or nack.
     }
 
-    private synchronized void onNack(Throwable reason, Tracker id) {
-        if (done) {
-            return;
-        }
-        if (tracked.remove(id)) {
-            done = true;
-            tracked.clear();
-            input.nack(reason);
+    private void onNack(Throwable reason, Tracker id) {
+        lock.lock();
+        try {
+            if (done) {
+                return;
+            }
+            if (tracked.remove(id)) {
+                done = true;
+                tracked.clear();
+                input.nack(reason);
+            }
+        } finally {
+            lock.unlock();
         }
     }
 

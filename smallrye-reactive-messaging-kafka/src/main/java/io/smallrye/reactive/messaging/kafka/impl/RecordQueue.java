@@ -2,6 +2,7 @@ package io.smallrye.reactive.messaging.kafka.impl;
 
 import java.util.ArrayDeque;
 import java.util.Collection;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * Stores the records coming from Kafka.
@@ -11,6 +12,8 @@ import java.util.Collection;
  * The access is guarded by the monitor lock.
  */
 public class RecordQueue<T> extends ArrayDeque<T> {
+
+    private final ReentrantLock lock = new ReentrantLock();
 
     public RecordQueue(int capacityHint) {
         super(capacityHint);
@@ -22,10 +25,13 @@ public class RecordQueue<T> extends ArrayDeque<T> {
     }
 
     public void addAll(Iterable<T> iterable) {
-        synchronized (this) {
+        lock.lock();
+        try {
             for (T record : iterable) {
                 super.offer(record);
             }
+        } finally {
+            lock.unlock();
         }
     }
 
@@ -36,16 +42,22 @@ public class RecordQueue<T> extends ArrayDeque<T> {
 
     @Override
     public boolean offer(T item) {
-        synchronized (this) {
+        lock.lock();
+        try {
             return super.offer(item);
+        } finally {
+            lock.unlock();
         }
     }
 
     @Override
     public T poll() {
         T record;
-        synchronized (this) {
+        lock.lock();
+        try {
             record = super.poll();
+        } finally {
+            lock.unlock();
         }
         return record;
     }
@@ -62,15 +74,21 @@ public class RecordQueue<T> extends ArrayDeque<T> {
 
     @Override
     public int size() {
-        synchronized (this) {
+        lock.lock();
+        try {
             return super.size();
+        } finally {
+            lock.unlock();
         }
     }
 
     @Override
     public void clear() {
-        synchronized (this) {
+        lock.lock();
+        try {
             super.clear();
+        } finally {
+            lock.unlock();
         }
     }
 }
