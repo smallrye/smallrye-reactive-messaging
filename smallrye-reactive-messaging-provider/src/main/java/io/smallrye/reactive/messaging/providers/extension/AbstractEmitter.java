@@ -4,6 +4,7 @@ import static io.smallrye.reactive.messaging.providers.i18n.ProviderExceptions.e
 
 import java.util.concurrent.Flow.Publisher;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 
 import org.eclipse.microprofile.reactive.messaging.Message;
@@ -27,6 +28,8 @@ public abstract class AbstractEmitter<T> implements MessagePublisherProvider<T> 
 
     protected final AtomicReference<Throwable> synchronousFailure = new AtomicReference<>();
     private final OnOverflow.Strategy overflow;
+
+    private final ReentrantLock lock = new ReentrantLock();
 
     @SuppressWarnings("unchecked")
     public AbstractEmitter(EmitterConfiguration config, long defaultBufferSize) {
@@ -55,24 +58,34 @@ public abstract class AbstractEmitter<T> implements MessagePublisherProvider<T> 
         }
     }
 
-    public synchronized void complete() {
-        MultiEmitter<? super Message<? extends T>> emitter = verify();
-        if (emitter != null) {
-            emitter.complete();
+    public void complete() {
+        lock.lock();
+        try {
+            MultiEmitter<? super Message<? extends T>> emitter = verify();
+            if (emitter != null) {
+                emitter.complete();
+            }
+        } finally {
+            lock.unlock();
         }
     }
 
-    public synchronized void error(Exception e) {
+    public void error(Exception e) {
         if (e == null) {
             throw ex.illegalArgumentForException("null");
         }
-        MultiEmitter<? super Message<? extends T>> emitter = verify();
-        if (emitter != null) {
-            emitter.fail(e);
+        lock.lock();
+        try {
+            MultiEmitter<? super Message<? extends T>> emitter = verify();
+            if (emitter != null) {
+                emitter.fail(e);
+            }
+        } finally {
+            lock.unlock();
         }
     }
 
-    public synchronized boolean isCancelled() {
+    public boolean isCancelled() {
         MultiEmitter<? super Message<? extends T>> emitter = internal.get();
         return emitter == null || emitter.isCancelled();
     }
@@ -139,29 +152,33 @@ public abstract class AbstractEmitter<T> implements MessagePublisherProvider<T> 
         return publisher;
     }
 
-    protected synchronized void emit(Message<? extends T> message) {
+    protected void emit(Message<? extends T> message) {
         if (message == null) {
             throw ex.illegalArgumentForNullValue();
         }
-
-        MultiEmitter<? super Message<? extends T>> emitter = verify();
-        if (emitter == null) {
-            if (overflow == OnOverflow.Strategy.DROP) {
-                // There are no subscribers, but because we use the DROP strategy, just ignore the event.
-                // However, nack the message, so the sender can be aware of the rejection.
-                message.nack(NO_SUBSCRIBER_EXCEPTION);
+        lock.lock();
+        try {
+            MultiEmitter<? super Message<? extends T>> emitter = verify();
+            if (emitter == null) {
+                if (overflow == OnOverflow.Strategy.DROP) {
+                    // There are no subscribers, but because we use the DROP strategy, just ignore the event.
+                    // However, nack the message, so the sender can be aware of the rejection.
+                    message.nack(NO_SUBSCRIBER_EXCEPTION);
+                }
+                return;
             }
-            return;
-        }
-        if (synchronousFailure.get() != null) {
-            throw ex.incomingNotFoundForEmitter(synchronousFailure.get());
-        }
-        if (emitter.isCancelled()) {
-            throw ex.illegalStateForDownstreamCancel();
-        }
-        emitter.emit(message);
-        if (synchronousFailure.get() != null) {
-            throw ex.illegalStateForEmitterWhileEmitting(synchronousFailure.get());
+            if (synchronousFailure.get() != null) {
+                throw ex.incomingNotFoundForEmitter(synchronousFailure.get());
+            }
+            if (emitter.isCancelled()) {
+                throw ex.illegalStateForDownstreamCancel();
+            }
+            emitter.emit(message);
+            if (synchronousFailure.get() != null) {
+                throw ex.illegalStateForEmitterWhileEmitting(synchronousFailure.get());
+            }
+        } finally {
+            lock.unlock();
         }
     }
 

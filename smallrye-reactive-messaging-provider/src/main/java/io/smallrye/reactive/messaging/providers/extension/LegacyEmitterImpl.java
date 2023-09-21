@@ -50,7 +50,7 @@ public class LegacyEmitterImpl<T> implements Emitter<T>, MessagePublisherProvide
     }
 
     @Override
-    public synchronized Emitter<T> send(T msg) {
+    public Emitter<T> send(T msg) {
         if (msg == null) {
             throw ex.illegalArgumentForNullValue();
         }
