@@ -1,12 +1,12 @@
 package io.smallrye.reactive.messaging.rabbitmq;
 
-import jakarta.enterprise.context.ApplicationScoped;
-import org.eclipse.microprofile.reactive.messaging.*;
-
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletionStage;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.CopyOnWriteArrayList;
+
+import jakarta.enterprise.context.ApplicationScoped;
+
+import org.eclipse.microprofile.reactive.messaging.*;
 
 /**
  * A bean that can be registered to test rejecting and requeuing the
@@ -15,50 +15,27 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 @ApplicationScoped
 public class RequeueFirstDeliveryBean {
-    private final List<Integer> list = new ArrayList<>();
-    private final List<Integer> dlqList = new ArrayList<>();
-
-    private final AtomicInteger typeCastCounter = new AtomicInteger();
+    private final List<Integer> list = new CopyOnWriteArrayList<>();
+    private final List<Integer> redelivered = new CopyOnWriteArrayList<>();
+    private final List<Integer> dlqList = new CopyOnWriteArrayList<>();
 
     @Incoming("data")
-    @Outgoing("sink")
-    @Acknowledgment(Acknowledgment.Strategy.MANUAL)
-    public Message<Integer> process(Message<String> input) {
-        int value = -1;
-        try {
-            value = Integer.parseInt(input.getPayload());
-        } catch (ClassCastException e) {
-            typeCastCounter.incrementAndGet();
+    public CompletionStage<Void> process(Message<String> input) {
+        int value = Integer.parseInt(input.getPayload());
+        list.add(value + 1);
+
+        boolean redeliver = input.getMetadata(IncomingRabbitMQMetadata.class)
+                .map(IncomingRabbitMQMetadata::isRedeliver)
+                .orElse(false);
+        if (redeliver) {
+            redelivered.add(value + 1);
         }
-
-        return Message.of(value + 1, () -> {
-            boolean isRedeliver = input.getMetadata(IncomingRabbitMQMetadata.class)
-                    .map(IncomingRabbitMQMetadata::isRedeliver)
-                    .orElse(false);
-
-            if (isRedeliver) {
-                return input.nack(new RuntimeException("reject"));
-            } else {
-                return input.nack(new RuntimeException("requeue"), Metadata.of(new RabbitMQRejectMetadata(true)));
-            }
-        });
-    }
-
-    @Incoming("sink")
-    public void sink(int val) {
-        list.add(val);
+        return input.nack(new RuntimeException("requeue"), Metadata.of(new RabbitMQRejectMetadata(true)));
     }
 
     @Incoming("data-dlq")
-    @Acknowledgment(Acknowledgment.Strategy.MANUAL)
-    public CompletionStage<Void> dlq(Message<String> msg) {
-        try {
-            dlqList.add(Integer.parseInt(msg.getPayload()));
-        } catch (ClassCastException cce) {
-            typeCastCounter.incrementAndGet();
-        }
-
-        return msg.ack();
+    public void dlq(String msg) {
+        dlqList.add(Integer.parseInt(msg));
     }
 
     public List<Integer> getResults() {
@@ -69,7 +46,7 @@ public class RequeueFirstDeliveryBean {
         return dlqList;
     }
 
-    public int getTypeCasts() {
-        return typeCastCounter.get();
+    public List<Integer> getRedelivered() {
+        return redelivered;
     }
 }

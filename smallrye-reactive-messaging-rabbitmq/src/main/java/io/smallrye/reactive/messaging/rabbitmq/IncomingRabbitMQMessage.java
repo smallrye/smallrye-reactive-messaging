@@ -44,7 +44,8 @@ public class IncomingRabbitMQMessage<T> implements ContextAwareMessage<T>, Metad
         }
 
         @Override
-        public <V> CompletionStage<Void> handle(IncomingRabbitMQMessage<V> message, Metadata metadata, Context context, Throwable reason) {
+        public <V> CompletionStage<Void> handle(IncomingRabbitMQMessage<V> message, Metadata metadata, Context context,
+                Throwable reason) {
             return CompletableFuture.completedFuture(null);
         }
     }
@@ -128,22 +129,30 @@ public class IncomingRabbitMQMessage<T> implements ContextAwareMessage<T>, Metad
     }
 
     /**
+     * Rejects the message by nack'ing with requeue=false; this will either discard the message for good or
+     * (if a DLQ has been set up) send it to the DLQ.
+     *
+     * @param reason the cause of the rejection, which must not be null
+     */
+    public void rejectMessage(Throwable reason) {
+        this.rejectMessage(reason, false);
+        holder.getNack(this.deliveryTag, false).apply(reason).subscribeAsCompletionStage();
+    }
+
+    /**
      * Rejects the message by nack'ing it.
      * <p>
-     * This will either discard the message for good, requeue (if {@link RabbitMQRejectMetadata#isRequeue()} is set)
+     * This will either discard the message for good, requeue (if requeue=true is set)
      * or (if a DLQ has been set up) send it to the DLQ.
      * <p>
      * Please note that requeue is potentially dangerous as it can lead to
      * very high load if all consumers reject and requeue a message repeatedly.
      *
      * @param reason the cause of the rejection, which must not be null
-     * @param metadata additional nack metadata, may be {@code null}
+     * @param requeue the requeue flag
      */
-    public void rejectMessage(Throwable reason, Metadata metadata) {
-        Optional<RabbitMQRejectMetadata> rejectMetadata =
-                Optional.ofNullable(metadata).flatMap(md -> md.get(RabbitMQRejectMetadata.class));
-        boolean requeue = rejectMetadata.map(RabbitMQRejectMetadata::isRequeue).orElse(false);
-        holder.getNack(this.deliveryTag, requeue).apply(reason);
+    public void rejectMessage(Throwable reason, boolean requeue) {
+        holder.getNack(this.deliveryTag, requeue).apply(reason).subscribeAsCompletionStage();
     }
 
     @Override

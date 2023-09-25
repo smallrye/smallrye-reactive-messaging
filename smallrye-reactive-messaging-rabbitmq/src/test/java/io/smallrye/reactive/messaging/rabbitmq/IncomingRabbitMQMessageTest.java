@@ -33,7 +33,8 @@ public class IncomingRabbitMQMessageTest {
 
     RabbitMQFailureHandler doNothingNack = new RabbitMQFailureHandler() {
         @Override
-        public <V> CompletionStage<Void> handle(IncomingRabbitMQMessage<V> message, Metadata metadata, Context context, Throwable reason) {
+        public <V> CompletionStage<Void> handle(IncomingRabbitMQMessage<V> message, Metadata metadata, Context context,
+                Throwable reason) {
             return CompletableFuture.completedFuture(null);
         }
     };

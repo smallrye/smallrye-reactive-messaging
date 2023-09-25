@@ -2,12 +2,13 @@ package io.smallrye.reactive.messaging.rabbitmq.fault;
 
 import java.util.concurrent.CompletionStage;
 
+import org.eclipse.microprofile.reactive.messaging.Metadata;
+
 import io.smallrye.common.annotation.Experimental;
 import io.smallrye.reactive.messaging.rabbitmq.IncomingRabbitMQMessage;
 import io.smallrye.reactive.messaging.rabbitmq.RabbitMQConnector;
 import io.smallrye.reactive.messaging.rabbitmq.RabbitMQConnectorIncomingConfiguration;
 import io.vertx.mutiny.core.Context;
-import org.eclipse.microprofile.reactive.messaging.Metadata;
 
 /**
  * Implemented to provide message failure strategies.
@@ -21,8 +22,8 @@ public interface RabbitMQFailureHandler {
     interface Strategy {
         String FAIL = "fail";
         String ACCEPT = "accept";
-        String RELEASE = "release";
         String REJECT = "reject";
+        String REQUEUE = "requeue";
     }
 
     /**

@@ -91,8 +91,8 @@ public class ConnectionHolder {
         return client.basicAck(deliveryTag, false);
     }
 
-    public Function<Throwable, CompletionStage<Void>> getNack(final long deliveryTag, final boolean requeue) {
-        return t -> client.basicNack(deliveryTag, false, requeue).subscribeAsCompletionStage();
+    public Function<Throwable, Uni<Void>> getNack(final long deliveryTag, final boolean requeue) {
+        return t -> client.basicNack(deliveryTag, false, requeue);
     }
 
     public Vertx getVertx() {

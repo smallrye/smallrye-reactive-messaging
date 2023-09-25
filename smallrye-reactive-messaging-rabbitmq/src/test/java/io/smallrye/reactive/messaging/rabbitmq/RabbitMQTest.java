@@ -10,7 +10,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
-import io.smallrye.reactive.messaging.rabbitmq.fault.RabbitMQFailureHandler;
 import org.eclipse.microprofile.config.ConfigProvider;
 import org.eclipse.microprofile.reactive.messaging.spi.ConnectorLiteral;
 import org.jboss.weld.environment.se.Weld;
@@ -20,6 +19,7 @@ import org.junit.jupiter.api.Test;
 
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.smallrye.config.SmallRyeConfigProviderResolver;
+import io.smallrye.reactive.messaging.rabbitmq.fault.RabbitMQFailureHandler;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
@@ -636,7 +636,8 @@ class RabbitMQTest extends RabbitMQBrokerTestBase {
                 .put("mp.messaging.incoming.data.exchange.name", exchangeName)
                 .put("mp.messaging.incoming.data.exchange.durable", false)
                 .put("mp.messaging.incoming.data.queue.name", queueName)
-                .put("mp.messaging.incoming.data.queue.durable", false)
+                .put("mp.messaging.incoming.data.queue.x-queue-type", "quorum")
+                .put("mp.messaging.incoming.data.queue.x-delivery-limit", 2)
                 .put("mp.messaging.incoming.data.queue.routing-keys", routingKey)
                 .put("mp.messaging.incoming.data.connector", RabbitMQConnector.CONNECTOR_NAME)
                 .put("mp.messaging.incoming.data.host", host)
@@ -664,12 +665,16 @@ class RabbitMQTest extends RabbitMQBrokerTestBase {
 
         container = weld.initialize();
         await().until(() -> isRabbitMQConnectorAvailable(container));
-        RequeueFirstDeliveryBean bean = container.getBeanManager().createInstance().select(RequeueFirstDeliveryBean.class).get();
+        RequeueFirstDeliveryBean bean = container.getBeanManager().createInstance().select(RequeueFirstDeliveryBean.class)
+                .get();
 
         await().until(() -> isRabbitMQConnectorAvailable(container));
 
         List<Integer> list = bean.getResults();
         assertThat(list).isEmpty();
+
+        List<Integer> redelivered = bean.getRedelivered();
+        assertThat(redelivered).isEmpty();
 
         List<Integer> dlqList = bean.getDlqResults();
         assertThat(dlqList).isEmpty();
@@ -677,9 +682,18 @@ class RabbitMQTest extends RabbitMQBrokerTestBase {
         AtomicInteger counter = new AtomicInteger();
         usage.produceTenIntegers(exchangeName, queueName, routingKey, counter::getAndIncrement);
 
-        await().atMost(1, TimeUnit.MINUTES).until(() -> list.size() >= 10);
-        assertThat(list).containsExactlyInAnyOrder(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
-        assertThat(dlqList).containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
+        await().atMost(1, TimeUnit.MINUTES).untilAsserted(() -> {
+            assertThat(list)
+                    .hasSizeGreaterThanOrEqualTo(30)
+                    .containsExactlyInAnyOrder(
+                            1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
+                            1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
+                            1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
+            assertThat(redelivered).containsExactly(
+                    1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
+                    1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
+            assertThat(dlqList).containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
+        });
     }
 
 }
