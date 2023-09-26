@@ -9,6 +9,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
 import org.eclipse.microprofile.reactive.messaging.Message;
+import org.eclipse.microprofile.reactive.messaging.Metadata;
 import org.junit.jupiter.api.Test;
 
 import com.rabbitmq.client.AMQP.BasicProperties;
@@ -32,7 +33,8 @@ public class IncomingRabbitMQMessageTest {
 
     RabbitMQFailureHandler doNothingNack = new RabbitMQFailureHandler() {
         @Override
-        public <V> CompletionStage<Void> handle(IncomingRabbitMQMessage<V> message, Context context, Throwable reason) {
+        public <V> CompletionStage<Void> handle(IncomingRabbitMQMessage<V> message, Metadata metadata, Context context,
+                Throwable reason) {
             return CompletableFuture.completedFuture(null);
         }
     };

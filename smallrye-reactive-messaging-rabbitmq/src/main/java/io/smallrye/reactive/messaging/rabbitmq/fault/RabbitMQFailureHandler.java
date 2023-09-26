@@ -2,6 +2,8 @@ package io.smallrye.reactive.messaging.rabbitmq.fault;
 
 import java.util.concurrent.CompletionStage;
 
+import org.eclipse.microprofile.reactive.messaging.Metadata;
+
 import io.smallrye.common.annotation.Experimental;
 import io.smallrye.reactive.messaging.rabbitmq.IncomingRabbitMQMessage;
 import io.smallrye.reactive.messaging.rabbitmq.RabbitMQConnector;
@@ -20,8 +22,8 @@ public interface RabbitMQFailureHandler {
     interface Strategy {
         String FAIL = "fail";
         String ACCEPT = "accept";
-        String RELEASE = "release";
         String REJECT = "reject";
+        String REQUEUE = "requeue";
     }
 
     /**
@@ -37,11 +39,12 @@ public interface RabbitMQFailureHandler {
      * Handle message failure.
      *
      * @param message the failed message
+     * @param metadata additional nack metadata, may be {@code null}
      * @param context the {@link Context} in which the handling should be done
      * @param reason the reason for the failure
      * @param <V> message body type
      * @return a {@link CompletionStage}
      */
-    <V> CompletionStage<Void> handle(IncomingRabbitMQMessage<V> message, Context context, Throwable reason);
+    <V> CompletionStage<Void> handle(IncomingRabbitMQMessage<V> message, Metadata metadata, Context context, Throwable reason);
 
 }

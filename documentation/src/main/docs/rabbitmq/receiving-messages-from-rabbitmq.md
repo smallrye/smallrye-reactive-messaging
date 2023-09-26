@@ -173,12 +173,31 @@ controlled by the `failure-strategy` channel setting:
 -   `reject` - this strategy marks the RabbitMQ message as rejected
     (default). The processing continues with the next message.
 
+-   `requeue` - this strategy marks the RabbitMQ message as rejected
+    with requeue flag to true. The processing continues with the next message,
+    but the requeued message will be redelivered to the consumer.
+
+When using `dead-letter-queue`, it is also possible to change some
+metadata of the record that is sent to the dead letter topic. To do
+that, use the `Message.nack(Throwable, Metadata)` method:
+
+The RabbitMQ reject `requeue` flag can be controlled on different failure strategies
+using the {{ javadoc('io.smallrye.reactive.messaging.rabbitmq.RabbitMQRejectMetadata') }}.
+To do that, use the `Message.nack(Throwable, Metadata)` method by including the
+`RabbitMQRejectMetadata` metadata with `requeue` to `true`.
+
+``` java
+{{ insert('rabbitmq/inbound/RabbitMQRejectMetadataExample.java', 'code') }}
+```
+
 !!!warning "Experimental"
     `RabbitMQFailureHandler` is experimental and APIs are subject to change in the future
 
-In addition, you can also provide your own failure strategy. To provide a failure strategy implement a bean exposing the interface
-{{ javadoc('io.smallrye.reactive.messaging.rabbitmq.fault.RabbitMQFailureHandler') }}, qualified with a `@Identifier`. Set the name of the bean
-as the `failure-strategy` channel setting.
+In addition, you can also provide your own failure strategy.
+To provide a failure strategy implement a bean exposing the interface
+{{ javadoc('io.smallrye.reactive.messaging.rabbitmq.fault.RabbitMQFailureHandler') }},
+qualified with a `@Identifier`.
+Set the name of the bean as the `failure-strategy` channel setting.
 
 
 ## Configuration Reference
