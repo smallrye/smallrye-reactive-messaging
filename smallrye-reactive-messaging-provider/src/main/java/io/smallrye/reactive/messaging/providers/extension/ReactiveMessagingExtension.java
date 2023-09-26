@@ -24,6 +24,7 @@ import io.smallrye.reactive.messaging.annotations.Blocking;
 import io.smallrye.reactive.messaging.annotations.Broadcast;
 import io.smallrye.reactive.messaging.annotations.EmitterFactoryFor;
 import io.smallrye.reactive.messaging.annotations.Incomings;
+import io.smallrye.reactive.messaging.annotations.Outgoings;
 import io.smallrye.reactive.messaging.providers.DefaultEmitterConfiguration;
 import io.smallrye.reactive.messaging.providers.connectors.WorkerPoolRegistry;
 import io.smallrye.reactive.messaging.providers.i18n.ProviderExceptions;
@@ -44,7 +45,7 @@ public class ReactiveMessagingExtension implements Extension {
         if (annotatedType.getMethods()
                 .stream()
                 .anyMatch(m -> m.isAnnotationPresent(Incomings.class) || m.isAnnotationPresent(Incoming.class)
-                        || m.isAnnotationPresent(Outgoing.class))) {
+                        || m.isAnnotationPresent(Outgoings.class) || m.isAnnotationPresent(Outgoing.class))) {
             mediatorBeans.add(new MediatorBean<>(event.getBean(), event.getAnnotatedBeanClass()));
         }
     }

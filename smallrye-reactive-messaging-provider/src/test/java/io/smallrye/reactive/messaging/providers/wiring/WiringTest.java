@@ -46,11 +46,12 @@ class WiringTest {
         when(bean.getBeanClass()).thenReturn(WiringTest.class);
 
         DefaultMediatorConfiguration subscriber = new DefaultMediatorConfiguration(getMethod("consume"), bean);
-        subscriber.compute(Collections.singletonList(IncomingLiteral.of("b")), null, null);
+        subscriber.compute(Collections.singletonList(IncomingLiteral.of("b")), Collections.emptyList(), null);
         DefaultMediatorConfiguration producer = new DefaultMediatorConfiguration(getMethod("producer"), bean);
-        producer.compute(Collections.emptyList(), OutgoingLiteral.of("a"), null);
+        producer.compute(Collections.emptyList(), Collections.singletonList(OutgoingLiteral.of("a")), null);
         DefaultMediatorConfiguration processor = new DefaultMediatorConfiguration(getMethod("process"), bean);
-        processor.compute(Collections.singletonList(IncomingLiteral.of("a")), OutgoingLiteral.of("b"), null);
+        processor.compute(Collections.singletonList(IncomingLiteral.of("a")),
+                Collections.singletonList(OutgoingLiteral.of("b")), null);
 
         Wiring wiring = new Wiring();
         wiring.prepare(false, registry, Collections.emptyList(), Collections.emptyList(),
@@ -77,11 +78,12 @@ class WiringTest {
         when(bean.getBeanClass()).thenReturn(WiringTest.class);
 
         DefaultMediatorConfiguration subscriber = new DefaultMediatorConfiguration(getMethod("consume"), bean);
-        subscriber.compute(Collections.singletonList(IncomingLiteral.of("b")), null, null);
+        subscriber.compute(Collections.singletonList(IncomingLiteral.of("b")), Collections.emptyList(), null);
         DefaultMediatorConfiguration producer = new DefaultMediatorConfiguration(getMethod("producer"), bean);
-        producer.compute(Collections.emptyList(), OutgoingLiteral.of("a"), null);
+        producer.compute(Collections.emptyList(), Collections.singletonList(OutgoingLiteral.of("a")), null);
         DefaultMediatorConfiguration processor = new DefaultMediatorConfiguration(getMethod("process"), bean);
-        processor.compute(Collections.singletonList(IncomingLiteral.of("a")), OutgoingLiteral.of("b"), null);
+        processor.compute(Collections.singletonList(IncomingLiteral.of("a")),
+                Collections.singletonList(OutgoingLiteral.of("b")), null);
 
         Wiring wiring = new Wiring();
         wiring.prepare(true, registry, Collections.emptyList(), Collections.emptyList(),
@@ -107,9 +109,10 @@ class WiringTest {
         when(bean.getBeanClass()).thenReturn(WiringTest.class);
 
         DefaultMediatorConfiguration subscriber = new DefaultMediatorConfiguration(getMethod("consume"), bean);
-        subscriber.compute(Collections.singletonList(IncomingLiteral.of("b")), null, null);
+        subscriber.compute(Collections.singletonList(IncomingLiteral.of("b")), Collections.emptyList(), null);
         DefaultMediatorConfiguration processor = new DefaultMediatorConfiguration(getMethod("process"), bean);
-        processor.compute(Collections.singletonList(IncomingLiteral.of("a")), OutgoingLiteral.of("b"), null);
+        processor.compute(Collections.singletonList(IncomingLiteral.of("a")),
+                Collections.singletonList(OutgoingLiteral.of("b")), null);
 
         Wiring wiring = new Wiring();
         wiring.prepare(false, registry, Collections.emptyList(), Collections.emptyList(),
@@ -135,9 +138,9 @@ class WiringTest {
         when(bean.getBeanClass()).thenReturn(WiringTest.class);
 
         DefaultMediatorConfiguration subscriber = new DefaultMediatorConfiguration(getMethod("consume"), bean);
-        subscriber.compute(Collections.singletonList(IncomingLiteral.of("b")), null, null);
+        subscriber.compute(Collections.singletonList(IncomingLiteral.of("b")), Collections.emptyList(), null);
         DefaultMediatorConfiguration producer = new DefaultMediatorConfiguration(getMethod("producer"), bean);
-        producer.compute(Collections.emptyList(), OutgoingLiteral.of("a"), null);
+        producer.compute(Collections.emptyList(), Collections.singletonList(OutgoingLiteral.of("a")), null);
 
         Wiring wiring = new Wiring();
         wiring.prepare(false, registry, Collections.emptyList(), Collections.emptyList(),
@@ -163,9 +166,10 @@ class WiringTest {
         when(bean.getBeanClass()).thenReturn(WiringTest.class);
 
         DefaultMediatorConfiguration producer = new DefaultMediatorConfiguration(getMethod("producer"), bean);
-        producer.compute(Collections.emptyList(), OutgoingLiteral.of("a"), null);
+        producer.compute(Collections.emptyList(), Collections.singletonList(OutgoingLiteral.of("a")), null);
         DefaultMediatorConfiguration processor = new DefaultMediatorConfiguration(getMethod("process"), bean);
-        processor.compute(Collections.singletonList(IncomingLiteral.of("a")), OutgoingLiteral.of("b"), null);
+        processor.compute(Collections.singletonList(IncomingLiteral.of("a")),
+                Collections.singletonList(OutgoingLiteral.of("b")), null);
 
         Wiring wiring = new Wiring();
         wiring.prepare(false, registry, Collections.emptyList(), Collections.emptyList(),
@@ -325,7 +329,7 @@ class WiringTest {
         when(bean.getBeanClass()).thenReturn(WiringTest.class);
 
         DefaultMediatorConfiguration subscriber = new DefaultMediatorConfiguration(getMethod("consume"), bean);
-        subscriber.compute(Collections.singletonList(IncomingLiteral.of("b")), null, null);
+        subscriber.compute(Collections.singletonList(IncomingLiteral.of("b")), Collections.emptyList(), null);
         DefaultMediatorConfiguration processor = new DefaultMediatorConfiguration(getMethod("process"), bean);
         processor.compute(Collections.singletonList(IncomingLiteral.of("a")), OutgoingLiteral.of("b"), null);
 
@@ -382,7 +386,7 @@ class WiringTest {
         when(bean.getBeanClass()).thenReturn(WiringTest.class);
 
         DefaultMediatorConfiguration subscriber = new DefaultMediatorConfiguration(getMethod("consume"), bean);
-        subscriber.compute(Collections.singletonList(IncomingLiteral.of("b")), null, null);
+        subscriber.compute(Collections.singletonList(IncomingLiteral.of("b")), Collections.emptyList(), null);
 
         Wiring wiring = new Wiring();
         wiring.prepare(false,

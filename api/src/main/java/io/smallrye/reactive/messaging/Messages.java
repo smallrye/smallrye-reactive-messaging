@@ -3,7 +3,9 @@ package io.smallrye.reactive.messaging;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -19,13 +21,9 @@ import org.eclipse.microprofile.reactive.messaging.Metadata;
 import io.smallrye.common.annotation.CheckReturnValue;
 
 /**
- * A class handling coordination between messages.
+ * Utilities for handling coordination between messages.
  */
-public class Messages {
-
-    private Messages() {
-        // Avoid direct instantiation.
-    }
+public interface Messages {
 
     /**
      * Chains the given message with some other messages.
@@ -38,7 +36,7 @@ public class Messages {
      * @return the chain builder that let you decide how the metadata are passed, and the set of messages.
      */
     @CheckReturnValue
-    public static MessageChainBuilder chain(Message<?> message) {
+    static MessageChainBuilder chain(Message<?> message) {
         return new MessageChainBuilder(message);
     }
 
@@ -58,7 +56,7 @@ public class Messages {
      * @param <T> the payload type of the produced message
      * @return the resulting message
      */
-    public static <T> Message<T> merge(List<Message<?>> list, Function<List<?>, T> combinator) {
+    static <T> Message<T> merge(List<Message<?>> list, Function<List<?>, T> combinator) {
         if (list.isEmpty()) {
             return Message.of(combinator.apply(Collections.emptyList()));
         }
@@ -112,7 +110,7 @@ public class Messages {
      * @param <T> the payload type of the passed messages
      * @return the resulting message
      */
-    public static <T> Message<List<T>> merge(List<Message<T>> list) {
+    static <T> Message<List<T>> merge(List<Message<T>> list) {
         if (list.isEmpty()) {
             return Message.of(Collections.emptyList());
         }
@@ -178,7 +176,7 @@ public class Messages {
      * The message chain builder allows chaining message and configure metadata propagation.
      * By default, all the metadata from the given message are copied into the chained messages.
      */
-    public static class MessageChainBuilder {
+    class MessageChainBuilder {
         private final Message<?> input;
         private Metadata metadata;
 
@@ -230,7 +228,7 @@ public class Messages {
         }
 
         /**
-         * Passed the chained messages.
+         * Chain the passed array of messages.
          * The messages are not modified, but should not be used afterward, and should be replaced by the messages contained
          * in the returned list.
          * This method preserve the order. So, the first message corresponds to the first message in the returned list.
@@ -271,6 +269,52 @@ public class Messages {
                         }));
             }
             return outcomes;
+        }
+
+        /**
+         * Chain the passed map of messages.
+         * The messages are not modified, but should not be used afterward, and should be replaced by the messages
+         * contained in the returned {@link TargetedMessages}.
+         * Returned {@link TargetedMessages} keeps the same channel keys as the passed map.
+         * Messages from the returned {@link TargetedMessages} have the necessary logic to chain the ack/nack signals
+         * and the copied metadata.
+         *
+         * @param messages the map of channel name to message
+         * @return the {@link TargetedMessages} containing modified messages with chained acknowledgement to the input
+         */
+        public TargetedMessages with(Map<String, Message<?>> messages) {
+            AtomicBoolean done = new AtomicBoolean();
+            // Must be modifiable
+            List<Message<?>> trackers = new CopyOnWriteArrayList<>(messages.values());
+            Map<String, Message<?>> outcomes = new HashMap<>();
+            for (Map.Entry<String, Message<?>> entry : messages.entrySet()) {
+                String key = entry.getKey();
+                Message<?> message = entry.getValue();
+                Message<?> tmp = message;
+                for (Object metadatum : metadata) {
+                    tmp = tmp.addMetadata(metadatum);
+                }
+                outcomes.put(key, tmp
+                        .withAck(() -> {
+                            CompletionStage<Void> acked = message.ack();
+                            if (trackers.remove(message)) {
+                                if (trackers.isEmpty() && done.compareAndSet(false, true)) {
+                                    return acked.thenCompose(x -> input.ack());
+                                }
+                            }
+                            return acked;
+                        })
+                        .withNack((reason) -> {
+                            CompletionStage<Void> nacked = message.nack(reason);
+                            if (trackers.remove(message)) {
+                                if (done.compareAndSet(false, true)) {
+                                    return nacked.thenCompose(x -> input.nack(reason));
+                                }
+                            }
+                            return nacked;
+                        }));
+            }
+            return TargetedMessages.from(outcomes);
         }
     }
 }

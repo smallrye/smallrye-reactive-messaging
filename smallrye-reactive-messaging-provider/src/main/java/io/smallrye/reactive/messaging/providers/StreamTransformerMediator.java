@@ -5,6 +5,10 @@ import static io.smallrye.reactive.messaging.providers.helpers.KeyMultiUtils.con
 import static io.smallrye.reactive.messaging.providers.i18n.ProviderExceptions.ex;
 import static io.smallrye.reactive.messaging.providers.i18n.ProviderMessages.msg;
 
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.Flow;
@@ -16,6 +20,8 @@ import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 import org.reactivestreams.Publisher;
 
 import io.smallrye.mutiny.Multi;
+import io.smallrye.mutiny.Uni;
+import io.smallrye.mutiny.operators.multi.split.MultiSplitter;
 import io.smallrye.reactive.converters.ReactiveTypeConverter;
 import io.smallrye.reactive.converters.Registry;
 import io.smallrye.reactive.messaging.MediatorConfiguration;
@@ -29,6 +35,8 @@ public class StreamTransformerMediator extends AbstractMediator {
     Function<Multi<? extends Message<?>>, Multi<? extends Message<?>>> function;
 
     private Multi<? extends Message<?>> publisher;
+
+    private final Map<String, Multi<? extends Message<?>>> outgoingPublisherMap = new HashMap<>();
 
     public StreamTransformerMediator(MediatorConfiguration configuration) {
         super(configuration);
@@ -53,6 +61,26 @@ public class StreamTransformerMediator extends AbstractMediator {
                 && configuration.production() == MediatorConfiguration.Production.STREAM_OF_PAYLOAD) {
             throw ex.definitionProducePayloadStreamAndConsumeMessageStream(configuration.methodAsString());
         }
+
+        if (configuration.consumption() == MediatorConfiguration.Consumption.STREAM_OF_MESSAGE
+                && configuration.production() == MediatorConfiguration.Production.SPLIT_MULTI_OF_PAYLOAD) {
+            throw ex.definitionProducePayloadStreamAndConsumeMessageStream(configuration.methodAsString());
+        }
+
+        if (configuration.consumption() == MediatorConfiguration.Consumption.STREAM_OF_PAYLOAD
+                && configuration.production() == MediatorConfiguration.Production.SPLIT_MULTI_OF_MESSAGE) {
+            throw ex.definitionProduceMessageStreamAndConsumePayloadStream(configuration.methodAsString());
+        }
+
+        if (configuration.consumption() == MediatorConfiguration.Consumption.KEYED_MULTI
+                && configuration.production() == MediatorConfiguration.Production.SPLIT_MULTI_OF_MESSAGE) {
+            throw ex.definitionProduceMessageStreamAndConsumePayloadStream(configuration.methodAsString());
+        }
+
+        if (configuration.consumption() == MediatorConfiguration.Consumption.KEYED_MULTI_MESSAGE
+                && configuration.production() == MediatorConfiguration.Production.SPLIT_MULTI_OF_PAYLOAD) {
+            throw ex.definitionProducePayloadStreamAndConsumeMessageStream(configuration.methodAsString());
+        }
     }
 
     @Override
@@ -66,6 +94,15 @@ public class StreamTransformerMediator extends AbstractMediator {
     public Multi<? extends Message<?>> getStream() {
         Objects.requireNonNull(publisher);
         return publisher;
+    }
+
+    @Override
+    public Multi<? extends Message<?>> getStream(String outgoing) {
+        if (configuration.production() == MediatorConfiguration.Production.SPLIT_MULTI_OF_MESSAGE
+                || configuration.production() == MediatorConfiguration.Production.SPLIT_MULTI_OF_PAYLOAD) {
+            return outgoingPublisherMap.get(outgoing);
+        }
+        return super.getStream(outgoing);
     }
 
     @Override
@@ -86,6 +123,8 @@ public class StreamTransformerMediator extends AbstractMediator {
                     processMethodConsumingAPublisherBuilderOfMessages();
                 } else if (configuration.usesReactiveStreams()) {
                     processMethodConsumingAReactiveStreamsPublisherOfMessages();
+                } else if (configuration.production() == MediatorConfiguration.Production.SPLIT_MULTI_OF_MESSAGE) {
+                    processMethodConsumingAPublisherOfPayloadAndProducingSplitMultiOfMessages();
                 } else {
                     processMethodConsumingAPublisherOfMessages();
                 }
@@ -96,6 +135,8 @@ public class StreamTransformerMediator extends AbstractMediator {
                     processMethodConsumingAPublisherBuilderOfPayload();
                 } else if (configuration.usesReactiveStreams()) {
                     processMethodConsumingAReactiveStreamsPublisherOfPayload();
+                } else if (configuration.production() == MediatorConfiguration.Production.SPLIT_MULTI_OF_PAYLOAD) {
+                    processMethodConsumingAPublisherOfPayloadAndProducingSplitMulti();
                 } else {
                     processMethodConsumingAPublisherOfPayload();
                 }
@@ -134,11 +175,54 @@ public class StreamTransformerMediator extends AbstractMediator {
         };
     }
 
-    private void processMethodConsumingAPublisherOfMessages() {
+    private void processMethodConsumingAPublisherOfPayloadAndProducingSplitMultiOfMessages() {
         function = upstream -> {
             Multi<? extends Message<?>> multi = MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration);
             Flow.Publisher<? extends Message<?>> argument = convertToDesiredPublisherType(multi);
-            Flow.Publisher<Message<?>> result = invoke(argument);
+            MultiSplitter<? extends Message<?>, ?> result = fillSplitsOfMessages(argument);
+            Objects.requireNonNull(result, msg.methodReturnedNull(configuration.methodAsString()));
+            return upstream;
+        };
+    }
+
+    private <T extends Message<?>, K extends Enum<K>> MultiSplitter<T, K> fillSplitsOfMessages(Flow.Publisher<T> argument) {
+        MultiSplitter<T, K> result = invoke(argument);
+        Map<K, String> keyChannelMappings = findKeyOutgoingChannelMappings(result.keyType().getEnumConstants());
+        keyChannelMappings.forEach((key, outgoing) -> {
+            Multi<? extends Message<?>> m = result.get(key)
+                    // concat map with prefetch handles the request starvation issue with SplitMulti and also syncs requests
+                    .onItem().transformToUni(u -> Uni.createFrom().item(u)).concatenate(true);
+            outgoingPublisherMap.put(outgoing, m);
+        });
+        return result;
+    }
+
+    private <K extends Enum<K>> Map<K, String> findKeyOutgoingChannelMappings(K[] enumConstants) {
+        List<String> outgoings = configuration.getOutgoings();
+        if (outgoings.size() != enumConstants.length) {
+            throw ex.outgoingsDoesNotMatchMultiSplitterTarget(getMethodAsString(), outgoings.size(), enumConstants.length);
+        }
+        Map<K, String> mappings = new HashMap<>();
+        for (String outgoing : outgoings) {
+            for (K key : enumConstants) {
+                if (outgoing.equalsIgnoreCase(key.toString())) {
+                    mappings.put(key, outgoing);
+                }
+            }
+        }
+        if (mappings.keySet().containsAll(Arrays.asList(enumConstants)) && mappings.values().containsAll(outgoings)) {
+            return mappings;
+        }
+        for (int i = 0; i < outgoings.size(); i++) {
+            mappings.put(enumConstants[i], outgoings.get(i));
+        }
+        return mappings;
+    }
+
+    private void processMethodConsumingAPublisherOfMessages() {
+        function = upstream -> {
+            Multi<? extends Message<?>> multi = MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration);
+            Flow.Publisher<Message<?>> result = invoke(multi);
             Objects.requireNonNull(result, msg.methodReturnedNull(configuration.methodAsString()));
             return MultiUtils.publisher(result);
         };
@@ -191,6 +275,28 @@ public class StreamTransformerMediator extends AbstractMediator {
             return Multi.createFrom().publisher(AdaptersToFlow.publisher(result))
                     .onItem().transform(Message::of);
         };
+    }
+
+    private void processMethodConsumingAPublisherOfPayloadAndProducingSplitMulti() {
+        function = upstream -> {
+            Multi<?> multi = MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration)
+                    .onItem().transform(Message::getPayload);
+            MultiSplitter<?, ?> result = fillSplitFunction(multi);
+            Objects.requireNonNull(result, msg.methodReturnedNull(configuration.methodAsString()));
+            return upstream;
+        };
+    }
+
+    private <K extends Enum<K>> MultiSplitter<?, K> fillSplitFunction(Flow.Publisher<?> argument) {
+        MultiSplitter<?, K> result = invoke(argument);
+        Map<K, String> keyChannelMappings = findKeyOutgoingChannelMappings(result.keyType().getEnumConstants());
+        keyChannelMappings.forEach((key, outgoing) -> {
+            Multi<? extends Message<?>> m = result.get(key).onItem().transform(Message::of)
+                    // concat map with prefetch handles the request starvation issue with SplitMulti and also syncs requests
+                    .onItem().transformToUni(u -> Uni.createFrom().item(u)).concatenate(true);
+            outgoingPublisherMap.put(outgoing, m);
+        });
+        return result;
     }
 
     private void processMethodConsumingAPublisherOfPayload() {

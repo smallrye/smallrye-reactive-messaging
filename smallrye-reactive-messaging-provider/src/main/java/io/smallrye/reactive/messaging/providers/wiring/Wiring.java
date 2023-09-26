@@ -76,9 +76,9 @@ public class Wiring {
         this.strictMode = strictMode;
 
         for (MediatorConfiguration mediator : mediators) {
-            if (mediator.getOutgoing() != null && !mediator.getIncoming().isEmpty()) {
+            if (!mediator.getOutgoings().isEmpty() && !mediator.getIncoming().isEmpty()) {
                 components.add(new ProcessorMediatorComponent(manager, mediator));
-            } else if (mediator.getOutgoing() != null) {
+            } else if (!mediator.getOutgoings().isEmpty()) {
                 components.add(new PublisherMediatorComponent(manager, mediator));
             } else {
                 components.add(new SubscriberMediatorComponent(manager, mediator));
@@ -191,8 +191,7 @@ public class Wiring {
     private List<Component> getMatchesFor(String incoming, Set<? extends Component> candidates) {
         List<Component> matches = new ArrayList<>();
         for (Component component : candidates) {
-            Optional<String> outgoing = component.outgoing();
-            if (outgoing.isPresent() && outgoing.get().equalsIgnoreCase(incoming)) {
+            if (component.outgoings().stream().anyMatch(s -> s.equalsIgnoreCase(incoming))) {
                 matches.add(component);
             }
         }
@@ -209,6 +208,10 @@ public class Wiring {
 
         default Optional<String> outgoing() {
             return Optional.empty();
+        }
+
+        default List<String> outgoings() {
+            return Collections.emptyList();
         }
 
         default List<String> incomings() {
@@ -240,12 +243,12 @@ public class Wiring {
         int getRequiredNumberOfSubscribers();
 
         default String getOutgoingChannel() {
-            return outgoing().orElseThrow(() -> new IllegalStateException("Outgoing not configured for " + this));
+            return String.join(",", outgoings());
         }
 
         @Override
         default boolean isDownstreamResolved() {
-            return !downstreams().isEmpty();
+            return outgoings().stream().allMatch(o -> downstreams().stream().anyMatch(c -> c.incomings().contains(o)));
         }
 
         @Override
@@ -299,6 +302,11 @@ public class Wiring {
         }
 
         @Override
+        public List<String> outgoings() {
+            return Collections.singletonList(name);
+        }
+
+        @Override
         public Set<Component> downstreams() {
             return downstreams;
         }
@@ -325,7 +333,7 @@ public class Wiring {
 
         @Override
         public void validate() throws WiringException {
-            if (!broadcast && downstreams().size() > 1) {
+            if (!broadcast() && downstreams().size() > 1) {
                 throw new TooManyDownstreamCandidatesException(this);
             }
         }
@@ -463,6 +471,11 @@ public class Wiring {
         }
 
         @Override
+        public List<String> outgoings() {
+            return Collections.singletonList(configuration.name());
+        }
+
+        @Override
         public Set<Component> downstreams() {
             return downstreams;
         }
@@ -543,6 +556,11 @@ public class Wiring {
         }
 
         @Override
+        public List<String> outgoings() {
+            return configuration.getOutgoings();
+        }
+
+        @Override
         public Optional<String> outgoing() {
             return Optional.of(configuration.getOutgoing());
         }
@@ -557,17 +575,28 @@ public class Wiring {
             synchronized (this) {
                 mediator = manager.createMediator(configuration);
             }
-            registry.register(configuration.getOutgoing(), mediator.getStream(), broadcast());
+
+            if (outgoings().size() > 1) {
+                for (String outgoing : configuration.getOutgoings()) {
+                    registry.register(outgoing, mediator.getStream(outgoing), broadcast());
+                }
+            } else {
+                registry.register(getOutgoingChannel(), mediator.getStream(), broadcast());
+            }
         }
 
         @Override
         public boolean broadcast() {
-            return configuration.getBroadcast();
+            return configuration.getBroadcast() || outgoings().size() > 1;
         }
 
         @Override
         public int getRequiredNumberOfSubscribers() {
-            return configuration.getNumberOfSubscriberBeforeConnecting();
+            if (outgoings().size() > 1) {
+                return Math.max(configuration.getNumberOfSubscriberBeforeConnecting(), downstreams().size());
+            } else {
+                return configuration.getNumberOfSubscriberBeforeConnecting();
+            }
         }
 
         @Override
@@ -667,7 +696,7 @@ public class Wiring {
             // A subscriber can have multiple incomings - all of them must be bound.
             for (String incoming : incomings()) {
                 // For each incoming, check that we have a match
-                if (upstreams().stream().noneMatch(c -> incoming.equals(c.outgoing().orElse(null)))) {
+                if (upstreams().stream().noneMatch(c -> c.outgoings().contains(incoming))) {
                     return false;
                 }
             }
@@ -685,7 +714,7 @@ public class Wiring {
             // Check that for each incoming we have a single upstream or a merge strategy
             for (String incoming : incomings()) {
                 List<Component> components = downstreams().stream()
-                        .filter(c -> incoming.equals(c.outgoing().orElse(null)))
+                        .filter(c -> c.outgoings().contains(incoming))
                         .collect(Collectors.toList());
                 if (components.size() > 1 && !merge()) {
                     throw new TooManyUpstreamCandidatesException(this, incoming, components);
@@ -737,25 +766,34 @@ public class Wiring {
         }
 
         @Override
+        public List<String> outgoings() {
+            return configuration.getOutgoings();
+        }
+
+        @Override
         public Set<Component> downstreams() {
             return downstreams;
         }
 
         @Override
         public boolean broadcast() {
-            return configuration.getBroadcast();
+            return configuration.getBroadcast() || outgoings().size() > 1;
         }
 
         @Override
         public int getRequiredNumberOfSubscribers() {
-            return configuration.getNumberOfSubscriberBeforeConnecting();
+            if (outgoings().size() > 1) {
+                return Math.max(configuration.getNumberOfSubscriberBeforeConnecting(), downstreams().size());
+            } else {
+                return configuration.getNumberOfSubscriberBeforeConnecting();
+            }
         }
 
         private boolean hasAllUpstreams() {
             // A subscriber can have multiple incomings - all of them must be bound.
             for (String incoming : incomings()) {
                 // For each incoming, check that we have a match
-                if (upstreams().stream().noneMatch(c -> incoming.equals(c.outgoing().orElse(null)))) {
+                if (upstreams().stream().noneMatch(c -> c.outgoings().contains(incoming))) {
                     return false;
                 }
             }
@@ -772,7 +810,7 @@ public class Wiring {
             return "ProcessingMethod{" +
                     "method:'" + configuration.methodAsString()
                     + "', incoming:'" + String.join(",", configuration.getIncoming())
-                    + "', outgoing:'" + getOutgoingChannel() + "'}";
+                    + "', outgoing:'" + String.join(",", configuration.getOutgoings()) + "'}";
         }
 
         @Override
@@ -802,8 +840,13 @@ public class Wiring {
             }
 
             mediator.connectToUpstream(aggregates);
-
-            registry.register(getOutgoingChannel(), mediator.getStream(), merge());
+            if (outgoings().size() > 1) {
+                for (String outgoing : configuration.getOutgoings()) {
+                    registry.register(outgoing, mediator.getStream(outgoing), broadcast());
+                }
+            } else {
+                registry.register(getOutgoingChannel(), mediator.getStream(), broadcast());
+            }
         }
 
         @Override
@@ -811,7 +854,7 @@ public class Wiring {
             // Check that for each incoming we have a single upstream or a merge strategy
             for (String incoming : incomings()) {
                 List<Component> components = downstreams().stream()
-                        .filter(c -> incoming.equals(c.outgoing().orElse(null)))
+                        .filter(c -> c.outgoings().contains(incoming))
                         .collect(Collectors.toList());
                 if (components.size() > 1 && !merge()) {
                     throw new TooManyUpstreamCandidatesException(this, incoming, components);

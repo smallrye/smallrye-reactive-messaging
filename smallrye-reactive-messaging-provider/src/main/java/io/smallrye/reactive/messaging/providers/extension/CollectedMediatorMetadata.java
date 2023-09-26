@@ -14,6 +14,7 @@ import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import io.smallrye.reactive.messaging.MediatorConfiguration;
 import io.smallrye.reactive.messaging.annotations.Blocking;
 import io.smallrye.reactive.messaging.annotations.Incomings;
+import io.smallrye.reactive.messaging.annotations.Outgoings;
 import io.smallrye.reactive.messaging.providers.DefaultMediatorConfiguration;
 
 class CollectedMediatorMetadata {
@@ -37,15 +38,35 @@ class CollectedMediatorMetadata {
         }
 
         Incomings incomings = met.getAnnotation(Incomings.class);
+        Outgoings outgoings = met.getAnnotation(Outgoings.class);
         Incoming incoming = met.getAnnotation(Incoming.class);
         Outgoing outgoing = met.getAnnotation(Outgoing.class);
         Blocking blocking = met.getAnnotation(Blocking.class);
         if (incomings != null) {
-            configuration.compute(incomings, outgoing, blocking);
+            if (outgoings != null) {
+                configuration.compute(incomings, outgoings, blocking);
+            } else if (outgoing != null) {
+                configuration.compute(incomings, outgoing, blocking);
+            } else {
+                configuration.compute(incomings, Collections.emptyList(), blocking);
+            }
         } else if (incoming != null) {
-            configuration.compute(Collections.singletonList(incoming), outgoing, blocking);
+            if (outgoings != null) {
+                configuration.compute(Collections.singletonList(incoming), outgoings, blocking);
+            } else if (outgoing != null) {
+                configuration.compute(Collections.singletonList(incoming), Collections.singletonList(outgoing), blocking);
+            } else {
+                configuration.compute(Collections.singletonList(incoming), Collections.emptyList(), blocking);
+            }
         } else {
-            configuration.compute(Collections.emptyList(), outgoing, blocking);
+            if (outgoings != null) {
+                configuration.compute(Collections.emptyList(), outgoings, blocking);
+            } else if (outgoing != null) {
+                configuration.compute(Collections.emptyList(), Collections.singletonList(outgoing), blocking);
+            } else {
+                // should never happen
+                configuration.compute(Collections.emptyList(), Collections.emptyList(), blocking);
+            }
         }
         return configuration;
     }

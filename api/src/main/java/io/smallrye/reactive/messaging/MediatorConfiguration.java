@@ -15,7 +15,10 @@ public interface MediatorConfiguration {
 
     Shape shape();
 
+    @Deprecated(since = "4.8.0")
     String getOutgoing();
+
+    List<String> getOutgoings();
 
     List<String> getIncoming();
 
@@ -76,6 +79,8 @@ public interface MediatorConfiguration {
 
     MethodParameterDescriptor getParameterDescriptor();
 
+    boolean hasTargetedOutput();
+
     enum Production {
         STREAM_OF_MESSAGE,
         STREAM_OF_PAYLOAD,
@@ -86,8 +91,18 @@ public interface MediatorConfiguration {
         COMPLETION_STAGE_OF_MESSAGE,
         UNI_OF_PAYLOAD,
         UNI_OF_MESSAGE,
+        SPLIT_MULTI_OF_PAYLOAD,
+        SPLIT_MULTI_OF_MESSAGE,
 
-        NONE
+        NONE;
+
+        public boolean isMessageType() {
+            return this == STREAM_OF_MESSAGE ||
+                    this == INDIVIDUAL_MESSAGE ||
+                    this == COMPLETION_STAGE_OF_MESSAGE ||
+                    this == UNI_OF_MESSAGE ||
+                    this == SPLIT_MULTI_OF_MESSAGE;
+        }
     }
 
     enum Consumption {
@@ -98,6 +113,12 @@ public interface MediatorConfiguration {
         MESSAGE,
         PAYLOAD,
 
-        NONE
+        NONE;
+
+        public boolean isMessageType() {
+            return this == STREAM_OF_MESSAGE ||
+                    this == KEYED_MULTI_MESSAGE ||
+                    this == MESSAGE;
+        }
     }
 }

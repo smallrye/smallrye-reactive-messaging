@@ -24,6 +24,7 @@ import io.smallrye.reactive.messaging.EmitterConfiguration;
 import io.smallrye.reactive.messaging.PublisherDecorator;
 import io.smallrye.reactive.messaging.SubscriberDecorator;
 import io.smallrye.reactive.messaging.annotations.Incomings;
+import io.smallrye.reactive.messaging.annotations.Outgoings;
 import io.smallrye.reactive.messaging.keyed.KeyValueExtractor;
 import io.smallrye.reactive.messaging.providers.AbstractMediator;
 import io.smallrye.reactive.messaging.providers.MediatorFactory;
@@ -183,12 +184,12 @@ public class MediatorManager {
 
     private <T> boolean hasMediatorAnnotations(AnnotatedMethod<? super T> method) {
         return method.isAnnotationPresent(Incomings.class) || method.isAnnotationPresent(Incoming.class)
-                || method.isAnnotationPresent(Outgoing.class);
+                || method.isAnnotationPresent(Outgoing.class) || method.isAnnotationPresent(Outgoings.class);
     }
 
     private boolean hasMediatorAnnotations(Method m) {
         return m.isAnnotationPresent(Incomings.class) || m.isAnnotationPresent(Incoming.class)
-                || m.isAnnotationPresent(Outgoing.class);
+                || m.isAnnotationPresent(Outgoing.class) || m.isAnnotationPresent(Outgoings.class);
     }
 
     @SuppressWarnings("ConstantConditions")

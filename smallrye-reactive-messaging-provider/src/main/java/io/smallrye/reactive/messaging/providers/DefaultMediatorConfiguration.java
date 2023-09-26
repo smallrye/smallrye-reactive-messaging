@@ -27,6 +27,7 @@ import io.smallrye.reactive.messaging.annotations.Blocking;
 import io.smallrye.reactive.messaging.annotations.Broadcast;
 import io.smallrye.reactive.messaging.annotations.Incomings;
 import io.smallrye.reactive.messaging.annotations.Merge;
+import io.smallrye.reactive.messaging.annotations.Outgoings;
 import io.smallrye.reactive.messaging.keyed.KeyValueExtractor;
 import io.smallrye.reactive.messaging.keyed.Keyed;
 import io.smallrye.reactive.messaging.providers.helpers.TypeUtils;
@@ -46,7 +47,7 @@ public class DefaultMediatorConfiguration implements MediatorConfiguration {
 
     private List<String> incomingValues = Collections.emptyList();
 
-    private String outgoingValue = null;
+    private List<String> outgoingValues = Collections.emptyList();
 
     private Acknowledgment.Strategy acknowledgment;
 
@@ -67,6 +68,8 @@ public class DefaultMediatorConfiguration implements MediatorConfiguration {
     private boolean useBuilderTypes = false;
 
     private boolean useReactiveStreams = false;
+
+    private boolean hasTargetedOutput = false;
 
     /**
      * The merge policy.
@@ -149,10 +152,50 @@ public class DefaultMediatorConfiguration implements MediatorConfiguration {
         if (values.length == 0) {
             throw ex.illegalArgumentForAnnotationNonEmpty("@Incoming", methodAsString());
         }
-        compute(Arrays.asList(values), outgoing, blocking);
+        compute(Arrays.asList(values), Collections.singletonList(outgoing), blocking);
+    }
+
+    public void compute(Incomings incomings, Outgoings outgoings, Blocking blocking) {
+        Incoming[] ins = incomings.value();
+        if (ins.length == 0) {
+            throw ex.illegalArgumentForAnnotationNonEmpty("@Incoming", methodAsString());
+        }
+        Outgoing[] outs = outgoings.value();
+        if (outs.length == 0) {
+            throw ex.illegalArgumentForAnnotationNonEmpty("@Outgoing", methodAsString());
+        }
+        compute(Arrays.asList(ins), Arrays.asList(outs), blocking);
+    }
+
+    public void compute(Incomings incomings, List<Outgoing> outgoings, Blocking blocking) {
+        Incoming[] ins = incomings.value();
+        if (ins.length == 0) {
+            throw ex.illegalArgumentForAnnotationNonEmpty("@Incoming", methodAsString());
+        }
+        compute(Arrays.asList(ins), outgoings, blocking);
+    }
+
+    public void compute(Incoming incoming, Outgoings outgoings, Blocking blocking) {
+        Outgoing[] values = outgoings.value();
+        if (values.length == 0) {
+            throw ex.illegalArgumentForAnnotationNonEmpty("@Outgoing", methodAsString());
+        }
+        compute(Collections.singletonList(incoming), Arrays.asList(values), blocking);
     }
 
     public void compute(List<Incoming> incomings, Outgoing outgoing, Blocking blocking) {
+        compute(incomings, Collections.singletonList(outgoing), blocking);
+    }
+
+    public void compute(List<Incoming> incomings, Outgoings outgoings, Blocking blocking) {
+        Outgoing[] outs = outgoings.value();
+        if (outs.length == 0) {
+            throw ex.illegalArgumentForAnnotationNonEmpty("@Outgoing", methodAsString());
+        }
+        compute(incomings, Arrays.asList(outs), blocking);
+    }
+
+    public void compute(List<Incoming> incomings, List<Outgoing> outgoings, Blocking blocking) {
         if (incomings != null) {
             for (Incoming incoming : incomings) {
                 if (Validation.isBlank(incoming.value())) {
@@ -163,11 +206,15 @@ public class DefaultMediatorConfiguration implements MediatorConfiguration {
             incomings = Collections.emptyList();
         }
 
-        if (outgoing != null && Validation.isBlank(outgoing.value())) {
-            throw ex.illegalArgumentForAnnotationNullOrBlank("@Outgoing", methodAsString());
+        if (outgoings != null) {
+            for (Outgoing outgoing : outgoings) {
+                if (Validation.isBlank(outgoing.value())) {
+                    throw ex.illegalArgumentForAnnotationNullOrBlank("@Outgoing", methodAsString());
+                }
+            }
         }
 
-        this.shape = this.mediatorConfigurationSupport.determineShape(incomings, outgoing);
+        this.shape = this.mediatorConfigurationSupport.determineShape(incomings, outgoings);
 
         this.acknowledgment = this.mediatorConfigurationSupport.processSuppliedAcknowledgement(incomings, () -> {
             Acknowledgment annotation = method.getAnnotation(Acknowledgment.class);
@@ -177,8 +224,8 @@ public class DefaultMediatorConfiguration implements MediatorConfiguration {
         if (!incomings.isEmpty()) {
             this.incomingValues = incomings.stream().map(Incoming::value).collect(Collectors.toList());
         }
-        if (outgoing != null) {
-            this.outgoingValue = outgoing.value();
+        if (!outgoings.isEmpty()) {
+            this.outgoingValues = outgoings.stream().map(Outgoing::value).collect(Collectors.toList());
         }
         if (blocking != null) {
             this.isBlocking = true;
@@ -198,11 +245,12 @@ public class DefaultMediatorConfiguration implements MediatorConfiguration {
             this.acknowledgment = this.mediatorConfigurationSupport.processDefaultAcknowledgement(this.shape, this.consumption,
                     this.production);
         }
+        this.hasTargetedOutput = this.mediatorConfigurationSupport.processTargetedOutput();
         this.mergePolicy = this.mediatorConfigurationSupport.processMerge(incomings, () -> {
             Merge annotation = method.getAnnotation(Merge.class);
             return annotation != null ? annotation.value() : null;
         });
-        this.broadcastValue = this.mediatorConfigurationSupport.processBroadcast(outgoing, () -> {
+        this.broadcastValue = this.mediatorConfigurationSupport.processBroadcast(outgoings, () -> {
             Broadcast annotation = method.getAnnotation(Broadcast.class);
             return annotation != null ? annotation.value() : null;
         });
@@ -223,7 +271,22 @@ public class DefaultMediatorConfiguration implements MediatorConfiguration {
 
     @Override
     public String getOutgoing() {
-        return outgoingValue;
+        // Backwards compatible
+        if (outgoingValues != null && !outgoingValues.isEmpty()) {
+            return outgoingValues.get(0);
+        } else {
+            return null;
+        }
+    }
+
+    @Override
+    public List<String> getOutgoings() {
+        // Backwards compatible
+        if (outgoingValues != null && !outgoingValues.isEmpty()) {
+            return outgoingValues;
+        } else {
+            return Collections.emptyList();
+        }
     }
 
     @Override
@@ -254,6 +317,11 @@ public class DefaultMediatorConfiguration implements MediatorConfiguration {
     @Override
     public MethodParameterDescriptor getParameterDescriptor() {
         return descriptor;
+    }
+
+    @Override
+    public boolean hasTargetedOutput() {
+        return hasTargetedOutput;
     }
 
     @Override
