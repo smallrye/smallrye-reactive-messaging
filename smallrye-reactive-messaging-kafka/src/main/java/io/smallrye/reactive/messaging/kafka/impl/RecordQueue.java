@@ -2,7 +2,9 @@ package io.smallrye.reactive.messaging.kafka.impl;
 
 import java.util.ArrayDeque;
 import java.util.Collection;
+import java.util.Objects;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.UnaryOperator;
 
 /**
  * Stores the records coming from Kafka.
@@ -87,6 +89,32 @@ public class RecordQueue<T> extends ArrayDeque<T> {
         lock.lock();
         try {
             super.clear();
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    /**
+     * Uses a mapping function to replaces all items in the queue.
+     * If the mapping function returns null item will simply be removed
+     * from the queue.
+     *
+     * Order is preserved.
+     *
+     * @param mapFunction
+     */
+    void rewriteQueue(UnaryOperator<T> mapFunction) {
+        lock.lock();
+        try {
+            ArrayDeque<T> replacementQueue = new ArrayDeque<>();
+            this
+                    .stream()
+                    .map(mapFunction)
+                    .filter(Objects::nonNull)
+                    .forEach(replacementQueue::offer);
+
+            this.clear();
+            this.addAll((Iterable<T>) replacementQueue);
         } finally {
             lock.unlock();
         }
