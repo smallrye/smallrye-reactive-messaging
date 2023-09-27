@@ -3,12 +3,9 @@ package io.smallrye.reactive.messaging.kafka.impl;
 import static io.smallrye.reactive.messaging.kafka.i18n.KafkaLogging.log;
 
 import java.time.Duration;
-import java.util.ArrayDeque;
-import java.util.Objects;
 import java.util.concurrent.Flow;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.BiConsumer;
 import java.util.function.UnaryOperator;
 
@@ -64,8 +61,6 @@ public class KafkaRecordStreamSubscription<K, V, T> implements Flow.Subscription
     private final int halfMaxQueueSize;
     private final RecordQueue<T> queue;
     private final long retries;
-
-    private final ReentrantLock queueLock = new ReentrantLock();
 
     public KafkaRecordStreamSubscription(
             ReactiveKafkaConsumer<K, V> client,
@@ -258,19 +253,6 @@ public class KafkaRecordStreamSubscription<K, V, T> implements Flow.Subscription
      * @param mapFunction
      */
     void rewriteQueue(UnaryOperator<T> mapFunction) {
-        queueLock.lock();
-        try {
-            ArrayDeque<T> replacementQueue = new ArrayDeque<>();
-            queue
-                    .stream()
-                    .map(mapFunction)
-                    .filter(Objects::nonNull)
-                    .forEach(replacementQueue::offer);
-
-            queue.clear();
-            queue.addAll((Iterable<T>) replacementQueue);
-        } finally {
-            queueLock.unlock();
-        }
+        queue.rewriteQueue(mapFunction);
     }
 }
