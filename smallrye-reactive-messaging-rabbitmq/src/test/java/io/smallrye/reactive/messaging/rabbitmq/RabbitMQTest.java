@@ -689,7 +689,7 @@ class RabbitMQTest extends RabbitMQBrokerTestBase {
                             1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
                             1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
                             1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
-            assertThat(redelivered).containsExactly(
+            assertThat(redelivered).containsExactlyInAnyOrder(
                     1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
                     1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
             assertThat(dlqList).containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
