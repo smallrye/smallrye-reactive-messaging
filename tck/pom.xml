@@ -12,6 +12,10 @@
 
   <name>SmallRye Reactive Messaging : TCK</name>
 
+  <properties>
+    <jandex.skip>true</jandex.skip>
+  </properties>
+
   <dependencyManagement>
     <dependencies>
       <dependency>

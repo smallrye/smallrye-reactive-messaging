@@ -22,6 +22,7 @@
     <mainClass>acme.Main</mainClass>
 
     <sonar.skip>true</sonar.skip>
+    <jandex.skip>true</jandex.skip>
   </properties>
 
   <dependencies>
