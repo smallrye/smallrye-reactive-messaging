@@ -13,6 +13,10 @@
 
   <name>SmallRye Reactive Messaging : Open Telemetry Instrumenter</name>
 
+  <properties>
+    <jandex.skip>true</jandex.skip>
+  </properties>
+
   <dependencies>
     <dependency>
       <groupId>${project.groupId}</groupId>

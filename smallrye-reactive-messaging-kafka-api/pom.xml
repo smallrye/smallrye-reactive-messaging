@@ -15,6 +15,7 @@
 
   <properties>
     <revapi.skip>false</revapi.skip>
+    <jandex.skip>true</jandex.skip>
   </properties>
 
   <dependencies>
@@ -31,12 +32,4 @@
     </dependency>
   </dependencies>
 
-  <build>
-    <plugins>
-      <plugin>
-        <groupId>io.smallrye</groupId>
-        <artifactId>jandex-maven-plugin</artifactId>
-      </plugin>
-    </plugins>
-  </build>
 </project>

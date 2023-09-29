@@ -548,6 +548,10 @@
 
     <plugins>
       <plugin>
+        <groupId>io.smallrye</groupId>
+        <artifactId>jandex-maven-plugin</artifactId>
+      </plugin>
+      <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>build-helper-maven-plugin</artifactId>
         <executions>
@@ -733,6 +737,29 @@
         <excludedGroups></excludedGroups>
         <groups>slow,flaky</groups>
       </properties>
+    </profile>
+    <profile>
+      <id>jandex-skip</id>
+      <activation>
+        <property>
+          <name>jandex.skip</name>
+          <value>true</value>
+        </property>
+      </activation>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>io.smallrye</groupId>
+            <artifactId>jandex-maven-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>make-index</id>
+                <phase/>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
     </profile>
   </profiles>
 </project>

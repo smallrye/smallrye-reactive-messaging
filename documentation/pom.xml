@@ -21,6 +21,7 @@
     <attribute.file>attributes.yaml</attribute.file>
 
     <sonar.skip>true</sonar.skip>
+    <jandex.skip>true</jandex.skip>
   </properties>
 
   <dependencies>
