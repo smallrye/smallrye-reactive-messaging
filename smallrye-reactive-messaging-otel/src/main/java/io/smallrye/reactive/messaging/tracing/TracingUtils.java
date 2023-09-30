@@ -12,6 +12,8 @@ import io.smallrye.reactive.messaging.providers.MetadataInjectableMessage;
 
 public class TracingUtils {
 
+    public static final String INSTRUMENTATION_NAME = "io.smallrye.reactive.messaging";
+
     private TracingUtils() {
     }
 
