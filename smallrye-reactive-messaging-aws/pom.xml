@@ -21,7 +21,7 @@
   </properties>
 
   <modules>
-    <module>smallrye-reactive-messaging-sqs</module>
+    <module>smallrye-reactive-messaging-aws-sqs</module>
   </modules>
 
   <dependencyManagement>
