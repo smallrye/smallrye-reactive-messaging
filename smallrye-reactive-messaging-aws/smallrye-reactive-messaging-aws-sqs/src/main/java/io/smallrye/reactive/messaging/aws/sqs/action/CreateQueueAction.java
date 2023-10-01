@@ -11,6 +11,7 @@ import software.amazon.awssdk.services.sqs.model.CreateQueueResponse;
 import software.amazon.awssdk.services.sqs.model.GetQueueAttributesRequest;
 import software.amazon.awssdk.services.sqs.model.QueueAttributeName;
 
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -29,21 +30,26 @@ public class CreateQueueAction {
         }
 
         String queueName = message.getTarget().getTargetName();
-        Uni<Map<QueueAttributeName, String>> uni = Uni.createFrom().nullItem();
+        Uni<Map<QueueAttributeName, String>> uni = Uni.createFrom().item(Map.of());
         M metadata = message.getSqsMetadata();
 
         if (config.getCreateQueueDlqEnabled()) {
-            final SqsCreateQueueMetadata createQueueDlqMetadata = metadata.getCreateQueueDlqMetadata();
+            SqsCreateQueueMetadata createQueueDlqMetadata = metadata.getCreateQueueDlqMetadata();
             uni = uni.onItem().transformToUni(ignore -> createDlq(
                     clientHolder, queueName, config,
                     createQueueDlqMetadata.getAttributes(), createQueueDlqMetadata.getTags()
             ));
         }
 
+        return uni.onItem().transformToUni(preparedAttributes -> {
+            SqsCreateQueueMetadata createQueueMetadata = metadata.getCreateQueueMetadata();
 
-        CreateQueueRequest.builder().queueName(queueName);
+            HashMap<QueueAttributeName, String> attributes = new HashMap<>();
+            attributes.putAll(preparedAttributes);
+            attributes.putAll(createQueueMetadata.getAttributes());
 
-        return uni.replaceWith("");
+            return createQueue(clientHolder, queueName, attributes, createQueueMetadata.getTags());
+        }).onItem().transform(CreateQueueResponse::queueUrl);
     }
 
     private static Uni<Map<QueueAttributeName, String>> createDlq(SqsClientHolder<?> clientHolder, String queueName,
@@ -53,7 +59,7 @@ public class CreateQueueAction {
 
         Uni<CreateQueueResponse> uni = createQueue(clientHolder,
                 config.getCreateQueueDlqPrefix() + queueName + config.getCreateQueueDlqSuffix(),
-                Map.of(), Map.of());
+                attributes, tags);
 
         return uni.onItem().transformToUni(response -> getQueueArn(clientHolder, response))
                 .onItem().transform(arn -> Map.of(
