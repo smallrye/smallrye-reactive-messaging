@@ -115,8 +115,8 @@ public interface RabbitMQLogging extends BasicLogger {
     void createClientFromBean(String optionsBeanName);
 
     @LogMessage(level = Logger.Level.INFO)
-    @Message(id = 17036, value = "RabbitMQ broker configured to %s:%d for channel %s")
-    void brokerConfigured(String host, int port, String channel);
+    @Message(id = 17036, value = "RabbitMQ broker configured to %s for channel %s")
+    void brokerConfigured(String address, String channel);
 
     @LogMessage(level = Logger.Level.ERROR)
     @Message(id = 17037, value = "Unable to create client")
