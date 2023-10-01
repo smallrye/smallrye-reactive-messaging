@@ -1,7 +1,5 @@
 package io.smallrye.reactive.messaging.aws.sqs.action;
 
-import java.time.Duration;
-
 import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.OutgoingMessageMetadata;
 import io.smallrye.reactive.messaging.aws.sqs.SqsConnectorOutgoingConfiguration;
@@ -10,6 +8,11 @@ import io.smallrye.reactive.messaging.aws.sqs.message.SqsOutgoingMessage;
 import io.smallrye.reactive.messaging.aws.sqs.util.Helper;
 import software.amazon.awssdk.services.sqs.model.SendMessageRequest;
 
+import java.time.Duration;
+
+/**
+ * <a href="https://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_SendMessage.html">AWS Documentation</a>
+ */
 public class SendMessageAction {
 
     public static Uni<Void> sendMessage(

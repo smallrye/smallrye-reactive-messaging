@@ -1,17 +1,11 @@
 package io.smallrye.reactive.messaging.aws.sqs;
 
-import static io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Direction.INCOMING_AND_OUTGOING;
-import static io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Direction.OUTGOING;
-import static io.smallrye.reactive.messaging.aws.sqs.client.SqsClientFactory.createSqsClient;
-import static io.smallrye.reactive.messaging.aws.sqs.i18n.SqsExceptions.ex;
-import static io.smallrye.reactive.messaging.aws.sqs.i18n.SqsLogging.log;
-
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.Flow;
-
+import io.smallrye.reactive.messaging.annotations.ConnectorAttribute;
+import io.smallrye.reactive.messaging.aws.sqs.client.SqsClientHolder;
+import io.smallrye.reactive.messaging.connector.InboundConnector;
+import io.smallrye.reactive.messaging.connector.OutboundConnector;
+import io.smallrye.reactive.messaging.health.HealthReporter;
+import io.smallrye.reactive.messaging.json.JsonMapping;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.Priority;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -20,19 +14,23 @@ import jakarta.enterprise.event.Observes;
 import jakarta.enterprise.event.Reception;
 import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
-
 import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.spi.Connector;
-
-import io.smallrye.reactive.messaging.annotations.ConnectorAttribute;
-import io.smallrye.reactive.messaging.aws.sqs.client.SqsClientHolder;
-import io.smallrye.reactive.messaging.connector.InboundConnector;
-import io.smallrye.reactive.messaging.connector.OutboundConnector;
-import io.smallrye.reactive.messaging.health.HealthReporter;
-import io.smallrye.reactive.messaging.json.JsonMapping;
 import software.amazon.awssdk.services.sqs.SqsAsyncClient;
 import software.amazon.awssdk.services.sqs.model.SqsException;
+
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.Flow;
+
+import static io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Direction.INCOMING_AND_OUTGOING;
+import static io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Direction.OUTGOING;
+import static io.smallrye.reactive.messaging.aws.sqs.client.SqsClientFactory.createSqsClient;
+import static io.smallrye.reactive.messaging.aws.sqs.i18n.SqsExceptions.ex;
+import static io.smallrye.reactive.messaging.aws.sqs.i18n.SqsLogging.log;
 
 @ApplicationScoped
 @Connector(SqsConnector.CONNECTOR_NAME)
@@ -97,7 +95,7 @@ public class SqsConnector implements InboundConnector, OutboundConnector, Health
 
         try {
             SqsOutgoingChannel channel = new SqsOutgoingChannel(
-                    new SqsClientHolder<>(client, oc, jsonMapping, new TargetResolver()));
+                    new SqsClientHolder<>(client, oc, jsonMapping, new SqsTargetResolver()));
             outgoingChannels.add(channel);
             return channel.getSubscriber();
         } catch (SqsException e) {

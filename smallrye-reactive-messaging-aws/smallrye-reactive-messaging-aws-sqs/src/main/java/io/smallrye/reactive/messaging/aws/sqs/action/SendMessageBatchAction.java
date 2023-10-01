@@ -1,18 +1,10 @@
 package io.smallrye.reactive.messaging.aws.sqs.action;
 
-import static io.smallrye.reactive.messaging.aws.sqs.i18n.SqsExceptions.ex;
-
-import java.time.Duration;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.OutgoingMessageMetadata;
 import io.smallrye.reactive.messaging.aws.sqs.SqsConnectorOutgoingConfiguration;
-import io.smallrye.reactive.messaging.aws.sqs.Target;
+import io.smallrye.reactive.messaging.aws.sqs.SqsTarget;
 import io.smallrye.reactive.messaging.aws.sqs.client.SqsClientHolder;
 import io.smallrye.reactive.messaging.aws.sqs.message.SqsOutgoingMessage;
 import io.smallrye.reactive.messaging.aws.sqs.util.Helper;
@@ -20,11 +12,22 @@ import software.amazon.awssdk.services.sqs.model.SendMessageBatchRequest;
 import software.amazon.awssdk.services.sqs.model.SendMessageBatchRequestEntry;
 import software.amazon.awssdk.services.sqs.model.SendMessageBatchResponse;
 
-public class SendBatchMessageAction {
+import java.time.Duration;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+import static io.smallrye.reactive.messaging.aws.sqs.i18n.SqsExceptions.ex;
+
+/**
+ * <a href="https://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_SendMessageBatch.html">AWS Documentation</a>
+ */
+public class SendMessageBatchAction {
 
     public static Uni<Void> sendMessage(
             SqsClientHolder<SqsConnectorOutgoingConfiguration> clientHolder,
-            Target target, List<? extends SqsOutgoingMessage<?>> messages) {
+            SqsTarget target, List<? extends SqsOutgoingMessage<?>> messages) {
         // We need to remember the correlation between messageId and outgoing message.
         Map<String, SqsOutgoingMessage<?>> messageMap = new HashMap<>();
 
@@ -51,7 +54,7 @@ public class SendBatchMessageAction {
 
     private static SendMessageBatchRequest createRequest(
             SqsClientHolder<SqsConnectorOutgoingConfiguration> clientHolder,
-            Target target, List<? extends SqsOutgoingMessage<?>> messages,
+            SqsTarget target, List<? extends SqsOutgoingMessage<?>> messages,
             Map<String, SqsOutgoingMessage<?>> messageMap) {
         Map<String, SendMessageBatchRequestEntry> entryMap = new HashMap<>();
 

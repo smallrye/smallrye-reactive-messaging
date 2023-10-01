@@ -2,12 +2,12 @@ package io.smallrye.reactive.messaging.aws.sqs;
 
 import java.util.Objects;
 
-public class Target {
+public class SqsTarget {
 
     private final String targetName;
     private final String targetUrl;
 
-    public Target(String targetName, String targetUrl) {
+    public SqsTarget(String targetName, String targetUrl) {
         this.targetName = targetName;
         this.targetUrl = targetUrl;
     }
@@ -26,7 +26,7 @@ public class Target {
             return true;
         if (o == null || getClass() != o.getClass())
             return false;
-        Target target = (Target) o;
+        SqsTarget target = (SqsTarget) o;
         return Objects.equals(targetUrl, target.targetUrl);
     }
 

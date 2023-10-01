@@ -1,8 +1,5 @@
 package io.smallrye.reactive.messaging.aws.sqs;
 
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-
 import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.aws.sqs.action.CreateQueueAction;
 import io.smallrye.reactive.messaging.aws.sqs.action.GetQueueUrlAction;
@@ -11,11 +8,14 @@ import io.smallrye.reactive.messaging.aws.sqs.message.SqsMessage;
 import io.smallrye.reactive.messaging.aws.sqs.message.SqsMessageMetadata;
 import software.amazon.awssdk.services.sqs.model.QueueDoesNotExistException;
 
-public class TargetResolver {
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
-    private final Map<String, Uni<Target>> CACHE = new ConcurrentHashMap<>();
+public class SqsTargetResolver {
 
-    public <M extends SqsMessageMetadata> Uni<Target> getTarget(
+    private final Map<String, Uni<SqsTarget>> CACHE = new ConcurrentHashMap<>();
+
+    public <M extends SqsMessageMetadata> Uni<SqsTarget> getTarget(
             final SqsClientHolder<?> clientHolder, final SqsMessage<?, M> message) {
         final SqsConnectorCommonConfiguration config = clientHolder.getConfig();
 
@@ -24,7 +24,7 @@ public class TargetResolver {
                 key -> GetQueueUrlAction.resolveQueueUrl(clientHolder, message)
                         .onFailure(QueueDoesNotExistException.class)
                         .call(() -> CreateQueueAction.createQueue(clientHolder, message))
-                        .onItem().transform(url -> new Target(key, url))
+                        .onItem().transform(url -> new SqsTarget(key, url))
                         .memoize().indefinitely());
     }
 }

@@ -15,9 +15,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * <a href=
- * "https://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_CreateQueue.html#SQS-CreateQueue-request-attributes">AWS
- * Documentation</a>
+ * <a href="https://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_CreateQueue.html#SQS-CreateQueue-request-attributes">AWS Documentation</a>
  */
 public class CreateQueueAction {
 

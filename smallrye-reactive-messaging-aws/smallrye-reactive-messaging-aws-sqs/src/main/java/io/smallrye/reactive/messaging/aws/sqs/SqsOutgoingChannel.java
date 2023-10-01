@@ -1,24 +1,23 @@
 package io.smallrye.reactive.messaging.aws.sqs;
 
-import static io.smallrye.reactive.messaging.aws.sqs.tracing.SqsInstrumenter.SQS_OUTGOING_INSTRUMENTER;
-
-import java.time.Duration;
-import java.util.List;
-import java.util.concurrent.Flow;
-
-import org.eclipse.microprofile.reactive.messaging.Message;
-
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.tuples.Tuple2;
-import io.smallrye.reactive.messaging.aws.sqs.action.SendBatchMessageAction;
 import io.smallrye.reactive.messaging.aws.sqs.action.SendMessageAction;
+import io.smallrye.reactive.messaging.aws.sqs.action.SendMessageBatchAction;
 import io.smallrye.reactive.messaging.aws.sqs.client.SqsClientHolder;
 import io.smallrye.reactive.messaging.aws.sqs.message.SqsMessage;
 import io.smallrye.reactive.messaging.aws.sqs.message.SqsOutgoingMessage;
 import io.smallrye.reactive.messaging.aws.sqs.tracing.SqsTrace;
 import io.smallrye.reactive.messaging.providers.helpers.MultiUtils;
 import io.smallrye.reactive.messaging.tracing.TracingUtils;
+import org.eclipse.microprofile.reactive.messaging.Message;
+
+import java.time.Duration;
+import java.util.List;
+import java.util.concurrent.Flow;
+
+import static io.smallrye.reactive.messaging.aws.sqs.tracing.SqsInstrumenter.SQS_OUTGOING_INSTRUMENTER;
 
 public class SqsOutgoingChannel {
 
@@ -74,8 +73,8 @@ public class SqsOutgoingChannel {
                 .onItem().transformToUni(target -> SendMessageAction.sendMessage(clientHolder, sqsMessage));
     }
 
-    private Uni<Void> sendBatchMessage(Target target, List<? extends SqsOutgoingMessage<?>> messages) {
-        return SendBatchMessageAction.sendMessage(clientHolder, target, messages);
+    private Uni<Void> sendBatchMessage(SqsTarget target, List<? extends SqsOutgoingMessage<?>> messages) {
+        return SendMessageBatchAction.sendMessage(clientHolder, target, messages);
     }
 
     private void tracing(SqsOutgoingMessage<?> message) {
@@ -96,8 +95,8 @@ public class SqsOutgoingChannel {
                     //  possible as mentioned. Or it would be necessary to create the ids here. I do not like that.
                     // .withMessageId("")
                     .withConversationId(message.getSqsMetadata().getConversationId())
-            // We do not set payload size. This would require to calculate it, which is less performant.
-            ;
+                    // We do not set payload size. This would require to calculate it, which is less performant.
+                    ;
             TracingUtils.traceOutgoing(SQS_OUTGOING_INSTRUMENTER, message, trace);
         }
     }

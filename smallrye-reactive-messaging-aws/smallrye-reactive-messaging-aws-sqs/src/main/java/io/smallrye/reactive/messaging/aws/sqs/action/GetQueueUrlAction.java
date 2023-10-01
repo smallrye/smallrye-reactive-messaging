@@ -8,6 +8,9 @@ import io.smallrye.reactive.messaging.aws.sqs.message.SqsMessageMetadata;
 import software.amazon.awssdk.services.sqs.model.GetQueueUrlRequest;
 import software.amazon.awssdk.services.sqs.model.GetQueueUrlResponse;
 
+/**
+ * <a href="https://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_GetQueueUrl.html">AWS Documentation</a>
+ */
 public class GetQueueUrlAction {
 
     public static <M extends SqsMessageMetadata> Uni<String> resolveQueueUrl(
@@ -16,10 +19,10 @@ public class GetQueueUrlAction {
         SqsMessageMetadata sqsMetadata = message.getSqsMetadata();
 
         return Uni.createFrom().completionStage(
-                clientHolder.getClient().getQueueUrl(GetQueueUrlRequest.builder()
-                        .queueName(config.getQueue().orElse(config.getChannel()))
-                        .queueOwnerAWSAccountId(sqsMetadata.getQueueOwnerAWSAccountId())
-                        .build()))
+                        clientHolder.getClient().getQueueUrl(GetQueueUrlRequest.builder()
+                                .queueName(config.getQueue().orElse(config.getChannel()))
+                                .queueOwnerAWSAccountId(sqsMetadata.getQueueOwnerAWSAccountId())
+                                .build()))
                 .onItem().transform(GetQueueUrlResponse::queueUrl);
     }
 }
