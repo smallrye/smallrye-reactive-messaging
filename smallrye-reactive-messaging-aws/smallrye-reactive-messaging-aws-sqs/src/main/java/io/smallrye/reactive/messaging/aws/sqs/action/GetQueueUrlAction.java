@@ -19,10 +19,10 @@ public class GetQueueUrlAction {
         SqsMessageMetadata sqsMetadata = message.getSqsMetadata();
 
         return Uni.createFrom().completionStage(
-                        clientHolder.getClient().getQueueUrl(GetQueueUrlRequest.builder()
-                                .queueName(config.getQueue().orElse(config.getChannel()))
-                                .queueOwnerAWSAccountId(sqsMetadata.getQueueOwnerAWSAccountId())
-                                .build()))
+                clientHolder.getClient().getQueueUrl(GetQueueUrlRequest.builder()
+                        .queueName(config.getQueue().orElse(config.getChannel()))
+                        .queueOwnerAWSAccountId(sqsMetadata.getQueueOwnerAWSAccountId())
+                        .build()))
                 .onItem().transform(GetQueueUrlResponse::queueUrl);
     }
 }

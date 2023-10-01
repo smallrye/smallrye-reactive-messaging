@@ -1,9 +1,9 @@
 package io.smallrye.reactive.messaging.aws.sqs.message;
 
-import software.amazon.awssdk.services.sqs.model.QueueAttributeName;
-
 import java.util.HashMap;
 import java.util.Map;
+
+import software.amazon.awssdk.services.sqs.model.QueueAttributeName;
 
 public class SqsCreateQueueMetadata {
 

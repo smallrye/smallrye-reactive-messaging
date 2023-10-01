@@ -22,6 +22,7 @@
 
   <modules>
     <module>smallrye-reactive-messaging-aws-sqs</module>
+    <module>smallrye-reactive-messaging-aws-core</module>
   </modules>
 
   <dependencyManagement>

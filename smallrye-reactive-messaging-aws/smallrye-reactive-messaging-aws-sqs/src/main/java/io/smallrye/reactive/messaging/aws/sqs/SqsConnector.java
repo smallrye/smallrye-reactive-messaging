@@ -1,17 +1,22 @@
 package io.smallrye.reactive.messaging.aws.sqs;
 
 import io.smallrye.reactive.messaging.annotations.ConnectorAttribute;
+import io.smallrye.reactive.messaging.aws.serialization.Deserializer;
+import io.smallrye.reactive.messaging.aws.serialization.Serializer;
 import io.smallrye.reactive.messaging.aws.sqs.client.SqsClientHolder;
 import io.smallrye.reactive.messaging.connector.InboundConnector;
 import io.smallrye.reactive.messaging.connector.OutboundConnector;
 import io.smallrye.reactive.messaging.health.HealthReporter;
 import io.smallrye.reactive.messaging.json.JsonMapping;
+import io.smallrye.reactive.messaging.providers.connectors.ExecutionHolder;
+import io.vertx.mutiny.core.Vertx;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.Priority;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.context.BeforeDestroyed;
 import jakarta.enterprise.event.Observes;
 import jakarta.enterprise.event.Reception;
+import jakarta.enterprise.inject.Any;
 import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.Config;
@@ -28,6 +33,8 @@ import java.util.concurrent.Flow;
 
 import static io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Direction.INCOMING_AND_OUTGOING;
 import static io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Direction.OUTGOING;
+import static io.smallrye.reactive.messaging.aws.serialization.SerializationResolver.resolveDeserializer;
+import static io.smallrye.reactive.messaging.aws.serialization.SerializationResolver.resolveSerializer;
 import static io.smallrye.reactive.messaging.aws.sqs.client.SqsClientFactory.createSqsClient;
 import static io.smallrye.reactive.messaging.aws.sqs.i18n.SqsExceptions.ex;
 import static io.smallrye.reactive.messaging.aws.sqs.i18n.SqsLogging.log;
@@ -38,11 +45,14 @@ import static io.smallrye.reactive.messaging.aws.sqs.i18n.SqsLogging.log;
 @ConnectorAttribute(name = "queue", type = "string", direction = INCOMING_AND_OUTGOING, description = "Set the SQS queue. If not set, the channel name is used")
 @ConnectorAttribute(name = "health-enabled", type = "boolean", direction = ConnectorAttribute.Direction.INCOMING_AND_OUTGOING, description = "Whether health reporting is enabled (default) or disabled", defaultValue = "true")
 @ConnectorAttribute(name = "tracing-enabled", type = "boolean", direction = ConnectorAttribute.Direction.INCOMING_AND_OUTGOING, description = "Whether tracing is enabled (default) or disabled", defaultValue = "true")
+
 @ConnectorAttribute(name = "create-queue.enabled", type = "boolean", direction = ConnectorAttribute.Direction.INCOMING_AND_OUTGOING, description = "Whether automatic queue creation is enabled or disabled (default)", defaultValue = "false")
 @ConnectorAttribute(name = "create-queue.dlq.enabled", type = "boolean", direction = ConnectorAttribute.Direction.INCOMING_AND_OUTGOING, description = "Whether automatic dead-letter queue creation is enabled or disabled (default)", defaultValue = "false")
 @ConnectorAttribute(name = "create-queue.dlq.prefix", type = "string", direction = ConnectorAttribute.Direction.INCOMING_AND_OUTGOING, description = "Dead-letter queue name prefix", defaultValue = "")
 @ConnectorAttribute(name = "create-queue.dlq.suffix", type = "string", direction = ConnectorAttribute.Direction.INCOMING_AND_OUTGOING, description = "Dead-letter queue name suffix", defaultValue = "-dlq")
 @ConnectorAttribute(name = "create-queue.dlq.max-receive-count", type = "int", direction = ConnectorAttribute.Direction.INCOMING_AND_OUTGOING, description = "The number of times a message is delivered to the source queue before being moved to the dead-letter queue. Default: 10. When the ReceiveCount for a message exceeds the maxReceiveCount for a queue, Amazon SQS moves the message to the dead-letter-queue.", defaultValue = "10")
+
+@ConnectorAttribute(name = "serialization-identifier", type = "string", direction = INCOMING_AND_OUTGOING, description = "Name of the @Identifier to use. If not specified the channel name is used.")
 
 // outgoing
 @ConnectorAttribute(name = "send.batch.enabled", type = "boolean", direction = OUTGOING, description = "Send messages in batches.", defaultValue = "false")
@@ -54,18 +64,34 @@ public class SqsConnector implements InboundConnector, OutboundConnector, Health
 
     private final Map<String, SqsAsyncClient> clients = new ConcurrentHashMap<>();
     private final Map<String, SqsAsyncClient> clientsByChannel = new ConcurrentHashMap<>();
-    private final List<SqsOutgoingChannel> outgoingChannels = new CopyOnWriteArrayList<>();
-    //    private final List<PulsarIncomingChannel<?>> incomingChannels = new CopyOnWriteArrayList<>();
+    private final List<SqsChannel> channels = new CopyOnWriteArrayList<>();
+
+    @Inject
+    private ExecutionHolder executionHolder;
 
     @Inject
     Instance<JsonMapping> jsonMapper;
     private JsonMapping jsonMapping;
 
+    @Inject
+    @Any
+    Instance<Serializer> messageSerializer;
+
+    @Inject
+    @Any
+    Instance<Deserializer> messageDeserializer;
+
+    private Vertx vertx;
+    private SqsTargetResolver targetResolver;
+
     @PostConstruct
     public void init() {
+        this.vertx = executionHolder.vertx();
+        this.targetResolver = new SqsTargetResolver();
+
         if (jsonMapper.isUnsatisfied()) {
-            log.warn(
-                    "Please add one of the additional mapping modules (-jsonb or -jackson) to be able to (de)serialize JSON messages.");
+            log.debug(
+                    "No mapping modules (-jsonb or -jackson) defined. Fallback to toString() and String.");
         } else if (jsonMapper.isAmbiguous()) {
             log.warn(
                     "Please select only one of the additional mapping modules (-jsonb or -jackson) to be able to (de)serialize JSON messages.");
@@ -80,23 +106,36 @@ public class SqsConnector implements InboundConnector, OutboundConnector, Health
     public Flow.Publisher<? extends Message<?>> getPublisher(Config config) {
         SqsConnectorIncomingConfiguration ic = new SqsConnectorIncomingConfiguration(config);
 
-        SqsAsyncClient client = clients.computeIfAbsent("", ignored -> createSqsClient(ic));
+        SqsAsyncClient client = clients.computeIfAbsent(ic.getChannel(), ignored -> createSqsClient(ic, vertx));
         clientsByChannel.put(ic.getChannel(), client);
 
-        return null;
+        final Serializer serializer = resolveSerializer(messageSerializer,
+                ic.getSerializationIdentifier().orElse(ic.getChannel()), ic.getChannel(), jsonMapping);
+
+        try {
+            SqsIncomingChannel channel = new SqsIncomingChannel(
+                    new SqsClientHolder<>(client, vertx, ic, targetResolver, serializer, null));
+            channels.add(channel);
+            return channel.getPublisher();
+        } catch (SqsException e) {
+            throw ex.illegalStateUnableToBuildProducer(e);
+        }
     }
 
     @Override
     public Flow.Subscriber<? extends Message<?>> getSubscriber(Config config) {
         SqsConnectorOutgoingConfiguration oc = new SqsConnectorOutgoingConfiguration(config);
 
-        SqsAsyncClient client = clients.computeIfAbsent("", ignored -> createSqsClient(oc));
+        SqsAsyncClient client = clients.computeIfAbsent(oc.getChannel(), ignored -> createSqsClient(oc, vertx));
         clientsByChannel.put(oc.getChannel(), client);
+
+        final Deserializer deserializer = resolveDeserializer(messageDeserializer, oc
+                .getSerializationIdentifier().orElse(oc.getChannel()), oc.getChannel(), jsonMapping);
 
         try {
             SqsOutgoingChannel channel = new SqsOutgoingChannel(
-                    new SqsClientHolder<>(client, oc, jsonMapping, new SqsTargetResolver()));
-            outgoingChannels.add(channel);
+                    new SqsClientHolder<>(client, vertx, oc, targetResolver, null, deserializer));
+            channels.add(channel);
             return channel.getSubscriber();
         } catch (SqsException e) {
             throw ex.illegalStateUnableToBuildConsumer(e);
@@ -105,8 +144,7 @@ public class SqsConnector implements InboundConnector, OutboundConnector, Health
 
     public void terminate(
             @Observes(notifyObserver = Reception.IF_EXISTS) @Priority(50) @BeforeDestroyed(ApplicationScoped.class) Object event) {
-        //        incomingChannels.forEach(PulsarIncomingChannel::close);
-        outgoingChannels.forEach(SqsOutgoingChannel::close);
+        channels.forEach(SqsChannel::close);
         for (SqsAsyncClient client : clients.values()) {
             try {
                 client.close();
@@ -114,8 +152,7 @@ public class SqsConnector implements InboundConnector, OutboundConnector, Health
                 log.unableToCloseClient(e);
             }
         }
-        //        incomingChannels.clear();
-        outgoingChannels.clear();
+        channels.clear();
         clients.clear();
         clientsByChannel.clear();
     }

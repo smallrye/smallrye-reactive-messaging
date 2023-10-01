@@ -1,16 +1,6 @@
 package io.smallrye.reactive.messaging.aws.sqs.action;
 
-import io.smallrye.mutiny.Multi;
-import io.smallrye.mutiny.Uni;
-import io.smallrye.reactive.messaging.OutgoingMessageMetadata;
-import io.smallrye.reactive.messaging.aws.sqs.SqsConnectorOutgoingConfiguration;
-import io.smallrye.reactive.messaging.aws.sqs.SqsTarget;
-import io.smallrye.reactive.messaging.aws.sqs.client.SqsClientHolder;
-import io.smallrye.reactive.messaging.aws.sqs.message.SqsOutgoingMessage;
-import io.smallrye.reactive.messaging.aws.sqs.util.Helper;
-import software.amazon.awssdk.services.sqs.model.SendMessageBatchRequest;
-import software.amazon.awssdk.services.sqs.model.SendMessageBatchRequestEntry;
-import software.amazon.awssdk.services.sqs.model.SendMessageBatchResponse;
+import static io.smallrye.reactive.messaging.aws.sqs.i18n.SqsExceptions.ex;
 
 import java.time.Duration;
 import java.util.HashMap;
@@ -18,10 +8,20 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import static io.smallrye.reactive.messaging.aws.sqs.i18n.SqsExceptions.ex;
+import io.smallrye.mutiny.Multi;
+import io.smallrye.mutiny.Uni;
+import io.smallrye.reactive.messaging.OutgoingMessageMetadata;
+import io.smallrye.reactive.messaging.aws.sqs.SqsConnectorOutgoingConfiguration;
+import io.smallrye.reactive.messaging.aws.sqs.SqsTarget;
+import io.smallrye.reactive.messaging.aws.sqs.client.SqsClientHolder;
+import io.smallrye.reactive.messaging.aws.sqs.message.SqsOutgoingMessage;
+import software.amazon.awssdk.services.sqs.model.SendMessageBatchRequest;
+import software.amazon.awssdk.services.sqs.model.SendMessageBatchRequestEntry;
+import software.amazon.awssdk.services.sqs.model.SendMessageBatchResponse;
 
 /**
- * <a href="https://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_SendMessageBatch.html">AWS Documentation</a>
+ * <a href="https://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_SendMessageBatch.html">AWS
+ * Documentation</a>
  */
 public class SendMessageBatchAction {
 
@@ -59,7 +59,7 @@ public class SendMessageBatchAction {
         Map<String, SendMessageBatchRequestEntry> entryMap = new HashMap<>();
 
         messages.forEach(msg -> {
-            String payload = Helper.serialize(msg, clientHolder.getJsonMapping());
+            String payload = clientHolder.getSerializer().serialize(msg);
             String id = UUID.randomUUID().toString();
 
             final SendMessageBatchRequestEntry entry = SendMessageBatchRequestEntry.builder()

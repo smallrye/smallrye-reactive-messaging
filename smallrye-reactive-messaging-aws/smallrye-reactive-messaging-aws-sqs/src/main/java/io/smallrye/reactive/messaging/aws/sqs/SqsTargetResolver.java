@@ -1,5 +1,8 @@
 package io.smallrye.reactive.messaging.aws.sqs;
 
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
 import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.aws.sqs.action.CreateQueueAction;
 import io.smallrye.reactive.messaging.aws.sqs.action.GetQueueUrlAction;
@@ -7,9 +10,6 @@ import io.smallrye.reactive.messaging.aws.sqs.client.SqsClientHolder;
 import io.smallrye.reactive.messaging.aws.sqs.message.SqsMessage;
 import io.smallrye.reactive.messaging.aws.sqs.message.SqsMessageMetadata;
 import software.amazon.awssdk.services.sqs.model.QueueDoesNotExistException;
-
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 public class SqsTargetResolver {
 

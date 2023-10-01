@@ -1,21 +1,24 @@
 package io.smallrye.reactive.messaging.aws.sqs.action;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.aws.sqs.SqsConnectorCommonConfiguration;
 import io.smallrye.reactive.messaging.aws.sqs.client.SqsClientHolder;
 import io.smallrye.reactive.messaging.aws.sqs.message.SqsCreateQueueMetadata;
 import io.smallrye.reactive.messaging.aws.sqs.message.SqsMessage;
 import io.smallrye.reactive.messaging.aws.sqs.message.SqsMessageMetadata;
+import io.vertx.core.json.JsonObject;
 import software.amazon.awssdk.services.sqs.model.CreateQueueRequest;
 import software.amazon.awssdk.services.sqs.model.CreateQueueResponse;
 import software.amazon.awssdk.services.sqs.model.GetQueueAttributesRequest;
 import software.amazon.awssdk.services.sqs.model.QueueAttributeName;
 
-import java.util.HashMap;
-import java.util.Map;
-
 /**
- * <a href="https://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_CreateQueue.html#SQS-CreateQueue-request-attributes">AWS Documentation</a>
+ * <a href=
+ * "https://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_CreateQueue.html#SQS-CreateQueue-request-attributes">AWS
+ * Documentation</a>
  */
 public class CreateQueueAction {
 
@@ -35,8 +38,7 @@ public class CreateQueueAction {
             SqsCreateQueueMetadata createQueueDlqMetadata = metadata.getCreateQueueDlqMetadata();
             uni = uni.onItem().transformToUni(ignore -> createDlq(
                     clientHolder, queueName, config,
-                    createQueueDlqMetadata.getAttributes(), createQueueDlqMetadata.getTags()
-            ));
+                    createQueueDlqMetadata.getAttributes(), createQueueDlqMetadata.getTags()));
         }
 
         return uni.onItem().transformToUni(preparedAttributes -> {
@@ -51,9 +53,9 @@ public class CreateQueueAction {
     }
 
     private static Uni<Map<QueueAttributeName, String>> createDlq(SqsClientHolder<?> clientHolder, String queueName,
-                                                                  SqsConnectorCommonConfiguration config,
-                                                                  Map<QueueAttributeName, String> attributes,
-                                                                  Map<String, String> tags) {
+            SqsConnectorCommonConfiguration config,
+            Map<QueueAttributeName, String> attributes,
+            Map<String, String> tags) {
 
         Uni<CreateQueueResponse> uni = createQueue(clientHolder,
                 config.getCreateQueueDlqPrefix() + queueName + config.getCreateQueueDlqSuffix(),
@@ -61,20 +63,20 @@ public class CreateQueueAction {
 
         return uni.onItem().transformToUni(response -> getQueueArn(clientHolder, response))
                 .onItem().transform(arn -> Map.of(
-                        QueueAttributeName.REDRIVE_POLICY, createRedrivePolicy(clientHolder, config, arn)));
+                        QueueAttributeName.REDRIVE_POLICY, createRedrivePolicy(config, arn)));
     }
 
-    private static String createRedrivePolicy(SqsClientHolder<?> clientHolder, SqsConnectorCommonConfiguration config,
-                                              String arn) {
-        return clientHolder.getJsonMapping().toJson(Map.of(
-                "deadLetterTargetArn", arn,
-                "maxReceiveCount", config.getCreateQueueDlqMaxReceiveCount()
-        ));
+    private static String createRedrivePolicy(SqsConnectorCommonConfiguration config,
+            String arn) {
+
+        final JsonObject data = JsonObject.of("deadLetterTargetArn", arn)
+                .put("maxReceiveCount", config.getCreateQueueDlqMaxReceiveCount());
+        return data.toString();
     }
 
     private static Uni<CreateQueueResponse> createQueue(SqsClientHolder<?> clientHolder, String queueName,
-                                                        Map<QueueAttributeName, String> attributes,
-                                                        Map<String, String> tags) {
+            Map<QueueAttributeName, String> attributes,
+            Map<String, String> tags) {
 
         CreateQueueRequest request = CreateQueueRequest.builder()
                 .queueName(queueName)

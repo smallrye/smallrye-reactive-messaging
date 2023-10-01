@@ -1,16 +1,61 @@
 package io.smallrye.reactive.messaging.aws.sqs.client;
 
-import io.smallrye.reactive.messaging.aws.sqs.SqsConnectorIncomingConfiguration;
-import io.smallrye.reactive.messaging.aws.sqs.SqsConnectorOutgoingConfiguration;
+import io.smallrye.reactive.messaging.aws.sqs.SqsConnectorCommonConfiguration;
+import io.vertx.core.impl.EventLoopContext;
+import io.vertx.core.impl.VertxInternal;
+import io.vertx.mutiny.core.Vertx;
+import software.amazon.awssdk.core.client.config.SdkAdvancedAsyncClientOption;
+import software.amazon.awssdk.http.nio.netty.NettyNioAsyncHttpClient;
+import software.amazon.awssdk.http.nio.netty.SdkEventLoopGroup;
 import software.amazon.awssdk.services.sqs.SqsAsyncClient;
+import software.amazon.awssdk.services.sqs.SqsAsyncClientBuilder;
 
+/**
+ * Based on some logic of the quarkiverse lib for aws
+ * TODO: Not sure about all of this. Maybe just for qualified SqsAsyncClient beans? This would allow to use it with
+ * Quarkiverse extension. Maybe. Or manually created clients. Otherwise, I would be forced to forward all possible
+ * configurations. But sometimes configs are not flexible enough. The credentials provider topic is already
+ * providing a lot of different approaches to configure them.
+ * But using something like Quarkiverse would also require that we check if netty eventloop is used or not.
+ */
 public class SqsClientFactory {
 
-    public static SqsAsyncClient createSqsClient(final SqsConnectorIncomingConfiguration config) {
-        return null;
+    public static final String NETTY_HTTP_SERVICE = "software.amazon.awssdk.http.nio.netty.NettySdkAsyncHttpService";
+
+    // TODO: I think this makes no sense when we already use netty in vertx.
+    public static final String AWS_CRT_HTTP_SERVICE = "software.amazon.awssdk.http.crt.AwsCrtSdkHttpService";
+
+    public static SqsAsyncClient createSqsClient(SqsConnectorCommonConfiguration config, Vertx vertx) {
+
+        final SqsAsyncClientBuilder builder = SqsAsyncClient.builder();
+
+        final EventLoopContext context = ((VertxInternal) vertx.getDelegate()).createEventLoopContext();
+
+        if (nettyExists()) {
+            builder.asyncConfiguration(b -> b
+                    .advancedOption(SdkAdvancedAsyncClientOption.FUTURE_COMPLETION_EXECUTOR, context.nettyEventLoop()))
+                    .httpClientBuilder(NettyNioAsyncHttpClient.builder()
+                            .eventLoopGroup(SdkEventLoopGroup.create(context.nettyEventLoop())));
+        }
+
+        return builder.build();
     }
 
-    public static SqsAsyncClient createSqsClient(final SqsConnectorOutgoingConfiguration config) {
-        return null;
+    public static boolean nettyExists() {
+        try {
+            Class.forName(NETTY_HTTP_SERVICE);
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    public static boolean awsCrtExists() {
+        try {
+            Class.forName(AWS_CRT_HTTP_SERVICE);
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
     }
 }
