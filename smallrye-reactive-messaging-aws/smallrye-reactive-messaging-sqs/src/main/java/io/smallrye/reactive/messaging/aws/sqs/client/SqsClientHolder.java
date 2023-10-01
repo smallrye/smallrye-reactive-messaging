@@ -1,7 +1,7 @@
 package io.smallrye.reactive.messaging.aws.sqs.client;
 
 import io.smallrye.reactive.messaging.aws.sqs.SqsConnectorCommonConfiguration;
-import io.smallrye.reactive.messaging.aws.sqs.cache.TargetCache;
+import io.smallrye.reactive.messaging.aws.sqs.TargetResolver;
 import io.smallrye.reactive.messaging.json.JsonMapping;
 import software.amazon.awssdk.services.sqs.SqsAsyncClient;
 
@@ -9,13 +9,13 @@ public class SqsClientHolder<C extends SqsConnectorCommonConfiguration> {
     private final SqsAsyncClient client;
     private final C config;
     private final JsonMapping jsonMapping;
-    private final TargetCache targetCache;
+    private final TargetResolver targetResolver;
 
-    public SqsClientHolder(SqsAsyncClient client, C config, JsonMapping jsonMapping, TargetCache targetCache) {
+    public SqsClientHolder(SqsAsyncClient client, C config, JsonMapping jsonMapping, TargetResolver targetResolver) {
         this.client = client;
         this.config = config;
         this.jsonMapping = jsonMapping;
-        this.targetCache = targetCache;
+        this.targetResolver = targetResolver;
     }
 
     public SqsAsyncClient getClient() {
@@ -30,7 +30,7 @@ public class SqsClientHolder<C extends SqsConnectorCommonConfiguration> {
         return jsonMapping;
     }
 
-    public TargetCache getTargetCache() {
-        return targetCache;
+    public TargetResolver getTargetCache() {
+        return targetResolver;
     }
 }

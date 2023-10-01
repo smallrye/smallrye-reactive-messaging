@@ -11,15 +11,15 @@ import software.amazon.awssdk.services.sqs.model.GetQueueUrlResponse;
 public class GetQueueUrlAction {
 
     public static <M extends SqsMessageMetadata> Uni<String> resolveQueueUrl(
-            final SqsClientHolder<?> clientHolder, final SqsMessage<?, M> message) {
-        final SqsConnectorCommonConfiguration config = clientHolder.getConfig();
-        final SqsMessageMetadata sqsMetadata = message.getSqsMetadata();
+            SqsClientHolder<?> clientHolder, SqsMessage<?, M> message) {
+        SqsConnectorCommonConfiguration config = clientHolder.getConfig();
+        SqsMessageMetadata sqsMetadata = message.getSqsMetadata();
 
         return Uni.createFrom().completionStage(
-                        clientHolder.getClient().getQueueUrl(GetQueueUrlRequest.builder()
-                                .queueName(config.getQueue().orElse(config.getChannel()))
-                                .queueOwnerAWSAccountId(sqsMetadata.getQueueOwnerAWSAccountId())
-                                .build()))
+                clientHolder.getClient().getQueueUrl(GetQueueUrlRequest.builder()
+                        .queueName(config.getQueue().orElse(config.getChannel()))
+                        .queueOwnerAWSAccountId(sqsMetadata.getQueueOwnerAWSAccountId())
+                        .build()))
                 .onItem().transform(GetQueueUrlResponse::queueUrl);
     }
 }

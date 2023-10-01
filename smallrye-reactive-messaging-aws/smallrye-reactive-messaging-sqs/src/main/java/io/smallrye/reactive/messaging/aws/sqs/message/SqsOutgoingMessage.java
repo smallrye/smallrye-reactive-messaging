@@ -1,10 +1,10 @@
 package io.smallrye.reactive.messaging.aws.sqs.message;
 
-import org.eclipse.microprofile.reactive.messaging.Message;
-
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 import java.util.function.Supplier;
+
+import org.eclipse.microprofile.reactive.messaging.Message;
 
 public class SqsOutgoingMessage<T> extends SqsMessage<T, SqsOutgoingMessageMetadata> {
 
@@ -13,7 +13,7 @@ public class SqsOutgoingMessage<T> extends SqsMessage<T, SqsOutgoingMessageMetad
     private final Function<Throwable, CompletionStage<Void>> nack;
 
     public SqsOutgoingMessage(final T payload, final SqsOutgoingMessageMetadata metadata, Supplier<CompletionStage<Void>> ack,
-                              Function<Throwable, CompletionStage<Void>> nack) {
+            Function<Throwable, CompletionStage<Void>> nack) {
         super(metadata);
         this.payload = payload;
         this.ack = ack;

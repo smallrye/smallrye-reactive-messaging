@@ -1,13 +1,13 @@
 package io.smallrye.reactive.messaging.aws.sqs.tracing;
 
+import static io.smallrye.reactive.messaging.tracing.TracingUtils.INSTRUMENTATION_NAME;
+
 import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.opentelemetry.instrumentation.api.instrumenter.Instrumenter;
 import io.opentelemetry.instrumentation.api.instrumenter.InstrumenterBuilder;
 import io.opentelemetry.instrumentation.api.instrumenter.messaging.MessageOperation;
 import io.opentelemetry.instrumentation.api.instrumenter.messaging.MessagingAttributesExtractor;
 import io.opentelemetry.instrumentation.api.instrumenter.messaging.MessagingSpanNameExtractor;
-
-import static io.smallrye.reactive.messaging.tracing.TracingUtils.INSTRUMENTATION_NAME;
 
 public class SqsInstrumenter {
 

@@ -1,5 +1,13 @@
 package io.smallrye.reactive.messaging.aws.sqs.action;
 
+import static io.smallrye.reactive.messaging.aws.sqs.i18n.SqsExceptions.ex;
+
+import java.time.Duration;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.OutgoingMessageMetadata;
@@ -12,45 +20,15 @@ import software.amazon.awssdk.services.sqs.model.SendMessageBatchRequest;
 import software.amazon.awssdk.services.sqs.model.SendMessageBatchRequestEntry;
 import software.amazon.awssdk.services.sqs.model.SendMessageBatchResponse;
 
-import java.time.Duration;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-
-import static io.smallrye.reactive.messaging.aws.sqs.i18n.SqsExceptions.ex;
-
 public class SendBatchMessageAction {
 
     public static Uni<Void> sendMessage(
-            final SqsClientHolder<SqsConnectorOutgoingConfiguration> clientHolder,
-            Target target, final List<? extends SqsOutgoingMessage<?>> messages) {
-        final Map<String, SendMessageBatchRequestEntry> entryMap = new HashMap<>();
-        final Map<String, SqsOutgoingMessage<?>> messageMap = new HashMap<>();
+            SqsClientHolder<SqsConnectorOutgoingConfiguration> clientHolder,
+            Target target, List<? extends SqsOutgoingMessage<?>> messages) {
+        // We need to remember the correlation between messageId and outgoing message.
+        Map<String, SqsOutgoingMessage<?>> messageMap = new HashMap<>();
 
-        messages.forEach(msg -> {
-            final String payload = Helper.serialize(msg, clientHolder.getJsonMapping());
-            final String id = UUID.randomUUID().toString();
-
-            final SendMessageBatchRequestEntry entry = SendMessageBatchRequestEntry.builder()
-                    // in batching we need to generate the id of a message for every entry.
-                    .id(id)
-                    .messageAttributes(null)
-                    .messageGroupId(null)
-                    .messageBody(payload)
-
-                    .messageDeduplicationId(null)
-                    .delaySeconds(0)
-                    .messageSystemAttributesWithStrings(null)
-                    .build();
-            messageMap.put(id, msg);
-            entryMap.put(id, entry);
-        });
-
-        final SendMessageBatchRequest request = SendMessageBatchRequest.builder()
-                .queueUrl(target.getTargetUrl())
-                .entries(entryMap.values())
-                .build();
+        SendMessageBatchRequest request = createRequest(clientHolder, target, messages, messageMap);
 
         // TODO: logging
         Uni<Void> uni = Uni.createFrom().completionStage(clientHolder.getClient().sendMessageBatch(request))
@@ -71,15 +49,46 @@ public class SendBatchMessageAction {
         return uni;
     }
 
+    private static SendMessageBatchRequest createRequest(
+            SqsClientHolder<SqsConnectorOutgoingConfiguration> clientHolder,
+            Target target, List<? extends SqsOutgoingMessage<?>> messages,
+            Map<String, SqsOutgoingMessage<?>> messageMap) {
+        Map<String, SendMessageBatchRequestEntry> entryMap = new HashMap<>();
+
+        messages.forEach(msg -> {
+            String payload = Helper.serialize(msg, clientHolder.getJsonMapping());
+            String id = UUID.randomUUID().toString();
+
+            final SendMessageBatchRequestEntry entry = SendMessageBatchRequestEntry.builder()
+                    // in batching we need to generate the id of a message for every entry.
+                    .id(id)
+                    .messageAttributes(null)
+                    .messageGroupId(null)
+                    .messageBody(payload)
+
+                    .messageDeduplicationId(null)
+                    .delaySeconds(0)
+                    .messageSystemAttributesWithStrings(null)
+                    .build();
+            messageMap.put(id, msg);
+            entryMap.put(id, entry);
+        });
+
+        return SendMessageBatchRequest.builder()
+                .queueUrl(target.getTargetUrl())
+                .entries(entryMap.values())
+                .build();
+    }
+
     private static Uni<Void> handleResponse(
             SendMessageBatchResponse response, Map<String, SqsOutgoingMessage<?>> messageMap) {
-        final Uni<Void> successful = Multi.createFrom().iterable(response.successful())
+        Uni<Void> successful = Multi.createFrom().iterable(response.successful())
                 .onItem().call(result -> {
                     OutgoingMessageMetadata.setResultOnMessage(messageMap.get(result.id()), result);
                     return Uni.createFrom().completionStage(messageMap.get(result.id()).ack());
                 }).collect().last().replaceWithVoid();
 
-        final Uni<Void> failed = Multi.createFrom().iterable(response.failed())
+        Uni<Void> failed = Multi.createFrom().iterable(response.failed())
                 .onItem().call(result -> {
                     OutgoingMessageMetadata.setResultOnMessage(messageMap.get(result.id()), result);
                     return Uni.createFrom().completionStage(messageMap.get(result.id())
