@@ -1,14 +1,13 @@
 package io.smallrye.reactive.messaging.aws.sqs.action;
 
+import static io.smallrye.reactive.messaging.aws.config.ConfigHelper.parseToMap;
+
 import java.util.HashMap;
 import java.util.Map;
 
 import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.aws.sqs.SqsConnectorCommonConfiguration;
 import io.smallrye.reactive.messaging.aws.sqs.client.SqsClientHolder;
-import io.smallrye.reactive.messaging.aws.sqs.message.SqsCreateQueueMetadata;
-import io.smallrye.reactive.messaging.aws.sqs.message.SqsMessage;
-import io.smallrye.reactive.messaging.aws.sqs.message.SqsMessageMetadata;
 import io.vertx.core.json.JsonObject;
 import software.amazon.awssdk.services.sqs.model.CreateQueueRequest;
 import software.amazon.awssdk.services.sqs.model.CreateQueueResponse;
@@ -22,65 +21,68 @@ import software.amazon.awssdk.services.sqs.model.QueueAttributeName;
  */
 public class CreateQueueAction {
 
-    public static <M extends SqsMessageMetadata> Uni<String> createQueue(
-            SqsClientHolder<?> clientHolder, SqsMessage<?, M> message) {
+    public static Uni<String> createQueue(SqsClientHolder<?> clientHolder, String queueName) {
         SqsConnectorCommonConfiguration config = clientHolder.getConfig();
 
         if (!config.getCreateQueueEnabled()) {
             return Uni.createFrom().nullItem();
         }
 
-        String queueName = message.getTarget().getTargetName();
-        Uni<Map<QueueAttributeName, String>> uni = Uni.createFrom().item(Map.of());
-        M metadata = message.getSqsMetadata();
+        Uni<Map<String, String>> uni = Uni.createFrom().item(Map.of());
 
-        if (config.getCreateQueueDlqEnabled()) {
-            SqsCreateQueueMetadata createQueueDlqMetadata = metadata.getCreateQueueDlqMetadata();
+        if (config.getCreateQueueDeadLetterQueueEnabled()) {
+            // Parsing is slow. But we assume that creating queues does not happen that often.
+            final Map<String, String> attributes = parseToMap(config.getCreateQueueDeadLetterQueueAttributes());
+            final Map<String, String> tags = parseToMap(config.getCreateQueueDeadLetterQueueTags());
+
             uni = uni.onItem().transformToUni(ignore -> createDlq(
                     clientHolder, queueName, config,
-                    createQueueDlqMetadata.getAttributes(), createQueueDlqMetadata.getTags()));
+                    attributes, tags));
         }
 
         return uni.onItem().transformToUni(preparedAttributes -> {
-            SqsCreateQueueMetadata createQueueMetadata = metadata.getCreateQueueMetadata();
+            // Parsing is slow. But we assume that creating queues does not happen that often.
+            final Map<String, String> configAttributes = parseToMap(config.getCreateQueueAttributes());
+            final Map<String, String> tags = parseToMap(config.getCreateQueueTags());
+            final Map<String, String> attributes = new HashMap<>(preparedAttributes.size() + configAttributes.size());
 
-            HashMap<QueueAttributeName, String> attributes = new HashMap<>();
             attributes.putAll(preparedAttributes);
-            attributes.putAll(createQueueMetadata.getAttributes());
+            attributes.putAll(configAttributes);
 
-            return createQueue(clientHolder, queueName, attributes, createQueueMetadata.getTags());
+            return createQueue(clientHolder, queueName, attributes, tags);
         }).onItem().transform(CreateQueueResponse::queueUrl);
     }
 
-    private static Uni<Map<QueueAttributeName, String>> createDlq(SqsClientHolder<?> clientHolder, String queueName,
+    private static Uni<Map<String, String>> createDlq(
+            SqsClientHolder<?> clientHolder, String queueName,
             SqsConnectorCommonConfiguration config,
-            Map<QueueAttributeName, String> attributes,
+            Map<String, String> attributes,
             Map<String, String> tags) {
 
         Uni<CreateQueueResponse> uni = createQueue(clientHolder,
-                config.getCreateQueueDlqPrefix() + queueName + config.getCreateQueueDlqSuffix(),
+                config.getCreateQueueDeadLetterQueuePrefix() + queueName + config.getCreateQueueDeadLetterQueueSuffix(),
                 attributes, tags);
 
         return uni.onItem().transformToUni(response -> getQueueArn(clientHolder, response))
                 .onItem().transform(arn -> Map.of(
-                        QueueAttributeName.REDRIVE_POLICY, createRedrivePolicy(config, arn)));
+                        QueueAttributeName.REDRIVE_POLICY.toString(), createRedrivePolicy(config, arn)));
     }
 
     private static String createRedrivePolicy(SqsConnectorCommonConfiguration config,
             String arn) {
 
         final JsonObject data = JsonObject.of("deadLetterTargetArn", arn)
-                .put("maxReceiveCount", config.getCreateQueueDlqMaxReceiveCount());
+                .put("maxReceiveCount", config.getCreateQueueDeadLetterQueueMaxReceiveCount());
         return data.toString();
     }
 
-    private static Uni<CreateQueueResponse> createQueue(SqsClientHolder<?> clientHolder, String queueName,
-            Map<QueueAttributeName, String> attributes,
+    private static Uni<CreateQueueResponse> createQueue(
+            SqsClientHolder<?> clientHolder, String queueName,
+            Map<String, String> attributes,
             Map<String, String> tags) {
-
         CreateQueueRequest request = CreateQueueRequest.builder()
                 .queueName(queueName)
-                .attributes(attributes)
+                .attributesWithStrings(attributes)
                 .tags(tags)
                 .build();
 

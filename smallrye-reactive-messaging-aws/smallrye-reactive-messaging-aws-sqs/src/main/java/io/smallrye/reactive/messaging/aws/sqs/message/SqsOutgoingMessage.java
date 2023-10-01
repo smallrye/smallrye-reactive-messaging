@@ -8,21 +8,14 @@ import org.eclipse.microprofile.reactive.messaging.Message;
 
 public class SqsOutgoingMessage<T> extends SqsMessage<T, SqsOutgoingMessageMetadata> {
 
-    private final T payload;
     private final Supplier<CompletionStage<Void>> ack;
     private final Function<Throwable, CompletionStage<Void>> nack;
 
     public SqsOutgoingMessage(final T payload, final SqsOutgoingMessageMetadata metadata, Supplier<CompletionStage<Void>> ack,
             Function<Throwable, CompletionStage<Void>> nack) {
-        super(metadata);
-        this.payload = payload;
+        super(payload, metadata);
         this.ack = ack;
         this.nack = nack;
-    }
-
-    @Override
-    public T getPayload() {
-        return payload;
     }
 
     @Override

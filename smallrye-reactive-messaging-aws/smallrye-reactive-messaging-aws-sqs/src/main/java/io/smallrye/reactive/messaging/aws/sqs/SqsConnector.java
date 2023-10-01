@@ -1,5 +1,33 @@
 package io.smallrye.reactive.messaging.aws.sqs;
 
+import static io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Direction.INCOMING_AND_OUTGOING;
+import static io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Direction.OUTGOING;
+import static io.smallrye.reactive.messaging.aws.serialization.SerializationResolver.resolveDeserializer;
+import static io.smallrye.reactive.messaging.aws.serialization.SerializationResolver.resolveSerializer;
+import static io.smallrye.reactive.messaging.aws.sqs.client.SqsClientFactory.createSqsClient;
+import static io.smallrye.reactive.messaging.aws.sqs.i18n.SqsExceptions.ex;
+import static io.smallrye.reactive.messaging.aws.sqs.i18n.SqsLogging.log;
+
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.Flow;
+
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.Priority;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.context.BeforeDestroyed;
+import jakarta.enterprise.event.Observes;
+import jakarta.enterprise.event.Reception;
+import jakarta.enterprise.inject.Any;
+import jakarta.enterprise.inject.Instance;
+import jakarta.inject.Inject;
+
+import org.eclipse.microprofile.config.Config;
+import org.eclipse.microprofile.reactive.messaging.Message;
+import org.eclipse.microprofile.reactive.messaging.spi.Connector;
+
 import io.smallrye.reactive.messaging.annotations.ConnectorAttribute;
 import io.smallrye.reactive.messaging.aws.serialization.Deserializer;
 import io.smallrye.reactive.messaging.aws.serialization.Serializer;
@@ -10,34 +38,8 @@ import io.smallrye.reactive.messaging.health.HealthReporter;
 import io.smallrye.reactive.messaging.json.JsonMapping;
 import io.smallrye.reactive.messaging.providers.connectors.ExecutionHolder;
 import io.vertx.mutiny.core.Vertx;
-import jakarta.annotation.PostConstruct;
-import jakarta.annotation.Priority;
-import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.enterprise.context.BeforeDestroyed;
-import jakarta.enterprise.event.Observes;
-import jakarta.enterprise.event.Reception;
-import jakarta.enterprise.inject.Any;
-import jakarta.enterprise.inject.Instance;
-import jakarta.inject.Inject;
-import org.eclipse.microprofile.config.Config;
-import org.eclipse.microprofile.reactive.messaging.Message;
-import org.eclipse.microprofile.reactive.messaging.spi.Connector;
 import software.amazon.awssdk.services.sqs.SqsAsyncClient;
 import software.amazon.awssdk.services.sqs.model.SqsException;
-
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.Flow;
-
-import static io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Direction.INCOMING_AND_OUTGOING;
-import static io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Direction.OUTGOING;
-import static io.smallrye.reactive.messaging.aws.serialization.SerializationResolver.resolveDeserializer;
-import static io.smallrye.reactive.messaging.aws.serialization.SerializationResolver.resolveSerializer;
-import static io.smallrye.reactive.messaging.aws.sqs.client.SqsClientFactory.createSqsClient;
-import static io.smallrye.reactive.messaging.aws.sqs.i18n.SqsExceptions.ex;
-import static io.smallrye.reactive.messaging.aws.sqs.i18n.SqsLogging.log;
 
 @ApplicationScoped
 @Connector(SqsConnector.CONNECTOR_NAME)
@@ -46,11 +48,19 @@ import static io.smallrye.reactive.messaging.aws.sqs.i18n.SqsLogging.log;
 @ConnectorAttribute(name = "health-enabled", type = "boolean", direction = ConnectorAttribute.Direction.INCOMING_AND_OUTGOING, description = "Whether health reporting is enabled (default) or disabled", defaultValue = "true")
 @ConnectorAttribute(name = "tracing-enabled", type = "boolean", direction = ConnectorAttribute.Direction.INCOMING_AND_OUTGOING, description = "Whether tracing is enabled (default) or disabled", defaultValue = "true")
 
+@ConnectorAttribute(name = "queue-resolver.queue-owner-aws-account-id", type = "string", direction = INCOMING_AND_OUTGOING, description = "During queue url resolving it is possible to overwrite the queue owner.")
+
 @ConnectorAttribute(name = "create-queue.enabled", type = "boolean", direction = ConnectorAttribute.Direction.INCOMING_AND_OUTGOING, description = "Whether automatic queue creation is enabled or disabled (default)", defaultValue = "false")
-@ConnectorAttribute(name = "create-queue.dlq.enabled", type = "boolean", direction = ConnectorAttribute.Direction.INCOMING_AND_OUTGOING, description = "Whether automatic dead-letter queue creation is enabled or disabled (default)", defaultValue = "false")
-@ConnectorAttribute(name = "create-queue.dlq.prefix", type = "string", direction = ConnectorAttribute.Direction.INCOMING_AND_OUTGOING, description = "Dead-letter queue name prefix", defaultValue = "")
-@ConnectorAttribute(name = "create-queue.dlq.suffix", type = "string", direction = ConnectorAttribute.Direction.INCOMING_AND_OUTGOING, description = "Dead-letter queue name suffix", defaultValue = "-dlq")
-@ConnectorAttribute(name = "create-queue.dlq.max-receive-count", type = "int", direction = ConnectorAttribute.Direction.INCOMING_AND_OUTGOING, description = "The number of times a message is delivered to the source queue before being moved to the dead-letter queue. Default: 10. When the ReceiveCount for a message exceeds the maxReceiveCount for a queue, Amazon SQS moves the message to the dead-letter-queue.", defaultValue = "10")
+// TODO: Not sure how to load maps. Maybe: key:value,key:value. It is not very efficient, but it is cached by the SqsTargetResolver. So maybe it does not matter.
+//  Otherwise, I would need to wrap the config so that I can keep using the easy generated way, but also overwrite methods, to add config internal caching.
+@ConnectorAttribute(name = "create-queue.attributes", type = "string", direction = INCOMING_AND_OUTGOING, description = "A comma separated list of attributes for queue creation. Default empty.", defaultValue = "")
+@ConnectorAttribute(name = "create-queue.tags", type = "string", direction = INCOMING_AND_OUTGOING, description = "A comma separated list of tags for queue creation. Default empty.", defaultValue = "")
+@ConnectorAttribute(name = "create-queue.dead-letter-queue.enabled", type = "boolean", direction = ConnectorAttribute.Direction.INCOMING_AND_OUTGOING, description = "Whether automatic dead-letter queue creation is enabled or disabled (default)", defaultValue = "false")
+@ConnectorAttribute(name = "create-queue.dead-letter-queue.prefix", type = "string", direction = ConnectorAttribute.Direction.INCOMING_AND_OUTGOING, description = "Dead-letter queue name prefix", defaultValue = "")
+@ConnectorAttribute(name = "create-queue.dead-letter-queue.suffix", type = "string", direction = ConnectorAttribute.Direction.INCOMING_AND_OUTGOING, description = "Dead-letter queue name suffix", defaultValue = "-dlq")
+@ConnectorAttribute(name = "create-queue.dead-letter-queue.max-receive-count", type = "int", direction = ConnectorAttribute.Direction.INCOMING_AND_OUTGOING, description = "The number of times a message is delivered to the source queue before being moved to the dead-letter queue. Default: 10. When the ReceiveCount for a message exceeds the maxReceiveCount for a queue, Amazon SQS moves the message to the dead-letter-queue.", defaultValue = "10")
+@ConnectorAttribute(name = "create-queue.dead-letter-queue.attributes", type = "string", direction = INCOMING_AND_OUTGOING, description = "A comma separated list of attributes for queue creation. Default empty.", defaultValue = "")
+@ConnectorAttribute(name = "create-queue.dead-letter-queue.tags", type = "string", direction = INCOMING_AND_OUTGOING, description = "A comma separated list of tags for queue creation. Default empty.", defaultValue = "")
 
 @ConnectorAttribute(name = "serialization-identifier", type = "string", direction = INCOMING_AND_OUTGOING, description = "Name of the @Identifier to use. If not specified the channel name is used.")
 
@@ -58,6 +68,12 @@ import static io.smallrye.reactive.messaging.aws.sqs.i18n.SqsLogging.log;
 @ConnectorAttribute(name = "send.batch.enabled", type = "boolean", direction = OUTGOING, description = "Send messages in batches.", defaultValue = "false")
 
 // incomming
+@ConnectorAttribute(name = "max-number-of-messages", type = "int", direction = ConnectorAttribute.Direction.INCOMING, description = "The maximum number of messages to return. Amazon SQS never returns more messages than this value (however, fewer messages might be returned). Valid values: 1 to 10. Default: 10.", defaultValue = "10")
+@ConnectorAttribute(name = "wait-time-seconds", type = "int", direction = ConnectorAttribute.Direction.INCOMING, description = "The duration (in seconds) for which the call waits for a message to arrive in the queue before returning. If a message is available, the call returns sooner than WaitTimeSeconds. If no messages are available and the wait time expires, the call returns successfully with an empty list of messages. Default 20s.", defaultValue = "20")
+@ConnectorAttribute(name = "visibility-timeout", type = "int", direction = ConnectorAttribute.Direction.INCOMING, description = "The duration (in seconds) that the received messages are hidden from subsequent retrieve requests after being retrieved by a request. Default 15s.", defaultValue = "15")
+@ConnectorAttribute(name = "attribute-names", type = "string", direction = ConnectorAttribute.Direction.INCOMING, description = "A comma separated list of attributes that need to be returned along with each message. Default empty.", defaultValue = "")
+@ConnectorAttribute(name = "message-attribute-names", type = "string", direction = ConnectorAttribute.Direction.INCOMING, description = "A comma separated list of message attributes that need to be returned along with each message. Default empty.", defaultValue = "")
+
 public class SqsConnector implements InboundConnector, OutboundConnector, HealthReporter {
 
     static final String CONNECTOR_NAME = "smallrye-aws-sqs";

@@ -17,7 +17,7 @@ public class SqsClientHolder<C extends SqsConnectorCommonConfiguration> extends 
         this.targetResolver = targetResolver;
     }
 
-    public SqsTargetResolver getTargetCache() {
+    public SqsTargetResolver getTargetResolver() {
         return targetResolver;
     }
 }
