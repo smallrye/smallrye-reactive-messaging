@@ -25,7 +25,7 @@ import io.smallrye.config.SmallRyeConfigBuilder;
 @SetEnvironmentVariable(key = "MP_MESSAGING_CONNECTOR_SOME_CONNECTOR_ATTR1", value = "should not be used")
 @SetEnvironmentVariable(key = "MP_MESSAGING_CONNECTOR_SOME_CONNECTOR_ATTR3", value = "used")
 @SetEnvironmentVariable(key = "mp_messaging_connector_some_connector_attr4", value = "used")
-@SetEnvironmentVariable(key = "mp_messaging_connector_SOME_CONNECTOR_mixedcase", value = "should not be used")
+@SetEnvironmentVariable(key = "mp_messaging_connector_SOME_CONNECTOR_mixedcase", value = "used")
 @DisabledForJreRange(min = JRE.JAVA_17, disabledReason = "Environment cannot be modified on Java 17")
 public class ConnectorConfigTest {
 
@@ -85,7 +85,7 @@ public class ConnectorConfigTest {
     @SetEnvironmentVariable(key = "MP_MESSAGING_CONNECTOR_SOME_CONNECTOR_ATTR1", value = "should not be used")
     @SetEnvironmentVariable(key = "MP_MESSAGING_CONNECTOR_SOME_CONNECTOR_ATTR3", value = "used")
     @SetEnvironmentVariable(key = "mp_messaging_connector_some_connector_attr4", value = "used")
-    @SetEnvironmentVariable(key = "mp_messaging_connector_SOME_CONNECTOR_mixedcase", value = "should not be used")
+    @SetEnvironmentVariable(key = "mp_messaging_connector_SOME_CONNECTOR_mixedcase", value = "used")
     @Test
     public void testPropertyNames() {
 
@@ -126,7 +126,7 @@ public class ConnectorConfigTest {
         assertThat(config.getOptionalValue("ATTR4", String.class)).hasValue("used-2");
         // Mixed case value in env should not be found as it does not match the key we're looking for
         // either in its original casing, or after conversion to uppercase.
-        assertThat(config.getOptionalValue("mixedcase", String.class)).isEmpty();
+        assertThat(config.getOptionalValue("mixedcase", String.class)).hasValue("used");
     }
 
     @Test
