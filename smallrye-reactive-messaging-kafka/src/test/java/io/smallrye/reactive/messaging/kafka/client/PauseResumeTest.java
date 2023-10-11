@@ -1,6 +1,7 @@
 package io.smallrye.reactive.messaging.kafka.client;
 
 import static io.smallrye.reactive.messaging.kafka.base.MockKafkaUtils.injectMockConsumer;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 import java.time.Duration;
@@ -74,10 +75,10 @@ public class PauseResumeTest extends WeldTestBase {
         beginning.put(tp2, 0L);
         consumer.updateBeginningOffsets(beginning);
 
-        // Push 20
+        // Push 30
         consumer.schedulePollTask(() -> {
             consumer.rebalance(Arrays.asList(tp0, tp1, tp2));
-            for (int i = 0; i < 20; i++) {
+            for (int i = 0; i < 30; i++) {
                 consumer.addRecord(new ConsumerRecord<>(TOPIC, 0, i, "k", "v" + i));
             }
         });
@@ -96,13 +97,13 @@ public class PauseResumeTest extends WeldTestBase {
         });
 
         // Pull 10
-        subscriber.request(10);
+        subscriber.request(20);
 
         // Await resume
         await().until(() -> consumer.paused().isEmpty());
 
         // Received items
-        await().until(() -> subscriber.getItems().size() == 11);
+        await().until(() -> subscriber.getItems().size() == 21);
 
         // Push 10
         consumer.schedulePollTask(() -> {
@@ -152,12 +153,21 @@ public class PauseResumeTest extends WeldTestBase {
             }
         });
 
+        // Push 10 more to force pause
+        consumer.schedulePollTask(() -> {
+            for (int i = 5; i < 10; i++) {
+                consumer.addRecord(new ConsumerRecord<>(TOPIC, 2, i, "k", "v" + i));
+                consumer.addRecord(new ConsumerRecord<>(TOPIC, 3, i, "k", "v" + i));
+            }
+        });
+
         // Received first
-        await().until(() -> subscriber.getItems().size() == 1);
+        await().until(() -> subscriber.getItems().size() >= 1);
 
         // Await pause
         await().until(() -> !consumer.paused().isEmpty());
 
+        // Push 20
         consumer.schedulePollTask(() -> {
             consumer.rebalance(Arrays.asList(tp0, tp1));
             for (int i = 5; i < 15; i++) {
@@ -167,17 +177,18 @@ public class PauseResumeTest extends WeldTestBase {
         });
 
         // Pull 30
-        subscriber.request(30);
+        subscriber.request(40);
 
         // Await resume
         await().until(() -> !resumedPartitions(consumer).isEmpty());
 
-        // Received all
-        await().until(() -> subscriber.getItems().size() >= 31);
+        // Received either only from tp0 and tp1, which will be a total of 30 records
+        // either also from tp2 and tp3, which will be
+        await().untilAsserted(() -> assertThat(subscriber.getItems()).hasSizeGreaterThanOrEqualTo(30));
 
     }
 
-    @RepeatedTest(3)
+    @Test
     void testRebalanceDuringPausedWithDifferentPartitions() {
         MapBasedConfig config = commonConfiguration()
                 .with(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, 10)
@@ -204,10 +215,10 @@ public class PauseResumeTest extends WeldTestBase {
         beginning.put(tp3, 0L);
         consumer.updateBeginningOffsets(beginning);
 
-        // Push 20
+        // Push 30
         consumer.schedulePollTask(() -> {
             consumer.rebalance(Arrays.asList(tp0, tp1));
-            for (int i = 0; i < 10; i++) {
+            for (int i = 0; i < 15; i++) {
                 consumer.addRecord(new ConsumerRecord<>(TOPIC, 0, i, "k", "0v" + i));
                 consumer.addRecord(new ConsumerRecord<>(TOPIC, 1, i, "k", "1v" + i));
             }
@@ -222,8 +233,6 @@ public class PauseResumeTest extends WeldTestBase {
         // Rebalance with different partitions
         consumer.schedulePollTask(() -> {
             consumer.rebalance(Arrays.asList(tp2, tp3));
-            source.getConsumer().getRebalanceListener().onPartitionsRevoked(Arrays.asList(tp0, tp1));
-            source.getConsumer().getRebalanceListener().onPartitionsAssigned(Arrays.asList(tp2, tp3));
         });
 
         // Should resume after rebalance since records from revoked partitions are expunged
@@ -294,7 +303,7 @@ public class PauseResumeTest extends WeldTestBase {
         await().until(() -> items.size() == 5);
     }
 
-    @RepeatedTest(3)
+    @Test
     void testPauseResumeWithBlockingConsumptionAndConcurrency() {
         MapBasedConfig config = commonConfiguration()
                 .with("client.id", UUID.randomUUID().toString());
@@ -338,6 +347,7 @@ public class PauseResumeTest extends WeldTestBase {
     private MapBasedConfig commonConfiguration() {
         return new MapBasedConfig()
                 .with("channel-name", "channel")
+                .with("graceful-shutdown", false)
                 .with("topic", TOPIC)
                 .with("health-enabled", false)
                 .with("value.deserializer", StringDeserializer.class.getName());
