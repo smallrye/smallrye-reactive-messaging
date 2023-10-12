@@ -34,7 +34,7 @@ public interface PublisherDecorator extends Prioritized {
      * @return the extended multi
      * @deprecated replaced with {@link #decorate(Multi, List, boolean)}
      */
-    @Deprecated(since = "4.10.1")
+    @Deprecated(since = "4.12.0")
     default Multi<? extends Message<?>> decorate(Multi<? extends Message<?>> publisher, String channelName,
             boolean isConnector) {
         return publisher;
