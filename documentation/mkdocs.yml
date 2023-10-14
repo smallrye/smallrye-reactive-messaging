@@ -14,6 +14,7 @@ nav:
             - 'Development Model': concepts/model.md
             - 'Emitters and Channel' : concepts/emitter.md
             - 'Connectors' : concepts/connectors.md
+            - 'Contributing Connectors' : concepts/contributing-connectors.md
             - 'Acknowledgement': concepts/acknowledgement.md
             - 'Blocking Processing': concepts/blocking.md
             - 'Method Signatures': concepts/signatures.md
