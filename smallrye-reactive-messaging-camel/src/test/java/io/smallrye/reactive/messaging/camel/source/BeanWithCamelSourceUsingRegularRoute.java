@@ -5,13 +5,14 @@ import java.util.List;
 import java.util.concurrent.CompletionStage;
 
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Produces;
 
-import org.apache.camel.builder.RouteBuilder;
+import org.apache.camel.builder.LambdaRouteBuilder;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Message;
 
 @ApplicationScoped
-public class BeanWithCamelSourceUsingRegularRoute extends RouteBuilder {
+public class BeanWithCamelSourceUsingRegularRoute {
 
     private final List<String> list = new ArrayList<>();
 
@@ -25,9 +26,9 @@ public class BeanWithCamelSourceUsingRegularRoute extends RouteBuilder {
         return list;
     }
 
-    @Override
-    public void configure() {
-        from("seda:in").process(exchange -> exchange.getMessage()
+    @Produces
+    public LambdaRouteBuilder configure() {
+        return rb -> rb.from("seda:in").process(exchange -> exchange.getMessage()
                 .setBody(exchange.getIn().getBody(String.class).toUpperCase()))
                 .to("seda:out");
     }

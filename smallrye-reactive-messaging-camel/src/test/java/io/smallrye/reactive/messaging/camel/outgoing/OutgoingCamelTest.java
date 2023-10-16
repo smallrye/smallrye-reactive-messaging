@@ -78,7 +78,7 @@ public class OutgoingCamelTest extends CamelTestBase {
     }
 
     @Test
-    public void testWithBeanDeclaringATypedReactiveStreamRoute() {
+    public void testWithBeanDeclaringATypedReactiveStreamRouteWithSingletonScope() {
         addClasses(BeanWithTypedCamelReactiveStreamRoute.class);
         initialize();
         BeanWithTypedCamelReactiveStreamRoute bean = bean(BeanWithTypedCamelReactiveStreamRoute.class);

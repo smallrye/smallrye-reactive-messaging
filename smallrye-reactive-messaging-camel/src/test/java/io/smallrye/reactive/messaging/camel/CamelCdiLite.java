@@ -6,6 +6,7 @@ import jakarta.enterprise.inject.Produces;
 import jakarta.inject.Inject;
 
 import org.apache.camel.ExtendedCamelContext;
+import org.apache.camel.builder.LambdaRouteBuilder;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.component.reactive.streams.ReactiveStreamsComponent;
 import org.apache.camel.impl.DefaultCamelContext;
@@ -15,6 +16,9 @@ public class CamelCdiLite {
 
     @Inject
     Instance<RouteBuilder> builders;
+
+    @Inject
+    Instance<LambdaRouteBuilder> lambdaBuilders;
 
     @Produces
     @ApplicationScoped
@@ -32,6 +36,13 @@ public class CamelCdiLite {
         builders.stream().forEach(rb -> {
             try {
                 context.addRoutes(rb);
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        });
+        lambdaBuilders.stream().forEach(rb -> {
+            try {
+                RouteBuilder.addRoutes(context, rb);
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
