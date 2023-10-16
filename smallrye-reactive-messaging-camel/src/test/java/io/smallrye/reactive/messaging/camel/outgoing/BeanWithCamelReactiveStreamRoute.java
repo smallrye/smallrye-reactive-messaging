@@ -7,10 +7,11 @@ import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Flow;
 
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Produces;
 import jakarta.inject.Inject;
 
 import org.apache.camel.Exchange;
-import org.apache.camel.builder.RouteBuilder;
+import org.apache.camel.builder.LambdaRouteBuilder;
 import org.apache.camel.component.reactive.streams.api.CamelReactiveStreamsService;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
@@ -18,7 +19,7 @@ import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import mutiny.zero.flow.adapters.AdaptersToFlow;
 
 @ApplicationScoped
-public class BeanWithCamelReactiveStreamRoute extends RouteBuilder {
+public class BeanWithCamelReactiveStreamRoute {
 
     @Inject
     private CamelReactiveStreamsService camel;
@@ -46,9 +47,9 @@ public class BeanWithCamelReactiveStreamRoute extends RouteBuilder {
         return values;
     }
 
-    @Override
-    public void configure() {
-        from("seda:camel")
+    @Produces
+    public LambdaRouteBuilder route() {
+        return rb -> rb.from("seda:camel")
                 .process(exchange -> exchange.getMessage().setBody(exchange.getIn().getBody(String.class).toUpperCase()))
                 .to("reactive-streams:my-stream");
     }

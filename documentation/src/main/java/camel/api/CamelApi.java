@@ -3,10 +3,14 @@ package camel.api;
 import java.util.concurrent.CompletionStage;
 
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Produces;
 import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 
+import org.apache.camel.BindToRegistry;
 import org.apache.camel.CamelContext;
 import org.apache.camel.Exchange;
+import org.apache.camel.builder.LambdaRouteBuilder;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.component.reactive.streams.api.CamelReactiveStreamsService;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
@@ -29,7 +33,7 @@ public class CamelApi {
     // </source>
 
     // <source-route-builder>
-    @ApplicationScoped
+    @Singleton
     static class MyRouteBuilder extends RouteBuilder {
         @Inject
         CamelReactiveStreamsService reactiveStreamsService;
@@ -47,6 +51,27 @@ public class CamelApi {
         }
     }
     // </source-route-builder>
+
+    // <source-lambda-route-builder>
+    @ApplicationScoped
+    static class MyLambdaRouteBuilder {
+        @Inject
+        CamelReactiveStreamsService reactiveStreamsService;
+
+        @Outgoing("sink")
+        public Publisher<String> getDataFromCamelRoute() {
+            return reactiveStreamsService.fromStream("my-stream", String.class);
+        }
+
+        @Produces
+        @BindToRegistry
+        public LambdaRouteBuilder route() {
+            return rb -> rb.from("seda:camel").process(
+                    exchange -> exchange.getMessage().setBody(exchange.getIn().getBody(String.class).toUpperCase()))
+                    .to("reactive-streams:my-stream");
+        }
+    }
+    // </source-lambda-route-builder>
 
     // <sink>
     @Incoming("to-camel")
