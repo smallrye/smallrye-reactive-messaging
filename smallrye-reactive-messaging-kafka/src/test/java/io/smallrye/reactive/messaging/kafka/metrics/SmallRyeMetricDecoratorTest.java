@@ -4,9 +4,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.atomic.LongAdder;
 
 import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -19,6 +21,8 @@ import org.eclipse.microprofile.metrics.MetricID;
 import org.eclipse.microprofile.metrics.MetricRegistry;
 import org.eclipse.microprofile.metrics.Tag;
 import org.eclipse.microprofile.metrics.annotation.RegistryType;
+import org.eclipse.microprofile.reactive.messaging.Channel;
+import org.eclipse.microprofile.reactive.messaging.Emitter;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
@@ -33,10 +37,12 @@ import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 
 public class SmallRyeMetricDecoratorTest extends WeldTestBase {
 
+    public static final List<String> TEST_MESSAGES = Arrays.asList("foo", "bar", "baz");
+
     @Test
     void testOnlyMetricDecoratorAvailable() {
         weld.addExtensions(MetricCdiInjectionExtension.class);
-        runApplication(config(), MetricsTestBean.class);
+        runApplication(config(), MetricsTestEmitterBean.class);
         Instance<PublisherDecorator> decorators = container.select(PublisherDecorator.class);
         assertThat(decorators.select(MetricDecorator.class).isResolvable()).isTrue();
     }
@@ -45,13 +51,26 @@ public class SmallRyeMetricDecoratorTest extends WeldTestBase {
     public void testMicroProfileMetrics() {
         weld.addExtensions(MetricCdiInjectionExtension.class);
         MetricsTestBean bean = runApplication(config(), MetricsTestBean.class);
-
         await().until(() -> bean.received().size() == 6);
 
-        assertEquals(MetricsTestBean.TEST_MESSAGES.size(), getCounter("source").getCount());
+        assertEquals(TEST_MESSAGES.size(), getCounter("source").getCount());
 
         // Between source and sink, each message is duplicated so we expect double the count for sink
-        assertEquals(MetricsTestBean.TEST_MESSAGES.size() * 2, getCounter("sink").getCount());
+        assertEquals(TEST_MESSAGES.size() * 2, getCounter("sink").getCount());
+    }
+
+    @Test
+    public void testMicroProfileMetricsWithEmitter() {
+        weld.addExtensions(MetricCdiInjectionExtension.class);
+        MetricsTestEmitterBean bean = runApplication(config(), MetricsTestEmitterBean.class);
+
+        resetCounters();
+        bean.sendMessages();
+        await().until(() -> bean.received().size() == 6);
+        assertEquals(TEST_MESSAGES.size(), getCounter("source").getCount());
+
+        // Between source and sink, each message is duplicated so we expect double the count for sink
+        assertEquals(TEST_MESSAGES.size() * 2, getCounter("sink").getCount());
     }
 
     static MetricID metricID(String channelName) {
@@ -60,6 +79,20 @@ public class SmallRyeMetricDecoratorTest extends WeldTestBase {
 
     private MapBasedConfig config() {
         return new MapBasedConfig().put("smallrye.messaging.metrics.mp.enabled", true);
+    }
+
+    private void resetCounters() {
+        MetricRegistry registry = container.select(MetricRegistry.class, RegistryTypeLiteral.BASE).get();
+        registry.getCounters().forEach((metricID, counter) -> {
+            try {
+                Field count = counter.getClass().getDeclaredField("count");
+                count.setAccessible(true);
+                LongAdder adder = (LongAdder) count.get(counter);
+                adder.reset();
+            } catch (NoSuchFieldException | IllegalAccessException e) {
+                throw new RuntimeException(e);
+            }
+        });
     }
 
     private Counter getCounter(String channelName) {
@@ -86,8 +119,6 @@ public class SmallRyeMetricDecoratorTest extends WeldTestBase {
     @ApplicationScoped
     public static class MetricsTestBean {
 
-        public static final List<String> TEST_MESSAGES = Arrays.asList("foo", "bar", "baz");
-
         final List<String> received = new ArrayList<>();
 
         @Inject
@@ -103,6 +134,37 @@ public class SmallRyeMetricDecoratorTest extends WeldTestBase {
         @Outgoing("source")
         public PublisherBuilder<String> source() {
             return ReactiveStreams.fromIterable(TEST_MESSAGES);
+        }
+
+        @Incoming("source")
+        @Outgoing("sink")
+        public PublisherBuilder<String> duplicate(String input) {
+            return ReactiveStreams.of(input, input);
+        }
+
+        @Incoming("sink")
+        public void sink(String message) {
+            received.add(message);
+        }
+
+        public List<String> received() {
+            return received;
+        }
+    }
+
+    @ApplicationScoped
+    public static class MetricsTestEmitterBean {
+
+        final List<String> received = new ArrayList<>();
+
+        @Inject
+        @Channel("source")
+        Emitter<String> emitter;
+
+        public void sendMessages() {
+            for (String msg : TEST_MESSAGES) {
+                emitter.send(msg);
+            }
         }
 
         @Incoming("source")
