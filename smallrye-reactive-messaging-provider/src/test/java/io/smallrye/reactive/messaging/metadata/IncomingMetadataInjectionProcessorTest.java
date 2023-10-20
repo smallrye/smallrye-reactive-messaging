@@ -28,9 +28,11 @@ public class IncomingMetadataInjectionProcessorTest extends WeldTestBaseWithoutT
     @ParameterizedTest
     @ValueSource(classes = { ProcessorIngestingPayload.class, ProcessorIngestingPayloadWithOptional.class,
             ProcessorIngestingPayloadWithMultipleMetadata.class, ProcessorIngestingPayloadWithMultipleMetadataAndBlocking.class,
-            ProcessorIngestingPayloadBlocking.class, ProcessorIngestingPayloadWithOptionalAndBlocking.class })
-    void testMetadataInjectingInProcessorIngestingPayload() {
-        addBeanClass(Source.class, Sink.class, ProcessorIngestingPayload.class);
+            ProcessorIngestingPayloadBlocking.class, ProcessorIngestingPayloadWithOptionalAndBlocking.class,
+            ProcessorIngestingPayloadWithInterfaceMetadata.class,
+            ProcessorIngestingPayloadWithOptionalInterfaceMetadata.class })
+    void testMetadataInjectingInProcessorIngestingPayload(Class<?> processor) {
+        addBeanClass(Source.class, Sink.class, processor);
         initialize();
         IncomingMetadataInjectionProcessorTest.Sink sink = container.select(IncomingMetadataInjectionProcessorTest.Sink.class)
                 .get();
@@ -95,6 +97,32 @@ public class IncomingMetadataInjectionProcessorTest extends WeldTestBaseWithoutT
             assertThat(p).isNotNull();
             assertThat(metadata).isNotNull().isPresent();
             assertThat(metadata.get().getMessage()).isEqualTo("foo");
+            return p;
+        }
+    }
+
+    @ApplicationScoped
+    public static class ProcessorIngestingPayloadWithOptionalInterfaceMetadata {
+        @Incoming("source")
+        @Outgoing("sink")
+        public String process(String p, Optional<SimplePropagationTest.InterfaceMetadata> metadata) {
+            assertThat(Infrastructure.canCallerThreadBeBlocked()).isTrue();
+            assertThat(p).isNotNull();
+            assertThat(metadata).isNotNull().isPresent();
+            assertThat(metadata.get().getMessage()).isEqualTo("foo");
+            return p;
+        }
+    }
+
+    @ApplicationScoped
+    public static class ProcessorIngestingPayloadWithInterfaceMetadata {
+        @Incoming("source")
+        @Outgoing("sink")
+        public String process(String p, SimplePropagationTest.InterfaceMetadata metadata) {
+            assertThat(Infrastructure.canCallerThreadBeBlocked()).isTrue();
+            assertThat(p).isNotNull();
+            assertThat(metadata).isNotNull();
+            assertThat(metadata.getMessage()).isEqualTo("foo");
             return p;
         }
     }
