@@ -1,11 +1,11 @@
 package io.smallrye.reactive.messaging.rabbitmq;
 
-import static io.opentelemetry.semconv.trace.attributes.SemanticAttributes.MESSAGING_DESTINATION_NAME;
-import static io.opentelemetry.semconv.trace.attributes.SemanticAttributes.MESSAGING_OPERATION;
-import static io.opentelemetry.semconv.trace.attributes.SemanticAttributes.MESSAGING_PROTOCOL;
-import static io.opentelemetry.semconv.trace.attributes.SemanticAttributes.MESSAGING_PROTOCOL_VERSION;
-import static io.opentelemetry.semconv.trace.attributes.SemanticAttributes.MESSAGING_RABBITMQ_ROUTING_KEY;
-import static io.opentelemetry.semconv.trace.attributes.SemanticAttributes.MESSAGING_SYSTEM;
+import static io.opentelemetry.semconv.SemanticAttributes.MESSAGING_DESTINATION_NAME;
+import static io.opentelemetry.semconv.SemanticAttributes.MESSAGING_OPERATION;
+import static io.opentelemetry.semconv.SemanticAttributes.MESSAGING_PROTOCOL;
+import static io.opentelemetry.semconv.SemanticAttributes.MESSAGING_PROTOCOL_VERSION;
+import static io.opentelemetry.semconv.SemanticAttributes.MESSAGING_RABBITMQ_ROUTING_KEY;
+import static io.opentelemetry.semconv.SemanticAttributes.MESSAGING_SYSTEM;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;

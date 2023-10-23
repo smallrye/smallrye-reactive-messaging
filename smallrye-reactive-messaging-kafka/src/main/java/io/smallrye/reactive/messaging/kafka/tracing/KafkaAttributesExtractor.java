@@ -1,10 +1,10 @@
 package io.smallrye.reactive.messaging.kafka.tracing;
 
-import static io.opentelemetry.semconv.trace.attributes.SemanticAttributes.MESSAGING_CONSUMER_ID;
-import static io.opentelemetry.semconv.trace.attributes.SemanticAttributes.MESSAGING_KAFKA_CLIENT_ID;
-import static io.opentelemetry.semconv.trace.attributes.SemanticAttributes.MESSAGING_KAFKA_CONSUMER_GROUP;
-import static io.opentelemetry.semconv.trace.attributes.SemanticAttributes.MESSAGING_KAFKA_MESSAGE_OFFSET;
-import static io.opentelemetry.semconv.trace.attributes.SemanticAttributes.MESSAGING_KAFKA_PARTITION;
+import static io.opentelemetry.semconv.SemanticAttributes.MESSAGING_CONSUMER_ID;
+import static io.opentelemetry.semconv.SemanticAttributes.MESSAGING_KAFKA_CLIENT_ID;
+import static io.opentelemetry.semconv.SemanticAttributes.MESSAGING_KAFKA_CONSUMER_GROUP;
+import static io.opentelemetry.semconv.SemanticAttributes.MESSAGING_KAFKA_MESSAGE_OFFSET;
+import static io.opentelemetry.semconv.SemanticAttributes.MESSAGING_KAFKA_PARTITION;
 
 import io.opentelemetry.api.common.AttributesBuilder;
 import io.opentelemetry.context.Context;

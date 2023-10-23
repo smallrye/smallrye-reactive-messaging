@@ -2,9 +2,9 @@ package io.smallrye.reactive.messaging.amqp;
 
 import static io.opentelemetry.api.trace.SpanKind.CONSUMER;
 import static io.opentelemetry.api.trace.SpanKind.PRODUCER;
-import static io.opentelemetry.semconv.trace.attributes.SemanticAttributes.MESSAGING_DESTINATION_NAME;
-import static io.opentelemetry.semconv.trace.attributes.SemanticAttributes.MESSAGING_OPERATION;
-import static io.opentelemetry.semconv.trace.attributes.SemanticAttributes.MESSAGING_SYSTEM;
+import static io.opentelemetry.semconv.SemanticAttributes.MESSAGING_DESTINATION_NAME;
+import static io.opentelemetry.semconv.SemanticAttributes.MESSAGING_OPERATION;
+import static io.opentelemetry.semconv.SemanticAttributes.MESSAGING_SYSTEM;
 import static java.util.stream.Collectors.toList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
