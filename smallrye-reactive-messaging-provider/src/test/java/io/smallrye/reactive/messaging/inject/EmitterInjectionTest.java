@@ -669,6 +669,7 @@ public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
                 return 128;
             }
         };
+        initialize();
         EmitterConfiguration config = new DefaultEmitterConfiguration("my-channel", EMITTER, overflow, null);
         EmitterImpl<String> emitter = new EmitterImpl<>(config, 128);
         Flow.Publisher<Message<? extends String>> publisher = emitter.getPublisher();

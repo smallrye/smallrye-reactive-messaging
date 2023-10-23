@@ -7,6 +7,9 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 
+import jakarta.enterprise.inject.Instance;
+import jakarta.enterprise.inject.spi.CDI;
+
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.OnOverflow;
 
@@ -17,6 +20,8 @@ import io.smallrye.reactive.messaging.EmitterConfiguration;
 import io.smallrye.reactive.messaging.MessagePublisherProvider;
 import io.smallrye.reactive.messaging.providers.helpers.BroadcastHelper;
 import io.smallrye.reactive.messaging.providers.helpers.NoStackTraceException;
+import io.smallrye.reactive.messaging.providers.metrics.MetricDecorator;
+import io.smallrye.reactive.messaging.providers.metrics.MicrometerDecorator;
 
 public abstract class AbstractEmitter<T> implements MessagePublisherProvider<T> {
     public static final NoStackTraceException NO_SUBSCRIBER_EXCEPTION = new NoStackTraceException(
@@ -49,6 +54,16 @@ public abstract class AbstractEmitter<T> implements MessagePublisherProvider<T> 
         Multi<Message<? extends T>> tempPublisher = getPublisherForStrategy(config.overflowBufferStrategy(),
                 config.overflowBufferSize(),
                 defaultBufferSize, deferred);
+
+        Instance<MetricDecorator> metric = CDI.current().select(MetricDecorator.class);
+        Instance<MicrometerDecorator> micrometer = CDI.current().select(MicrometerDecorator.class);
+
+        if (metric.isResolvable()) {
+            tempPublisher = (Multi<Message<? extends T>>) metric.get().decorate(tempPublisher, config.name(), false);
+        }
+        if (micrometer.isResolvable()) {
+            tempPublisher = (Multi<Message<? extends T>>) micrometer.get().decorate(tempPublisher, config.name(), false);
+        }
 
         if (config.broadcast()) {
             publisher = (Multi<Message<? extends T>>) BroadcastHelper

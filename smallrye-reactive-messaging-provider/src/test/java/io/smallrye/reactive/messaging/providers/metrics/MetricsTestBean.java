@@ -4,7 +4,10 @@ import java.util.Arrays;
 import java.util.List;
 
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 
+import org.eclipse.microprofile.reactive.messaging.Channel;
+import org.eclipse.microprofile.reactive.messaging.Emitter;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
@@ -24,6 +27,22 @@ public class MetricsTestBean {
     @Outgoing("sink")
     public PublisherBuilder<String> duplicate(String input) {
         return ReactiveStreams.of(input, input);
+    }
+
+    @Inject
+    @Channel("emitter")
+    Emitter<String> emitter;
+
+    public void send() {
+        for (String s : TEST_MESSAGES) {
+            emitter.send(s);
+        }
+        emitter.complete();
+    }
+
+    @Incoming("emitter")
+    void consume(String s) {
+
     }
 
 }

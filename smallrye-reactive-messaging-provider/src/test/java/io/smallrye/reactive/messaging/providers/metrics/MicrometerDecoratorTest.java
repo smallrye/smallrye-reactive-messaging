@@ -49,6 +49,19 @@ public class MicrometerDecoratorTest extends WeldTestBase {
         assertEquals(MetricsTestBean.TEST_MESSAGES.size() * 2, getCounter("sink").count());
     }
 
+    @Test
+    public void testMetricsWithEmitter() {
+        releaseConfig();
+        addBeanClass(MetricsTestBean.class);
+        initialize();
+
+        MetricsTestBean bean = container.select(MetricsTestBean.class).get();
+        bean.send();
+
+        await().untilAsserted(() -> assertEquals(MetricsTestBean.TEST_MESSAGES.size(), getCounter("emitter").count()));
+
+    }
+
     private Counter getCounter(String channelName) {
         return Metrics.counter("mp.messaging.message.count", "channel", channelName);
     }
