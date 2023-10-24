@@ -64,10 +64,18 @@ public abstract class AbstractMediator {
                         extractors[i] = Message::getPayload;
                     } else if (parameters.get(i) == Optional.class) {
                         Class<?> c = configuration.getParameterDescriptor().getGenericParameterType(i, 0);
-                        extractors[i] = msg -> msg.getMetadata().get(c);
+                        if (c.isInterface()) {
+                            extractors[i] = msg -> msg.getMetadata(c);
+                        } else {
+                            extractors[i] = msg -> msg.getMetadata().get(c);
+                        }
                     } else {
                         Class<?> type = parameters.get(i);
-                        extractors[i] = msg -> msg.getMetadata().get(type).orElse(null);
+                        if (type.isInterface()) {
+                            extractors[i] = msg -> msg.getMetadata(type).orElse(null);
+                        } else {
+                            extractors[i] = msg -> msg.getMetadata().get(type).orElse(null);
+                        }
                     }
                 }
                 mapper = msg -> Arrays.stream(extractors).map(extractor -> extractor.apply(msg)).toArray(Object[]::new);
