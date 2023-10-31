@@ -290,4 +290,10 @@ public interface ProviderExceptions {
 
     @Message(id = 1004, value = "Multiple Outgoings count does not match the number of split branches in %s. %d, %d")
     IllegalStateException outgoingsDoesNotMatchMultiSplitterTarget(String method, int outgoings, int splitTarget);
+
+    @Message(id = 1005, value = "Expecting downstream to consume without back-pressure")
+    IllegalStateException illegalStateConsumeWithoutBackPressure();
+
+    @Message(id = 1006, value = "Only one subscriber allowed")
+    IllegalStateException illegalStateOnlyOneSubscriber();
 }

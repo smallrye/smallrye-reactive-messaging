@@ -1,6 +1,6 @@
-package io.smallrye.reactive.messaging.kafka.impl;
+package io.smallrye.reactive.messaging.providers.helpers;
 
-import static io.smallrye.reactive.messaging.kafka.i18n.KafkaExceptions.ex;
+import static io.smallrye.reactive.messaging.providers.i18n.ProviderExceptions.ex;
 
 import java.util.concurrent.Flow.Processor;
 import java.util.concurrent.Flow.Subscriber;
@@ -13,8 +13,7 @@ import org.eclipse.microprofile.reactive.messaging.Message;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.helpers.Subscriptions;
 
-class KafkaSenderProcessor
-        implements Processor<Message<?>, Message<?>>, Subscription {
+public class SenderProcessor implements Processor<Message<?>, Message<?>>, Subscription {
 
     private final long inflights;
     private final boolean waitForCompletion;
@@ -22,7 +21,7 @@ class KafkaSenderProcessor
     private final AtomicReference<Subscription> subscription = new AtomicReference<>();
     private final AtomicReference<Subscriber<? super Message<?>>> downstream = new AtomicReference<>();
 
-    public KafkaSenderProcessor(long inflights, boolean waitForCompletion, Function<Message<?>, Uni<Void>> send) {
+    public SenderProcessor(long inflights, boolean waitForCompletion, Function<Message<?>, Uni<Void>> send) {
         this.inflights = inflights;
         this.waitForCompletion = waitForCompletion;
         this.send = send;
@@ -80,7 +79,7 @@ class KafkaSenderProcessor
 
     @Override
     public void cancel() {
-        Subscription s = KafkaSenderProcessor.this.subscription.getAndSet(Subscriptions.CANCELLED);
+        Subscription s = subscription.getAndSet(Subscriptions.CANCELLED);
         if (s != null) {
             s.cancel();
         }

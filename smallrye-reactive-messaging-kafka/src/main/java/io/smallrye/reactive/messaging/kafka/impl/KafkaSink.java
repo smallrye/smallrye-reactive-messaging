@@ -48,6 +48,7 @@ import io.smallrye.reactive.messaging.kafka.impl.ce.KafkaCloudEventHelper;
 import io.smallrye.reactive.messaging.kafka.tracing.KafkaOpenTelemetryInstrumenter;
 import io.smallrye.reactive.messaging.kafka.tracing.KafkaTrace;
 import io.smallrye.reactive.messaging.providers.helpers.MultiUtils;
+import io.smallrye.reactive.messaging.providers.helpers.SenderProcessor;
 
 @SuppressWarnings("jol")
 public class KafkaSink {
@@ -62,7 +63,7 @@ public class KafkaSink {
     private final int deliveryTimeoutMs;
 
     private final List<Throwable> failures = new ArrayList<>();
-    private final KafkaSenderProcessor processor;
+    private final SenderProcessor processor;
     private final boolean writeAsBinaryCloudEvent;
     private final boolean writeCloudEvents;
     private final boolean mandatoryCloudEventAttributeSet;
@@ -124,7 +125,7 @@ public class KafkaSink {
         if (requests <= 0) {
             requests = Long.MAX_VALUE;
         }
-        this.processor = new KafkaSenderProcessor(requests, waitForWriteCompletion,
+        this.processor = new SenderProcessor(requests, waitForWriteCompletion,
                 writeMessageToKafka());
         this.subscriber = MultiUtils.via(processor, m -> m.onFailure().invoke(f -> {
             log.unableToDispatch(f);
