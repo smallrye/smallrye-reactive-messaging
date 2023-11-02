@@ -264,7 +264,7 @@ public class IncomingRabbitMQMessage<T> implements ContextAwareMessage<T>, Metad
 
     @Override
     public synchronized void injectMetadata(Object metadataObject) {
-        this.metadata = this.metadata.with(metadata);
+        this.metadata = this.metadata.with(metadataObject);
     }
 
 }
