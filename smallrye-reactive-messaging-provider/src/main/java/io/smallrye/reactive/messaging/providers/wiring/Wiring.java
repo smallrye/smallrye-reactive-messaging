@@ -22,6 +22,7 @@ import io.smallrye.reactive.messaging.EmitterConfiguration;
 import io.smallrye.reactive.messaging.EmitterFactory;
 import io.smallrye.reactive.messaging.MediatorConfiguration;
 import io.smallrye.reactive.messaging.MessagePublisherProvider;
+import io.smallrye.reactive.messaging.PublisherDecorator;
 import io.smallrye.reactive.messaging.SubscriberDecorator;
 import io.smallrye.reactive.messaging.annotations.EmitterFactoryFor;
 import io.smallrye.reactive.messaging.annotations.Merge;
@@ -29,6 +30,7 @@ import io.smallrye.reactive.messaging.providers.AbstractMediator;
 import io.smallrye.reactive.messaging.providers.extension.*;
 import io.smallrye.reactive.messaging.providers.helpers.MultiUtils;
 import io.smallrye.reactive.messaging.providers.i18n.ProviderLogging;
+import io.smallrye.reactive.messaging.providers.locals.ContextDecorator;
 
 @ApplicationScoped
 public class Wiring {
@@ -54,6 +56,10 @@ public class Wiring {
     @Any
     @Inject
     Instance<SubscriberDecorator> subscriberDecorators;
+
+    @Any
+    @Inject
+    Instance<PublisherDecorator> publisherDecorators;
 
     private final List<Component> components;
 
@@ -90,7 +96,8 @@ public class Wiring {
         }
 
         for (EmitterConfiguration emitter : emitters) {
-            components.add(new EmitterComponent(emitter, emitterFactories, defaultBufferSize, defaultBufferSizeLegacy));
+            components.add(new EmitterComponent(emitter, publisherDecorators, emitterFactories, defaultBufferSize,
+                    defaultBufferSizeLegacy));
         }
 
         // At that point, the registry only contains connectors or managed channels
@@ -451,15 +458,19 @@ public class Wiring {
     static class EmitterComponent implements PublishingComponent, NoUpstreamComponent {
 
         private final EmitterConfiguration configuration;
+        private final Instance<PublisherDecorator> decorators;
         private final Instance<EmitterFactory<?>> emitterFactories;
         private final Set<Component> downstreams = new LinkedHashSet<>();
         private final int defaultBufferSize;
         private final int defaultBufferSizeLegacy;
 
-        public EmitterComponent(EmitterConfiguration configuration, Instance<EmitterFactory<?>> emitterFactories,
+        public EmitterComponent(EmitterConfiguration configuration,
+                Instance<PublisherDecorator> decorators,
+                Instance<EmitterFactory<?>> emitterFactories,
                 int defaultBufferSize,
                 int defaultBufferSizeLegacy) {
             this.configuration = configuration;
+            this.decorators = decorators;
             this.emitterFactories = emitterFactories;
             this.defaultBufferSize = defaultBufferSize;
             this.defaultBufferSizeLegacy = defaultBufferSizeLegacy;
@@ -504,7 +515,10 @@ public class Wiring {
         private <T extends MessagePublisherProvider<?>> void registerEmitter(ChannelRegistry registry, int def) {
             EmitterFactory<?> emitterFactory = getEmitterFactory(configuration.emitterType());
             T emitter = (T) emitterFactory.createEmitter(configuration, def);
-            Publisher<? extends Message<?>> publisher = emitter.getPublisher();
+            Multi<? extends Message<?>> publisher = Multi.createFrom().publisher(emitter.getPublisher());
+            for (PublisherDecorator decorator : getSortedInstances(decorators)) {
+                    publisher = decorator.decorate(publisher, configuration.name(), false);
+            }
             Class<T> type = (Class<T>) configuration.emitterType().value();
             registry.register(configuration.name(), type, emitter);
             //noinspection ReactiveStreamsUnusedPublisher

@@ -49,6 +49,25 @@ public class MicrometerDecoratorTest extends WeldTestBase {
         assertEquals(MetricsTestBean.TEST_MESSAGES.size() * 2, getCounter("sink").count());
     }
 
+    @Test
+    public void testMetricsEmitter() {
+        releaseConfig();
+        addBeanClass(EmitterMetricsTestBean.class);
+        initialize();
+
+        MyCollector collector = container.select(MyCollector.class).get();
+        EmitterMetricsTestBean emitter = container.select(EmitterMetricsTestBean.class).get();
+
+        emitter.sendMessages();
+
+        await().until(() -> collector.messages().size() == 6);
+
+        assertEquals(MetricsTestBean.TEST_MESSAGES.size(), getCounter("source").count());
+
+        // Between source and sink, each message is duplicated so we expect double the count for sink
+        assertEquals(MetricsTestBean.TEST_MESSAGES.size() * 2, getCounter("sink").count());
+    }
+
     private Counter getCounter(String channelName) {
         return Metrics.counter("mp.messaging.message.count", "channel", channelName);
     }
