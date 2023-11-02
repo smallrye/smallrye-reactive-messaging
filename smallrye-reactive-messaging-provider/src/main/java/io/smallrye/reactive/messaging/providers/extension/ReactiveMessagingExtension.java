@@ -105,7 +105,12 @@ public class ReactiveMessagingExtension implements Extension {
     }
 
     @SuppressWarnings({ "rawtypes", "unchecked" })
-    void afterDeploymentValidation(@Observes AfterDeploymentValidation done, BeanManager beanManager) {
+    protected void afterDeploymentValidation(@Observes AfterDeploymentValidation done, BeanManager beanManager) {
+        MediatorManager mediatorManager = configureMediatorManager(beanManager);
+        startMediatorManager(mediatorManager);
+    }
+
+    protected MediatorManager configureMediatorManager(BeanManager beanManager) {
         Instance<Object> instance = beanManager.createInstance();
         MediatorManager mediatorManager = instance.select(MediatorManager.class).get();
         WorkerPoolRegistry workerPoolRegistry = instance.select(WorkerPoolRegistry.class).get();
@@ -129,6 +134,10 @@ public class ReactiveMessagingExtension implements Extension {
             workerPoolRegistry.analyzeWorker(workerPoolBean.annotatedType);
         }
 
+        return mediatorManager;
+    }
+
+    protected void startMediatorManager(MediatorManager mediatorManager) {
         mediatorManager.start();
     }
 
