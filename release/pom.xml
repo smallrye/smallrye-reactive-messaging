@@ -5,7 +5,7 @@
     <parent>
       <groupId>io.smallrye.reactive</groupId>
       <artifactId>smallrye-reactive-messaging</artifactId>
-      <version>4.6.0</version>
+      <version>4.6.1</version>
     </parent>
 
     <artifactId>smallrye-reactive-messaging-release</artifactId>
