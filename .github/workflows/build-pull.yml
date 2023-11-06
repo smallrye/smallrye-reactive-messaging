@@ -6,6 +6,7 @@ on:
         branches:
             - main
             - 3.x
+            - 3.13.x
 
 jobs:
     build:
