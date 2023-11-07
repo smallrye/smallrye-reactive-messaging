@@ -144,9 +144,4 @@ public class PartitionTest extends KafkaCompanionTestBase {
         }
     }
 
-    private int getMaxNumberOfEventLoop(int expected) {
-        // On Github Actions, only one event loop is created.
-        return Math.min(expected, Runtime.getRuntime().availableProcessors() / 2);
-    }
-
 }
