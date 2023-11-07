@@ -1,10 +1,10 @@
 package io.smallrye.reactive.messaging.kafka.tracing;
 
-import static io.opentelemetry.semconv.trace.attributes.SemanticAttributes.MESSAGING_DESTINATION_NAME;
-import static io.opentelemetry.semconv.trace.attributes.SemanticAttributes.MESSAGING_KAFKA_CLIENT_ID;
-import static io.opentelemetry.semconv.trace.attributes.SemanticAttributes.MESSAGING_KAFKA_MESSAGE_OFFSET;
-import static io.opentelemetry.semconv.trace.attributes.SemanticAttributes.MESSAGING_OPERATION;
-import static io.opentelemetry.semconv.trace.attributes.SemanticAttributes.MESSAGING_SYSTEM;
+import static io.opentelemetry.semconv.SemanticAttributes.MESSAGING_DESTINATION_NAME;
+import static io.opentelemetry.semconv.SemanticAttributes.MESSAGING_KAFKA_CLIENT_ID;
+import static io.opentelemetry.semconv.SemanticAttributes.MESSAGING_KAFKA_MESSAGE_OFFSET;
+import static io.opentelemetry.semconv.SemanticAttributes.MESSAGING_OPERATION;
+import static io.opentelemetry.semconv.SemanticAttributes.MESSAGING_SYSTEM;
 import static io.smallrye.reactive.messaging.kafka.companion.RecordQualifiers.until;
 import static java.util.stream.Collectors.toList;
 import static org.assertj.core.api.Assertions.assertThat;

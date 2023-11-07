@@ -1,6 +1,6 @@
 package io.smallrye.reactive.messaging.rabbitmq.tracing;
 
-import static io.opentelemetry.semconv.trace.attributes.SemanticAttributes.MESSAGING_RABBITMQ_ROUTING_KEY;
+import static io.opentelemetry.semconv.SemanticAttributes.MESSAGING_RABBITMQ_ROUTING_KEY;
 
 import io.opentelemetry.api.common.AttributesBuilder;
 import io.opentelemetry.context.Context;

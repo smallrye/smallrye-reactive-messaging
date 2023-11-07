@@ -28,7 +28,7 @@
       <artifactId>opentelemetry-api</artifactId>
     </dependency>
     <dependency>
-      <groupId>io.opentelemetry</groupId>
+      <groupId>io.opentelemetry.semconv</groupId>
       <artifactId>opentelemetry-semconv</artifactId>
     </dependency>
     <dependency>
@@ -38,6 +38,12 @@
     <dependency>
       <groupId>io.opentelemetry.instrumentation</groupId>
       <artifactId>opentelemetry-instrumentation-api-semconv</artifactId>
+      <exclusions>
+        <exclusion>
+          <groupId>io.opentelemetry.semconv</groupId>
+          <artifactId>opentelemetry-semconv</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
   </dependencies>
 

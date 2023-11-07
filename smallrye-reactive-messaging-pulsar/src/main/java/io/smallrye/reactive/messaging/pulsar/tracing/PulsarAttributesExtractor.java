@@ -1,6 +1,6 @@
 package io.smallrye.reactive.messaging.pulsar.tracing;
 
-import static io.opentelemetry.semconv.trace.attributes.SemanticAttributes.MESSAGING_CONSUMER_ID;
+import static io.opentelemetry.semconv.SemanticAttributes.MESSAGING_CONSUMER_ID;
 
 import io.opentelemetry.api.common.AttributesBuilder;
 import io.opentelemetry.context.Context;

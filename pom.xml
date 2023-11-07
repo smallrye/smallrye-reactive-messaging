@@ -90,7 +90,8 @@
 
     <kafka.version>3.6.0</kafka.version>
 
-    <opentelemetry.version>1.28.0-alpha</opentelemetry.version>
+    <opentelemetry.version>1.31.0-alpha</opentelemetry.version>
+    <opentelemetry-semconv.version>1.21.0-alpha</opentelemetry-semconv.version>
 
     <smallrye-vertx-mutiny-clients.version>3.6.0</smallrye-vertx-mutiny-clients.version>
     <smallrye-reactive-converters.version>3.0.0</smallrye-reactive-converters.version>
@@ -318,6 +319,22 @@
         <version>${opencsv.version}</version>
       </dependency>
 
+      <!-- OpenTelemetry libs not on BOM -->
+      <dependency>
+        <groupId>io.opentelemetry.semconv</groupId>
+        <artifactId>opentelemetry-semconv</artifactId>
+        <version>${opentelemetry-semconv.version}</version>
+        <exclusions>
+          <exclusion>
+            <groupId>io.opentelemetry</groupId>
+            <artifactId>opentelemetry-bom</artifactId>
+          </exclusion>
+          <exclusion>
+            <groupId>io.opentelemetry</groupId>
+            <artifactId>opentelemetry-api</artifactId>
+          </exclusion>
+        </exclusions>
+      </dependency>
     </dependencies>
   </dependencyManagement>
 

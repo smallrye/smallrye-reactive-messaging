@@ -1,6 +1,6 @@
 package io.smallrye.reactive.messaging.pulsar.tracing;
 
-import static io.opentelemetry.semconv.trace.attributes.SemanticAttributes.MESSAGING_SYSTEM;
+import static io.opentelemetry.semconv.SemanticAttributes.MESSAGING_SYSTEM;
 import static java.util.stream.Collectors.toList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
