@@ -24,6 +24,7 @@ nav:
             - 'Channel Decorators': concepts/decorators.md
             - 'Broadcast' : concepts/broadcast.md
             - 'Merge channels' : concepts/merge.md
+            - 'Incoming Channel Concurrency' : concepts/incoming-concurrency.md
             - '@Incomings' : concepts/incomings.md
             - '@Outgoings' : concepts/outgoings.md
             - 'Testing' : concepts/testing.md
