@@ -172,7 +172,7 @@ public class ConfiguredChannelFactory implements ChannelRegistar {
         Multi<? extends Message<?>> publisher = MultiUtils.publisher(inboundConnector.getPublisher(config));
 
         for (PublisherDecorator decorator : getSortedInstances(publisherDecoratorInstance)) {
-            publisher = decorator.decorate(publisher, name, true);
+            publisher = decorator.decorate(publisher, List.of(name), true);
         }
 
         return publisher;
