@@ -15,6 +15,7 @@ import org.junit.jupiter.api.condition.DisabledForJreRange;
 import org.junit.jupiter.api.condition.JRE;
 import org.junitpioneer.jupiter.SetEnvironmentVariable;
 
+import io.smallrye.config.EnvConfigSource;
 import io.smallrye.config.SmallRyeConfig;
 import io.smallrye.config.SmallRyeConfigBuilder;
 
@@ -100,19 +101,19 @@ public class ConnectorConfigTest {
         assertThat(names)
                 .containsExactlyInAnyOrder("connector", "ATTR1", "attr1", "attr2", "attr.2", "ATTR", "attr", "AT_TR",
                         "at-tr", "key",
-                        "SOME_KEY", "some-key", "SOME_OTHER_KEY", "ATTR3", "attr4", "channel-name");
+                        "SOME_KEY", "some-key", "SOME_OTHER_KEY", "ATTR3", "attr4", "channel-name", "CAPSKEY");
 
         assertThat(config.getOptionalValue("connector", String.class)).hasValue("some-connector");
         assertThat(config.getOptionalValue("attr1", String.class)).hasValue("value");
         assertThat(config.getOptionalValue("attr2", Integer.class)).hasValue(23);
         assertThat(config.getOptionalValue("attr.2", String.class)).hasValue("test");
         assertThat(config.getOptionalValue("at-tr", String.class)).hasValue("another-value");
-        assertThat(config.getOptionalValue("AT_TR", String.class)).hasValue("another-value");
+        assertThat(config.getConfigValue("at-tr")).extracting(ConfigValue::getSourceName).isEqualTo("EnvConfigSource");
         assertThat(config.getOptionalValue("some-key", String.class)).hasValue("another-value-from-connector");
-        assertThat(config.getOptionalValue("SOME_KEY", String.class)).hasValue("another-value-from-connector");
+        assertThat(config.getConfigValue("some-key")).extracting(ConfigValue::getSourceName).isEqualTo("EnvConfigSource");
         assertThat(config.getOptionalValue("key", String.class)).hasValue("value");
         assertThat(config.getOptionalValue("attr3", String.class)).hasValue("used");
-        assertThat(config.getOptionalValue("ATTR3", String.class)).hasValue("used");
+        assertThat(config.getConfigValue("attr3")).extracting(ConfigValue::getSourceName).isEqualTo("EnvConfigSource");
         assertThat(config.getOptionalValue("attr4", String.class)).hasValue("used");
     }
 
@@ -120,13 +121,23 @@ public class ConnectorConfigTest {
     @SetEnvironmentVariable(key = "MP_MESSAGING_CONNECTOR_SOME_CONNECTOR_ATTR3", value = "used")
     @SetEnvironmentVariable(key = "MP_MESSAGING_CONNECTOR_SOME_CONNECTOR_ATTR4", value = "used-2")
     public void testGetFromEnv() {
-        // All uppercase value in env
-        assertThat(config.getOptionalValue("ATTR3", String.class)).hasValue("used");
-        // All lowercase value in env
-        assertThat(config.getOptionalValue("ATTR4", String.class)).hasValue("used-2");
-        // Mixed case value in env should not be found as it does not match the key we're looking for
-        // either in its original casing, or after conversion to uppercase.
+        // mp_messaging_connector_some_connector_attr4 is selected because is closer to mp.messaging.connector.some-connector.attr4
+        assertThat(new EnvConfigSource(Map.of("mp_messaging_connector_some_connector_attr4", "used",
+                "MP_MESSAGING_CONNECTOR_SOME_CONNECTOR_ATTR4", "used-2"), 100).getValue(
+                        "mp.messaging.connector.some-connector.attr4"))
+                .isEqualTo("used");
+        // when there are no competing properties select the one that exists
+        assertThat(new EnvConfigSource(Map.of("MP_MESSAGING_CONNECTOR_SOME_CONNECTOR_ATTR4", "used-2"), 100).getValue(
+                "mp.messaging.connector.some-connector.attr4")).isEqualTo("used-2");
+
+        assertThat(config.getOptionalValue("attr3", String.class)).hasValue("used");
+        assertThat(config.getConfigValue("attr3")).extracting(ConfigValue::getSourceName).isEqualTo("EnvConfigSource");
+        // both mp_messaging_connector_some_connector_attr4 and MP_MESSAGING_CONNECTOR_SOME_CONNECTOR_ATTR4 are set in Env
+        // lookup is done to mp.messaging.connector.some-connector.attr4, selects mp_messaging_connector_some_connector_attr4
+        assertThat(config.getOptionalValue("attr4", String.class)).hasValue("used");
+        assertThat(config.getConfigValue("attr4")).extracting(ConfigValue::getSourceName).isEqualTo("EnvConfigSource");
         assertThat(config.getOptionalValue("mixedcase", String.class)).hasValue("used");
+        assertThat(config.getConfigValue("mixedcase")).extracting(ConfigValue::getSourceName).isEqualTo("EnvConfigSource");
     }
 
     @Test

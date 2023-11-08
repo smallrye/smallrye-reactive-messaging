@@ -182,7 +182,7 @@ public class ConnectorConfig implements Config {
                 }
             } else if (name.startsWith(connectorPrefixAlphaUpper)) {
                 String computed = name.substring(connectorPrefixAlphaUpper.length());
-                if (nameExists(connectorPrefix + computed)) {
+                if (nameExists(connectorPrefixAlphaUpper + computed)) {
                     names.add(computed);
                 }
             } else if (name.startsWith(prefix)) {
@@ -190,12 +190,12 @@ public class ConnectorConfig implements Config {
                 names.add(computed);
             } else if (name.startsWith(prefixAlpha)) {
                 String computed = name.substring(prefixAlpha.length());
-                if (nameExists(prefix + computed)) {
+                if (nameExists(prefixAlpha + computed)) {
                     names.add(computed);
                 }
             } else if (name.startsWith(prefixAlphaUpper)) {
                 String computed = name.substring(prefixAlphaUpper.length());
-                if (nameExists(prefix + computed)) {
+                if (nameExists(prefixAlphaUpper + computed)) {
                     names.add(computed);
                 }
             }
