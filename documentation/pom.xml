@@ -26,6 +26,15 @@
 
   <dependencies>
     <dependency>
+      <groupId>io.smallrye.config</groupId>
+      <artifactId>smallrye-config</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.smallrye.reactive</groupId>
+      <artifactId>smallrye-connector-attribute-processor</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
       <groupId>io.smallrye.reactive</groupId>
       <artifactId>smallrye-reactive-messaging-provider</artifactId>
       <version>${project.version}</version>
@@ -85,6 +94,34 @@
       <groupId>org.apache.camel</groupId>
       <artifactId>camel-file</artifactId>
       <version>${camel.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>io.smallrye.reactive</groupId>
+      <artifactId>test-common</artifactId>
+      <version>${project.version}</version>
+      <!-- used in snippets -->
+      <scope>compile</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.jboss.weld.se</groupId>
+      <artifactId>weld-se-shaded</artifactId>
+      <version>${weld.version}</version>
+      <!-- used in snippets -->
+      <scope>compile</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.jboss.weld</groupId>
+      <artifactId>weld-core-impl</artifactId>
+      <version>${weld.version}</version>
+      <!-- used in snippets -->
+      <scope>compile</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.awaitility</groupId>
+      <artifactId>awaitility</artifactId>
+      <!-- used in snippets -->
+      <scope>compile</scope>
     </dependency>
 
     <dependency>
@@ -163,6 +200,22 @@
             </configuration>
           </execution>
         </executions>
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <configuration>
+          <generatedSourcesDirectory>${project.build.directory}/generated-sources/</generatedSourcesDirectory>
+          <annotationProcessors>
+            <annotationProcessor>
+              io.smallrye.reactive.messaging.connector.ConnectorAttributeProcessor
+            </annotationProcessor>
+            <annotationProcessor>
+              org.jboss.logging.processor.apt.LoggingToolsProcessor
+            </annotationProcessor>
+          </annotationProcessors>
+        </configuration>
       </plugin>
 
       <plugin>

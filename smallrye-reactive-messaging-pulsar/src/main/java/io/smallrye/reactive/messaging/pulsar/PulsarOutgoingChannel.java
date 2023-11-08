@@ -31,6 +31,7 @@ import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.OutgoingMessageMetadata;
 import io.smallrye.reactive.messaging.health.HealthReport;
 import io.smallrye.reactive.messaging.providers.helpers.MultiUtils;
+import io.smallrye.reactive.messaging.providers.helpers.SenderProcessor;
 import io.smallrye.reactive.messaging.pulsar.tracing.PulsarAttributesExtractor;
 import io.smallrye.reactive.messaging.pulsar.tracing.PulsarTrace;
 import io.smallrye.reactive.messaging.pulsar.tracing.PulsarTraceTextMapSetter;
@@ -40,7 +41,7 @@ import io.smallrye.reactive.messaging.tracing.TracingUtils;
 public class PulsarOutgoingChannel<T> {
 
     private final Producer<T> producer;
-    private final PulsarSenderProcessor processor;
+    private final SenderProcessor processor;
     private final Flow.Subscriber<? extends Message<?>> subscriber;
     private final String channel;
     private final boolean healthEnabled;
@@ -79,7 +80,7 @@ public class PulsarOutgoingChannel<T> {
             requests = Long.MAX_VALUE;
         }
 
-        processor = new PulsarSenderProcessor(requests, oc.getWaitForWriteCompletion(), this::sendMessage);
+        processor = new SenderProcessor(requests, oc.getWaitForWriteCompletion(), this::sendMessage);
         subscriber = MultiUtils.via(processor, m -> m.onFailure().invoke(f -> {
             log.unableToDispatch(f);
             reportFailure(f);

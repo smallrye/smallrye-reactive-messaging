@@ -1,3 +1,5 @@
+# Concepts
+
 When dealing with event-driven or data streaming applications, there are
 a few concepts and vocabulary to introduce.
 
