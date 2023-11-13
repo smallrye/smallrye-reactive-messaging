@@ -558,7 +558,7 @@
               </goals>
               <configuration>
                 <versionFormat>^\d+\.\d+\.\d+$</versionFormat>
-                <failSeverity>breaking</failSeverity>
+                <failCriticality>error</failCriticality>
                 <checkDependencies>false</checkDependencies>
                 <analysisConfigurationFiles>
                   <file>${project.basedir}/revapi.json</file>
