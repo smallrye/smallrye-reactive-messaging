@@ -80,7 +80,7 @@
     <smallrye-testing.version>2.3.0</smallrye-testing.version>
     <smallrye-fault-tolerance.version>6.2.6</smallrye-fault-tolerance.version>
 
-    <micrometer.version>1.11.5</micrometer.version>
+    <micrometer.version>1.12.0</micrometer.version>
 
     <mutiny.version>2.5.1</mutiny.version>
     <artemis.version>2.31.2</artemis.version>
