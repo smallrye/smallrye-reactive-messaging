@@ -158,8 +158,11 @@ public class MultiUtils {
             if (isDoneOrCancelled()) {
                 return;
             }
-
             this.done = true;
+            Flow.Subscriber<? super T> subscriber = downstream;
+            if (subscriber != null) {
+                subscriber.onError(failure);
+            }
         }
 
         @Override
@@ -168,6 +171,10 @@ public class MultiUtils {
                 return;
             }
             this.done = true;
+            Flow.Subscriber<? super T> subscriber = downstream;
+            if (subscriber != null) {
+                subscriber.onComplete();
+            }
         }
 
         @Override
