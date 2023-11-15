@@ -9,6 +9,7 @@ mkdocs-macros-plugin = ">=0.6.3"
 pyyaml = ">=6.0"
 mike = ">=1.1.2"
 mkdocs-material = ">=8.1.4"
+mkdocs-print-site-plugin = ">=2.3.6"
 
 [dev-packages]
 

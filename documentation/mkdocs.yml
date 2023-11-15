@@ -102,6 +102,7 @@ plugins:
         version_selector: true
         css_dir: css
         javascript_dir: javascript
+  - print-site
 
 copyright: >-
   Sponsored by <a href="https://www.redhat.com"><img style="vertical-align: middle; height: 2.5em;" alt="Red Hat" src="https://github.com/jbossorg/website/raw/master/docs/img/redhat_reversed.svg"/></a> <br/>
