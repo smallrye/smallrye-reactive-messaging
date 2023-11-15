@@ -11,6 +11,7 @@ import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 import jakarta.enterprise.context.ApplicationScoped;
@@ -25,6 +26,7 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import io.smallrye.mutiny.Multi;
+import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.annotations.Blocking;
 import io.smallrye.reactive.messaging.kafka.KafkaRecord;
 import io.smallrye.reactive.messaging.kafka.api.OutgoingKafkaRecordMetadata;
@@ -45,7 +47,7 @@ public class MultiplePartitionsThrottledStrategyTest extends KafkaCompanionTestB
         MapBasedConfig config = kafkaConfig("mp.messaging.incoming.kafka")
                 .with("group.id", groupId)
                 .with("topic", topic)
-                .with("partitions", 3)
+                .with("concurrency", 3)
                 .with("auto.offset.reset", "earliest")
                 .with("commit-strategy", "throttled")
                 .with("value.deserializer", IntegerDeserializer.class.getName())
@@ -78,7 +80,7 @@ public class MultiplePartitionsThrottledStrategyTest extends KafkaCompanionTestB
         MapBasedConfig config = kafkaConfig("mp.messaging.incoming.kafka")
                 .with("group.id", groupId)
                 .with("topic", topic)
-                .with("partitions", 3)
+                .with("concurrency", 3)
                 .with("auto.offset.reset", "earliest")
                 .with("commit-strategy", "throttled")
                 .with("value.deserializer", IntegerDeserializer.class.getName());
@@ -104,7 +106,7 @@ public class MultiplePartitionsThrottledStrategyTest extends KafkaCompanionTestB
         MapBasedConfig config = kafkaConfig("mp.messaging.incoming.kafka")
                 .with("group.id", groupId)
                 .with("topic", topic)
-                .with("partitions", 3)
+                .with("concurrency", 3)
                 .with("auto.offset.reset", "earliest")
                 .with("commit-strategy", "throttled")
                 .with("value.deserializer", IntegerDeserializer.class.getName());
@@ -127,18 +129,23 @@ public class MultiplePartitionsThrottledStrategyTest extends KafkaCompanionTestB
         companion.topics().createAndWait(topic, 3);
         String sinkTopic = topic + "-sink";
         companion.topics().createAndWait(sinkTopic, 3);
+        companion.topics().createAndWait(sinkTopic + "-2", 3);
         String groupId = UUID.randomUUID().toString();
 
         MapBasedConfig config = kafkaConfig("mp.messaging.incoming.kafka")
                 .with("group.id", groupId)
                 .with("topic", topic)
-                .with("partitions", 3)
+                .with("concurrency", 3)
                 .with("auto.offset.reset", "earliest")
                 .with("commit-strategy", "throttled")
                 .with("value.deserializer", IntegerDeserializer.class.getName())
                 .withPrefix("mp.messaging.outgoing.sink")
                 .with("connector", "smallrye-kafka")
                 .with("topic", sinkTopic)
+                .with("value.serializer", IntegerSerializer.class.getName())
+                .withPrefix("mp.messaging.outgoing.sink-2")
+                .with("connector", "smallrye-kafka")
+                .with("topic", sinkTopic + "-2")
                 .with("value.serializer", IntegerSerializer.class.getName());
 
         StreamProcessingBean application = runApplication(config, StreamProcessingBean.class);
@@ -168,7 +175,7 @@ public class MultiplePartitionsThrottledStrategyTest extends KafkaCompanionTestB
         MapBasedConfig config = kafkaConfig("mp.messaging.incoming.kafka")
                 .with("group.id", groupId)
                 .with("topic", topic)
-                .with("partitions", 3)
+                .with("concurrency", 3)
                 .with("auto.offset.reset", "earliest")
                 .with("commit-strategy", "throttled")
                 .with("value.deserializer", IntegerDeserializer.class.getName())
@@ -223,8 +230,11 @@ public class MultiplePartitionsThrottledStrategyTest extends KafkaCompanionTestB
         private final AtomicLong count = new AtomicLong();
         private final Map<String, List<Integer>> received = new ConcurrentHashMap<>();
 
+        AtomicInteger p = new AtomicInteger();
+
         @Incoming("kafka")
         @Outgoing("sink")
+        @Outgoing("sink-2")
         public Multi<Message<Integer>> process(Multi<KafkaRecord<String, Integer>> multi) {
             return multi.map(msg -> {
                 String k = Thread.currentThread().getName();
@@ -232,9 +242,11 @@ public class MultiplePartitionsThrottledStrategyTest extends KafkaCompanionTestB
                 list.add(msg.getPayload());
                 count.incrementAndGet();
                 assert msg.getContextMetadata().get().context() == Vertx.currentContext();
+                p.decrementAndGet();
                 return msg.withPayload(msg.getPayload() + 1)
                         .addMetadata(OutgoingKafkaRecordMetadata.builder().withPartition(msg.getPartition()).build());
-            });
+            }).onItem().transformToUniAndConcatenate(m -> Uni.createFrom().item(m)
+                    .onItem().delayIt().by(Duration.ofMillis(10)));
         }
 
         public Map<String, List<Integer>> getReceived() {
