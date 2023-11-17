@@ -29,14 +29,16 @@ public class ConnectionHolder {
     private final AtomicReference<CurrentConnection> holder = new AtomicReference<>();
 
     private final Vertx vertx;
+    private final Context root;
     private Consumer<Throwable> callback;
 
     public ConnectionHolder(AmqpClient client,
             AmqpConnectorCommonConfiguration configuration,
-            Vertx vertx) {
+            Vertx vertx, Context root) {
         this.client = client;
         this.configuration = configuration;
         this.vertx = vertx;
+        this.root = root;
     }
 
     public Context getContext() {
@@ -134,7 +136,7 @@ public class ConnectionHolder {
                             .onSubscription().invoke(s -> log.establishingConnection())
                             .onItem().transform(conn -> {
                                 log.connectionEstablished();
-                                holder.set(new CurrentConnection(conn, Vertx.currentContext()));
+                                holder.set(new CurrentConnection(conn, root == null ? Vertx.currentContext() : root));
                                 conn
                                         .exceptionHandler(t -> {
                                             holder.set(null);

@@ -16,6 +16,15 @@ public class IncomingAmqpMetadata {
     }
 
     /**
+     * The AMQP message.
+     *
+     * @return the AMQP message
+     */
+    public AmqpMessage getMessage() {
+        return message;
+    }
+
+    /**
      * The AMQP address of the message.
      * <p>
      * The address is stored in the {@code to} field which identifies the node that is the intended destination of the
