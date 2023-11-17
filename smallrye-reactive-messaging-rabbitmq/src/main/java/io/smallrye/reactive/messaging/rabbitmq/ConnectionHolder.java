@@ -25,7 +25,8 @@ public class ConnectionHolder {
 
     public ConnectionHolder(RabbitMQClient client,
             RabbitMQConnectorCommonConfiguration configuration,
-            Vertx vertx) {
+            Vertx vertx,
+            Context root) {
         this.client = client;
         this.vertx = vertx;
         this.connector = Uni.createFrom().voidItem()
@@ -34,7 +35,8 @@ public class ConnectionHolder {
                     return client.start()
                             .onSubscription().invoke(() -> log.connectionEstablished(configuration.getChannel()))
                             .onItem().transform(ignored -> {
-                                connectionHolder.set(new CurrentConnection(client, Vertx.currentContext()));
+                                connectionHolder
+                                        .set(new CurrentConnection(client, root == null ? Vertx.currentContext() : root));
 
                                 // handle the case we are already disconnected.
                                 if (!client.isConnected() || connectionHolder.get() == null) {
