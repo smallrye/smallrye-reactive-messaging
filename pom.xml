@@ -105,7 +105,7 @@
     <junit-platform-commons.version>1.9.3</junit-platform-commons.version>
 
     <jakarta.jms.api.version>3.1.0</jakarta.jms.api.version>
-    <jackson.version>2.15.3</jackson.version>
+    <jackson.version>2.16.0</jackson.version>
     <yasson.version>2.0.3</yasson.version>
 
     <jandex-maven-plugin.version>3.1.5</jandex-maven-plugin.version>
