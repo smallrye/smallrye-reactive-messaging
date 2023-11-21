@@ -115,7 +115,7 @@ public class ReactiveMessagingExtension implements Extension {
         MediatorManager mediatorManager = instance.select(MediatorManager.class).get();
         WorkerPoolRegistry workerPoolRegistry = instance.select(WorkerPoolRegistry.class).get();
 
-        List<EmitterConfiguration> emitters = createEmitterConfigurations();
+        Collection<EmitterConfiguration> emitters = createEmitterConfigurations();
         for (EmitterConfiguration emitter : emitters) {
             mediatorManager.addEmitter(emitter);
         }
@@ -150,14 +150,8 @@ public class ReactiveMessagingExtension implements Extension {
         return channels;
     }
 
-    private List<EmitterConfiguration> createEmitterConfigurations() {
-        List<EmitterConfiguration> emitters = new ArrayList<>();
-        createEmitterConfiguration(emitterInjectionPoints, emitters);
-        return emitters;
-    }
-
-    private void createEmitterConfiguration(Map<InjectionPoint, EmitterFactoryFor> emitterInjectionPoints,
-            List<EmitterConfiguration> emitters) {
+    private Collection<EmitterConfiguration> createEmitterConfigurations() {
+        Map<String, EmitterConfiguration> emitters = new HashMap<>();
         for (Map.Entry<InjectionPoint, EmitterFactoryFor> entry : emitterInjectionPoints.entrySet()) {
             InjectionPoint point = entry.getKey();
             EmitterFactoryFor emitterType = entry.getValue();
@@ -167,8 +161,16 @@ public class ReactiveMessagingExtension implements Extension {
                 onOverflow = createOnOverflowForLegacyAnnotation(point);
             }
             Broadcast broadcast = point.getAnnotated().getAnnotation(Broadcast.class);
-            emitters.add(new DefaultEmitterConfiguration(name, emitterType, onOverflow, broadcast));
+            DefaultEmitterConfiguration emitterConf = new DefaultEmitterConfiguration(name, emitterType, onOverflow, broadcast);
+
+            EmitterConfiguration previousConf = emitters.get(name);
+            if (previousConf != null && !previousConf.equals(emitterConf)) {
+                throw ProviderExceptions.ex.differentEmitterConfigurationPerInjection(name, point.toString(),
+                        previousConf.toString());
+            }
+            emitters.put(name, emitterConf);
         }
+        return emitters.values();
     }
 
     @SuppressWarnings("deprecation")

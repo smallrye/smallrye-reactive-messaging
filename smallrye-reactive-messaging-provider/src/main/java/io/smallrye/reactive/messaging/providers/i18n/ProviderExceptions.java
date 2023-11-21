@@ -296,4 +296,8 @@ public interface ProviderExceptions {
 
     @Message(id = 1006, value = "Only one subscriber allowed")
     IllegalStateException illegalStateOnlyOneSubscriber();
+
+    @Message(id = 1008, value = "Emitter configuration for channel `%s` in %s is different than a previous configuration : %s")
+    DefinitionException differentEmitterConfigurationPerInjection(String channel, String injectionPoint, String config);
+
 }
