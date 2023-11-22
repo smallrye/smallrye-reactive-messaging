@@ -17,6 +17,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.spi.DefinitionException;
+import jakarta.enterprise.inject.spi.DeploymentException;
 import jakarta.inject.Inject;
 
 import org.eclipse.microprofile.reactive.messaging.*;
@@ -44,6 +45,24 @@ public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
         assertThat(bean.list()).containsExactly("a", "b", "c");
         assertThat(bean.emitter().isCancelled()).isTrue();
         assertThat(bean.emitter().hasRequests()).isFalse();
+    }
+
+    @Test
+    public void testMultipleEmitterInjection() {
+        final MultipleEmitterInjection bean = installInitializeAndGet(MultipleEmitterInjection.class);
+        bean.run();
+        assertThat(bean.emitter()).isNotNull();
+        assertThat(bean.list()).containsExactly("a", "b", "c");
+        assertThat(bean.emitter().isCancelled()).isTrue();
+        assertThat(bean.emitter().hasRequests()).isFalse();
+    }
+
+    @Test
+    public void testMultipleIncompatibleEmitterInjection() {
+        assertThatThrownBy(() -> installInitializeAndGet(MultipleIncompatibleEmitterInjection.class))
+                .isInstanceOf(DeploymentException.class)
+                .hasCauseInstanceOf(DefinitionException.class)
+                .hasMessageContainingAll("foo", "emitter2");
     }
 
     @Test
@@ -255,6 +274,80 @@ public class EmitterInjectionTest extends WeldTestBaseWithoutTails {
             emitter.send("a");
             emitter.send("b");
             emitter.send("c");
+            emitter.complete();
+        }
+
+        @Incoming("foo")
+        public void consume(final String s) {
+            list.add(s);
+        }
+    }
+
+    @ApplicationScoped
+    public static class MultipleEmitterInjection {
+        @Inject
+        @Channel("foo")
+        Emitter<String> emitter;
+
+        @Inject
+        @Channel("foo")
+        Emitter<String> emitter2;
+        private final List<String> list = new CopyOnWriteArrayList<>();
+
+        public Emitter<String> emitter() {
+            return emitter;
+        }
+
+        public Emitter<String> emitter2() {
+            return emitter2;
+        }
+
+        public List<String> list() {
+            return list;
+        }
+
+        public void run() {
+            emitter.send("a");
+            emitter2.send("b");
+            emitter2.send("c");
+            emitter.complete();
+        }
+
+        @Incoming("foo")
+        public void consume(final String s) {
+            list.add(s);
+        }
+    }
+
+    @ApplicationScoped
+    public static class MultipleIncompatibleEmitterInjection {
+        @Inject
+        @Channel("foo")
+        Emitter<String> emitter;
+
+        @Inject
+        @Channel("foo")
+        @OnOverflow(value = OnOverflow.Strategy.DROP)
+        Emitter<String> emitter2;
+
+        private final List<String> list = new CopyOnWriteArrayList<>();
+
+        public Emitter<String> emitter() {
+            return emitter;
+        }
+
+        public Emitter<String> emitter2() {
+            return emitter2;
+        }
+
+        public List<String> list() {
+            return list;
+        }
+
+        public void run() {
+            emitter.send("a");
+            emitter2.send("b");
+            emitter2.send("c");
             emitter.complete();
         }
 
