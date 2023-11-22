@@ -13,12 +13,10 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.DisabledForJreRange;
-import org.junit.jupiter.api.condition.JRE;
-import org.junitpioneer.jupiter.SetEnvironmentVariable;
 import org.junitpioneer.jupiter.SetSystemProperty;
 
 import io.smallrye.reactive.messaging.kafka.base.KafkaCompanionTestBase;
+import io.smallrye.reactive.messaging.test.common.config.SetEnvironmentVariable;
 
 public class EnvAndSysConfigTest extends KafkaCompanionTestBase {
 
@@ -26,7 +24,6 @@ public class EnvAndSysConfigTest extends KafkaCompanionTestBase {
     public static final String TOPIC_2 = "EnvConfigTest-IN-2";
 
     @Test
-    @DisabledForJreRange(min = JRE.JAVA_17, disabledReason = "Environment cannot be modified on Java 17")
     @SetEnvironmentVariable(key = "MP_MESSAGING_INCOMING_KAFKA_TOPIC", value = TOPIC_1)
     @SetEnvironmentVariable(key = "MP_MESSAGING_INCOMING_KAFKA_VALUE_DESERIALIZER", value = "org.apache.kafka.common.serialization.StringDeserializer")
     public void testConsumerConfigurationComingFromEnv() throws InterruptedException {

@@ -11,12 +11,10 @@ import org.eclipse.microprofile.config.ConfigValue;
 import org.eclipse.microprofile.config.spi.ConfigSource;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.DisabledForJreRange;
-import org.junit.jupiter.api.condition.JRE;
-import org.junitpioneer.jupiter.SetEnvironmentVariable;
 
 import io.smallrye.config.SmallRyeConfig;
 import io.smallrye.config.SmallRyeConfigBuilder;
+import io.smallrye.reactive.messaging.test.common.config.SetEnvironmentVariable;
 
 @SetEnvironmentVariable(key = "MP_MESSAGING_INCOMING_FOO_ATTR", value = "new-value")
 @SetEnvironmentVariable(key = "MP_MESSAGING_INCOMING_FOO_AT_TR", value = "another-value")
@@ -26,7 +24,6 @@ import io.smallrye.config.SmallRyeConfigBuilder;
 @SetEnvironmentVariable(key = "MP_MESSAGING_CONNECTOR_SOME_CONNECTOR_ATTR3", value = "used")
 @SetEnvironmentVariable(key = "mp_messaging_connector_some_connector_attr4", value = "used")
 @SetEnvironmentVariable(key = "mp_messaging_connector_SOME_CONNECTOR_mixedcase", value = "used")
-@DisabledForJreRange(min = JRE.JAVA_17, disabledReason = "Environment cannot be modified on Java 17")
 public class ConnectorConfigTest {
 
     private SmallRyeConfig overallConfig;
