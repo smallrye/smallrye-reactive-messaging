@@ -131,6 +131,17 @@ public abstract class AbstractMediator {
                 this.invoker = args -> {
                     try {
                         return this.configuration.getMethod().invoke(bean, args);
+                    } catch (IllegalArgumentException e) {
+                        if (e.getMessage().equals("argument type mismatch")) {
+                            throw ex.illegalArgumentParameters(configuration.methodAsString(),
+                                    String.join(",", Arrays.stream(configuration.getMethod().getParameterTypes())
+                                            .map(Class::getSimpleName).toArray(String[]::new)),
+                                    String.join(",", Arrays.stream(args)
+                                            .map(c -> c.getClass().getSimpleName())
+                                            .toArray(String[]::new)));
+                        } else {
+                            throw ex.processingException(configuration.methodAsString(), e);
+                        }
                     } catch (Exception e) {
                         throw ex.processingException(configuration.methodAsString(), e);
                     }

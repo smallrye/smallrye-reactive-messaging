@@ -48,13 +48,17 @@ import io.smallrye.reactive.messaging.health.HealthReporter;
 import io.smallrye.reactive.messaging.providers.connectors.ExecutionHolder;
 import io.smallrye.reactive.messaging.providers.helpers.CDIUtils;
 import io.smallrye.reactive.messaging.providers.helpers.MultiUtils;
+import io.smallrye.reactive.messaging.providers.helpers.VertxContext;
+import io.smallrye.reactive.messaging.providers.impl.ConcurrencyConnectorConfig;
 import io.smallrye.reactive.messaging.rabbitmq.ack.RabbitMQAck;
 import io.smallrye.reactive.messaging.rabbitmq.ack.RabbitMQAckHandler;
 import io.smallrye.reactive.messaging.rabbitmq.ack.RabbitMQAutoAck;
 import io.smallrye.reactive.messaging.rabbitmq.fault.RabbitMQFailureHandler;
 import io.smallrye.reactive.messaging.rabbitmq.tracing.RabbitMQOpenTelemetryInstrumenter;
 import io.smallrye.reactive.messaging.rabbitmq.tracing.RabbitMQTrace;
+import io.vertx.core.impl.VertxInternal;
 import io.vertx.core.json.JsonObject;
+import io.vertx.mutiny.core.Context;
 import io.vertx.mutiny.core.Vertx;
 import io.vertx.mutiny.rabbitmq.RabbitMQClient;
 import io.vertx.mutiny.rabbitmq.RabbitMQConsumer;
@@ -220,12 +224,14 @@ public class RabbitMQConnector implements InboundConnector, OutboundConnector, H
 
         if (isTracingEnabled) {
             return receiver.toMulti()
+                    .emitOn(c -> VertxContext.runOnContext(holder.getContext().getDelegate(), c))
                     .map(m -> new IncomingRabbitMQMessage<>(m, holder, onNack, onAck, contentTypeOverride))
                     .map(msg -> instrumenter.traceIncoming(msg,
                             RabbitMQTrace.traceQueue(queueName, msg.message.envelope().getRoutingKey(),
                                     msg.getHeaders())));
         } else {
             return receiver.toMulti()
+                    .emitOn(c -> VertxContext.runOnContext(holder.getContext().getDelegate(), c))
                     .map(m -> new IncomingRabbitMQMessage<>(m, holder, onNack, onAck, contentTypeOverride));
         }
     }
@@ -276,7 +282,11 @@ public class RabbitMQConnector implements InboundConnector, OutboundConnector, H
                                 .onItem().call(() -> establishDLQ(client, ic))
                                 .subscribe().with(ignored -> promise.complete(), promise::fail);
                     });
-                    final ConnectionHolder holder = new ConnectionHolder(client, ic, getVertx());
+                    Context root = null;
+                    if (ConcurrencyConnectorConfig.getConcurrency(config).filter(i -> i > 1).isPresent()) {
+                        root = Context.newInstance(((VertxInternal) getVertx().getDelegate()).createEventLoopContext());
+                    }
+                    final ConnectionHolder holder = new ConnectionHolder(client, ic, getVertx(), root);
                     return holder.getOrEstablishConnection()
                             .invoke(() -> log.connectionEstablished(connectionIdx, ic.getChannel()))
                             .flatMap(connection -> createConsumer(ic, connection).map(consumer -> Tuple2.of(holder, consumer)));
@@ -385,7 +395,7 @@ public class RabbitMQConnector implements InboundConnector, OutboundConnector, H
             establishExchange(client, oc).subscribe().with((ignored) -> promise.complete(), promise::fail);
         });
 
-        final ConnectionHolder holder = new ConnectionHolder(client, oc, getVertx());
+        final ConnectionHolder holder = new ConnectionHolder(client, oc, getVertx(), null);
         final Uni<RabbitMQPublisher> getSender = holder.getOrEstablishConnection()
                 .onItem().transformToUni(connection -> Uni.createFrom().item(RabbitMQPublisher.create(getVertx(), connection,
                         new RabbitMQPublisherOptions()

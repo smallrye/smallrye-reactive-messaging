@@ -36,7 +36,6 @@ import io.opentelemetry.instrumentation.api.instrumenter.messaging.MessagingSpan
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.health.HealthReport;
-import io.smallrye.reactive.messaging.providers.locals.ContextOperator;
 import io.smallrye.reactive.messaging.pulsar.tracing.PulsarAttributesExtractor;
 import io.smallrye.reactive.messaging.pulsar.tracing.PulsarTrace;
 import io.smallrye.reactive.messaging.pulsar.tracing.PulsarTraceTextMapGetter;
@@ -136,9 +135,7 @@ public class PulsarIncomingChannel<T> {
             if (tracingEnabled) {
                 receiveMulti = receiveMulti.onItem().invoke(this::incomingTrace);
             }
-            this.publisher = receiveMulti
-                    .emitOn(context.nettyEventLoop())
-                    .plug(ContextOperator::apply);
+            this.publisher = receiveMulti;
         } else {
             Multi<PulsarIncomingBatchMessage<T>> batchReceiveMulti = Multi.createBy().repeating()
                     .completionStage(consumer::batchReceiveAsync)
@@ -165,9 +162,7 @@ public class PulsarIncomingChannel<T> {
             if (tracingEnabled) {
                 batchReceiveMulti = batchReceiveMulti.onItem().invoke(this::incomingBatchTrace);
             }
-            this.publisher = batchReceiveMulti
-                    .emitOn(context.nettyEventLoop())
-                    .plug(ContextOperator::apply);
+            this.publisher = batchReceiveMulti;
         }
 
         PulsarAttributesExtractor attributesExtractor = new PulsarAttributesExtractor();

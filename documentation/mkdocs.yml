@@ -24,6 +24,7 @@ nav:
             - 'Channel Decorators': concepts/decorators.md
             - 'Broadcast' : concepts/broadcast.md
             - 'Merge channels' : concepts/merge.md
+            - 'Incoming Channel Concurrency' : concepts/incoming-concurrency.md
             - '@Incomings' : concepts/incomings.md
             - '@Outgoings' : concepts/outgoings.md
             - 'Testing' : concepts/testing.md
@@ -102,6 +103,7 @@ plugins:
         version_selector: true
         css_dir: css
         javascript_dir: javascript
+  - print-site
 
 copyright: >-
   Sponsored by <a href="https://www.redhat.com"><img style="vertical-align: middle; height: 2.5em;" alt="Red Hat" src="https://github.com/jbossorg/website/raw/master/docs/img/redhat_reversed.svg"/></a> <br/>

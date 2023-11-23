@@ -15,6 +15,13 @@ public class ReceivingMqttMessageMetadata implements MqttMessageMetadata {
     }
 
     /**
+     * @return the MQTT message
+     */
+    public MqttPublishMessage getMessage() {
+        return message;
+    }
+
+    /**
      * @return the message id of the MQTT message
      */
     public int getMessageId() {

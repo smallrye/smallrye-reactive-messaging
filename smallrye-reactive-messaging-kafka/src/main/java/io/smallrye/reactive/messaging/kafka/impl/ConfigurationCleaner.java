@@ -67,6 +67,7 @@ public class ConfigurationCleaner {
             "dead-letter-queue.key.serializer",
             "dead-letter-queue.value.serializer",
             "partitions",
+            "concurrency",
             "consumer-rebalance-listener.name",
             "key-deserialization-failure-handler",
             "value-deserialization-failure-handler",

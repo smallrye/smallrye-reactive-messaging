@@ -32,6 +32,7 @@ import io.smallrye.reactive.messaging.MutinyEmitter;
 import io.smallrye.reactive.messaging.providers.helpers.MultiUtils;
 import io.smallrye.reactive.messaging.providers.helpers.TypeUtils;
 import io.smallrye.reactive.messaging.providers.i18n.ProviderExceptions;
+import io.smallrye.reactive.messaging.providers.locals.ContextOperator;
 import mutiny.zero.flow.adapters.AdaptersToReactiveStreams;
 
 /**
@@ -211,7 +212,8 @@ public class ChannelProducer {
                 return MultiUtils.publisher(list.get(0));
             } else {
                 return Multi.createBy().merging()
-                        .streams(list.stream().map(p -> p).collect(Collectors.toList()));
+                        .streams(list.stream().map(p -> p).collect(Collectors.toList()))
+                        .plug(ContextOperator::apply);
             }
         });
     }
