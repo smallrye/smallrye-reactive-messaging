@@ -24,30 +24,7 @@
     "criticality" : "highlight",
     "minSeverity" : "POTENTIALLY_BREAKING",
     "minCriticality" : "documented",
-    "differences" : [
-        {
-        "code": "java.method.removed",
-        "old": "method org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder<? extends org.eclipse.microprofile.reactive.messaging.Message<?>> io.smallrye.reactive.messaging.memory.InMemoryConnector::getPublisherBuilder(org.eclipse.microprofile.config.Config)",
-        "justification": "Migrated InMemoryConnector to InboundConnector"
-        },
-        {
-            "code": "java.method.removed",
-            "old": "method org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder<? extends org.eclipse.microprofile.reactive.messaging.Message<?>, java.lang.Void> io.smallrye.reactive.messaging.memory.InMemoryConnector::getSubscriberBuilder(org.eclipse.microprofile.config.Config)",
-            "justification": "Migrated InMemoryConnector to OutboundConnector"
-        },
-        {
-            "code": "java.annotation.added",
-            "old": "class io.smallrye.reactive.messaging.memory.InMemoryConnector",
-            "new": "class io.smallrye.reactive.messaging.memory.InMemoryConnector",
-            "annotation": "@io.smallrye.reactive.messaging.annotations.ConnectorAttributes({@io.smallrye.reactive.messaging.annotations.ConnectorAttribute(name = \"run-on-vertx-context\", type = \"boolean\", direction = .INCOMING, description = \"Whether messages are dispatched on the Vert.x context or not.\", defaultValue = \"false\"), @io.smallrye.reactive.messaging.annotations.ConnectorAttribute(name = \"broadcast\", type = \"boolean\", direction = .INCOMING, description = \"Whether the messages are dispatched to multiple consumer\", defaultValue = \"false\")})",
-            "justification": "Added connector attribute for dispatching messages on Vert.x context"
-        },
-        {
-            "code": "java.method.addedToInterface",
-            "new": "method io.smallrye.reactive.messaging.memory.InMemorySource<T> io.smallrye.reactive.messaging.memory.InMemorySource<T>::runOnVertxContext(boolean)",
-            "justification": "Added method to InMemorySource for dispatching messages on Vert.x context"
-        }
-    ]
+    "differences" : [ ]
   }
 }, {
   "extension" : "revapi.reporter.json",
