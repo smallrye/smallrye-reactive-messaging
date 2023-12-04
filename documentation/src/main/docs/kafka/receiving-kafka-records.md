@@ -618,6 +618,38 @@ Conversely, if the processing throws an exception, all messages are
 *nacked*, applying the failure strategy for all the records inside the
 batch.
 
+## Manual topic-partition assignment
+
+The default behavior of Kafka incoming channels is to subscribe to one or more topics in order to receive records from the Kafka broker.
+Channel attributes `topic` and `topics` allow specifying topics to subscribe to,
+or `pattern` attribute allows to subscribe to all topics matching a regular expression.
+Subscribing to topics allows partitioning consumption of topics by dynamically assigning (rebalancing) partitions between members of a consumer group.
+
+The `assign-seek` configuration attribute allows manually assigning topic-partitions to a Kafka incoming channel,
+and optionally seek to a specified offset in the partition to start consuming records.
+If `assign-seek` is used, the consumer will not be dynamically subscribed to topics,
+but instead will statically assign the described partitions.
+In manual topic-partition rebalancing doesn't happen and therefore rebalance listeners are never called.
+
+The attribute takes a list of triplets separated by commas: `<topic>:<partition>:<offset>`.
+
+For example, the following configuration
+
+```properties
+mp.messaging.incoming.data.assign-seek=topic1:0:10, topic2:1:20
+```
+
+assigns the consumer to:
+- Partition 0 of topic 'topic1', setting the initial position at offset 10.
+- Partition 1 of topic 'topic2', setting the initial position at offset 20.
+
+The topic, partition, and offset in each triplet can have the following variations:
+- If the topic is omitted, the configured `topic` will be used.
+- If the offset is omitted, partitions are assigned to the consumer but won't be seeked to offset.
+- If offset is 0, it seeks to the beginning of the topic-partition.
+- If offset is -1, it seeks to the end of the topic-partition.
+
+
 ## Stateful processing with Checkpointing
 
 !!!warning "Experimental"

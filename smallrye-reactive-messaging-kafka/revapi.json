@@ -129,6 +129,14 @@
             "code": "java.class.removed",
             "old": "class io.smallrye.reactive.messaging.kafka.OutgoingKafkaRecordMetadata<K>",
             "justification": "Removed deprecated OutgoingKafkaRecordMetadata"
+        },
+        {
+            "code": "java.annotation.attributeValueChanged",
+            "old": "class io.smallrye.reactive.messaging.kafka.KafkaConnector",
+            "new": "class io.smallrye.reactive.messaging.kafka.KafkaConnector",
+            "annotationType": "io.smallrye.reactive.messaging.annotations.ConnectorAttributes",
+            "attribute": "value",
+            "justification": "Added 'assign-seek' attribute for incoming channels"
         }
     ]
   }

@@ -84,4 +84,13 @@ public interface KafkaExceptions {
 
     @Message(id = 18021, value = "Exactly-once processing is not supported on channels with multiple partitions `%s`")
     IllegalStateException exactlyOnceProcessingNotSupported(String channel);
+
+    @Message(id = 18022, value = "The Kafka incoming configuration for channel `%s` cannot use `topics` and `%s` at the same time")
+    IllegalArgumentException invalidTopics(String channel, String configKey);
+
+    @Message(id = 18023, value = "Invalid Kafka incoming configuration for channel `%s`, `assign-seek` portion `%s` is invalid. It must respect the format `<topic>:|<partition>|:<offset>`.")
+    IllegalArgumentException invalidAssignSeek(String channel, String assignSeek, @Cause Throwable throwable);
+
+    @Message(id = 18024, value = "Invalid Kafka incoming configuration for channel `%s`, `assign-seek` portion `%s` is invalid. If topic portion is not present, a single `topic` configuration is needed.")
+    IllegalArgumentException invalidAssignSeekTopic(String channel, String assignSeek);
 }

@@ -339,4 +339,8 @@ public interface KafkaLogging extends BasicLogger {
     @Message(id = 18280, value = "A message sent to channel `%s` has been nacked and won't be retried again. Configure `dead-letter-queue.topic` for sending the record to a dead letter topic")
     void delayedRetryNoDlq(String channel);
 
+    @LogMessage(level = Logger.Level.INFO)
+    @Message(id = 18281, value = "The topics configuration `%s` for channel `%s` will be ignored because the consumer will be assigned to partitions %s")
+    void topicsConfigurationIgnored(String topics, String channel, String topicPartitions);
+
 }

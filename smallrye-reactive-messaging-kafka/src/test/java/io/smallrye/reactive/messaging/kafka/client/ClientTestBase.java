@@ -152,6 +152,21 @@ public class ClientTestBase extends KafkaCompanionTestBase {
         return source;
     }
 
+    public KafkaSource<Integer, String> createSourceAssignAndSeek() {
+        String groupId = UUID.randomUUID().toString();
+        MapBasedConfig config = createConsumerConfig(groupId)
+                .with("topic", topic)
+                .with("assign-seek", "0:5,1:5,2:5,3:5");
+
+        SingletonInstance<KafkaConsumerRebalanceListener> listeners = new SingletonInstance<>(groupId,
+                getKafkaConsumerRebalanceListenerAwaitingAssignation());
+
+        source = new KafkaSource<>(vertx, groupId, new KafkaConnectorIncomingConfiguration(config), commitHandlerFactories,
+                failureHandlerFactories, listeners, CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), 0);
+        sources.add(source);
+        return source;
+    }
+
     public KafkaSource<Integer, String> createSourceSeekToEnd() {
         String groupId = UUID.randomUUID().toString();
         MapBasedConfig config = createConsumerConfig(groupId)

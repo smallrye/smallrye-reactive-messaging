@@ -23,7 +23,8 @@ public class ConfigurationCleaner {
             "lazy-client",
             "delayed-retry-topic.topics",
             "delayed-retry-topic.max-retries",
-            "delayed-retry-topic.timeout");
+            "delayed-retry-topic.timeout",
+            "assign-seek");
 
     private static final List<String> PRODUCER = Arrays.asList(
             "key",
