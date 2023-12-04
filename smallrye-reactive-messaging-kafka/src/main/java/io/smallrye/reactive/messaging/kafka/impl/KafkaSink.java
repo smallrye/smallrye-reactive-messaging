@@ -27,6 +27,7 @@ import org.apache.kafka.common.errors.RecordTooLargeException;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.errors.TransactionAbortedException;
 import org.apache.kafka.common.errors.UnknownServerException;
+import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.eclipse.microprofile.reactive.messaging.Message;
@@ -44,6 +45,7 @@ import io.smallrye.reactive.messaging.kafka.api.IncomingKafkaRecordMetadata;
 import io.smallrye.reactive.messaging.kafka.api.OutgoingKafkaRecordMetadata;
 import io.smallrye.reactive.messaging.kafka.health.KafkaSinkHealth;
 import io.smallrye.reactive.messaging.kafka.impl.ce.KafkaCloudEventHelper;
+import io.smallrye.reactive.messaging.kafka.reply.KafkaRequestReply;
 import io.smallrye.reactive.messaging.kafka.tracing.KafkaOpenTelemetryInstrumenter;
 import io.smallrye.reactive.messaging.kafka.tracing.KafkaTrace;
 import io.smallrye.reactive.messaging.providers.helpers.MultiUtils;
@@ -177,33 +179,33 @@ public class KafkaSink {
             try {
                 OutgoingKafkaRecordMetadata<?> outgoingMetadata = message.getMetadata(OutgoingKafkaRecordMetadata.class)
                         .orElse(null);
-                String actualTopic = outgoingMetadata == null || outgoingMetadata.getTopic() == null ? this.topic
-                        : outgoingMetadata.getTopic();
 
                 ProducerRecord<?, ?> record;
                 OutgoingCloudEventMetadata<?> ceMetadata = message.getMetadata(OutgoingCloudEventMetadata.class)
                         .orElse(null);
                 IncomingKafkaRecordMetadata<?, ?> incomingMetadata = message.getMetadata(IncomingKafkaRecordMetadata.class)
                         .orElse(null);
+                String topic = getActualTopic(incomingMetadata, outgoingMetadata);
 
                 if (message.getPayload() instanceof ProducerRecord) {
                     record = (ProducerRecord<?, ?>) message.getPayload();
+                    topic = record.topic();
                 } else if (writeCloudEvents && (ceMetadata != null || mandatoryCloudEventAttributeSet)) {
                     // We encode the outbound record as Cloud Events if:
                     // - cloud events are enabled -> writeCloudEvents
                     // - the incoming message contains Cloud Event metadata (OutgoingCloudEventMetadata -> ceMetadata)
                     // - or if the message does not contain this metadata, the type and source are configured on the channel
                     if (writeAsBinaryCloudEvent) {
-                        record = KafkaCloudEventHelper.createBinaryRecord(message, actualTopic, outgoingMetadata,
+                        record = KafkaCloudEventHelper.createBinaryRecord(message, topic, outgoingMetadata,
                                 incomingMetadata,
                                 ceMetadata, runtimeConfiguration);
                     } else {
                         record = KafkaCloudEventHelper
-                                .createStructuredRecord(message, actualTopic, outgoingMetadata, incomingMetadata, ceMetadata,
+                                .createStructuredRecord(message, topic, outgoingMetadata, incomingMetadata, ceMetadata,
                                         runtimeConfiguration);
                     }
                 } else {
-                    record = getProducerRecord(message, outgoingMetadata, incomingMetadata, actualTopic);
+                    record = getProducerRecord(message, outgoingMetadata, incomingMetadata, topic);
                 }
 
                 if (isTracingEnabled) {
@@ -217,14 +219,15 @@ public class KafkaSink {
                     kafkaInstrumenter.traceOutgoing(message, kafkaTrace);
                 }
 
-                log.sendingMessageToTopic(message, actualTopic);
+                String actualTopic = topic;
+                log.sendingMessageToTopic(message, channel, actualTopic);
 
                 @SuppressWarnings({ "unchecked", "rawtypes" })
                 Uni<RecordMetadata> sendUni = client.send((ProducerRecord) record);
 
                 Uni<Void> uni = sendUni.onItem().transformToUni(recordMetadata -> {
                     OutgoingMessageMetadata.setResultOnMessage(message, recordMetadata);
-                    log.successfullyToTopic(message, recordMetadata.topic(), recordMetadata.partition(),
+                    log.successfullyToTopic(message, channel, recordMetadata.topic(), recordMetadata.partition(),
                             recordMetadata.offset());
                     return Uni.createFrom().completionStage(message.ack());
                 });
@@ -240,7 +243,7 @@ public class KafkaSink {
                 return uni
                         .onFailure().recoverWithUni(t -> {
                             // Log and nack the messages on failure.
-                            log.nackingMessage(message, actualTopic, t);
+                            log.nackingMessage(message, channel, actualTopic, t);
                             return Uni.createFrom().completionStage(message.nack(t));
                         });
             } catch (RuntimeException e) {
@@ -250,6 +253,16 @@ public class KafkaSink {
         };
     }
 
+    private String getActualTopic(IncomingKafkaRecordMetadata<?, ?> im, OutgoingKafkaRecordMetadata<?> om) {
+        if (im != null) {
+            Header replyTopic = im.getHeaders().lastHeader(KafkaRequestReply.DEFAULT_REPLY_TOPIC_HEADER);
+            if (replyTopic != null) {
+                return new String(replyTopic.value());
+            }
+        }
+        return om == null || om.getTopic() == null ? this.topic : om.getTopic();
+    }
+
     private boolean isRecoverable(Throwable f) {
         return !NOT_RECOVERABLE.contains(f.getClass());
     }
@@ -257,7 +270,7 @@ public class KafkaSink {
     @SuppressWarnings("rawtypes")
     private ProducerRecord<?, ?> getProducerRecord(Message<?> message, OutgoingKafkaRecordMetadata<?> om,
             IncomingKafkaRecordMetadata<?, ?> im, String actualTopic) {
-        int actualPartition = om == null || om.getPartition() <= -1 ? this.partition : om.getPartition();
+        int actualPartition = getActualPartition(im, om);
 
         Object actualKey = getKey(message, om);
 
@@ -281,6 +294,16 @@ public class KafkaSink {
                 actualKey,
                 payload,
                 kafkaHeaders);
+    }
+
+    private int getActualPartition(IncomingKafkaRecordMetadata<?, ?> im, OutgoingKafkaRecordMetadata<?> om) {
+        if (im != null) {
+            Header header = im.getHeaders().lastHeader(KafkaRequestReply.DEFAULT_REPLY_PARTITION_HEADER);
+            if (header != null) {
+                return KafkaRequestReply.replyPartitionFromBytes(header.value());
+            }
+        }
+        return om == null || om.getPartition() <= -1 ? this.partition : om.getPartition();
     }
 
     @SuppressWarnings({ "rawtypes" })

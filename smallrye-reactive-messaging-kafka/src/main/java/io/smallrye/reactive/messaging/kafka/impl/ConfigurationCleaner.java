@@ -82,6 +82,7 @@ public class ConfigurationCleaner {
             "value.serializer");
 
     private static final List<String> CONSUMER_PREFIX = Arrays.asList("checkpoint");
+    private static final List<String> PRODUCER_PREFIX = Arrays.asList("reply");
 
     private ConfigurationCleaner() {
         // Avoid direct instantiation
@@ -93,6 +94,9 @@ public class ConfigurationCleaner {
         }
         for (String key : PRODUCER) {
             json.remove(key);
+        }
+        for (String prefix : PRODUCER_PREFIX) {
+            json.keySet().removeIf(key -> key.startsWith(prefix));
         }
     }
 

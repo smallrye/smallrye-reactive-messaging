@@ -2,6 +2,7 @@ package io.smallrye.reactive.messaging.kafka.api;
 
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import org.apache.kafka.common.header.Header;
@@ -31,6 +32,15 @@ public class OutgoingKafkaRecordMetadata<K> implements KafkaMessageMetadata<K> {
      */
     public static <K> OutgoingKafkaRecordMetadataBuilder<K> builder() {
         return new OutgoingKafkaRecordMetadataBuilder<>();
+    }
+
+    public static <K> OutgoingKafkaRecordMetadataBuilder<K> from(OutgoingKafkaRecordMetadata<K> other) {
+        return new OutgoingKafkaRecordMetadataBuilder<K>()
+                .withKey(other.getKey())
+                .withTopic(other.getTopic())
+                .withHeaders(other.getHeaders())
+                .withTimestamp(other.getTimestamp())
+                .withPartition(other.getPartition());
     }
 
     protected OutgoingKafkaRecordMetadata(String topic, K key, int partition, Instant timestamp,
@@ -141,13 +151,30 @@ public class OutgoingKafkaRecordMetadata<K> implements KafkaMessageMetadata<K> {
         }
 
         /**
-         * Specify headers for Kafka the timestamp for the Kafka record
+         * Specify headers for the Kafka record
          *
          * @param headers the headers
          * @return this builder
          */
         public OutgoingKafkaRecordMetadataBuilder<K> withHeaders(Headers headers) {
             this.headers = headers;
+            return this;
+        }
+
+        /**
+         * Add headers for the Kafka record
+         *
+         * @param headers the headers
+         * @return this builder
+         */
+        public OutgoingKafkaRecordMetadataBuilder<K> addHeaders(RecordHeader... headers) {
+            if (this.headers == null) {
+                return withHeaders(Arrays.asList(headers));
+            } else {
+                for (Header header : headers) {
+                    this.headers.add(header);
+                }
+            }
             return this;
         }
 
