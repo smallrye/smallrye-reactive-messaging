@@ -1,5 +1,14 @@
 package io.smallrye.reactive.messaging.aws.sqs;
 
+import static io.smallrye.reactive.messaging.aws.config.ConfigHelper.parseToList;
+import static io.smallrye.reactive.messaging.aws.sqs.action.ReceiveMessageAction.receiveMessages;
+
+import java.util.List;
+import java.util.concurrent.Flow;
+import java.util.function.Supplier;
+
+import org.eclipse.microprofile.reactive.messaging.Message;
+
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.aws.sqs.client.SqsClientHolder;
@@ -7,15 +16,7 @@ import io.smallrye.reactive.messaging.aws.sqs.message.SqsIncomingMessage;
 import io.smallrye.reactive.messaging.providers.locals.ContextOperator;
 import io.vertx.core.impl.EventLoopContext;
 import io.vertx.core.impl.VertxInternal;
-import org.eclipse.microprofile.reactive.messaging.Message;
 import software.amazon.awssdk.services.sqs.model.ReceiveMessageResponse;
-
-import java.util.List;
-import java.util.concurrent.Flow;
-import java.util.function.Supplier;
-
-import static io.smallrye.reactive.messaging.aws.config.ConfigHelper.parseToList;
-import static io.smallrye.reactive.messaging.aws.sqs.action.ReceiveMessageAction.receiveMessages;
 
 public class SqsIncomingChannel extends SqsChannel {
 
@@ -46,15 +47,15 @@ public class SqsIncomingChannel extends SqsChannel {
     }
 
     private static Supplier<Uni<ReceiveMessageResponse>> receiveMessagesSupplier(
-            SqsClientHolder<SqsConnectorIncomingConfiguration> clientHolder
-    ) {
+            SqsClientHolder<SqsConnectorIncomingConfiguration> clientHolder) {
         // TODO: is there an easier way to get list and map configuration? Otherwise, it is important to make
         //  sure that the data is not parsed too often. :(
         final List<String> attributeNames = parseToList(clientHolder.getConfig().getAttributeNames());
         final List<String> messageAttributeNames = parseToList(clientHolder.getConfig().getMessageAttributeNames());
 
         return () -> clientHolder.getTargetResolver().resolveTarget(clientHolder)
-                .onItem().transformToUni(target -> receiveMessages(clientHolder, target, attributeNames, messageAttributeNames));
+                .onItem()
+                .transformToUni(target -> receiveMessages(clientHolder, target, attributeNames, messageAttributeNames));
     }
 
     private static Multi<SqsIncomingMessage> createMultiOfMessages(ReceiveMessageResponse response) {

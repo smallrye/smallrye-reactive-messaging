@@ -1,5 +1,13 @@
 package io.smallrye.reactive.messaging.aws.sqs;
 
+import static io.smallrye.reactive.messaging.aws.sqs.tracing.SqsInstrumenter.SQS_OUTGOING_INSTRUMENTER;
+
+import java.time.Duration;
+import java.util.List;
+import java.util.concurrent.Flow;
+
+import org.eclipse.microprofile.reactive.messaging.Message;
+
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.tuples.Tuple2;
@@ -11,13 +19,6 @@ import io.smallrye.reactive.messaging.aws.sqs.message.SqsOutgoingMessage;
 import io.smallrye.reactive.messaging.aws.sqs.tracing.SqsTrace;
 import io.smallrye.reactive.messaging.providers.helpers.MultiUtils;
 import io.smallrye.reactive.messaging.tracing.TracingUtils;
-import org.eclipse.microprofile.reactive.messaging.Message;
-
-import java.time.Duration;
-import java.util.List;
-import java.util.concurrent.Flow;
-
-import static io.smallrye.reactive.messaging.aws.sqs.tracing.SqsInstrumenter.SQS_OUTGOING_INSTRUMENTER;
 
 public class SqsOutgoingChannel extends SqsChannel {
 
@@ -95,8 +96,8 @@ public class SqsOutgoingChannel extends SqsChannel {
                     //  possible as mentioned. Or it would be necessary to create the ids here. I do not like that.
                     // .withMessageId("")
                     .withConversationId(message.getSqsMetadata().getConversationId())
-                    // We do not set payload size. This would require to calculate it, which is less performant.
-                    ;
+            // We do not set payload size. This would require to calculate it, which is less performant.
+            ;
             TracingUtils.traceOutgoing(SQS_OUTGOING_INSTRUMENTER, message, trace);
         }
     }
