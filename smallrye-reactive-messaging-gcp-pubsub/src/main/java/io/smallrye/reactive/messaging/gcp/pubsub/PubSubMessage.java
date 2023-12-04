@@ -5,9 +5,10 @@ import static io.smallrye.reactive.messaging.gcp.pubsub.i18n.PubSubMessages.msg;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
-import java.util.function.Supplier;
+import java.util.function.Function;
 
 import org.eclipse.microprofile.reactive.messaging.Message;
+import org.eclipse.microprofile.reactive.messaging.Metadata;
 
 import com.google.cloud.pubsub.v1.AckReplyConsumer;
 import com.google.pubsub.v1.PubsubMessage;
@@ -38,7 +39,7 @@ public class PubSubMessage implements Message<String> {
     }
 
     @Override
-    public CompletionStage<Void> ack() {
+    public CompletionStage<Void> ack(Metadata metadata) {
         if (ackReplyConsumer != null) {
             ackReplyConsumer.ack();
         }
@@ -46,7 +47,7 @@ public class PubSubMessage implements Message<String> {
     }
 
     @Override
-    public Supplier<CompletionStage<Void>> getAck() {
+    public Function<Metadata, CompletionStage<Void>> getAckWithMetadata() {
         return this::ack;
     }
 

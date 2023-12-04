@@ -23,7 +23,7 @@ public class ProducingBeanUsingOutboundMetadata {
                 .withAddress("metadata-address")
                 .build();
 
-        return Message.of(input.getPayload() + 1, input::ack).addMetadata(metadata);
+        return input.withPayload(input.getPayload() + 1).addMetadata(metadata);
     }
 
     @Outgoing("data")

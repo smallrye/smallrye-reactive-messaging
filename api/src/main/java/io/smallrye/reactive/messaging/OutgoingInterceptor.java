@@ -28,9 +28,21 @@ public interface OutgoingInterceptor extends Prioritized {
      *
      * @param message message to send
      * @return the message to send, possibly mutated
+     * @deprecated use {@link #beforeMessageSend(Message)}
      */
+    @Deprecated(since = "4.12.0")
     default Message<?> onMessage(Message<?> message) {
         return message;
+    }
+
+    /**
+     * Called before message transmission
+     *
+     * @param message message to send
+     * @return the message to send, possibly mutated
+     */
+    default Message<?> beforeMessageSend(Message<?> message) {
+        return onMessage(message);
     }
 
     /**

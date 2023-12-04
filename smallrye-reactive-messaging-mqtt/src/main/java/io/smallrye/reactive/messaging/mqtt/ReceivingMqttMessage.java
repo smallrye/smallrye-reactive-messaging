@@ -3,7 +3,7 @@ package io.smallrye.reactive.messaging.mqtt;
 import static io.smallrye.reactive.messaging.providers.locals.ContextAwareMessage.captureContextMetadata;
 
 import java.util.concurrent.CompletionStage;
-import java.util.function.Function;
+import java.util.function.BiFunction;
 
 import org.eclipse.microprofile.reactive.messaging.Metadata;
 
@@ -64,7 +64,7 @@ public class ReceivingMqttMessage implements MqttMessage<byte[]> {
     }
 
     @Override
-    public Function<Throwable, CompletionStage<Void>> getNack() {
+    public BiFunction<Throwable, Metadata, CompletionStage<Void>> getNackWithMetadata() {
         return this::nack;
     }
 }

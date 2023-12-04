@@ -197,7 +197,7 @@ public class ConcurrentProcessorTest extends MqttTestBase {
             int value = Integer.parseInt(input.getPayload());
             int next = value + 1;
             perThread.computeIfAbsent(Thread.currentThread(), t -> new CopyOnWriteArrayList<>()).add(next);
-            return Uni.createFrom().item(Message.of(next, input::ack))
+            return Uni.createFrom().item(input.withPayload(next))
                     .onItem().delayIt().by(Duration.ofMillis(100));
         }
 
@@ -229,7 +229,7 @@ public class ConcurrentProcessorTest extends MqttTestBase {
                         int value = Integer.parseInt(input.getPayload());
                         int next = value + 1;
                         perThread.computeIfAbsent(Thread.currentThread(), t -> new CopyOnWriteArrayList<>()).add(next);
-                        return Uni.createFrom().item(Message.of(next, input::ack))
+                        return Uni.createFrom().item(input.withPayload(next))
                                 .onItem().delayIt().by(Duration.ofMillis(100));
                     });
         }

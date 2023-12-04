@@ -4,8 +4,8 @@ import static io.smallrye.reactive.messaging.providers.locals.ContextAwareMessag
 
 import java.util.Map;
 import java.util.concurrent.CompletionStage;
+import java.util.function.BiFunction;
 import java.util.function.Function;
-import java.util.function.Supplier;
 
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Metadata;
@@ -17,18 +17,18 @@ public class PulsarOutgoingMessage<T> implements PulsarMessage<T>, ContextAwareM
     private final T payload;
     private final PulsarOutgoingMessageMetadata outgoingMessageMetadata;
     private final Metadata metadata;
-    private final Supplier<CompletionStage<Void>> ack;
-    private final Function<Throwable, CompletionStage<Void>> nack;
+    private final Function<Metadata, CompletionStage<Void>> ack;
+    private final BiFunction<Throwable, Metadata, CompletionStage<Void>> nack;
 
     public PulsarOutgoingMessage(T payload,
-            Supplier<CompletionStage<Void>> ack,
-            Function<Throwable, CompletionStage<Void>> nack) {
+            Function<Metadata, CompletionStage<Void>> ack,
+            BiFunction<Throwable, Metadata, CompletionStage<Void>> nack) {
         this(payload, ack, nack, PulsarOutgoingMessageMetadata.builder().build());
     }
 
     public PulsarOutgoingMessage(T payload,
-            Supplier<CompletionStage<Void>> ack,
-            Function<Throwable, CompletionStage<Void>> nack,
+            Function<Metadata, CompletionStage<Void>> ack,
+            BiFunction<Throwable, Metadata, CompletionStage<Void>> nack,
             PulsarOutgoingMessageMetadata outgoingMessageMetadata) {
         this.payload = payload;
         this.ack = ack;
@@ -38,7 +38,7 @@ public class PulsarOutgoingMessage<T> implements PulsarMessage<T>, ContextAwareM
     }
 
     public static <T> PulsarOutgoingMessage<T> from(Message<T> message) {
-        return new PulsarOutgoingMessage<>(message.getPayload(), message.getAck(), message.getNack(),
+        return new PulsarOutgoingMessage<>(message.getPayload(), message.getAckWithMetadata(), message.getNackWithMetadata(),
                 message.getMetadata(PulsarOutgoingMessageMetadata.class)
                         .orElseGet(() -> PulsarOutgoingMessageMetadata.builder().build()));
     }
@@ -89,12 +89,13 @@ public class PulsarOutgoingMessage<T> implements PulsarMessage<T>, ContextAwareM
     }
 
     @Override
-    public Supplier<CompletionStage<Void>> getAck() {
+    public Function<Metadata, CompletionStage<Void>> getAckWithMetadata() {
         return this.ack;
     }
 
     @Override
-    public Function<Throwable, CompletionStage<Void>> getNack() {
+    public BiFunction<Throwable, Metadata, CompletionStage<Void>> getNackWithMetadata() {
         return this.nack;
     }
+
 }

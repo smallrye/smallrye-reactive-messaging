@@ -36,7 +36,86 @@
     "criticality" : "highlight",
     "minSeverity" : "POTENTIALLY_BREAKING",
     "minCriticality" : "documented",
-    "differences" : [ ]
+    "differences" : [
+        {
+        "code": "java.method.numberOfParametersChanged",
+        "old": "method java.util.concurrent.CompletionStage<java.lang.Void> io.smallrye.reactive.messaging.kafka.IncomingKafkaRecord<K, T>::ack()",
+        "new": "method java.util.concurrent.CompletionStage<java.lang.Void> io.smallrye.reactive.messaging.kafka.IncomingKafkaRecord<K, T>::ack(org.eclipse.microprofile.reactive.messaging.Metadata)",
+        "justification": "Added Message metadata propagation"
+        },
+        {
+            "code": "java.method.removed",
+            "old": "method java.util.function.Supplier<java.util.concurrent.CompletionStage<java.lang.Void>> io.smallrye.reactive.messaging.kafka.IncomingKafkaRecord<K, T>::getAck()",
+            "justification": "Added Message metadata propagation"
+        },
+        {
+            "code": "java.method.removed",
+            "old": "method java.util.function.Function<java.lang.Throwable, java.util.concurrent.CompletionStage<java.lang.Void>> io.smallrye.reactive.messaging.kafka.IncomingKafkaRecord<K, T>::getNack()",
+            "justification": "Added Message metadata propagation"
+        },
+        {
+            "code": "java.method.numberOfParametersChanged",
+            "old": "method java.util.concurrent.CompletionStage<java.lang.Void> io.smallrye.reactive.messaging.kafka.IncomingKafkaRecordBatch<K, T>::ack()",
+            "new": "method java.util.concurrent.CompletionStage<java.lang.Void> io.smallrye.reactive.messaging.kafka.IncomingKafkaRecordBatch<K, T>::ack(org.eclipse.microprofile.reactive.messaging.Metadata)",
+            "justification": "Added Message metadata propagation"
+        },
+        {
+            "code": "java.method.removed",
+            "old": "method java.util.function.Supplier<java.util.concurrent.CompletionStage<java.lang.Void>> io.smallrye.reactive.messaging.kafka.IncomingKafkaRecordBatch<K, T>::getAck()",
+            "justification": "Added Message metadata propagation"
+        },
+        {
+            "code": "java.method.removed",
+            "old": "method java.util.function.Function<java.lang.Throwable, java.util.concurrent.CompletionStage<java.lang.Void>> io.smallrye.reactive.messaging.kafka.IncomingKafkaRecordBatch<K, T>::getNack()",
+            "justification": "Added Message metadata propagation"
+        },
+        {
+            "code": "java.method.addedToInterface",
+            "new": "method io.smallrye.mutiny.Uni<java.util.Map<java.lang.String, java.util.List<org.apache.kafka.common.PartitionInfo>>> io.smallrye.reactive.messaging.kafka.KafkaConsumer<K, V>::lisTopics()",
+            "justification": "Added Message metadata propagation"
+        },
+        {
+            "code": "java.method.addedToInterface",
+            "new": "method io.smallrye.mutiny.Uni<java.util.Map<java.lang.String, java.util.List<org.apache.kafka.common.PartitionInfo>>> io.smallrye.reactive.messaging.kafka.KafkaConsumer<K, V>::lisTopics(java.time.Duration)",
+            "justification": "Added Message metadata propagation"
+        },
+        {
+            "code": "java.method.addedToInterface",
+            "new": "method io.smallrye.mutiny.Uni<java.util.List<org.apache.kafka.common.PartitionInfo>> io.smallrye.reactive.messaging.kafka.KafkaConsumer<K, V>::partitionsFor(java.lang.String)",
+            "justification": "Added Message metadata propagation"
+        },
+        {
+            "code": "java.method.parameterTypeChanged",
+            "old": "parameter void io.smallrye.reactive.messaging.kafka.OutgoingKafkaRecord<K, T>::<init>(java.lang.String, K, T, java.time.Instant, int, org.apache.kafka.common.header.Headers, ===java.util.function.Supplier<java.util.concurrent.CompletionStage<java.lang.Void>>===, java.util.function.Function<java.lang.Throwable, java.util.concurrent.CompletionStage<java.lang.Void>>, org.eclipse.microprofile.reactive.messaging.Metadata)",
+            "new": "parameter void io.smallrye.reactive.messaging.kafka.OutgoingKafkaRecord<K, T>::<init>(java.lang.String, K, T, java.time.Instant, int, org.apache.kafka.common.header.Headers, ===java.util.function.Function<org.eclipse.microprofile.reactive.messaging.Metadata, java.util.concurrent.CompletionStage<java.lang.Void>>===, java.util.function.BiFunction<java.lang.Throwable, org.eclipse.microprofile.reactive.messaging.Metadata, java.util.concurrent.CompletionStage<java.lang.Void>>, org.eclipse.microprofile.reactive.messaging.Metadata)",
+            "parameterIndex": "6",
+            "justification": "Added Message metadata propagation"
+        },
+        {
+            "code": "java.method.parameterTypeChanged",
+            "old": "parameter void io.smallrye.reactive.messaging.kafka.OutgoingKafkaRecord<K, T>::<init>(java.lang.String, K, T, java.time.Instant, int, org.apache.kafka.common.header.Headers, java.util.function.Supplier<java.util.concurrent.CompletionStage<java.lang.Void>>, ===java.util.function.Function<java.lang.Throwable, java.util.concurrent.CompletionStage<java.lang.Void>>===, org.eclipse.microprofile.reactive.messaging.Metadata)",
+            "new": "parameter void io.smallrye.reactive.messaging.kafka.OutgoingKafkaRecord<K, T>::<init>(java.lang.String, K, T, java.time.Instant, int, org.apache.kafka.common.header.Headers, java.util.function.Function<org.eclipse.microprofile.reactive.messaging.Metadata, java.util.concurrent.CompletionStage<java.lang.Void>>, ===java.util.function.BiFunction<java.lang.Throwable, org.eclipse.microprofile.reactive.messaging.Metadata, java.util.concurrent.CompletionStage<java.lang.Void>>===, org.eclipse.microprofile.reactive.messaging.Metadata)",
+            "parameterIndex": "7",
+            "justification": "Added Message metadata propagation"
+        },
+        {
+            "code": "java.method.numberOfParametersChanged",
+            "old": "method java.util.concurrent.CompletionStage<java.lang.Void> io.smallrye.reactive.messaging.kafka.OutgoingKafkaRecord<K, T>::ack()",
+            "new": "method java.util.concurrent.CompletionStage<java.lang.Void> io.smallrye.reactive.messaging.kafka.OutgoingKafkaRecord<K, T>::ack(org.eclipse.microprofile.reactive.messaging.Metadata)",
+            "justification": "Added Message metadata propagation"
+
+        },
+        {
+            "code": "java.method.removed",
+            "old": "method java.util.function.Supplier<java.util.concurrent.CompletionStage<java.lang.Void>> io.smallrye.reactive.messaging.kafka.OutgoingKafkaRecord<K, T>::getAck()",
+            "justification": "Added Message metadata propagation"
+        },
+        {
+            "code": "java.method.removed",
+            "old": "method java.util.function.Function<java.lang.Throwable, java.util.concurrent.CompletionStage<java.lang.Void>> io.smallrye.reactive.messaging.kafka.OutgoingKafkaRecord<K, T>::getNack()",
+            "justification": "Added Message metadata propagation"
+        }
+    ]
   }
 }, {
   "extension" : "revapi.reporter.json",

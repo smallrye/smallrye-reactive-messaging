@@ -181,7 +181,7 @@ public class SinkHealthCheckTest extends KafkaCompanionTestBase {
         @Outgoing("output")
         @Acknowledgment(Acknowledgment.Strategy.MANUAL)
         public Message<Integer> process(Message<Integer> input) {
-            return Message.of(input.getPayload() + 1, input::ack)
+            return input.withPayload(input.getPayload() + 1)
                     .addMetadata(OutgoingKafkaRecordMetadata.builder().withTopic(topic).build());
         }
 

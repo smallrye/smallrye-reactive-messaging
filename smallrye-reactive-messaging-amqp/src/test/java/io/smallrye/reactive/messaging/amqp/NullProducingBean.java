@@ -18,7 +18,7 @@ public class NullProducingBean {
     @Outgoing("sink")
     @Acknowledgment(Acknowledgment.Strategy.MANUAL)
     public Message<Integer> process(Message<Integer> input) {
-        return Message.of(null, input::ack);
+        return input.withPayload(null);
     }
 
     @Outgoing("data")

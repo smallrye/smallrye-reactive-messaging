@@ -21,7 +21,7 @@ public class ConsumptionBeanUsingRawMessage {
     @Acknowledgment(Acknowledgment.Strategy.MANUAL)
     public Message<Integer> process(Message<Integer> input) {
         kafka.add(input);
-        return Message.of(input.getPayload() + 1, input::ack);
+        return input.withPayload(input.getPayload() + 1);
     }
 
     @Incoming("sink")

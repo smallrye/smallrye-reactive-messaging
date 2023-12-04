@@ -4,8 +4,8 @@ import static io.smallrye.reactive.messaging.providers.locals.ContextAwareMessag
 
 import java.util.ArrayList;
 import java.util.concurrent.CompletionStage;
+import java.util.function.BiFunction;
 import java.util.function.Function;
-import java.util.function.Supplier;
 
 import org.apache.qpid.proton.amqp.Binary;
 import org.apache.qpid.proton.amqp.messaging.AmqpSequence;
@@ -96,7 +96,7 @@ public class AmqpMessage<T> implements ContextAwareMessage<T>, MetadataInjectabl
     }
 
     @Override
-    public CompletionStage<Void> ack() {
+    public CompletionStage<Void> ack(Metadata metadata) {
         // We must switch to the context having created the message.
         // This context is passed when this instance of message is created.
         // It's more a Vert.x AMQP client issue which should ensure calling `accepted` on the right context.
@@ -229,12 +229,12 @@ public class AmqpMessage<T> implements ContextAwareMessage<T>, MetadataInjectabl
     }
 
     @Override
-    public Supplier<CompletionStage<Void>> getAck() {
+    public Function<Metadata, CompletionStage<Void>> getAckWithMetadata() {
         return this::ack;
     }
 
     @Override
-    public Function<Throwable, CompletionStage<Void>> getNack() {
+    public BiFunction<Throwable, Metadata, CompletionStage<Void>> getNackWithMetadata() {
         return this::nack;
     }
 

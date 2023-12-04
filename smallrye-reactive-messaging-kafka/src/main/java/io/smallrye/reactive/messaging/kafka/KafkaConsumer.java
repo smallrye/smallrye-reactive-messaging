@@ -1,6 +1,8 @@
 package io.smallrye.reactive.messaging.kafka;
 
+import java.time.Duration;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
@@ -8,6 +10,7 @@ import java.util.function.Function;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerGroupMetadata;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
+import org.apache.kafka.common.PartitionInfo;
 import org.apache.kafka.common.TopicPartition;
 
 import io.smallrye.common.annotation.CheckReturnValue;
@@ -209,4 +212,12 @@ public interface KafkaConsumer<K, V> {
     @CheckReturnValue
     Uni<Void> resetToLastCommittedPositions();
 
+    @CheckReturnValue
+    Uni<Map<String, List<PartitionInfo>>> lisTopics();
+
+    @CheckReturnValue
+    Uni<Map<String, List<PartitionInfo>>> lisTopics(Duration timeout);
+
+    @CheckReturnValue
+    Uni<List<PartitionInfo>> partitionsFor(String topic);
 }

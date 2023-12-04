@@ -17,7 +17,7 @@ public class AppendingDeprecatedDecorator implements io.smallrye.reactive.messag
     private Message<?> appendString(Message<?> message, String string) {
         if (message.getPayload() instanceof String) {
             String payload = (String) message.getPayload();
-            return Message.of(payload + "-" + string, message::ack);
+            return Message.of(payload + "-" + string, metadata -> message.ack(metadata));
         } else {
             return message;
         }

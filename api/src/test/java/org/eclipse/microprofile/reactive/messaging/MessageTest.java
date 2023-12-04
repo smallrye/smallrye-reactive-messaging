@@ -386,8 +386,8 @@ public class MessageTest {
         Message<String> created = message.withAck(null).withNack(null);
         assertThat(created.getPayload()).isEqualTo("foo");
         assertThat(created.getMetadata()).hasSize(1).contains(myMetadata);
-        assertThat(created.getAck()).isNull();
-        assertThat(created.getNack()).isNull();
+        assertThat(created.getAck()).isNotNull();
+        assertThat(created.getNack()).isNotNull();
         assertThat(created.ack().toCompletableFuture().join()).isNull();
         assertThat(created.nack(new Exception("cause")).toCompletableFuture().join()).isNull();
         assertThat(ack).hasValue(0);

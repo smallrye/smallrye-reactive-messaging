@@ -20,6 +20,7 @@ import jakarta.enterprise.inject.Instance;
 import jakarta.enterprise.inject.literal.NamedLiteral;
 
 import org.apache.kafka.clients.consumer.*;
+import org.apache.kafka.common.PartitionInfo;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.errors.WakeupException;
 import org.apache.kafka.common.serialization.Deserializer;
@@ -507,6 +508,30 @@ public class ReactiveKafkaConsumer<K, V> implements io.smallrye.reactive.messagi
     public Uni<Void> seekToEnd(Collection<TopicPartition> partitions) {
         return runOnPollingThread(c -> {
             c.seekToEnd(partitions);
+        });
+    }
+
+    @Override
+    @CheckReturnValue
+    public Uni<Map<String, List<PartitionInfo>>> lisTopics() {
+        return runOnPollingThread(consumer -> {
+            return consumer.listTopics();
+        });
+    }
+
+    @Override
+    @CheckReturnValue
+    public Uni<Map<String, List<PartitionInfo>>> lisTopics(Duration timeout) {
+        return runOnPollingThread(consumer -> {
+            return consumer.listTopics(timeout);
+        });
+    }
+
+    @Override
+    @CheckReturnValue
+    public Uni<List<PartitionInfo>> partitionsFor(String topic) {
+        return runOnPollingThread(consumer -> {
+            return consumer.partitionsFor(topic);
         });
     }
 

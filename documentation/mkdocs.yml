@@ -21,7 +21,7 @@ nav:
             - 'Skipping Messages': concepts/skipping.md
             - 'Message Converters': concepts/converters.md
             - 'Keyed Streams': concepts/keyed-multi.md
-            - 'Channel Decorators': concepts/decorators.md
+            - 'Channel Decorators and Interceptors': concepts/decorators.md
             - 'Broadcast' : concepts/broadcast.md
             - 'Merge channels' : concepts/merge.md
             - 'Incoming Channel Concurrency' : concepts/incoming-concurrency.md
@@ -29,6 +29,7 @@ nav:
             - '@Outgoings' : concepts/outgoings.md
             - 'Testing' : concepts/testing.md
             - 'Logging' : concepts/logging.md
+            - 'Observability API' : concepts/observability.md
             - 'Advanced Configuration' : concepts/advanced-config.md
             - 'Message Context' : concepts/message-context.md
             - 'Metadata Injection': concepts/incoming-metadata-injection.md

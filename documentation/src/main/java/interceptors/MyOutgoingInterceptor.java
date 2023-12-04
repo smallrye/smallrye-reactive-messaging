@@ -10,7 +10,7 @@ import io.smallrye.reactive.messaging.OutgoingMessageMetadata;
 
 @Identifier("channel-a")
 @ApplicationScoped
-public class MyInterceptor implements OutgoingInterceptor {
+public class MyOutgoingInterceptor implements OutgoingInterceptor {
 
     @Override
     public Message<?> onMessage(Message<?> message) {

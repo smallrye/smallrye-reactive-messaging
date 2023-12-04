@@ -7,7 +7,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
-import java.util.function.Supplier;
+import java.util.function.Function;
 
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Metadata;
@@ -40,11 +40,11 @@ public class MessageTest {
         assertThat(message.getMetadata()).isEmpty();
         assertThat(message.ack()).isCompleted();
 
-        Supplier<CompletionStage<Void>> supplier = () -> CompletableFuture.completedFuture(null);
+        Function<Metadata, CompletionStage<Void>> supplier = metadata -> CompletableFuture.completedFuture(null);
         message = Message.of("hello", supplier);
         assertThat(message.getPayload()).isEqualTo("hello");
         assertThat(message.getMetadata()).isEmpty();
-        assertThat(message.getAck()).isEqualTo(supplier);
+        assertThat(message.getAckWithMetadata()).isEqualTo(supplier);
         assertThat(message.ack()).isCompleted();
 
         message = Message.of("hello", Metadata.of(new MyMetadata<>("v")));
@@ -57,14 +57,14 @@ public class MessageTest {
         assertThat(message.getPayload()).isEqualTo("hello");
         assertThat(message.getMetadata()).hasSize(1);
         assertThat(message.getMetadata(MyMetadata.class).map(m -> m.v)).hasValue("v");
-        assertThat(message.getAck()).isEqualTo(supplier);
+        assertThat(message.getAckWithMetadata()).isEqualTo(supplier);
         assertThat(message.ack()).isCompleted();
 
-        message = Message.of("hello", Metadata.of(new MyMetadata<>("v")), null);
+        message = Message.of("hello", Metadata.of(new MyMetadata<>("v")));
         assertThat(message.getPayload()).isEqualTo("hello");
         assertThat(message.getMetadata()).hasSize(1);
         assertThat(message.getMetadata(MyMetadata.class).map(m -> m.v)).hasValue("v");
-        assertThat(message.getAck()).isNotEqualTo(supplier);
+        assertThat(message.getAckWithMetadata()).isNotEqualTo(supplier);
         assertThat(message.ack()).isCompleted();
     }
 

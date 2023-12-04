@@ -5,8 +5,8 @@ import static io.smallrye.reactive.messaging.pulsar.i18n.PulsarMessages.msg;
 
 import java.util.*;
 import java.util.concurrent.CompletionStage;
+import java.util.function.BiFunction;
 import java.util.function.Function;
-import java.util.function.Supplier;
 
 import org.apache.pulsar.client.api.Message;
 import org.apache.pulsar.client.api.Messages;
@@ -63,7 +63,7 @@ public class PulsarIncomingBatchMessage<T> implements PulsarBatchMessage<T>, Met
     }
 
     @Override
-    public CompletionStage<Void> ack() {
+    public CompletionStage<Void> ack(Metadata metadata) {
         return Multi.createFrom().iterable(incomingMessages)
                 .plug(stream -> {
                     var txnMetadata = getMetadata(PulsarTransactionMetadata.class);
@@ -73,12 +73,12 @@ public class PulsarIncomingBatchMessage<T> implements PulsarBatchMessage<T>, Met
                         return stream;
                     }
                 })
-                .onItem().transformToUniAndMerge(m -> Uni.createFrom().completionStage(m.getAck()))
+                .onItem().transformToUniAndMerge(m -> Uni.createFrom().completionStage(m.getAckWithMetadata().apply(metadata)))
                 .toUni().subscribeAsCompletionStage();
     }
 
     @Override
-    public Supplier<CompletionStage<Void>> getAck() {
+    public Function<Metadata, CompletionStage<Void>> getAckWithMetadata() {
         return this::ack;
     }
 
@@ -90,7 +90,7 @@ public class PulsarIncomingBatchMessage<T> implements PulsarBatchMessage<T>, Met
     }
 
     @Override
-    public Function<Throwable, CompletionStage<Void>> getNack() {
+    public BiFunction<Throwable, Metadata, CompletionStage<Void>> getNackWithMetadata() {
         return this::nack;
     }
 

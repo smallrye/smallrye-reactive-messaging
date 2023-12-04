@@ -6,8 +6,8 @@ import static io.smallrye.reactive.messaging.pulsar.i18n.PulsarMessages.msg;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CompletionStage;
+import java.util.function.BiFunction;
 import java.util.function.Function;
-import java.util.function.Supplier;
 
 import org.apache.pulsar.client.api.Message;
 import org.apache.pulsar.client.api.MessageId;
@@ -89,23 +89,23 @@ public class PulsarIncomingMessage<T> implements PulsarMessage<T>, PulsarIdMessa
     }
 
     @Override
-    public CompletionStage<Void> ack() {
+    public CompletionStage<Void> ack(Metadata metadata) {
         return ackHandler.handle(this).subscribeAsCompletionStage();
     }
 
     @Override
-    public Supplier<CompletionStage<Void>> getAck() {
+    public Function<Metadata, CompletionStage<Void>> getAckWithMetadata() {
         return this::ack;
+    }
+
+    @Override
+    public BiFunction<Throwable, Metadata, CompletionStage<Void>> getNackWithMetadata() {
+        return this::nack;
     }
 
     @Override
     public CompletionStage<Void> nack(Throwable reason, Metadata metadata) {
         return nackHandler.handle(this, reason, metadata).subscribeAsCompletionStage();
-    }
-
-    @Override
-    public Function<Throwable, CompletionStage<Void>> getNack() {
-        return this::nack;
     }
 
     @Override
