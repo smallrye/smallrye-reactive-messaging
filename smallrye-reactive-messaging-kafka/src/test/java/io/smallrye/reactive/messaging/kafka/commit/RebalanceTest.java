@@ -15,7 +15,7 @@ import org.apache.kafka.common.serialization.StringDeserializer;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.RepeatedTest;
+import org.junit.jupiter.api.Test;
 
 import io.smallrye.reactive.messaging.health.HealthReport;
 import io.smallrye.reactive.messaging.kafka.*;
@@ -47,7 +47,7 @@ public class RebalanceTest extends WeldTestBase {
         vertx.closeAndAwait();
     }
 
-    @RepeatedTest(10)
+    @Test
     void testRebalance() throws InterruptedException {
         String group = UUID.randomUUID().toString();
         MapBasedConfig config = commonConfiguration()

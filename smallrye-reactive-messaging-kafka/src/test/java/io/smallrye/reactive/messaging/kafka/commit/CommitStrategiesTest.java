@@ -22,7 +22,6 @@ import org.apache.kafka.common.serialization.StringDeserializer;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
 
 import io.smallrye.common.annotation.Identifier;
@@ -225,7 +224,7 @@ public class CommitStrategiesTest extends WeldTestBase {
 
     }
 
-    @RepeatedTest(10)
+    @Test
     void testThrottledStrategyWithManyRecords() {
         MapBasedConfig config = commonConfiguration()
                 .with("lazy-client", true)

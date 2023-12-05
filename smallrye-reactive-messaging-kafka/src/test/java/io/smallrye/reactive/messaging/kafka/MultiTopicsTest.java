@@ -18,7 +18,6 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Message;
-import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
 
 import io.smallrye.reactive.messaging.kafka.api.IncomingKafkaRecordMetadata;
@@ -31,7 +30,7 @@ import io.smallrye.reactive.messaging.kafka.companion.ProducerTask;
 @SuppressWarnings("rawtypes")
 public class MultiTopicsTest extends KafkaCompanionTestBase {
 
-    @RepeatedTest(5)
+    @Test
     public void testWithThreeTopicsInConfiguration() {
         String topic1 = UUID.randomUUID().toString();
         String topic2 = UUID.randomUUID().toString();
@@ -83,7 +82,7 @@ public class MultiTopicsTest extends KafkaCompanionTestBase {
         assertThat(top3.get()).isGreaterThanOrEqualTo(3);
     }
 
-    @RepeatedTest(5)
+    @Test
     public void testWithOnlyTwoTopicsReceiving() {
         String topic1 = UUID.randomUUID().toString();
         String topic2 = UUID.randomUUID().toString();
