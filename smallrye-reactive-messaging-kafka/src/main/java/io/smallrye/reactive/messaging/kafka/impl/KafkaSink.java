@@ -8,7 +8,6 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.Flow;
 import java.util.function.Function;
@@ -176,15 +175,16 @@ public class KafkaSink {
     private Function<Message<?>, Uni<Void>> writeMessageToKafka() {
         return message -> {
             try {
-                Optional<OutgoingKafkaRecordMetadata<?>> om = getOutgoingKafkaRecordMetadata(message);
-                OutgoingKafkaRecordMetadata<?> outgoingMetadata = om.orElse(null);
+                OutgoingKafkaRecordMetadata<?> outgoingMetadata = message.getMetadata(OutgoingKafkaRecordMetadata.class)
+                        .orElse(null);
                 String actualTopic = outgoingMetadata == null || outgoingMetadata.getTopic() == null ? this.topic
                         : outgoingMetadata.getTopic();
 
                 ProducerRecord<?, ?> record;
                 OutgoingCloudEventMetadata<?> ceMetadata = message.getMetadata(OutgoingCloudEventMetadata.class)
                         .orElse(null);
-                IncomingKafkaRecordMetadata<?, ?> incomingMetadata = getIncomingKafkaRecordMetadata(message).orElse(null);
+                IncomingKafkaRecordMetadata<?, ?> incomingMetadata = message.getMetadata(IncomingKafkaRecordMetadata.class)
+                        .orElse(null);
 
                 if (message.getPayload() instanceof ProducerRecord) {
                     record = (ProducerRecord<?, ?>) message.getPayload();
@@ -252,29 +252,6 @@ public class KafkaSink {
 
     private boolean isRecoverable(Throwable f) {
         return !NOT_RECOVERABLE.contains(f.getClass());
-    }
-
-    @SuppressWarnings("deprecation")
-    private Optional<OutgoingKafkaRecordMetadata<?>> getOutgoingKafkaRecordMetadata(Message<?> message) {
-        Optional<OutgoingKafkaRecordMetadata<?>> metadata = message.getMetadata(OutgoingKafkaRecordMetadata.class)
-                .map(x -> (OutgoingKafkaRecordMetadata<?>) x);
-        if (metadata.isPresent()) {
-            return metadata;
-        }
-        metadata = message.getMetadata(io.smallrye.reactive.messaging.kafka.OutgoingKafkaRecordMetadata.class)
-                .map(x -> (OutgoingKafkaRecordMetadata<?>) x);
-        return metadata;
-    }
-
-    private Optional<IncomingKafkaRecordMetadata<?, ?>> getIncomingKafkaRecordMetadata(Message<?> message) {
-        Optional<IncomingKafkaRecordMetadata<?, ?>> metadata = message.getMetadata(IncomingKafkaRecordMetadata.class)
-                .map(x -> (IncomingKafkaRecordMetadata<?, ?>) x);
-        if (metadata.isPresent()) {
-            return metadata;
-        }
-        metadata = message.getMetadata(io.smallrye.reactive.messaging.kafka.IncomingKafkaRecordMetadata.class)
-                .map(x -> (IncomingKafkaRecordMetadata<?, ?>) x);
-        return metadata;
     }
 
     @SuppressWarnings("rawtypes")

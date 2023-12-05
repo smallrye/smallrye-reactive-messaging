@@ -63,9 +63,7 @@ public class MultiTopicsTest extends KafkaCompanionTestBase {
         AtomicInteger top2 = new AtomicInteger();
         AtomicInteger top3 = new AtomicInteger();
         bean.getMessages().forEach(message -> {
-            // TODO Import normally once the deprecated copy in this package has gone
-            io.smallrye.reactive.messaging.kafka.api.IncomingKafkaRecordMetadata record = message
-                    .getMetadata(io.smallrye.reactive.messaging.kafka.api.IncomingKafkaRecordMetadata.class).orElse(null);
+            IncomingKafkaRecordMetadata record = message.getMetadata(IncomingKafkaRecordMetadata.class).orElse(null);
             assertThat(record).isNotNull();
             String topic = record.getTopic();
             if (topic.equals(topic1)) {
@@ -78,7 +76,6 @@ public class MultiTopicsTest extends KafkaCompanionTestBase {
                 top3.incrementAndGet();
                 assertThat(message.getPayload()).isEqualTo("bonjour");
             }
-            LegacyMetadataTestUtils.tempCompareLegacyAndApiMetadata(record, message);
         });
 
         assertThat(top1.get()).isGreaterThanOrEqualTo(3);
@@ -117,8 +114,7 @@ public class MultiTopicsTest extends KafkaCompanionTestBase {
         AtomicInteger top2 = new AtomicInteger();
         AtomicInteger top3 = new AtomicInteger();
         bean.getMessages().forEach(message -> {
-            io.smallrye.reactive.messaging.kafka.api.IncomingKafkaRecordMetadata record = message
-                    .getMetadata(io.smallrye.reactive.messaging.kafka.api.IncomingKafkaRecordMetadata.class).orElse(null);
+            IncomingKafkaRecordMetadata record = message.getMetadata(IncomingKafkaRecordMetadata.class).orElse(null);
             assertThat(record).isNotNull();
             String topic = record.getTopic();
             if (topic.equals(topic1)) {
@@ -130,7 +126,6 @@ public class MultiTopicsTest extends KafkaCompanionTestBase {
                 top3.incrementAndGet();
                 assertThat(message.getPayload()).isEqualTo("bonjour");
             }
-            LegacyMetadataTestUtils.tempCompareLegacyAndApiMetadata(record, message);
         });
 
         assertThat(top1).hasValue(3);
@@ -187,7 +182,6 @@ public class MultiTopicsTest extends KafkaCompanionTestBase {
                 top3.incrementAndGet();
                 assertThat(message.getPayload()).isEqualTo("bonjour");
             }
-            LegacyMetadataTestUtils.tempCompareLegacyAndApiMetadata(record, message);
         });
 
         assertThat(top1).hasValue(3);

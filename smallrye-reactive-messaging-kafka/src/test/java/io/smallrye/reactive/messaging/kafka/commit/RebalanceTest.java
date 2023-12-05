@@ -19,6 +19,7 @@ import org.junit.jupiter.api.RepeatedTest;
 
 import io.smallrye.reactive.messaging.health.HealthReport;
 import io.smallrye.reactive.messaging.kafka.*;
+import io.smallrye.reactive.messaging.kafka.api.IncomingKafkaRecordMetadata;
 import io.smallrye.reactive.messaging.kafka.base.WeldTestBase;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
@@ -93,7 +94,6 @@ public class RebalanceTest extends WeldTestBase {
 
         list.forEach(m -> {
             // Only commit one partition
-            //noinspection deprecation
             if (m.getMetadata(IncomingKafkaRecordMetadata.class).map(IncomingKafkaRecordMetadata::getPartition)
                     .orElse(-1) == 0) {
                 m.ack().toCompletableFuture().join();

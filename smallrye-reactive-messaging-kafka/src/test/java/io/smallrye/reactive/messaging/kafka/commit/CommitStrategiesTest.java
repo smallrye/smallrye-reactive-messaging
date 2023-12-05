@@ -351,8 +351,8 @@ public class CommitStrategiesTest extends WeldTestBase {
         // Only ack the one from partition 0, and the 3 first items from partition 1.
         int count = 0;
         for (Message<?> message : list) {
-            IncomingKafkaRecordMetadata<?, ?> metadata = message
-                    .getMetadata(IncomingKafkaRecordMetadata.class).orElseThrow(() -> new Exception("metadata expected"));
+            IncomingKafkaRecordMetadata<?, ?> metadata = message.getMetadata(IncomingKafkaRecordMetadata.class)
+                    .orElseThrow(() -> new Exception("metadata expected"));
             if (metadata.getPartition() == 0) {
                 message.ack().toCompletableFuture().join();
             } else {
@@ -361,7 +361,6 @@ public class CommitStrategiesTest extends WeldTestBase {
                     count = count + 1;
                 }
             }
-            LegacyMetadataTestUtils.tempCompareLegacyAndApiMetadata(metadata, message);
         }
 
         AtomicReference<HealthReport> report = new AtomicReference<>();

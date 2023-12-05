@@ -41,7 +41,6 @@ import io.smallrye.reactive.messaging.kafka.CountKafkaCdiEvents;
 import io.smallrye.reactive.messaging.kafka.DeserializationFailureHandler;
 import io.smallrye.reactive.messaging.kafka.KafkaConnectorIncomingConfiguration;
 import io.smallrye.reactive.messaging.kafka.KafkaConsumerRebalanceListener;
-import io.smallrye.reactive.messaging.kafka.LegacyMetadataTestUtils;
 import io.smallrye.reactive.messaging.kafka.api.IncomingKafkaRecordMetadata;
 import io.smallrye.reactive.messaging.kafka.base.WeldTestBase;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
@@ -379,7 +378,6 @@ public class DeprecatedCommitStrategiesTest extends WeldTestBase {
                     count = count + 1;
                 }
             }
-            LegacyMetadataTestUtils.tempCompareLegacyAndApiMetadata(metadata, message);
         }
 
         AtomicReference<HealthReport> report = new AtomicReference<>();

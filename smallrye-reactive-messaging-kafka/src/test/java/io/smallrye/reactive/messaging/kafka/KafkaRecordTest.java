@@ -33,7 +33,6 @@ public class KafkaRecordTest {
         assertThat(metadata.getTopic()).isNull();
         assertThat(metadata.getTimestamp()).isNull();
         assertThat(metadata.getHeaders()).isEmpty();
-        LegacyMetadataTestUtils.tempCompareLegacyAndApiMetadata(metadata, message);
     }
 
     @Test
@@ -79,7 +78,6 @@ public class KafkaRecordTest {
         assertThat(metadata.getTopic()).isEqualTo("topic");
         assertThat(metadata.getTimestamp()).isNull();
         assertThat(metadata.getHeaders()).isEmpty();
-        LegacyMetadataTestUtils.tempCompareLegacyAndApiMetadata(metadata, message);
     }
 
     @Test
@@ -100,7 +98,6 @@ public class KafkaRecordTest {
         assertThat(metadata.getTopic()).isEqualTo("topic");
         assertThat(metadata.getTimestamp()).isEqualTo(timestamp);
         assertThat(metadata.getHeaders()).isEmpty();
-        LegacyMetadataTestUtils.tempCompareLegacyAndApiMetadata(metadata, message);
     }
 
     @Test

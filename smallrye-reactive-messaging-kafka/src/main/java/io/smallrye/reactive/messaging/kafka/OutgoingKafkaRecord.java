@@ -2,7 +2,6 @@ package io.smallrye.reactive.messaging.kafka;
 
 import java.nio.charset.Charset;
 import java.time.Instant;
-import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.BiFunction;
@@ -15,63 +14,46 @@ import org.apache.kafka.common.header.internals.RecordHeaders;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Metadata;
 
+import io.smallrye.reactive.messaging.kafka.api.OutgoingKafkaRecordMetadata;
+
 public class OutgoingKafkaRecord<K, T> implements KafkaRecord<K, T> {
 
     private final T value;
     private final Function<Metadata, CompletionStage<Void>> ack;
     private final BiFunction<Throwable, Metadata, CompletionStage<Void>> nack;
     private final Metadata metadata;
-    // TODO Use a normal import once OutgoingKafkaRecordMetadata in this package has been removed
-    private final io.smallrye.reactive.messaging.kafka.api.OutgoingKafkaRecordMetadata<K> kafkaMetadata;
+    private final OutgoingKafkaRecordMetadata<K> kafkaMetadata;
 
     @SuppressWarnings("deprecation")
     public OutgoingKafkaRecord(String topic, K key, T value, Instant timestamp, int partition, Headers headers,
             Function<Metadata, CompletionStage<Void>> ack,
             BiFunction<Throwable, Metadata, CompletionStage<Void>> nack, Metadata existingMetadata) {
-        kafkaMetadata = io.smallrye.reactive.messaging.kafka.api.OutgoingKafkaRecordMetadata.<K> builder()
+        kafkaMetadata = OutgoingKafkaRecordMetadata.<K> builder()
                 .withTopic(topic)
                 .withKey(key)
                 .withTimestamp(timestamp)
                 .withPartition(partition)
                 .withHeaders(headers)
                 .build();
-        OutgoingKafkaRecordMetadata<K> deprecatedMetadata = new OutgoingKafkaRecordMetadata<>(topic, key, partition, timestamp,
-                headers);
 
-        Metadata metadata;
         if (existingMetadata != null) {
-            metadata = Metadata.from(existingMetadata).with(kafkaMetadata);
+            this.metadata = Metadata.from(existingMetadata).with(kafkaMetadata);
         } else {
-            metadata = Metadata.of(kafkaMetadata);
+            this.metadata = Metadata.of(kafkaMetadata);
         }
-        // Add the deprecated metadata while the two exist side by side
-        this.metadata = Metadata.from(metadata).with(deprecatedMetadata);
 
         this.value = value;
         this.ack = ack;
         this.nack = nack;
     }
 
-    @SuppressWarnings({ "unchecked", "deprecation", "rawtypes" })
+    @SuppressWarnings({ "unchecked" })
     public static <K, T> OutgoingKafkaRecord<K, T> from(Message<T> message) {
-        // TODO Use a normal import once we've removed the legacy version of OutgoingKafkaRecordMetadata in this package
-        // Also this block should work to obtain the metadata once we've removed the legacy version
-        // io.smallrye.reactive.messaging.kafka.api.OutgoingKafkaRecordMetadata<K> md =
-        //     message.getMetadata(io.smallrye.reactive.messaging.kafka.api.OutgoingKafkaRecordMetadata.class)
-        //     .orElse(io.smallrye.reactive.messaging.kafka.api.OutgoingKafkaRecordMetadata.builder().build());
-
-        Optional<io.smallrye.reactive.messaging.kafka.api.OutgoingKafkaRecordMetadata> md = message
-                .getMetadata(io.smallrye.reactive.messaging.kafka.api.OutgoingKafkaRecordMetadata.class);
-        if (!md.isPresent()) {
-            md = message.getMetadata(OutgoingKafkaRecordMetadata.class);
-        }
-        io.smallrye.reactive.messaging.kafka.api.OutgoingKafkaRecordMetadata<K> kafkaMetadata = md.orElse(
-                io.smallrye.reactive.messaging.kafka.api.OutgoingKafkaRecordMetadata.builder().build());
-        // TODO - delete the above once we remove the legacy metadata
-
+        OutgoingKafkaRecordMetadata<K> kafkaMetadata = message.getMetadata(OutgoingKafkaRecordMetadata.class)
+                .orElse(OutgoingKafkaRecordMetadata.builder().build());
         return new OutgoingKafkaRecord<>(kafkaMetadata.getTopic(), kafkaMetadata.getKey(), message.getPayload(),
-                kafkaMetadata.getTimestamp(), kafkaMetadata.getPartition(),
-                kafkaMetadata.getHeaders(), message.getAckWithMetadata(), message.getNackWithMetadata(), message.getMetadata());
+                kafkaMetadata.getTimestamp(), kafkaMetadata.getPartition(), kafkaMetadata.getHeaders(),
+                message.getAckWithMetadata(), message.getNackWithMetadata(), message.getMetadata());
     }
 
     @Override

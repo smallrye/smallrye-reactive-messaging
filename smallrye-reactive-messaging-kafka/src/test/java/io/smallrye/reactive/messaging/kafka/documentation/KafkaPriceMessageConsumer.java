@@ -10,7 +10,6 @@ import jakarta.enterprise.context.ApplicationScoped;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Message;
 
-import io.smallrye.reactive.messaging.kafka.LegacyMetadataTestUtils;
 import io.smallrye.reactive.messaging.kafka.api.IncomingKafkaRecordMetadata;
 
 @ApplicationScoped
@@ -25,7 +24,6 @@ public class KafkaPriceMessageConsumer {
         list.add(price.getPayload());
         Optional<IncomingKafkaRecordMetadata> metadata = price.getMetadata(IncomingKafkaRecordMetadata.class);
         metadata.orElseThrow(() -> new IllegalArgumentException("Metadata are missing"));
-        LegacyMetadataTestUtils.tempCompareLegacyAndApiMetadata(metadata.get(), price);
         // Acknowledge the incoming message (commit the offset)
         return price.ack();
     }

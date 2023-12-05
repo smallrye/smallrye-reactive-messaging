@@ -38,6 +38,7 @@ import io.smallrye.common.annotation.Identifier;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.helpers.test.AssertSubscriber;
 import io.smallrye.reactive.messaging.health.HealthReport;
+import io.smallrye.reactive.messaging.kafka.api.IncomingKafkaRecordMetadata;
 import io.smallrye.reactive.messaging.kafka.api.KafkaMetadataUtil;
 import io.smallrye.reactive.messaging.kafka.base.KafkaCompanionTestBase;
 import io.smallrye.reactive.messaging.kafka.base.KafkaMapBasedConfig;
@@ -530,16 +531,14 @@ public class KafkaSourceTest extends KafkaCompanionTestBase {
 
         List<Message<Integer>> messages = bean.getKafkaMessages();
         messages.forEach(m -> {
-            // TODO Import normally once the deprecateed copy in this package has gone
-            io.smallrye.reactive.messaging.kafka.api.IncomingKafkaRecordMetadata<String, Integer> metadata = m
-                    .getMetadata(io.smallrye.reactive.messaging.kafka.api.IncomingKafkaRecordMetadata.class)
+            IncomingKafkaRecordMetadata<String, Integer> metadata = m
+                    .getMetadata(IncomingKafkaRecordMetadata.class)
                     .orElseThrow(() -> new AssertionError("Metadata expected"));
             assertThat(metadata.getTopic()).isEqualTo(topic);
             assertThat(metadata.getTimestamp()).isAfter(Instant.EPOCH);
             assertThat(metadata.getPartition()).isGreaterThan(-1);
             assertThat(metadata.getOffset()).isGreaterThan(-1);
             Assert.assertSame(metadata, KafkaMetadataUtil.readIncomingKafkaMetadata(m).get());
-            LegacyMetadataTestUtils.tempCompareLegacyAndApiMetadata(metadata, m);
         });
 
         HealthReport liveness = getHealth().getLiveness();
