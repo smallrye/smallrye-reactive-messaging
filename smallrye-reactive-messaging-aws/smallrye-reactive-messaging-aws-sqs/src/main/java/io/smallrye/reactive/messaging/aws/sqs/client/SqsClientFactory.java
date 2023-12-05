@@ -1,12 +1,18 @@
 package io.smallrye.reactive.messaging.aws.sqs.client;
 
+import java.net.URI;
+import java.net.URISyntaxException;
+
 import io.smallrye.reactive.messaging.aws.sqs.SqsConnectorCommonConfiguration;
 import io.vertx.core.impl.EventLoopContext;
 import io.vertx.core.impl.VertxInternal;
 import io.vertx.mutiny.core.Vertx;
+import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
+import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.core.client.config.SdkAdvancedAsyncClientOption;
 import software.amazon.awssdk.http.nio.netty.NettyNioAsyncHttpClient;
 import software.amazon.awssdk.http.nio.netty.SdkEventLoopGroup;
+import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.sqs.SqsAsyncClient;
 import software.amazon.awssdk.services.sqs.SqsAsyncClientBuilder;
 
@@ -32,11 +38,25 @@ public class SqsClientFactory {
         final EventLoopContext context = ((VertxInternal) vertx.getDelegate()).createEventLoopContext();
 
         if (nettyExists()) {
-            builder.asyncConfiguration(b -> b
-                    .advancedOption(SdkAdvancedAsyncClientOption.FUTURE_COMPLETION_EXECUTOR, context.nettyEventLoop()))
-                    .httpClientBuilder(NettyNioAsyncHttpClient.builder()
-                            .eventLoopGroup(SdkEventLoopGroup.create(context.nettyEventLoop())));
+            builder.asyncConfiguration(b -> b.advancedOption(SdkAdvancedAsyncClientOption.FUTURE_COMPLETION_EXECUTOR,
+                    context.nettyEventLoop().parent())).httpClientBuilder(NettyNioAsyncHttpClient.builder()
+                    .eventLoopGroup(SdkEventLoopGroup.create(context.nettyEventLoop().parent())));
         }
+
+        config.getEndpointOverride().ifPresent(endpointOverride -> {
+            try {
+                builder.endpointOverride(new URI(endpointOverride));
+            } catch (URISyntaxException e) {
+                throw new IllegalArgumentException(e);
+            }
+        });
+
+        config.getRegion().ifPresent(region -> builder.region(Region.of(region)));
+
+        // TODO: Yeah this is where it starts to get ugly. There are so many different ways to configure it
+        //  Sometimes you even might want to do role chaining etc, which makes it even more complicated.
+        //  I would basically recreate Quarkiverses approach here. Or maybe inject the client directly?
+        builder.credentialsProvider(StaticCredentialsProvider.create(AwsBasicCredentials.create("test", "test")));
 
         return builder.build();
     }

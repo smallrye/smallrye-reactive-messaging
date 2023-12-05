@@ -43,7 +43,7 @@ public class SendMessageBatchAction {
         //  retries for the failed once immediately until all are successful or max retries reached.
         if (true) {
             uni = uni.onFailure().retry()
-                    .withBackOff(Duration.ofMillis(0), Duration.ofMillis(0))
+                    .withBackOff(Duration.ofMillis(10), Duration.ofMillis(100))
                     .atMost(3);
         }
 
@@ -59,7 +59,7 @@ public class SendMessageBatchAction {
         Map<String, SendMessageBatchRequestEntry> entryMap = new HashMap<>();
 
         messages.forEach(msg -> {
-            String payload = clientHolder.getSerializer().serialize(msg);
+            String payload = clientHolder.getSerializer().serialize(msg.getPayload());
             String id = UUID.randomUUID().toString();
 
             final SendMessageBatchRequestEntry entry = SendMessageBatchRequestEntry.builder()

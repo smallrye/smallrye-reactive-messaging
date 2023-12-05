@@ -17,7 +17,7 @@ public class SendMessageAction {
     public static Uni<Void> sendMessage(
             final SqsClientHolder<SqsConnectorOutgoingConfiguration> clientHolder, final SqsOutgoingMessage<?> message) {
 
-        String payload = clientHolder.getSerializer().serialize(message);
+        String payload = clientHolder.getSerializer().serialize(message.getPayload());
 
         SendMessageRequest request = SendMessageRequest.builder()
                 .queueUrl(message.getTarget().getTargetUrl())
@@ -41,7 +41,7 @@ public class SendMessageAction {
         // TODO: configurable retry
         if (true) {
             uni = uni.onFailure().retry()
-                    .withBackOff(Duration.ofMillis(0), Duration.ofMillis(0))
+                    .withBackOff(Duration.ofMillis(10), Duration.ofMillis(100))
                     .atMost(3);
         }
 

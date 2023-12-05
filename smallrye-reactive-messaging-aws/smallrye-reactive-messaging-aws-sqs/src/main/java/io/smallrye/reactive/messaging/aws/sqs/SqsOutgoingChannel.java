@@ -28,10 +28,10 @@ public class SqsOutgoingChannel extends SqsChannel {
     public SqsOutgoingChannel(SqsClientHolder<SqsConnectorOutgoingConfiguration> clientHolder) {
         this.clientHolder = clientHolder;
 
-        if (clientHolder.getConfig().getSendBatchEnabled()) {
-            subscriber = MultiUtils.via(this::createStream);
-        } else {
+        if (Boolean.TRUE.equals(clientHolder.getConfig().getSendBatchEnabled())) {
             subscriber = MultiUtils.via(this::createStreamWithBatching);
+        } else {
+            subscriber = MultiUtils.via(this::createStream);
         }
     }
 
@@ -55,7 +55,7 @@ public class SqsOutgoingChannel extends SqsChannel {
         return prepare(m)
                 .group().by(SqsMessage::getTarget)
                 .onItem().transformToMultiAndMerge(group -> group
-                        .group().intoLists().of(10, Duration.ofMillis(0))
+                        .group().intoLists().of(10, Duration.ofMillis(3000))
                         .onItem().transform(msg -> Tuple2.of(group.key(), msg)))
                 .onItem().transformToUniAndConcatenate(tuple -> sendBatchMessage(tuple.getItem1(), tuple.getItem2()));
     }
@@ -69,9 +69,7 @@ public class SqsOutgoingChannel extends SqsChannel {
     }
 
     private Uni<Void> sendMessage(SqsOutgoingMessage<?> message) {
-        final SqsOutgoingMessage<?> sqsMessage = SqsOutgoingMessage.from(message);
-        return clientHolder.getTargetResolver().resolveTarget(clientHolder)
-                .onItem().transformToUni(target -> SendMessageAction.sendMessage(clientHolder, sqsMessage));
+        return SendMessageAction.sendMessage(clientHolder, message);
     }
 
     private Uni<Void> sendBatchMessage(SqsTarget target, List<? extends SqsOutgoingMessage<?>> messages) {

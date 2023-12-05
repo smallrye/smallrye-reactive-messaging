@@ -25,6 +25,9 @@ public class SerializationResolver {
     private static Serializer defaultSerializer(JsonMapping jsonMapping) {
         return payload -> {
             if (jsonMapping != null) {
+                if (payload instanceof String) {
+                    return (String) payload;
+                }
                 return jsonMapping.toJson(payload);
             } else {
                 return String.valueOf(payload);

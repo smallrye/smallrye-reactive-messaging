@@ -48,6 +48,9 @@ import software.amazon.awssdk.services.sqs.model.SqsException;
 @ConnectorAttribute(name = "health-enabled", type = "boolean", direction = ConnectorAttribute.Direction.INCOMING_AND_OUTGOING, description = "Whether health reporting is enabled (default) or disabled", defaultValue = "true")
 @ConnectorAttribute(name = "tracing-enabled", type = "boolean", direction = ConnectorAttribute.Direction.INCOMING_AND_OUTGOING, description = "Whether tracing is enabled (default) or disabled", defaultValue = "true")
 
+@ConnectorAttribute(name = "endpoint-override", type = "string", direction = INCOMING_AND_OUTGOING, description = "Configure the endpoint with which the SDK should communicate.")
+@ConnectorAttribute(name = "region", type = "string", direction = INCOMING_AND_OUTGOING, description = "Configure the region with which the SDK should communicate.")
+
 @ConnectorAttribute(name = "queue-resolver.queue-owner-aws-account-id", type = "string", direction = INCOMING_AND_OUTGOING, description = "During queue url resolving it is possible to overwrite the queue owner.")
 
 @ConnectorAttribute(name = "create-queue.enabled", type = "boolean", direction = ConnectorAttribute.Direction.INCOMING_AND_OUTGOING, description = "Whether automatic queue creation is enabled or disabled (default)", defaultValue = "false")
@@ -67,7 +70,7 @@ import software.amazon.awssdk.services.sqs.model.SqsException;
 // outgoing
 @ConnectorAttribute(name = "send.batch.enabled", type = "boolean", direction = OUTGOING, description = "Send messages in batches.", defaultValue = "false")
 
-// incomming
+// incoming
 @ConnectorAttribute(name = "max-number-of-messages", type = "int", direction = ConnectorAttribute.Direction.INCOMING, description = "The maximum number of messages to return. Amazon SQS never returns more messages than this value (however, fewer messages might be returned). Valid values: 1 to 10. Default: 10.", defaultValue = "10")
 @ConnectorAttribute(name = "wait-time-seconds", type = "int", direction = ConnectorAttribute.Direction.INCOMING, description = "The duration (in seconds) for which the call waits for a message to arrive in the queue before returning. If a message is available, the call returns sooner than WaitTimeSeconds. If no messages are available and the wait time expires, the call returns successfully with an empty list of messages. Default 20s.", defaultValue = "20")
 @ConnectorAttribute(name = "visibility-timeout", type = "int", direction = ConnectorAttribute.Direction.INCOMING, description = "The duration (in seconds) that the received messages are hidden from subsequent retrieve requests after being retrieved by a request. Default 15s.", defaultValue = "15")
@@ -76,10 +79,9 @@ import software.amazon.awssdk.services.sqs.model.SqsException;
 
 public class SqsConnector implements InboundConnector, OutboundConnector, HealthReporter {
 
-    static final String CONNECTOR_NAME = "smallrye-aws-sqs";
+    public static final String CONNECTOR_NAME = "smallrye-aws-sqs";
 
     private final Map<String, SqsAsyncClient> clients = new ConcurrentHashMap<>();
-    private final Map<String, SqsAsyncClient> clientsByChannel = new ConcurrentHashMap<>();
     private final List<SqsChannel> channels = new CopyOnWriteArrayList<>();
 
     @Inject
@@ -123,14 +125,13 @@ public class SqsConnector implements InboundConnector, OutboundConnector, Health
         SqsConnectorIncomingConfiguration ic = new SqsConnectorIncomingConfiguration(config);
 
         SqsAsyncClient client = clients.computeIfAbsent(ic.getChannel(), ignored -> createSqsClient(ic, vertx));
-        clientsByChannel.put(ic.getChannel(), client);
 
-        final Serializer serializer = resolveSerializer(messageSerializer,
-                ic.getSerializationIdentifier().orElse(ic.getChannel()), ic.getChannel(), jsonMapping);
+        final Deserializer deserializer = resolveDeserializer(messageDeserializer, ic
+                .getSerializationIdentifier().orElse(ic.getChannel()), ic.getChannel(), jsonMapping);
 
         try {
             SqsIncomingChannel channel = new SqsIncomingChannel(
-                    new SqsClientHolder<>(client, vertx, ic, targetResolver, serializer, null));
+                    new SqsClientHolder<>(client, vertx, ic, targetResolver, null, deserializer));
             channels.add(channel);
             return channel.getPublisher();
         } catch (SqsException e) {
@@ -143,14 +144,13 @@ public class SqsConnector implements InboundConnector, OutboundConnector, Health
         SqsConnectorOutgoingConfiguration oc = new SqsConnectorOutgoingConfiguration(config);
 
         SqsAsyncClient client = clients.computeIfAbsent(oc.getChannel(), ignored -> createSqsClient(oc, vertx));
-        clientsByChannel.put(oc.getChannel(), client);
 
-        final Deserializer deserializer = resolveDeserializer(messageDeserializer, oc
-                .getSerializationIdentifier().orElse(oc.getChannel()), oc.getChannel(), jsonMapping);
+        final Serializer serializer = resolveSerializer(messageSerializer,
+                oc.getSerializationIdentifier().orElse(oc.getChannel()), oc.getChannel(), jsonMapping);
 
         try {
             SqsOutgoingChannel channel = new SqsOutgoingChannel(
-                    new SqsClientHolder<>(client, vertx, oc, targetResolver, null, deserializer));
+                    new SqsClientHolder<>(client, vertx, oc, targetResolver, serializer, null));
             channels.add(channel);
             return channel.getSubscriber();
         } catch (SqsException e) {
@@ -170,6 +170,5 @@ public class SqsConnector implements InboundConnector, OutboundConnector, Health
         }
         channels.clear();
         clients.clear();
-        clientsByChannel.clear();
     }
 }

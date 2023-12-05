@@ -20,6 +20,13 @@
       <version>${project.version}</version>
     </dependency>
     <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>smallrye-reactive-messaging-aws-test</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
       <groupId>software.amazon.awssdk</groupId>
       <artifactId>sqs</artifactId>
       <exclusions>
@@ -43,11 +50,11 @@
       <artifactId>netty-nio-client</artifactId>
       <optional>true</optional>
     </dependency>
-    <dependency>
-      <groupId>software.amazon.awssdk</groupId>
-      <artifactId>aws-crt-client</artifactId>
-      <optional>true</optional>
-    </dependency>
+    <!--    <dependency>-->
+    <!--      <groupId>software.amazon.awssdk</groupId>-->
+    <!--      <artifactId>aws-crt-client</artifactId>-->
+    <!--      <optional>true</optional>-->
+    <!--    </dependency>-->
 
     <dependency>
       <groupId>io.smallrye.reactive</groupId>

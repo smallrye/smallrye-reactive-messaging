@@ -15,4 +15,8 @@ public interface SqsLogging extends BasicLogger {
     @LogMessage(level = Logger.Level.WARN)
     @Message(id = 19002, value = "Unable to close Sqs client")
     void unableToCloseClient(@Cause Throwable t);
+
+    @LogMessage(level = Logger.Level.INFO)
+    @Message(id = 15201, value = "Shutdown in progress. Waiting for %d open requests on queue %s.")
+    void shutdownProgress(int openRequests, String queue);
 }
