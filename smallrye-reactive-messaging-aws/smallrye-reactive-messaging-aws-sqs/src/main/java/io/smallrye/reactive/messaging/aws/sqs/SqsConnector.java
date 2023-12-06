@@ -69,7 +69,8 @@ import software.amazon.awssdk.services.sqs.model.SqsException;
 // outgoing
 @ConnectorAttribute(name = "send.batch.enabled", type = "boolean", direction = OUTGOING, description = "Send messages in batches.", defaultValue = "false")
 
-@ConnectorAttribute(name = "serialization-identifier", type = "string", direction = OUTGOING, description = "Name of the @Identifier to use. If not specified the channel name is used.")
+@ConnectorAttribute(name = "serialization.enabled", type = "boolean", direction = OUTGOING, description = "Enable serialization. Default: false", defaultValue = "false")
+@ConnectorAttribute(name = "serialization.identifier", type = "string", direction = OUTGOING, description = "Name of the @Identifier to use. If not specified the channel name is used.")
 
 // incoming
 @ConnectorAttribute(name = "max-number-of-messages", type = "int", direction = INCOMING, description = "The maximum number of messages to return. Amazon SQS never returns more messages than this value (however, fewer messages might be returned). Valid values: 1 to 10. Default: 10.", defaultValue = "10")
@@ -82,7 +83,8 @@ import software.amazon.awssdk.services.sqs.model.SqsException;
 @ConnectorAttribute(name = "delete.batch.max-size", type = "int", direction = INCOMING, description = "The maximum number of messages to delete in a batch. Valid values: 1 to 10. Default: 10.", defaultValue = "10")
 @ConnectorAttribute(name = "delete.batch.max-delay", type = "int", direction = INCOMING, description = "The maximum number of seconds to wait for a batch. Needs to be configured lower than message visibility-timeout. Default: 3.", defaultValue = "3")
 
-@ConnectorAttribute(name = "deserialization-identifier", type = "string", direction = INCOMING, description = "Name of the @Identifier to use. If not specified the channel name is used.")
+@ConnectorAttribute(name = "deserialization.enabled", type = "boolean", direction = INCOMING, description = "Enable deserialization. Default: false", defaultValue = "false")
+@ConnectorAttribute(name = "deserialization.identifier", type = "string", direction = INCOMING, description = "Name of the @Identifier to use. If not specified the channel name is used.")
 
 public class SqsConnector implements InboundConnector, OutboundConnector, HealthReporter {
 
@@ -133,8 +135,7 @@ public class SqsConnector implements InboundConnector, OutboundConnector, Health
 
         SqsAsyncClient client = clients.computeIfAbsent(ic.getChannel(), ignored -> createSqsClient(ic, vertx));
 
-        final Deserializer deserializer = resolveDeserializer(messageDeserializer, ic
-                .getDeserializationIdentifier().orElse(ic.getChannel()), ic.getChannel(), jsonMapping);
+        final Deserializer deserializer = getDeserializer(ic);
 
         try {
             SqsIncomingChannel channel = new SqsIncomingChannel(
@@ -146,14 +147,22 @@ public class SqsConnector implements InboundConnector, OutboundConnector, Health
         }
     }
 
+    private Deserializer getDeserializer(final SqsConnectorIncomingConfiguration ic) {
+        if (Boolean.TRUE.equals(ic.getDeserializationEnabled())) {
+            return resolveDeserializer(messageDeserializer, ic.getDeserializationIdentifier().orElse(ic.getChannel()),
+                    ic.getChannel(), jsonMapping);
+        } else {
+            return payload -> payload;
+        }
+    }
+
     @Override
     public Flow.Subscriber<? extends Message<?>> getSubscriber(Config config) {
         SqsConnectorOutgoingConfiguration oc = new SqsConnectorOutgoingConfiguration(config);
 
         SqsAsyncClient client = clients.computeIfAbsent(oc.getChannel(), ignored -> createSqsClient(oc, vertx));
 
-        final Serializer serializer = resolveSerializer(messageSerializer,
-                oc.getSerializationIdentifier().orElse(oc.getChannel()), oc.getChannel(), jsonMapping);
+        final Serializer serializer = getSerializer(oc);
 
         try {
             SqsOutgoingChannel channel = new SqsOutgoingChannel(
@@ -162,6 +171,15 @@ public class SqsConnector implements InboundConnector, OutboundConnector, Health
             return channel.getSubscriber();
         } catch (SqsException e) {
             throw ex.illegalStateUnableToBuildConsumer(e);
+        }
+    }
+
+    private Serializer getSerializer(final SqsConnectorOutgoingConfiguration oc) {
+        if (Boolean.TRUE.equals(oc.getSerializationEnabled())) {
+            return resolveSerializer(messageSerializer, oc.getSerializationIdentifier().orElse(oc.getChannel()),
+                    oc.getChannel(), jsonMapping);
+        } else {
+            return String::valueOf;
         }
     }
 

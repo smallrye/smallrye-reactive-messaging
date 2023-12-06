@@ -65,7 +65,8 @@ class SqsConnectorIncomingTest extends SqsTestBase {
                 .with("mp.messaging.incoming.custom.connector", SqsConnector.CONNECTOR_NAME)
                 .with("mp.messaging.incoming.custom.wait-time-seconds", 2)
                 .with("mp.messaging.incoming.custom.queue", "test")
-                .with("mp.messaging.incoming.custom.deserialization-identifier", "custom");
+                .with("mp.messaging.incoming.custom.deserialization.enabled", "true")
+                .with("mp.messaging.incoming.custom.deserialization.identifier", "custom");
 
         TestAppCustomObject app = runApplication(config, TestAppCustomObject.class);
 
