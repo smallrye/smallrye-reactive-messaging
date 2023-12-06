@@ -18,7 +18,7 @@ import software.amazon.awssdk.services.sqs.SqsAsyncClientBuilder;
 
 /**
  * Based on some logic of the quarkiverse lib for aws
- * TODO: Not sure about all of this. Maybe just for qualified SqsAsyncClient beans? This would allow to use it with
+ * TODO: Not sure about all of this. Maybe just qualified SqsAsyncClient beans? This would allow to use it with
  * Quarkiverse extension. Maybe. Or manually created clients. Otherwise, I would be forced to forward all possible
  * configurations. But sometimes configs are not flexible enough. The credentials provider topic is already
  * providing a lot of different approaches to configure them.

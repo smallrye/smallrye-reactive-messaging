@@ -46,30 +46,30 @@ import software.amazon.awssdk.services.sqs.model.SqsException;
 @Connector(SqsConnector.CONNECTOR_NAME)
 // common
 @ConnectorAttribute(name = "queue", type = "string", direction = INCOMING_AND_OUTGOING, description = "Set the SQS queue. If not set, the channel name is used")
-@ConnectorAttribute(name = "health-enabled", type = "boolean", direction = ConnectorAttribute.Direction.INCOMING_AND_OUTGOING, description = "Whether health reporting is enabled (default) or disabled", defaultValue = "true")
-@ConnectorAttribute(name = "tracing-enabled", type = "boolean", direction = ConnectorAttribute.Direction.INCOMING_AND_OUTGOING, description = "Whether tracing is enabled (default) or disabled", defaultValue = "true")
+@ConnectorAttribute(name = "health-enabled", type = "boolean", direction = INCOMING_AND_OUTGOING, description = "Whether health reporting is enabled (default) or disabled", defaultValue = "true")
+@ConnectorAttribute(name = "tracing-enabled", type = "boolean", direction = INCOMING_AND_OUTGOING, description = "Whether tracing is enabled (default) or disabled", defaultValue = "true")
 
 @ConnectorAttribute(name = "endpoint-override", type = "string", direction = INCOMING_AND_OUTGOING, description = "Configure the endpoint with which the SDK should communicate.")
 @ConnectorAttribute(name = "region", type = "string", direction = INCOMING_AND_OUTGOING, description = "Configure the region with which the SDK should communicate.")
 
 @ConnectorAttribute(name = "queue-resolver.queue-owner-aws-account-id", type = "string", direction = INCOMING_AND_OUTGOING, description = "During queue url resolving it is possible to overwrite the queue owner.")
 
-@ConnectorAttribute(name = "create-queue.enabled", type = "boolean", direction = ConnectorAttribute.Direction.INCOMING_AND_OUTGOING, description = "Whether automatic queue creation is enabled or disabled (default)", defaultValue = "false")
+@ConnectorAttribute(name = "create-queue.enabled", type = "boolean", direction = INCOMING_AND_OUTGOING, description = "Whether automatic queue creation is enabled or disabled (default)", defaultValue = "false")
 // TODO: Not sure how to load maps. Maybe: key:value,key:value. It is not very efficient, but it is cached by the SqsTargetResolver. So maybe it does not matter.
 //  Otherwise, I would need to wrap the config so that I can keep using the easy generated way, but also overwrite methods, to add config internal caching.
 @ConnectorAttribute(name = "create-queue.attributes", type = "string", direction = INCOMING_AND_OUTGOING, description = "A comma separated list of attributes for queue creation. Default empty.", defaultValue = "")
 @ConnectorAttribute(name = "create-queue.tags", type = "string", direction = INCOMING_AND_OUTGOING, description = "A comma separated list of tags for queue creation. Default empty.", defaultValue = "")
-@ConnectorAttribute(name = "create-queue.dead-letter-queue.enabled", type = "boolean", direction = ConnectorAttribute.Direction.INCOMING_AND_OUTGOING, description = "Whether automatic dead-letter queue creation is enabled or disabled (default)", defaultValue = "false")
-@ConnectorAttribute(name = "create-queue.dead-letter-queue.prefix", type = "string", direction = ConnectorAttribute.Direction.INCOMING_AND_OUTGOING, description = "Dead-letter queue name prefix", defaultValue = "")
-@ConnectorAttribute(name = "create-queue.dead-letter-queue.suffix", type = "string", direction = ConnectorAttribute.Direction.INCOMING_AND_OUTGOING, description = "Dead-letter queue name suffix", defaultValue = "-dlq")
-@ConnectorAttribute(name = "create-queue.dead-letter-queue.max-receive-count", type = "int", direction = ConnectorAttribute.Direction.INCOMING_AND_OUTGOING, description = "The number of times a message is delivered to the source queue before being moved to the dead-letter queue. Default: 10. When the ReceiveCount for a message exceeds the maxReceiveCount for a queue, Amazon SQS moves the message to the dead-letter-queue.", defaultValue = "10")
+@ConnectorAttribute(name = "create-queue.dead-letter-queue.enabled", type = "boolean", direction = INCOMING_AND_OUTGOING, description = "Whether automatic dead-letter queue creation is enabled or disabled (default)", defaultValue = "false")
+@ConnectorAttribute(name = "create-queue.dead-letter-queue.prefix", type = "string", direction = INCOMING_AND_OUTGOING, description = "Dead-letter queue name prefix", defaultValue = "")
+@ConnectorAttribute(name = "create-queue.dead-letter-queue.suffix", type = "string", direction = INCOMING_AND_OUTGOING, description = "Dead-letter queue name suffix", defaultValue = "-dlq")
+@ConnectorAttribute(name = "create-queue.dead-letter-queue.max-receive-count", type = "int", direction = INCOMING_AND_OUTGOING, description = "The number of times a message is delivered to the source queue before being moved to the dead-letter queue. Default: 10. When the ReceiveCount for a message exceeds the maxReceiveCount for a queue, Amazon SQS moves the message to the dead-letter-queue.", defaultValue = "10")
 @ConnectorAttribute(name = "create-queue.dead-letter-queue.attributes", type = "string", direction = INCOMING_AND_OUTGOING, description = "A comma separated list of attributes for queue creation. Default empty.", defaultValue = "")
 @ConnectorAttribute(name = "create-queue.dead-letter-queue.tags", type = "string", direction = INCOMING_AND_OUTGOING, description = "A comma separated list of tags for queue creation. Default empty.", defaultValue = "")
 
-@ConnectorAttribute(name = "serialization-identifier", type = "string", direction = INCOMING_AND_OUTGOING, description = "Name of the @Identifier to use. If not specified the channel name is used.")
-
 // outgoing
 @ConnectorAttribute(name = "send.batch.enabled", type = "boolean", direction = OUTGOING, description = "Send messages in batches.", defaultValue = "false")
+
+@ConnectorAttribute(name = "serialization-identifier", type = "string", direction = OUTGOING, description = "Name of the @Identifier to use. If not specified the channel name is used.")
 
 // incoming
 @ConnectorAttribute(name = "max-number-of-messages", type = "int", direction = INCOMING, description = "The maximum number of messages to return. Amazon SQS never returns more messages than this value (however, fewer messages might be returned). Valid values: 1 to 10. Default: 10.", defaultValue = "10")
@@ -81,6 +81,8 @@ import software.amazon.awssdk.services.sqs.model.SqsException;
 @ConnectorAttribute(name = "delete.batch.enabled", type = "boolean", direction = INCOMING, description = "Delete/confirm messages in batches.", defaultValue = "false")
 @ConnectorAttribute(name = "delete.batch.max-size", type = "int", direction = INCOMING, description = "The maximum number of messages to delete in a batch. Valid values: 1 to 10. Default: 10.", defaultValue = "10")
 @ConnectorAttribute(name = "delete.batch.max-delay", type = "int", direction = INCOMING, description = "The maximum number of seconds to wait for a batch. Needs to be configured lower than message visibility-timeout. Default: 3.", defaultValue = "3")
+
+@ConnectorAttribute(name = "deserialization-identifier", type = "string", direction = INCOMING, description = "Name of the @Identifier to use. If not specified the channel name is used.")
 
 public class SqsConnector implements InboundConnector, OutboundConnector, HealthReporter {
 
@@ -132,7 +134,7 @@ public class SqsConnector implements InboundConnector, OutboundConnector, Health
         SqsAsyncClient client = clients.computeIfAbsent(ic.getChannel(), ignored -> createSqsClient(ic, vertx));
 
         final Deserializer deserializer = resolveDeserializer(messageDeserializer, ic
-                .getSerializationIdentifier().orElse(ic.getChannel()), ic.getChannel(), jsonMapping);
+                .getDeserializationIdentifier().orElse(ic.getChannel()), ic.getChannel(), jsonMapping);
 
         try {
             SqsIncomingChannel channel = new SqsIncomingChannel(

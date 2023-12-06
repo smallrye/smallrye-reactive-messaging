@@ -15,6 +15,7 @@ import io.smallrye.reactive.messaging.aws.sqs.SqsConnectorOutgoingConfiguration;
 import io.smallrye.reactive.messaging.aws.sqs.SqsTarget;
 import io.smallrye.reactive.messaging.aws.sqs.client.SqsClientHolder;
 import io.smallrye.reactive.messaging.aws.sqs.message.SqsOutgoingMessage;
+import io.smallrye.reactive.messaging.aws.sqs.message.SqsOutgoingMessageMetadata;
 import software.amazon.awssdk.services.sqs.model.SendMessageBatchRequest;
 import software.amazon.awssdk.services.sqs.model.SendMessageBatchRequestEntry;
 import software.amazon.awssdk.services.sqs.model.SendMessageBatchResponse;
@@ -62,16 +63,14 @@ public class SendMessageBatchAction {
             String payload = clientHolder.getSerializer().serialize(msg.getPayload());
             String id = UUID.randomUUID().toString();
 
-            SendMessageBatchRequestEntry entry = SendMessageBatchRequestEntry.builder()
-                    // in batching we need to generate the id of a message for every entry.
-                    .id(id)
-                    .messageAttributes(null)
-                    .messageGroupId(null)
-                    .messageBody(payload)
+            SqsOutgoingMessageMetadata metadata = msg.getMetadata(SqsOutgoingMessageMetadata.class)
+                    .orElseThrow(() -> new IllegalStateException("MetaData are expected to be set."));
 
-                    .messageDeduplicationId(null)
-                    .delaySeconds(0)
-                    .messageSystemAttributesWithStrings(null)
+            SendMessageBatchRequestEntry entry = metadata.getMessageBatchAugmenter()
+                    .apply(SendMessageBatchRequestEntry.builder()
+                            // in batching we need to generate the id of a message for every entry.
+                            .id(id)
+                            .messageBody(payload))
                     .build();
             messageMap.put(id, msg);
             entryMap.put(id, entry);

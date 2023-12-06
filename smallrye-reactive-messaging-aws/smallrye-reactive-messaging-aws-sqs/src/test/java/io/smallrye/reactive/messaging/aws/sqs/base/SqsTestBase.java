@@ -8,7 +8,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
-import java.util.stream.Collectors;
 
 import org.eclipse.microprofile.reactive.messaging.spi.ConnectorLiteral;
 import org.jboss.logging.Logger;
@@ -115,9 +114,7 @@ public class SqsTestBase extends WeldTestBase {
                         LOCAL_STACK_CONTAINER.getEndpointOverride(LocalStackContainer.Service.SQS))
                 .with("mp.messaging.incoming.test.region", LOCAL_STACK_CONTAINER.getRegion())
                 .with("mp.messaging.incoming.test.connector", SqsConnector.CONNECTOR_NAME)
-                .with("mp.messaging.incoming.test.wait-time-seconds", 2)
-        //.with("mp.messaging.incoming.test.visibility-timeout",2)
-        ;
+                .with("mp.messaging.incoming.test.wait-time-seconds", 2);
     }
 
     private CompletableFuture<String> getQueueUrl(String queueName) {
@@ -139,21 +136,26 @@ public class SqsTestBase extends WeldTestBase {
         }
     }
 
-    protected List<String> receiveMessages() {
+    protected List<Message> receiveMessages() {
         return receiveMessages(QUEUE_NAME);
     }
 
-    protected List<String> receiveMessages(String queueName) {
+    protected List<Message> receiveMessages(String queueName) {
         try {
             final ReceiveMessageResponse response = getQueueUrl(queueName).thenCompose(
-                    queueUrl -> CLIENT.receiveMessage(b -> b.queueUrl(queueUrl).waitTimeSeconds(10).build()))
+                    queueUrl -> CLIENT.receiveMessage(b -> b
+                            .queueUrl(queueUrl)
+                            .messageAttributeNames("All")
+                            .attributeNames(QueueAttributeName.ALL)
+                            .waitTimeSeconds(10)
+                            .build()))
                     .get();
 
             if (!response.hasMessages()) {
                 return Collections.emptyList();
             }
 
-            return response.messages().stream().map(Message::body).collect(Collectors.toList());
+            return response.messages();
         } catch (InterruptedException | ExecutionException e) {
             throw new RuntimeException(e);
         }
@@ -161,12 +163,10 @@ public class SqsTestBase extends WeldTestBase {
 
     protected String getQueueAttribute(String queueName, QueueAttributeName attributeName) {
         try {
-            return getQueueUrl(queueName).thenCompose(queueUrl ->
-                    CLIENT.getQueueAttributes(GetQueueAttributesRequest.builder()
-                            .queueUrl(queueUrl)
-                            .attributeNames(attributeName)
-                            .build())
-            ).get().attributes().get(attributeName);
+            return getQueueUrl(queueName).thenCompose(queueUrl -> CLIENT.getQueueAttributes(GetQueueAttributesRequest.builder()
+                    .queueUrl(queueUrl)
+                    .attributeNames(attributeName)
+                    .build())).get().attributes().get(attributeName);
         } catch (InterruptedException | ExecutionException e) {
             throw new RuntimeException(e);
         }
@@ -174,12 +174,10 @@ public class SqsTestBase extends WeldTestBase {
 
     protected Map<QueueAttributeName, String> getQueueAttributes(String queueName, QueueAttributeName... attributeNames) {
         try {
-            return getQueueUrl(queueName).thenCompose(queueUrl ->
-                    CLIENT.getQueueAttributes(GetQueueAttributesRequest.builder()
-                            .queueUrl(queueUrl)
-                            .attributeNames(attributeNames)
-                            .build())
-            ).get().attributes();
+            return getQueueUrl(queueName).thenCompose(queueUrl -> CLIENT.getQueueAttributes(GetQueueAttributesRequest.builder()
+                    .queueUrl(queueUrl)
+                    .attributeNames(attributeNames)
+                    .build())).get().attributes();
         } catch (InterruptedException | ExecutionException e) {
             throw new RuntimeException(e);
         }
@@ -190,8 +188,7 @@ public class SqsTestBase extends WeldTestBase {
     }
 
     protected void verifyInvisibleMessages(int number) {
-        String msgsNotVisibile =
-                getQueueAttribute(QUEUE_NAME, APPROXIMATE_NUMBER_OF_MESSAGES_NOT_VISIBLE);
+        String msgsNotVisibile = getQueueAttribute(QUEUE_NAME, APPROXIMATE_NUMBER_OF_MESSAGES_NOT_VISIBLE);
         assertThat(msgsNotVisibile).isEqualTo(String.valueOf(number));
     }
 }

@@ -81,7 +81,7 @@ public class SqsIncomingChannel extends SqsChannel {
 
     private Multi<SqsIncomingMessage<?>> createMultiOfMessages(ReceiveMessageResponse response) {
         final Multi<SqsIncomingMessage<?>> result = Multi.createFrom().iterable(response.messages())
-                .onItem().transform(msg -> SqsIncomingMessage.from(msg, ackHandler));
+                .onItem().transform(msg -> SqsIncomingMessage.from(msg, ackHandler, clientHolder.getDeserializer()));
 
         return result.onItem().call(msg -> clientHolder.getTargetResolver().resolveTarget(clientHolder)
                 .onItem().invoke(msg::withTarget));

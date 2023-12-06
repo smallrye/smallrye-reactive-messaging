@@ -16,7 +16,7 @@ import software.amazon.awssdk.services.sqs.model.QueueAttributeName;
 
 /**
  * <a href=
- * "https://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_CreateQueue.html#SQS-CreateQueue-request-attributes">AWS
+ * "https://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_CreateQueue.html">AWS
  * Documentation</a>
  */
 public class CreateQueueAction {
@@ -24,13 +24,13 @@ public class CreateQueueAction {
     public static Uni<String> createQueue(SqsClientHolder<?> clientHolder, String queueName) {
         SqsConnectorCommonConfiguration config = clientHolder.getConfig();
 
-        if (!config.getCreateQueueEnabled()) {
+        if (Boolean.FALSE.equals(config.getCreateQueueEnabled())) {
             return Uni.createFrom().nullItem();
         }
 
         Uni<Map<String, String>> uni = Uni.createFrom().item(Map.of());
 
-        if (config.getCreateQueueDeadLetterQueueEnabled()) {
+        if (Boolean.TRUE.equals(config.getCreateQueueDeadLetterQueueEnabled())) {
             // Parsing is slow. But we assume that creating queues does not happen that often.
             final Map<String, String> attributes = parseToMap(config.getCreateQueueDeadLetterQueueAttributes());
             final Map<String, String> tags = parseToMap(config.getCreateQueueDeadLetterQueueTags());

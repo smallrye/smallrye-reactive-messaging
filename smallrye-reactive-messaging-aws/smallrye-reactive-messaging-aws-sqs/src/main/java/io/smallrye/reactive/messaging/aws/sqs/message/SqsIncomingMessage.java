@@ -3,6 +3,7 @@ package io.smallrye.reactive.messaging.aws.sqs.message;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Supplier;
 
+import io.smallrye.reactive.messaging.aws.serialization.Deserializer;
 import io.smallrye.reactive.messaging.aws.sqs.ack.SqsAckHandler;
 import software.amazon.awssdk.services.sqs.model.Message;
 
@@ -25,9 +26,9 @@ public class SqsIncomingMessage<T> extends SqsMessage<T, SqsIncomingMessageMetad
         return () -> this.ackHandler.handle(this);
     }
 
-    public static SqsIncomingMessage<?> from(Message msg, SqsAckHandler ackHandler) {
-        // TODO: deserialize?
+    public static SqsIncomingMessage<?> from(
+            Message msg, SqsAckHandler ackHandler, final Deserializer deserializer) {
         final SqsIncomingMessageMetadata sqsMetaData = new SqsIncomingMessageMetadata(msg);
-        return new SqsIncomingMessage<>(msg.body(), ackHandler, sqsMetaData);
+        return new SqsIncomingMessage<>(deserializer.deserialize(msg.body()), ackHandler, sqsMetaData);
     }
 }

@@ -7,6 +7,7 @@ import io.smallrye.reactive.messaging.OutgoingMessageMetadata;
 import io.smallrye.reactive.messaging.aws.sqs.SqsConnectorOutgoingConfiguration;
 import io.smallrye.reactive.messaging.aws.sqs.client.SqsClientHolder;
 import io.smallrye.reactive.messaging.aws.sqs.message.SqsOutgoingMessage;
+import io.smallrye.reactive.messaging.aws.sqs.message.SqsOutgoingMessageMetadata;
 import software.amazon.awssdk.services.sqs.model.SendMessageRequest;
 
 /**
@@ -19,15 +20,13 @@ public class SendMessageAction {
 
         String payload = clientHolder.getSerializer().serialize(message.getPayload());
 
-        SendMessageRequest request = SendMessageRequest.builder()
-                .queueUrl(message.getTarget().getTargetUrl())
-                .messageAttributes(null)
-                .messageGroupId(null)
-                .messageBody(payload)
+        SqsOutgoingMessageMetadata metadata = message.getMetadata(SqsOutgoingMessageMetadata.class)
+                .orElseThrow(() -> new IllegalStateException("MetaData are expected to be set."));
 
-                .messageDeduplicationId(null)
-                .delaySeconds(0)
-                .messageSystemAttributesWithStrings(null)
+        SendMessageRequest request = metadata.getMessageAugmenter()
+                .apply(SendMessageRequest.builder()
+                        .queueUrl(message.getTarget().getTargetUrl())
+                        .messageBody(payload))
                 .build();
 
         // TODO: logging
@@ -38,7 +37,7 @@ public class SendMessageAction {
                     return Uni.createFrom().completionStage(message.ack());
                 });
 
-        // TODO: configurable retry
+        // TODO: configurable retry and disable sdk retry mechanism?
         if (true) {
             uni = uni.onFailure().retry()
                     .withBackOff(Duration.ofMillis(10), Duration.ofMillis(100))

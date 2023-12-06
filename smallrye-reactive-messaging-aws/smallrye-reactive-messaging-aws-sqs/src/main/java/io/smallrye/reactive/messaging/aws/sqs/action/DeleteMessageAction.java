@@ -6,6 +6,11 @@ import io.smallrye.reactive.messaging.aws.sqs.client.SqsClientHolder;
 import io.smallrye.reactive.messaging.aws.sqs.message.SqsIncomingMessage;
 import software.amazon.awssdk.services.sqs.model.DeleteMessageRequest;
 
+/**
+ * <a href=
+ * "https://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_DeleteMessage.html">AWS
+ * Documentation</a>
+ */
 public class DeleteMessageAction {
 
     public static Uni<Void> deleteMessage(

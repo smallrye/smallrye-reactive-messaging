@@ -87,6 +87,10 @@ public abstract class WeldTestBase {
         return container.getBeanManager();
     }
 
+    public void addBeans(Class<?>... clazzes) {
+        weld.addBeanClasses(clazzes);
+    }
+
     public <T> T get(Class<T> clazz) {
         return getBeanManager().createInstance().select(clazz).get();
     }

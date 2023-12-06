@@ -23,8 +23,7 @@ public class SqsAckHandler {
 
         if (Boolean.TRUE.equals(clientHolder.getConfig().getDeleteBatchEnabled())) {
             Multi.createFrom().<SqsIncomingMessage<?>> emitter(e -> emitter = e)
-                    .group().intoLists().of(getMaxSize(clientHolder), Duration.ofSeconds(getMaxDelay(clientHolder))
-                    )
+                    .group().intoLists().of(getMaxSize(clientHolder), Duration.ofSeconds(getMaxDelay(clientHolder)))
                     .onItem().call(messages -> DeleteMessageBatchAction.deleteMessages(clientHolder, messages))
                     .subscribe().with(ignored -> {
                     });
@@ -38,8 +37,7 @@ public class SqsAckHandler {
 
     private long getMaxDelay(final SqsClientHolder<SqsConnectorIncomingConfiguration> clientHolder) {
         return Math.max(1, Math.min(
-                clientHolder.getConfig().getDeleteBatchMaxDelay(), clientHolder.getConfig().getVisibilityTimeout() - 1)
-        );
+                clientHolder.getConfig().getDeleteBatchMaxDelay(), clientHolder.getConfig().getVisibilityTimeout() - 1));
     }
 
     public CompletionStage<Void> handle(final SqsIncomingMessage<?> msg) {

@@ -11,7 +11,10 @@ public class SqsOutgoingMessage<T> extends SqsMessage<T, SqsOutgoingMessageMetad
     private final Supplier<CompletionStage<Void>> ack;
     private final Function<Throwable, CompletionStage<Void>> nack;
 
-    public SqsOutgoingMessage(final T payload, final SqsOutgoingMessageMetadata metadata, Supplier<CompletionStage<Void>> ack,
+    public SqsOutgoingMessage(
+            final T payload,
+            final SqsOutgoingMessageMetadata metadata,
+            Supplier<CompletionStage<Void>> ack,
             Function<Throwable, CompletionStage<Void>> nack) {
         super(payload, metadata);
         this.ack = ack;
@@ -29,8 +32,11 @@ public class SqsOutgoingMessage<T> extends SqsMessage<T, SqsOutgoingMessageMetad
     }
 
     public static <T> SqsOutgoingMessage<T> from(Message<T> message) {
-        return new SqsOutgoingMessage<>(message.getPayload(), message.getMetadata(SqsOutgoingMessageMetadata.class)
-                .orElseGet(SqsOutgoingMessageMetadata::new), message.getAck(), message.getNack());
+        return new SqsOutgoingMessage<>(
+                message.getPayload(),
+                message.getMetadata(SqsOutgoingMessageMetadata.class).orElseGet(SqsOutgoingMessageMetadata::new),
+                message.getAck(),
+                message.getNack());
     }
 
 }

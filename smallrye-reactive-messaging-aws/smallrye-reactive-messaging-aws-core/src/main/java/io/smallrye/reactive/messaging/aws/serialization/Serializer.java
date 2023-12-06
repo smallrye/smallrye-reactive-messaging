@@ -10,7 +10,7 @@ public interface Serializer {
      *
      * @param obj object to serialize
      * @return serialized message
-     *         // TODO: ex
+     *         TODO: ex
      * @throws RuntimeException in case serialization fails.
      */
     String serialize(Object obj);

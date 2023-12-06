@@ -8,6 +8,7 @@ import io.smallrye.reactive.messaging.aws.sqs.SqsTargetResolver;
 import io.vertx.mutiny.core.Vertx;
 import software.amazon.awssdk.services.sqs.SqsAsyncClient;
 
+// TODO: Maybe vertx is not needed. Not sure yet.
 public class SqsClientHolder<C extends SqsConnectorCommonConfiguration> extends ClientHolder<SqsAsyncClient, C> {
     private final SqsTargetResolver targetResolver;
 

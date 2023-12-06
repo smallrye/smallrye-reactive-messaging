@@ -14,6 +14,11 @@ import io.smallrye.reactive.messaging.aws.sqs.message.SqsIncomingMessage;
 import software.amazon.awssdk.services.sqs.model.DeleteMessageBatchRequest;
 import software.amazon.awssdk.services.sqs.model.DeleteMessageBatchRequestEntry;
 
+/**
+ * <a href=
+ * "https://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_DeleteMessageBatch.html">AWS
+ * Documentation</a>
+ */
 public class DeleteMessageBatchAction {
 
     public static Uni<Void> deleteMessages(

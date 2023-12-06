@@ -10,18 +10,13 @@ public interface SqsExceptions {
 
     SqsExceptions ex = Messages.getBundle(SqsExceptions.class);
 
-    @Message(id = 19100, value = "Unable to build Pulsar client")
+    // TODO: ids?
+    @Message(id = 19100, value = "Unable to build SQS client")
     IllegalStateException illegalStateUnableToBuildClient(@Cause Throwable t);
 
-    @Message(id = 19101, value = "Unable to build Pulsar consumer")
+    @Message(id = 19101, value = "Unable to build SQS consumer")
     IllegalStateException illegalStateUnableToBuildConsumer(@Cause Throwable t);
 
-    @Message(id = 19102, value = "Unable to build Pulsar producer")
+    @Message(id = 19102, value = "Unable to build SQS producer")
     IllegalStateException illegalStateUnableToBuildProducer(@Cause Throwable t);
-
-    @Message(id = 19103, value = "Expecting downstream to consume without back-pressure")
-    IllegalStateException illegalStateConsumeWithoutBackPressure();
-
-    @Message(id = 19104, value = "Only one subscriber allowed")
-    IllegalStateException illegalStateOnlyOneSubscriber();
 }

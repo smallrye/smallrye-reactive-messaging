@@ -10,7 +10,7 @@ public interface Deserializer {
      *
      * @param payload message to deserialize
      * @return the deserialized message
-     *         // TODO: ex
+     *         TODO: ex
      * @throws RuntimeException in case the deserialization fails
      */
     Object deserialize(String payload);

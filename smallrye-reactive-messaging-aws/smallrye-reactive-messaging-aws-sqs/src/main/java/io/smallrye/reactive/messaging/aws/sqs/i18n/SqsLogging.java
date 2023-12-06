@@ -12,6 +12,7 @@ public interface SqsLogging extends BasicLogger {
 
     SqsLogging log = Logger.getMessageLogger(SqsLogging.class, "io.smallrye.reactive.messaging.aws.sqs");
 
+    // TODO: ids?
     @LogMessage(level = Logger.Level.WARN)
     @Message(id = 19002, value = "Unable to close Sqs client")
     void unableToCloseClient(@Cause Throwable t);
