@@ -2,10 +2,6 @@ package io.smallrye.reactive.messaging.aws.config;
 
 import java.util.*;
 
-/**
- * @author Christopher Holomek
- * @since 01.10.2023
- */
 public class ConfigHelper {
 
     public static List<String> parseToList(String valueToParse) {

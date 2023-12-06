@@ -62,7 +62,7 @@ public class SendMessageBatchAction {
             String payload = clientHolder.getSerializer().serialize(msg.getPayload());
             String id = UUID.randomUUID().toString();
 
-            final SendMessageBatchRequestEntry entry = SendMessageBatchRequestEntry.builder()
+            SendMessageBatchRequestEntry entry = SendMessageBatchRequestEntry.builder()
                     // in batching we need to generate the id of a message for every entry.
                     .id(id)
                     .messageAttributes(null)

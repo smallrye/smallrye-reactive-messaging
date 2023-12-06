@@ -4,13 +4,13 @@ import software.amazon.awssdk.services.sqs.model.Message;
 
 public class SqsIncomingMessageMetadata extends SqsMessageMetadata {
 
-    private Message msg;
+    private final Message awsMessage;
 
-    public SqsIncomingMessageMetadata(Message msg) {
-        this.msg = msg;
+    public SqsIncomingMessageMetadata(Message awsMessage) {
+        this.awsMessage = awsMessage;
     }
 
-    public Message getMsg() {
-        return msg;
+    public Message getAwsMessage() {
+        return awsMessage;
     }
 }

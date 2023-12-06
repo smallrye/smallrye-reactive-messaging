@@ -1,5 +1,6 @@
 package io.smallrye.reactive.messaging.aws.sqs;
 
+import static io.smallrye.mutiny.helpers.spies.Spy.onItem;
 import static io.smallrye.reactive.messaging.aws.config.ConfigHelper.parseToList;
 import static io.smallrye.reactive.messaging.aws.sqs.action.ReceiveMessageAction.receiveMessages;
 import static io.smallrye.reactive.messaging.aws.sqs.i18n.SqsLogging.log;
@@ -13,6 +14,7 @@ import org.eclipse.microprofile.reactive.messaging.Message;
 
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
+import io.smallrye.reactive.messaging.aws.sqs.ack.SqsAckHandler;
 import io.smallrye.reactive.messaging.aws.sqs.client.SqsClientHolder;
 import io.smallrye.reactive.messaging.aws.sqs.message.SqsIncomingMessage;
 import io.smallrye.reactive.messaging.providers.locals.ContextOperator;
@@ -31,15 +33,21 @@ public class SqsIncomingChannel extends SqsChannel {
 
     private final AtomicInteger counter = new AtomicInteger(0);
 
+    private final SqsAckHandler ackHandler;
+
     public SqsIncomingChannel(SqsClientHolder<SqsConnectorIncomingConfiguration> clientHolder) {
         this.clientHolder = clientHolder;
         this.context = ((VertxInternal) clientHolder.getVertx().getDelegate()).createEventLoopContext();
+        this.ackHandler = new SqsAckHandler(clientHolder);
 
         // For performance reasons created outside the stream.
         final Supplier<Uni<ReceiveMessageResponse>> receiveMessagesSupplier = receiveMessagesSupplier();
 
         this.publisher = Multi.createBy().repeating()
                 .uni(receiveMessagesSupplier::get)
+                // TODO: This is not good enough. We should wait for processing of messages.
+                //  also check the stream with until condition. Does this skip the last messages? Or is it checked after
+                //  processing? I think the later.
                 .until(ignore -> isClosed() && counter.get() == 0)
                 .onItem().invoke(counter::decrementAndGet)
                 .skip().where(response -> !response.hasMessages())
@@ -72,11 +80,11 @@ public class SqsIncomingChannel extends SqsChannel {
     }
 
     private Multi<SqsIncomingMessage<?>> createMultiOfMessages(ReceiveMessageResponse response) {
-        // TODO: This is not good enough. We should wait for processing of messages.
-        //  also check the stream with until condition. Does this skip the last messages? Or is it checked after
-        //  processing? I think the later.
-        return Multi.createFrom().iterable(response.messages())
-                .onItem().transform(SqsIncomingMessage::from);
+        final Multi<SqsIncomingMessage<?>> result = Multi.createFrom().iterable(response.messages())
+                .onItem().transform(msg -> SqsIncomingMessage.from(msg, ackHandler));
+
+        return result.onItem().call(msg -> clientHolder.getTargetResolver().resolveTarget(clientHolder)
+                .onItem().invoke(msg::withTarget));
     }
 
     private Uni<SqsIncomingMessage<?>> initCallbacks(SqsIncomingMessage<?> msg) {
@@ -91,8 +99,7 @@ public class SqsIncomingChannel extends SqsChannel {
         while (counter.get() != 0) {
             log.shutdownProgress(
                     counter.get(),
-                    clientHolder.getConfig().getQueue().orElse(clientHolder.getConfig().getChannel())
-            );
+                    clientHolder.getConfig().getQueue().orElse(clientHolder.getConfig().getChannel()));
             try {
                 Thread.sleep(1000);
             } catch (InterruptedException e) {

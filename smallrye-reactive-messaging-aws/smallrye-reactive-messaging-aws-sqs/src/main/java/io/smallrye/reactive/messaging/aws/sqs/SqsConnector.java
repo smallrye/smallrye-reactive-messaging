@@ -1,5 +1,6 @@
 package io.smallrye.reactive.messaging.aws.sqs;
 
+import static io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Direction.INCOMING;
 import static io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Direction.INCOMING_AND_OUTGOING;
 import static io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Direction.OUTGOING;
 import static io.smallrye.reactive.messaging.aws.serialization.SerializationResolver.resolveDeserializer;
@@ -71,11 +72,15 @@ import software.amazon.awssdk.services.sqs.model.SqsException;
 @ConnectorAttribute(name = "send.batch.enabled", type = "boolean", direction = OUTGOING, description = "Send messages in batches.", defaultValue = "false")
 
 // incoming
-@ConnectorAttribute(name = "max-number-of-messages", type = "int", direction = ConnectorAttribute.Direction.INCOMING, description = "The maximum number of messages to return. Amazon SQS never returns more messages than this value (however, fewer messages might be returned). Valid values: 1 to 10. Default: 10.", defaultValue = "10")
-@ConnectorAttribute(name = "wait-time-seconds", type = "int", direction = ConnectorAttribute.Direction.INCOMING, description = "The duration (in seconds) for which the call waits for a message to arrive in the queue before returning. If a message is available, the call returns sooner than WaitTimeSeconds. If no messages are available and the wait time expires, the call returns successfully with an empty list of messages. Default 20s.", defaultValue = "20")
-@ConnectorAttribute(name = "visibility-timeout", type = "int", direction = ConnectorAttribute.Direction.INCOMING, description = "The duration (in seconds) that the received messages are hidden from subsequent retrieve requests after being retrieved by a request. Default 15s.", defaultValue = "15")
-@ConnectorAttribute(name = "attribute-names", type = "string", direction = ConnectorAttribute.Direction.INCOMING, description = "A comma separated list of attributes that need to be returned along with each message. Default empty.", defaultValue = "")
-@ConnectorAttribute(name = "message-attribute-names", type = "string", direction = ConnectorAttribute.Direction.INCOMING, description = "A comma separated list of message attributes that need to be returned along with each message. Default empty.", defaultValue = "")
+@ConnectorAttribute(name = "max-number-of-messages", type = "int", direction = INCOMING, description = "The maximum number of messages to return. Amazon SQS never returns more messages than this value (however, fewer messages might be returned). Valid values: 1 to 10. Default: 10.", defaultValue = "10")
+@ConnectorAttribute(name = "wait-time-seconds", type = "int", direction = INCOMING, description = "The duration (in seconds) for which the call waits for a message to arrive in the queue before returning. If a message is available, the call returns sooner than WaitTimeSeconds. If no messages are available and the wait time expires, the call returns successfully with an empty list of messages. Default 20s.", defaultValue = "20")
+@ConnectorAttribute(name = "visibility-timeout", type = "int", direction = INCOMING, description = "The duration (in seconds) that the received messages are hidden from subsequent retrieve requests after being retrieved by a request. Default 15s.", defaultValue = "15")
+@ConnectorAttribute(name = "attribute-names", type = "string", direction = INCOMING, description = "A comma separated list of attributes that need to be returned along with each message. Default empty.", defaultValue = "")
+@ConnectorAttribute(name = "message-attribute-names", type = "string", direction = INCOMING, description = "A comma separated list of message attributes that need to be returned along with each message. Default empty.", defaultValue = "")
+
+@ConnectorAttribute(name = "delete.batch.enabled", type = "boolean", direction = INCOMING, description = "Delete/confirm messages in batches.", defaultValue = "false")
+@ConnectorAttribute(name = "delete.batch.max-size", type = "int", direction = INCOMING, description = "The maximum number of messages to delete in a batch. Valid values: 1 to 10. Default: 10.", defaultValue = "10")
+@ConnectorAttribute(name = "delete.batch.max-delay", type = "int", direction = INCOMING, description = "The maximum number of seconds to wait for a batch. Needs to be configured lower than message visibility-timeout. Default: 3.", defaultValue = "3")
 
 public class SqsConnector implements InboundConnector, OutboundConnector, HealthReporter {
 

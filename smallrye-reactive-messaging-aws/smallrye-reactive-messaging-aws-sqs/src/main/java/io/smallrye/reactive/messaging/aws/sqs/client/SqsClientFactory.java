@@ -40,7 +40,7 @@ public class SqsClientFactory {
         if (nettyExists()) {
             builder.asyncConfiguration(b -> b.advancedOption(SdkAdvancedAsyncClientOption.FUTURE_COMPLETION_EXECUTOR,
                     context.nettyEventLoop().parent())).httpClientBuilder(NettyNioAsyncHttpClient.builder()
-                    .eventLoopGroup(SdkEventLoopGroup.create(context.nettyEventLoop().parent())));
+                            .eventLoopGroup(SdkEventLoopGroup.create(context.nettyEventLoop().parent())));
         }
 
         config.getEndpointOverride().ifPresent(endpointOverride -> {
