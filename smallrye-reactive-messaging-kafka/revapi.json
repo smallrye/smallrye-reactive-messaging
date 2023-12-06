@@ -114,6 +114,21 @@
             "code": "java.method.removed",
             "old": "method java.util.function.Function<java.lang.Throwable, java.util.concurrent.CompletionStage<java.lang.Void>> io.smallrye.reactive.messaging.kafka.OutgoingKafkaRecord<K, T>::getNack()",
             "justification": "Added Message metadata propagation"
+        },
+        {
+            "code": "java.class.removed",
+            "old": "class io.smallrye.reactive.messaging.kafka.IncomingKafkaRecordMetadata<K, T>",
+            "justification": "Removed deprecated IncomingKafkaRecordMetadata"
+        },
+        {
+            "code": "java.class.removed",
+            "old": "interface io.smallrye.reactive.messaging.kafka.KafkaMessageMetadata<K>",
+            "justification": "Removed deprecated KafkaMessageMetadata"
+        },
+        {
+            "code": "java.class.removed",
+            "old": "class io.smallrye.reactive.messaging.kafka.OutgoingKafkaRecordMetadata<K>",
+            "justification": "Removed deprecated OutgoingKafkaRecordMetadata"
         }
     ]
   }

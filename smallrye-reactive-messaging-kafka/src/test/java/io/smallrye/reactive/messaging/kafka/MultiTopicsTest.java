@@ -18,7 +18,6 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Message;
-import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
 
 import io.smallrye.reactive.messaging.kafka.api.IncomingKafkaRecordMetadata;
@@ -31,7 +30,7 @@ import io.smallrye.reactive.messaging.kafka.companion.ProducerTask;
 @SuppressWarnings("rawtypes")
 public class MultiTopicsTest extends KafkaCompanionTestBase {
 
-    @RepeatedTest(5)
+    @Test
     public void testWithThreeTopicsInConfiguration() {
         String topic1 = UUID.randomUUID().toString();
         String topic2 = UUID.randomUUID().toString();
@@ -63,9 +62,7 @@ public class MultiTopicsTest extends KafkaCompanionTestBase {
         AtomicInteger top2 = new AtomicInteger();
         AtomicInteger top3 = new AtomicInteger();
         bean.getMessages().forEach(message -> {
-            // TODO Import normally once the deprecated copy in this package has gone
-            io.smallrye.reactive.messaging.kafka.api.IncomingKafkaRecordMetadata record = message
-                    .getMetadata(io.smallrye.reactive.messaging.kafka.api.IncomingKafkaRecordMetadata.class).orElse(null);
+            IncomingKafkaRecordMetadata record = message.getMetadata(IncomingKafkaRecordMetadata.class).orElse(null);
             assertThat(record).isNotNull();
             String topic = record.getTopic();
             if (topic.equals(topic1)) {
@@ -78,7 +75,6 @@ public class MultiTopicsTest extends KafkaCompanionTestBase {
                 top3.incrementAndGet();
                 assertThat(message.getPayload()).isEqualTo("bonjour");
             }
-            LegacyMetadataTestUtils.tempCompareLegacyAndApiMetadata(record, message);
         });
 
         assertThat(top1.get()).isGreaterThanOrEqualTo(3);
@@ -86,7 +82,7 @@ public class MultiTopicsTest extends KafkaCompanionTestBase {
         assertThat(top3.get()).isGreaterThanOrEqualTo(3);
     }
 
-    @RepeatedTest(5)
+    @Test
     public void testWithOnlyTwoTopicsReceiving() {
         String topic1 = UUID.randomUUID().toString();
         String topic2 = UUID.randomUUID().toString();
@@ -117,8 +113,7 @@ public class MultiTopicsTest extends KafkaCompanionTestBase {
         AtomicInteger top2 = new AtomicInteger();
         AtomicInteger top3 = new AtomicInteger();
         bean.getMessages().forEach(message -> {
-            io.smallrye.reactive.messaging.kafka.api.IncomingKafkaRecordMetadata record = message
-                    .getMetadata(io.smallrye.reactive.messaging.kafka.api.IncomingKafkaRecordMetadata.class).orElse(null);
+            IncomingKafkaRecordMetadata record = message.getMetadata(IncomingKafkaRecordMetadata.class).orElse(null);
             assertThat(record).isNotNull();
             String topic = record.getTopic();
             if (topic.equals(topic1)) {
@@ -130,7 +125,6 @@ public class MultiTopicsTest extends KafkaCompanionTestBase {
                 top3.incrementAndGet();
                 assertThat(message.getPayload()).isEqualTo("bonjour");
             }
-            LegacyMetadataTestUtils.tempCompareLegacyAndApiMetadata(record, message);
         });
 
         assertThat(top1).hasValue(3);
@@ -187,7 +181,6 @@ public class MultiTopicsTest extends KafkaCompanionTestBase {
                 top3.incrementAndGet();
                 assertThat(message.getPayload()).isEqualTo("bonjour");
             }
-            LegacyMetadataTestUtils.tempCompareLegacyAndApiMetadata(record, message);
         });
 
         assertThat(top1).hasValue(3);

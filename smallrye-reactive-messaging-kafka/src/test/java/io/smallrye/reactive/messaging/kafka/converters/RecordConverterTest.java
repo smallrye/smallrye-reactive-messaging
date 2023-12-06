@@ -52,36 +52,6 @@ class RecordConverterTest extends KafkaCompanionTestBase {
         });
     }
 
-    // TODO Delete once we got rid of the legacy metadata
-    @SuppressWarnings({ "deprecation", "unchecked" })
-    @Test
-    public void testConverterLegacy() {
-        RecordConverter converter = new RecordConverter();
-        assertThat(converter.canConvert(Message.of("foo"), Record.class)).isFalse();
-
-        io.smallrye.reactive.messaging.kafka.IncomingKafkaRecordMetadata<String, String> metadata = mock(
-                io.smallrye.reactive.messaging.kafka.IncomingKafkaRecordMetadata.class);
-        when(metadata.getKey()).thenReturn("key");
-        Message<String> message = Message.of("foo").addMetadata(metadata);
-        assertThat(converter.canConvert(message, Record.class)).isTrue();
-        assertThat(converter.convert(message, Record.class)).satisfies(m -> {
-            assertThat(m.getPayload()).isInstanceOf(Record.class);
-            assertThat(((Record<String, String>) m.getPayload()).key()).isEqualTo("key");
-            assertThat(((Record<String, String>) m.getPayload()).value()).isEqualTo("foo");
-        });
-
-        assertThat(converter.canConvert(message, KafkaRecord.class)).isFalse();
-
-        when(metadata.getKey()).thenReturn(null);
-        message = Message.of("foo").addMetadata(metadata);
-        assertThat(converter.canConvert(message, Record.class)).isTrue();
-        assertThat(converter.convert(message, Record.class)).satisfies(m -> {
-            assertThat(m.getPayload()).isInstanceOf(Record.class);
-            assertThat(((Record<String, String>) m.getPayload()).key()).isNull();
-            assertThat(((Record<String, String>) m.getPayload()).value()).isEqualTo("foo");
-        });
-    }
-
     @Test
     public void testBeanUsingConverter() {
         KafkaMapBasedConfig builder = kafkaConfig("mp.messaging.incoming.data");
