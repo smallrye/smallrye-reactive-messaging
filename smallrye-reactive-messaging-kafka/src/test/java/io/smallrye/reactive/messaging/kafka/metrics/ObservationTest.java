@@ -232,7 +232,6 @@ public class ObservationTest extends KafkaCompanionTestBase {
                 if (metadata.isPresent()) {
                     Instant inst = metadata.get().getTimestamp();
                     recordTs = inst.toEpochMilli();
-                    System.out.println("record " + recordTs);
                 } else {
                     recordTs = 0L;
                 }
@@ -242,7 +241,6 @@ public class ObservationTest extends KafkaCompanionTestBase {
             public void onMessageAck(Message<?> message) {
                 super.onMessageAck(message);
                 completedMs = System.currentTimeMillis();
-                System.out.println("completed in " + completedMs);
                 done = true;
             }
         }
