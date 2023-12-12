@@ -2,7 +2,6 @@ package io.smallrye.reactive.messaging.kafka.fault;
 
 import static io.smallrye.reactive.messaging.kafka.DeserializationFailureHandler.DESERIALIZATION_FAILURE_DLQ;
 import static io.smallrye.reactive.messaging.kafka.i18n.KafkaLogging.log;
-import static io.smallrye.reactive.messaging.kafka.impl.ReactiveKafkaConsumer.createDeserializationFailureHandler;
 import static org.apache.kafka.clients.CommonClientConfigs.CLIENT_ID_CONFIG;
 import static org.apache.kafka.clients.CommonClientConfigs.GROUP_ID_CONFIG;
 import static org.apache.kafka.clients.consumer.ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG;
@@ -10,6 +9,7 @@ import static org.apache.kafka.clients.consumer.ConsumerConfig.KEY_DESERIALIZER_
 import static org.apache.kafka.clients.consumer.ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG;
 import static org.apache.kafka.clients.producer.ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG;
 import static org.apache.kafka.clients.producer.ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG;
+import static org.eclipse.microprofile.reactive.messaging.spi.ConnectorFactory.INCOMING_PREFIX;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
@@ -26,15 +26,18 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Any;
 import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.clients.producer.ProducerInterceptor;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.common.serialization.StringSerializer;
+import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.reactive.messaging.Metadata;
 
 import io.smallrye.common.annotation.Identifier;
@@ -44,15 +47,17 @@ import io.smallrye.reactive.messaging.kafka.DeserializationFailureHandler;
 import io.smallrye.reactive.messaging.kafka.IncomingKafkaRecord;
 import io.smallrye.reactive.messaging.kafka.KafkaCDIEvents;
 import io.smallrye.reactive.messaging.kafka.KafkaConnectorIncomingConfiguration;
+import io.smallrye.reactive.messaging.kafka.KafkaConnectorOutgoingConfiguration;
 import io.smallrye.reactive.messaging.kafka.KafkaConsumer;
 import io.smallrye.reactive.messaging.kafka.KafkaProducer;
+import io.smallrye.reactive.messaging.kafka.SerializationFailureHandler;
 import io.smallrye.reactive.messaging.kafka.api.OutgoingKafkaRecordMetadata;
 import io.smallrye.reactive.messaging.kafka.commit.ContextHolder;
 import io.smallrye.reactive.messaging.kafka.commit.KafkaLatestCommit;
-import io.smallrye.reactive.messaging.kafka.impl.ConfigurationCleaner;
 import io.smallrye.reactive.messaging.kafka.impl.ReactiveKafkaConsumer;
 import io.smallrye.reactive.messaging.kafka.impl.ReactiveKafkaProducer;
-import io.smallrye.reactive.messaging.kafka.impl.RuntimeKafkaSourceConfiguration;
+import io.smallrye.reactive.messaging.providers.impl.ConnectorConfig;
+import io.smallrye.reactive.messaging.providers.impl.OverrideConnectorConfig;
 import io.vertx.core.impl.VertxInternal;
 import io.vertx.mutiny.core.Vertx;
 
@@ -82,7 +87,19 @@ public class KafkaDelayedRetryTopic extends ContextHolder implements KafkaFailur
         KafkaCDIEvents kafkaCDIEvents;
 
         @Inject
-        Instance<DeserializationFailureHandler<?>> failureHandlers;
+        @Any
+        Instance<DeserializationFailureHandler<?>> deserializationFailureHandlers;
+
+        @Inject
+        @Any
+        Instance<SerializationFailureHandler<?>> serializationFailureHandlers;
+
+        @Inject
+        @Any
+        Instance<ProducerInterceptor<?, ?>> producerInterceptors;
+
+        @Inject
+        Instance<Config> rootConfig;
 
         @Override
         public KafkaFailureHandler create(KafkaConnectorIncomingConfiguration config,
@@ -92,20 +109,6 @@ public class KafkaDelayedRetryTopic extends ContextHolder implements KafkaFailur
             Map<String, Object> delayedRetryTopicProducerConfig = new HashMap<>(consumer.configuration());
             String keyDeserializer = (String) delayedRetryTopicProducerConfig.remove(KEY_DESERIALIZER_CLASS_CONFIG);
             String valueDeserializer = (String) delayedRetryTopicProducerConfig.remove(VALUE_DESERIALIZER_CLASS_CONFIG);
-
-            // We need to remove consumer interceptor
-            delayedRetryTopicProducerConfig.remove(INTERCEPTOR_CLASSES_CONFIG);
-
-            delayedRetryTopicProducerConfig.put(KEY_SERIALIZER_CLASS_CONFIG,
-                    config.getDeadLetterQueueKeySerializer().orElse(getMirrorSerializer(keyDeserializer)));
-            delayedRetryTopicProducerConfig.put(VALUE_SERIALIZER_CLASS_CONFIG,
-                    config.getDeadLetterQueueValueSerializer().orElse(getMirrorSerializer(valueDeserializer)));
-            delayedRetryTopicProducerConfig.put(CLIENT_ID_CONFIG,
-                    config.getDeadLetterQueueProducerClientId()
-                            .orElse("kafka-delayed-retry-topic-producer-"
-                                    + delayedRetryTopicProducerConfig.get(CLIENT_ID_CONFIG)));
-
-            ConfigurationCleaner.cleanupProducerConfiguration(delayedRetryTopicProducerConfig);
 
             List<String> retryTopics = config.getDelayedRetryTopicTopics()
                     .map(topics -> Arrays.stream(topics.split(",")).collect(Collectors.toList()))
@@ -117,30 +120,37 @@ public class KafkaDelayedRetryTopic extends ContextHolder implements KafkaFailur
             long retryTimeout = config.getDelayedRetryTopicTimeout();
             String deadQueueTopic = config.getDeadLetterQueueTopic().orElse(null);
 
+            String consumerClientId = (String) consumer.configuration().get(CLIENT_ID_CONFIG);
+            ConnectorConfig connectorConfig = new OverrideConnectorConfig(INCOMING_PREFIX, rootConfig.get(),
+                    config.getChannel(), "dead-letter-queue", Map.of(
+                            KEY_SERIALIZER_CLASS_CONFIG, c -> getMirrorSerializer(keyDeserializer),
+                            VALUE_SERIALIZER_CLASS_CONFIG, c -> getMirrorSerializer(valueDeserializer),
+                            CLIENT_ID_CONFIG, c -> config.getDeadLetterQueueProducerClientId()
+                                    .orElse("kafka-delayed-retry-topic-producer-" + consumerClientId),
+                            "topic", c -> retryTopics.get(0),
+                            "key-serialization-failure-handler", c -> "dlq-serialization",
+                            "value-serialization-failure-handler", c -> "dlq-serialization",
+                            INTERCEPTOR_CLASSES_CONFIG, c -> ""));
+            KafkaConnectorOutgoingConfiguration producerConfig = new KafkaConnectorOutgoingConfiguration(connectorConfig);
+
             log.delayedRetryTopic(config.getChannel(), retryTopics, maxRetries, retryTimeout, deadQueueTopic);
 
-            var dlqSerializationHandler = new KafkaDeadLetterSerializationHandler<>();
             // fire producer event (e.g. bind metrics)
-            ReactiveKafkaProducer<Object, Object> producer = new ReactiveKafkaProducer<>(delayedRetryTopicProducerConfig,
-                    retryTopics.get(0), 10000, false, null, dlqSerializationHandler, dlqSerializationHandler,
-                    (p, c) -> kafkaCDIEvents.producer().fire(p));
+            ReactiveKafkaProducer<Object, Object> producer = new ReactiveKafkaProducer<>(producerConfig,
+                    serializationFailureHandlers, producerInterceptors, null, (p, c) -> kafkaCDIEvents.producer().fire(p));
 
-            Map<String, Object> retryConsumerConfig = new HashMap<>(consumer.configuration());
-            retryConsumerConfig.put(CLIENT_ID_CONFIG,
-                    "kafka-delayed-retry-topic-" + retryConsumerConfig.get(CLIENT_ID_CONFIG));
-            retryConsumerConfig.put(GROUP_ID_CONFIG,
-                    "kafka-delayed-retry-topic-" + retryConsumerConfig.get(GROUP_ID_CONFIG));
-
-            ReactiveKafkaConsumer<Object, Object> retryConsumer = new ReactiveKafkaConsumer<>(retryConsumerConfig,
-                    createDeserializationFailureHandler(true, failureHandlers, config),
-                    createDeserializationFailureHandler(false, failureHandlers, config),
-                    RuntimeKafkaSourceConfiguration.buildFromConfiguration(config),
-                    true,
-                    config.getPollTimeout(),
-                    config.getFailOnDeserializationFailure(),
-                    c -> kafkaCDIEvents.consumer().fire(c),
+            ConnectorConfig retryConsumerConfig = new OverrideConnectorConfig(INCOMING_PREFIX,
+                    rootConfig.get(), config.getChannel(), "delayed-retry-topic.consumer", Map.of(
+                            "lazy-client", c -> true,
+                            CLIENT_ID_CONFIG, c -> "kafka-delayed-retry-topic-" + consumerClientId,
+                            GROUP_ID_CONFIG, c -> "kafka-delayed-retry-topic-" + consumerClientId));
+            KafkaConnectorIncomingConfiguration retryConfig = new KafkaConnectorIncomingConfiguration(retryConsumerConfig);
+            ReactiveKafkaConsumer<Object, Object> retryConsumer = new ReactiveKafkaConsumer<>(retryConfig,
+                    deserializationFailureHandlers,
+                    retryConsumerConfig.getValue(GROUP_ID_CONFIG, String.class), -1,
                     reportFailure,
-                    ((VertxInternal) vertx.getDelegate()).createEventLoopContext());
+                    ((VertxInternal) vertx.getDelegate()).createEventLoopContext(),
+                    c -> kafkaCDIEvents.consumer().fire(c));
 
             return new KafkaDelayedRetryTopic(config.getChannel(), vertx, config, retryTopics, maxRetries, retryTimeout,
                     deadQueueTopic, producer, retryConsumer, reportFailure);

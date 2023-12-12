@@ -10,16 +10,21 @@ import static io.smallrye.reactive.messaging.kafka.DeserializationFailureHandler
 import java.util.Arrays;
 import java.util.Objects;
 
+import jakarta.enterprise.context.ApplicationScoped;
+
 import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.header.Headers;
 
+import io.smallrye.common.annotation.Identifier;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.kafka.SerializationFailureHandler;
 
-public class KafkaDeadLetterSerializationHandler<T> implements SerializationFailureHandler<T> {
+@ApplicationScoped
+@Identifier("dlq-serialization")
+public class KafkaDeadLetterSerializationHandler implements SerializationFailureHandler<Object> {
 
     @Override
-    public byte[] decorateSerialization(Uni<byte[]> serialization, String topic, boolean isKey, String serializer, T data,
+    public byte[] decorateSerialization(Uni<byte[]> serialization, String topic, boolean isKey, String serializer, Object data,
             Headers headers) {
         // deserializer failure
         if (headers.lastHeader(DESERIALIZATION_FAILURE_DESERIALIZER) != null) {

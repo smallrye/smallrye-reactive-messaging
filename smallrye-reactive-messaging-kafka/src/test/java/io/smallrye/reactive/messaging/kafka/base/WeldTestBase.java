@@ -21,6 +21,7 @@ import io.smallrye.reactive.messaging.kafka.commit.KafkaIgnoreCommit;
 import io.smallrye.reactive.messaging.kafka.commit.KafkaLatestCommit;
 import io.smallrye.reactive.messaging.kafka.commit.KafkaThrottledLatestProcessedCommit;
 import io.smallrye.reactive.messaging.kafka.fault.KafkaDeadLetterQueue;
+import io.smallrye.reactive.messaging.kafka.fault.KafkaDeadLetterSerializationHandler;
 import io.smallrye.reactive.messaging.kafka.fault.KafkaFailStop;
 import io.smallrye.reactive.messaging.kafka.fault.KafkaFailureHandler;
 import io.smallrye.reactive.messaging.kafka.fault.KafkaIgnoreFailure;
@@ -98,6 +99,7 @@ public class WeldTestBase {
         weld.addBeanClass(KafkaFailStop.Factory.class);
         weld.addBeanClass(KafkaIgnoreFailure.Factory.class);
         weld.addBeanClass(KafkaDeadLetterQueue.Factory.class);
+        weld.addBeanClass(KafkaDeadLetterSerializationHandler.class);
         weld.addBeanClass(KafkaCDIEvents.class);
         weld.addBeanClass(KafkaConnector.class);
         weld.addBeanClass(KafkaClientServiceImpl.class);
