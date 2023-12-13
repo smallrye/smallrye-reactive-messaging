@@ -197,6 +197,15 @@ public class ReactiveKafkaConsumerTest extends ClientTestBase {
     }
 
     @Test
+    public void testAssignAndSeek() throws Exception {
+        int count = 40;
+        sendMessages(0, count);
+
+        Multi<IncomingKafkaRecord<Integer, String>> stream = createSourceAssignAndSeek().getStream();
+        sendReceive(stream, count, count, 20, count * 2 - 20);
+    }
+
+    @Test
     public void testRebalanceListenerSeekToEnd() throws Exception {
         int count = 10;
         sendMessages(0, count);

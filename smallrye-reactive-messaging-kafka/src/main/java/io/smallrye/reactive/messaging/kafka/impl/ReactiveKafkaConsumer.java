@@ -246,14 +246,57 @@ public class ReactiveKafkaConsumer<K, V> implements io.smallrye.reactive.messagi
     }
 
     @CheckReturnValue
-    Multi<ConsumerRecords<K, V>> subscribeBatch(Set<String> topics) {
+    public Multi<ConsumerRecord<K, V>> assign(Set<TopicPartition> topicPartitions) {
+        return stream.onSubscription().call(() -> runOnPollingThread(c -> {
+            c.assign(topicPartitions);
+        }));
+    }
+
+    @CheckReturnValue
+    public Multi<ConsumerRecords<K, V>> assignBatch(Set<TopicPartition> topicPartitions) {
+        return batchStream.onSubscription().call(() -> runOnPollingThread(c -> {
+            c.assign(topicPartitions);
+        }));
+    }
+
+    @CheckReturnValue
+    public Multi<ConsumerRecord<K, V>> assignAndSeek(Map<TopicPartition, Optional<Long>> tpOffsets) {
+        return stream.onSubscription().call(() -> assignSeek(tpOffsets));
+    }
+
+    @CheckReturnValue
+    public Multi<ConsumerRecords<K, V>> assignAndSeekBatch(Map<TopicPartition, Optional<Long>> tpOffsets) {
+        return batchStream.onSubscription().call(() -> assignSeek(tpOffsets));
+    }
+
+    private Uni<Void> assignSeek(Map<TopicPartition, Optional<Long>> tpOffsets) {
+        return runOnPollingThread(c -> {
+            c.assign(tpOffsets.keySet());
+            for (Map.Entry<TopicPartition, Optional<Long>> tpOffset : tpOffsets.entrySet()) {
+                Optional<Long> seek = tpOffset.getValue();
+                if (seek.isPresent()) {
+                    long offset = seek.get();
+                    if (offset == -1) {
+                        c.seekToEnd(Collections.singleton(tpOffset.getKey()));
+                    } else if (offset == 0) {
+                        c.seekToBeginning(Collections.singleton(tpOffset.getKey()));
+                    } else {
+                        c.seek(tpOffset.getKey(), offset);
+                    }
+                }
+            }
+        });
+    }
+
+    @CheckReturnValue
+    public Multi<ConsumerRecords<K, V>> subscribeBatch(Set<String> topics) {
         return batchStream.onSubscription().call(() -> runOnPollingThread(c -> {
             c.subscribe(topics, rebalanceListener);
         }));
     }
 
     @CheckReturnValue
-    Multi<ConsumerRecords<K, V>> subscribeBatch(Pattern topics) {
+    public Multi<ConsumerRecords<K, V>> subscribeBatch(Pattern topics) {
         return batchStream.onSubscription().call(() -> runOnPollingThread(c -> {
             c.subscribe(topics, rebalanceListener);
         }));

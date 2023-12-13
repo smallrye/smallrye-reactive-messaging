@@ -55,21 +55,23 @@ public interface KafkaLogging extends BasicLogger {
     void unableToDispatch(@Cause Throwable t);
 
     @LogMessage(level = Logger.Level.DEBUG)
-    @Message(id = 18209, value = "Sending message %s to Kafka topic '%s'")
-    void sendingMessageToTopic(org.eclipse.microprofile.reactive.messaging.Message<?> message, String topic);
+    @Message(id = 18209, value = "Sending message %s from channel '%s' to Kafka topic '%s'")
+    void sendingMessageToTopic(org.eclipse.microprofile.reactive.messaging.Message<?> message, String channel, String topic);
 
     @LogMessage(level = Logger.Level.ERROR)
     @Message(id = 18210, value = "Unable to send a record to Kafka ")
     void unableToSendRecord(@Cause Throwable t);
 
     @LogMessage(level = Logger.Level.DEBUG)
-    @Message(id = 18211, value = "Message %s sent successfully to Kafka topic-partition '%s-%d', with offset %d")
-    void successfullyToTopic(org.eclipse.microprofile.reactive.messaging.Message<?> message, String topic, int partition,
+    @Message(id = 18211, value = "Message %s from channel '%s' sent successfully to Kafka topic-partition '%s-%d', with offset %d")
+    void successfullyToTopic(org.eclipse.microprofile.reactive.messaging.Message<?> message, String channel, String topic,
+            int partition,
             long offset);
 
     @LogMessage(level = Logger.Level.ERROR)
-    @Message(id = 18212, value = "Message %s was not sent to Kafka topic '%s' - nacking message")
-    void nackingMessage(org.eclipse.microprofile.reactive.messaging.Message<?> message, String topic, @Cause Throwable t);
+    @Message(id = 18212, value = "Message %s from channel '%s' was not sent to Kafka topic '%s' - nacking message")
+    void nackingMessage(org.eclipse.microprofile.reactive.messaging.Message<?> message, String channel, String topic,
+            @Cause Throwable t);
 
     @LogMessage(level = Logger.Level.INFO)
     @Message(id = 18213, value = "Setting %s to %s")
@@ -338,5 +340,17 @@ public interface KafkaLogging extends BasicLogger {
     @LogMessage(level = Logger.Level.WARN)
     @Message(id = 18280, value = "A message sent to channel `%s` has been nacked and won't be retried again. Configure `dead-letter-queue.topic` for sending the record to a dead letter topic")
     void delayedRetryNoDlq(String channel);
+
+    @LogMessage(level = Logger.Level.INFO)
+    @Message(id = 18281, value = "The topics configuration `%s` for channel `%s` will be ignored because the consumer will be assigned to partitions %s")
+    void topicsConfigurationIgnored(String topics, String channel, String topicPartitions);
+
+    @LogMessage(level = Logger.Level.DEBUG)
+    @Message(id = 18282, value = "Ignored reply from channel `%s` to topic `%s` with correlation id %s")
+    void requestReplyRecordIgnored(String channel, String replyTopic, String correlationId);
+
+    @LogMessage(level = Logger.Level.ERROR)
+    @Message(id = 18283, value = "Failure from channel `%s` request/reply consumer for topic `%s`")
+    void requestReplyConsumerFailure(String channel, String replyTopic, @Cause Throwable throwable);
 
 }
