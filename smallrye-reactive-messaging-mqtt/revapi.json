@@ -21,11 +21,7 @@
     "criticality" : "highlight",
     "minSeverity" : "POTENTIALLY_BREAKING",
     "minCriticality" : "documented",
-    "differences" : [ {
-        "code": "java.method.removed",
-        "old": "method java.util.function.Function<java.lang.Throwable, java.util.concurrent.CompletionStage<java.lang.Void>> io.smallrye.reactive.messaging.mqtt.ReceivingMqttMessage::getNack()",
-        "justification": "Added Message metadata propagation"
-    }]
+    "differences" : [ ]
   }
 }, {
   "extension" : "revapi.reporter.json",
