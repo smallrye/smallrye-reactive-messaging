@@ -198,8 +198,8 @@ public class KafkaRequestReplyImpl<Req, Rep> extends MutinyEmitterImpl<Req>
                 .invoke(() -> subscription.get().request(1))
                 .chain(unused -> Uni.createFrom().<Message<Rep>> emitter(emitter -> pendingReplies.put(correlationId,
                         new PendingReplyImpl<>(outMetadata.getResult(), replyTopic, replyPartition,
-                                (UniEmitter<Message<Rep>>) emitter))))
-                .ifNoItem().after(replyTimeout).fail()
+                                (UniEmitter<Message<Rep>>) emitter)))
+                        .ifNoItem().after(replyTimeout).fail())
                 .onItemOrFailure().invoke(() -> pendingReplies.remove(correlationId))
                 .plug(uni -> replyFailureHandler != null ? uni.onItem().transformToUni(f -> {
                     Throwable failure = replyFailureHandler.handleReply((KafkaRecord<?, ?>) f);

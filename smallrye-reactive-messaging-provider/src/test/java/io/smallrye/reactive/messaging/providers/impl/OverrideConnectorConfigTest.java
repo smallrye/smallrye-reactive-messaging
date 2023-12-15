@@ -125,7 +125,7 @@ class OverrideConnectorConfigTest {
         Iterable<String> names = config.getPropertyNames();
         assertThat(names)
                 .containsExactlyInAnyOrder("connector", "ATTR1", "attr1", "attr2", "attr.2", "ATTR", "attr", "AT_TR",
-                        "at-tr", "bar.key", "BAR_KEY", "bar.qux", "other-key", "key",
+                        "at-tr", "KEY", "qux", "other-key", "key",
                         "SOME_KEY", "some-key", "SOME_OTHER_KEY", "ATTR3", "attr4", "channel-name");
 
         assertThat(config.getOptionalValue("connector", String.class)).hasValue("some-connector");
@@ -167,7 +167,7 @@ class OverrideConnectorConfigTest {
         Iterable<String> names = config2.getPropertyNames();
         assertThat(names)
                 .containsExactlyInAnyOrder("connector", "ATTR1", "attr1", "attr2", "attr.2", "ATTR", "attr", "AT_TR",
-                        "at-tr", "bar.key", "BAR_KEY", "bar.qux", "other-key", "key",
+                        "at-tr", "qux", "KEY", "other-key", "key",
                         "SOME_KEY", "some-key", "SOME_OTHER_KEY", "ATTR3", "attr4", "channel-name");
 
         assertThat(config2.getOptionalValue("connector", String.class)).hasValue("some-connector");
