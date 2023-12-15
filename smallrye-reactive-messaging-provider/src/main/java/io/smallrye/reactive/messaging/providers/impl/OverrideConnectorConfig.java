@@ -129,17 +129,9 @@ public class OverrideConnectorConfig extends ConnectorConfig {
             if (name.startsWith(connectorNestedPrefix)) {
                 String computed = name.substring(connectorNestedPrefix.length());
                 names.add(computed);
-            } else if (name.startsWith(connectorPrefix)) {
-                String computed = name.substring(connectorPrefix.length());
-                names.add(computed);
             } else if (name.startsWith(connectorNestedPrefixAlpha)) {
                 String computed = name.substring(connectorNestedPrefixAlpha.length());
                 if (nameExists(connectorNestedPrefix + computed)) {
-                    names.add(computed);
-                }
-            } else if (name.startsWith(connectorPrefixAlpha)) {
-                String computed = name.substring(connectorPrefixAlpha.length());
-                if (nameExists(connectorPrefix + computed)) {
                     names.add(computed);
                 }
             } else if (name.startsWith(connectorNestedPrefixAlphaUpper)) {
@@ -147,35 +139,43 @@ public class OverrideConnectorConfig extends ConnectorConfig {
                 if (nameExists(connectorNestedPrefix + computed)) {
                     names.add(computed);
                 }
+            } else if (name.startsWith(connectorPrefix)) {
+                String computed = name.substring(connectorPrefix.length());
+                names.add(computed);
+            } else if (name.startsWith(connectorPrefixAlpha)) {
+                String computed = name.substring(connectorPrefixAlpha.length());
+                if (nameExists(connectorPrefix + computed)) {
+                    names.add(computed);
+                }
             } else if (name.startsWith(connectorPrefixAlphaUpper)) {
                 String computed = name.substring(connectorPrefixAlphaUpper.length());
                 if (nameExists(connectorPrefix + computed)) {
                     names.add(computed);
                 }
-            } else if (name.startsWith(prefix)) {
-                String computed = name.substring(prefix.length());
-                names.add(computed);
             } else if (name.startsWith(nestedPrefix)) {
                 String computed = name.substring(nestedPrefix.length());
+                names.add(computed);
+            } else if (name.startsWith(nestedPrefixAlpha)) {
+                String computed = name.substring(nestedPrefixAlpha.length());
+                if (nameExists(nestedPrefix + computed)) {
+                    names.add(computed);
+                }
+            } else if (name.startsWith(nestedPrefixAlphaUpper)) {
+                String computed = name.substring(nestedPrefixAlphaUpper.length());
+                if (nameExists(nestedPrefix + computed)) {
+                    names.add(computed);
+                }
+            } else if (name.startsWith(prefix)) {
+                String computed = name.substring(prefix.length());
                 names.add(computed);
             } else if (name.startsWith(prefixAlpha)) {
                 String computed = name.substring(prefixAlpha.length());
                 if (nameExists(prefix + computed)) {
                     names.add(computed);
                 }
-            } else if (name.startsWith(nestedPrefixAlpha)) {
-                String computed = name.substring(nestedPrefixAlpha.length());
-                if (nameExists(nestedPrefix + computed)) {
-                    names.add(computed);
-                }
             } else if (name.startsWith(prefixAlphaUpper)) {
                 String computed = name.substring(prefixAlphaUpper.length());
                 if (nameExists(prefix + computed)) {
-                    names.add(computed);
-                }
-            } else if (name.startsWith(nestedPrefixAlphaUpper)) {
-                String computed = name.substring(nestedPrefixAlphaUpper.length());
-                if (nameExists(nestedPrefix + computed)) {
                     names.add(computed);
                 }
             }
