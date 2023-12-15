@@ -60,7 +60,7 @@ An `IncomingInterceptor` can implement these three methods:
 
 !!!Note
     If you are willing to adapt an incoming message payload to fit a consuming method receiving type,
-    you can use [`MessageConverter`](./converters)s.
+    you can use [`MessageConverter`](./converters.md)s.
 
 ### `OutgoingInterceptor`
 
