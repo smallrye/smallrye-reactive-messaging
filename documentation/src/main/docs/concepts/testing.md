@@ -32,8 +32,12 @@ Then, in a test, you can do something like:
 When switching a channel to the in-memory connector, all the
 configuration properties are ignored.
 
-!!!important
+!!! warning
     This connector has been designed for testing purpose only.
+    Switching the channel to in-memory connector means that the
+    original connector is not invoked at all during tests.
+    Therefore, if your code depends on a specific connector behaviour
+    or a custom metadata you need to simulate those in your tests.
 
 
 The *switch* methods return `Map<String, String>` instances containing
@@ -53,3 +57,12 @@ an external process with these properties:
     the messages sent to the mapped channel even when coming from multiple
     producers.
 
+## Vert.x Context with In-memory Connector
+
+For the sake of simplicity, In-memory connector channels dispatch messages on the caller thread of `InMemorySource#send` method.
+However, most of the other connectors handle context propagation dispatching messages on separate [duplicated Vert.x contexts](message-context.md).
+
+If this causes a change of behaviour in your tests,
+you can configure the in-memory connector channels with `run-on-vertx-context` attribute to dispatch events,
+including messages and acknowledgements, on a Vert.x context.
+Alternatively you can switch this behaviour using the `InMemorySource#runOnVertxContext` method.
