@@ -149,3 +149,24 @@ The name of the exchange needs to be set to `""`.
 mp.messaging.outgoing.channel-name-for-default-exchange.connector=smallrye-rabbitmq
 mp.messaging.outgoing.channel-name-for-default-exchange.exchange.name=""
 ```
+
+## Custom arguments for Exchange declaration
+
+When exchange declaration is made by the Reactive Messaging channel, using the `exchange.declare=true` configuration,
+custom exchange arguments can be specified using the `exchange.arguments` attribute.
+`exchange.arguments` accepts the identifier (using the `@Identifier` qualifier) of a `Map<String, Object>` exposed as a CDI bean.
+If no arguments has been configured, the default **rabbitmq-exchange-arguments** identifier is looked for.
+
+The following CDI bean produces such a configuration identified with **my-arguments**:
+
+``` java
+{{ insert('rabbitmq/customization/ArgumentProducers.java') }}
+```
+
+Then the channel can be configured to use those arguments in exchange declaration:
+
+```properties
+mp.messaging.outgoing.data.exchange.arguments=my-arguments
+```
+
+Similarly, the `dead-letter-exchange.arguments` allows configuring custom arguments for dead letter exchange when one is declared (`dlx.declare=true`).

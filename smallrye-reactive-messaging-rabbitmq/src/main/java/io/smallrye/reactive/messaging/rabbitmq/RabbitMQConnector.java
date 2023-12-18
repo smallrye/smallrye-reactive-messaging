@@ -100,6 +100,7 @@ import io.vertx.rabbitmq.RabbitMQPublisherOptions;
 @ConnectorAttribute(name = "exchange.auto-delete", direction = INCOMING_AND_OUTGOING, description = "Whether the exchange should be deleted after use", type = "boolean", defaultValue = "false")
 @ConnectorAttribute(name = "exchange.type", direction = INCOMING_AND_OUTGOING, description = "The exchange type: direct, fanout, headers or topic (default)", type = "string", defaultValue = "topic")
 @ConnectorAttribute(name = "exchange.declare", direction = INCOMING_AND_OUTGOING, description = "Whether to declare the exchange; set to false if the exchange is expected to be set up independently", type = "boolean", defaultValue = "true")
+@ConnectorAttribute(name = "exchange.arguments", direction = INCOMING_AND_OUTGOING, description = "The identifier of the key-value Map exposed as bean used to provide arguments for exchange creation", type = "string", defaultValue = "rabbitmq-exchange-arguments")
 
 // Queue
 @ConnectorAttribute(name = "queue.name", direction = INCOMING, description = "The queue from which messages are consumed. If not set, the channel name is used.", type = "string")
@@ -116,16 +117,19 @@ import io.vertx.rabbitmq.RabbitMQPublisherOptions;
 @ConnectorAttribute(name = "connection-count", direction = INCOMING, description = "The number of RabbitMQ connections to create for consuming from this queue. This might be necessary to consume from a sharded queue with a single client.", type = "int", defaultValue = "1")
 @ConnectorAttribute(name = "queue.x-max-priority", direction = INCOMING, description = "Define priority level queue consumer", type = "int")
 @ConnectorAttribute(name = "queue.x-delivery-limit", direction = INCOMING, description = "If queue.x-queue-type is quorum, when a message has been returned more times than the limit the message will be dropped or dead-lettered", type = "long")
+@ConnectorAttribute(name = "queue.arguments", direction = INCOMING, description = "The identifier of the key-value Map exposed as bean used to provide arguments for queue creation", type = "string", defaultValue = "rabbitmq-queue-arguments")
 
 // DLQs
 @ConnectorAttribute(name = "auto-bind-dlq", direction = INCOMING, description = "Whether to automatically declare the DLQ and bind it to the binder DLX", type = "boolean", defaultValue = "false")
 @ConnectorAttribute(name = "dead-letter-queue-name", direction = INCOMING, description = "The name of the DLQ; if not supplied will default to the queue name with '.dlq' appended", type = "string")
 @ConnectorAttribute(name = "dead-letter-exchange", direction = INCOMING, description = "A DLX to assign to the queue. Relevant only if auto-bind-dlq is true", type = "string", defaultValue = "DLX")
 @ConnectorAttribute(name = "dead-letter-exchange-type", direction = INCOMING, description = "The type of the DLX to assign to the queue. Relevant only if auto-bind-dlq is true", type = "string", defaultValue = "direct")
+@ConnectorAttribute(name = "dead-letter-exchange.arguments", direction = INCOMING, description = "The identifier of the key-value Map exposed as bean used to provide arguments for dead-letter-exchange creation", type = "string")
 @ConnectorAttribute(name = "dead-letter-routing-key", direction = INCOMING, description = "A dead letter routing key to assign to the queue; if not supplied will default to the queue name", type = "string")
 @ConnectorAttribute(name = "dlx.declare", direction = INCOMING, description = "Whether to declare the dead letter exchange binding. Relevant only if auto-bind-dlq is true; set to false if these are expected to be set up independently", type = "boolean", defaultValue = "false")
 @ConnectorAttribute(name = "dead-letter-queue-type", direction = INCOMING, description = "If automatically declare DLQ, we can choose different types of DLQ [quorum, classic, stream]", type = "string")
 @ConnectorAttribute(name = "dead-letter-queue-mode", direction = INCOMING, description = "If automatically declare DLQ, we can choose different modes of DLQ [lazy, default]", type = "string")
+@ConnectorAttribute(name = "dead-letter-queue.arguments", direction = INCOMING, description = "The identifier of the key-value Map exposed as bean used to provide arguments for dead-letter-queue creation", type = "string")
 @ConnectorAttribute(name = "dead-letter-ttl", direction = INCOMING, description = "If specified, the time (ms) for which a message can remain in DLQ undelivered before it is dead. Relevant only if auto-bind-dlq is true", type = "long")
 @ConnectorAttribute(name = "dead-letter-dlx", direction = INCOMING, description = "If specified, a DLX to assign to the DLQ. Relevant only if auto-bind-dlq is true", type = "string")
 @ConnectorAttribute(name = "dead-letter-dlx-routing-key", direction = INCOMING, description = "If specified, a dead letter routing key to assign to the DLQ. Relevant only if auto-bind-dlq is true", type = "string")
@@ -201,6 +205,10 @@ public class RabbitMQConnector implements InboundConnector, OutboundConnector, H
     @Inject
     @Any
     Instance<RabbitMQFailureHandler.Factory> failureHandlerFactories;
+
+    @Inject
+    @Any
+    Instance<Map<String, ?>> configMaps;
 
     RabbitMQConnector() {
         // used for proxies
@@ -336,21 +344,36 @@ public class RabbitMQConnector implements InboundConnector, OutboundConnector, H
      * @return a {@link Uni<String>} containing the DLQ name
      */
     private Uni<?> establishDLQ(final RabbitMQClient client, final RabbitMQConnectorIncomingConfiguration ic) {
-        final String deadLetterQueueName = ic.getDeadLetterQueueName().orElse(String.format("%s.dlq", ic.getQueueName()));
+        final String deadLetterQueueName = ic.getDeadLetterQueueName().orElse(String.format("%s.dlq", getQueueName(ic)));
         final String deadLetterExchangeName = ic.getDeadLetterExchange();
         final String deadLetterRoutingKey = ic.getDeadLetterRoutingKey().orElse(getQueueName(ic));
 
+        final JsonObject exchangeArgs = new JsonObject();
+        ic.getDeadLetterExchangeArguments().ifPresent(argsId -> {
+            Instance<Map<String, ?>> exchangeArguments = CDIUtils.getInstanceById(configMaps, argsId);
+            if (exchangeArguments.isResolvable()) {
+                Map<String, ?> argsMap = exchangeArguments.get();
+                argsMap.forEach(exchangeArgs::put);
+            }
+        });
         // Declare the exchange if we have been asked to do so
         final Uni<String> dlxFlow = Uni.createFrom()
                 .item(() -> ic.getAutoBindDlq() && ic.getDlxDeclare() ? null : deadLetterExchangeName)
                 .onItem().ifNull().switchTo(() -> client.exchangeDeclare(deadLetterExchangeName, ic.getDeadLetterExchangeType(),
-                        true, false)
+                        true, false, exchangeArgs)
                         .onItem().invoke(() -> log.dlxEstablished(deadLetterExchangeName))
                         .onFailure().invoke(ex -> log.unableToEstablishDlx(deadLetterExchangeName, ex))
                         .onItem().transform(v -> deadLetterExchangeName));
 
         // Declare the queue (and its binding to the exchange or DLQ type/mode) if we have been asked to do so
         final JsonObject queueArgs = new JsonObject();
+        ic.getDeadLetterQueueArguments().ifPresent(argsId -> {
+            Instance<Map<String, ?>> queueArguments = CDIUtils.getInstanceById(configMaps, argsId);
+            if (queueArguments.isResolvable()) {
+                Map<String, ?> argsMap = queueArguments.get();
+                argsMap.forEach(queueArgs::put);
+            }
+        });
         // x-dead-letter-exchange
         ic.getDeadLetterDlx().ifPresent(deadLetterDlx -> queueArgs.put("x-dead-letter-exchange", deadLetterDlx));
         // x-dead-letter-routing-key
@@ -551,11 +574,17 @@ public class RabbitMQConnector implements InboundConnector, OutboundConnector, H
             final RabbitMQConnectorCommonConfiguration config) {
         final String exchangeName = getExchangeName(config);
 
+        JsonObject queueArgs = new JsonObject();
+        Instance<Map<String, ?>> queueArguments = CDIUtils.getInstanceById(configMaps, config.getExchangeArguments());
+        if (queueArguments.isResolvable()) {
+            Map<String, ?> argsMap = queueArguments.get();
+            argsMap.forEach(queueArgs::put);
+        }
         // Declare the exchange if we have been asked to do so and only when exchange name is not default ("")
-        boolean declareExchange = Boolean.TRUE.equals(config.getExchangeDeclare()) && exchangeName.length() != 0;
+        boolean declareExchange = Boolean.TRUE.equals(config.getExchangeDeclare()) && !exchangeName.isEmpty();
         if (declareExchange) {
             return client.exchangeDeclare(exchangeName, config.getExchangeType(),
-                    config.getExchangeDurable(), config.getExchangeAutoDelete())
+                    config.getExchangeDurable(), config.getExchangeAutoDelete(), queueArgs)
                     .onItem().invoke(() -> log.exchangeEstablished(exchangeName))
                     .onFailure().invoke(ex -> log.unableToEstablishExchange(exchangeName, ex))
                     .onItem().transform(v -> exchangeName);
@@ -578,6 +607,11 @@ public class RabbitMQConnector implements InboundConnector, OutboundConnector, H
 
         // Declare the queue (and its binding(s) to the exchange, and TTL) if we have been asked to do so
         final JsonObject queueArgs = new JsonObject();
+        Instance<Map<String, ?>> queueArguments = CDIUtils.getInstanceById(configMaps, ic.getQueueArguments());
+        if (queueArguments.isResolvable()) {
+            Map<String, ?> argsMap = queueArguments.get();
+            argsMap.forEach(queueArgs::put);
+        }
         if (ic.getAutoBindDlq()) {
             queueArgs.put("x-dead-letter-exchange", ic.getDeadLetterExchange());
             queueArgs.put("x-dead-letter-routing-key", ic.getDeadLetterRoutingKey().orElse(queueName));
