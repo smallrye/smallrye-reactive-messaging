@@ -13,6 +13,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.GenericContainer;
+import org.testcontainers.containers.Network;
 import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.utility.DockerImageName;
 import org.testcontainers.utility.MountableFile;
@@ -33,6 +34,8 @@ public class RabbitMQBrokerTestBase {
     private static final GenericContainer<?> RABBIT = new GenericContainer<>(
             DockerImageName.parse("rabbitmq:3-management"))
             .withExposedPorts(5672, 15672)
+            .withNetworkAliases("rabbitmq")
+            .withNetwork(Network.SHARED)
             .withLogConsumer(of -> LOGGER.info(of.getUtf8String()))
             .waitingFor(Wait.forLogMessage(".*Server startup complete.*\\n", 1))
             .withCopyFileToContainer(MountableFile.forClasspathResource("rabbitmq/enabled_plugins"),
