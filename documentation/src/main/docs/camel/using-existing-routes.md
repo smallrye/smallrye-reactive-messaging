@@ -29,11 +29,20 @@ return this `Publisher` from a method annotated with `@Outgoing`:
 {{ insert('camel/api/CamelApi.java', 'source') }}
 ```
 
-You can also use `RouteBuilder`:
+You can also expose a `RouteBuilder` bean, making sure to use the `Singleton` scope,
+as `RouteBuilder` is no longer proxyable:
 
 ``` java
 {{ insert('camel/api/CamelApi.java', 'source-route-builder') }}
 ```
+
+Alternatively you can use the `LambdaRouteBuilder`:
+
+
+``` java
+{{ insert('camel/api/CamelApi.java', 'source-lambda-route-builder') }}
+```
+
 
 # Using Camel Route with @Incoming
 

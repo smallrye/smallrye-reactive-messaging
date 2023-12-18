@@ -19,7 +19,7 @@ public class AppendingDecorator implements PublisherDecorator {
     private Message<?> appendString(Message<?> message, String string) {
         if (message.getPayload() instanceof String) {
             String payload = (String) message.getPayload();
-            return Message.of(payload + "-" + string, message::ack);
+            return Message.of(payload + "-" + string, () -> message.ack());
         } else {
             return message;
         }

@@ -14,19 +14,22 @@ nav:
             - 'Development Model': concepts/model.md
             - 'Emitters and Channel' : concepts/emitter.md
             - 'Connectors' : concepts/connectors.md
+            - 'Contributing Connectors' : concepts/contributing-connectors.md
             - 'Acknowledgement': concepts/acknowledgement.md
             - 'Blocking Processing': concepts/blocking.md
             - 'Method Signatures': concepts/signatures.md
             - 'Skipping Messages': concepts/skipping.md
             - 'Message Converters': concepts/converters.md
             - 'Keyed Streams': concepts/keyed-multi.md
-            - 'Channel Decorators': concepts/decorators.md
+            - 'Channel Decorators and Interceptors': concepts/decorators.md
             - 'Broadcast' : concepts/broadcast.md
             - 'Merge channels' : concepts/merge.md
+            - 'Incoming Channel Concurrency' : concepts/incoming-concurrency.md
             - '@Incomings' : concepts/incomings.md
             - '@Outgoings' : concepts/outgoings.md
             - 'Testing' : concepts/testing.md
             - 'Logging' : concepts/logging.md
+            - 'Observability API' : concepts/observability.md
             - 'Advanced Configuration' : concepts/advanced-config.md
             - 'Message Context' : concepts/message-context.md
             - 'Metadata Injection': concepts/incoming-metadata-injection.md
@@ -44,6 +47,7 @@ nav:
         - 'Customizing Default Kafka Configuration': kafka/default-configuration.md
         - 'Test Companion for Kafka': kafka/test-companion.md
         - 'Kafka Transactions and Exactly-Once Processing': kafka/transactions.md
+        - 'Kafka Request/Reply': kafka/request-reply.md
 
   - AMQP 1.0:
         - amqp/amqp.md
@@ -101,6 +105,7 @@ plugins:
         version_selector: true
         css_dir: css
         javascript_dir: javascript
+  - print-site
 
 copyright: >-
   Sponsored by <a href="https://www.redhat.com"><img style="vertical-align: middle; height: 2.5em;" alt="Red Hat" src="https://github.com/jbossorg/website/raw/master/docs/img/redhat_reversed.svg"/></a> <br/>

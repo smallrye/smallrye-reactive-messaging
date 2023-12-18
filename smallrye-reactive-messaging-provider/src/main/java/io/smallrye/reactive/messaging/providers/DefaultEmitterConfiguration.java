@@ -1,5 +1,7 @@
 package io.smallrye.reactive.messaging.providers;
 
+import java.util.Objects;
+
 import org.eclipse.microprofile.reactive.messaging.OnOverflow;
 
 import io.smallrye.reactive.messaging.EmitterConfiguration;
@@ -66,5 +68,38 @@ public class DefaultEmitterConfiguration implements EmitterConfiguration {
     @Override
     public int numberOfSubscriberBeforeConnecting() {
         return numberOfSubscriberBeforeConnecting;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o)
+            return true;
+        if (o == null || getClass() != o.getClass())
+            return false;
+        DefaultEmitterConfiguration that = (DefaultEmitterConfiguration) o;
+        return overflowBufferSize == that.overflowBufferSize
+                && broadcast == that.broadcast
+                && numberOfSubscriberBeforeConnecting == that.numberOfSubscriberBeforeConnecting
+                && Objects.equals(name, that.name)
+                && Objects.equals(emitterType, that.emitterType)
+                && overflowBufferStrategy == that.overflowBufferStrategy;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(name, emitterType, overflowBufferStrategy, overflowBufferSize, broadcast,
+                numberOfSubscriberBeforeConnecting);
+    }
+
+    @Override
+    public String toString() {
+        return "DefaultEmitterConfiguration{" +
+                "name='" + name + '\'' +
+                ", emitterType=" + emitterType +
+                ", overflowBufferStrategy=" + overflowBufferStrategy +
+                ", overflowBufferSize=" + overflowBufferSize +
+                ", broadcast=" + broadcast +
+                ", numberOfSubscriberBeforeConnecting=" + numberOfSubscriberBeforeConnecting +
+                '}';
     }
 }

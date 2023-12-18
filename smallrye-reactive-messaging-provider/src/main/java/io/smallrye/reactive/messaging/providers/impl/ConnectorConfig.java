@@ -33,16 +33,18 @@ public class ConnectorConfig implements Config {
      */
     public static final String MERGE_PROPERTY = "merge";
 
-    private final String prefix;
-    private final Config overall;
+    protected final String prefix;
+    protected final Config overall;
 
-    private final String name;
-    private final String connector;
+    protected final String name;
+    protected final String connector;
+    protected final String channelPrefix;
 
     protected ConnectorConfig(String prefix, Config overall, String channel) {
         this.prefix = Objects.requireNonNull(prefix, msg.prefixMustNotBeSet());
         this.overall = Objects.requireNonNull(overall, msg.configMustNotBeSet());
         this.name = Objects.requireNonNull(channel, msg.channelMustNotBeSet());
+        this.channelPrefix = channelPrefix(prefix, name);
 
         Optional<String> value = overall.getOptionalValue(channelKey(CONNECTOR_ATTRIBUTE), String.class);
         this.connector = value
@@ -57,11 +59,15 @@ public class ConnectorConfig implements Config {
         }
     }
 
-    private String channelKey(String keyName) {
-        return name.contains(".") ? prefix + "\"" + name + "\"." + keyName : prefix + name + "." + keyName;
+    public static String channelPrefix(String prefix, String name) {
+        return name.contains(".") ? prefix + "\"" + name + "\"." : prefix + name + ".";
     }
 
-    private String connectorKey(String keyName) {
+    protected String channelKey(String keyName) {
+        return channelPrefix + keyName;
+    }
+
+    protected String connectorKey(String keyName) {
         return CONNECTOR_PREFIX + connector + "." + keyName;
     }
 
@@ -121,7 +127,7 @@ public class ConnectorConfig implements Config {
                 : overall.getOptionalValue(connectorKey(propertyName), propertyType);
     }
 
-    private <T> T convert(String rawValue, Class<T> propertyType) {
+    protected <T> T convert(String rawValue, Class<T> propertyType) {
         Optional<Converter<T>> converter = overall.getConverter(propertyType);
 
         if (!converter.isPresent()) {
@@ -140,7 +146,7 @@ public class ConnectorConfig implements Config {
         return result;
     }
 
-    private <T> Optional<T> convertOptional(String rawValue, Class<T> propertyType) {
+    protected <T> Optional<T> convertOptional(String rawValue, Class<T> propertyType) {
         Optional<Converter<T>> converter = overall.getConverter(propertyType);
 
         if (!converter.isPresent() && propertyType.isAssignableFrom(String.class)) {
@@ -159,11 +165,7 @@ public class ConnectorConfig implements Config {
      */
     @Override
     public Iterable<String> getPropertyNames() {
-        String prefix = this.prefix + name + ".";
-        if (name.contains(".")) {
-            prefix = this.prefix + "\"" + name + "\".";
-        }
-
+        String prefix = channelPrefix;
         String prefixAlpha = toAlpha(prefix);
         String prefixAlphaUpper = prefixAlpha.toUpperCase();
         String connectorPrefix = CONNECTOR_PREFIX + connector + ".";
@@ -207,11 +209,11 @@ public class ConnectorConfig implements Config {
 
     private static final Pattern NON_ALPHA = Pattern.compile("\\W");
 
-    private String toAlpha(String key) {
+    protected String toAlpha(String key) {
         return NON_ALPHA.matcher(key).replaceAll("_");
     }
 
-    private boolean nameExists(String name) {
+    protected boolean nameExists(String name) {
         return overall.getConfigValue(name).getRawValue() != null;
     }
 
@@ -234,7 +236,7 @@ public class ConnectorConfig implements Config {
         }
     }
 
-    private static class ConfigValueImpl implements ConfigValue {
+    protected static class ConfigValueImpl implements ConfigValue {
 
         private final String name;
         private final String value;

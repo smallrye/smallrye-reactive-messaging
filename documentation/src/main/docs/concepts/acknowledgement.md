@@ -112,7 +112,7 @@ as parameter. Reactive Messaging proposed 4 strategies:
 -   `PRE_PROCESSING` - the acknowledgement of the incoming message is
     executed before the message is processed by the method.
 
--   `MANUAL` - the acknowledgement is doe by the user.
+-   `MANUAL` - the acknowledgement is done by the user.
 
 -   `NONE` - No acknowledgment is performed, neither manually or
     automatically.

@@ -3,14 +3,15 @@ package io.smallrye.reactive.messaging.kafka;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.concurrent.CompletionStage;
+import java.util.function.BiFunction;
 import java.util.function.Function;
-import java.util.function.Supplier;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.header.Headers;
 import org.eclipse.microprofile.reactive.messaging.Metadata;
 
 import io.smallrye.reactive.messaging.ce.CloudEventMetadata;
+import io.smallrye.reactive.messaging.kafka.api.IncomingKafkaRecordMetadata;
 import io.smallrye.reactive.messaging.kafka.commit.KafkaCommitHandler;
 import io.smallrye.reactive.messaging.kafka.fault.KafkaFailureHandler;
 import io.smallrye.reactive.messaging.kafka.impl.ce.KafkaCloudEventHelper;
@@ -20,13 +21,11 @@ import io.smallrye.reactive.messaging.providers.locals.ContextAwareMessage;
 public class IncomingKafkaRecord<K, T> implements KafkaRecord<K, T>, MetadataInjectableMessage<T> {
 
     private Metadata metadata;
-    // TODO add as a normal import once we have removed IncomingKafkaRecordMetadata in this package
-    private final io.smallrye.reactive.messaging.kafka.api.IncomingKafkaRecordMetadata<K, T> kafkaMetadata;
+    private final IncomingKafkaRecordMetadata<K, T> kafkaMetadata;
     private final KafkaCommitHandler commitHandler;
     private final KafkaFailureHandler onNack;
     private final T payload;
 
-    @SuppressWarnings("deprecation")
     public IncomingKafkaRecord(ConsumerRecord<K, T> record,
             String channel,
             int index,
@@ -35,14 +34,10 @@ public class IncomingKafkaRecord<K, T> implements KafkaRecord<K, T>, MetadataInj
             boolean cloudEventEnabled,
             boolean tracingEnabled) {
         this.commitHandler = commitHandler;
-        this.kafkaMetadata = new io.smallrye.reactive.messaging.kafka.api.IncomingKafkaRecordMetadata<>(record, channel, index);
-        // TODO remove this duplication once we have removed IncomingKafkaRecordMetadata from this package
-        // Duplicate the metadata so old and new copies can both be found
-        IncomingKafkaRecordMetadata<K, T> deprecatedKafkaMetadata = new IncomingKafkaRecordMetadata<>(record, channel, index);
+        this.kafkaMetadata = new IncomingKafkaRecordMetadata<>(record, channel, index);
 
         ArrayList<Object> meta = new ArrayList<>();
         meta.add(this.kafkaMetadata);
-        meta.add(deprecatedKafkaMetadata);
         T payload = null;
         boolean payloadSet = false;
         if (cloudEventEnabled) {
@@ -113,17 +108,17 @@ public class IncomingKafkaRecord<K, T> implements KafkaRecord<K, T>, MetadataInj
     }
 
     @Override
-    public Supplier<CompletionStage<Void>> getAck() {
+    public Function<Metadata, CompletionStage<Void>> getAckWithMetadata() {
         return this::ack;
     }
 
     @Override
-    public Function<Throwable, CompletionStage<Void>> getNack() {
+    public BiFunction<Throwable, Metadata, CompletionStage<Void>> getNackWithMetadata() {
         return this::nack;
     }
 
     @Override
-    public CompletionStage<Void> ack() {
+    public CompletionStage<Void> ack(Metadata metadata) {
         return commitHandler.handle(this).subscribeAsCompletionStage();
     }
 

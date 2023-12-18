@@ -48,7 +48,7 @@ public class PauseResumeBatchTest extends KafkaCompanionTestBase {
     private KafkaMapBasedConfig commonConfig() {
         return kafkaConfig("mp.messaging.incoming.data")
                 .put("topic", topic)
-                .put("partitions", partitions)
+                .put("concurrency", partitions)
                 .put("batch", true)
                 .put("cloud-events", false)
                 .put("auto.offset.reset", "earliest")
@@ -61,6 +61,7 @@ public class PauseResumeBatchTest extends KafkaCompanionTestBase {
     public void testWithAutoCommitMultiplePartitions() {
         MyConsumerUsingNoAck application = runApplication(commonConfig()
                 .put("enable.auto.commit", true)
+                .put("group.id", UUID.randomUUID().toString())
                 .put("max.poll.records", 100)
                 .put("requests", partitions)
                 .put("auto.commit.interval.ms", 200),

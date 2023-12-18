@@ -6,8 +6,9 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Flow.Publisher;
 
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Produces;
 
-import org.apache.camel.builder.RouteBuilder;
+import org.apache.camel.builder.LambdaRouteBuilder;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
@@ -16,7 +17,7 @@ import io.smallrye.reactive.messaging.camel.OutgoingExchangeMetadata;
 import mutiny.zero.flow.adapters.AdaptersToFlow;
 
 @ApplicationScoped
-public class BeanWithCamelSinkUsingRegularRoute extends RouteBuilder {
+public class BeanWithCamelSinkUsingRegularRoute {
 
     private List<Map<String, Object>> props = new CopyOnWriteArrayList<>();
     private List<Map<String, Object>> headers = new CopyOnWriteArrayList<>();
@@ -30,9 +31,9 @@ public class BeanWithCamelSinkUsingRegularRoute extends RouteBuilder {
                 .buildRs());
     }
 
-    @Override
-    public void configure() {
-        from("seda:in")
+    @Produces
+    public LambdaRouteBuilder route() {
+        return rb -> rb.from("seda:in")
                 .process(exchange -> props.add(exchange.getProperties()))
                 .process(exchange -> headers.add(exchange.getIn().getHeaders()))
                 .to("file:./target?fileName=values.txt&fileExist=append");

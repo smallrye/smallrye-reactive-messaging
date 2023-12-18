@@ -15,6 +15,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import io.smallrye.reactive.messaging.kafka.companion.KafkaCompanion;
 import io.smallrye.reactive.messaging.kafka.companion.test.KafkaBrokerExtension;
 import io.smallrye.reactive.messaging.kafka.companion.test.KafkaBrokerExtension.KafkaBootstrapServers;
+import io.vertx.core.impl.cpu.CpuCoreSensor;
 import io.vertx.core.json.JsonObject;
 import io.vertx.mutiny.core.Vertx;
 
@@ -83,4 +84,15 @@ public class KafkaCompanionTestBase extends WeldTestBase {
                 "graceful-shutdown", false,
                 "channel-name", topic);
     }
+
+    public int getMaxNumberOfEventLoop(int expected) {
+        // On Github Actions, only one event loop is created.
+        int cpus = CpuCoreSensor.availableProcessors();
+        // For some reason when Github Actions has 4 cores it'll still run on 1 event loop thread
+        if (cpus <= 4) {
+            return 1;
+        }
+        return Math.min(expected, cpus / 2);
+    }
+
 }

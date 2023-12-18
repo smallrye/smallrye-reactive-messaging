@@ -325,7 +325,7 @@ public class KafkaCommitHandlerTest extends KafkaCompanionTestBase {
                 .with("client.id", UUID.randomUUID().toString())
                 .with("group.id", "test-source-with-throttled-latest-processed-commit")
                 .with("value.deserializer", IntegerDeserializer.class.getName())
-                .with("partitions", 2)
+                .with("concurrency", 2)
                 .with("commit-strategy", "throttled")
                 .with(ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG, 100)
                 .with("throttled.unprocessed-record-max-age.ms", 1000);
@@ -334,7 +334,7 @@ public class KafkaCommitHandlerTest extends KafkaCompanionTestBase {
                 .with("client.id", UUID.randomUUID().toString())
                 .with("group.id", "test-source-with-throttled-latest-processed-commit")
                 .with("value.deserializer", IntegerDeserializer.class.getName())
-                .with("partitions", 2)
+                .with("concurrency", 2)
                 .with("commit-strategy", "throttled")
                 .with(ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG, 100)
                 .with("throttled.unprocessed-record-max-age.ms", 1000);

@@ -64,10 +64,18 @@ public abstract class AbstractMediator {
                         extractors[i] = Message::getPayload;
                     } else if (parameters.get(i) == Optional.class) {
                         Class<?> c = configuration.getParameterDescriptor().getGenericParameterType(i, 0);
-                        extractors[i] = msg -> msg.getMetadata().get(c);
+                        if (c.isInterface()) {
+                            extractors[i] = msg -> msg.getMetadata(c);
+                        } else {
+                            extractors[i] = msg -> msg.getMetadata().get(c);
+                        }
                     } else {
                         Class<?> type = parameters.get(i);
-                        extractors[i] = msg -> msg.getMetadata().get(type).orElse(null);
+                        if (type.isInterface()) {
+                            extractors[i] = msg -> msg.getMetadata(type).orElse(null);
+                        } else {
+                            extractors[i] = msg -> msg.getMetadata().get(type).orElse(null);
+                        }
                     }
                 }
                 mapper = msg -> Arrays.stream(extractors).map(extractor -> extractor.apply(msg)).toArray(Object[]::new);
@@ -123,6 +131,17 @@ public abstract class AbstractMediator {
                 this.invoker = args -> {
                     try {
                         return this.configuration.getMethod().invoke(bean, args);
+                    } catch (IllegalArgumentException e) {
+                        if (e.getMessage().equals("argument type mismatch")) {
+                            throw ex.illegalArgumentParameters(configuration.methodAsString(),
+                                    String.join(",", Arrays.stream(configuration.getMethod().getParameterTypes())
+                                            .map(Class::getSimpleName).toArray(String[]::new)),
+                                    String.join(",", Arrays.stream(args)
+                                            .map(c -> c.getClass().getSimpleName())
+                                            .toArray(String[]::new)));
+                        } else {
+                            throw ex.processingException(configuration.methodAsString(), e);
+                        }
                     } catch (Exception e) {
                         throw ex.processingException(configuration.methodAsString(), e);
                     }

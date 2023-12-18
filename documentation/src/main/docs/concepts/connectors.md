@@ -145,8 +145,7 @@ mp.messaging.outgoing.data.acks=1
     the connector’s name and set the `connector` attribute for each channel
     managed by this connector.
 
-
-# Connector attribute table
+## Connector attribute table
 
 In the connector documentation, you will find a table listing the
 attribute supported by the connector. Be aware that attributes for

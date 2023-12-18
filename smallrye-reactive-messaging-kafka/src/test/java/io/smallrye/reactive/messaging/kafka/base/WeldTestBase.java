@@ -21,11 +21,14 @@ import io.smallrye.reactive.messaging.kafka.commit.KafkaIgnoreCommit;
 import io.smallrye.reactive.messaging.kafka.commit.KafkaLatestCommit;
 import io.smallrye.reactive.messaging.kafka.commit.KafkaThrottledLatestProcessedCommit;
 import io.smallrye.reactive.messaging.kafka.fault.KafkaDeadLetterQueue;
+import io.smallrye.reactive.messaging.kafka.fault.KafkaDeadLetterSerializationHandler;
 import io.smallrye.reactive.messaging.kafka.fault.KafkaFailStop;
 import io.smallrye.reactive.messaging.kafka.fault.KafkaFailureHandler;
 import io.smallrye.reactive.messaging.kafka.fault.KafkaIgnoreFailure;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaClientServiceImpl;
 import io.smallrye.reactive.messaging.kafka.impl.TopicPartitions;
+import io.smallrye.reactive.messaging.kafka.reply.KafkaRequestReplyFactory;
+import io.smallrye.reactive.messaging.kafka.reply.UUIDCorrelationIdHandler;
 import io.smallrye.reactive.messaging.kafka.transactions.KafkaTransactionsFactory;
 import io.smallrye.reactive.messaging.providers.MediatorFactory;
 import io.smallrye.reactive.messaging.providers.connectors.ExecutionHolder;
@@ -36,6 +39,8 @@ import io.smallrye.reactive.messaging.providers.extension.HealthCenter;
 import io.smallrye.reactive.messaging.providers.extension.LegacyEmitterFactoryImpl;
 import io.smallrye.reactive.messaging.providers.extension.MediatorManager;
 import io.smallrye.reactive.messaging.providers.extension.MutinyEmitterFactoryImpl;
+import io.smallrye.reactive.messaging.providers.extension.ObservationDecorator;
+import io.smallrye.reactive.messaging.providers.extension.OutgoingObservationDecorator;
 import io.smallrye.reactive.messaging.providers.extension.ReactiveMessagingExtension;
 import io.smallrye.reactive.messaging.providers.impl.ConfiguredChannelFactory;
 import io.smallrye.reactive.messaging.providers.impl.ConnectorFactories;
@@ -87,6 +92,8 @@ public class WeldTestBase {
         weld.addBeanClass(MutinyEmitterFactoryImpl.class);
         weld.addBeanClass(LegacyEmitterFactoryImpl.class);
         weld.addBeanClass(KafkaTransactionsFactory.class);
+        weld.addBeanClass(KafkaRequestReplyFactory.class);
+        weld.addBeanClass(UUIDCorrelationIdHandler.class);
 
         weld.addBeanClass(KafkaThrottledLatestProcessedCommit.Factory.class);
         weld.addBeanClass(KafkaLatestCommit.Factory.class);
@@ -96,12 +103,15 @@ public class WeldTestBase {
         weld.addBeanClass(KafkaFailStop.Factory.class);
         weld.addBeanClass(KafkaIgnoreFailure.Factory.class);
         weld.addBeanClass(KafkaDeadLetterQueue.Factory.class);
+        weld.addBeanClass(KafkaDeadLetterSerializationHandler.class);
         weld.addBeanClass(KafkaCDIEvents.class);
         weld.addBeanClass(KafkaConnector.class);
         weld.addBeanClass(KafkaClientServiceImpl.class);
         weld.addBeanClass(MetricDecorator.class);
         weld.addBeanClass(MicrometerDecorator.class);
         weld.addBeanClass(ContextDecorator.class);
+        weld.addBeanClass(ObservationDecorator.class);
+        weld.addBeanClass(OutgoingObservationDecorator.class);
         weld.disableDiscovery();
     }
 

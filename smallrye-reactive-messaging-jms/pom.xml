@@ -5,7 +5,7 @@
   <parent>
     <groupId>io.smallrye.reactive</groupId>
     <artifactId>smallrye-reactive-messaging</artifactId>
-    <version>4.11.0-SNAPSHOT</version>
+    <version>4.14.0-SNAPSHOT</version>
   </parent>
 
   <artifactId>smallrye-reactive-messaging-jms</artifactId>
@@ -13,7 +13,7 @@
   <name>SmallRye Reactive Messaging : Connector :: JMS</name>
 
   <properties>
-    <artemis.version>2.31.0</artemis.version>
+    <artemis.version>2.31.2</artemis.version>
     <revapi.skip>false</revapi.skip>
   </properties>
 
@@ -74,7 +74,7 @@
     <dependency>
       <groupId>commons-io</groupId>
       <artifactId>commons-io</artifactId>
-      <version>2.13.0</version>
+      <version>2.15.1</version>
       <scope>test</scope>
     </dependency>
 

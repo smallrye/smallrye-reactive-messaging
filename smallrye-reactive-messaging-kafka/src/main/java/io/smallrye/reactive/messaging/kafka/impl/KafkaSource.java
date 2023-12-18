@@ -10,7 +10,10 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -91,8 +94,9 @@ public class KafkaSource<K, V> {
         this.index = index;
         this.deserializationFailureHandlers = deserializationFailureHandlers;
         this.consumerRebalanceListeners = consumerRebalanceListeners;
-
-        topics = getTopics(config);
+        this.topics = getTopics(config);
+        String seekToOffset = config.getAssignSeek().orElse(null);
+        Map<TopicPartition, Optional<Long>> offsetSeeks = getOffsetSeeks(seekToOffset, config.getChannel(), topics);
 
         Pattern pattern;
         if (config.getPattern()) {
@@ -148,7 +152,11 @@ public class KafkaSource<K, V> {
             if (pattern != null) {
                 multi = client.subscribe(pattern);
             } else {
-                multi = client.subscribe(topics);
+                if (offsetSeeks.isEmpty()) {
+                    multi = client.subscribe(topics);
+                } else {
+                    multi = client.assignAndSeek(offsetSeeks);
+                }
             }
 
             multi = multi.onSubscription().invoke(() -> {
@@ -195,7 +203,11 @@ public class KafkaSource<K, V> {
             if (pattern != null) {
                 multi = client.subscribeBatch(pattern);
             } else {
-                multi = client.subscribeBatch(topics);
+                if (offsetSeeks.isEmpty()) {
+                    multi = client.subscribeBatch(topics);
+                } else {
+                    multi = client.assignAndSeekBatch(offsetSeeks);
+                }
             }
             multi = multi.onSubscription().invoke(() -> {
                 subscribed = true;
@@ -229,20 +241,18 @@ public class KafkaSource<K, V> {
         }
     }
 
-    private Set<String> getTopics(KafkaConnectorIncomingConfiguration config) {
+    public static Set<String> getTopics(KafkaConnectorIncomingConfiguration config) {
         String list = config.getTopics().orElse(null);
         String top = config.getTopic().orElse(null);
         String channel = config.getChannel();
         boolean isPattern = config.getPattern();
 
         if (list != null && top != null) {
-            throw new IllegalArgumentException("The Kafka incoming configuration for channel `" + channel + "` cannot "
-                    + "use `topics` and `topic` at the same time");
+            throw ex.invalidTopics(channel, "topic");
         }
 
         if (list != null && isPattern) {
-            throw new IllegalArgumentException("The Kafka incoming configuration for channel `" + channel + "` cannot "
-                    + "use `topics` and `pattern` at the same time");
+            throw ex.invalidTopics(channel, "pattern");
         }
 
         if (list != null) {
@@ -253,6 +263,56 @@ public class KafkaSource<K, V> {
         } else {
             return Collections.singleton(channel);
         }
+    }
+
+    public static Map<TopicPartition, Optional<Long>> getOffsetSeeks(String seekToOffset, String channel, Set<String> topics) {
+        if (seekToOffset == null || seekToOffset.isBlank()) {
+            return Collections.emptyMap();
+        }
+        Map<TopicPartition, Optional<Long>> offsetSeeks = new HashMap<>();
+        String[] tpOffsets = seekToOffset.split(",");
+        for (String tpOffset : tpOffsets) {
+            String[] tpo = tpOffset.strip().split(":");
+            try {
+                if (tpo.length == 3) {
+                    // [topic]:[partition]:[offset]
+                    String topic = tpo[0];
+                    int partition = Integer.parseInt(tpo[1]);
+                    long offset = Long.parseLong(tpo[2]);
+                    offsetSeeks.put(TopicPartitions.getTopicPartition(topic, partition), Optional.of(offset));
+                } else if (tpo.length == 2) {
+                    try {
+                        // [partition]:[offset]
+                        int partition = Integer.parseInt(tpo[0]);
+                        long offset = Long.parseLong(tpo[1]);
+                        if (topics.size() > 1) {
+                            throw ex.invalidAssignSeekTopic(channel, tpOffset);
+                        }
+                        String topic = topics.iterator().next();
+                        offsetSeeks.put(TopicPartitions.getTopicPartition(topic, partition), Optional.of(offset));
+                    } catch (NumberFormatException e) {
+                        // [topic]:[partition]
+                        String topic = tpo[0];
+                        int partition = Integer.parseInt(tpo[1]);
+                        offsetSeeks.put(TopicPartitions.getTopicPartition(topic, partition), Optional.empty());
+                    }
+                } else {
+                    // [partition]
+                    int partition = Integer.parseInt(tpo[0]);
+                    if (topics.size() > 1) {
+                        throw ex.invalidAssignSeekTopic(channel, tpOffset);
+                    }
+                    String topic = topics.iterator().next();
+                    offsetSeeks.put(TopicPartitions.getTopicPartition(topic, partition), Optional.empty());
+                }
+            } catch (Throwable t) {
+                throw ex.invalidAssignSeek(channel, tpOffset, t);
+            }
+        }
+        if (offsetSeeks.keySet().stream().map(TopicPartition::topic).anyMatch(s -> !topics.contains(s))) {
+            log.topicsConfigurationIgnored(topics.toString(), channel, offsetSeeks.keySet().toString());
+        }
+        return offsetSeeks;
     }
 
     public synchronized void reportFailure(Throwable failure, boolean fatal) {

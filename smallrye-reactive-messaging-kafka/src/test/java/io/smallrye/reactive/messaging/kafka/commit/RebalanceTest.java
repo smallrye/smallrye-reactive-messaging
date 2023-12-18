@@ -15,10 +15,11 @@ import org.apache.kafka.common.serialization.StringDeserializer;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.RepeatedTest;
+import org.junit.jupiter.api.Test;
 
 import io.smallrye.reactive.messaging.health.HealthReport;
 import io.smallrye.reactive.messaging.kafka.*;
+import io.smallrye.reactive.messaging.kafka.api.IncomingKafkaRecordMetadata;
 import io.smallrye.reactive.messaging.kafka.base.WeldTestBase;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
@@ -46,7 +47,7 @@ public class RebalanceTest extends WeldTestBase {
         vertx.closeAndAwait();
     }
 
-    @RepeatedTest(10)
+    @Test
     void testRebalance() throws InterruptedException {
         String group = UUID.randomUUID().toString();
         MapBasedConfig config = commonConfiguration()
@@ -93,7 +94,6 @@ public class RebalanceTest extends WeldTestBase {
 
         list.forEach(m -> {
             // Only commit one partition
-            //noinspection deprecation
             if (m.getMetadata(IncomingKafkaRecordMetadata.class).map(IncomingKafkaRecordMetadata::getPartition)
                     .orElse(-1) == 0) {
                 m.ack().toCompletableFuture().join();

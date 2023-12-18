@@ -6,7 +6,7 @@
   <parent>
     <groupId>io.smallrye.reactive</groupId>
     <artifactId>smallrye-reactive-messaging</artifactId>
-    <version>4.11.0-SNAPSHOT</version>
+    <version>4.14.0-SNAPSHOT</version>
   </parent>
 
   <artifactId>test-common</artifactId>
@@ -18,6 +18,14 @@
   </properties>
 
   <dependencies>
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter-api</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>uk.org.webcompere</groupId>
+      <artifactId>system-stubs-jupiter</artifactId>
+    </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>smallrye-reactive-messaging-api</artifactId>

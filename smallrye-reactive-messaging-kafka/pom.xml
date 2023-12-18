@@ -6,7 +6,7 @@
   <parent>
     <groupId>io.smallrye.reactive</groupId>
     <artifactId>smallrye-reactive-messaging</artifactId>
-    <version>4.11.0-SNAPSHOT</version>
+    <version>4.14.0-SNAPSHOT</version>
   </parent>
 
   <artifactId>smallrye-reactive-messaging-kafka</artifactId>
@@ -130,10 +130,10 @@
       <scope>test</scope>
     </dependency>
 
-    <!-- Ensure log4j1 log backend with slf4j -->
+    <!-- Ensure log4j log backend with slf4j -->
     <dependency>
       <groupId>org.slf4j</groupId>
-      <artifactId>slf4j-log4j12</artifactId>
+      <artifactId>slf4j-reload4j</artifactId>
       <scope>test</scope>
     </dependency>
   </dependencies>

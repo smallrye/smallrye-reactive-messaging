@@ -26,6 +26,7 @@ import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.junit.jupiter.api.Test;
 
 import io.smallrye.mutiny.Multi;
+import io.smallrye.reactive.messaging.kafka.api.IncomingKafkaRecordMetadata;
 import io.smallrye.reactive.messaging.kafka.base.KafkaCompanionTestBase;
 import io.smallrye.reactive.messaging.kafka.base.KafkaMapBasedConfig;
 import io.smallrye.reactive.messaging.kafka.companion.ConsumerTask;
@@ -131,9 +132,8 @@ public class MetadataPropagationTest extends KafkaCompanionTestBase {
         assertThat(bean.getMetadata()).contains(bean.getOriginal());
         AtomicBoolean foundMetadata = new AtomicBoolean(false);
         for (Object object : bean.getMetadata()) {
-            // TODO Import normally once the deprecated copy in this package has gone
-            if (object instanceof io.smallrye.reactive.messaging.kafka.api.IncomingKafkaRecordMetadata) {
-                io.smallrye.reactive.messaging.kafka.api.IncomingKafkaRecordMetadata incomingMetadata = (io.smallrye.reactive.messaging.kafka.api.IncomingKafkaRecordMetadata) object;
+            if (object instanceof IncomingKafkaRecordMetadata) {
+                IncomingKafkaRecordMetadata incomingMetadata = (IncomingKafkaRecordMetadata) object;
                 assertThat(incomingMetadata.getKey()).isEqualTo("a-key");
                 assertThat(incomingMetadata.getTopic()).isEqualTo(topic);
                 foundMetadata.compareAndSet(false, true);

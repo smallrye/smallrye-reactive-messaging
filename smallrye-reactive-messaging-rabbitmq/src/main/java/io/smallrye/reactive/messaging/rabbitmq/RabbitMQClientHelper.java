@@ -8,11 +8,15 @@ import static io.vertx.core.net.ClientOptionsBase.DEFAULT_METRICS_NAME;
 import static java.time.Duration.ofSeconds;
 
 import java.time.Duration;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 
 import jakarta.enterprise.inject.Instance;
 import jakarta.enterprise.inject.literal.NamedLiteral;
 
+import com.rabbitmq.client.Address;
 import com.rabbitmq.client.impl.CredentialsProvider;
 import com.rabbitmq.client.impl.DefaultCredentialsRefreshService;
 
@@ -76,14 +80,14 @@ public class RabbitMQClientHelper {
         String connectionName = String.format("%s (%s)",
                 config.getChannel(),
                 config instanceof RabbitMQConnectorIncomingConfiguration ? "Incoming" : "Outgoing");
-        String host = config.getHost();
-        int port = config.getPort();
-        log.brokerConfigured(host, port, config.getChannel());
+        List<Address> addresses = config.getAddresses()
+                .map(s -> Arrays.asList(Address.parseAddresses(s)))
+                .orElseGet(() -> Collections.singletonList(new Address(config.getHost(), config.getPort())));
+        log.brokerConfigured(addresses.toString(), config.getChannel());
 
         RabbitMQOptions options = new RabbitMQOptions()
                 .setConnectionName(connectionName)
-                .setHost(host)
-                .setPort(port)
+                .setAddresses(addresses)
                 .setSsl(config.getSsl())
                 .setTrustAll(config.getTrustAll())
                 .setAutomaticRecoveryEnabled(config.getAutomaticRecoveryEnabled())

@@ -21,43 +21,47 @@ public class ConverterUtils {
     public static Multi<? extends Message<?>> convert(Multi<? extends Message<?>> upstream,
             Instance<MessageConverter> converters, Type injectedPayloadType) {
         if (injectedPayloadType != null) {
-            return upstream
-                    .map(new Function<Message<?>, Message<?>>() {
-
-                        MessageConverter actual;
-
-                        @Override
-                        public Message<?> apply(Message<?> o) {
-                            //noinspection ConstantConditions - it can be `null`
-                            if (injectedPayloadType == null) {
-                                return o;
-                            } else if (o.getPayload() != null && o.getPayload().getClass().equals(injectedPayloadType)) {
-                                return o;
-                            }
-
-                            if (actual != null) {
-                                // Use the cached converter.
-                                return actual.convert(o, injectedPayloadType);
-                            } else {
-                                if (o.getPayload() != null
-                                        && TypeUtils.isAssignable(o.getPayload().getClass(), injectedPayloadType)) {
-                                    actual = MessageConverter.IdentityConverter.INSTANCE;
-                                    return o;
-                                }
-                                // Lookup and cache
-                                for (MessageConverter conv : getSortedInstances(converters)) {
-                                    if (conv.canConvert(o, injectedPayloadType)) {
-                                        actual = conv;
-                                        return actual.convert(o, injectedPayloadType);
-                                    }
-                                }
-                                // No converter found
-                                return o;
-                            }
-                        }
-                    });
+            return upstream.map(convertFunction(converters, injectedPayloadType));
         }
         return upstream;
+    }
+
+    public static Function<Message<?>, Message<?>> convertFunction(Instance<MessageConverter> converters,
+            Type injectedPayloadType) {
+        return new Function<>() {
+
+            MessageConverter actual;
+
+            @Override
+            public Message<?> apply(Message<?> o) {
+                //noinspection ConstantConditions - it can be `null`
+                if (injectedPayloadType == null) {
+                    return o;
+                } else if (o.getPayload() != null && o.getPayload().getClass().equals(injectedPayloadType)) {
+                    return o;
+                }
+
+                if (actual != null) {
+                    // Use the cached converter.
+                    return actual.convert(o, injectedPayloadType);
+                } else {
+                    if (o.getPayload() != null
+                            && TypeUtils.isAssignable(o.getPayload().getClass(), injectedPayloadType)) {
+                        actual = MessageConverter.IdentityConverter.INSTANCE;
+                        return o;
+                    }
+                    // Lookup and cache
+                    for (MessageConverter conv : getSortedInstances(converters)) {
+                        if (conv.canConvert(o, injectedPayloadType)) {
+                            actual = conv;
+                            return actual.convert(o, injectedPayloadType);
+                        }
+                    }
+                    // No converter found
+                    return o;
+                }
+            }
+        };
     }
 
 }

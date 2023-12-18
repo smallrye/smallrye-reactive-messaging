@@ -19,6 +19,7 @@ import org.testcontainers.utility.MountableFile;
 import io.smallrye.config.SmallRyeConfigProviderResolver;
 import io.smallrye.reactive.messaging.health.HealthReport;
 import io.smallrye.reactive.messaging.mqtt.converter.JsonObjectMessageConverter;
+import io.smallrye.reactive.messaging.mqtt.converter.MqttMessageConverter;
 import io.smallrye.reactive.messaging.mqtt.converter.StringMessageConverter;
 import io.smallrye.reactive.messaging.providers.MediatorFactory;
 import io.smallrye.reactive.messaging.providers.connectors.ExecutionHolder;
@@ -157,6 +158,7 @@ public class MqttTestBase {
         weld.addBeanClass(HealthCenter.class);
         weld.addBeanClass(JsonObjectMessageConverter.class);
         weld.addBeanClass(StringMessageConverter.class);
+        weld.addBeanClass(MqttMessageConverter.class);
 
         // Add SmallRye Config
         weld.addExtension(new io.smallrye.config.inject.ConfigExtension());

@@ -13,12 +13,10 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.DisabledForJreRange;
-import org.junit.jupiter.api.condition.JRE;
-import org.junitpioneer.jupiter.SetEnvironmentVariable;
 
 import io.smallrye.reactive.messaging.kafka.base.KafkaCompanionTestBase;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
+import io.smallrye.reactive.messaging.test.common.config.SetEnvironmentVariable;
 
 public class ConfigOverrideFromEnvTest extends KafkaCompanionTestBase {
 
@@ -26,7 +24,6 @@ public class ConfigOverrideFromEnvTest extends KafkaCompanionTestBase {
 
     @Test
     @SetEnvironmentVariable(key = "MP_MESSAGING_INCOMING_MY_CHANNEL_TOPIC", value = TOPIC)
-    @DisabledForJreRange(min = JRE.JAVA_17, disabledReason = "Environment cannot be modified on Java 17")
     public void testOverridingTopicFromEnv() throws InterruptedException {
         MapBasedConfig config = kafkaConfig("mp.messaging.incoming.my-channel")
                 .with("graceful-shutdown", false)

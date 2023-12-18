@@ -1,10 +1,10 @@
 package io.smallrye.reactive.messaging.camel;
 
-import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Singleton;
 
 import org.apache.camel.builder.RouteBuilder;
 
-@ApplicationScoped
+@Singleton
 public class MyRoute extends RouteBuilder {
 
     @Override

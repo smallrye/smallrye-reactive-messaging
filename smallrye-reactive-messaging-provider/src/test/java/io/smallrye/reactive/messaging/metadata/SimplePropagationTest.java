@@ -68,7 +68,7 @@ public class SimplePropagationTest extends WeldTestBaseWithoutTails {
 
     }
 
-    public static class MsgMetadata {
+    public static class MsgMetadata implements InterfaceMetadata {
 
         private final String message;
 
@@ -76,9 +76,15 @@ public class SimplePropagationTest extends WeldTestBaseWithoutTails {
             this.message = m;
         }
 
-        String getMessage() {
+        public String getMessage() {
             return message;
         }
+
+    }
+
+    public interface InterfaceMetadata {
+
+        String getMessage();
 
     }
 

@@ -2,9 +2,9 @@ package io.smallrye.reactive.messaging.kafka;
 
 import java.nio.charset.Charset;
 import java.time.Instant;
-import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -14,70 +14,54 @@ import org.apache.kafka.common.header.internals.RecordHeaders;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Metadata;
 
+import io.smallrye.reactive.messaging.kafka.api.OutgoingKafkaRecordMetadata;
+
 public class OutgoingKafkaRecord<K, T> implements KafkaRecord<K, T> {
 
     private final T value;
-    private final Supplier<CompletionStage<Void>> ack;
-    private final Function<Throwable, CompletionStage<Void>> nack;
+    private final Function<Metadata, CompletionStage<Void>> ack;
+    private final BiFunction<Throwable, Metadata, CompletionStage<Void>> nack;
     private final Metadata metadata;
-    // TODO Use a normal import once OutgoingKafkaRecordMetadata in this package has been removed
-    private final io.smallrye.reactive.messaging.kafka.api.OutgoingKafkaRecordMetadata<K> kafkaMetadata;
+    private final OutgoingKafkaRecordMetadata<K> kafkaMetadata;
 
     @SuppressWarnings("deprecation")
     public OutgoingKafkaRecord(String topic, K key, T value, Instant timestamp, int partition, Headers headers,
-            Supplier<CompletionStage<Void>> ack, Function<Throwable, CompletionStage<Void>> nack, Metadata existingMetadata) {
-        kafkaMetadata = io.smallrye.reactive.messaging.kafka.api.OutgoingKafkaRecordMetadata.<K> builder()
+            Function<Metadata, CompletionStage<Void>> ack,
+            BiFunction<Throwable, Metadata, CompletionStage<Void>> nack, Metadata existingMetadata) {
+        kafkaMetadata = OutgoingKafkaRecordMetadata.<K> builder()
                 .withTopic(topic)
                 .withKey(key)
                 .withTimestamp(timestamp)
                 .withPartition(partition)
                 .withHeaders(headers)
                 .build();
-        OutgoingKafkaRecordMetadata<K> deprecatedMetadata = new OutgoingKafkaRecordMetadata<>(topic, key, partition, timestamp,
-                headers);
 
-        Metadata metadata;
         if (existingMetadata != null) {
-            metadata = Metadata.from(existingMetadata).with(kafkaMetadata);
+            this.metadata = Metadata.from(existingMetadata).with(kafkaMetadata);
         } else {
-            metadata = Metadata.of(kafkaMetadata);
+            this.metadata = Metadata.of(kafkaMetadata);
         }
-        // Add the deprecated metadata while the two exist side by side
-        this.metadata = Metadata.from(metadata).with(deprecatedMetadata);
 
         this.value = value;
         this.ack = ack;
         this.nack = nack;
     }
 
-    @SuppressWarnings({ "unchecked", "deprecation", "rawtypes" })
+    @SuppressWarnings({ "unchecked" })
     public static <K, T> OutgoingKafkaRecord<K, T> from(Message<T> message) {
-        // TODO Use a normal import once we've removed the legacy version of OutgoingKafkaRecordMetadata in this package
-        // Also this block should work to obtain the metadata once we've removed the legacy version
-        // io.smallrye.reactive.messaging.kafka.api.OutgoingKafkaRecordMetadata<K> md =
-        //     message.getMetadata(io.smallrye.reactive.messaging.kafka.api.OutgoingKafkaRecordMetadata.class)
-        //     .orElse(io.smallrye.reactive.messaging.kafka.api.OutgoingKafkaRecordMetadata.builder().build());
-
-        Optional<io.smallrye.reactive.messaging.kafka.api.OutgoingKafkaRecordMetadata> md = message
-                .getMetadata(io.smallrye.reactive.messaging.kafka.api.OutgoingKafkaRecordMetadata.class);
-        if (!md.isPresent()) {
-            md = message.getMetadata(OutgoingKafkaRecordMetadata.class);
-        }
-        io.smallrye.reactive.messaging.kafka.api.OutgoingKafkaRecordMetadata<K> kafkaMetadata = md.orElse(
-                io.smallrye.reactive.messaging.kafka.api.OutgoingKafkaRecordMetadata.builder().build());
-        // TODO - delete the above once we remove the legacy metadata
-
+        OutgoingKafkaRecordMetadata<K> kafkaMetadata = message.getMetadata(OutgoingKafkaRecordMetadata.class)
+                .orElse(OutgoingKafkaRecordMetadata.builder().build());
         return new OutgoingKafkaRecord<>(kafkaMetadata.getTopic(), kafkaMetadata.getKey(), message.getPayload(),
-                kafkaMetadata.getTimestamp(), kafkaMetadata.getPartition(),
-                kafkaMetadata.getHeaders(), message.getAck(), message.getNack(), message.getMetadata());
+                kafkaMetadata.getTimestamp(), kafkaMetadata.getPartition(), kafkaMetadata.getHeaders(),
+                message.getAckWithMetadata(), message.getNackWithMetadata(), message.getMetadata());
     }
 
     @Override
-    public CompletionStage<Void> ack() {
+    public CompletionStage<Void> ack(Metadata metadata) {
         if (ack == null) {
             return CompletableFuture.completedFuture(null);
         } else {
-            return ack.get();
+            return ack.apply(metadata);
         }
     }
 
@@ -107,12 +91,12 @@ public class OutgoingKafkaRecord<K, T> implements KafkaRecord<K, T> {
     }
 
     @Override
-    public Supplier<CompletionStage<Void>> getAck() {
+    public Function<Metadata, CompletionStage<Void>> getAckWithMetadata() {
         return ack;
     }
 
     @Override
-    public Function<Throwable, CompletionStage<Void>> getNack() {
+    public BiFunction<Throwable, Metadata, CompletionStage<Void>> getNackWithMetadata() {
         return nack;
     }
 
@@ -148,7 +132,7 @@ public class OutgoingKafkaRecord<K, T> implements KafkaRecord<K, T> {
             }
         });
         return new OutgoingKafkaRecord<>(getTopic(), getKey(), getPayload(), getTimestamp(), getPartition(),
-                copy, getAck(), getNack(), getMetadata());
+                copy, getAckWithMetadata(), getNackWithMetadata(), getMetadata());
     }
 
     /**
@@ -173,7 +157,7 @@ public class OutgoingKafkaRecord<K, T> implements KafkaRecord<K, T> {
             }
         });
         return new OutgoingKafkaRecord<>(getTopic(), getKey(), getPayload(), getTimestamp(), getPartition(),
-                copy, getAck(), getNack(), getMetadata());
+                copy, getAckWithMetadata(), getNackWithMetadata(), getMetadata());
     }
 
     /**
@@ -199,41 +183,42 @@ public class OutgoingKafkaRecord<K, T> implements KafkaRecord<K, T> {
             }
         });
         return new OutgoingKafkaRecord<>(getTopic(), getKey(), getPayload(), getTimestamp(), getPartition(),
-                copy, getAck(), getNack(), getMetadata());
+                copy, getAckWithMetadata(), getNackWithMetadata(), getMetadata());
     }
 
     public OutgoingKafkaRecord<K, T> with(String topic, K key, T value) {
-        return new OutgoingKafkaRecord<>(topic, key, value, getTimestamp(), getPartition(), getHeaders(), getAck(), getNack(),
-                getMetadata());
+        return new OutgoingKafkaRecord<>(topic, key, value, getTimestamp(), getPartition(), getHeaders(), getAckWithMetadata(),
+                getNackWithMetadata(), getMetadata());
     }
 
     public OutgoingKafkaRecord<K, T> with(String topic, T value) {
-        return new OutgoingKafkaRecord<>(topic, getKey(), value, getTimestamp(), getPartition(), getHeaders(), getAck(),
-                getNack(), getMetadata());
+        return new OutgoingKafkaRecord<>(topic, getKey(), value, getTimestamp(), getPartition(), getHeaders(),
+                getAckWithMetadata(),
+                getNackWithMetadata(), getMetadata());
     }
 
     public OutgoingKafkaRecord<K, T> with(String topic, K key, T value, Instant timestamp, int partition) {
-        return new OutgoingKafkaRecord<>(topic, key, value, timestamp, partition, getHeaders(), getAck(), getNack(),
-                getMetadata());
+        return new OutgoingKafkaRecord<>(topic, key, value, timestamp, partition, getHeaders(), getAckWithMetadata(),
+                getNackWithMetadata(), getMetadata());
     }
 
     @Override
     public <P> OutgoingKafkaRecord<K, P> withPayload(P payload) {
-        return OutgoingKafkaRecord.from(Message.of(payload, getMetadata(), getAck(), getNack()));
+        return OutgoingKafkaRecord.from(Message.of(payload, getMetadata(), getAckWithMetadata(), getNackWithMetadata()));
     }
 
     @Override
     public OutgoingKafkaRecord<K, T> withMetadata(Iterable<Object> metadata) {
         // TODO this adds the entire provided Iterable<Object> as a single datum in the existing Metadata
         Metadata newMetadata = getMetadata().with(metadata);
-        return OutgoingKafkaRecord.from(Message.of(getPayload(), newMetadata, getAck(), getNack()));
+        return OutgoingKafkaRecord.from(Message.of(getPayload(), newMetadata, getAckWithMetadata(), getNackWithMetadata()));
     }
 
     @Override
     public OutgoingKafkaRecord<K, T> withMetadata(Metadata metadata) {
         // TODO this adds the entire provided Metadata as a single datum in the existing Metadata
         Metadata newMetadata = getMetadata().with(metadata);
-        return OutgoingKafkaRecord.from(Message.of(getPayload(), newMetadata, getAck(), getNack()));
+        return OutgoingKafkaRecord.from(Message.of(getPayload(), newMetadata, getAckWithMetadata(), getNackWithMetadata()));
     }
 
     @Override
@@ -243,6 +228,6 @@ public class OutgoingKafkaRecord<K, T> implements KafkaRecord<K, T> {
 
     @Override
     public OutgoingKafkaRecord<K, T> withNack(Function<Throwable, CompletionStage<Void>> nack) {
-        return OutgoingKafkaRecord.from(Message.of(getPayload(), getMetadata(), getAck(), nack));
+        return OutgoingKafkaRecord.from(Message.of(getPayload(), getMetadata(), getAckWithMetadata(), (t, m) -> nack.apply(t)));
     }
 }

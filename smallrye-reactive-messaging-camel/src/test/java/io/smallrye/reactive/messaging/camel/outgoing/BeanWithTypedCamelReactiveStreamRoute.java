@@ -6,8 +6,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Flow.Publisher;
 
-import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.component.reactive.streams.api.CamelReactiveStreamsService;
@@ -16,7 +16,7 @@ import org.eclipse.microprofile.reactive.messaging.Outgoing;
 
 import mutiny.zero.flow.adapters.AdaptersToFlow;
 
-@ApplicationScoped
+@Singleton
 public class BeanWithTypedCamelReactiveStreamRoute extends RouteBuilder {
 
     @Inject

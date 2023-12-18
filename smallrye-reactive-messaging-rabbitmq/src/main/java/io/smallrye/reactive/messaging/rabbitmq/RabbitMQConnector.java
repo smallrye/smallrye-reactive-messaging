@@ -48,13 +48,17 @@ import io.smallrye.reactive.messaging.health.HealthReporter;
 import io.smallrye.reactive.messaging.providers.connectors.ExecutionHolder;
 import io.smallrye.reactive.messaging.providers.helpers.CDIUtils;
 import io.smallrye.reactive.messaging.providers.helpers.MultiUtils;
+import io.smallrye.reactive.messaging.providers.helpers.VertxContext;
+import io.smallrye.reactive.messaging.providers.impl.ConcurrencyConnectorConfig;
 import io.smallrye.reactive.messaging.rabbitmq.ack.RabbitMQAck;
 import io.smallrye.reactive.messaging.rabbitmq.ack.RabbitMQAckHandler;
 import io.smallrye.reactive.messaging.rabbitmq.ack.RabbitMQAutoAck;
 import io.smallrye.reactive.messaging.rabbitmq.fault.RabbitMQFailureHandler;
 import io.smallrye.reactive.messaging.rabbitmq.tracing.RabbitMQOpenTelemetryInstrumenter;
 import io.smallrye.reactive.messaging.rabbitmq.tracing.RabbitMQTrace;
+import io.vertx.core.impl.VertxInternal;
 import io.vertx.core.json.JsonObject;
+import io.vertx.mutiny.core.Context;
 import io.vertx.mutiny.core.Vertx;
 import io.vertx.mutiny.rabbitmq.RabbitMQClient;
 import io.vertx.mutiny.rabbitmq.RabbitMQConsumer;
@@ -71,6 +75,7 @@ import io.vertx.rabbitmq.RabbitMQPublisherOptions;
 @ConnectorAttribute(name = "password", direction = INCOMING_AND_OUTGOING, description = "The password used to authenticate to the broker", type = "string", alias = "rabbitmq-password")
 @ConnectorAttribute(name = "host", direction = INCOMING_AND_OUTGOING, description = "The broker hostname", type = "string", alias = "rabbitmq-host", defaultValue = "localhost")
 @ConnectorAttribute(name = "port", direction = INCOMING_AND_OUTGOING, description = "The broker port", type = "int", alias = "rabbitmq-port", defaultValue = "5672")
+@ConnectorAttribute(name = "addresses", direction = INCOMING_AND_OUTGOING, description = "The multiple addresses for cluster mode, when given overrides the host and port", type = "string", alias = "rabbitmq-addresses")
 @ConnectorAttribute(name = "ssl", direction = INCOMING_AND_OUTGOING, description = "Whether or not the connection should use SSL", type = "boolean", alias = "rabbitmq-ssl", defaultValue = "false")
 @ConnectorAttribute(name = "trust-all", direction = INCOMING_AND_OUTGOING, description = "Whether to skip trust certificate verification", type = "boolean", alias = "rabbitmq-trust-all", defaultValue = "false")
 @ConnectorAttribute(name = "trust-store-path", direction = INCOMING_AND_OUTGOING, description = "The path to a JKS trust store", type = "string", alias = "rabbitmq-trust-store-path")
@@ -99,7 +104,7 @@ import io.vertx.rabbitmq.RabbitMQPublisherOptions;
 @ConnectorAttribute(name = "exchange.declare", direction = INCOMING_AND_OUTGOING, description = "Whether to declare the exchange; set to false if the exchange is expected to be set up independently", type = "boolean", defaultValue = "true")
 
 // Queue
-@ConnectorAttribute(name = "queue.name", direction = INCOMING, description = "The queue from which messages are consumed.", type = "string", mandatory = true)
+@ConnectorAttribute(name = "queue.name", direction = INCOMING, description = "The queue from which messages are consumed. If not set, the channel name is used.", type = "string")
 @ConnectorAttribute(name = "queue.durable", direction = INCOMING, description = "Whether the queue is durable", type = "boolean", defaultValue = "true")
 @ConnectorAttribute(name = "queue.exclusive", direction = INCOMING, description = "Whether the queue is for exclusive use", type = "boolean", defaultValue = "false")
 @ConnectorAttribute(name = "queue.auto-delete", direction = INCOMING, description = "Whether the queue should be deleted after use", type = "boolean", defaultValue = "false")
@@ -201,6 +206,10 @@ public class RabbitMQConnector implements InboundConnector, OutboundConnector, H
         return config.getExchangeName().map(s -> "\"\"".equals(s) ? "" : s).orElse(config.getChannel());
     }
 
+    public static String getQueueName(final RabbitMQConnectorIncomingConfiguration config) {
+        return config.getQueueName().orElse(config.getChannel());
+    }
+
     private Multi<? extends Message<?>> getStreamOfMessages(
             RabbitMQConsumer receiver,
             ConnectionHolder holder,
@@ -208,19 +217,21 @@ public class RabbitMQConnector implements InboundConnector, OutboundConnector, H
             RabbitMQFailureHandler onNack,
             RabbitMQAckHandler onAck) {
 
-        final String queueName = ic.getQueueName();
+        final String queueName = getQueueName(ic);
         final boolean isTracingEnabled = ic.getTracingEnabled();
         final String contentTypeOverride = ic.getContentTypeOverride().orElse(null);
         log.receiverListeningAddress(queueName);
 
         if (isTracingEnabled) {
             return receiver.toMulti()
+                    .emitOn(c -> VertxContext.runOnContext(holder.getContext().getDelegate(), c))
                     .map(m -> new IncomingRabbitMQMessage<>(m, holder, onNack, onAck, contentTypeOverride))
                     .map(msg -> instrumenter.traceIncoming(msg,
                             RabbitMQTrace.traceQueue(queueName, msg.message.envelope().getRoutingKey(),
                                     msg.getHeaders())));
         } else {
             return receiver.toMulti()
+                    .emitOn(c -> VertxContext.runOnContext(holder.getContext().getDelegate(), c))
                     .map(m -> new IncomingRabbitMQMessage<>(m, holder, onNack, onAck, contentTypeOverride));
         }
     }
@@ -271,7 +282,11 @@ public class RabbitMQConnector implements InboundConnector, OutboundConnector, H
                                 .onItem().call(() -> establishDLQ(client, ic))
                                 .subscribe().with(ignored -> promise.complete(), promise::fail);
                     });
-                    final ConnectionHolder holder = new ConnectionHolder(client, ic, getVertx());
+                    Context root = null;
+                    if (ConcurrencyConnectorConfig.getConcurrency(config).filter(i -> i > 1).isPresent()) {
+                        root = Context.newInstance(((VertxInternal) getVertx().getDelegate()).createEventLoopContext());
+                    }
+                    final ConnectionHolder holder = new ConnectionHolder(client, ic, getVertx(), root);
                     return holder.getOrEstablishConnection()
                             .invoke(() -> log.connectionEstablished(connectionIdx, ic.getChannel()))
                             .flatMap(connection -> createConsumer(ic, connection).map(consumer -> Tuple2.of(holder, consumer)));
@@ -291,7 +306,7 @@ public class RabbitMQConnector implements InboundConnector, OutboundConnector, H
     }
 
     private Uni<RabbitMQConsumer> createConsumer(RabbitMQConnectorIncomingConfiguration ic, RabbitMQClient client) {
-        return client.basicConsumer(serverQueueName(ic.getQueueName()), new QueueOptions()
+        return client.basicConsumer(serverQueueName(getQueueName(ic)), new QueueOptions()
                 .setAutoAck(ic.getAutoAcknowledgement())
                 .setMaxInternalQueueSize(ic.getMaxIncomingInternalQueueSize())
                 .setKeepMostRecent(ic.getKeepMostRecent()))
@@ -308,7 +323,7 @@ public class RabbitMQConnector implements InboundConnector, OutboundConnector, H
     private Uni<?> establishDLQ(final RabbitMQClient client, final RabbitMQConnectorIncomingConfiguration ic) {
         final String deadLetterQueueName = ic.getDeadLetterQueueName().orElse(String.format("%s.dlq", ic.getQueueName()));
         final String deadLetterExchangeName = ic.getDeadLetterExchange();
-        final String deadLetterRoutingKey = ic.getDeadLetterRoutingKey().orElse(ic.getQueueName());
+        final String deadLetterRoutingKey = ic.getDeadLetterRoutingKey().orElse(getQueueName(ic));
 
         // Declare the exchange if we have been asked to do so
         final Uni<String> dlxFlow = Uni.createFrom()
@@ -380,7 +395,7 @@ public class RabbitMQConnector implements InboundConnector, OutboundConnector, H
             establishExchange(client, oc).subscribe().with((ignored) -> promise.complete(), promise::fail);
         });
 
-        final ConnectionHolder holder = new ConnectionHolder(client, oc, getVertx());
+        final ConnectionHolder holder = new ConnectionHolder(client, oc, getVertx(), null);
         final Uni<RabbitMQPublisher> getSender = holder.getOrEstablishConnection()
                 .onItem().transformToUni(connection -> Uni.createFrom().item(RabbitMQPublisher.create(getVertx(), connection,
                         new RabbitMQPublisherOptions()
@@ -509,7 +524,7 @@ public class RabbitMQConnector implements InboundConnector, OutboundConnector, H
     private Uni<String> establishQueue(
             final RabbitMQClient client,
             final RabbitMQConnectorIncomingConfiguration ic) {
-        final String queueName = ic.getQueueName();
+        final String queueName = getQueueName(ic);
 
         // Declare the queue (and its binding(s) to the exchange, and TTL) if we have been asked to do so
         final JsonObject queueArgs = new JsonObject();
@@ -572,7 +587,7 @@ public class RabbitMQConnector implements InboundConnector, OutboundConnector, H
             final RabbitMQClient client,
             final RabbitMQConnectorIncomingConfiguration ic) {
         final String exchangeName = getExchangeName(ic);
-        final String queueName = ic.getQueueName();
+        final String queueName = getQueueName(ic);
         final List<String> routingKeys = Arrays.stream(ic.getRoutingKeys().split(","))
                 .map(String::trim).collect(Collectors.toList());
         final Map<String, Object> arguments = parseArguments(ic.getArguments());

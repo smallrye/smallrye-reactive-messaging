@@ -51,12 +51,16 @@ import io.smallrye.reactive.messaging.health.HealthReport;
 import io.smallrye.reactive.messaging.health.HealthReporter;
 import io.smallrye.reactive.messaging.providers.connectors.ExecutionHolder;
 import io.smallrye.reactive.messaging.providers.helpers.MultiUtils;
+import io.smallrye.reactive.messaging.providers.helpers.VertxContext;
+import io.smallrye.reactive.messaging.providers.impl.ConcurrencyConnectorConfig;
 import io.vertx.amqp.AmqpClientOptions;
 import io.vertx.amqp.AmqpReceiverOptions;
 import io.vertx.amqp.AmqpSenderOptions;
+import io.vertx.core.impl.VertxInternal;
 import io.vertx.mutiny.amqp.AmqpClient;
 import io.vertx.mutiny.amqp.AmqpReceiver;
 import io.vertx.mutiny.amqp.AmqpSender;
+import io.vertx.mutiny.core.Context;
 import io.vertx.mutiny.core.Vertx;
 import io.vertx.proton.ProtonSender;
 
@@ -175,6 +179,7 @@ public class AmqpConnector implements InboundConnector, OutboundConnector, Healt
         return Multi.createFrom().deferred(
                 () -> {
                     Multi<Message<?>> stream = receiver.toMulti()
+                            .emitOn(c -> VertxContext.runOnContext(holder.getContext().getDelegate(), c))
                             .onItem().transformToUniAndConcatenate(m -> {
                                 try {
                                     return Uni.createFrom().item(new AmqpMessage<>(m, holder.getContext(), onNack,
@@ -215,7 +220,11 @@ public class AmqpConnector implements InboundConnector, OutboundConnector, Healt
 
         AmqpClient client = AmqpClientHelper.createClient(this, ic, clientOptions, clientSslContexts);
 
-        ConnectionHolder holder = new ConnectionHolder(client, ic, getVertx());
+        Context root = null;
+        if (ConcurrencyConnectorConfig.getConcurrency(config).filter(i -> i > 1).isPresent()) {
+            root = Context.newInstance(((VertxInternal) getVertx().getDelegate()).createEventLoopContext());
+        }
+        ConnectionHolder holder = new ConnectionHolder(client, ic, getVertx(), root);
         holders.put(ic.getChannel(), holder);
 
         AmqpFailureHandler onNack = createFailureHandler(ic);
@@ -258,7 +267,7 @@ public class AmqpConnector implements InboundConnector, OutboundConnector, Healt
         AtomicReference<AmqpSender> sender = new AtomicReference<>();
         AmqpClient client = AmqpClientHelper.createClient(this, oc, clientOptions, clientSslContexts);
         String link = oc.getLinkName().orElseGet(oc::getChannel);
-        ConnectionHolder holder = new ConnectionHolder(client, oc, getVertx());
+        ConnectionHolder holder = new ConnectionHolder(client, oc, getVertx(), null);
 
         Uni<AmqpSender> getSender = Uni.createFrom().deferred(() -> {
 

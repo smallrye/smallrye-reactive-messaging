@@ -6,6 +6,7 @@ on:
         branches:
             - main
             - 3.x
+            - 3.13.x
 
 jobs:
     build:
@@ -25,11 +26,7 @@ jobs:
                     },
                     {
                         'name': '',
-                        'version': '20',
-                    },
-                    {
-                        'name': '',
-                        'version': '21-ea',
+                        'version': '21',
                     },
                     {
                         'version': '11',

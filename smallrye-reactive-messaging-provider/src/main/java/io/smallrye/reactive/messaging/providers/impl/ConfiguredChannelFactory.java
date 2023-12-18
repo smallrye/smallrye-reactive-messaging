@@ -3,6 +3,9 @@ package io.smallrye.reactive.messaging.providers.impl;
 import static io.smallrye.reactive.messaging.providers.helpers.CDIUtils.getSortedInstances;
 import static io.smallrye.reactive.messaging.providers.i18n.ProviderExceptions.ex;
 import static io.smallrye.reactive.messaging.providers.i18n.ProviderLogging.log;
+import static io.smallrye.reactive.messaging.providers.impl.ConcurrencyConnectorConfig.getConcurrency;
+import static io.smallrye.reactive.messaging.providers.impl.ConcurrencyConnectorConfig.isConcurrencyChannelName;
+import static io.smallrye.reactive.messaging.providers.impl.ConcurrencyConnectorConfig.stripChannelNameOfSeparator;
 
 import java.util.*;
 import java.util.concurrent.Flow;
@@ -83,7 +86,10 @@ public class ConfiguredChannelFactory implements ChannelRegistar {
                     String tmp = name;
                     name = tmp.substring(0, tmp.indexOf('.'));
                 }
-                configs.put(name, new ConnectorConfig(prefix, root, name));
+                // Create the channel only if the concurrency attribute is not present
+                if (!isConcurrencyChannelName(name) || getConcurrency(stripChannelNameOfSeparator(name), root).isEmpty()) {
+                    configs.put(name, new ConnectorConfig(prefix, root, name));
+                }
             }
         });
         return configs;
@@ -131,8 +137,18 @@ public class ConfiguredChannelFactory implements ChannelRegistar {
                 String channel = entry.getKey();
                 ConnectorConfig config = entry.getValue();
                 if (config.getOptionalValue(ConnectorConfig.CHANNEL_ENABLED_PROPERTY, Boolean.TYPE).orElse(true)) {
-                    registry.register(channel, createPublisher(channel, config),
-                            config.getOptionalValue(ConnectorConfig.BROADCAST_PROPERTY, Boolean.class).orElse(false));
+                    int concurrency = getConcurrency(config).orElse(1);
+                    if (concurrency <= 1) {
+                        registry.register(channel, createPublisher(channel, config),
+                                config.getOptionalValue(ConnectorConfig.BROADCAST_PROPERTY, Boolean.class).orElse(false));
+                    } else {
+                        for (int i = 0; i < concurrency; i++) {
+                            ConcurrencyConnectorConfig indexedConfig = new ConcurrencyConnectorConfig(config, i + 1);
+                            String indexedChannel = indexedConfig.getIndexedChannel();
+                            registry.register(channel, createPublisher(indexedChannel, indexedConfig),
+                                    config.getOptionalValue(ConnectorConfig.BROADCAST_PROPERTY, Boolean.class).orElse(false));
+                        }
+                    }
                 } else {
                     log.incomingChannelDisabled(channel);
                 }
@@ -172,7 +188,7 @@ public class ConfiguredChannelFactory implements ChannelRegistar {
         Multi<? extends Message<?>> publisher = MultiUtils.publisher(inboundConnector.getPublisher(config));
 
         for (PublisherDecorator decorator : getSortedInstances(publisherDecoratorInstance)) {
-            publisher = decorator.decorate(publisher, name, true);
+            publisher = decorator.decorate(publisher, List.of(name), true);
         }
 
         return publisher;

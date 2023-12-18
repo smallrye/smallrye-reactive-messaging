@@ -185,7 +185,7 @@ public class FileCheckpointStateStoreTest extends KafkaCompanionTestBase {
         MapBasedConfig config = kafkaConfig("mp.messaging.incoming.kafka")
                 .with("group.id", groupId)
                 .with("topic", topic)
-                .with("partitions", 3)
+                .with("concurrency", 3)
                 .with("auto.offset.reset", "earliest")
                 .with("commit-strategy", "checkpoint")
                 .with("checkpoint.file.state-dir", tempDir.getAbsolutePath())
@@ -215,7 +215,7 @@ public class FileCheckpointStateStoreTest extends KafkaCompanionTestBase {
         MapBasedConfig config = kafkaConfig("mp.messaging.incoming.kafka")
                 .with("group.id", groupId)
                 .with("topic", topic)
-                .with("partitions", 3)
+                .with("concurrency", 3)
                 .with("auto.offset.reset", "earliest")
                 .with("commit-strategy", "checkpoint")
                 .with("checkpoint.file.state-dir", tempDir.getAbsolutePath())
@@ -246,7 +246,7 @@ public class FileCheckpointStateStoreTest extends KafkaCompanionTestBase {
         MapBasedConfig config = kafkaConfig("mp.messaging.incoming.kafka")
                 .with("group.id", groupId)
                 .with("topic", topic)
-                .with("partitions", 3)
+                .with("concurrency", 3)
                 .with("auto.offset.reset", "earliest")
                 .with("commit-strategy", "checkpoint")
                 .with("checkpoint.file.state-dir", tempDir.getAbsolutePath())
@@ -276,7 +276,7 @@ public class FileCheckpointStateStoreTest extends KafkaCompanionTestBase {
         MapBasedConfig config = kafkaConfig("mp.messaging.incoming.kafka")
                 .with("group.id", groupId)
                 .with("topic", topic)
-                .with("partitions", 3)
+                .with("concurrency", 3)
                 .with("auto.offset.reset", "earliest")
                 .with("commit-strategy", "checkpoint")
                 .with("auto.commit.interval.ms", 500)
@@ -314,7 +314,7 @@ public class FileCheckpointStateStoreTest extends KafkaCompanionTestBase {
         MapBasedConfig config = kafkaConfig("mp.messaging.incoming.kafka")
                 .with("group.id", groupId)
                 .with("topic", topic)
-                .with("partitions", 3)
+                .with("concurrency", 3)
                 .with("auto.offset.reset", "earliest")
                 .with("commit-strategy", "checkpoint")
                 .with("checkpoint.file.state-dir", tempDir.getAbsolutePath())
@@ -343,7 +343,7 @@ public class FileCheckpointStateStoreTest extends KafkaCompanionTestBase {
         MapBasedConfig config = kafkaConfig("mp.messaging.incoming.kafka")
                 .with("group.id", groupId)
                 .with("topic", topic)
-                .with("partitions", 3)
+                .with("concurrency", 3)
                 .with("auto.offset.reset", "earliest")
                 .with("commit-strategy", "checkpoint")
                 .with("failure-strategy", "ignore")
@@ -447,7 +447,7 @@ public class FileCheckpointStateStoreTest extends KafkaCompanionTestBase {
         MapBasedConfig config = kafkaConfig("mp.messaging.incoming.kafka")
                 .with("group.id", groupId)
                 .with("topic", topic)
-                .with("partitions", 3)
+                .with("concurrency", 3)
                 .with("auto.offset.reset", "earliest")
                 .with("graceful-shutdown", true)
                 .with("commit-strategy", "checkpoint")
@@ -524,7 +524,7 @@ public class FileCheckpointStateStoreTest extends KafkaCompanionTestBase {
         MapBasedConfig config = kafkaConfig("mp.messaging.incoming.kafka")
                 .with("group.id", groupId)
                 .with("topic", topic)
-                .with("partitions", 3)
+                .with("concurrency", 3)
                 .with("auto.offset.reset", "earliest")
                 .with("commit-strategy", "checkpoint")
                 .with("checkpoint.state-store", "file")
@@ -573,7 +573,7 @@ public class FileCheckpointStateStoreTest extends KafkaCompanionTestBase {
         MapBasedConfig config = kafkaConfig("mp.messaging.incoming.kafka")
                 .with("group.id", groupId)
                 .with("topic", topic)
-                .with("partitions", 3)
+                .with("concurrency", 3)
                 .with("auto.offset.reset", "earliest")
                 .with("commit-strategy", "checkpoint")
                 .with("checkpoint.state-store", "file")
@@ -862,11 +862,6 @@ public class FileCheckpointStateStoreTest extends KafkaCompanionTestBase {
         public void setName(String name) {
             this.name = name;
         }
-    }
-
-    private int getMaxNumberOfEventLoop(int expected) {
-        // On Github Actions, only one event loop is created.
-        return Math.min(expected, Runtime.getRuntime().availableProcessors() / 2);
     }
 
 }

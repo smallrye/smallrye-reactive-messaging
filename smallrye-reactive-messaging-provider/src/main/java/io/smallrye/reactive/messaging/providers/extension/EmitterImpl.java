@@ -44,7 +44,7 @@ public class EmitterImpl<T> extends AbstractEmitter<T> implements Emitter<T> {
         if (msg == null) {
             throw ex.illegalArgumentForNullValue();
         }
-        emit(msg);
+        emit(ContextAwareMessage.withContextMetadata((Message<? extends T>) msg));
     }
 
 }

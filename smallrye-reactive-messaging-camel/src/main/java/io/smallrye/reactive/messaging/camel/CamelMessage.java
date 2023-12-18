@@ -1,7 +1,7 @@
 package io.smallrye.reactive.messaging.camel;
 
 import java.util.concurrent.CompletionStage;
-import java.util.function.Function;
+import java.util.function.BiFunction;
 
 import org.apache.camel.Exchange;
 import org.eclipse.microprofile.reactive.messaging.Message;
@@ -43,7 +43,7 @@ public class CamelMessage<T> implements Message<T> {
     }
 
     @Override
-    public Function<Throwable, CompletionStage<Void>> getNack() {
+    public BiFunction<Throwable, Metadata, CompletionStage<Void>> getNackWithMetadata() {
         return this::nack;
     }
 }

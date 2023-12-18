@@ -23,6 +23,14 @@ public interface InMemorySource<T> {
     InMemorySource<T> send(T messageOrPayload);
 
     /**
+     * The flag to enable dispatching messages on Vert.x context.
+     *
+     * @param runOnVertxContext whether to dispatch messages on Vert.x context or not
+     * @return this to allow chaining calls.
+     */
+    InMemorySource<T> runOnVertxContext(boolean runOnVertxContext);
+
+    /**
      * Sends the completion event.
      */
     void complete();

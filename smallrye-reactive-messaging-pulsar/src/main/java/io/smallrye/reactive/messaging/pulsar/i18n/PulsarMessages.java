@@ -5,7 +5,7 @@ import org.jboss.logging.annotations.Message;
 import org.jboss.logging.annotations.MessageBundle;
 
 /**
- * Messages for GCP Pub/Sub Connector
+ * Messages for Pulsar Connector
  * Assigned ID range is 19200-19299
  */
 @MessageBundle(projectCode = "SRMSG", length = 5)

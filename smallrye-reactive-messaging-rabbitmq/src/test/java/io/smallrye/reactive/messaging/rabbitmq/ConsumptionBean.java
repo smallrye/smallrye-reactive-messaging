@@ -32,7 +32,7 @@ public class ConsumptionBean {
         } catch (ClassCastException e) {
             typeCastCounter.incrementAndGet();
         }
-        return Message.of(value + 1, input::ack);
+        return input.withPayload(value + 1);
     }
 
     @Incoming("sink")

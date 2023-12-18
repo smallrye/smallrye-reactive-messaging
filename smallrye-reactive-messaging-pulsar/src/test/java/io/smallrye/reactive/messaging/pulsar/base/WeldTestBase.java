@@ -34,6 +34,7 @@ import io.smallrye.reactive.messaging.pulsar.SchemaResolver;
 import io.smallrye.reactive.messaging.pulsar.ack.PulsarMessageAck;
 import io.smallrye.reactive.messaging.pulsar.converters.KeyValueFromPulsarMessageExtractor;
 import io.smallrye.reactive.messaging.pulsar.converters.KeyValueFromPulsarMessageKeyValueExtractor;
+import io.smallrye.reactive.messaging.pulsar.converters.PulsarMessageConverter;
 import io.smallrye.reactive.messaging.pulsar.fault.PulsarNack;
 import io.smallrye.reactive.messaging.pulsar.transactions.PulsarTransactionsFactory;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
@@ -77,6 +78,7 @@ public class WeldTestBase extends PulsarBaseTest {
         weld.addBeanClass(PulsarMessageAck.Factory.class);
         weld.addBeanClass(PulsarMessageAck.Factory.class);
         weld.addBeanClass(PulsarNack.Factory.class);
+        weld.addBeanClass(PulsarMessageConverter.class);
         weld.addBeanClass(KeyValueFromPulsarMessageExtractor.class);
         weld.addBeanClass(KeyValueFromPulsarMessageKeyValueExtractor.class);
         weld.disableDiscovery();

@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -26,6 +27,7 @@ import io.smallrye.reactive.messaging.kafka.i18n.KafkaExceptions;
 import io.smallrye.reactive.messaging.kafka.i18n.KafkaLogging;
 import io.smallrye.reactive.messaging.kafka.impl.TopicPartitions;
 import io.smallrye.reactive.messaging.providers.extension.MutinyEmitterImpl;
+import io.smallrye.reactive.messaging.providers.helpers.VertxContext;
 import io.vertx.core.Context;
 import io.vertx.core.Vertx;
 
@@ -138,6 +140,7 @@ public class KafkaTransactionsImpl<T> extends MutinyEmitterImpl<T> implements Ka
         private final Uni<Void> beforeAbort;
         private final Function<Throwable, Uni<R>> afterAbort;
 
+        private final List<Uni<Void>> sendUnis = new CopyOnWriteArrayList<>();
         private volatile boolean abort;
 
         public Transaction() {
@@ -156,11 +159,8 @@ public class KafkaTransactionsImpl<T> extends MutinyEmitterImpl<T> implements Ka
             currentTransaction = this;
             // If run on Vert.x context, `work` is called on the same context.
             Context context = Vertx.currentContext();
-            Uni<Void> beginTx = producer.beginTransaction();
-            if (context != null) {
-                beginTx = beginTx.emitOn(runnable -> context.runOnContext(x -> runnable.run()));
-            }
-            return beginTx
+            return producer.beginTransaction()
+                    .plug(u -> context == null ? u : u.emitOn(r -> VertxContext.runOnContext(context, r)))
                     .chain(() -> executeInTransaction(work))
                     .eventually(() -> currentTransaction = null);
         }
@@ -169,6 +169,8 @@ public class KafkaTransactionsImpl<T> extends MutinyEmitterImpl<T> implements Ka
             //noinspection Convert2MethodRef
             return Uni.createFrom().nullItem()
                     .chain(() -> work.apply(this))
+                    // wait until all send operations are completed
+                    .eventually(() -> waitOnSend())
                     // only flush() if the work completed with no exception
                     .call(() -> producer.flush())
                     // in the case of an exception or cancellation
@@ -183,6 +185,10 @@ public class KafkaTransactionsImpl<T> extends MutinyEmitterImpl<T> implements Ka
                     .onItem().transformToUni(result -> afterCommit.apply(result));
         }
 
+        private Uni<List<Void>> waitOnSend() {
+            return sendUnis.isEmpty() ? Uni.createFrom().nullItem() : Uni.join().all(sendUnis).andCollectFailures();
+        }
+
         private Uni<Void> commit() {
             return beforeCommit.call(producer::commitTransaction);
         }
@@ -194,13 +200,18 @@ public class KafkaTransactionsImpl<T> extends MutinyEmitterImpl<T> implements Ka
 
         @Override
         public <M extends Message<? extends T>> void send(M msg) {
-            KafkaTransactionsImpl.this.send(msg.withNack(throwable -> CompletableFuture.completedFuture(null)));
+            CompletableFuture<Void> send = KafkaTransactionsImpl.this.sendMessage(msg)
+                    .onFailure().invoke(KafkaLogging.log::unableToSendRecord)
+                    .subscribeAsCompletionStage();
+            sendUnis.add(Uni.createFrom().completionStage(send));
         }
 
         @Override
         public void send(T payload) {
-            KafkaTransactionsImpl.this.send(payload).subscribe().with(unused -> {
-            }, KafkaLogging.log::unableToSendRecord);
+            CompletableFuture<Void> send = KafkaTransactionsImpl.this.send(payload)
+                    .onFailure().invoke(KafkaLogging.log::unableToSendRecord)
+                    .subscribeAsCompletionStage();
+            sendUnis.add(Uni.createFrom().completionStage(send));
         }
 
         @Override

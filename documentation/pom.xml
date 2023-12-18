@@ -7,7 +7,7 @@
   <parent>
     <groupId>io.smallrye.reactive</groupId>
     <artifactId>smallrye-reactive-messaging</artifactId>
-    <version>4.11.0-SNAPSHOT</version>
+    <version>4.14.0-SNAPSHOT</version>
   </parent>
 
   <artifactId>documentation</artifactId>
@@ -25,6 +25,15 @@
   </properties>
 
   <dependencies>
+    <dependency>
+      <groupId>io.smallrye.config</groupId>
+      <artifactId>smallrye-config</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.smallrye.reactive</groupId>
+      <artifactId>smallrye-connector-attribute-processor</artifactId>
+      <version>${project.version}</version>
+    </dependency>
     <dependency>
       <groupId>io.smallrye.reactive</groupId>
       <artifactId>smallrye-reactive-messaging-provider</artifactId>
@@ -88,6 +97,34 @@
     </dependency>
 
     <dependency>
+      <groupId>io.smallrye.reactive</groupId>
+      <artifactId>test-common</artifactId>
+      <version>${project.version}</version>
+      <!-- used in snippets -->
+      <scope>compile</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.jboss.weld.se</groupId>
+      <artifactId>weld-se-shaded</artifactId>
+      <version>${weld.version}</version>
+      <!-- used in snippets -->
+      <scope>compile</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.jboss.weld</groupId>
+      <artifactId>weld-core-impl</artifactId>
+      <version>${weld.version}</version>
+      <!-- used in snippets -->
+      <scope>compile</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.awaitility</groupId>
+      <artifactId>awaitility</artifactId>
+      <!-- used in snippets -->
+      <scope>compile</scope>
+    </dependency>
+
+    <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter-api</artifactId>
       <scope>compile</scope>
@@ -114,7 +151,7 @@
         <!-- Unpack the connector config page to a specific modules in the `partials` family. -->
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-dependency-plugin</artifactId>
-        <version>3.6.0</version>
+        <version>3.6.1</version>
         <executions>
           <execution>
             <id>extract-generated-documentation</id>
@@ -163,6 +200,22 @@
             </configuration>
           </execution>
         </executions>
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <configuration>
+          <generatedSourcesDirectory>${project.build.directory}/generated-sources/</generatedSourcesDirectory>
+          <annotationProcessors>
+            <annotationProcessor>
+              io.smallrye.reactive.messaging.connector.ConnectorAttributeProcessor
+            </annotationProcessor>
+            <annotationProcessor>
+              org.jboss.logging.processor.apt.LoggingToolsProcessor
+            </annotationProcessor>
+          </annotationProcessors>
+        </configuration>
       </plugin>
 
       <plugin>

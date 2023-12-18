@@ -22,6 +22,7 @@ import io.smallrye.reactive.messaging.EmitterConfiguration;
 import io.smallrye.reactive.messaging.EmitterFactory;
 import io.smallrye.reactive.messaging.MediatorConfiguration;
 import io.smallrye.reactive.messaging.MessagePublisherProvider;
+import io.smallrye.reactive.messaging.PublisherDecorator;
 import io.smallrye.reactive.messaging.SubscriberDecorator;
 import io.smallrye.reactive.messaging.annotations.EmitterFactoryFor;
 import io.smallrye.reactive.messaging.annotations.Merge;
@@ -55,6 +56,10 @@ public class Wiring {
     @Inject
     Instance<SubscriberDecorator> subscriberDecorators;
 
+    @Any
+    @Inject
+    Instance<PublisherDecorator> publisherDecorators;
+
     private final List<Component> components;
 
     private Graph graph;
@@ -76,13 +81,7 @@ public class Wiring {
         this.strictMode = strictMode;
 
         for (MediatorConfiguration mediator : mediators) {
-            if (!mediator.getOutgoings().isEmpty() && !mediator.getIncoming().isEmpty()) {
-                components.add(new ProcessorMediatorComponent(manager, mediator));
-            } else if (!mediator.getOutgoings().isEmpty()) {
-                components.add(new PublisherMediatorComponent(manager, mediator));
-            } else {
-                components.add(new SubscriberMediatorComponent(manager, mediator));
-            }
+            components.add(createMediatorComponent(mediator));
         }
 
         for (ChannelConfiguration channel : channels) {
@@ -90,16 +89,52 @@ public class Wiring {
         }
 
         for (EmitterConfiguration emitter : emitters) {
-            components.add(new EmitterComponent(emitter, emitterFactories, defaultBufferSize, defaultBufferSizeLegacy));
+            components.add(new EmitterComponent(emitter, publisherDecorators, emitterFactories, defaultBufferSize,
+                    defaultBufferSizeLegacy));
         }
 
         // At that point, the registry only contains connectors or managed channels
         for (Map.Entry<String, Boolean> entry : registry.getIncomingChannels().entrySet()) {
-            components.add(new InboundConnectorComponent(entry.getKey(), entry.getValue()));
+            components.add(getChannelConcurrency(entry.getKey())
+                    .map(c -> new InboundConnectorComponent(entry.getKey(), entry.getValue(), c))
+                    .orElseGet(() -> new InboundConnectorComponent(entry.getKey(), entry.getValue())));
         }
 
         for (Map.Entry<String, Boolean> entry : registry.getOutgoingChannels().entrySet()) {
             components.add(new OutgoingConnectorComponent(entry.getKey(), subscriberDecorators, entry.getValue()));
+        }
+    }
+
+    Map<String, Integer> getIncomingConcurrency(MediatorConfiguration mediator) {
+        // For tests
+        if (manager == null) {
+            return Collections.emptyMap();
+        } else {
+            return manager.getIncomingConcurrency(mediator);
+        }
+    }
+
+    Optional<Integer> getChannelConcurrency(String channel) {
+        // For tests
+        if (manager == null) {
+            return Optional.empty();
+        } else {
+            return manager.getChannelConcurrency(channel);
+        }
+    }
+
+    private MediatorComponent createMediatorComponent(MediatorConfiguration mediator) {
+        Map<String, Integer> incomingConcurrency = getIncomingConcurrency(mediator);
+        if (!mediator.getOutgoings().isEmpty() && !mediator.getIncoming().isEmpty()) {
+            ProcessorMediatorComponent component = new ProcessorMediatorComponent(manager, mediator);
+            return incomingConcurrency.isEmpty() ? component
+                    : new ProcessorConcurrentComponent(manager, mediator, component, incomingConcurrency);
+        } else if (!mediator.getOutgoings().isEmpty()) {
+            return new PublisherMediatorComponent(manager, mediator);
+        } else {
+            SubscriberMediatorComponent component = new SubscriberMediatorComponent(manager, mediator);
+            return incomingConcurrency.isEmpty() ? component
+                    : new SubscriberConcurrentComponent(manager, mediator, component, incomingConcurrency);
         }
     }
 
@@ -289,11 +324,17 @@ public class Wiring {
 
         private final String name;
         private final boolean broadcast;
+        private final int concurrency;
         private final Set<Component> downstreams = new LinkedHashSet<>();
 
         public InboundConnectorComponent(String name, boolean broadcast) {
+            this(name, broadcast, 0);
+        }
+
+        public InboundConnectorComponent(String name, boolean broadcast, int concurrency) {
             this.name = name;
             this.broadcast = broadcast;
+            this.concurrency = concurrency;
         }
 
         @Override
@@ -328,7 +369,8 @@ public class Wiring {
 
         @Override
         public String toString() {
-            return "IncomingConnector{channel:'" + name + "', attribute:'mp.messaging.incoming." + name + "'}";
+            return "IncomingConnector{channel:'" + name + "', attribute:'mp.messaging.incoming." + name + "'" +
+                    (concurrency > 0 ? " , concurrency:'" + concurrency + "'}" : "}");
         }
 
         @Override
@@ -451,15 +493,19 @@ public class Wiring {
     static class EmitterComponent implements PublishingComponent, NoUpstreamComponent {
 
         private final EmitterConfiguration configuration;
+        private final Instance<PublisherDecorator> decorators;
         private final Instance<EmitterFactory<?>> emitterFactories;
         private final Set<Component> downstreams = new LinkedHashSet<>();
         private final int defaultBufferSize;
         private final int defaultBufferSizeLegacy;
 
-        public EmitterComponent(EmitterConfiguration configuration, Instance<EmitterFactory<?>> emitterFactories,
+        public EmitterComponent(EmitterConfiguration configuration,
+                Instance<PublisherDecorator> decorators,
+                Instance<EmitterFactory<?>> emitterFactories,
                 int defaultBufferSize,
                 int defaultBufferSizeLegacy) {
             this.configuration = configuration;
+            this.decorators = decorators;
             this.emitterFactories = emitterFactories;
             this.defaultBufferSize = defaultBufferSize;
             this.defaultBufferSizeLegacy = defaultBufferSizeLegacy;
@@ -504,9 +550,12 @@ public class Wiring {
         private <T extends MessagePublisherProvider<?>> void registerEmitter(ChannelRegistry registry, int def) {
             EmitterFactory<?> emitterFactory = getEmitterFactory(configuration.emitterType());
             T emitter = (T) emitterFactory.createEmitter(configuration, def);
-            Publisher<? extends Message<?>> publisher = emitter.getPublisher();
             Class<T> type = (Class<T>) configuration.emitterType().value();
             registry.register(configuration.name(), type, emitter);
+            Multi<? extends Message<?>> publisher = Multi.createFrom().publisher(emitter.getPublisher());
+            for (PublisherDecorator decorator : getSortedInstances(decorators)) {
+                publisher = decorator.decorate(publisher, List.of(configuration.name()), false);
+            }
             //noinspection ReactiveStreamsUnusedPublisher
             registry.register(configuration.name(), publisher, broadcast());
         }
@@ -880,6 +929,167 @@ public class Wiring {
             if (mediator != null) {
                 mediator.terminate();
             }
+        }
+    }
+
+    abstract static class ConcurrentComponent<T extends MediatorComponent>
+            extends MediatorComponent implements ConsumingComponent {
+
+        protected final T delegate;
+        protected final Map<String, Integer> concurrency;
+
+        protected ConcurrentComponent(MediatorManager manager, MediatorConfiguration configuration,
+                T mediator,
+                Map<String, Integer> incomingConcurrency) {
+            super(manager, configuration);
+            this.delegate = mediator;
+            this.concurrency = incomingConcurrency;
+        }
+
+        @Override
+        public Set<Component> upstreams() {
+            return delegate.upstreams();
+        }
+
+        @Override
+        public Set<Component> downstreams() {
+            return delegate.downstreams();
+        }
+
+        @Override
+        public List<String> incomings() {
+            return delegate.incomings();
+        }
+
+        @Override
+        public List<String> outgoings() {
+            return delegate.outgoings();
+        }
+
+        @Override
+        public void validate() throws WiringException {
+            delegate.validate();
+        }
+
+        @Override
+        public boolean isDownstreamResolved() {
+            return delegate.isDownstreamResolved();
+        }
+
+        @Override
+        public boolean isUpstreamResolved() {
+            return delegate.isUpstreamResolved();
+        }
+
+        @Override
+        public void terminate() {
+            delegate.terminate();
+        }
+
+        @Override
+        public boolean merge() {
+            return configuration.getMerge() != null;
+        }
+
+    }
+
+    static class SubscriberConcurrentComponent extends ConcurrentComponent<SubscriberMediatorComponent> {
+
+        protected SubscriberConcurrentComponent(MediatorManager manager,
+                MediatorConfiguration configuration,
+                SubscriberMediatorComponent mediator,
+                Map<String, Integer> incomingConcurrency) {
+            super(manager, configuration, mediator, incomingConcurrency);
+        }
+
+        @Override
+        public void materialize(ChannelRegistry registry) {
+            for (String incoming : configuration.getIncoming()) {
+                List<Publisher<? extends Message<?>>> publishers = registry.getPublishers(incoming);
+                for (Publisher<? extends Message<?>> publisher : publishers) {
+                    AbstractMediator mediator = manager.createMediator(configuration);
+                    mediator.connectToUpstream(MultiUtils.publisher(publisher));
+                    Flow.Subscriber<Message<?>> subscriber = mediator.getComputedSubscriber();
+                    registry.register(incoming, subscriber, merge());
+                    mediator.run();
+                }
+            }
+        }
+
+        @Override
+        public String toString() {
+            return "SubscriberMethod{" +
+                    "method:'" + configuration.methodAsString()
+                    + "', incoming:'" + String.join(",", configuration.getIncoming())
+                    + "', concurrency: '" + concurrency + "'}";
+        }
+
+    }
+
+    static class ProcessorConcurrentComponent extends ConcurrentComponent<ProcessorMediatorComponent>
+            implements PublishingComponent {
+
+        protected ProcessorConcurrentComponent(MediatorManager manager,
+                MediatorConfiguration configuration,
+                ProcessorMediatorComponent mediator,
+                Map<String, Integer> incomingConcurrency) {
+            super(manager, configuration, mediator, incomingConcurrency);
+        }
+
+        @Override
+        public void materialize(ChannelRegistry registry) {
+            // Prepare a mediator per incoming publisher
+            List<AbstractMediator> mediators = new ArrayList<>();
+            for (String incoming : configuration.getIncoming()) {
+                for (Publisher<? extends Message<?>> publisher : registry.getPublishers(incoming)) {
+                    AbstractMediator mediator = manager.createMediator(configuration);
+                    mediator.connectToUpstream(MultiUtils.publisher(publisher));
+                    mediators.add(mediator);
+                }
+            }
+            // Merge mediator streams according to the outgoings
+            // TODO does Merge concurrency make a difference here ?
+            if (delegate.outgoings().size() > 1) {
+                for (String outgoing : configuration.getOutgoings()) {
+                    List<Multi<? extends Message<?>>> streams = mediators.stream()
+                            .map(m -> m.getStream(outgoing).broadcast().toAllSubscribers())
+                            .collect(Collectors.toList());
+                    Multi<? extends Message<?>> aggregates = Multi.createBy().merging()
+                            .streams(streams.stream().map(p -> p).collect(Collectors.toList()));
+                    registry.register(outgoing, aggregates, delegate.broadcast());
+                }
+            } else {
+                List<Multi<? extends Message<?>>> streams = mediators.stream()
+                        .map(AbstractMediator::getStream)
+                        .collect(Collectors.toList());
+                Multi<? extends Message<?>> aggregates = Multi.createBy().merging()
+                        .streams(streams.stream().map(p -> p).collect(Collectors.toList()));
+                registry.register(delegate.getOutgoingChannel(), aggregates, delegate.broadcast());
+            }
+        }
+
+        @Override
+        public boolean broadcast() {
+            return delegate.broadcast();
+        }
+
+        @Override
+        public int getRequiredNumberOfSubscribers() {
+            return delegate.getRequiredNumberOfSubscribers();
+        }
+
+        @Override
+        public void connectDownstream(Component downstream) {
+            delegate.connectDownstream(downstream);
+        }
+
+        @Override
+        public String toString() {
+            return "ProcessingMethod{" +
+                    "method:'" + configuration.methodAsString()
+                    + "', incoming:'" + String.join(",", configuration.getIncoming())
+                    + "', outgoing:'" + String.join(",", configuration.getOutgoings())
+                    + "', concurrency:'" + concurrency + "'}";
         }
     }
 

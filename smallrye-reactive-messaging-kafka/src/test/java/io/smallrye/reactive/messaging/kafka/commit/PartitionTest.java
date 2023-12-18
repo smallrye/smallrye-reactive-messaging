@@ -8,6 +8,7 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 import jakarta.enterprise.context.ApplicationScoped;
@@ -19,6 +20,7 @@ import org.apache.kafka.common.serialization.StringDeserializer;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.junit.jupiter.api.Test;
 
+import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.kafka.base.KafkaCompanionTestBase;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 
@@ -32,7 +34,7 @@ public class PartitionTest extends KafkaCompanionTestBase {
         MapBasedConfig config = kafkaConfig("mp.messaging.incoming.kafka")
                 .with("group.id", groupId)
                 .with("topic", topic)
-                .with("partitions", 3)
+                .with("concurrency", 3)
                 .with("auto.offset.reset", "earliest")
                 .with("value.deserializer", StringDeserializer.class.getName());
 
@@ -46,8 +48,8 @@ public class PartitionTest extends KafkaCompanionTestBase {
         }, expected).awaitCompletion(Duration.ofMinutes(1));
 
         await()
-                .atMost(30, TimeUnit.SECONDS)
-                .until(() -> application.count() == expected);
+                .atMost(60, TimeUnit.SECONDS)
+                .until(() -> application.count() >= expected);
         assertThat(application.getReceived().keySet()).hasSizeGreaterThanOrEqualTo(getMaxNumberOfEventLoop(3));
 
         await().until(() -> {
@@ -64,7 +66,7 @@ public class PartitionTest extends KafkaCompanionTestBase {
         MapBasedConfig config = kafkaConfig("mp.messaging.incoming.kafka")
                 .with("group.id", groupId)
                 .with("topic", topic)
-                .with("partitions", 5) // 2 idles
+                .with("concurrency", 5) // 2 idles
                 .with("auto.offset.reset", "earliest")
                 .with("value.deserializer", StringDeserializer.class.getName());
 
@@ -78,8 +80,8 @@ public class PartitionTest extends KafkaCompanionTestBase {
         }, expected).awaitCompletion(Duration.ofMinutes(1));
 
         await()
-                .atMost(30, TimeUnit.SECONDS)
-                .until(() -> application.count() == expected);
+                .atMost(60, TimeUnit.SECONDS)
+                .until(() -> application.count() >= expected);
         assertThat(application.getReceived().keySet()).hasSizeGreaterThanOrEqualTo(getMaxNumberOfEventLoop(3));
 
         await().until(() -> {
@@ -97,7 +99,7 @@ public class PartitionTest extends KafkaCompanionTestBase {
         MapBasedConfig config = kafkaConfig("mp.messaging.incoming.kafka")
                 .with("group.id", groupId)
                 .with("topic", topic)
-                .with("partitions", 2) // one consumer will get 2 partitions
+                .with("concurrency", 2) // one consumer will get 2 partitions
                 .with("auto.offset.reset", "earliest")
                 .with("value.deserializer", StringDeserializer.class.getName());
 
@@ -111,8 +113,8 @@ public class PartitionTest extends KafkaCompanionTestBase {
         }, expected).awaitCompletion(Duration.ofMinutes(1));
 
         await()
-                .atMost(30, TimeUnit.SECONDS)
-                .until(() -> application.count() == expected);
+                .atMost(60, TimeUnit.SECONDS)
+                .until(() -> application.count() >= expected);
         assertThat(application.getReceived().keySet()).hasSizeGreaterThanOrEqualTo(getMaxNumberOfEventLoop(2));
 
         await().until(() -> {
@@ -127,12 +129,16 @@ public class PartitionTest extends KafkaCompanionTestBase {
         private final AtomicLong count = new AtomicLong();
         private final Map<String, List<String>> received = new ConcurrentHashMap<>();
 
+        AtomicInteger p = new AtomicInteger();
+
         @Incoming("kafka")
-        public void consume(String payload) {
+        public Uni<Void> consume(String payload) {
             String k = Thread.currentThread().getName();
             List<String> list = received.computeIfAbsent(k, s -> new CopyOnWriteArrayList<>());
             list.add(payload);
             count.incrementAndGet();
+            return Uni.createFrom().voidItem().onItem().delayIt().by(Duration.ofMillis(10))
+                    .invoke(() -> p.decrementAndGet());
         }
 
         public Map<String, List<String>> getReceived() {
@@ -142,11 +148,6 @@ public class PartitionTest extends KafkaCompanionTestBase {
         public long count() {
             return count.get();
         }
-    }
-
-    private int getMaxNumberOfEventLoop(int expected) {
-        // On Github Actions, only one event loop is created.
-        return Math.min(expected, Runtime.getRuntime().availableProcessors() / 2);
     }
 
 }

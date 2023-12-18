@@ -10,14 +10,12 @@ import java.util.Set;
 import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.config.spi.ConfigSource;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.DisabledForJreRange;
-import org.junit.jupiter.api.condition.JRE;
-import org.junitpioneer.jupiter.SetEnvironmentVariable;
 
 import io.smallrye.config.SmallRyeConfig;
 import io.smallrye.config.SmallRyeConfigBuilder;
 import io.smallrye.reactive.messaging.providers.impl.ConnectorConfig;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
+import io.smallrye.reactive.messaging.test.common.config.SetEnvironmentVariable;
 import io.vertx.core.json.JsonObject;
 
 class JsonHelperTest {
@@ -57,7 +55,6 @@ class JsonHelperTest {
     }
 
     @Test
-    @DisabledForJreRange(min = JRE.JAVA_17, disabledReason = "Environment cannot be modified on Java 17")
     @SetEnvironmentVariable(key = "MP_MESSAGING_CONNECTOR_SMALLRYE_KAFKA_BOOTSTRAP_SERVERS", value = "testServers")
     public void testConnectorConfigFromEnv() {
         JsonObject object = JsonHelper.asJsonObject(createTestConfig());
@@ -65,7 +62,6 @@ class JsonHelperTest {
     }
 
     @Test
-    @DisabledForJreRange(min = JRE.JAVA_17, disabledReason = "Environment cannot be modified on Java 17")
     @SetEnvironmentVariable(key = "MP_MESSAGING_INCOMING_TESTCHANNEL_BOOTSTRAP_SERVERS", value = "testServers")
     public void testChannelConfigFromEnv() {
         JsonObject object = JsonHelper.asJsonObject(createTestConfig());
@@ -73,7 +69,6 @@ class JsonHelperTest {
     }
 
     @Test
-    @DisabledForJreRange(min = JRE.JAVA_17, disabledReason = "Environment cannot be modified on Java 17")
     @SetEnvironmentVariable(key = "MP_MESSAGING_INCOMING_TESTCHANNEL_FOO_BAR", value = "a")
     public void testSysPropsOverrides() {
         Map<String, String> properties = Collections.singletonMap("mp.messaging.incoming.testChannel.foo.bar", "b");
@@ -85,7 +80,6 @@ class JsonHelperTest {
     }
 
     @Test
-    @DisabledForJreRange(min = JRE.JAVA_17, disabledReason = "Environment cannot be modified on Java 17")
     @SetEnvironmentVariable(key = "MP_MESSAGING_INCOMING_TESTCHANNEL_FOO_BAR", value = "a")
     public void testSysPropsCaseSensitive() {
         Map<String, String> properties = Collections.singletonMap("mp.messaging.incoming.testChannel.FOO_BAR", "b");
@@ -97,7 +91,6 @@ class JsonHelperTest {
     }
 
     @Test
-    @DisabledForJreRange(min = JRE.JAVA_17, disabledReason = "Environment cannot be modified on Java 17")
     @SetEnvironmentVariable(key = "MP_MESSAGING_INCOMING_TESTCHANNEL_FOO_BAR", value = "a")
     public void testEnvOverrides() {
         Map<String, String> extraProperties = new HashMap<>();
@@ -111,7 +104,6 @@ class JsonHelperTest {
     }
 
     @Test
-    @DisabledForJreRange(min = JRE.JAVA_17, disabledReason = "Environment cannot be modified on Java 17")
     @SetEnvironmentVariable(key = "MP_MESSAGING_CONNECTOR_SMALLRYE_KAFKA_FOO_BAR", value = "a")
     public void testConnectorSysPropsOverrides() {
         Map<String, String> properties = Collections.singletonMap("mp.messaging.connector.smallrye-kafka.foo.bar", "b");
@@ -123,7 +115,6 @@ class JsonHelperTest {
     }
 
     @Test
-    @DisabledForJreRange(min = JRE.JAVA_17, disabledReason = "Environment cannot be modified on Java 17")
     @SetEnvironmentVariable(key = "MP_MESSAGING_INCOMING_TESTCHANNEL_FOO_BAR", value = "a")
     public void testChannelOverridesConnector() {
         Map<String, String> properties = Collections.singletonMap("mp.messaging.connector.smallrye-kafka.foo.bar", "b");

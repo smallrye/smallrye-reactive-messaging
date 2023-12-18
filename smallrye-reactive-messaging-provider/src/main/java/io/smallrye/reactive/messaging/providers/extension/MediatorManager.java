@@ -29,6 +29,7 @@ import io.smallrye.reactive.messaging.keyed.KeyValueExtractor;
 import io.smallrye.reactive.messaging.providers.AbstractMediator;
 import io.smallrye.reactive.messaging.providers.MediatorFactory;
 import io.smallrye.reactive.messaging.providers.connectors.WorkerPoolRegistry;
+import io.smallrye.reactive.messaging.providers.impl.ConcurrencyConnectorConfig;
 import io.smallrye.reactive.messaging.providers.wiring.Graph;
 import io.smallrye.reactive.messaging.providers.wiring.Wiring;
 
@@ -119,6 +120,18 @@ public class MediatorManager {
         Optional<Integer> concurrency = configInstance.get().getOptionalValue(concurrencyConfigKey, Integer.class);
         // Fallback to the default concurrent requests if setting is not found
         return concurrency.orElse(Queues.BUFFER_S);
+    }
+
+    public Map<String, Integer> getIncomingConcurrency(MediatorConfiguration configuration) {
+        Map<String, Integer> concurrency = new HashMap<>();
+        for (String incoming : configuration.getIncoming()) {
+            getChannelConcurrency(incoming).ifPresent(c -> concurrency.put(incoming, c));
+        }
+        return concurrency;
+    }
+
+    public Optional<Integer> getChannelConcurrency(String incoming) {
+        return ConcurrencyConnectorConfig.getConcurrency(incoming, configInstance.get());
     }
 
     /**
