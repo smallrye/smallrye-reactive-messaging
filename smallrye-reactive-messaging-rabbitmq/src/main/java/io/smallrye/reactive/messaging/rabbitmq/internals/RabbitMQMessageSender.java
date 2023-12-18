@@ -155,9 +155,8 @@ public class RabbitMQMessageSender implements Processor<Message<?>, Message<?>>,
                                 .onItem().transform(m -> Tuple2.of(sender, m));
                     } catch (Exception e) {
                         // Message can't be sent - nacking and skipping.
-                        message.nack(e);
                         RabbitMQLogging.log.serializationFailure(configuration.getChannel(), e);
-                        return Uni.createFrom().nullItem();
+                        return Uni.createFrom().completionStage(message.nack(e)).map(unused -> null);
                     }
                 })
                 .subscribe().with(
