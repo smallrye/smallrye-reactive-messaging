@@ -20,11 +20,12 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.enterprise.inject.spi.CDI;
+import jakarta.inject.Inject;
 
+import org.eclipse.microprofile.reactive.messaging.Channel;
+import org.eclipse.microprofile.reactive.messaging.Emitter;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
-import org.eclipse.microprofile.reactive.messaging.spi.ConnectorLiteral;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -49,7 +50,6 @@ import io.opentelemetry.sdk.trace.data.SpanData;
 import io.opentelemetry.sdk.trace.export.SimpleSpanProcessor;
 import io.opentelemetry.sdk.trace.samplers.Sampler;
 import io.smallrye.reactive.messaging.memory.InMemoryConnector;
-import io.smallrye.reactive.messaging.memory.InMemorySource;
 
 public class TracingTest extends WeldTestBase {
     private SdkTracerProvider tracerProvider;
@@ -153,7 +153,6 @@ public class TracingTest extends WeldTestBase {
         addBeans(InMemoryConnector.class);
 
         IncomingOutgoingTracing tracing = runApplication(commonConfig()
-                .with("mp.messaging.incoming.generator.connector", InMemoryConnector.CONNECTOR)
                 .with("mp.messaging.outgoing.to-rabbitmq.connector", RabbitMQConnector.CONNECTOR_NAME)
                 .with("mp.messaging.outgoing.to-rabbitmq.queue.name", queue)
                 .with("mp.messaging.outgoing.to-rabbitmq.exchange.name", exchange)
@@ -166,11 +165,9 @@ public class TracingTest extends WeldTestBase {
                 .with("mp.messaging.incoming.from-rabbitmq.tracing.enabled", true),
                 IncomingOutgoingTracing.class);
 
-        InMemoryConnector inMemoryConnector = CDI.current()
-                .select(InMemoryConnector.class, ConnectorLiteral.of(InMemoryConnector.CONNECTOR)).get();
-        InMemorySource<Object> input = inMemoryConnector.source("generator");
+        Emitter<Integer> generator = tracing.generator();
         for (int i = 1; i <= 5; i++) {
-            input.send(i);
+            generator.send(i);
         }
         await().atMost(5, SECONDS).until(() -> tracing.getResults().size() == 5);
 
@@ -231,6 +228,10 @@ public class TracingTest extends WeldTestBase {
     static class IncomingOutgoingTracing {
         private final List<String> results = new ArrayList<>();
 
+        @Inject
+        @Channel("generator")
+        Emitter<Integer> generator;
+
         @Incoming("generator")
         @Outgoing("to-rabbitmq")
         public Integer process(Integer input) {
@@ -240,6 +241,10 @@ public class TracingTest extends WeldTestBase {
         @Incoming("from-rabbitmq")
         public void results(String input) {
             results.add(input);
+        }
+
+        public Emitter<Integer> generator() {
+            return generator;
         }
 
         public List<String> getResults() {
