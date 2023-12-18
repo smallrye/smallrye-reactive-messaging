@@ -98,7 +98,7 @@ public class RabbitMQBrokerTestBase {
 
         // Use strict mode for health because that indicates that outgoing channels have got to the point where
         // a declared exchange has been established.
-        return connector.getHealth(true).isOk();
+        return connector.getStrictHealth().isOk();
     }
 
     public boolean isRabbitMQConnectorReady(SeContainer container) {
