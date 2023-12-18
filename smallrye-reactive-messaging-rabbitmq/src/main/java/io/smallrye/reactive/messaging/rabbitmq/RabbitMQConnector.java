@@ -1,18 +1,11 @@
 package io.smallrye.reactive.messaging.rabbitmq;
 
-import static io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Direction.INCOMING;
-import static io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Direction.INCOMING_AND_OUTGOING;
-import static io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Direction.OUTGOING;
+import static io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Direction.*;
 import static io.smallrye.reactive.messaging.rabbitmq.i18n.RabbitMQExceptions.ex;
 import static io.smallrye.reactive.messaging.rabbitmq.i18n.RabbitMQLogging.log;
 import static java.time.Duration.ofSeconds;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.NoSuchElementException;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Flow;
@@ -95,6 +88,11 @@ import io.vertx.rabbitmq.RabbitMQPublisherOptions;
 @ConnectorAttribute(name = "virtual-host", direction = INCOMING_AND_OUTGOING, description = "The virtual host to use when connecting to the broker", type = "string", defaultValue = "/", alias = "rabbitmq-virtual-host")
 @ConnectorAttribute(name = "client-options-name", direction = INCOMING_AND_OUTGOING, description = "The name of the RabbitMQ Client Option bean used to customize the RabbitMQ client configuration", type = "string", alias = "rabbitmq-client-options-name")
 @ConnectorAttribute(name = "credentials-provider-name", direction = INCOMING_AND_OUTGOING, description = "The name of the RabbitMQ Credentials Provider bean used to provide dynamic credentials to the RabbitMQ client", type = "string", alias = "rabbitmq-credentials-provider-name")
+
+// Health
+@ConnectorAttribute(name = "health-enabled", type = "boolean", direction = ConnectorAttribute.Direction.INCOMING_AND_OUTGOING, description = "Whether health reporting is enabled (default) or disabled", defaultValue = "true")
+@ConnectorAttribute(name = "health-readiness-enabled", type = "boolean", direction = ConnectorAttribute.Direction.INCOMING_AND_OUTGOING, description = "Whether readiness health reporting is enabled (default) or disabled", defaultValue = "true")
+@ConnectorAttribute(name = "health-lazy-subscription", type = "boolean", direction = ConnectorAttribute.Direction.INCOMING, description = "Whether the liveness and readiness checks should report 'ok' when there is no subscription yet. This is useful when injecting the channel with `@Inject @Channel(\"...\") Multi<...> multi;`", defaultValue = "false")
 
 // Exchange
 @ConnectorAttribute(name = "exchange.name", direction = INCOMING_AND_OUTGOING, description = "The exchange that messages are published to or consumed from. If not set, the channel name is used. If set to \"\", the default exchange is used.", type = "string")
@@ -180,6 +178,12 @@ public class RabbitMQConnector implements InboundConnector, OutboundConnector, H
     private final Map<String, ChannelStatus> incomingChannelStatus = new ConcurrentHashMap<>();
 
     private final Map<String, ChannelStatus> outgoingChannelStatus = new ConcurrentHashMap<>();
+
+    private final List<String> incomingReadiness = new CopyOnWriteArrayList<>();
+    private final List<String> lazySubscriptions = new CopyOnWriteArrayList<>();
+    private final List<String> outgoingReadiness = new CopyOnWriteArrayList<>();
+    private final List<String> incomingLiveness = new CopyOnWriteArrayList<>();
+    private final List<String> outgoingLiveness = new CopyOnWriteArrayList<>();
 
     @Inject
     ExecutionHolder executionHolder;
@@ -302,6 +306,17 @@ public class RabbitMQConnector implements InboundConnector, OutboundConnector, H
             multi = multi.broadcast().toAllSubscribers();
         }
 
+        // Register health check
+        if (ic.getHealthEnabled()) {
+            incomingLiveness.add(ic.getChannel());
+            if (ic.getHealthReadinessEnabled()) {
+                incomingReadiness.add(ic.getChannel());
+            }
+            if (ic.getHealthLazySubscription()) {
+                lazySubscriptions.add(ic.getChannel());
+            }
+        }
+
         return multi;
     }
 
@@ -419,6 +434,14 @@ public class RabbitMQConnector implements InboundConnector, OutboundConnector, H
                 getSender);
         subscriptions.put(oc.getChannel(), processor);
 
+        // Register health check
+        if (oc.getHealthEnabled()) {
+            outgoingLiveness.add(oc.getChannel());
+            if (oc.getHealthReadinessEnabled()) {
+                outgoingReadiness.add(oc.getChannel());
+            }
+        }
+
         // Return a SubscriberBuilder
         return MultiUtils.via(processor, m -> m.onFailure().invoke(t -> {
             log.error(oc.getChannel(), t);
@@ -428,28 +451,55 @@ public class RabbitMQConnector implements InboundConnector, OutboundConnector, H
 
     @Override
     public HealthReport getReadiness() {
-        return getHealth(false);
+        return getHealth(incomingReadiness, outgoingReadiness);
     }
 
     @Override
     public HealthReport getLiveness() {
-        return getHealth(false);
+        return getHealth(incomingLiveness, outgoingLiveness);
     }
 
-    public HealthReport getHealth(boolean strict) {
+    public HealthReport getStrictHealth() {
         final HealthReport.HealthReportBuilder builder = HealthReport.builder();
 
-        // Add health for incoming channels; since connections are made immediately
-        // for subscribers, we insist on channel status being connected
         incomingChannelStatus.forEach((channel, status) -> builder.add(channel, status == ChannelStatus.CONNECTED));
 
-        // Add health for outgoing channels; since connections are made only on
-        // first message dispatch for publishers, we allow both connected and initialising
-        // unless in strict mode, in order to avoid a possible deadly embrace in
-        // kubernetes (k8s will refuse to allow the pod to accept traffic unless it is ready,
-        // and only if it is ready can e.g. calls be made to it that would trigger a message dispatch).
-        outgoingChannelStatus.forEach((channel, status) -> builder.add(channel,
-                (strict) ? status == ChannelStatus.CONNECTED : status != ChannelStatus.NOT_CONNECTED));
+        outgoingChannelStatus.forEach((channel, status) -> builder.add(channel, status == ChannelStatus.CONNECTED));
+
+        return builder.build();
+    }
+
+    public HealthReport getHealth(List<String> incomingChannels, List<String> outgoingChannels) {
+        final HealthReport.HealthReportBuilder builder = HealthReport.builder();
+
+        for (String channel : incomingChannels) {
+            // Add health for incoming channels; since connections are made immediately
+            // for subscribers, we insist on channel status being connected (unless lazy subscription is enabled).
+            ChannelStatus status = incomingChannelStatus.get(channel);
+            if (status == null) {
+                builder.add(channel, false);
+            } else {
+                if (lazySubscriptions.contains(channel)) {
+                    builder.add(channel, status == ChannelStatus.CONNECTED || status == ChannelStatus.INITIALISING);
+                } else {
+                    builder.add(channel, status == ChannelStatus.CONNECTED);
+                }
+            }
+        }
+
+        for (String channel : outgoingChannels) {
+            // Add health for outgoing channels; since connections are made only on
+            // first message dispatch for publishers, we allow both connected and initialising
+            // unless in strict mode, in order to avoid a possible deadly embrace in
+            // kubernetes (k8s will refuse to allow the pod to accept traffic unless it is ready,
+            // and only if it is ready can e.g. calls be made to it that would trigger a message dispatch).
+            ChannelStatus status = outgoingChannelStatus.get(channel);
+            if (status == null) {
+                builder.add(channel, false);
+            } else {
+                builder.add(channel, status != ChannelStatus.NOT_CONNECTED);
+            }
+        }
 
         return builder.build();
     }
