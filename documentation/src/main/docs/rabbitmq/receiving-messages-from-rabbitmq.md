@@ -263,3 +263,23 @@ one of `short`.
     declare queue bindings, you’ll need to supply a valid value for the
     exchange in question.
 
+## Custom arguments for Queue declaration
+
+When queue declaration is made by the Reactive Messaging channel, using the `queue.declare=true` configuration,
+custom queue arguments can be specified using the `queue.arguments` attribute.
+`queue.arguments` accepts the identifier (using the `@Identifier` qualifier) of a `Map<String, Object>` exposed as a CDI bean.
+If no arguments has been configured, the default **rabbitmq-queue-arguments** identifier is looked for.
+
+The following CDI bean produces such a configuration identified with **my-arguments**:
+
+``` java
+{{ insert('rabbitmq/customization/ArgumentProducers.java') }}
+```
+
+Then the channel can be configured to use those arguments in exchange declaration:
+
+```properties
+mp.messaging.outgoing.data.queue.arguments=my-arguments
+```
+
+Similarly, the `dead-letter-queue.arguments` allows configuring custom arguments for dead letter queue when one is declared (`auto-bind-dlq=true`).
