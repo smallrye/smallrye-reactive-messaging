@@ -1,15 +1,14 @@
 package io.smallrye.reactive.messaging.rabbitmq;
 
 import static io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Direction.*;
-import static io.smallrye.reactive.messaging.rabbitmq.i18n.RabbitMQExceptions.ex;
 import static io.smallrye.reactive.messaging.rabbitmq.i18n.RabbitMQLogging.log;
-import static java.time.Duration.ofSeconds;
 
-import java.util.*;
+import java.util.List;
+import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Flow;
-import java.util.stream.Collectors;
 
 import jakarta.annotation.Priority;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -26,39 +25,20 @@ import org.eclipse.microprofile.reactive.messaging.spi.Connector;
 import org.eclipse.microprofile.reactive.messaging.spi.IncomingConnectorFactory;
 import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 
-import com.rabbitmq.client.AMQP;
-import com.rabbitmq.client.AlreadyClosedException;
 import com.rabbitmq.client.impl.CredentialsProvider;
 
-import io.smallrye.mutiny.Multi;
-import io.smallrye.mutiny.Uni;
-import io.smallrye.mutiny.tuples.Tuple2;
 import io.smallrye.reactive.messaging.annotations.ConnectorAttribute;
 import io.smallrye.reactive.messaging.connector.InboundConnector;
 import io.smallrye.reactive.messaging.connector.OutboundConnector;
 import io.smallrye.reactive.messaging.health.HealthReport;
 import io.smallrye.reactive.messaging.health.HealthReporter;
 import io.smallrye.reactive.messaging.providers.connectors.ExecutionHolder;
-import io.smallrye.reactive.messaging.providers.helpers.CDIUtils;
-import io.smallrye.reactive.messaging.providers.helpers.MultiUtils;
-import io.smallrye.reactive.messaging.providers.helpers.VertxContext;
-import io.smallrye.reactive.messaging.providers.impl.ConcurrencyConnectorConfig;
-import io.smallrye.reactive.messaging.rabbitmq.ack.RabbitMQAck;
-import io.smallrye.reactive.messaging.rabbitmq.ack.RabbitMQAckHandler;
-import io.smallrye.reactive.messaging.rabbitmq.ack.RabbitMQAutoAck;
 import io.smallrye.reactive.messaging.rabbitmq.fault.RabbitMQFailureHandler;
-import io.smallrye.reactive.messaging.rabbitmq.tracing.RabbitMQOpenTelemetryInstrumenter;
-import io.smallrye.reactive.messaging.rabbitmq.tracing.RabbitMQTrace;
-import io.vertx.core.impl.VertxInternal;
-import io.vertx.core.json.JsonObject;
-import io.vertx.mutiny.core.Context;
+import io.smallrye.reactive.messaging.rabbitmq.internals.IncomingRabbitMQChannel;
+import io.smallrye.reactive.messaging.rabbitmq.internals.OutgoingRabbitMQChannel;
 import io.vertx.mutiny.core.Vertx;
 import io.vertx.mutiny.rabbitmq.RabbitMQClient;
-import io.vertx.mutiny.rabbitmq.RabbitMQConsumer;
-import io.vertx.mutiny.rabbitmq.RabbitMQPublisher;
-import io.vertx.rabbitmq.QueueOptions;
 import io.vertx.rabbitmq.RabbitMQOptions;
-import io.vertx.rabbitmq.RabbitMQPublisherOptions;
 
 @ApplicationScoped
 @Connector(RabbitMQConnector.CONNECTOR_NAME)
@@ -156,39 +136,6 @@ import io.vertx.rabbitmq.RabbitMQPublisherOptions;
 public class RabbitMQConnector implements InboundConnector, OutboundConnector, HealthReporter {
     public static final String CONNECTOR_NAME = "smallrye-rabbitmq";
 
-    private enum ChannelStatus {
-        CONNECTED,
-        NOT_CONNECTED,
-        INITIALISING;
-    }
-
-    /**
-     * The list of RabbitMQClient's currently managed by this connector
-     */
-    private final Map<String, RabbitMQClient> clients = new ConcurrentHashMap<>();
-
-    /**
-     * The list of RabbitMQ consumers.
-     * This list is maintained to clean up the resources on termination.
-     */
-    private final List<RabbitMQConsumer> consumers = new CopyOnWriteArrayList<>();
-
-    /**
-     * The list of RabbitMQMessageSender's currently managed by this connector
-     */
-    private final Map<String, Flow.Subscription> subscriptions = new ConcurrentHashMap<>();
-
-    // Keyed on channel name, value is the channel connection state
-    private final Map<String, ChannelStatus> incomingChannelStatus = new ConcurrentHashMap<>();
-
-    private final Map<String, ChannelStatus> outgoingChannelStatus = new ConcurrentHashMap<>();
-
-    private final List<String> incomingReadiness = new CopyOnWriteArrayList<>();
-    private final List<String> lazySubscriptions = new CopyOnWriteArrayList<>();
-    private final List<String> outgoingReadiness = new CopyOnWriteArrayList<>();
-    private final List<String> incomingLiveness = new CopyOnWriteArrayList<>();
-    private final List<String> outgoingLiveness = new CopyOnWriteArrayList<>();
-
     @Inject
     ExecutionHolder executionHolder;
 
@@ -200,11 +147,12 @@ public class RabbitMQConnector implements InboundConnector, OutboundConnector, H
     @Any
     Instance<CredentialsProvider> credentialsProviders;
 
-    private volatile RabbitMQOpenTelemetryInstrumenter instrumenter;
-
     @Inject
     @Any
     Instance<RabbitMQFailureHandler.Factory> failureHandlerFactories;
+    private List<IncomingRabbitMQChannel> incomings = new CopyOnWriteArrayList<>();
+    private List<OutgoingRabbitMQChannel> outgoings = new CopyOnWriteArrayList<>();
+    private Map<String, RabbitMQClient> clients = new ConcurrentHashMap<>();
 
     @Inject
     @Any
@@ -212,40 +160,6 @@ public class RabbitMQConnector implements InboundConnector, OutboundConnector, H
 
     RabbitMQConnector() {
         // used for proxies
-    }
-
-    public static String getExchangeName(final RabbitMQConnectorCommonConfiguration config) {
-        return config.getExchangeName().map(s -> "\"\"".equals(s) ? "" : s).orElse(config.getChannel());
-    }
-
-    public static String getQueueName(final RabbitMQConnectorIncomingConfiguration config) {
-        return config.getQueueName().orElse(config.getChannel());
-    }
-
-    private Multi<? extends Message<?>> getStreamOfMessages(
-            RabbitMQConsumer receiver,
-            ConnectionHolder holder,
-            RabbitMQConnectorIncomingConfiguration ic,
-            RabbitMQFailureHandler onNack,
-            RabbitMQAckHandler onAck) {
-
-        final String queueName = getQueueName(ic);
-        final boolean isTracingEnabled = ic.getTracingEnabled();
-        final String contentTypeOverride = ic.getContentTypeOverride().orElse(null);
-        log.receiverListeningAddress(queueName);
-
-        if (isTracingEnabled) {
-            return receiver.toMulti()
-                    .emitOn(c -> VertxContext.runOnContext(holder.getContext().getDelegate(), c))
-                    .map(m -> new IncomingRabbitMQMessage<>(m, holder, onNack, onAck, contentTypeOverride))
-                    .map(msg -> instrumenter.traceIncoming(msg,
-                            RabbitMQTrace.traceQueue(queueName, msg.message.envelope().getRoutingKey(),
-                                    msg.getHeaders())));
-        } else {
-            return receiver.toMulti()
-                    .emitOn(c -> VertxContext.runOnContext(holder.getContext().getDelegate(), c))
-                    .map(m -> new IncomingRabbitMQMessage<>(m, holder, onNack, onAck, contentTypeOverride));
-        }
     }
 
     /**
@@ -266,145 +180,9 @@ public class RabbitMQConnector implements InboundConnector, OutboundConnector, H
     @Override
     public Flow.Publisher<? extends Message<?>> getPublisher(final Config config) {
         final RabbitMQConnectorIncomingConfiguration ic = new RabbitMQConnectorIncomingConfiguration(config);
-        if (ic.getTracingEnabled() && instrumenter == null) {
-            instrumenter = RabbitMQOpenTelemetryInstrumenter.createForConnector();
-        }
-        incomingChannelStatus.put(ic.getChannel(), ChannelStatus.INITIALISING);
-
-        final RabbitMQFailureHandler onNack = createFailureHandler(ic);
-        final RabbitMQAckHandler onAck = createAckHandler(ic);
-
-        final Integer connectionCount = ic.getConnectionCount();
-        Multi<? extends Message<?>> multi = Multi.createFrom().range(0, connectionCount)
-                .onItem().transformToUniAndMerge(connectionIdx -> {
-                    // Create a client
-                    final RabbitMQClient client = RabbitMQClientHelper.createClient(this, ic, clientOptions,
-                            credentialsProviders);
-                    client.getDelegate().addConnectionEstablishedCallback(promise -> {
-                        // Ensure we create the queues (and exchanges) from which messages will be read
-                        Uni.createFrom().nullItem()
-                                .onItem().call(ignored -> {
-                                    if (ic.getMaxOutstandingMessages().isPresent()) {
-                                        return client.basicQos(ic.getMaxOutstandingMessages().get(), false);
-                                    } else {
-                                        return Uni.createFrom().nullItem();
-                                    }
-                                })
-                                .onItem().call(() -> establishQueue(client, ic))
-                                .onItem().call(() -> establishDLQ(client, ic))
-                                .subscribe().with(ignored -> promise.complete(), promise::fail);
-                    });
-                    Context root = null;
-                    if (ConcurrencyConnectorConfig.getConcurrency(config).filter(i -> i > 1).isPresent()) {
-                        root = Context.newInstance(((VertxInternal) getVertx().getDelegate()).createEventLoopContext());
-                    }
-                    final ConnectionHolder holder = new ConnectionHolder(client, ic, getVertx(), root);
-                    return holder.getOrEstablishConnection()
-                            .invoke(() -> log.connectionEstablished(connectionIdx, ic.getChannel()))
-                            .flatMap(connection -> createConsumer(ic, connection).map(consumer -> Tuple2.of(holder, consumer)));
-                })
-                // Wait for all consumers to be created/connected
-                .collect().asList()
-                .onItem().invoke(() -> incomingChannelStatus.put(ic.getChannel(), ChannelStatus.CONNECTED))
-                // Translate all consumers into a merged stream of messages
-                .onItem().transformToMulti(tuples -> Multi.createFrom().iterable(tuples))
-                .flatMap(tuple -> getStreamOfMessages(tuple.getItem2(), tuple.getItem1(), ic, onNack, onAck));
-
-        if (Boolean.TRUE.equals(ic.getBroadcast())) {
-            multi = multi.broadcast().toAllSubscribers();
-        }
-
-        // Register health check
-        if (ic.getHealthEnabled()) {
-            incomingLiveness.add(ic.getChannel());
-            if (ic.getHealthReadinessEnabled()) {
-                incomingReadiness.add(ic.getChannel());
-            }
-            if (ic.getHealthLazySubscription()) {
-                lazySubscriptions.add(ic.getChannel());
-            }
-        }
-
-        return multi;
-    }
-
-    private Uni<RabbitMQConsumer> createConsumer(RabbitMQConnectorIncomingConfiguration ic, RabbitMQClient client) {
-        return client.basicConsumer(serverQueueName(getQueueName(ic)), new QueueOptions()
-                .setAutoAck(ic.getAutoAcknowledgement())
-                .setMaxInternalQueueSize(ic.getMaxIncomingInternalQueueSize())
-                .setKeepMostRecent(ic.getKeepMostRecent()))
-                .onItem().invoke(cons -> consumers.add(cons));
-    }
-
-    /**
-     * Establish a DLQ, possibly establishing a DLX too
-     *
-     * @param client the {@link RabbitMQClient}
-     * @param ic the {@link RabbitMQConnectorIncomingConfiguration}
-     * @return a {@link Uni<String>} containing the DLQ name
-     */
-    private Uni<?> establishDLQ(final RabbitMQClient client, final RabbitMQConnectorIncomingConfiguration ic) {
-        final String deadLetterQueueName = ic.getDeadLetterQueueName().orElse(String.format("%s.dlq", getQueueName(ic)));
-        final String deadLetterExchangeName = ic.getDeadLetterExchange();
-        final String deadLetterRoutingKey = ic.getDeadLetterRoutingKey().orElse(getQueueName(ic));
-
-        final JsonObject exchangeArgs = new JsonObject();
-        ic.getDeadLetterExchangeArguments().ifPresent(argsId -> {
-            Instance<Map<String, ?>> exchangeArguments = CDIUtils.getInstanceById(configMaps, argsId);
-            if (exchangeArguments.isResolvable()) {
-                Map<String, ?> argsMap = exchangeArguments.get();
-                argsMap.forEach(exchangeArgs::put);
-            }
-        });
-        // Declare the exchange if we have been asked to do so
-        final Uni<String> dlxFlow = Uni.createFrom()
-                .item(() -> ic.getAutoBindDlq() && ic.getDlxDeclare() ? null : deadLetterExchangeName)
-                .onItem().ifNull().switchTo(() -> client.exchangeDeclare(deadLetterExchangeName, ic.getDeadLetterExchangeType(),
-                        true, false, exchangeArgs)
-                        .onItem().invoke(() -> log.dlxEstablished(deadLetterExchangeName))
-                        .onFailure().invoke(ex -> log.unableToEstablishDlx(deadLetterExchangeName, ex))
-                        .onItem().transform(v -> deadLetterExchangeName));
-
-        // Declare the queue (and its binding to the exchange or DLQ type/mode) if we have been asked to do so
-        final JsonObject queueArgs = new JsonObject();
-        ic.getDeadLetterQueueArguments().ifPresent(argsId -> {
-            Instance<Map<String, ?>> queueArguments = CDIUtils.getInstanceById(configMaps, argsId);
-            if (queueArguments.isResolvable()) {
-                Map<String, ?> argsMap = queueArguments.get();
-                argsMap.forEach(queueArgs::put);
-            }
-        });
-        // x-dead-letter-exchange
-        ic.getDeadLetterDlx().ifPresent(deadLetterDlx -> queueArgs.put("x-dead-letter-exchange", deadLetterDlx));
-        // x-dead-letter-routing-key
-        ic.getDeadLetterDlxRoutingKey().ifPresent(deadLetterDlx -> queueArgs.put("x-dead-letter-routing-key", deadLetterDlx));
-        // x-queue-type
-        ic.getDeadLetterQueueType().ifPresent(queueType -> queueArgs.put("x-queue-type", queueType));
-        // x-queue-mode
-        ic.getDeadLetterQueueMode().ifPresent(queueMode -> queueArgs.put("x-queue-mode", queueMode));
-        // x-message-ttl
-        ic.getDeadLetterTtl().ifPresent(queueTtl -> {
-            if (queueTtl >= 0) {
-                queueArgs.put("x-message-ttl", queueTtl);
-            } else {
-                throw ex.illegalArgumentInvalidQueueTtl();
-            }
-        });
-        return dlxFlow
-                .onItem().transform(v -> Boolean.TRUE.equals(ic.getAutoBindDlq()) ? null : deadLetterQueueName)
-                .onItem().ifNull().switchTo(
-                        () -> client
-                                .queueDeclare(deadLetterQueueName, true, false, false, queueArgs)
-                                .onItem().invoke(() -> log.queueEstablished(deadLetterQueueName))
-                                .onFailure().invoke(ex -> log.unableToEstablishQueue(deadLetterQueueName, ex))
-                                .onItem()
-                                .call(v -> client.queueBind(deadLetterQueueName, deadLetterExchangeName, deadLetterRoutingKey))
-                                .onItem()
-                                .invoke(() -> log.deadLetterBindingEstablished(deadLetterQueueName, deadLetterExchangeName,
-                                        deadLetterRoutingKey))
-                                .onFailure()
-                                .invoke(ex -> log.unableToEstablishBinding(deadLetterQueueName, deadLetterExchangeName, ex))
-                                .onItem().transform(v -> deadLetterQueueName));
+        IncomingRabbitMQChannel incoming = new IncomingRabbitMQChannel(this, ic);
+        this.incomings.add(incoming);
+        return incoming.getStream();
     }
 
     /**
@@ -424,106 +202,34 @@ public class RabbitMQConnector implements InboundConnector, OutboundConnector, H
     @Override
     public Flow.Subscriber<? extends Message<?>> getSubscriber(final Config config) {
         final RabbitMQConnectorOutgoingConfiguration oc = new RabbitMQConnectorOutgoingConfiguration(config);
-        outgoingChannelStatus.put(oc.getChannel(), ChannelStatus.INITIALISING);
-
-        // Create a client
-        final RabbitMQClient client = RabbitMQClientHelper.createClient(this, oc, clientOptions, credentialsProviders);
-        client.getDelegate().addConnectionEstablishedCallback(promise -> {
-            // Ensure we create the exchange to which messages are to be sent
-            establishExchange(client, oc).subscribe().with((ignored) -> promise.complete(), promise::fail);
-        });
-
-        final ConnectionHolder holder = new ConnectionHolder(client, oc, getVertx(), null);
-        final Uni<RabbitMQPublisher> getSender = holder.getOrEstablishConnection()
-                .onItem().transformToUni(connection -> Uni.createFrom().item(RabbitMQPublisher.create(getVertx(), connection,
-                        new RabbitMQPublisherOptions()
-                                .setReconnectAttempts(oc.getReconnectAttempts())
-                                .setReconnectInterval(ofSeconds(oc.getReconnectInterval()).toMillis())
-                                .setMaxInternalQueueSize(oc.getMaxOutgoingInternalQueueSize().orElse(Integer.MAX_VALUE)))))
-                // Start the publisher
-                .onItem().call(RabbitMQPublisher::start)
-                .invoke(s -> {
-                    // Add the channel in the opened state
-                    outgoingChannelStatus.put(oc.getChannel(), ChannelStatus.CONNECTED);
-                })
-                .onFailure().invoke(t -> outgoingChannelStatus.put(oc.getChannel(), ChannelStatus.NOT_CONNECTED))
-                .onFailure().recoverWithNull()
-                .memoize().indefinitely()
-                .onCancellation().invoke(() -> outgoingChannelStatus.put(oc.getChannel(), ChannelStatus.NOT_CONNECTED));
-
-        // Set up a sender based on the publisher we established above
-        final RabbitMQMessageSender processor = new RabbitMQMessageSender(
-                oc,
-                getSender);
-        subscriptions.put(oc.getChannel(), processor);
-
-        // Register health check
-        if (oc.getHealthEnabled()) {
-            outgoingLiveness.add(oc.getChannel());
-            if (oc.getHealthReadinessEnabled()) {
-                outgoingReadiness.add(oc.getChannel());
-            }
-        }
-
-        // Return a SubscriberBuilder
-        return MultiUtils.via(processor, m -> m.onFailure().invoke(t -> {
-            log.error(oc.getChannel(), t);
-            outgoingChannelStatus.put(oc.getChannel(), ChannelStatus.NOT_CONNECTED);
-        }));
+        OutgoingRabbitMQChannel outgoing = new OutgoingRabbitMQChannel(this, oc);
+        outgoings.add(outgoing);
+        return outgoing.getSubscriber();
     }
 
     @Override
     public HealthReport getReadiness() {
-        return getHealth(incomingReadiness, outgoingReadiness);
+        HealthReport.HealthReportBuilder builder = HealthReport.builder();
+        for (IncomingRabbitMQChannel incoming : incomings) {
+            builder = incoming.isReady(builder);
+        }
+
+        for (OutgoingRabbitMQChannel outgoing : outgoings) {
+            builder = outgoing.isReady(builder);
+        }
+        return builder.build();
     }
 
     @Override
     public HealthReport getLiveness() {
-        return getHealth(incomingLiveness, outgoingLiveness);
-    }
-
-    public HealthReport getStrictHealth() {
-        final HealthReport.HealthReportBuilder builder = HealthReport.builder();
-
-        incomingChannelStatus.forEach((channel, status) -> builder.add(channel, status == ChannelStatus.CONNECTED));
-
-        outgoingChannelStatus.forEach((channel, status) -> builder.add(channel, status == ChannelStatus.CONNECTED));
-
-        return builder.build();
-    }
-
-    public HealthReport getHealth(List<String> incomingChannels, List<String> outgoingChannels) {
-        final HealthReport.HealthReportBuilder builder = HealthReport.builder();
-
-        for (String channel : incomingChannels) {
-            // Add health for incoming channels; since connections are made immediately
-            // for subscribers, we insist on channel status being connected (unless lazy subscription is enabled).
-            ChannelStatus status = incomingChannelStatus.get(channel);
-            if (status == null) {
-                builder.add(channel, false);
-            } else {
-                if (lazySubscriptions.contains(channel)) {
-                    builder.add(channel, status == ChannelStatus.CONNECTED || status == ChannelStatus.INITIALISING);
-                } else {
-                    builder.add(channel, status == ChannelStatus.CONNECTED);
-                }
-            }
+        HealthReport.HealthReportBuilder builder = HealthReport.builder();
+        for (IncomingRabbitMQChannel incoming : incomings) {
+            builder = incoming.isAlive(builder);
         }
 
-        for (String channel : outgoingChannels) {
-            // Add health for outgoing channels; since connections are made only on
-            // first message dispatch for publishers, we allow both connected and initialising
-            // unless in strict mode, in order to avoid a possible deadly embrace in
-            // kubernetes (k8s will refuse to allow the pod to accept traffic unless it is ready,
-            // and only if it is ready can e.g. calls be made to it that would trigger a message dispatch).
-            ChannelStatus status = outgoingChannelStatus.get(channel);
-            if (status == null) {
-                builder.add(channel, false);
-            } else {
-                builder.add(channel, status != ChannelStatus.NOT_CONNECTED);
-            }
+        for (OutgoingRabbitMQChannel outgoing : outgoings) {
+            builder = outgoing.isAlive(builder);
         }
-
         return builder.build();
     }
 
@@ -534,202 +240,31 @@ public class RabbitMQConnector implements InboundConnector, OutboundConnector, H
      */
     public void terminate(
             @SuppressWarnings("unused") @Observes(notifyObserver = Reception.IF_EXISTS) @Priority(50) @BeforeDestroyed(ApplicationScoped.class) Object ignored) {
-        subscriptions.forEach((channel, subscription) -> subscription.cancel());
-        consumers.forEach(consumer -> {
-            try {
-                consumer.cancelAndAwait();
-            } catch (AlreadyClosedException x) {
-                // Ignoring - already closed.
-            }
-        });
-        consumers.clear();
+        for (IncomingRabbitMQChannel incoming : incomings) {
+            incoming.terminate();
+        }
+
+        for (OutgoingRabbitMQChannel outgoing : outgoings) {
+            outgoing.terminate();
+        }
+
         clients.forEach((channel, rabbitMQClient) -> rabbitMQClient.stopAndAwait());
         clients.clear();
     }
 
-    public Vertx getVertx() {
+    public Vertx vertx() {
         return executionHolder.vertx();
     }
 
-    public void addClient(String channel, RabbitMQClient client) {
-        clients.put(channel, client);
-    }
-
-    public void establishQueue(String channel, RabbitMQConnectorIncomingConfiguration ic) {
-        final RabbitMQClient client = clients.get(channel);
-        client.getDelegate().addConnectionEstablishedCallback(promise -> {
-            establishQueue(client, ic).subscribe().with((ignored) -> promise.complete(), promise::fail);
-        });
-    }
-
-    /**
-     * Uses a {@link RabbitMQClient} to ensure the required exchange is created.
-     *
-     * @param client the RabbitMQ client
-     * @param config the channel configuration
-     * @return a {@link Uni<String>} which yields the exchange name
-     */
-    private Uni<String> establishExchange(
-            final RabbitMQClient client,
-            final RabbitMQConnectorCommonConfiguration config) {
-        final String exchangeName = getExchangeName(config);
-
-        JsonObject queueArgs = new JsonObject();
-        Instance<Map<String, ?>> queueArguments = CDIUtils.getInstanceById(configMaps, config.getExchangeArguments());
-        if (queueArguments.isResolvable()) {
-            Map<String, ?> argsMap = queueArguments.get();
-            argsMap.forEach(queueArgs::put);
+    public void registerClient(String channel, RabbitMQClient client) {
+        RabbitMQClient old = clients.put(channel, client);
+        if (old != null) {
+            old.stopAndForget();
         }
-        // Declare the exchange if we have been asked to do so and only when exchange name is not default ("")
-        boolean declareExchange = Boolean.TRUE.equals(config.getExchangeDeclare()) && !exchangeName.isEmpty();
-        if (declareExchange) {
-            return client.exchangeDeclare(exchangeName, config.getExchangeType(),
-                    config.getExchangeDurable(), config.getExchangeAutoDelete(), queueArgs)
-                    .onItem().invoke(() -> log.exchangeEstablished(exchangeName))
-                    .onFailure().invoke(ex -> log.unableToEstablishExchange(exchangeName, ex))
-                    .onItem().transform(v -> exchangeName);
-        } else {
-            return Uni.createFrom().item(exchangeName);
-        }
-    }
-
-    /**
-     * Uses a {@link RabbitMQClient} to ensure the required queue-exchange bindings are created.
-     *
-     * @param client the RabbitMQ client
-     * @param ic the incoming channel configuration
-     * @return a {@link Uni<String>} which yields the queue name
-     */
-    private Uni<String> establishQueue(
-            final RabbitMQClient client,
-            final RabbitMQConnectorIncomingConfiguration ic) {
-        final String queueName = getQueueName(ic);
-
-        // Declare the queue (and its binding(s) to the exchange, and TTL) if we have been asked to do so
-        final JsonObject queueArgs = new JsonObject();
-        Instance<Map<String, ?>> queueArguments = CDIUtils.getInstanceById(configMaps, ic.getQueueArguments());
-        if (queueArguments.isResolvable()) {
-            Map<String, ?> argsMap = queueArguments.get();
-            argsMap.forEach(queueArgs::put);
-        }
-        if (ic.getAutoBindDlq()) {
-            queueArgs.put("x-dead-letter-exchange", ic.getDeadLetterExchange());
-            queueArgs.put("x-dead-letter-routing-key", ic.getDeadLetterRoutingKey().orElse(queueName));
-        }
-        ic.getQueueSingleActiveConsumer().ifPresent(sac -> queueArgs.put("x-single-active-consumer", sac));
-        // x-queue-type
-        ic.getQueueXQueueType().ifPresent(queueType -> queueArgs.put("x-queue-type", queueType));
-        // x-queue-mode
-        ic.getQueueXQueueMode().ifPresent(queueMode -> queueArgs.put("x-queue-mode", queueMode));
-        // x-message-ttl
-        ic.getQueueTtl().ifPresent(queueTtl -> {
-            if (queueTtl >= 0) {
-                queueArgs.put("x-message-ttl", queueTtl);
-            } else {
-                throw ex.illegalArgumentInvalidQueueTtl();
-            }
-        });
-        //x-max-priority
-        ic.getQueueXMaxPriority().ifPresent(maxPriority -> queueArgs.put("x-max-priority", maxPriority));
-        //x-delivery-limit
-        ic.getQueueXDeliveryLimit().ifPresent(deliveryLimit -> queueArgs.put("x-delivery-limit", deliveryLimit));
-
-        return establishExchange(client, ic)
-                .onItem().transform(v -> Boolean.TRUE.equals(ic.getQueueDeclare()) ? null : queueName)
-                // Not declaring the queue, so validate its existence...
-                // Ensures RabbitMQClient is notified of invalid queues during connection cycle.
-                .onItem().ifNotNull().call(name -> client.messageCount(name).onFailure().invoke(log::unableToConnectToBroker))
-                // Declare the queue.
-                .onItem().ifNull().switchTo(() -> {
-                    String serverQueueName = serverQueueName(queueName);
-
-                    Uni<AMQP.Queue.DeclareOk> declare;
-                    if (serverQueueName.isEmpty()) {
-                        declare = client.queueDeclare(serverQueueName, false, true, true);
-                    } else {
-                        declare = client.queueDeclare(serverQueueName, ic.getQueueDurable(),
-                                ic.getQueueExclusive(), ic.getQueueAutoDelete(), queueArgs);
-                    }
-
-                    return declare
-                            .onItem().invoke(() -> log.queueEstablished(queueName))
-                            .onFailure().invoke(ex -> log.unableToEstablishQueue(queueName, ex))
-                            .onItem().transformToMulti(v -> establishBindings(client, ic))
-                            .onItem().ignoreAsUni().onItem().transform(v -> queueName);
-                });
-    }
-
-    /**
-     * Returns a stream that will create bindings from the queue to the exchange with each of the
-     * supplied routing keys.
-     *
-     * @param client the {@link RabbitMQClient} to use
-     * @param ic the incoming channel configuration
-     * @return a stream of routing keys
-     */
-    private Multi<String> establishBindings(
-            final RabbitMQClient client,
-            final RabbitMQConnectorIncomingConfiguration ic) {
-        final String exchangeName = getExchangeName(ic);
-        final String queueName = getQueueName(ic);
-        final List<String> routingKeys = Arrays.stream(ic.getRoutingKeys().split(","))
-                .map(String::trim).collect(Collectors.toList());
-        final Map<String, Object> arguments = parseArguments(ic.getArguments());
-
-        // Skip queue bindings if exchange name is default ("")
-        if (exchangeName.isEmpty()) {
-            return Multi.createFrom().empty();
-        }
-        return Multi.createFrom().iterable(routingKeys)
-                .onItem().call(routingKey -> client.queueBind(serverQueueName(queueName), exchangeName, routingKey, arguments))
-                .onItem()
-                .invoke(routingKey -> log.bindingEstablished(queueName, exchangeName, routingKey, arguments.toString()))
-                .onFailure().invoke(ex -> log.unableToEstablishBinding(queueName, exchangeName, ex));
-    }
-
-    private Map<String, Object> parseArguments(
-            final Optional<String> argumentsConfig) {
-        Map<String, Object> argumentsBinding = new HashMap<>();
-        argumentsConfig.ifPresent(args -> {
-            Arrays.stream(args.split(","))
-                    .map(String::trim)
-                    .forEach(argumentKeyValue -> {
-                        String[] argumentKeyValueSplit = argumentKeyValue.split(":");
-                        if (argumentKeyValueSplit.length == 2) {
-                            String key = argumentKeyValueSplit[0];
-                            String value = argumentKeyValueSplit[1];
-                            argumentsBinding.put(key, value);
-                        }
-                    });
-        });
-        return argumentsBinding;
-    }
-
-    private RabbitMQFailureHandler createFailureHandler(RabbitMQConnectorIncomingConfiguration config) {
-        String strategy = config.getFailureStrategy();
-        Instance<RabbitMQFailureHandler.Factory> failureHandlerFactory = CDIUtils.getInstanceById(failureHandlerFactories,
-                strategy);
-        if (failureHandlerFactory.isResolvable()) {
-            return failureHandlerFactory.get().create(config, this);
-        } else {
-            throw ex.illegalArgumentInvalidFailureStrategy(strategy);
-        }
-    }
-
-    private String serverQueueName(String name) {
-        if (name.equals("(server.auto)")) {
-            return "";
-        }
-        return name;
     }
 
     public void reportIncomingFailure(String channel, Throwable reason) {
         log.failureReported(channel, reason);
-        incomingChannelStatus.put(channel, ChannelStatus.NOT_CONNECTED);
-        Flow.Subscription subscription = subscriptions.remove(channel);
-        if (subscription != null) {
-            subscription.cancel();
-        }
         RabbitMQClient client = clients.remove(channel);
         if (client != null) {
             // Called on vertx context, we can't block: stop clients without waiting
@@ -737,8 +272,19 @@ public class RabbitMQConnector implements InboundConnector, OutboundConnector, H
         }
     }
 
-    public RabbitMQAckHandler createAckHandler(RabbitMQConnectorIncomingConfiguration ic) {
-        return (Boolean.TRUE.equals(ic.getAutoAcknowledgement())) ? new RabbitMQAutoAck(ic.getChannel())
-                : new RabbitMQAck(ic.getChannel());
+    public Instance<RabbitMQFailureHandler.Factory> failureHandlerFactories() {
+        return failureHandlerFactories;
+    }
+
+    public Instance<RabbitMQOptions> clientOptions() {
+        return clientOptions;
+    }
+
+    public Instance<CredentialsProvider> credentialsProviders() {
+        return credentialsProviders;
+    }
+
+    public Instance<Map<String, ?>> configMaps() {
+        return configMaps;
     }
 }
