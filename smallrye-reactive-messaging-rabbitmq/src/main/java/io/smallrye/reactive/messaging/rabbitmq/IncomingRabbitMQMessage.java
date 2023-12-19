@@ -50,10 +50,10 @@ public class IncomingRabbitMQMessage<T> implements ContextAwareMessage<T>, Metad
         }
     }
 
-    protected final io.vertx.rabbitmq.RabbitMQMessage message;
+    public final io.vertx.rabbitmq.RabbitMQMessage message;
     protected Metadata metadata;
     protected final IncomingRabbitMQMetadata rabbitMQMetadata;
-    private final ConnectionHolder holder;
+    private final ClientHolder holder;
     private final Context context;
     private final long deliveryTag;
     private RabbitMQFailureHandler onNack;
@@ -61,13 +61,13 @@ public class IncomingRabbitMQMessage<T> implements ContextAwareMessage<T>, Metad
     private final String contentTypeOverride;
     private final T payload;
 
-    IncomingRabbitMQMessage(RabbitMQMessage delegate, ConnectionHolder holder,
+    public IncomingRabbitMQMessage(RabbitMQMessage delegate, ClientHolder holder,
             RabbitMQFailureHandler onNack,
             RabbitMQAckHandler onAck, String contentTypeOverride) {
         this(delegate.getDelegate(), holder, onNack, onAck, contentTypeOverride);
     }
 
-    IncomingRabbitMQMessage(io.vertx.rabbitmq.RabbitMQMessage msg, ConnectionHolder holder,
+    IncomingRabbitMQMessage(io.vertx.rabbitmq.RabbitMQMessage msg, ClientHolder holder,
             RabbitMQFailureHandler onNack, RabbitMQAckHandler onAck, String contentTypeOverride) {
         this.message = msg;
         this.deliveryTag = msg.envelope().getDeliveryTag();

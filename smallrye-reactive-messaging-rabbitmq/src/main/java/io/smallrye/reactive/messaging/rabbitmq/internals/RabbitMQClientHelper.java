@@ -1,4 +1,4 @@
-package io.smallrye.reactive.messaging.rabbitmq;
+package io.smallrye.reactive.messaging.rabbitmq.internals;
 
 import static com.rabbitmq.client.impl.DefaultCredentialsRefreshService.fixedTimeApproachingExpirationStrategy;
 import static com.rabbitmq.client.impl.DefaultCredentialsRefreshService.ratioRefreshDelayStrategy;
@@ -8,10 +8,7 @@ import static io.vertx.core.net.ClientOptionsBase.DEFAULT_METRICS_NAME;
 import static java.time.Duration.ofSeconds;
 
 import java.time.Duration;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 import jakarta.enterprise.inject.Instance;
 import jakarta.enterprise.inject.literal.NamedLiteral;
@@ -22,6 +19,9 @@ import com.rabbitmq.client.impl.DefaultCredentialsRefreshService;
 
 import io.smallrye.common.annotation.Identifier;
 import io.smallrye.reactive.messaging.providers.i18n.ProviderLogging;
+import io.smallrye.reactive.messaging.rabbitmq.RabbitMQConnector;
+import io.smallrye.reactive.messaging.rabbitmq.RabbitMQConnectorCommonConfiguration;
+import io.smallrye.reactive.messaging.rabbitmq.RabbitMQConnectorIncomingConfiguration;
 import io.vertx.core.net.JksOptions;
 import io.vertx.mutiny.core.Vertx;
 import io.vertx.mutiny.rabbitmq.RabbitMQClient;
@@ -39,7 +39,7 @@ public class RabbitMQClientHelper {
     static RabbitMQClient createClient(RabbitMQConnector connector, RabbitMQConnectorCommonConfiguration config,
             Instance<RabbitMQOptions> optionsInstances, Instance<CredentialsProvider> credentialsProviderInstances) {
         Optional<String> clientOptionsName = config.getClientOptionsName();
-        Vertx vertx = connector.getVertx();
+        Vertx vertx = connector.vertx();
         RabbitMQOptions options;
         try {
             if (clientOptionsName.isPresent()) {
@@ -146,5 +146,28 @@ public class RabbitMQClientHelper {
         }
 
         return options;
+    }
+
+    public static String serverQueueName(String name) {
+        if (name.equals("(server.auto)")) {
+            return "";
+        }
+        return name;
+    }
+
+    public static Map<String, Object> parseArguments(
+            final Optional<String> argumentsConfig) {
+        Map<String, Object> argumentsBinding = new HashMap<>();
+        if (argumentsConfig.isPresent()) {
+            for (String segment : argumentsConfig.get().split(",")) {
+                String[] argumentKeyValueSplit = segment.trim().split(":");
+                if (argumentKeyValueSplit.length == 2) {
+                    String key = argumentKeyValueSplit[0];
+                    String value = argumentKeyValueSplit[1];
+                    argumentsBinding.put(key, value);
+                }
+            }
+        }
+        return argumentsBinding;
     }
 }

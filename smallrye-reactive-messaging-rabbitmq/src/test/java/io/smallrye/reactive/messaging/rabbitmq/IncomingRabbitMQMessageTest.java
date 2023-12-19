@@ -49,7 +49,7 @@ public class IncomingRabbitMQMessageTest {
 
         Exception nackReason = new Exception("test");
 
-        IncomingRabbitMQMessage<String> ackMsg = new IncomingRabbitMQMessage<>(msg, mock(ConnectionHolder.class),
+        IncomingRabbitMQMessage<String> ackMsg = new IncomingRabbitMQMessage<>(msg, mock(ClientHolder.class),
                 doNothingNack,
                 doNothingAck,
                 "text/plain");
@@ -69,7 +69,7 @@ public class IncomingRabbitMQMessageTest {
 
         Exception nackReason = new Exception("test");
 
-        IncomingRabbitMQMessage<String> nackMsg = new IncomingRabbitMQMessage<>(msg, mock(ConnectionHolder.class),
+        IncomingRabbitMQMessage<String> nackMsg = new IncomingRabbitMQMessage<>(msg, mock(ClientHolder.class),
                 doNothingNack,
                 doNothingAck,
                 "text/plain");
@@ -88,7 +88,7 @@ public class IncomingRabbitMQMessageTest {
         RabbitMQMessage msg = RabbitMQMessage.newInstance(mockMsg);
 
         IncomingRabbitMQMessage<String> incomingRabbitMQMessage = new IncomingRabbitMQMessage<>(msg,
-                mock(ConnectionHolder.class),
+                mock(ClientHolder.class),
                 doNothingNack, doNothingAck, "text/plain");
 
         assertThat(incomingRabbitMQMessage.getPayload()).isEqualTo("payload");
@@ -105,7 +105,7 @@ public class IncomingRabbitMQMessageTest {
         RabbitMQMessage msg = RabbitMQMessage.newInstance(mockMsg);
 
         IncomingRabbitMQMessage<JsonObject> incomingRabbitMQMessage = new IncomingRabbitMQMessage<>(msg,
-                mock(ConnectionHolder.class),
+                mock(ClientHolder.class),
                 doNothingNack, doNothingAck, null);
 
         assertThat(incomingRabbitMQMessage.getPayload()).isEqualTo(payload);
@@ -121,7 +121,7 @@ public class IncomingRabbitMQMessageTest {
         RabbitMQMessage msg = RabbitMQMessage.newInstance(mockMsg);
 
         IncomingRabbitMQMessage<JsonObject> incomingRabbitMQMessage = new IncomingRabbitMQMessage<>(msg,
-                mock(ConnectionHolder.class),
+                mock(ClientHolder.class),
                 doNothingNack, doNothingAck, null);
 
         assertThat(((Message<byte[]>) ((Message) incomingRabbitMQMessage)).getPayload()).isEqualTo(payloadBuffer.getBytes());

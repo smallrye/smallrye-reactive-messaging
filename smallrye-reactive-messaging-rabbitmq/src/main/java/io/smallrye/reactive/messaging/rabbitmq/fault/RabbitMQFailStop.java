@@ -49,6 +49,6 @@ public class RabbitMQFailStop implements RabbitMQFailureHandler {
         boolean requeue = Optional.ofNullable(metadata)
                 .flatMap(md -> md.get(RabbitMQRejectMetadata.class))
                 .map(RabbitMQRejectMetadata::isRequeue).orElse(false);
-        return ConnectionHolder.runOnContextAndReportFailure(context, reason, msg, (m) -> m.rejectMessage(reason, requeue));
+        return ClientHolder.runOnContextAndReportFailure(context, reason, msg, (m) -> m.rejectMessage(reason, requeue));
     }
 }

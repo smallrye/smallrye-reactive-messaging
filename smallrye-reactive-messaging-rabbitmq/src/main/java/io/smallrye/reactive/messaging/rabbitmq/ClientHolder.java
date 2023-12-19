@@ -4,6 +4,7 @@ import static io.smallrye.reactive.messaging.rabbitmq.i18n.RabbitMQExceptions.ex
 import static io.smallrye.reactive.messaging.rabbitmq.i18n.RabbitMQLogging.log;
 
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -15,25 +16,30 @@ import io.vertx.mutiny.core.Context;
 import io.vertx.mutiny.core.Vertx;
 import io.vertx.mutiny.rabbitmq.RabbitMQClient;
 
-public class ConnectionHolder {
+public class ClientHolder {
 
     private final RabbitMQClient client;
+
+    private final AtomicBoolean connected = new AtomicBoolean(false);
     private final AtomicReference<CurrentConnection> connectionHolder = new AtomicReference<>();
-    private final Uni<RabbitMQClient> connector;
+    private final Uni<RabbitMQClient> connection;
 
     private final Vertx vertx;
 
-    public ConnectionHolder(RabbitMQClient client,
+    public ClientHolder(RabbitMQClient client,
             RabbitMQConnectorCommonConfiguration configuration,
             Vertx vertx,
             Context root) {
         this.client = client;
         this.vertx = vertx;
-        this.connector = Uni.createFrom().voidItem()
+        this.connection = Uni.createFrom().voidItem()
                 .onItem().transformToUni(unused -> {
                     log.establishingConnection(configuration.getChannel());
                     return client.start()
-                            .onSubscription().invoke(() -> log.connectionEstablished(configuration.getChannel()))
+                            .onSubscription().invoke(() -> {
+                                connected.set(true);
+                                log.connectionEstablished(configuration.getChannel());
+                            })
                             .onItem().transform(ignored -> {
                                 connectionHolder
                                         .set(new CurrentConnection(client, root == null ? Vertx.currentContext() : root));
@@ -44,7 +50,6 @@ public class ConnectionHolder {
                                     connectionHolder.set(null);
                                     throw ex.illegalStateConnectionDisconnected();
                                 }
-
                                 return client;
                             })
                             .onFailure().invoke(log::unableToConnectToBroker)
@@ -58,7 +63,7 @@ public class ConnectionHolder {
                     if (connection == null) {
                         return true;
                     }
-                    return !connection.connection.isConnected();
+                    return !connection.client.isConnected();
                 });
 
     }
@@ -88,6 +93,14 @@ public class ConnectionHolder {
         }
     }
 
+    public RabbitMQClient client() {
+        return client;
+    }
+
+    public boolean hasBeenConnected() {
+        return connected.get();
+    }
+
     @CheckReturnValue
     public Uni<Void> getAck(final long deliveryTag) {
         return client.basicAck(deliveryTag, false);
@@ -103,16 +116,16 @@ public class ConnectionHolder {
 
     @CheckReturnValue
     public Uni<RabbitMQClient> getOrEstablishConnection() {
-        return connector;
+        return connection;
     }
 
     private static class CurrentConnection {
 
-        final RabbitMQClient connection;
+        final RabbitMQClient client;
         final Context context;
 
-        private CurrentConnection(RabbitMQClient connection, Context context) {
-            this.connection = connection;
+        private CurrentConnection(RabbitMQClient client, Context context) {
+            this.client = client;
             this.context = context;
         }
     }
