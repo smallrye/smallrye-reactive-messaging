@@ -88,6 +88,15 @@ public class HealthReport {
         public boolean isOk() {
             return ok;
         }
+
+        @Override
+        public String toString() {
+            return "ChannelInfo{" +
+                    "channel='" + channel + '\'' +
+                    ", message='" + message + '\'' +
+                    ", ok=" + ok +
+                    '}';
+        }
     }
 
     /**

@@ -1,6 +1,7 @@
-package io.smallrye.reactive.messaging.rabbitmq;
+package io.smallrye.reactive.messaging.rabbitmq.internals;
 
 import static io.smallrye.reactive.messaging.rabbitmq.i18n.RabbitMQExceptions.ex;
+import static io.smallrye.reactive.messaging.rabbitmq.internals.RabbitMQConsumerHelper.getExchangeName;
 import static java.time.Duration.ofSeconds;
 
 import java.util.Optional;
@@ -15,6 +16,8 @@ import org.eclipse.microprofile.reactive.messaging.Message;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.helpers.Subscriptions;
 import io.smallrye.mutiny.tuples.Tuple2;
+import io.smallrye.reactive.messaging.rabbitmq.RabbitMQConnectorOutgoingConfiguration;
+import io.smallrye.reactive.messaging.rabbitmq.RabbitMQMessageConverter;
 import io.smallrye.reactive.messaging.rabbitmq.i18n.RabbitMQExceptions;
 import io.smallrye.reactive.messaging.rabbitmq.i18n.RabbitMQLogging;
 import io.smallrye.reactive.messaging.rabbitmq.tracing.RabbitMQOpenTelemetryInstrumenter;
@@ -50,7 +53,7 @@ public class RabbitMQMessageSender implements Processor<Message<?>, Message<?>>,
             final Uni<RabbitMQPublisher> retrieveSender) {
         this.retrieveSender = retrieveSender;
         this.configuration = oc;
-        this.configuredExchange = RabbitMQConnector.getExchangeName(oc);
+        this.configuredExchange = getExchangeName(oc);
         this.isTracingEnabled = oc.getTracingEnabled();
         this.inflights = oc.getMaxInflightMessages();
         this.defaultTtl = oc.getDefaultTtl();

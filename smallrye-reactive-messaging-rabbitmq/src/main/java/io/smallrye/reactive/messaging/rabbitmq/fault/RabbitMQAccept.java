@@ -9,7 +9,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import org.eclipse.microprofile.reactive.messaging.Metadata;
 
 import io.smallrye.common.annotation.Identifier;
-import io.smallrye.reactive.messaging.rabbitmq.ConnectionHolder;
+import io.smallrye.reactive.messaging.rabbitmq.ClientHolder;
 import io.smallrye.reactive.messaging.rabbitmq.IncomingRabbitMQMessage;
 import io.smallrye.reactive.messaging.rabbitmq.RabbitMQConnector;
 import io.smallrye.reactive.messaging.rabbitmq.RabbitMQConnectorIncomingConfiguration;
@@ -46,6 +46,6 @@ public class RabbitMQAccept implements RabbitMQFailureHandler {
         // We mark the message as rejected and fail.
         log.nackedAcceptMessage(channel);
         log.fullIgnoredFailure(reason);
-        return ConnectionHolder.runOnContext(context, msg, IncomingRabbitMQMessage::acknowledgeMessage);
+        return ClientHolder.runOnContext(context, msg, IncomingRabbitMQMessage::acknowledgeMessage);
     }
 }
