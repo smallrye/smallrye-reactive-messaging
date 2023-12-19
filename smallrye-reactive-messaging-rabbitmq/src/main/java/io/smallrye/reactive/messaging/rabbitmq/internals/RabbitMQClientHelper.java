@@ -18,10 +18,13 @@ import com.rabbitmq.client.impl.CredentialsProvider;
 import com.rabbitmq.client.impl.DefaultCredentialsRefreshService;
 
 import io.smallrye.common.annotation.Identifier;
+import io.smallrye.mutiny.Uni;
+import io.smallrye.reactive.messaging.providers.helpers.CDIUtils;
 import io.smallrye.reactive.messaging.providers.i18n.ProviderLogging;
 import io.smallrye.reactive.messaging.rabbitmq.RabbitMQConnector;
 import io.smallrye.reactive.messaging.rabbitmq.RabbitMQConnectorCommonConfiguration;
 import io.smallrye.reactive.messaging.rabbitmq.RabbitMQConnectorIncomingConfiguration;
+import io.vertx.core.json.JsonObject;
 import io.vertx.core.net.JksOptions;
 import io.vertx.mutiny.core.Vertx;
 import io.vertx.mutiny.rabbitmq.RabbitMQClient;
@@ -148,6 +151,10 @@ public class RabbitMQClientHelper {
         return options;
     }
 
+    public static String getExchangeName(final RabbitMQConnectorCommonConfiguration config) {
+        return config.getExchangeName().map(s -> "\"\"".equals(s) ? "" : s).orElse(config.getChannel());
+    }
+
     public static String serverQueueName(String name) {
         if (name.equals("(server.auto)")) {
             return "";
@@ -170,4 +177,39 @@ public class RabbitMQClientHelper {
         }
         return argumentsBinding;
     }
+
+    /**
+     * Uses a {@link RabbitMQClient} to ensure the required exchange is created.
+     *
+     * @param client the RabbitMQ client
+     * @param config the channel configuration
+     * @return a {@link Uni <String>} which yields the exchange name
+     */
+    public static Uni<String> declareExchangeIfNeeded(
+            final RabbitMQClient client,
+            final RabbitMQConnectorCommonConfiguration config,
+            final Instance<Map<String, ?>> configMaps) {
+        final String exchangeName = getExchangeName(config);
+
+        JsonObject queueArgs = new JsonObject();
+        Instance<Map<String, ?>> queueArguments = CDIUtils.getInstanceById(configMaps, config.getExchangeArguments());
+        if (queueArguments.isResolvable()) {
+            Map<String, ?> argsMap = queueArguments.get();
+            argsMap.forEach(queueArgs::put);
+        }
+
+        // Declare the exchange if we have been asked to do so and only when exchange name is not default ("")
+        boolean declareExchange = config.getExchangeDeclare() && !exchangeName.isEmpty();
+        if (declareExchange) {
+            return client
+                    .exchangeDeclare(exchangeName, config.getExchangeType(),
+                            config.getExchangeDurable(), config.getExchangeAutoDelete(), queueArgs)
+                    .replaceWith(exchangeName)
+                    .invoke(() -> log.exchangeEstablished(exchangeName))
+                    .onFailure().invoke(ex -> log.unableToEstablishExchange(exchangeName, ex));
+        } else {
+            return Uni.createFrom().item(exchangeName);
+        }
+    }
+
 }

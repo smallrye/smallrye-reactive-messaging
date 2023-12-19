@@ -1,7 +1,7 @@
 package io.smallrye.reactive.messaging.rabbitmq.internals;
 
 import static io.smallrye.reactive.messaging.rabbitmq.i18n.RabbitMQExceptions.ex;
-import static io.smallrye.reactive.messaging.rabbitmq.internals.RabbitMQConsumerHelper.getExchangeName;
+import static io.smallrye.reactive.messaging.rabbitmq.internals.RabbitMQClientHelper.getExchangeName;
 import static java.time.Duration.ofSeconds;
 
 import java.util.Optional;
