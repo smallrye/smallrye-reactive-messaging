@@ -1,7 +1,7 @@
 package io.smallrye.reactive.messaging.rabbitmq.internals;
 
 import static io.smallrye.reactive.messaging.rabbitmq.i18n.RabbitMQExceptions.ex;
-import static io.smallrye.reactive.messaging.rabbitmq.internals.RabbitMQConsumerHelper.getExchangeName;
+import static io.smallrye.reactive.messaging.rabbitmq.internals.RabbitMQClientHelper.getExchangeName;
 import static java.time.Duration.ofSeconds;
 
 import java.util.Optional;
@@ -155,9 +155,8 @@ public class RabbitMQMessageSender implements Processor<Message<?>, Message<?>>,
                                 .onItem().transform(m -> Tuple2.of(sender, m));
                     } catch (Exception e) {
                         // Message can't be sent - nacking and skipping.
-                        message.nack(e);
                         RabbitMQLogging.log.serializationFailure(configuration.getChannel(), e);
-                        return Uni.createFrom().nullItem();
+                        return Uni.createFrom().completionStage(message.nack(e)).map(unused -> null);
                     }
                 })
                 .subscribe().with(

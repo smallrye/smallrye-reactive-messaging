@@ -32,32 +32,28 @@ public class ClientHolder {
             Context root) {
         this.client = client;
         this.vertx = vertx;
-        this.connection = Uni.createFrom().voidItem()
-                .onItem().transformToUni(unused -> {
-                    log.establishingConnection(configuration.getChannel());
-                    return client.start()
-                            .onSubscription().invoke(() -> {
-                                connected.set(true);
-                                log.connectionEstablished(configuration.getChannel());
-                            })
-                            .onItem().transform(ignored -> {
-                                connectionHolder
-                                        .set(new CurrentConnection(client, root == null ? Vertx.currentContext() : root));
-
-                                // handle the case we are already disconnected.
-                                if (!client.isConnected() || connectionHolder.get() == null) {
-                                    // Throwing the exception would trigger a retry.
-                                    connectionHolder.set(null);
-                                    throw ex.illegalStateConnectionDisconnected();
-                                }
-                                return client;
-                            })
-                            .onFailure().invoke(log::unableToConnectToBroker)
-                            .onFailure().invoke(t -> {
-                                connectionHolder.set(null);
-                                log.unableToRecoverFromConnectionDisruption(t);
-                            });
+        this.connection = Uni.createFrom().deferred(() -> client.start()
+                .onSubscription().invoke(() -> {
+                    connected.set(true);
+                    log.connectionEstablished(configuration.getChannel());
                 })
+                .onItem().transform(ignored -> {
+                    connectionHolder
+                            .set(new CurrentConnection(client, root == null ? Vertx.currentContext() : root));
+
+                    // handle the case we are already disconnected.
+                    if (!client.isConnected() || connectionHolder.get() == null) {
+                        // Throwing the exception would trigger a retry.
+                        connectionHolder.set(null);
+                        throw ex.illegalStateConnectionDisconnected();
+                    }
+                    return client;
+                })
+                .onFailure().invoke(log::unableToConnectToBroker)
+                .onFailure().invoke(t -> {
+                    connectionHolder.set(null);
+                    log.unableToRecoverFromConnectionDisruption(t);
+                }))
                 .memoize().until(() -> {
                     CurrentConnection connection = connectionHolder.get();
                     if (connection == null) {

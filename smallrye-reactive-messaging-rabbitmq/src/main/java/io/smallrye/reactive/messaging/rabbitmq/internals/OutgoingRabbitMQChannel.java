@@ -1,6 +1,7 @@
 package io.smallrye.reactive.messaging.rabbitmq.internals;
 
 import static io.smallrye.reactive.messaging.rabbitmq.i18n.RabbitMQLogging.log;
+import static io.smallrye.reactive.messaging.rabbitmq.internals.RabbitMQClientHelper.declareExchangeIfNeeded;
 import static java.time.Duration.ofSeconds;
 
 import java.util.Map;
@@ -39,7 +40,7 @@ public class OutgoingRabbitMQChannel {
         final RabbitMQClient client = RabbitMQClientHelper.createClient(connector, oc, clientOptions, credentialsProviders);
         client.getDelegate().addConnectionEstablishedCallback(promise -> {
             // Ensure we create the exchange to which messages are to be sent
-            RabbitMQConsumerHelper.declareExchangeIfNeeded(client, oc, configMaps)
+            declareExchangeIfNeeded(client, oc, configMaps)
                     .subscribe().with((ignored) -> promise.complete(), promise::fail);
         });
 
