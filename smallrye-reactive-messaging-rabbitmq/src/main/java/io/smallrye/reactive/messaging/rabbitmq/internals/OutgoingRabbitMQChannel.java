@@ -4,14 +4,9 @@ import static io.smallrye.reactive.messaging.rabbitmq.i18n.RabbitMQLogging.log;
 import static io.smallrye.reactive.messaging.rabbitmq.internals.RabbitMQClientHelper.declareExchangeIfNeeded;
 import static java.time.Duration.ofSeconds;
 
-import java.util.Map;
 import java.util.concurrent.Flow;
 
-import jakarta.enterprise.inject.Instance;
-
 import org.eclipse.microprofile.reactive.messaging.Message;
-
-import com.rabbitmq.client.impl.CredentialsProvider;
 
 import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.health.HealthReport;
@@ -21,7 +16,6 @@ import io.smallrye.reactive.messaging.rabbitmq.RabbitMQConnector;
 import io.smallrye.reactive.messaging.rabbitmq.RabbitMQConnectorOutgoingConfiguration;
 import io.vertx.mutiny.rabbitmq.RabbitMQClient;
 import io.vertx.mutiny.rabbitmq.RabbitMQPublisher;
-import io.vertx.rabbitmq.RabbitMQOptions;
 import io.vertx.rabbitmq.RabbitMQPublisherOptions;
 
 public class OutgoingRabbitMQChannel {
@@ -31,16 +25,14 @@ public class OutgoingRabbitMQChannel {
     private final ClientHolder holder;
     private volatile RabbitMQPublisher publisher;
 
-    public OutgoingRabbitMQChannel(RabbitMQConnector connector, RabbitMQConnectorOutgoingConfiguration oc,
-            Instance<RabbitMQOptions> clientOptions, Instance<CredentialsProvider> credentialsProviders,
-            Instance<Map<String, ?>> configMaps) {
+    public OutgoingRabbitMQChannel(RabbitMQConnector connector, RabbitMQConnectorOutgoingConfiguration oc) {
 
         this.config = oc;
         // Create a client
-        final RabbitMQClient client = RabbitMQClientHelper.createClient(connector, oc, clientOptions, credentialsProviders);
+        final RabbitMQClient client = RabbitMQClientHelper.createClient(connector, oc);
         client.getDelegate().addConnectionEstablishedCallback(promise -> {
             // Ensure we create the exchange to which messages are to be sent
-            declareExchangeIfNeeded(client, oc, configMaps)
+            RabbitMQClientHelper.declareExchangeIfNeeded(client, oc, connector.configMaps())
                     .subscribe().with((ignored) -> promise.complete(), promise::fail);
         });
 

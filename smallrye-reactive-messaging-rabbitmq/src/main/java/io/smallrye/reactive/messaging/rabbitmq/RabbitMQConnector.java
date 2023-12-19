@@ -180,8 +180,7 @@ public class RabbitMQConnector implements InboundConnector, OutboundConnector, H
     @Override
     public Flow.Publisher<? extends Message<?>> getPublisher(final Config config) {
         final RabbitMQConnectorIncomingConfiguration ic = new RabbitMQConnectorIncomingConfiguration(config);
-        IncomingRabbitMQChannel incoming = new IncomingRabbitMQChannel(
-                this, ic, failureHandlerFactories, clientOptions, credentialsProviders, configMaps);
+        IncomingRabbitMQChannel incoming = new IncomingRabbitMQChannel(this, ic);
         this.incomings.add(incoming);
         return incoming.getStream();
     }
@@ -203,8 +202,7 @@ public class RabbitMQConnector implements InboundConnector, OutboundConnector, H
     @Override
     public Flow.Subscriber<? extends Message<?>> getSubscriber(final Config config) {
         final RabbitMQConnectorOutgoingConfiguration oc = new RabbitMQConnectorOutgoingConfiguration(config);
-        OutgoingRabbitMQChannel outgoing = new OutgoingRabbitMQChannel(this, oc, clientOptions, credentialsProviders,
-                configMaps);
+        OutgoingRabbitMQChannel outgoing = new OutgoingRabbitMQChannel(this, oc);
         outgoings.add(outgoing);
         return outgoing.getSubscriber();
     }
@@ -258,8 +256,11 @@ public class RabbitMQConnector implements InboundConnector, OutboundConnector, H
         return executionHolder.vertx();
     }
 
-    public void addClient(String channel, RabbitMQClient client) {
-        clients.put(channel, client);
+    public void registerClient(String channel, RabbitMQClient client) {
+        RabbitMQClient old = clients.put(channel, client);
+        if (old != null) {
+            old.stopAndForget();
+        }
     }
 
     public void reportIncomingFailure(String channel, Throwable reason) {
@@ -271,4 +272,19 @@ public class RabbitMQConnector implements InboundConnector, OutboundConnector, H
         }
     }
 
+    public Instance<RabbitMQFailureHandler.Factory> failureHandlerFactories() {
+        return failureHandlerFactories;
+    }
+
+    public Instance<RabbitMQOptions> clientOptions() {
+        return clientOptions;
+    }
+
+    public Instance<CredentialsProvider> credentialsProviders() {
+        return credentialsProviders;
+    }
+
+    public Instance<Map<String, ?>> configMaps() {
+        return configMaps;
+    }
 }
