@@ -127,10 +127,6 @@ public interface RabbitMQLogging extends BasicLogger {
     @Message(id = 17038, value = "No valid content_type set, failing back to byte[]. If that's wanted, set the content type to application/octet-stream with \"content-type-override\"")
     void typeConversionFallback();
 
-    @LogMessage(level = Level.DEBUG)
-    @Message(id = 17039, value = "Connection '%d' with RabbitMQ broker established for channel `%s`")
-    void connectionEstablished(int connectionIndex, String channel);
-
     @LogMessage(level = Logger.Level.DEBUG)
     @Message(id = 17040, value = "Established dead letter binding of queue `%s` to exchange '%s' using routing key '%s'")
     void deadLetterBindingEstablished(String queueName, String exchangeName, String routingKey);

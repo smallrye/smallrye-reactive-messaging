@@ -20,14 +20,8 @@ public class HealthTest extends WeldTestBase {
         return new MapBasedConfig()
                 .with("mp.messaging.incoming.in.queue.name", "in")
                 .with("mp.messaging.incoming.in.connector", RabbitMQConnector.CONNECTOR_NAME)
-                .with("mp.messaging.incoming.in.host", host)
-                .with("mp.messaging.incoming.in.port", port)
-                .with("rabbitmq-username", username)
-                .with("rabbitmq-password", password)
                 .with("mp.messaging.outgoing.out.queue.name", "out")
-                .with("mp.messaging.outgoing.out.connector", RabbitMQConnector.CONNECTOR_NAME)
-                .with("mp.messaging.outgoing.out.host", host)
-                .with("mp.messaging.outgoing.out.port", port);
+                .with("mp.messaging.outgoing.out.connector", RabbitMQConnector.CONNECTOR_NAME);
     }
 
     @Test

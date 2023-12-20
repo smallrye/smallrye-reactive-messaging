@@ -2,15 +2,11 @@ package io.smallrye.reactive.messaging.rabbitmq.internals;
 
 import static io.smallrye.reactive.messaging.rabbitmq.i18n.RabbitMQExceptions.ex;
 import static io.smallrye.reactive.messaging.rabbitmq.i18n.RabbitMQLogging.log;
-import static io.smallrye.reactive.messaging.rabbitmq.internals.RabbitMQClientHelper.declareExchangeIfNeeded;
 import static io.smallrye.reactive.messaging.rabbitmq.internals.RabbitMQClientHelper.serverQueueName;
 
-import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Flow;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.stream.Collectors;
 
 import jakarta.enterprise.inject.Instance;
 
@@ -46,7 +42,7 @@ public class IncomingRabbitMQChannel {
 
     private final RabbitMQOpenTelemetryInstrumenter instrumenter;
     private final AtomicReference<Flow.Subscription> subscription = new AtomicReference<>();
-    private final List<RabbitMQClient> clients = new CopyOnWriteArrayList<>();
+    private volatile RabbitMQClient client;
     private final RabbitMQConnectorIncomingConfiguration config;
     private final Multi<? extends Message<?>> stream;
     private final RabbitMQConnector connector;
@@ -64,19 +60,10 @@ public class IncomingRabbitMQChannel {
         final RabbitMQFailureHandler onNack = createFailureHandler(connector.failureHandlerFactories(), ic);
         final RabbitMQAckHandler onAck = createAckHandler(ic);
 
-        final Integer connectionCount = ic.getConnectionCount();
-        Multi<? extends Message<?>> multi = Multi.createFrom().range(0, connectionCount)
-                .onItem()
-                .transformToUniAndMerge(
-                        connectionIdx -> createConsumer(connector, ic, connectionIdx))
-                .collect().asList()
-                .onItem()
-                .invoke(list -> clients.addAll(list.stream().map(t -> t.getItem1().client()).collect(Collectors.toList())))
+        Multi<? extends Message<?>> multi = createConsumer(connector, ic)
+                .invoke(tuple -> client = tuple.getItem1().client())
                 // Translate all consumers into a merged stream of messages
-                .onItem()
-                .transformToMulti(tuples -> Multi.createBy().merging()
-                        .streams(tuples.stream().map(t -> getStreamOfMessages(t.getItem2(), t.getItem1(), ic, onNack, onAck))
-                                .collect(Collectors.toList())));
+                .onItem().transformToMulti(tuple -> getStreamOfMessages(tuple.getItem2(), tuple.getItem1(), ic, onNack, onAck));
 
         if (ic.getBroadcast()) {
             multi = multi.broadcast().toAllSubscribers();
@@ -99,20 +86,16 @@ public class IncomingRabbitMQChannel {
 
     private HealthReport.HealthReportBuilder computeHealthReport(HealthReport.HealthReportBuilder builder) {
         if (config.getHealthLazySubscription()) {
-            if (subscription.get() != null) {
+            if (subscription.get() == null) {
                 return builder.add(new HealthReport.ChannelInfo(config.getChannel(), true));
             }
         }
 
-        // Verify that all clients are connected and channel opened
-        boolean alive = true;
-
-        // Verify that all consumers are connected.
-        for (RabbitMQClient client : clients) {
-            alive = alive && client.isConnected()
-                    && client.isOpenChannel();
+        if (client == null) {
+            return builder.add(new HealthReport.ChannelInfo(config.getChannel(), false));
         }
 
+        boolean alive = client.isConnected() && client.isOpenChannel();
         return builder.add(new HealthReport.ChannelInfo(config.getChannel(), alive));
     }
 
@@ -125,7 +108,7 @@ public class IncomingRabbitMQChannel {
     }
 
     private Uni<Tuple2<ClientHolder, RabbitMQConsumer>> createConsumer(RabbitMQConnector connector,
-            RabbitMQConnectorIncomingConfiguration ic, Integer connectionIdx) {
+            RabbitMQConnectorIncomingConfiguration ic) {
         // Create a client
         final RabbitMQClient client = RabbitMQClientHelper.createClient(connector, ic);
         client.getDelegate().addConnectionEstablishedCallback(promise -> {
@@ -151,7 +134,7 @@ public class IncomingRabbitMQChannel {
         }
         final ClientHolder holder = new ClientHolder(client, ic, connector.vertx(), root);
         return holder.getOrEstablishConnection()
-                .invoke(() -> log.connectionEstablished(connectionIdx, ic.getChannel()))
+                .invoke(() -> log.connectionEstablished(ic.getChannel()))
                 .flatMap(connection -> createConsumer(ic, connection).map(consumer -> Tuple2.of(holder, consumer)));
     }
 
