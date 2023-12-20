@@ -37,7 +37,6 @@ import io.vertx.mutiny.redis.client.Redis;
 import io.vertx.mutiny.redis.client.Request;
 import io.vertx.mutiny.redis.client.Response;
 import io.vertx.redis.client.RedisOptions;
-import io.vertx.redis.client.RedisOptionsConverter;
 
 public class RedisCheckpointStateStore implements CheckpointStateStore {
 
@@ -83,8 +82,7 @@ public class RedisCheckpointStateStore implements CheckpointStateStore {
 
             JsonObject entries = JsonHelper.asJsonObject(config.config(),
                     KafkaCommitHandler.Strategy.CHECKPOINT + "." + STATE_STORE_NAME + ".");
-            RedisOptions options = new RedisOptions();
-            RedisOptionsConverter.fromJson(entries, options);
+            RedisOptions options = new RedisOptions(entries);
             Redis redis = Redis.createClient(vertx, options);
 
             ProcessingStateCodec stateCodec = CDIUtils.getInstanceById(stateCodecFactory, config.getChannel(), () -> {
