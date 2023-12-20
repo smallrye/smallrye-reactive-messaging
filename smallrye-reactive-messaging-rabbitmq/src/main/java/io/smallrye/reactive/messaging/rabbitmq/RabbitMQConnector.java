@@ -94,7 +94,6 @@ import io.vertx.rabbitmq.RabbitMQOptions;
 @ConnectorAttribute(name = "queue.x-queue-mode", direction = INCOMING, description = "If automatically declare queue, we can choose different modes of queue [lazy, default]", type = "string")
 @ConnectorAttribute(name = "max-outgoing-internal-queue-size", direction = OUTGOING, description = "The maximum size of the outgoing internal queue", type = "int")
 @ConnectorAttribute(name = "max-incoming-internal-queue-size", direction = INCOMING, description = "The maximum size of the incoming internal queue", type = "int", defaultValue = "500000")
-@ConnectorAttribute(name = "connection-count", direction = INCOMING, description = "The number of RabbitMQ connections to create for consuming from this queue. This might be necessary to consume from a sharded queue with a single client.", type = "int", defaultValue = "1")
 @ConnectorAttribute(name = "queue.x-max-priority", direction = INCOMING, description = "Define priority level queue consumer", type = "int")
 @ConnectorAttribute(name = "queue.x-delivery-limit", direction = INCOMING, description = "If queue.x-queue-type is quorum, when a message has been returned more times than the limit the message will be dropped or dead-lettered", type = "long")
 @ConnectorAttribute(name = "queue.arguments", direction = INCOMING, description = "The identifier of the key-value Map exposed as bean used to provide arguments for queue creation", type = "string", defaultValue = "rabbitmq-queue-arguments")
