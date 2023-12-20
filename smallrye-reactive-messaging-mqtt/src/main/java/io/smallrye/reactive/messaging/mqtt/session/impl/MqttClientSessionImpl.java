@@ -8,6 +8,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.stream.Collectors;
 
 import io.netty.handler.codec.mqtt.MqttQoS;
@@ -97,7 +98,11 @@ public class MqttClientSessionImpl implements MqttClientSession {
     @Override
     public Future<Void> stop() {
         Promise<Void> promise = Promise.promise();
-        this.vertx.runOnContext(x -> doStop(promise));
+        try {
+            this.vertx.runOnContext(x -> doStop(promise));
+        } catch (RejectedExecutionException e) {
+            // Vert.x has been shutdown, ignore it.
+        }
         return promise.future();
     }
 
