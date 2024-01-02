@@ -7,14 +7,7 @@ import static io.smallrye.reactive.messaging.kafka.i18n.KafkaLogging.log;
 import static io.smallrye.reactive.messaging.kafka.impl.RebalanceListeners.findMatchingListener;
 
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -32,13 +25,7 @@ import io.smallrye.common.annotation.Identifier;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.health.HealthReport;
-import io.smallrye.reactive.messaging.kafka.DeserializationFailureHandler;
-import io.smallrye.reactive.messaging.kafka.IncomingKafkaRecord;
-import io.smallrye.reactive.messaging.kafka.IncomingKafkaRecordBatch;
-import io.smallrye.reactive.messaging.kafka.KafkaCDIEvents;
-import io.smallrye.reactive.messaging.kafka.KafkaConnectorIncomingConfiguration;
-import io.smallrye.reactive.messaging.kafka.KafkaConsumerRebalanceListener;
-import io.smallrye.reactive.messaging.kafka.KafkaRecord;
+import io.smallrye.reactive.messaging.kafka.*;
 import io.smallrye.reactive.messaging.kafka.commit.ContextHolder;
 import io.smallrye.reactive.messaging.kafka.commit.KafkaCommitHandler;
 import io.smallrye.reactive.messaging.kafka.fault.KafkaDeadLetterQueue;
@@ -47,7 +34,7 @@ import io.smallrye.reactive.messaging.kafka.fault.KafkaFailureHandler;
 import io.smallrye.reactive.messaging.kafka.health.KafkaSourceHealth;
 import io.smallrye.reactive.messaging.kafka.tracing.KafkaOpenTelemetryInstrumenter;
 import io.smallrye.reactive.messaging.kafka.tracing.KafkaTrace;
-import io.vertx.core.impl.EventLoopContext;
+import io.vertx.core.impl.ContextInternal;
 import io.vertx.core.impl.VertxInternal;
 import io.vertx.mutiny.core.Vertx;
 
@@ -74,7 +61,12 @@ public class KafkaSource<K, V> {
     private final Instance<DeserializationFailureHandler<?>> deserializationFailureHandlers;
     private final Instance<KafkaConsumerRebalanceListener> consumerRebalanceListeners;
     private final ReactiveKafkaConsumer<K, V> client;
-    private final EventLoopContext context;
+
+    /**
+     * This field stores the event loop context.
+     * Using {@code ContextInternal} to distinguish it from the {@code Context} used by the user.
+     */
+    private final ContextInternal context;
 
     private final KafkaOpenTelemetryInstrumenter kafkaInstrumenter;
 

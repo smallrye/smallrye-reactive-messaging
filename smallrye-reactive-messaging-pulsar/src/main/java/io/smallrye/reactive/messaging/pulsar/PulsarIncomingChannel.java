@@ -10,16 +10,7 @@ import java.util.concurrent.Flow;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
-import org.apache.pulsar.client.api.BatchReceivePolicy;
-import org.apache.pulsar.client.api.Consumer;
-import org.apache.pulsar.client.api.ConsumerBuilder;
-import org.apache.pulsar.client.api.DeadLetterPolicy;
-import org.apache.pulsar.client.api.KeySharedPolicy;
-import org.apache.pulsar.client.api.PulsarClient;
-import org.apache.pulsar.client.api.PulsarClientException;
-import org.apache.pulsar.client.api.RedeliveryBackoff;
-import org.apache.pulsar.client.api.Schema;
-import org.apache.pulsar.client.api.SubscriptionType;
+import org.apache.pulsar.client.api.*;
 import org.apache.pulsar.client.api.schema.KeyValueSchema;
 import org.apache.pulsar.client.impl.MultiplierRedeliveryBackoff;
 import org.apache.pulsar.client.impl.conf.ConsumerConfigurationData;
@@ -40,7 +31,7 @@ import io.smallrye.reactive.messaging.pulsar.tracing.PulsarAttributesExtractor;
 import io.smallrye.reactive.messaging.pulsar.tracing.PulsarTrace;
 import io.smallrye.reactive.messaging.pulsar.tracing.PulsarTraceTextMapGetter;
 import io.smallrye.reactive.messaging.tracing.TracingUtils;
-import io.vertx.core.impl.EventLoopContext;
+import io.vertx.core.impl.ContextInternal;
 import io.vertx.core.impl.VertxInternal;
 import io.vertx.mutiny.core.Vertx;
 
@@ -51,7 +42,12 @@ public class PulsarIncomingChannel<T> {
     private final String channel;
     private final PulsarAckHandler ackHandler;
     private final PulsarFailureHandler failureHandler;
-    private final EventLoopContext context;
+
+    /**
+     * This field captures the event loop context.
+     * Using {@code ContextInternal} to distinguish it from {@code io.vertx.core.Context}.
+     */
+    private final ContextInternal context;
     private final AtomicBoolean closed = new AtomicBoolean(false);
 
     private final List<Throwable> failures = new ArrayList<>();
