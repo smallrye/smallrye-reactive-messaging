@@ -55,69 +55,73 @@ public class ConcurrentProcessorTest extends KafkaCompanionTestBase {
         addBeans(ConsumerRecordConverter.class);
         companion.topics().createAndWait(topic, 3);
 
+        produceMessages();
         MyConsumerBean bean = runApplication(dataconfig(), MyConsumerBean.class);
 
         List<Integer> list = bean.getResults();
         assertThat(list).isEmpty();
 
-        produceMessages();
         await().untilAsserted(() -> {
-            assertThat(bean.getResults()).hasSizeGreaterThanOrEqualTo(10);
+            assertThat(bean.getResults())
+                    .hasSizeGreaterThanOrEqualTo(10)
+                    .contains(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
             assertThat(bean.getPerThread().keySet()).hasSizeGreaterThanOrEqualTo(getMaxNumberOfEventLoop(3));
         });
-        assertThat(bean.getResults()).containsExactlyInAnyOrder(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
     }
 
     @Test
     public void testConcurrentProcessor() {
         companion.topics().createAndWait(topic, 3);
 
+        produceMessages();
         MyProcessorBean bean = runApplication(dataconfig(), MyProcessorBean.class);
 
         List<Integer> list = bean.getResults();
         assertThat(list).isEmpty();
 
-        produceMessages();
         await().untilAsserted(() -> {
-            assertThat(bean.getResults()).hasSizeGreaterThanOrEqualTo(10);
+            assertThat(bean.getResults())
+                    .hasSizeGreaterThanOrEqualTo(10)
+                    .contains(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
             assertThat(bean.getPerThread().keySet()).hasSizeGreaterThanOrEqualTo(getMaxNumberOfEventLoop(3));
         });
-        assertThat(bean.getResults()).containsExactlyInAnyOrder(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
     }
 
     @Test
     public void testConcurrentStreamTransformer() {
         companion.topics().createAndWait(topic, 3);
 
+        produceMessages();
         MyStreamTransformerBean bean = runApplication(dataconfig(), MyStreamTransformerBean.class);
 
         List<Integer> list = bean.getResults();
         assertThat(list).isEmpty();
 
-        produceMessages();
         await().untilAsserted(() -> {
-            assertThat(bean.getResults()).hasSizeGreaterThanOrEqualTo(10);
+            assertThat(bean.getResults())
+                    .hasSizeGreaterThanOrEqualTo(10)
+                    .contains(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
             assertThat(bean.getPerThread().keySet()).hasSizeGreaterThanOrEqualTo(getMaxNumberOfEventLoop(3));
         });
-        assertThat(bean.getResults()).containsExactlyInAnyOrder(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
     }
 
     @Test
     public void testConcurrentStreamInjectingBean() {
         companion.topics().createAndWait(topic, 3);
 
+        produceMessages();
         MyChannelInjectingBean bean = runApplication(dataconfig(), MyChannelInjectingBean.class);
 
         List<Integer> list = bean.getResults();
         assertThat(list).isEmpty();
         bean.process();
 
-        produceMessages();
         await().untilAsserted(() -> {
-            assertThat(bean.getResults()).hasSizeGreaterThanOrEqualTo(10);
+            assertThat(bean.getResults())
+                    .hasSizeGreaterThanOrEqualTo(10)
+                    .containsExactlyInAnyOrder(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
             assertThat(bean.getPerThread().keySet()).hasSizeGreaterThanOrEqualTo(getMaxNumberOfEventLoop(3));
         });
-        assertThat(bean.getResults()).containsExactlyInAnyOrder(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
     }
 
     @ApplicationScoped
