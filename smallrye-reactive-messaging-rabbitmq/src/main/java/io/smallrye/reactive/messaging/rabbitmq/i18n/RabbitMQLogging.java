@@ -102,11 +102,11 @@ public interface RabbitMQLogging extends BasicLogger {
     @Message(id = 17030, value = "Unable to establish dlx `%s`")
     void unableToEstablishDlx(String deadLetterExchangeName, @Cause Throwable ex);
 
-    @LogMessage(level = Logger.Level.INFO)
+    @LogMessage(level = Level.DEBUG)
     @Message(id = 17033, value = "A message sent to channel `%s` has been ack'd")
     void ackMessage(String channel);
 
-    @LogMessage(level = Logger.Level.INFO)
+    @LogMessage(level = Level.DEBUG)
     @Message(id = 17034, value = "A message sent to channel `%s` has not been explicitly ack'd as auto-ack is enabled")
     void ackAutoMessage(String channel);
 
