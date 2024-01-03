@@ -765,4 +765,50 @@ class RabbitMQTest extends RabbitMQBrokerTestBase {
         });
     }
 
+    /**
+     * Verifies that consumer arguments can be set
+     */
+    @Test
+    void testConsumerArguments() {
+        final String exchangeName = "exchg7";
+        final String queueName = "q7";
+        final String routingKey = "xyzzy";
+        new MapBasedConfig()
+                .put("mp.messaging.incoming.data.exchange.name", exchangeName)
+                .put("mp.messaging.incoming.data.queue.name", queueName)
+                .put("mp.messaging.incoming.data.consumer-arguments", "x-priority:10")
+                .put("mp.messaging.incoming.data.connector", RabbitMQConnector.CONNECTOR_NAME)
+                .put("mp.messaging.incoming.data.host", host)
+                .put("mp.messaging.incoming.data.port", port)
+                .put("mp.messaging.incoming.data.tracing-enabled", false)
+                .put("rabbitmq-username", username)
+                .put("rabbitmq-password", password)
+                .put("rabbitmq-reconnect-attempts", 0)
+                .write();
+
+        weld.addBeanClass(ConsumptionBean.class);
+
+        container = weld.initialize();
+        await().until(() -> isRabbitMQConnectorAvailable(container));
+        ConsumptionBean bean = container.getBeanManager().createInstance().select(ConsumptionBean.class).get();
+
+        await().until(() -> isRabbitMQConnectorAvailable(container));
+
+        List<Integer> list = bean.getResults();
+        assertThat(list).isEmpty();
+
+        AtomicInteger counter = new AtomicInteger();
+        usage.produceTenIntegers(exchangeName, queueName, routingKey, counter::getAndIncrement);
+        await().atMost(1, TimeUnit.MINUTES).until(() -> list.size() >= 10);
+        assertThat(bean.getTypeCasts()).isEqualTo(0);
+        assertThat(list).containsExactly(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
+        await().untilAsserted(() -> {
+            JsonArray consumerDetails = usage.getQueue(queueName).getJsonArray("consumer_details");
+            assertThat(consumerDetails).isNotEmpty();
+            assertThat(consumerDetails.getJsonObject(0)
+                    .getJsonObject("arguments")
+                    .getInteger("x-priority")).isEqualTo(10);
+        });
+    }
+
 }

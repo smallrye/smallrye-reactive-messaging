@@ -2,6 +2,7 @@ package io.smallrye.reactive.messaging.rabbitmq.internals;
 
 import static io.smallrye.reactive.messaging.rabbitmq.i18n.RabbitMQExceptions.ex;
 import static io.smallrye.reactive.messaging.rabbitmq.i18n.RabbitMQLogging.log;
+import static io.smallrye.reactive.messaging.rabbitmq.internals.RabbitMQClientHelper.parseArguments;
 import static io.smallrye.reactive.messaging.rabbitmq.internals.RabbitMQClientHelper.serverQueueName;
 
 import java.util.Map;
@@ -224,7 +225,9 @@ public class IncomingRabbitMQChannel {
     }
 
     private Uni<RabbitMQConsumer> createConsumer(RabbitMQConnectorIncomingConfiguration ic, RabbitMQClient client) {
-        return client.basicConsumer(serverQueueName(RabbitMQClientHelper.getQueueName(ic)), new QueueOptions()
+        QueueOptions queueOptions = new QueueOptions();
+        queueOptions.setConsumerArguments(parseArguments(ic.getConsumerArguments()));
+        return client.basicConsumer(serverQueueName(RabbitMQClientHelper.getQueueName(ic)), queueOptions
                 .setAutoAck(ic.getAutoAcknowledgement())
                 .setMaxInternalQueueSize(ic.getMaxIncomingInternalQueueSize())
                 .setKeepMostRecent(ic.getKeepMostRecent()));
