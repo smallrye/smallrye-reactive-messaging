@@ -5,12 +5,16 @@ import static org.awaitility.Awaitility.await;
 
 import java.util.Comparator;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
+import jakarta.enterprise.context.ApplicationScoped;
+
 import org.eclipse.microprofile.config.ConfigProvider;
+import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.spi.ConnectorLiteral;
 import org.jboss.weld.environment.se.Weld;
 import org.jboss.weld.environment.se.WeldContainer;
@@ -19,6 +23,8 @@ import org.junit.jupiter.api.Test;
 
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.smallrye.config.SmallRyeConfigProviderResolver;
+import io.smallrye.reactive.messaging.OutgoingInterceptor;
+import io.smallrye.reactive.messaging.OutgoingMessageMetadata;
 import io.smallrye.reactive.messaging.rabbitmq.fault.RabbitMQFailureHandler;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 import io.vertx.core.json.JsonArray;
@@ -34,7 +40,7 @@ class RabbitMQTest extends RabbitMQBrokerTestBase {
     @AfterEach
     public void cleanup() {
         if (container != null) {
-            container.select(RabbitMQConnector.class, ConnectorLiteral.of(RabbitMQConnector.CONNECTOR_NAME)).get()
+            get(container, RabbitMQConnector.class, ConnectorLiteral.of(RabbitMQConnector.CONNECTOR_NAME))
                     .terminate(null);
             container.shutdown();
         }
@@ -427,6 +433,70 @@ class RabbitMQTest extends RabbitMQBrokerTestBase {
     }
 
     /**
+     * Verifies that messages can be sent to RabbitMQ with publish confirms.
+     *
+     * @throws InterruptedException
+     */
+    @Test
+    void testSendingMessagesToRabbitMQPublishConfirms() throws InterruptedException {
+        final String exchangeName = "exchg1";
+        final String routingKey = "normal";
+
+        List<Long> receivedTags = new CopyOnWriteArrayList<>();
+        CountDownLatch latch = new CountDownLatch(10);
+        usage.consume(exchangeName, routingKey, v -> {
+            receivedTags.add(v.envelope().getDeliveryTag());
+            latch.countDown();
+        });
+
+        weld.addBeanClasses(ProducingBean.class, DeliveryTagInterceptor.class);
+
+        new MapBasedConfig()
+                .put("mp.messaging.outgoing.sink.exchange.name", exchangeName)
+                .put("mp.messaging.outgoing.sink.exchange.declare", false)
+                .put("mp.messaging.outgoing.sink.default-routing-key", routingKey)
+                .put("mp.messaging.outgoing.sink.publish-confirms", true)
+                .put("mp.messaging.outgoing.sink.connector", RabbitMQConnector.CONNECTOR_NAME)
+                .put("mp.messaging.outgoing.sink.host", host)
+                .put("mp.messaging.outgoing.sink.port", port)
+                .put("mp.messaging.outgoing.sink.tracing.enabled", false)
+                .put("rabbitmq-username", username)
+                .put("rabbitmq-password", password)
+                .put("rabbitmq-reconnect-attempts", 0)
+                .write();
+
+        container = weld.initialize();
+        await().until(() -> isRabbitMQConnectorAvailable(container));
+
+        assertThat(latch.await(3, TimeUnit.MINUTES)).isTrue();
+
+        DeliveryTagInterceptor interceptor = get(container, DeliveryTagInterceptor.class);
+        assertThat(interceptor.getDeliveryTags())
+                .hasSizeGreaterThanOrEqualTo(10)
+                .containsAll(receivedTags);
+    }
+
+    @ApplicationScoped
+    static class DeliveryTagInterceptor implements OutgoingInterceptor {
+
+        List<Long> deliveryTags = new CopyOnWriteArrayList<>();
+
+        @Override
+        public void onMessageAck(Message<?> message) {
+            message.getMetadata(OutgoingMessageMetadata.class).ifPresent(m -> deliveryTags.add((long) m.getResult()));
+        }
+
+        @Override
+        public void onMessageNack(Message<?> message, Throwable failure) {
+
+        }
+
+        public List<Long> getDeliveryTags() {
+            return deliveryTags;
+        }
+    }
+
+    /**
      * Verifies that messages can be sent to RabbitMQ.
      *
      * @throws InterruptedException
@@ -487,7 +557,7 @@ class RabbitMQTest extends RabbitMQBrokerTestBase {
 
         container = weld.initialize();
         await().until(() -> isRabbitMQConnectorAvailable(container));
-        ConsumptionBean bean = container.getBeanManager().createInstance().select(ConsumptionBean.class).get();
+        ConsumptionBean bean = get(container, ConsumptionBean.class);
 
         await().until(() -> isRabbitMQConnectorAvailable(container));
 
@@ -528,7 +598,7 @@ class RabbitMQTest extends RabbitMQBrokerTestBase {
 
         container = weld.initialize();
         await().until(() -> isRabbitMQConnectorAvailable(container));
-        ConsumptionBean bean = container.getBeanManager().createInstance().select(ConsumptionBean.class).get();
+        ConsumptionBean bean = get(container, ConsumptionBean.class);
 
         await().until(() -> isRabbitMQConnectorAvailable(container));
 
@@ -570,7 +640,7 @@ class RabbitMQTest extends RabbitMQBrokerTestBase {
 
         container = weld.initialize();
         await().until(() -> isRabbitMQConnectorAvailable(container));
-        ConsumptionBean bean = container.getBeanManager().createInstance().select(ConsumptionBean.class).get();
+        ConsumptionBean bean = get(container, ConsumptionBean.class);
 
         await().until(() -> isRabbitMQConnectorAvailable(container));
 
@@ -608,7 +678,7 @@ class RabbitMQTest extends RabbitMQBrokerTestBase {
 
         container = weld.initialize();
         await().until(() -> isRabbitMQConnectorAvailable(container));
-        ConsumptionBean bean = container.getBeanManager().createInstance().select(ConsumptionBean.class).get();
+        ConsumptionBean bean = get(container, ConsumptionBean.class);
 
         await().until(() -> isRabbitMQConnectorAvailable(container));
 
@@ -665,8 +735,7 @@ class RabbitMQTest extends RabbitMQBrokerTestBase {
 
         container = weld.initialize();
         await().until(() -> isRabbitMQConnectorAvailable(container));
-        RequeueFirstDeliveryBean bean = container.getBeanManager().createInstance().select(RequeueFirstDeliveryBean.class)
-                .get();
+        RequeueFirstDeliveryBean bean = get(container, RequeueFirstDeliveryBean.class);
 
         await().until(() -> isRabbitMQConnectorAvailable(container));
 

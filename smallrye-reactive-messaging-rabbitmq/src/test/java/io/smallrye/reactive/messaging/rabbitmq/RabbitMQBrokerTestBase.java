@@ -1,8 +1,9 @@
 package io.smallrye.reactive.messaging.rabbitmq;
 
+import java.lang.annotation.Annotation;
+
 import jakarta.enterprise.inject.Any;
 import jakarta.enterprise.inject.se.SeContainer;
-import jakarta.enterprise.util.AnnotationLiteral;
 
 import org.eclipse.microprofile.config.ConfigProvider;
 import org.jboss.weld.environment.se.WeldContainer;
@@ -95,21 +96,22 @@ public class RabbitMQBrokerTestBase {
      * @return true if the connector is ready, false otherwise
      */
     public boolean isRabbitMQConnectorAvailable(WeldContainer container) {
-        final RabbitMQConnector connector = container.getBeanManager().createInstance().select(RabbitMQConnector.class,
-                new AnnotationLiteral<Any>() {
-                }).get();
-
+        final RabbitMQConnector connector = get(container, RabbitMQConnector.class, Any.Literal.INSTANCE);
         return connector.getLiveness().isOk();
     }
 
     public boolean isRabbitMQConnectorReady(SeContainer container) {
-        HealthCenter health = container.getBeanManager().createInstance().select(HealthCenter.class).get();
+        HealthCenter health = get(container, HealthCenter.class);
         return health.getReadiness().isOk();
     }
 
     public boolean isRabbitMQConnectorAlive(SeContainer container) {
-        HealthCenter health = container.getBeanManager().createInstance().select(HealthCenter.class).get();
+        HealthCenter health = get(container, HealthCenter.class);
         return health.getLiveness().isOk();
+    }
+
+    public <T> T get(SeContainer container, Class<T> beanType, Annotation... annotations) {
+        return container.getBeanManager().createInstance().select(beanType, annotations).get();
     }
 
     public MapBasedConfig commonConfig() {

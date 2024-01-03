@@ -187,7 +187,7 @@ public class RabbitMQReconnectionTest extends RabbitMQBrokerTestBase {
             weld.addBeanClass(ConsumptionBean.class);
 
             container = weld.initialize();
-            ConsumptionBean bean = container.getBeanManager().createInstance().select(ConsumptionBean.class).get();
+            ConsumptionBean bean = get(container, ConsumptionBean.class);
 
             await().until(() -> isRabbitMQConnectorAvailable(container));
 

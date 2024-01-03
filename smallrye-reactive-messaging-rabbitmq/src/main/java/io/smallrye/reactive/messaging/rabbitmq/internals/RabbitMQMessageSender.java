@@ -16,6 +16,7 @@ import org.eclipse.microprofile.reactive.messaging.Message;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.helpers.Subscriptions;
 import io.smallrye.mutiny.tuples.Tuple2;
+import io.smallrye.reactive.messaging.OutgoingMessageMetadata;
 import io.smallrye.reactive.messaging.rabbitmq.RabbitMQConnectorOutgoingConfiguration;
 import io.smallrye.reactive.messaging.rabbitmq.RabbitMQMessageConverter;
 import io.smallrye.reactive.messaging.rabbitmq.i18n.RabbitMQExceptions;
@@ -39,6 +40,7 @@ public class RabbitMQMessageSender implements Processor<Message<?>, Message<?>>,
 
     private final long inflights;
     private final Optional<Long> defaultTtl;
+    private final boolean publishConfirms;
 
     private final RabbitMQOpenTelemetryInstrumenter instrumenter;
 
@@ -57,6 +59,7 @@ public class RabbitMQMessageSender implements Processor<Message<?>, Message<?>>,
         this.isTracingEnabled = oc.getTracingEnabled();
         this.inflights = oc.getMaxInflightMessages();
         this.defaultTtl = oc.getDefaultTtl();
+        this.publishConfirms = oc.getPublishConfirms();
 
         if (inflights <= 0) {
             throw ex.illegalArgumentInvalidMaxInflightMessages();
@@ -262,8 +265,19 @@ public class RabbitMQMessageSender implements Processor<Message<?>, Message<?>>,
                 .convert(instrumenter, msg, exchange, defaultRoutingKey, defaultTtl, isTracingEnabled);
 
         RabbitMQLogging.log.sendingMessageToExchange(exchange, outgoingRabbitMQMessage.getRoutingKey());
-        return publisher.publish(exchange, outgoingRabbitMQMessage.getRoutingKey(), outgoingRabbitMQMessage.getProperties(),
-                outgoingRabbitMQMessage.getBody())
+        Uni<Void> published;
+        if (publishConfirms) {
+            published = publisher.publishConfirm(exchange, outgoingRabbitMQMessage.getRoutingKey(),
+                    outgoingRabbitMQMessage.getProperties(),
+                    outgoingRabbitMQMessage.getBody())
+                    .onItem().invoke(deliveryTag -> OutgoingMessageMetadata.setResultOnMessage(msg, deliveryTag))
+                    .replaceWithVoid();
+        } else {
+            published = publisher.publish(exchange, outgoingRabbitMQMessage.getRoutingKey(),
+                    outgoingRabbitMQMessage.getProperties(),
+                    outgoingRabbitMQMessage.getBody());
+        }
+        return published
                 .onFailure().retry().withBackOff(ofSeconds(1), ofSeconds(retryInterval)).atMost(retryAttempts)
                 .onItemOrFailure().transformToUni((success, failure) -> {
                     if (failure != null) {
