@@ -30,7 +30,7 @@ public class HealthTest extends WeldTestBase {
 
         addBeans(MyApp.class);
         runApplication(config);
-        HealthCenter health = container.getBeanManager().createInstance().select(HealthCenter.class).get();
+        HealthCenter health = get(container, HealthCenter.class);
         assertThat(health.getLiveness().isOk()).isTrue();
         assertThat(health.getLiveness().getChannels()).anySatisfy(ci -> {
             assertThat(ci.getChannel()).isEqualTo("in");
@@ -60,7 +60,7 @@ public class HealthTest extends WeldTestBase {
 
         addBeans(MyApp.class);
         runApplication(config);
-        HealthCenter health = container.getBeanManager().createInstance().select(HealthCenter.class).get();
+        HealthCenter health = get(container, HealthCenter.class);
         assertThat(health.getLiveness().isOk()).isTrue();
         assertThat(health.getLiveness().getChannels()).isEmpty();
 
@@ -76,7 +76,7 @@ public class HealthTest extends WeldTestBase {
 
         addBeans(MyApp.class);
         runApplication(config);
-        HealthCenter health = container.getBeanManager().createInstance().select(HealthCenter.class).get();
+        HealthCenter health = get(container, HealthCenter.class);
         assertThat(health.getLiveness().isOk()).isTrue();
         assertThat(health.getLiveness().getChannels()).hasSize(2);
 
@@ -91,7 +91,7 @@ public class HealthTest extends WeldTestBase {
 
         addBeans(MyAppUsingChannels.class);
         runApplication(config);
-        HealthCenter health = container.getBeanManager().createInstance().select(HealthCenter.class).get();
+        HealthCenter health = get(container, HealthCenter.class);
         assertThat(health.getLiveness().isOk()).isTrue();
         assertThat(health.getLiveness().getChannels()).anySatisfy(ci -> {
             assertThat(ci.getChannel()).isEqualTo("in");

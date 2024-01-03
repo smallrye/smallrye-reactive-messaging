@@ -127,6 +127,7 @@ import io.vertx.rabbitmq.RabbitMQOptions;
 @ConnectorAttribute(name = "max-inflight-messages", direction = OUTGOING, description = "The maximum number of messages to be written to RabbitMQ concurrently; must be a positive number", type = "long", defaultValue = "1024")
 @ConnectorAttribute(name = "default-routing-key", direction = OUTGOING, description = "The default routing key to use when sending messages to the exchange", type = "string", defaultValue = "")
 @ConnectorAttribute(name = "default-ttl", direction = OUTGOING, description = "If specified, the time (ms) sent messages can remain in queues undelivered before they are dead", type = "long")
+@ConnectorAttribute(name = "publish-confirms", direction = OUTGOING, description = "If set to true, published messages are acknowledged when the publish confirm is received from the broker", type = "boolean", defaultValue = "false")
 
 // Tracing
 @ConnectorAttribute(name = "tracing.enabled", direction = INCOMING_AND_OUTGOING, description = "Whether tracing is enabled (default) or disabled", type = "boolean", defaultValue = "true")
