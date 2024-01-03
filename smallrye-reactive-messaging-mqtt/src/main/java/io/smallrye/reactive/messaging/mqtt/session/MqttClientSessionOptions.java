@@ -120,8 +120,15 @@ public class MqttClientSessionOptions extends MqttClientOptions {
     }
 
     @Override
+    @Deprecated
     public MqttClientSessionOptions setWillMessage(String willMessage) {
         super.setWillMessage(willMessage);
+        return this;
+    }
+
+    @Override
+    public MqttClientOptions setWillMessageBytes(Buffer willMessage) {
+        super.setWillMessageBytes(willMessage);
         return this;
     }
 
