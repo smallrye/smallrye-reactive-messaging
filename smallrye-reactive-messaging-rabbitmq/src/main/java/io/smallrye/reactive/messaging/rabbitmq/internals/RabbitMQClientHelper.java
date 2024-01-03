@@ -159,8 +159,7 @@ public class RabbitMQClientHelper {
         return name;
     }
 
-    public static Map<String, Object> parseArguments(
-            final Optional<String> argumentsConfig) {
+    public static Map<String, Object> parseArguments(final Optional<String> argumentsConfig) {
         Map<String, Object> argumentsBinding = new HashMap<>();
         if (argumentsConfig.isPresent()) {
             for (String segment : argumentsConfig.get().split(",")) {
@@ -168,7 +167,11 @@ public class RabbitMQClientHelper {
                 if (argumentKeyValueSplit.length == 2) {
                     String key = argumentKeyValueSplit[0];
                     String value = argumentKeyValueSplit[1];
-                    argumentsBinding.put(key, value);
+                    try {
+                        argumentsBinding.put(key, Integer.parseInt(value));
+                    } catch (NumberFormatException nfe) {
+                        argumentsBinding.put(key, value);
+                    }
                 }
             }
         }
