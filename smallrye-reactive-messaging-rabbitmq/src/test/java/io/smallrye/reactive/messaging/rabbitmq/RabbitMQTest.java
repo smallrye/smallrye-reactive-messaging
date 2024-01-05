@@ -56,7 +56,6 @@ class RabbitMQTest extends RabbitMQBrokerTestBase {
     @Test
     void testOutgoingDeclarations() throws Exception {
 
-        final String exchangeName = "exchgOutgoingDeclareTest";
         final boolean exchangeDurable = false;
         final boolean exchangeAutoDelete = true;
         final String exchangeType = "fanout";
@@ -97,12 +96,10 @@ class RabbitMQTest extends RabbitMQBrokerTestBase {
      */
     @Test
     void testIncomingDeclarations() throws Exception {
-        final String exchangeName = "exchgIncomingDeclareTest";
         final boolean exchangeDurable = false;
         final boolean exchangeAutoDelete = true;
         final String exchangeType = "fanout";
 
-        final String queueName = "qIncomingDeclareTest";
         final boolean queueDurable = false;
         final boolean queueExclusive = true;
         final boolean queueAutoDelete = true;
@@ -207,12 +204,10 @@ class RabbitMQTest extends RabbitMQBrokerTestBase {
      */
     @Test
     void testIncomingDeclarationsWithDLQ() throws Exception {
-        final String exchangeName = "exchgIncomingDeclareTestWithDLQ";
         final boolean exchangeDurable = false;
         final boolean exchangeAutoDelete = true;
         final String exchangeType = "fanout";
 
-        final String queueName = "qIncomingDeclareTestWithDLQ";
         final boolean queueDurable = false;
         final boolean queueExclusive = true;
         final boolean queueAutoDelete = true;
@@ -361,7 +356,6 @@ class RabbitMQTest extends RabbitMQBrokerTestBase {
     @Test
     void testIncomingDeclarationsWithQuorum() throws Exception {
 
-        final String queueName = "qIncomingDeclareTestWithDeliveryLimit";
         final boolean queueDurable = true;
         final String queueType = "quorum";
         final long queueDeliveryLimit = 10;
@@ -405,7 +399,6 @@ class RabbitMQTest extends RabbitMQBrokerTestBase {
      */
     @Test
     void testSendingMessagesToRabbitMQ() throws InterruptedException {
-        final String exchangeName = "exchg1";
         final String routingKey = "normal";
 
         CountDownLatch latch = new CountDownLatch(10);
@@ -439,7 +432,6 @@ class RabbitMQTest extends RabbitMQBrokerTestBase {
      */
     @Test
     void testSendingMessagesToRabbitMQPublishConfirms() throws InterruptedException {
-        final String exchangeName = "exchg1";
         final String routingKey = "normal";
 
         List<Long> receivedTags = new CopyOnWriteArrayList<>();
@@ -503,7 +495,6 @@ class RabbitMQTest extends RabbitMQBrokerTestBase {
      */
     @Test
     void testSendingNullPayloadsToRabbitMQ() throws InterruptedException {
-        final String exchangeName = "exchg1";
         final String routingKey = "normal";
 
         CountDownLatch latch = new CountDownLatch(10);
@@ -535,8 +526,6 @@ class RabbitMQTest extends RabbitMQBrokerTestBase {
      */
     @Test
     void testReceivingMessagesFromRabbitMQ() {
-        final String exchangeName = "exchg2";
-        final String queueName = "q2";
         final String routingKey = "xyzzy";
         new MapBasedConfig()
                 .put("mp.messaging.incoming.data.exchange.name", exchangeName)
@@ -576,8 +565,6 @@ class RabbitMQTest extends RabbitMQBrokerTestBase {
      */
     @Test
     void testReceivingMessagesFromRabbitMQWithInvalidContentType() {
-        final String exchangeName = "exchg3";
-        final String queueName = "q3";
         final String routingKey = "xyzzy";
         new MapBasedConfig()
                 .put("mp.messaging.incoming.data.exchange.name", exchangeName)
@@ -617,8 +604,6 @@ class RabbitMQTest extends RabbitMQBrokerTestBase {
      */
     @Test
     void testReceivingMessagesFromRabbitMQWithOverriddenContentType() {
-        final String exchangeName = "exchg4";
-        final String queueName = "q4";
         final String routingKey = "xyzzy";
         new MapBasedConfig()
                 .put("mp.messaging.incoming.data.exchange.name", exchangeName)
@@ -697,8 +682,6 @@ class RabbitMQTest extends RabbitMQBrokerTestBase {
      */
     @Test
     void testNackWithRejectAndRequeue() {
-        final String exchangeName = "exchg6";
-        final String queueName = "q6";
         final String dlxName = "dlx6";
         final String dlqName = "dlq6";
         final String routingKey = "xyzzy";
@@ -770,8 +753,6 @@ class RabbitMQTest extends RabbitMQBrokerTestBase {
      */
     @Test
     void testConsumerArguments() {
-        final String exchangeName = "exchg7";
-        final String queueName = "q7";
         final String routingKey = "xyzzy";
         new MapBasedConfig()
                 .put("mp.messaging.incoming.data.exchange.name", exchangeName)

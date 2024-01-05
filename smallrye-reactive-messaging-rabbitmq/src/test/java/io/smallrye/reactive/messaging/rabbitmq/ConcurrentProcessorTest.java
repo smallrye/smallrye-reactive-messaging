@@ -33,7 +33,7 @@ public class ConcurrentProcessorTest extends WeldTestBase {
                 .with("mp.messaging.incoming.data.connector", RabbitMQConnector.CONNECTOR_NAME)
                 .with("mp.messaging.incoming.data.queue.durable", true)
                 .with("mp.messaging.incoming.data.queue.name", "(server.auto)")
-                .with("mp.messaging.incoming.data.exchange.name", exchange)
+                .with("mp.messaging.incoming.data.exchange.name", exchangeName)
                 .with("mp.messaging.incoming.data.exchange.type", "direct")
                 .with("mp.messaging.incoming.data.max-outstanding-messages", 1)
                 .with("mp.messaging.incoming.data.concurrency", 3)
@@ -44,11 +44,11 @@ public class ConcurrentProcessorTest extends WeldTestBase {
 
     private void produceMessages() {
         AtomicInteger counter = new AtomicInteger(0);
-        usage.produce(exchange, null, "foo", 4, counter::getAndIncrement,
+        usage.produce(exchangeName, null, "foo", 4, counter::getAndIncrement,
                 new AMQP.BasicProperties.Builder().contentType("text/plain").headers(Map.of("key", "foo")).build());
-        usage.produce(exchange, null, "bar", 3, counter::getAndIncrement,
+        usage.produce(exchangeName, null, "bar", 3, counter::getAndIncrement,
                 new AMQP.BasicProperties.Builder().contentType("text/plain").headers(Map.of("key", "bar")).build());
-        usage.produce(exchange, null, "qux", 3, counter::getAndIncrement,
+        usage.produce(exchangeName, null, "qux", 3, counter::getAndIncrement,
                 new AMQP.BasicProperties.Builder().contentType("text/plain").headers(Map.of("key", "qux")).build());
     }
 

@@ -57,7 +57,6 @@ public class RabbitMQReconnectionTest extends RabbitMQBrokerTestBase {
 
     @Test
     void testSendingMessagesToRabbitMQ_connection_fails() {
-        final String exchangeName = "exchg1";
         final String routingKey = "normal";
 
         List<Integer> received = new CopyOnWriteArrayList<>();
@@ -104,7 +103,6 @@ public class RabbitMQReconnectionTest extends RabbitMQBrokerTestBase {
 
     @Test
     void testSendingMessagesToRabbitMQ_connection_fails_after_connection() {
-        final String exchangeName = "exchg1";
         final String routingKey = "normal";
 
         List<Integer> received = new CopyOnWriteArrayList<>();
@@ -154,8 +152,6 @@ public class RabbitMQReconnectionTest extends RabbitMQBrokerTestBase {
      */
     @Test
     void testReceivingMessagesFromRabbitMQ_connection_fails() {
-        final String exchangeName = "exchg2";
-        final String queueName = "q2";
         final String routingKey = "xyzzy";
         try (ToxiproxyContainer toxiproxy = new ToxiproxyContainer(DockerImageName.parse("ghcr.io/shopify/toxiproxy:latest")
                 .asCompatibleSubstituteFor("shopify/toxiproxy"))

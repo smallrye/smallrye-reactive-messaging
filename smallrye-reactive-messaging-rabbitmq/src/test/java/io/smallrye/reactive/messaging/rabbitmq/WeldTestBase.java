@@ -2,8 +2,6 @@ package io.smallrye.reactive.messaging.rabbitmq;
 
 import static org.awaitility.Awaitility.await;
 
-import java.util.UUID;
-
 import jakarta.enterprise.inject.spi.BeanManager;
 
 import org.eclipse.microprofile.reactive.messaging.spi.ConnectorLiteral;
@@ -41,9 +39,7 @@ public class WeldTestBase extends RabbitMQBrokerTestBase {
 
     protected WeldContainer container;
 
-    protected String exchange;
-    protected String queue;
-    protected String routingKeys;
+    protected String routingKeys = "normal";
 
     @BeforeEach
     public void initWeld() {
@@ -76,13 +72,6 @@ public class WeldTestBase extends RabbitMQBrokerTestBase {
         weld.addBeanClass(RabbitMQFailStop.Factory.class);
         weld.addBeanClass(RabbitMQReject.Factory.class);
         weld.disableDiscovery();
-    }
-
-    @BeforeEach
-    public void setupQueues() {
-        exchange = UUID.randomUUID().toString();
-        queue = UUID.randomUUID().toString();
-        routingKeys = "normal";
     }
 
     @AfterEach
