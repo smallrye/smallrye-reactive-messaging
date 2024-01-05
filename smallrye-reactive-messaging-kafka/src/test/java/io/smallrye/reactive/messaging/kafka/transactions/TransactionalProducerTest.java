@@ -13,7 +13,9 @@ import jakarta.inject.Inject;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.errors.RecordTooLargeException;
 import org.apache.kafka.common.errors.TransactionAbortedException;
+import org.apache.kafka.common.serialization.ByteArraySerializer;
 import org.apache.kafka.common.serialization.IntegerSerializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
@@ -22,10 +24,12 @@ import org.eclipse.microprofile.reactive.messaging.Channel;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.junit.jupiter.api.Test;
 
+import io.smallrye.mutiny.CompositeException;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.kafka.KafkaRecord;
 import io.smallrye.reactive.messaging.kafka.base.KafkaCompanionTestBase;
 import io.smallrye.reactive.messaging.kafka.base.KafkaMapBasedConfig;
+import io.smallrye.reactive.messaging.kafka.base.PerfTestUtils;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 
 public class TransactionalProducerTest extends KafkaCompanionTestBase {
@@ -271,5 +275,41 @@ public class TransactionalProducerTest extends KafkaCompanionTestBase {
             });
         }
 
+    }
+
+    @Test
+    void testFailingSendInTransaction() {
+        topic = companion.topics().createAndWait(topic, 3);
+        int numberOfRecords = 100;
+        BigTransactionalProducer application = runApplication(config()
+                .with("value.serializer", ByteArraySerializer.class.getName())
+                .with("max.request.size", 100), BigTransactionalProducer.class);
+
+        assertThatThrownBy(() -> application.produceInTransaction(numberOfRecords).await().indefinitely())
+                .isInstanceOf(CompositeException.class)
+                .hasCauseExactlyInstanceOf(RecordTooLargeException.class);
+
+        companion.consumeIntegers()
+                .withProp(ConsumerConfig.ISOLATION_LEVEL_CONFIG, "read_committed")
+                .fromTopics(topic, numberOfRecords)
+                .awaitNoRecords(Duration.ofSeconds(3));
+    }
+
+    @ApplicationScoped
+    public static class BigTransactionalProducer {
+
+        @Inject
+        @Channel("transactional-producer")
+        KafkaTransactions<byte[]> transaction;
+
+        Uni<Void> produceInTransaction(final int numberOfRecords) {
+            return transaction.withTransaction(emitter -> {
+                for (int i = 0; i < numberOfRecords; i++) {
+                    emitter.send(KafkaRecord.of("" + i % 10, PerfTestUtils.generateRandomPayload(numberOfRecords)));
+                }
+                assertThat(transaction.isTransactionInProgress()).isTrue();
+                return Uni.createFrom().voidItem();
+            });
+        }
     }
 }
