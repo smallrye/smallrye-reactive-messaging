@@ -18,6 +18,8 @@
  */
 package org.eclipse.microprofile.reactive.messaging;
 
+import static java.util.Objects.requireNonNullElse;
+
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -492,7 +494,7 @@ public interface Message<T> {
      * @return the supplier used to retrieve the acknowledgement {@link CompletionStage}.
      */
     default Supplier<CompletionStage<Void>> getAck() {
-        return () -> getAckWithMetadata().apply(this.getMetadata());
+        return () -> requireNonNullElse(getAckWithMetadata(), EMPTY_ACK).apply(this.getMetadata());
     }
 
     /**
@@ -507,7 +509,7 @@ public interface Message<T> {
      * @return the function used to retrieve the negative-acknowledgement asynchronous function.
      */
     default Function<Throwable, CompletionStage<Void>> getNack() {
-        return reason -> getNackWithMetadata().apply(reason, this.getMetadata());
+        return reason -> requireNonNullElse(getNackWithMetadata(), EMPTY_NACK).apply(reason, this.getMetadata());
     }
 
     /**

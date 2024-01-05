@@ -1,24 +1,21 @@
 package io.smallrye.reactive.messaging.rabbitmq;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
+
+import java.util.concurrent.atomic.AtomicInteger;
+
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
+
+import org.eclipse.microprofile.reactive.messaging.Channel;
+import org.junit.jupiter.api.Test;
+
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.helpers.test.AssertSubscriber;
 import io.smallrye.reactive.messaging.MutinyEmitter;
 import io.smallrye.reactive.messaging.providers.extension.HealthCenter;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
-import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
-import org.eclipse.microprofile.reactive.messaging.Channel;
-import org.eclipse.microprofile.reactive.messaging.Message;
-import org.eclipse.microprofile.reactive.messaging.Outgoing;
-import org.junit.jupiter.api.Test;
-
-import java.time.Duration;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.awaitility.Awaitility.await;
 
 public class ConsumerBackPressure extends WeldTestBase {
 
@@ -51,7 +48,7 @@ public class ConsumerBackPressure extends WeldTestBase {
         publisher.generate();
 
         AtomicInteger i = new AtomicInteger(1);
-        while(consumer.getItems().size() < 10000) {
+        while (consumer.getItems().size() < 10000) {
             consumer.request(100);
             await().until(() -> consumer.getItems().size() == 100 * i.get());
             i.getAndIncrement();
@@ -60,11 +57,11 @@ public class ConsumerBackPressure extends WeldTestBase {
 
     }
 
-
     @ApplicationScoped
     public static class Publisher {
 
-        @Inject @Channel("to-rabbitmq")
+        @Inject
+        @Channel("to-rabbitmq")
         MutinyEmitter<String> emitter;
 
         public void generate() {
@@ -78,7 +75,9 @@ public class ConsumerBackPressure extends WeldTestBase {
     @ApplicationScoped
     public static class Subscriber {
 
-        @Inject @Channel("from-rabbitmq") Multi<String> multi;
+        @Inject
+        @Channel("from-rabbitmq")
+        Multi<String> multi;
 
         public Multi<String> getMulti() {
             return multi;
