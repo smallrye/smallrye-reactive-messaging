@@ -1,6 +1,8 @@
 package io.smallrye.reactive.messaging.rabbitmq;
 
 import java.lang.annotation.Annotation;
+import java.lang.reflect.Method;
+import java.util.UUID;
 
 import jakarta.enterprise.inject.Any;
 import jakarta.enterprise.inject.se.SeContainer;
@@ -11,6 +13,7 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.TestInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.GenericContainer;
@@ -50,6 +53,9 @@ public class RabbitMQBrokerTestBase {
     protected RabbitMQUsage usage;
     ExecutionHolder executionHolder;
 
+    protected String exchangeName;
+    protected String queueName;
+
     @BeforeAll
     public static void startBroker() {
         RABBIT.start();
@@ -78,6 +84,14 @@ public class RabbitMQBrokerTestBase {
         usage = new RabbitMQUsage(executionHolder.vertx(), host, port, managementPort, username, password);
         SmallRyeConfigProviderResolver.instance().releaseConfig(ConfigProvider.getConfig());
         MapBasedConfig.cleanup();
+    }
+
+    @BeforeEach
+    public void initQueueExchange(TestInfo testInfo) {
+        String cn = testInfo.getTestClass().map(Class::getSimpleName).orElse(UUID.randomUUID().toString());
+        String mn = testInfo.getTestMethod().map(Method::getName).orElse(UUID.randomUUID().toString());
+        queueName = "queue" + cn + "-" + mn + "-" + UUID.randomUUID().getMostSignificantBits();
+        exchangeName = "exchange" + cn + "-" + mn + "-" + UUID.randomUUID().getMostSignificantBits();
     }
 
     @AfterEach

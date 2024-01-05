@@ -4,18 +4,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 import java.io.IOException;
-import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.jboss.weld.environment.se.Weld;
 import org.jboss.weld.environment.se.WeldContainer;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInfo;
 
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 import io.vertx.core.json.JsonObject;
@@ -23,15 +19,6 @@ import io.vertx.core.json.JsonObject;
 public class RabbitMQArgumentsCDIConfigTest extends RabbitMQBrokerTestBase {
 
     private WeldContainer container;
-
-    String queueName;
-
-    @BeforeEach
-    public void initQueue(TestInfo testInfo) {
-        String cn = testInfo.getTestClass().map(Class::getSimpleName).orElse(UUID.randomUUID().toString());
-        String mn = testInfo.getTestMethod().map(Method::getName).orElse(UUID.randomUUID().toString());
-        queueName = cn + "-" + mn + "-" + UUID.randomUUID().getMostSignificantBits();
-    }
 
     @Test
     public void testConfigByCDIQueueArguments() throws IOException {

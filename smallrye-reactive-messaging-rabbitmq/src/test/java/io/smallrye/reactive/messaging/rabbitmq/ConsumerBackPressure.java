@@ -22,13 +22,13 @@ public class ConsumerBackPressure extends WeldTestBase {
     private MapBasedConfig getBaseConfig() {
         return new MapBasedConfig()
                 .with("mp.messaging.outgoing.to-rabbitmq.connector", RabbitMQConnector.CONNECTOR_NAME)
-                .with("mp.messaging.outgoing.to-rabbitmq.exchange.name", exchange)
+                .with("mp.messaging.outgoing.to-rabbitmq.exchange.name", exchangeName)
 
                 .with("mp.messaging.incoming.from-rabbitmq.connector", RabbitMQConnector.CONNECTOR_NAME)
-                .with("mp.messaging.incoming.from-rabbitmq.queue.name", queue)
+                .with("mp.messaging.incoming.from-rabbitmq.queue.name", queueName)
                 .with("mp.messaging.incoming.from-rabbitmq.queue.durable", true)
 
-                .with("mp.messaging.incoming.from-rabbitmq.exchange.name", exchange);
+                .with("mp.messaging.incoming.from-rabbitmq.exchange.name", exchangeName);
     }
 
     @Test

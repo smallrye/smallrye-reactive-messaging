@@ -82,14 +82,14 @@ public class TracingTest extends WeldTestBase {
     void incoming() {
         IncomingTracing tracing = runApplication(commonConfig()
                 .with("mp.messaging.incoming.from-rabbitmq.connector", RabbitMQConnector.CONNECTOR_NAME)
-                .with("mp.messaging.incoming.from-rabbitmq.queue.name", queue)
-                .with("mp.messaging.incoming.from-rabbitmq.exchange.name", exchange)
+                .with("mp.messaging.incoming.from-rabbitmq.queue.name", queueName)
+                .with("mp.messaging.incoming.from-rabbitmq.exchange.name", exchangeName)
                 .with("mp.messaging.incoming.from-rabbitmq.exchange.routing-keys", routingKeys)
                 .with("mp.messaging.incoming.from-rabbitmq.tracing.enabled", true),
                 IncomingTracing.class);
 
         AtomicInteger counter = new AtomicInteger(1);
-        usage.produce(exchange, queue, routingKeys, 5, counter::getAndIncrement,
+        usage.produce(exchangeName, queueName, routingKeys, 5, counter::getAndIncrement,
                 new AMQP.BasicProperties().builder().expiration("10000").contentType("text/plain").build());
         await().atMost(5, SECONDS).until(() -> tracing.getResults().size() == 5);
 
@@ -104,10 +104,10 @@ public class TracingTest extends WeldTestBase {
             assertEquals("rabbitmq", consumer.getAttributes().get(MESSAGING_SYSTEM));
             assertEquals("receive", consumer.getAttributes().get(MESSAGING_OPERATION));
             assertEquals("normal", consumer.getAttributes().get(MESSAGING_RABBITMQ_ROUTING_KEY));
-            assertEquals(queue, consumer.getAttributes().get(MESSAGING_DESTINATION_NAME));
+            assertEquals(queueName, consumer.getAttributes().get(MESSAGING_DESTINATION_NAME));
             assertNull(consumer.getAttributes().get(MESSAGING_PROTOCOL));
             assertNull(consumer.getAttributes().get(MESSAGING_PROTOCOL_VERSION));
-            assertEquals(queue + " receive", consumer.getName());
+            assertEquals(queueName + " receive", consumer.getName());
         });
     }
 
@@ -115,8 +115,8 @@ public class TracingTest extends WeldTestBase {
     void incomingClientPropagate() {
         IncomingTracing tracing = runApplication(commonConfig()
                 .with("mp.messaging.incoming.from-rabbitmq.connector", RabbitMQConnector.CONNECTOR_NAME)
-                .with("mp.messaging.incoming.from-rabbitmq.queue.name", queue)
-                .with("mp.messaging.incoming.from-rabbitmq.exchange.name", exchange)
+                .with("mp.messaging.incoming.from-rabbitmq.queue.name", queueName)
+                .with("mp.messaging.incoming.from-rabbitmq.exchange.name", exchangeName)
                 .with("mp.messaging.incoming.from-rabbitmq.exchange.routing-keys", routingKeys)
                 .with("mp.messaging.incoming.from-rabbitmq.tracing.enabled", true),
                 IncomingTracing.class);
@@ -137,7 +137,7 @@ public class TracingTest extends WeldTestBase {
                 .headers(headers).build();
 
         AtomicInteger counter = new AtomicInteger(1);
-        usage.produce(exchange, queue, routingKeys, 5, counter::getAndIncrement, properties);
+        usage.produce(exchangeName, queueName, routingKeys, 5, counter::getAndIncrement, properties);
         await().atMost(5, SECONDS).until(() -> tracing.getResults().size() == 5);
 
         CompletableResultCode completableResultCode = tracerProvider.forceFlush();
@@ -154,13 +154,13 @@ public class TracingTest extends WeldTestBase {
 
         IncomingOutgoingTracing tracing = runApplication(commonConfig()
                 .with("mp.messaging.outgoing.to-rabbitmq.connector", RabbitMQConnector.CONNECTOR_NAME)
-                .with("mp.messaging.outgoing.to-rabbitmq.queue.name", queue)
-                .with("mp.messaging.outgoing.to-rabbitmq.exchange.name", exchange)
+                .with("mp.messaging.outgoing.to-rabbitmq.queue.name", queueName)
+                .with("mp.messaging.outgoing.to-rabbitmq.exchange.name", exchangeName)
                 .with("mp.messaging.outgoing.to-rabbitmq.exchange.routing-keys", routingKeys)
                 .with("mp.messaging.outgoing.to-rabbitmq.tracing.enabled", true)
                 .with("mp.messaging.incoming.from-rabbitmq.connector", RabbitMQConnector.CONNECTOR_NAME)
-                .with("mp.messaging.incoming.from-rabbitmq.queue.name", queue)
-                .with("mp.messaging.incoming.from-rabbitmq.exchange.name", exchange)
+                .with("mp.messaging.incoming.from-rabbitmq.queue.name", queueName)
+                .with("mp.messaging.incoming.from-rabbitmq.exchange.name", exchangeName)
                 .with("mp.messaging.incoming.from-rabbitmq.exchange.routing-keys", routingKeys)
                 .with("mp.messaging.incoming.from-rabbitmq.tracing.enabled", true),
                 IncomingOutgoingTracing.class);
@@ -191,14 +191,14 @@ public class TracingTest extends WeldTestBase {
     void incomingOutgoingSink() {
         IncomingOutgoingSinkTracing tracing = runApplication(commonConfig()
                 .with("mp.messaging.incoming.from-rabbitmq.connector", RabbitMQConnector.CONNECTOR_NAME)
-                .with("mp.messaging.incoming.from-rabbitmq.queue.name", queue)
-                .with("mp.messaging.incoming.from-rabbitmq.exchange.name", exchange)
+                .with("mp.messaging.incoming.from-rabbitmq.queue.name", queueName)
+                .with("mp.messaging.incoming.from-rabbitmq.exchange.name", exchangeName)
                 .with("mp.messaging.incoming.from-rabbitmq.exchange.routing-keys", routingKeys)
                 .with("mp.messaging.incoming.from-rabbitmq.tracing.enabled", true),
                 IncomingOutgoingSinkTracing.class);
 
         AtomicInteger counter = new AtomicInteger(1);
-        usage.produce(exchange, queue, routingKeys, 5, counter::getAndIncrement,
+        usage.produce(exchangeName, queueName, routingKeys, 5, counter::getAndIncrement,
                 new AMQP.BasicProperties().builder().expiration("10000").contentType("text/plain").build());
         await().atMost(5, SECONDS).until(() -> tracing.getResults().size() == 5);
 

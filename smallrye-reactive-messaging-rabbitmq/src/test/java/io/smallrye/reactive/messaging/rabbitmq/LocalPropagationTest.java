@@ -37,15 +37,15 @@ public class LocalPropagationTest extends WeldTestBase {
     private MapBasedConfig dataconfig() {
         return commonConfig()
                 .with("mp.messaging.incoming.data.connector", RabbitMQConnector.CONNECTOR_NAME)
-                .with("mp.messaging.incoming.data.queue.name", queue)
-                .with("mp.messaging.incoming.data.exchange.name", exchange)
+                .with("mp.messaging.incoming.data.queue.name", queueName)
+                .with("mp.messaging.incoming.data.exchange.name", exchangeName)
                 .with("mp.messaging.incoming.data.exchange.routing-keys", routingKeys)
                 .with("mp.messaging.incoming.data.tracing.enabled", false);
     }
 
     private void produceIntegers() {
         AtomicInteger counter = new AtomicInteger(1);
-        usage.produce(exchange, queue, routingKeys, 5, counter::getAndIncrement);
+        usage.produce(exchangeName, queueName, routingKeys, 5, counter::getAndIncrement);
     }
 
     @Test
