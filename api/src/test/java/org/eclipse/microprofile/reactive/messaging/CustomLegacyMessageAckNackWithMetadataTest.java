@@ -8,102 +8,14 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.BiFunction;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 import org.junit.jupiter.api.Test;
 
-public class CustomMessageAckNackWithMetadataTest {
+public class CustomLegacyMessageAckNackWithMetadataTest {
 
     private final MyMetadata myMetadata = new MyMetadata("bar");
-
-    @Test
-    public void testCreationFromPayloadOnly() {
-        Message<String> message = () -> "foo";
-        assertThat(message.getPayload()).isEqualTo("foo");
-        assertThat(message.getMetadata()).isEmpty();
-        assertThat(message.getAck()).isNotNull();
-        assertThat(message.getNack()).isNotNull();
-        assertThat(message.getAckWithMetadata()).isNull();
-        assertThat(message.getNackWithMetadata()).isNull();
-
-        assertThat(message.ack().toCompletableFuture().join()).isNull();
-        assertThat(message.ack(Metadata.of(myMetadata)).toCompletableFuture().join()).isNull();
-        assertThat(message.nack(new Exception("cause")).toCompletableFuture().join()).isNull();
-        assertThat(message.nack(new Exception("cause"), Metadata.of(myMetadata)).toCompletableFuture().join()).isNull();
-    }
-
-    @Test
-    public void testCreationFromPayloadAndMetadataOnly() {
-        Message<String> message = new Message<>() {
-            @Override
-            public String getPayload() {
-                return "foo";
-            }
-
-            @Override
-            public Metadata getMetadata() {
-                return Metadata.of(myMetadata);
-            }
-        };
-        assertThat(message.getPayload()).isEqualTo("foo");
-        assertThat(message.getMetadata()).hasSize(1).containsExactly(myMetadata);
-        assertThat(message.getAck()).isNotNull();
-        assertThat(message.getNack()).isNotNull();
-        assertThat(message.getAckWithMetadata()).isNull();
-        assertThat(message.getNackWithMetadata()).isNull();
-
-        assertThat(message.ack().toCompletableFuture().join()).isNull();
-        assertThat(message.ack(Metadata.of(myMetadata)).toCompletableFuture().join()).isNull();
-        assertThat(message.nack(new Exception("cause")).toCompletableFuture().join()).isNull();
-        assertThat(message.nack(new Exception("cause"), Metadata.of(myMetadata)).toCompletableFuture().join()).isNull();
-
-        message = new Message<>() {
-            @Override
-            public String getPayload() {
-                return "foo";
-            }
-
-            @Override
-            public Metadata getMetadata() {
-                return Metadata.empty();
-            }
-        };
-        assertThat(message.getPayload()).isEqualTo("foo");
-        assertThat(message.getMetadata()).isEmpty();
-        assertThat(message.getAck()).isNotNull();
-        assertThat(message.getNack()).isNotNull();
-
-    }
-
-    @Test
-    public void testCreationFromPayloadAndMetadataAsIterable() {
-        List<Object> metadata = Arrays.asList(myMetadata, new AtomicInteger(2));
-        Message<String> message = new Message<>() {
-            @Override
-            public String getPayload() {
-                return "foo";
-            }
-
-            @Override
-            public Metadata getMetadata() {
-                return Metadata.from(metadata);
-            }
-        };
-        assertThat(message.getPayload()).isEqualTo("foo");
-        assertThat(message.getMetadata()).hasSize(2);
-        assertThat(message.getAck()).isNotNull();
-        assertThat(message.getNack()).isNotNull();
-        assertThat(message.getAckWithMetadata()).isNull();
-        assertThat(message.getNackWithMetadata()).isNull();
-
-        assertThat(message.ack().toCompletableFuture().join()).isNull();
-        assertThat(message.ack(Metadata.from(metadata)).toCompletableFuture().join()).isNull();
-        assertThat(message.nack(new Exception("cause")).toCompletableFuture().join()).isNull();
-        assertThat(message.nack(new Exception("cause"), Metadata.from(metadata)).toCompletableFuture().join()).isNull();
-
-        assertThatThrownBy(() -> Message.of("x", (Iterable<Object>) null)).isInstanceOf(IllegalArgumentException.class);
-    }
 
     @Test
     public void testCreationFromPayloadAndAck() {
@@ -115,12 +27,12 @@ public class CustomMessageAckNackWithMetadataTest {
             }
 
             @Override
-            public Function<Metadata, CompletionStage<Void>> getAckWithMetadata() {
+            public Supplier<CompletionStage<Void>> getAck() {
                 return this::ack;
             }
 
             @Override
-            public CompletionStage<Void> ack(Metadata metadata) {
+            public CompletionStage<Void> ack() {
                 count.incrementAndGet();
                 return CompletableFuture.completedFuture(null);
             }
@@ -130,7 +42,7 @@ public class CustomMessageAckNackWithMetadataTest {
         assertThat(message.getMetadata()).hasSize(0);
         assertThat(message.getAck()).isNotNull();
         assertThat(message.getNack()).isNotNull();
-        assertThat(message.getAckWithMetadata()).isNotNull();
+        assertThat(message.getAckWithMetadata()).isNull();
         assertThat(message.getNackWithMetadata()).isNull();
 
         assertThat(message.ack().toCompletableFuture().join()).isNull();
@@ -157,12 +69,12 @@ public class CustomMessageAckNackWithMetadataTest {
             }
 
             @Override
-            public Function<Metadata, CompletionStage<Void>> getAckWithMetadata() {
+            public Supplier<CompletionStage<Void>> getAck() {
                 return this::ack;
             }
 
             @Override
-            public CompletionStage<Void> ack(Metadata metadata) {
+            public CompletionStage<Void> ack() {
                 count.incrementAndGet();
                 return CompletableFuture.completedFuture(null);
             }
@@ -172,7 +84,7 @@ public class CustomMessageAckNackWithMetadataTest {
         assertThat(message.getMetadata()).hasSize(1).containsExactly(myMetadata);
         assertThat(message.getAck()).isNotNull();
         assertThat(message.getNack()).isNotNull();
-        assertThat(message.getAckWithMetadata()).isNotNull();
+        assertThat(message.getAckWithMetadata()).isNull();
         assertThat(message.getNackWithMetadata()).isNull();
 
         assertThat(message.ack().toCompletableFuture().join()).isNull();
@@ -200,12 +112,12 @@ public class CustomMessageAckNackWithMetadataTest {
             }
 
             @Override
-            public Function<Metadata, CompletionStage<Void>> getAckWithMetadata() {
+            public Supplier<CompletionStage<Void>> getAck() {
                 return this::ack;
             }
 
             @Override
-            public CompletionStage<Void> ack(Metadata metadata) {
+            public CompletionStage<Void> ack() {
                 count.incrementAndGet();
                 return CompletableFuture.completedFuture(null);
             }
@@ -216,7 +128,7 @@ public class CustomMessageAckNackWithMetadataTest {
         assertThat(message.getMetadata()).hasSize(2).contains(myMetadata);
         assertThat(message.getAck()).isNotNull();
         assertThat(message.getNack()).isNotNull();
-        assertThat(message.getAckWithMetadata()).isNotNull();
+        assertThat(message.getAckWithMetadata()).isNull();
         assertThat(message.getNackWithMetadata()).isNull();
 
         assertThat(message.ack().toCompletableFuture().join()).isNull();
@@ -233,7 +145,7 @@ public class CustomMessageAckNackWithMetadataTest {
     public void testCreationFromPayloadMetadataAckAndNack() {
         AtomicInteger ack = new AtomicInteger(0);
         AtomicInteger nack = new AtomicInteger(0);
-        Message<String> message = new CustomMessage<>("foo", Metadata.of(myMetadata), ack, nack);
+        Message<String> message = new CustomLegacyMessage<>("foo", Metadata.of(myMetadata), ack, nack);
 
         assertThat(message.getPayload()).isEqualTo("foo");
         assertThat(message.getMetadata()).hasSize(1).containsExactly(myMetadata);
@@ -252,15 +164,15 @@ public class CustomMessageAckNackWithMetadataTest {
     public void testWithPayload() {
         AtomicInteger ack = new AtomicInteger(0);
         AtomicInteger nack = new AtomicInteger(0);
-        Message<String> message = new CustomMessage<>("foo", Metadata.of(myMetadata), ack, nack);
+        Message<String> message = new CustomLegacyMessage<>("foo", Metadata.of(myMetadata), ack, nack);
 
         Message<String> created = message.withPayload("bar");
         assertThat(created.getPayload()).isEqualTo("bar");
         assertThat(created.getMetadata()).hasSize(1).containsExactly(myMetadata);
         assertThat(created.getAck()).isNotNull();
         assertThat(created.getNack()).isNotNull();
-        assertThat(message.getAckWithMetadata()).isNotNull();
-        assertThat(message.getNackWithMetadata()).isNotNull();
+        assertThat(message.getAckWithMetadata()).isNull();
+        assertThat(message.getNackWithMetadata()).isNull();
 
         assertThat(created.ack().toCompletableFuture().join()).isNull();
         assertThat(created.ack(Metadata.of(myMetadata)).toCompletableFuture().join()).isNull();
@@ -275,15 +187,15 @@ public class CustomMessageAckNackWithMetadataTest {
     public void testWithMetadata() {
         AtomicInteger ack = new AtomicInteger(0);
         AtomicInteger nack = new AtomicInteger(0);
-        Message<String> message = new CustomMessage<>("foo", Metadata.of(myMetadata), ack, nack);
+        Message<String> message = new CustomLegacyMessage<>("foo", Metadata.of(myMetadata), ack, nack);
         MyMetadata mm = new MyMetadata("hello");
         Message<String> created = message.withMetadata(Metadata.of(mm));
         assertThat(created.getPayload()).isEqualTo("foo");
         assertThat(created.getMetadata()).hasSize(1).containsExactly(mm);
         assertThat(created.getAck()).isNotNull();
         assertThat(created.getNack()).isNotNull();
-        assertThat(message.getAckWithMetadata()).isNotNull();
-        assertThat(message.getNackWithMetadata()).isNotNull();
+        assertThat(message.getAckWithMetadata()).isNull();
+        assertThat(message.getNackWithMetadata()).isNull();
 
         assertThat(created.ack().toCompletableFuture().join()).isNull();
         assertThat(created.ack(Metadata.of(myMetadata)).toCompletableFuture().join()).isNull();
@@ -299,7 +211,7 @@ public class CustomMessageAckNackWithMetadataTest {
         AtomicInteger ack = new AtomicInteger(0);
         AtomicInteger ack2 = new AtomicInteger(0);
         AtomicInteger nack = new AtomicInteger(0);
-        Message<String> message = new CustomMessage<>("foo", Metadata.of(myMetadata), ack, nack);
+        Message<String> message = new CustomLegacyMessage<>("foo", Metadata.of(myMetadata), ack, nack);
         Message<String> created = message.withAck(() -> {
             ack2.incrementAndGet();
             return CompletableFuture.completedFuture(null);
@@ -308,8 +220,8 @@ public class CustomMessageAckNackWithMetadataTest {
         assertThat(created.getMetadata()).hasSize(1).containsExactly(myMetadata);
         assertThat(created.getAck()).isNotNull();
         assertThat(created.getNack()).isNotNull();
-        assertThat(message.getAckWithMetadata()).isNotNull();
-        assertThat(message.getNackWithMetadata()).isNotNull();
+        assertThat(message.getAckWithMetadata()).isNull();
+        assertThat(message.getNackWithMetadata()).isNull();
 
         assertThat(created.ack().toCompletableFuture().join()).isNull();
         assertThat(created.ack(Metadata.of(myMetadata)).toCompletableFuture().join()).isNull();
@@ -326,7 +238,7 @@ public class CustomMessageAckNackWithMetadataTest {
         AtomicInteger ack = new AtomicInteger(0);
         AtomicInteger nack = new AtomicInteger(0);
         AtomicInteger nack2 = new AtomicInteger(0);
-        Message<String> message = new CustomMessage<>("foo", Metadata.of(myMetadata), ack, nack);
+        Message<String> message = new CustomLegacyMessage<>("foo", Metadata.of(myMetadata), ack, nack);
 
         Message<String> created = message.withNack(t -> {
             assertThat(t).hasMessage("cause");
@@ -337,8 +249,8 @@ public class CustomMessageAckNackWithMetadataTest {
         assertThat(created.getMetadata()).hasSize(1).containsExactly(myMetadata);
         assertThat(created.getAck()).isNotNull();
         assertThat(created.getNack()).isNotNull();
-        assertThat(message.getAckWithMetadata()).isNotNull();
-        assertThat(message.getNackWithMetadata()).isNotNull();
+        assertThat(message.getAckWithMetadata()).isNull();
+        assertThat(message.getNackWithMetadata()).isNull();
 
         assertThat(created.ack().toCompletableFuture().join()).isNull();
         assertThat(created.ack(Metadata.of(myMetadata)).toCompletableFuture().join()).isNull();
@@ -353,14 +265,14 @@ public class CustomMessageAckNackWithMetadataTest {
     public void testAddMetadata() {
         AtomicInteger ack = new AtomicInteger(0);
         AtomicInteger nack = new AtomicInteger(0);
-        Message<String> message = new CustomMessage<>("foo", Metadata.of(myMetadata), ack, nack);
+        Message<String> message = new CustomLegacyMessage<>("foo", Metadata.of(myMetadata), ack, nack);
         Message<String> created = message.addMetadata(new AtomicInteger(2));
         assertThat(created.getPayload()).isEqualTo("foo");
         assertThat(created.getMetadata()).hasSize(2).contains(myMetadata);
         assertThat(created.getAck()).isNotNull();
         assertThat(created.getNack()).isNotNull();
-        assertThat(message.getAckWithMetadata()).isNotNull();
-        assertThat(message.getNackWithMetadata()).isNotNull();
+        assertThat(message.getAckWithMetadata()).isNull();
+        assertThat(message.getNackWithMetadata()).isNull();
 
         assertThat(created.ack().toCompletableFuture().join()).isNull();
         assertThat(created.ack(Metadata.of(myMetadata)).toCompletableFuture().join()).isNull();
@@ -374,14 +286,14 @@ public class CustomMessageAckNackWithMetadataTest {
     public void testAckAndNackNull() {
         AtomicInteger ack = new AtomicInteger(0);
         AtomicInteger nack = new AtomicInteger(0);
-        Message<String> message = new CustomMessage<>("foo", Metadata.of(myMetadata), ack, nack);
+        Message<String> message = new CustomLegacyMessage<>("foo", Metadata.of(myMetadata), ack, nack);
         Message<String> created = message.withAck(null).withNack(null);
         assertThat(created.getPayload()).isEqualTo("foo");
         assertThat(created.getMetadata()).hasSize(1).contains(myMetadata);
         assertThat(created.getAck()).isNotNull();
         assertThat(created.getNack()).isNotNull();
-        assertThat(message.getAckWithMetadata()).isNotNull();
-        assertThat(message.getNackWithMetadata()).isNotNull();
+        assertThat(message.getAckWithMetadata()).isNull();
+        assertThat(message.getNackWithMetadata()).isNull();
 
         assertThat(created.ack().toCompletableFuture().join()).isNull();
         assertThat(created.ack(Metadata.of(myMetadata)).toCompletableFuture().join()).isNull();
@@ -414,14 +326,14 @@ public class CustomMessageAckNackWithMetadataTest {
         }
     }
 
-    private static class CustomMessage<T> implements Message<T> {
+    private static class CustomLegacyMessage<T> implements Message<T> {
 
         T payload;
         Metadata metadata;
         AtomicInteger ack;
         AtomicInteger nack;
 
-        public CustomMessage(T payload, Metadata metadata, AtomicInteger ack, AtomicInteger nack) {
+        public CustomLegacyMessage(T payload, Metadata metadata, AtomicInteger ack, AtomicInteger nack) {
             this.payload = payload;
             this.metadata = metadata;
             this.ack = ack;
@@ -439,17 +351,17 @@ public class CustomMessageAckNackWithMetadataTest {
         }
 
         @Override
-        public Function<Metadata, CompletionStage<Void>> getAckWithMetadata() {
+        public Supplier<CompletionStage<Void>> getAck() {
             return this::ack;
         }
 
         @Override
-        public BiFunction<Throwable, Metadata, CompletionStage<Void>> getNackWithMetadata() {
+        public Function<Throwable, CompletionStage<Void>> getNack() {
             return this::nack;
         }
 
         @Override
-        public CompletionStage<Void> ack(Metadata metadata) {
+        public CompletionStage<Void> ack() {
             ack.incrementAndGet();
             return CompletableFuture.completedFuture(null);
         }

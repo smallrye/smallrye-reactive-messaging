@@ -66,12 +66,12 @@ public interface Message<T> {
 
     private static Function<Metadata, CompletionStage<Void>> wrapAck(Message<?> message) {
         var ackM = message.getAckWithMetadata();
-        return ackM != EMPTY_ACK ? ackM : validateAck(message.getAck());
+        return ackM != null ? ackM : validateAck(message.getAck());
     }
 
     private static BiFunction<Throwable, Metadata, CompletionStage<Void>> wrapNack(Message<?> message) {
         var nackM = message.getNackWithMetadata();
-        return nackM != EMPTY_NACK ? nackM : validateNack(message.getNack());
+        return nackM != null ? nackM : validateNack(message.getNack());
     }
 
     private static <T> Message<T> newMessage(T payload, Metadata metadata) {
@@ -502,7 +502,7 @@ public interface Message<T> {
      */
     @Experimental("metadata propagation is a SmallRye-specific feature")
     default Function<Metadata, CompletionStage<Void>> getAckWithMetadata() {
-        return EMPTY_ACK;
+        return null;
     }
 
     /**
@@ -517,7 +517,7 @@ public interface Message<T> {
      */
     @Experimental("metadata propagation is a SmallRye-specific feature")
     default BiFunction<Throwable, Metadata, CompletionStage<Void>> getNackWithMetadata() {
-        return EMPTY_NACK;
+        return null;
     }
 
     /**
