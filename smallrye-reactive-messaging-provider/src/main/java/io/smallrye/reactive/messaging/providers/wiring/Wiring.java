@@ -30,6 +30,7 @@ import io.smallrye.reactive.messaging.providers.AbstractMediator;
 import io.smallrye.reactive.messaging.providers.extension.*;
 import io.smallrye.reactive.messaging.providers.helpers.MultiUtils;
 import io.smallrye.reactive.messaging.providers.i18n.ProviderLogging;
+import io.smallrye.reactive.messaging.providers.locals.ContextDecorator;
 
 @ApplicationScoped
 public class Wiring {
@@ -554,7 +555,9 @@ public class Wiring {
             registry.register(configuration.name(), type, emitter);
             Multi<? extends Message<?>> publisher = Multi.createFrom().publisher(emitter.getPublisher());
             for (PublisherDecorator decorator : getSortedInstances(decorators)) {
-                publisher = decorator.decorate(publisher, List.of(configuration.name()), false);
+                if (!(decorator instanceof ContextDecorator)) {
+                    publisher = decorator.decorate(publisher, List.of(configuration.name()), false);
+                }
             }
             //noinspection ReactiveStreamsUnusedPublisher
             registry.register(configuration.name(), publisher, broadcast());
