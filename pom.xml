@@ -82,7 +82,7 @@
 
     <micrometer.version>1.12.2</micrometer.version>
 
-    <mutiny.version>2.5.3</mutiny.version>
+    <mutiny.version>2.5.5</mutiny.version>
     <artemis.version>2.31.2</artemis.version>
     <commons-io.version>2.15.1</commons-io.version>
 
