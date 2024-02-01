@@ -30,8 +30,8 @@ jobs:
                         'version': '21',
                     },
                     {
-                        'version': '11',
-                        'build_opts': '-Pslow-flaky-tests -Drevapi.skip=true',
+                        'version': '21',
+                        'build_opts': '-Pslow-flaky-tests -Drevapi.skip=true -Dformat.skip=true',
                         'name': 'Slow and Flaky tests',
                         'continue-on-error': true
                     }
