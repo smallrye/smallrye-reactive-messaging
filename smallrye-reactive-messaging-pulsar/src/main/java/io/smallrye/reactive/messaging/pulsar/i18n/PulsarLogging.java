@@ -49,16 +49,16 @@ public interface PulsarLogging extends BasicLogger {
     void createdProducerWithConfig(String channel, String schema, Object producerConf);
 
     @LogMessage(level = Logger.Level.WARN)
-    @Message(id = 19013, value = "A message sent to channel `%s` has been nacked, fail-stopping the processing")
-    void messageNackedFailStop(String channel);
+    @Message(id = 19013, value = "Failed to process a message sent to channel `%s`, fail-stopping the processing")
+    void messageFailureFailStop(String channel);
 
     @LogMessage(level = Logger.Level.WARN)
-    @Message(id = 19014, value = "A message sent to channel `%s` has been nacked, ignored failure is: %s.")
-    void messageNackedIgnored(String channel, String reason);
+    @Message(id = 19014, value = "Failed to process a message sent to channel `%s`, proceeding with ack, ignored failure is: %s.")
+    void messageFailureIgnored(String channel, String reason);
 
     @LogMessage(level = Logger.Level.DEBUG)
-    @Message(id = 19015, value = "The full ignored failure is")
-    void messageNackedFullIgnored(@Cause Throwable t);
+    @Message(id = 19015, value = "The full cause is")
+    void messageFailureFullCause(@Cause Throwable t);
 
     @LogMessage(level = Logger.Level.INFO)
     @Message(id = 19016, value = "The consumer for channel `%s` failed to receive message")
@@ -87,4 +87,16 @@ public interface PulsarLogging extends BasicLogger {
     @LogMessage(level = Logger.Level.WARN)
     @Message(id = 19022, value = "The schema provider not found with id '%s', for channel '%s' falling back to default schema %s")
     void schemaProviderNotFound(String schemaProviderId, String channel, String defaultSchema);
+
+    @LogMessage(level = Logger.Level.WARN)
+    @Message(id = 19023, value = "Failed to process a message sent to channel `%s`, proceeding without ack/nack, failure is: %s.")
+    void messageFailureContinued(String channel, String reason);
+
+    @LogMessage(level = Logger.Level.WARN)
+    @Message(id = 19024, value = "Failed to process a message sent to channel `%s`, proceeding with nack, failure is: %s.")
+    void messageFailureNacked(String channel, String reason);
+
+    @LogMessage(level = Logger.Level.WARN)
+    @Message(id = 19025, value = "Failed to process a message sent to channel `%s`, tryign to reconsume in %s seconds, failure is: %s.")
+    void messageFailureDelayed(String channel, long delaySeconds , String reason);
 }

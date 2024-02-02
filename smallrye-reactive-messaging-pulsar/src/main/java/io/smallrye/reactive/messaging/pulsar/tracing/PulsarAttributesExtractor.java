@@ -57,12 +57,12 @@ public class PulsarAttributesExtractor implements AttributesExtractor<PulsarTrac
 
         @Override
         public Long getMessagePayloadSize(PulsarTrace pulsarTrace) {
-            return null;
+            return pulsarTrace.getUncompressedPayloadSize();
         }
 
         @Override
         public Long getMessagePayloadCompressedSize(PulsarTrace pulsarTrace) {
-            return pulsarTrace.getUncompressedPayloadSize();
+            return null;
         }
 
         @Override

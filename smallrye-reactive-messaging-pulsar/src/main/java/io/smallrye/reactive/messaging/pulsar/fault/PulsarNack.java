@@ -1,5 +1,7 @@
 package io.smallrye.reactive.messaging.pulsar.fault;
 
+import static io.smallrye.reactive.messaging.pulsar.i18n.PulsarLogging.log;
+
 import java.util.function.BiConsumer;
 
 import jakarta.enterprise.context.ApplicationScoped;
@@ -26,19 +28,23 @@ public class PulsarNack implements PulsarFailureHandler {
         @Override
         public PulsarFailureHandler create(Consumer<?> consumer, PulsarConnectorIncomingConfiguration config,
                 BiConsumer<Throwable, Boolean> reportFailure) {
-            return new PulsarNack(consumer);
+            return new PulsarNack(consumer, config.getChannel());
         }
     }
 
     private final Consumer<?> consumer;
+    private final String channel;
 
-    public PulsarNack(Consumer<?> consumer) {
+    public PulsarNack(Consumer<?> consumer, String channel) {
         this.consumer = consumer;
+        this.channel = channel;
     }
 
     @Override
     public Uni<Void> handle(PulsarIncomingMessage<?> message, Throwable reason, Metadata metadata) {
         consumer.negativeAcknowledge(message.getMessageId());
+        log.messageFailureNacked(channel, reason.getMessage());
+        log.messageFailureFullCause(reason);
         return Uni.createFrom().voidItem()
                 .emitOn(message::runOnMessageContext);
     }
