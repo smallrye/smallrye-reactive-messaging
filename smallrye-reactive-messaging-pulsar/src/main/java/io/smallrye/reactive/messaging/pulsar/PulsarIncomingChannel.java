@@ -73,7 +73,7 @@ public class PulsarIncomingChannel<T> {
             log.noSubscriptionName(s);
             conf.setSubscriptionName(s);
         }
-        if (hasTopicConfig(conf)) {
+        if (!hasTopicConfig(conf)) {
             conf.setTopicNames(Arrays.stream(ic.getTopic().orElse(channel).split(",")).collect(Collectors.toSet()));
         }
         if (conf.getConsumerName() == null) {
@@ -225,9 +225,9 @@ public class PulsarIncomingChannel<T> {
         }
     }
 
-    private static boolean hasTopicConfig(ConsumerConfigurationData<?> conf) {
+    static boolean hasTopicConfig(ConsumerConfigurationData<?> conf) {
         return conf.getTopicsPattern() != null
-                || (conf.getTopicNames() != null && conf.getTopicNames().isEmpty());
+                || (conf.getTopicNames() != null && !conf.getTopicNames().isEmpty());
     }
 
     public Flow.Publisher<? extends Message<?>> getPublisher() {
