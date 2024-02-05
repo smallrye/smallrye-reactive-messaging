@@ -20,9 +20,9 @@ class HeaderExtractAdapterTest {
         MessageImpl<String> message = new MessageImpl<>("topic", MessageId.latest.toString(), properties, "payload".getBytes(),
                 Schema.STRING,
                 new MessageMetadata());
-        PulsarTrace kafkaTrace = new PulsarTrace.Builder().withConsumerName("consumer-name").withMessage(message).build();
+        PulsarTrace pulsarTrace = new PulsarTrace.Builder().withConsumerName("consumer-name").withMessage(message).build();
 
-        String headerValue = PulsarTraceTextMapGetter.INSTANCE.get(kafkaTrace, "test_null_header");
+        String headerValue = PulsarTraceTextMapGetter.INSTANCE.get(pulsarTrace, "test_null_header");
 
         assertThat(headerValue).isNull();
     }
