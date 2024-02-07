@@ -15,6 +15,10 @@
 
   <name>SmallRye Reactive Messaging : Health</name>
 
+  <properties>
+    <!-- Doesn't provide jandex index in order for the Quarkus bean exclusion to work -->
+    <jandex.skip>true</jandex.skip>
+  </properties>
 
   <dependencies>
     <dependency>
