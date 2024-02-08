@@ -66,7 +66,6 @@ nav:
         - 'Client Customization' : rabbitmq/rabbitmq-client-customization.md
         - 'Connecting to managed instances' : rabbitmq/rabbitmq-cloud.md
 
-
   - Pulsar:
         - pulsar/pulsar.md
         - 'Receiving messages': pulsar/receiving-pulsar-messages.md
@@ -96,6 +95,10 @@ nav:
         - 'Sending MQTT messages': mqtt/sending-messages-to-mqtt.md
         - 'Customizing the MQTT client': mqtt/client-customization.md
 
+  - AWS SQS:
+        - sqs/sqs.md
+        - 'Receiving AWS SQS messages': sqs/receiving-aws-sqs-messages.md
+        - 'Sending AWS SQS messages': sqs/sending-aws-sqs-messages.md
 
 plugins:
   - search
