@@ -43,6 +43,7 @@ import io.smallrye.reactive.messaging.kafka.KafkaRecord;
 import io.smallrye.reactive.messaging.kafka.api.OutgoingKafkaRecordMetadata;
 import io.smallrye.reactive.messaging.kafka.commit.KafkaCommitHandler;
 import io.smallrye.reactive.messaging.kafka.fault.KafkaFailureHandler;
+import io.smallrye.reactive.messaging.kafka.impl.ConfigHelper;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
 import io.smallrye.reactive.messaging.kafka.impl.TopicPartitions;
 import io.smallrye.reactive.messaging.providers.extension.MutinyEmitterImpl;
@@ -75,7 +76,8 @@ public class KafkaRequestReplyImpl<Req, Rep> extends MutinyEmitterImpl<Req>
 
     public KafkaRequestReplyImpl(EmitterConfiguration config,
             long defaultBufferSize,
-            Config rootConfig,
+            Config channelConfiguration,
+            Instance<Map<String, Object>> configurations,
             Vertx vertx,
             KafkaCDIEvents kafkaCDIEvents,
             Instance<KafkaCommitHandler.Factory> commitHandlerFactory,
@@ -86,12 +88,13 @@ public class KafkaRequestReplyImpl<Req, Rep> extends MutinyEmitterImpl<Req>
             Instance<KafkaConsumerRebalanceListener> rebalanceListeners) {
         super(config, defaultBufferSize);
         this.channel = config.name();
-        ConnectorConfig connectorConfig = new OverrideConnectorConfig(OUTGOING_PREFIX, rootConfig, channel,
+        ConnectorConfig connectorConfig = new OverrideConnectorConfig(OUTGOING_PREFIX, channelConfiguration, channel,
                 "reply", Map.of(
                         "topic", c -> c.getOriginalValue("topic", String.class).orElse(channel) + DEFAULT_REPLIES_TOPIC_SUFFIX,
                         "assign-seek",
                         c -> c.getOriginalValue(REPLY_PARTITION_KEY, Integer.class).map(String::valueOf).orElse(null)));
-        KafkaConnectorIncomingConfiguration consumerConfig = new KafkaConnectorIncomingConfiguration(connectorConfig);
+        Config replyKafkaConfig = ConfigHelper.retrieveChannelConfiguration(configurations, connectorConfig);
+        KafkaConnectorIncomingConfiguration consumerConfig = new KafkaConnectorIncomingConfiguration(replyKafkaConfig);
         this.replyTopic = consumerConfig.getTopic().orElse(null);
         this.replyPartition = connectorConfig.getOptionalValue(REPLY_PARTITION_KEY, Integer.class).orElse(-1);
         this.replyTimeout = Duration.ofMillis(connectorConfig.getOptionalValue(REPLY_TIMEOUT_KEY, Integer.class).orElse(5000));
