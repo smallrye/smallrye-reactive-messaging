@@ -495,6 +495,29 @@ public class KafkaSinkTest extends KafkaCompanionTestBase {
         assertThat(interceptor.getConfig()).isNotEmpty();
     }
 
+    @Test
+    public void testProducerInterceptorBeanWithKafkaClientException() {
+        ConsumerTask<Integer, String> consumed = companion.consume(Integer.class, String.class)
+                .fromTopics(topic, 10);
+
+        addBeans(ProducerInterceptorBean.class);
+        KafkaMapBasedConfig config = getKafkaSinkConfigForRecordProducingBean(topic)
+                .with("interceptor-bean", "my-producer-interceptor")
+                .with("max.request.size", "1");
+        runApplication(config, BeanProducingKafkaRecord.class);
+
+        await().until(this::isReady);
+        await().until(this::isAlive);
+
+        ProducerInterceptorBean interceptor = getBeanManager().createInstance()
+                .select(ProducerInterceptorBean.class, Identifier.Literal.of("my-producer-interceptor")).get();
+
+        assertThat(interceptor.getAcknowledged())
+                .hasSizeGreaterThanOrEqualTo(10)
+                .extracting(RecordMetadata::offset)
+                .containsExactly(-1L, -1L, -1L, -1L, -1L, -1L, -1L, -1L, -1L, -1L);
+    }
+
     @ApplicationScoped
     @Identifier("my-producer-interceptor")
     public static class ProducerInterceptorBean implements ProducerInterceptor<Integer, String> {
