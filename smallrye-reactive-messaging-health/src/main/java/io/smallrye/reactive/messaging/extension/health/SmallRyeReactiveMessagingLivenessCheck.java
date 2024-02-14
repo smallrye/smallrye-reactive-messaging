@@ -1,10 +1,11 @@
-package io.smallrye.reactive.messaging.health;
+package io.smallrye.reactive.messaging.extension.health;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
 import org.eclipse.microprofile.health.*;
 
+import io.smallrye.reactive.messaging.health.HealthReport;
 import io.smallrye.reactive.messaging.providers.extension.HealthCenter;
 
 @ApplicationScoped

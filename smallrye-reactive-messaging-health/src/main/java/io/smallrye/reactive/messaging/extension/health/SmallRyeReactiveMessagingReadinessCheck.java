@@ -1,17 +1,18 @@
-package io.smallrye.reactive.messaging.health;
+package io.smallrye.reactive.messaging.extension.health;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
 import org.eclipse.microprofile.health.HealthCheck;
 import org.eclipse.microprofile.health.HealthCheckResponse;
-import org.eclipse.microprofile.health.Startup;
+import org.eclipse.microprofile.health.Readiness;
 
+import io.smallrye.reactive.messaging.health.HealthReport;
 import io.smallrye.reactive.messaging.providers.extension.HealthCenter;
 
 @ApplicationScoped
-@Startup
-public class SmallRyeReactiveMessagingStartupCheck implements HealthCheck {
+@Readiness
+public class SmallRyeReactiveMessagingReadinessCheck implements HealthCheck {
 
     @Inject
     HealthCenter health;
@@ -22,7 +23,7 @@ public class SmallRyeReactiveMessagingStartupCheck implements HealthCheck {
             return HealthChecks.NOT_YET_INITIALIZED;
         }
 
-        HealthReport report = health.getStartup();
-        return HealthChecks.getHealthCheck(report, "startup check");
+        HealthReport report = health.getReadiness();
+        return HealthChecks.getHealthCheck(report, "readiness check");
     }
 }
