@@ -356,8 +356,9 @@ public class ReactiveKafkaProducer<K, V> implements io.smallrye.reactive.messagi
         }
     }
 
-    private static RecordMetadata getRecordMetadataForFailure(ProducerRecord<?, ?> record) {
-        return new RecordMetadata(new TopicPartition(record.topic(), record.partition()),
+    private static RecordMetadata getRecordMetadataForFailure(ProducerRecord<?, ?> producerRecord) {
+        return new RecordMetadata(new TopicPartition(producerRecord.topic(),
+                producerRecord.partition() != null ? producerRecord.partition() : RecordMetadata.UNKNOWN_PARTITION),
                 -1, -1, RecordBatch.NO_TIMESTAMP, -1, -1);
     }
 
