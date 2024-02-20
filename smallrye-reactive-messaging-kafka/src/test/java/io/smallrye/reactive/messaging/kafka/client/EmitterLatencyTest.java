@@ -403,7 +403,6 @@ public class EmitterLatencyTest extends KafkaCompanionProxyTestBase {
         }
     }
 
-
     ExecutorService createVirtualThreadExecutorIfAvailable() {
         try {
             Method newVirtualThreadPerTaskExecutor = Executors.class.getMethod("newVirtualThreadPerTaskExecutor");
