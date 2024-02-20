@@ -1,27 +1,26 @@
 package io.smallrye.reactive.messaging.aws.sqs;
 
-import io.smallrye.mutiny.Uni;
-import io.smallrye.reactive.messaging.providers.helpers.MultiUtils;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Flow;
+
 import org.eclipse.microprofile.reactive.messaging.Message;
+
+import io.smallrye.mutiny.Uni;
+import io.smallrye.reactive.messaging.providers.helpers.MultiUtils;
 import software.amazon.awssdk.services.sqs.SqsClient;
-import software.amazon.awssdk.services.sqs.model.SendMessageBatchRequest;
 import software.amazon.awssdk.services.sqs.model.SendMessageRequest;
 
 public class SqsOutboundChannel {
 
     private Flow.Subscriber<? extends Message<?>> subscriber;
     private final SqsClient client;
-    private final String queue;
 
     private final String queueUrl;
 
-    public SqsOutboundChannel(SqsClient client, String queue) {
+    public SqsOutboundChannel(SqsClient client, String queueUrl) {
         this.client = client;
-        this.queue = queue;
         this.subscriber = MultiUtils.via(multi -> multi.call(m -> publishMessage(this.client, m)));
-        this.queueUrl = client.getQueueUrl(r -> r.queueName(queue)).queueUrl();
+        this.queueUrl = queueUrl;
     }
 
     public Flow.Subscriber<? extends Message<?>> getSubscriber() {

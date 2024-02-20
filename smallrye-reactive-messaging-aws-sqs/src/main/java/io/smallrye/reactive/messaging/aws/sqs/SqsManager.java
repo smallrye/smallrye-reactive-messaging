@@ -1,15 +1,19 @@
 package io.smallrye.reactive.messaging.aws.sqs;
 
-import jakarta.enterprise.context.ApplicationScoped;
 import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
+
+import jakarta.enterprise.context.ApplicationScoped;
+
 import software.amazon.awssdk.services.sqs.SqsClient;
 
 @ApplicationScoped
 public class SqsManager {
 
-    public final Map<SqsConfig, SqsClient> clients = new HashMap<>();
+    final Map<SqsConfig, SqsClient> clients = new HashMap<>();
+
+    final Map<SqsConfig, String> queueUrls = new HashMap<>();
 
     public SqsClient getClient(SqsConfig config) {
         return clients.computeIfAbsent(config, q -> {
@@ -23,5 +27,9 @@ public class SqsManager {
             }
             return builder.build();
         });
+    }
+
+    public String getQueueUrl(SqsConfig config) {
+        return queueUrls.computeIfAbsent(config, q -> getClient(q).getQueueUrl(r -> r.queueName(q.getQueueName())).queueUrl());
     }
 }

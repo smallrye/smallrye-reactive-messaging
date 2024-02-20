@@ -4,6 +4,7 @@ import java.util.Objects;
 import java.util.Optional;
 
 import org.eclipse.microprofile.config.Config;
+
 import software.amazon.awssdk.regions.Region;
 
 public class SqsConfig {
