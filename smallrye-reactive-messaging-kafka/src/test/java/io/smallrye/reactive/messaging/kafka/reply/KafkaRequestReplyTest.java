@@ -17,7 +17,9 @@ import org.apache.kafka.clients.admin.ConsumerGroupListing;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.header.Header;
+import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.common.header.internals.RecordHeader;
+import org.apache.kafka.common.header.internals.RecordHeaders;
 import org.apache.kafka.common.serialization.IntegerDeserializer;
 import org.apache.kafka.common.serialization.IntegerSerializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
@@ -59,6 +61,7 @@ public class KafkaRequestReplyTest extends KafkaCompanionTestBase {
                 .with("auto.offset.reset", "earliest")
                 .with("key.deserializer", StringDeserializer.class.getName())
                 .with("value.deserializer", IntegerDeserializer.class.getName())
+                .with("fail-on-deserialization-failure", "false")
                 .withPrefix("mp.messaging.outgoing.rep")
                 .with("propagate-record-key", true)
                 .with("key.serializer", StringSerializer.class.getName())
@@ -159,6 +162,29 @@ public class KafkaRequestReplyTest extends KafkaCompanionTestBase {
 
         assertThat(companion.consumeStrings().fromTopics(replyTopic, 10).awaitCompletion())
                 .extracting(ConsumerRecord::value).containsExactlyInAnyOrder("0", "1", "2", "3", "4", "5", "6", "7", "8", "9");
+    }
+
+    @Test
+    void testReplyWithSameTopic() {
+        addBeans(ReplyServer.class);
+        topic = companion.topics().createAndWait(topic, 3);
+
+        List<ConsumerRecord<String, String>> replies = new CopyOnWriteArrayList<>();
+
+        RequestReplyProducer app = runApplication(config().withPrefix("mp.messaging.outgoing.request-reply")
+                .with("reply.topic", topic)
+                .with("reply.fail-on-deserialization-failure", "false"), RequestReplyProducer.class);
+
+        for (int i = 0; i < 10; i++) {
+            app.requestReply().request(KafkaRecord.of(String.valueOf(i), i)).subscribe().with(m -> {
+                IncomingKafkaRecordMetadata metadata = m.getMetadata(IncomingKafkaRecordMetadata.class).get();
+                replies.add(metadata.getRecord());
+            });
+        }
+
+        await().untilAsserted(() -> assertThat(replies).hasSize(10));
+        assertThat(replies).extracting(ConsumerRecord::value)
+                .containsExactlyInAnyOrder("0", "1", "2", "3", "4", "5", "6", "7", "8", "9");
     }
 
     @Test
@@ -574,7 +600,10 @@ public class KafkaRequestReplyTest extends KafkaCompanionTestBase {
 
         @Incoming("req")
         @Outgoing("rep")
-        String process(int payload) {
+        String process(Integer payload) {
+            if (payload == null) {
+                return null;
+            }
             return String.valueOf(payload);
         }
     }
@@ -648,7 +677,8 @@ public class KafkaRequestReplyTest extends KafkaCompanionTestBase {
         ProducerRecord<String, String> process(ConsumerRecord<String, Integer> record) {
             String myTopic = new String(record.headers().lastHeader("MY_TOPIC").value());
             int myPartition = KafkaRequestReply.replyPartitionFromBytes(record.headers().lastHeader("MY_PARTITION").value());
-            return new ProducerRecord<>(myTopic, myPartition, record.key(), String.valueOf(record.value()), record.headers());
+            Headers headers = new RecordHeaders(record.headers()).remove("MY_TOPIC");
+            return new ProducerRecord<>(myTopic, myPartition, record.key(), String.valueOf(record.value()), headers);
         }
     }
 
