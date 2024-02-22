@@ -428,7 +428,11 @@ public class MqttClientSessionOptions extends MqttClientOptions {
 
     @Override
     public MqttClientSessionOptions setHostnameVerificationAlgorithm(String hostnameVerificationAlgorithm) {
-        super.setHostnameVerificationAlgorithm(hostnameVerificationAlgorithm);
+        if ("NONE".equalsIgnoreCase(hostnameVerificationAlgorithm)) {
+            super.setHostnameVerificationAlgorithm("");
+        } else {
+            super.setHostnameVerificationAlgorithm(hostnameVerificationAlgorithm);
+        }
         return this;
     }
 
