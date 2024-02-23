@@ -2,21 +2,24 @@ package io.smallrye.reactive.messaging.aws.sqs;
 
 import static org.awaitility.Awaitility.await;
 
-import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.HashSet;
 
-import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.spi.BeanManager;
 
 import org.eclipse.microprofile.config.ConfigProvider;
-import org.eclipse.microprofile.reactive.messaging.Incoming;
+import org.eclipse.microprofile.metrics.MetricRegistry;
 import org.eclipse.microprofile.reactive.messaging.spi.ConnectorLiteral;
 import org.jboss.weld.environment.se.Weld;
 import org.jboss.weld.environment.se.WeldContainer;
+import org.junit.Rule;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.testcontainers.containers.localstack.LocalStackContainer;
+import org.testcontainers.containers.localstack.LocalStackContainer.Service;
+import org.testcontainers.utility.DockerImageName;
 
+import io.micrometer.core.instrument.Counter;
 import io.smallrye.config.SmallRyeConfigProviderResolver;
 import io.smallrye.config.inject.ConfigExtension;
 import io.smallrye.reactive.messaging.providers.MediatorFactory;
@@ -36,11 +39,20 @@ import io.smallrye.reactive.messaging.providers.metrics.MetricDecorator;
 import io.smallrye.reactive.messaging.providers.metrics.MicrometerDecorator;
 import io.smallrye.reactive.messaging.providers.wiring.Wiring;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
+import software.amazon.awssdk.auth.credentials.SystemPropertyCredentialsProvider;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.sqs.SqsClient;
 
-public class BasicTest {
+class SqsConnectorTest {
 
     protected Weld weld;
     protected WeldContainer container;
+
+    DockerImageName localstackImage = DockerImageName.parse("localstack/localstack:3.1.0");
+
+    @Rule
+    public LocalStackContainer localstack = new LocalStackContainer(localstackImage)
+            .withServices(Service.SQS);
 
     @BeforeEach
     public void initWeld() {
@@ -69,7 +81,17 @@ public class BasicTest {
         weld.addBeanClass(SqsConnector.class);
         weld.addBeanClass(MetricDecorator.class);
         weld.addBeanClass(MicrometerDecorator.class);
+        weld.addBeanClass(SqsManager.class);
+        weld.addBeanClass(MetricRegistry.class);
+        weld.addBeanClass(Counter.class);
         weld.disableDiscovery();
+    }
+
+    @BeforeEach
+    void setupLocalstack() {
+        localstack.start();
+        System.setProperty("aws.accessKeyId", localstack.getAccessKey());
+        System.setProperty("aws.secretAccessKey", localstack.getSecretKey());
     }
 
     public BeanManager getBeanManager() {
@@ -89,7 +111,6 @@ public class BasicTest {
         } else {
             MapBasedConfig.cleanup();
         }
-
         container = weld.initialize();
     }
 
@@ -102,45 +123,68 @@ public class BasicTest {
     @AfterEach
     public void stopContainer() {
         if (container != null) {
-            // TODO Explicitly close the connector
-            getBeanManager().createInstance()
-                    .select(SqsConnector.class, ConnectorLiteral.of(SqsConnector.CONNECTOR_NAME)).get();
+            var connector = getBeanManager().createInstance()
+                    .select(SqsConnector.class, ConnectorLiteral.of(SqsConnector.CONNECTOR_NAME))
+                    .get();
+            connector.close();
             container.close();
         }
         // Release the config objects
         SmallRyeConfigProviderResolver.instance().releaseConfig(ConfigProvider.getConfig());
-    }
-
-    @ApplicationScoped
-    public static class MyApp {
-
-        List<String> received = new CopyOnWriteArrayList<>();
-
-        @Incoming("data")
-        void consume(String msg) {
-            received.add(msg);
-        }
-
-        public List<String> received() {
-            return received;
-
+        if (localstack.isRunning() || localstack.isCreated()) {
+            localstack.close();
         }
     }
 
     @Test
-    void testBasic() {
-        var queue = "test-queue";
+    void testConsumer() {
+        var queue = "test-queue-for-consuming-data";
+        try (var sqsClient = SqsClient.builder().endpointOverride(localstack.getEndpoint())
+                .credentialsProvider(SystemPropertyCredentialsProvider.create())
+                .region(Region.of(localstack.getRegion()))
+                .build()) {
+            var queueUrl = sqsClient.createQueue(r -> r.queueName(queue)).queueUrl();
+            sqsClient.sendMessage(r -> r.queueUrl(queueUrl).messageBody("hello"));
+            MapBasedConfig config = new MapBasedConfig().with(
+                    "mp.messaging.incoming.data.connector", SqsConnector.CONNECTOR_NAME)
+                    .with("mp.messaging.incoming.data.queue", queue)
+                    .with("mp.messaging.incoming.data.endpointOverride",
+                            localstack.getEndpoint().toString())
+                    .with("mp.messaging.incoming.data.region", localstack.getRegion())
+                    .with("mp.messaging.incoming.data.credentialsProvider",
+                            "software.amazon.awssdk.auth.credentials.SystemPropertyCredentialsProvider");
+
+            ConsumerApp app = runApplication(config, ConsumerApp.class);
+            int expected = 1;
+            await().until(() -> app.received().size() == expected);
+        }
+    }
+
+    @Test
+    void testProducer() {
+        var queue = "test-queue-for-producer";
         MapBasedConfig config = new MapBasedConfig()
-                .with("mp.messaging.incoming.data.queue", queue)
-                .with("mp.messaging.incoming.data.endpointOverride", "http://localhost:4566")
-                .with("mp.messaging.incoming.data.connector", SqsConnector.CONNECTOR_NAME);
+                .with("mp.messaging.outgoing.data.queue", queue)
+                .with("mp.messaging.outgoing.data.endpointOverride",
+                        localstack.getEndpoint().toString())
+                .with("mp.messaging.outgoing.data.region", localstack.getRegion())
+                .with("mp.messaging.outgoing.data.connector", SqsConnector.CONNECTOR_NAME);
 
-        MyApp app = runApplication(config, MyApp.class);
-
-        int expected = 1;
-        // produce expected number of messages to myTopic
-
-        // wait until app received
-        await().until(() -> app.received().size() == expected);
+        int expected = 10;
+        try (var sqsClient = SqsClient.builder().endpointOverride(localstack.getEndpoint())
+                .credentialsProvider(SystemPropertyCredentialsProvider.create())
+                .region(Region.of(localstack.getRegion()))
+                .build()) {
+            var queueUrl = sqsClient.createQueue(r -> r.queueName(queue)).queueUrl();
+            var app = runApplication(config, ProducerApp.class);
+            var received = new HashSet<String>();
+            await().until(() -> {
+                sqsClient.receiveMessage(r -> r.queueUrl(queueUrl).maxNumberOfMessages(10))
+                        .messages().forEach(m -> {
+                            received.add(m.body());
+                        });
+                return received.size() == expected;
+            });
+        }
     }
 }

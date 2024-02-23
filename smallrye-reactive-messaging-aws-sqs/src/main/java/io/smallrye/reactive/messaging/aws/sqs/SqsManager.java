@@ -16,20 +16,22 @@ public class SqsManager {
     final Map<SqsConfig, String> queueUrls = new HashMap<>();
 
     public SqsClient getClient(SqsConfig config) {
-        return clients.computeIfAbsent(config, q -> {
+        return clients.computeIfAbsent(config, c -> {
             var builder = SqsClient
                     .builder();
-            if (q.getEndpointOverride().isPresent()) {
-                builder.endpointOverride(URI.create(q.getEndpointOverride().get()));
+            if (c.getEndpointOverride().isPresent()) {
+                builder.endpointOverride(URI.create(c.getEndpointOverride().get()));
             }
-            if (q.getRegion().isPresent()) {
-                builder.region(q.getRegion().get());
+            if (c.getRegion().isPresent()) {
+                builder.region(c.getRegion().get());
             }
+            builder.credentialsProvider(c.getCredentialsProvider());
             return builder.build();
         });
     }
 
     public String getQueueUrl(SqsConfig config) {
-        return queueUrls.computeIfAbsent(config, q -> getClient(q).getQueueUrl(r -> r.queueName(q.getQueueName())).queueUrl());
+        return queueUrls.computeIfAbsent(config,
+                q -> getClient(q).getQueueUrl(r -> r.queueName(q.getQueueName())).queueUrl());
     }
 }

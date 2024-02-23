@@ -12,6 +12,17 @@
   <artifactId>smallrye-reactive-messaging-aws-sqs</artifactId>
   <name>SmallRye Reactive Messaging : Connector :: AWS SQS</name>
   <description>A module for Smallrye reactive messaging integration with AWS SQS Service</description>
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>org.testcontainers</groupId>
+        <artifactId>testcontainers-bom</artifactId>
+        <version>1.19.6</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
   <dependencies>
     <dependency>
       <groupId>software.amazon.awssdk</groupId>
@@ -45,20 +56,8 @@
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>org.jboss.weld.se</groupId>
-      <artifactId>weld-se-shaded</artifactId>
-      <version>${weld.version}</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.jboss.weld</groupId>
-      <artifactId>weld-core-impl</artifactId>
-      <version>${weld.version}</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.awaitility</groupId>
-      <artifactId>awaitility</artifactId>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>localstack</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>

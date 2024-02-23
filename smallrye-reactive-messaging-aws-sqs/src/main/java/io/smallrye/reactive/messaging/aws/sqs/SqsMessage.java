@@ -9,6 +9,7 @@ import org.eclipse.microprofile.reactive.messaging.Metadata;
 import software.amazon.awssdk.services.sqs.model.Message;
 
 public class SqsMessage implements org.eclipse.microprofile.reactive.messaging.Message<String> {
+
     private final Message message;
 
     public SqsMessage(Message message) {
@@ -18,6 +19,10 @@ public class SqsMessage implements org.eclipse.microprofile.reactive.messaging.M
     @Override
     public String getPayload() {
         return message.body();
+    }
+
+    public Message getMessage() {
+        return message;
     }
 
     @Override
@@ -30,4 +35,8 @@ public class SqsMessage implements org.eclipse.microprofile.reactive.messaging.M
         return this::ack;
     }
 
+    @Override
+    public Function<Throwable, CompletionStage<Void>> getNack() {
+        return throwable -> CompletableFuture.supplyAsync(null);
+    }
 }

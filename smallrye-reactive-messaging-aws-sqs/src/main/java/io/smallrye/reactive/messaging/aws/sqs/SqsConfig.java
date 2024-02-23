@@ -5,6 +5,8 @@ import java.util.Optional;
 
 import org.eclipse.microprofile.config.Config;
 
+import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
+import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
 
 public class SqsConfig {
@@ -59,10 +61,25 @@ public class SqsConfig {
 
     @Override
     public int hashCode() {
-        return Objects.hash(getEndpointOverride(), getRegion(), getQueueName(), getMaxNumberOfMessages(), getWaitTimeSeconds());
+        return Objects.hash(getEndpointOverride(), getRegion(), getQueueName(),
+                getMaxNumberOfMessages(), getWaitTimeSeconds());
     }
 
     public Optional<String> getEndpointOverride() {
         return config.getOptionalValue("endpointOverride", String.class);
+    }
+
+    public AwsCredentialsProvider getCredentialsProvider() {
+        var className = config.getOptionalValue("credentialsProvider", String.class)
+                .orElse("software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider");
+        try {
+            var clazz = (Class<? extends AwsCredentialsProvider>) Class.forName(className);
+            var method = clazz.getMethod("create");
+            return (AwsCredentialsProvider) method.invoke(null);
+        } catch (Exception e) {
+            // TODO: LOG
+            System.out.printf("exception: %s\n", e.getMessage());
+            return DefaultCredentialsProvider.create();
+        }
     }
 }
