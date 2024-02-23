@@ -1,4 +1,4 @@
-package io.smallrye.reactive.messaging.health;
+package io.smallrye.reactive.messaging.extension.health;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.entry;
@@ -13,6 +13,8 @@ import org.eclipse.microprofile.reactive.messaging.spi.Connector;
 import org.eclipse.microprofile.reactive.messaging.spi.ConnectorLiteral;
 import org.junit.jupiter.api.Test;
 
+import io.smallrye.reactive.messaging.health.HealthReport;
+import io.smallrye.reactive.messaging.health.HealthReporter;
 import io.smallrye.reactive.messaging.providers.extension.HealthCenter;
 
 public class SmallRyeReactiveMessagingStartupCheckTest {

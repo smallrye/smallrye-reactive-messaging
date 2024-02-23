@@ -36,6 +36,7 @@ import io.smallrye.reactive.messaging.kafka.KafkaConsumer;
 import io.smallrye.reactive.messaging.kafka.KafkaProducer;
 import io.smallrye.reactive.messaging.kafka.SerializationFailureHandler;
 import io.smallrye.reactive.messaging.kafka.api.OutgoingKafkaRecordMetadata;
+import io.smallrye.reactive.messaging.kafka.impl.ConfigHelper;
 import io.smallrye.reactive.messaging.kafka.impl.ReactiveKafkaProducer;
 import io.smallrye.reactive.messaging.providers.impl.ConnectorConfig;
 import io.smallrye.reactive.messaging.providers.impl.OverrideConnectorConfig;
@@ -84,6 +85,10 @@ public class KafkaDeadLetterQueue implements KafkaFailureHandler {
         @Inject
         Instance<Config> rootConfig;
 
+        @Inject
+        @Any
+        Instance<Map<String, Object>> configurations;
+
         @Override
         public KafkaFailureHandler create(KafkaConnectorIncomingConfiguration config,
                 Vertx vertx,
@@ -104,7 +109,8 @@ public class KafkaDeadLetterQueue implements KafkaFailureHandler {
                             "key-serialization-failure-handler", c -> "dlq-serialization",
                             "value-serialization-failure-handler", c -> "dlq-serialization",
                             INTERCEPTOR_CLASSES_CONFIG, c -> ""));
-            KafkaConnectorOutgoingConfiguration producerConfig = new KafkaConnectorOutgoingConfiguration(connectorConfig);
+            Config kafkaConfig = ConfigHelper.retrieveChannelConfiguration(configurations, connectorConfig);
+            KafkaConnectorOutgoingConfiguration producerConfig = new KafkaConnectorOutgoingConfiguration(kafkaConfig);
 
             String deadQueueTopic = config.getDeadLetterQueueTopic().orElse("dead-letter-topic-" + config.getChannel());
 

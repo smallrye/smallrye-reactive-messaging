@@ -1,11 +1,10 @@
 ---
-name: Continuous Integration Build
+name: Continuous Integration Build – Podman
 
 on:
     push:
         branches:
             - main
-            - 3.x
         paths-ignore:
             - '.github/**'
 
@@ -30,14 +29,34 @@ jobs:
                         'version': '21',
                     },
                     {
-                        'version': '21',
-                        'build_opts': '-Pslow-flaky-tests -Drevapi.skip=true -Dformat.skip=true',
+                        'version': '11',
+                        'build_opts': '-Pslow-flaky-tests -Drevapi.skip=true',
                         'name': 'Slow and Flaky tests',
                         'continue-on-error': true
                     }
                 ]
         name: Build with Java ${{ matrix.java.version }} ${{ matrix.java.name }}
         steps:
+            -   name: Setup docker host
+                run: echo "DOCKER_HOST=unix:///run/user/$(id -u)/podman/podman.sock" >> "$GITHUB_ENV"
+            -   name: Update podman
+                run: |
+                    sudo apt-get -y purge podman
+                    sudo mkdir -p /etc/apt/keyrings
+                    curl -fsSL https://download.opensuse.org/repositories/devel:kubic:libcontainers:unstable/xUbuntu_$(lsb_release -rs)/Release.key | gpg --dearmor | sudo tee /etc/apt/keyrings/devel_kubic_libcontainers_unstable.gpg > /dev/null
+                    echo \
+                      "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/devel_kubic_libcontainers_unstable.gpg] \
+                      https://download.opensuse.org/repositories/devel:kubic:libcontainers:unstable/xUbuntu_$(lsb_release -rs)/ /" \
+                      | sudo tee /etc/apt/sources.list.d/devel:kubic:libcontainers:unstable.list > /dev/null
+                    sudo apt-get update -qq
+                    sudo apt-get -qq -y install podman
+                    sudo bash -c "echo -e '[engine]\nservice_timeout=0' >> /etc/containers/containers.conf"
+            # Runs a single command using the runners shell
+            -   name: Check podman
+                run: docker version
+            -   name: Set up testcontainers for podman
+                run: |
+                    echo ryuk.container.privileged=true > ~/.testcontainers.properties
             -   uses: actions/cache@v2
                 with:
                     path: ~/.m2/repository
@@ -55,36 +74,3 @@ jobs:
                 run: |
                     mvn -s .github/ci-maven-settings.xml -Dmaven.resolver.transport=wagon -B \
                       clean install -Dtest-containers=true ${{ matrix.java.build_opts }}
-
-    quality:
-        needs: build
-        runs-on: ubuntu-latest
-        steps:
-            -   uses: actions/cache@v2
-                with:
-                    path: ~/.m2/repository
-                    key: maven-${{ hashFiles('**/pom.xml') }}
-                    restore-keys: |
-                        maven-
-            -   uses: actions/checkout@v2
-            -   uses: actions/setup-java@v2
-                with:
-                    java-version: 11
-                    distribution: temurin
-            -   name: Coverage and Sonar
-                env:
-                    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-                    SONAR_TOKEN: ${{ secrets.SONAR_LOGIN }}
-                run: |
-                    mvn -s .github/ci-maven-settings.xml -B \
-                        clean install sonar:sonar -Pcoverage \
-                        -Dmaven.resolver.transport=wagon \
-                        -Drevapi.skip=true \
-                        -Dsonar.projectKey=smallrye_smallrye-reactive-messaging \
-                        -Dsonar.projectName="SmallRye Reactive Messaging" \
-                        -Dsonar.organization=smallrye \
-                        -Dsonar.host.url=https://sonarcloud.io \
-                        -Dsonar.login=$SONAR_LOGIN \
-                        --fail-at-end
-            -   name: Codecov
-                uses: codecov/codecov-action@v1.0.13

@@ -7,7 +7,7 @@
   <parent>
     <groupId>io.smallrye.reactive</groupId>
     <artifactId>smallrye-reactive-messaging</artifactId>
-    <version>4.17.0-SNAPSHOT</version>
+    <version>4.18.0-SNAPSHOT</version>
   </parent>
 
 
@@ -15,6 +15,10 @@
 
   <name>SmallRye Reactive Messaging : Health</name>
 
+  <properties>
+    <!-- Doesn't provide jandex index in order for the Quarkus bean exclusion to work -->
+    <jandex.skip>true</jandex.skip>
+  </properties>
 
   <dependencies>
     <dependency>

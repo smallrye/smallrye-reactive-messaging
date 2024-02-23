@@ -85,7 +85,9 @@ public class PulsarTrace {
         }
 
         public Builder withProperties(Map<String, String> properties) {
-            this.properties = properties;
+            if (properties != null) {
+                this.properties = new HashMap<>(properties);
+            }
             return this;
         }
 

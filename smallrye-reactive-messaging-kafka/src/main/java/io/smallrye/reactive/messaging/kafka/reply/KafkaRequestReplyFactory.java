@@ -2,6 +2,7 @@ package io.smallrye.reactive.messaging.kafka.reply;
 
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
+import java.util.Map;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Any;
@@ -70,9 +71,13 @@ public class KafkaRequestReplyFactory implements EmitterFactory<KafkaRequestRepl
     @Inject
     Instance<Config> config;
 
+    @Inject
+    @Any
+    Instance<Map<String, Object>> configurations;
+
     @Override
     public KafkaRequestReplyImpl<Object, Object> createEmitter(EmitterConfiguration configuration, long defaultBufferSize) {
-        return new KafkaRequestReplyImpl<>(configuration, defaultBufferSize, config.get(), holder.vertx(),
+        return new KafkaRequestReplyImpl<>(configuration, defaultBufferSize, config.get(), configurations, holder.vertx(),
                 kafkaCDIEvents, commitStrategyFactories, failureStrategyFactories, failureHandlers,
                 correlationIdHandlers, replyFailureHandlers, rebalanceListeners);
     }

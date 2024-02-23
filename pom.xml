@@ -11,7 +11,7 @@
 
   <groupId>io.smallrye.reactive</groupId>
   <artifactId>smallrye-reactive-messaging</artifactId>
-  <version>4.17.0-SNAPSHOT</version>
+  <version>4.18.0-SNAPSHOT</version>
   <packaging>pom</packaging>
 
   <name>SmallRye Reactive Messaging</name>
@@ -61,11 +61,11 @@
     <maven.compiler.source>11</maven.compiler.source>
     <maven.compiler.target>11</maven.compiler.target>
 
-    <vertx.version>4.5.2</vertx.version>
+    <vertx.version>4.5.3</vertx.version>
     <rxjava.version>2.2.21</rxjava.version>
     <cloudevent.version>1.1.0</cloudevent.version>
     <weld.version>5.1.2.Final</weld.version>
-    <camel.version>4.3.0</camel.version>
+    <camel.version>4.4.0</camel.version>
 
     <microprofile-reactive-messaging.version>3.0</microprofile-reactive-messaging.version>
     <microprofile-reactive-streams.version>3.0</microprofile-reactive-streams.version>
@@ -73,14 +73,14 @@
     <microprofile-metrics-api.version>4.0.1</microprofile-metrics-api.version>
     <microprofile-health-api.version>4.0</microprofile-health-api.version>
 
-    <smallrye-config.version>3.5.2</smallrye-config.version>
+    <smallrye-config.version>3.5.4</smallrye-config.version>
     <smallrye-metrics.version>4.0.0</smallrye-metrics.version>
-    <smallrye-common.version>2.2.0</smallrye-common.version>
+    <smallrye-common.version>2.3.0</smallrye-common.version>
     <smallrye-health.version>4.1.0</smallrye-health.version>
     <smallrye-testing.version>2.3.0</smallrye-testing.version>
     <smallrye-fault-tolerance.version>6.2.6</smallrye-fault-tolerance.version>
 
-    <micrometer.version>1.12.2</micrometer.version>
+    <micrometer.version>1.12.3</micrometer.version>
 
     <mutiny.version>2.5.5</mutiny.version>
     <artemis.version>2.32.0</artemis.version>
@@ -97,7 +97,7 @@
     <smallrye-reactive-converters.version>3.0.0</smallrye-reactive-converters.version>
     <mutiny-zero.version>1.0.0</mutiny-zero.version>
 
-    <testcontainers.version>1.19.4</testcontainers.version>
+    <testcontainers.version>1.19.5</testcontainers.version>
 
     <sonar.coverage.jacoco.xmlReportPaths>${project.basedir}/target/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
     <mockito.version>5.10.0</mockito.version>
@@ -114,7 +114,7 @@
 
     <nats-embedded.version>2.1.1</nats-embedded.version>
     <slf4j-log4j12.version>1.7.36</slf4j-log4j12.version>
-    <slf4j-reload4j.version>2.0.11</slf4j-reload4j.version>
+    <slf4j-reload4j.version>2.0.12</slf4j-reload4j.version>
     <opencsv.version>5.9</opencsv.version>
     <strimzi-test-container.version>0.105.0</strimzi-test-container.version>
 

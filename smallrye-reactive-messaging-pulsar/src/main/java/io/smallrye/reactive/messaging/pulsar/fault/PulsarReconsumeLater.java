@@ -1,5 +1,6 @@
 package io.smallrye.reactive.messaging.pulsar.fault;
 
+import static io.smallrye.reactive.messaging.pulsar.i18n.PulsarLogging.log;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.time.Duration;
@@ -32,15 +33,18 @@ public class PulsarReconsumeLater implements PulsarFailureHandler {
         @Override
         public PulsarFailureHandler create(Consumer<?> consumer, PulsarConnectorIncomingConfiguration config,
                 BiConsumer<Throwable, Boolean> reportFailure) {
-            return new PulsarReconsumeLater(consumer, Duration.ofSeconds(config.getReconsumeLaterDelay()));
+            return new PulsarReconsumeLater(consumer, config.getChannel(),
+                    Duration.ofSeconds(config.getReconsumeLaterDelay()));
         }
     }
 
     private final Consumer<?> consumer;
+    private final String channel;
     private final Duration defaultDelay;
 
-    public PulsarReconsumeLater(Consumer<?> consumer, Duration defaultDelay) {
+    public PulsarReconsumeLater(Consumer<?> consumer, String channel, Duration defaultDelay) {
         this.consumer = consumer;
+        this.channel = channel;
         this.defaultDelay = defaultDelay;
     }
 
@@ -53,6 +57,8 @@ public class PulsarReconsumeLater implements PulsarFailureHandler {
         final Map<String, String> customProperties = reconsumeLater.map(PulsarReconsumeLaterMetadata::getCustomProperties)
                 .orElse(null);
 
+        log.messageFailureDelayed(channel, delay.toSeconds(), reason.getMessage());
+        log.messageFailureFullCause(reason);
         return Uni.createFrom()
                 .completionStage(
                         () -> consumer.reconsumeLaterAsync(message.unwrap(), customProperties, delay.toSeconds(), SECONDS))

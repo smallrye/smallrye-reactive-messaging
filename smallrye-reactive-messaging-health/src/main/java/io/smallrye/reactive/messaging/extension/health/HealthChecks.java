@@ -1,7 +1,9 @@
-package io.smallrye.reactive.messaging.health;
+package io.smallrye.reactive.messaging.extension.health;
 
 import org.eclipse.microprofile.health.HealthCheckResponse;
 import org.eclipse.microprofile.health.HealthCheckResponseBuilder;
+
+import io.smallrye.reactive.messaging.health.HealthReport;
 
 public class HealthChecks {
     public static final HealthCheckResponse NOT_YET_INITIALIZED = HealthCheckResponse.builder()

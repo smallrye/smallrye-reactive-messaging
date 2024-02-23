@@ -86,8 +86,8 @@ public class PulsarOutgoingChannel<T> {
             reportFailure(f);
         }));
 
-        PulsarAttributesExtractor AttributesExtractor = new PulsarAttributesExtractor();
-        MessagingAttributesGetter<PulsarTrace, Void> messagingAttributesGetter = AttributesExtractor
+        PulsarAttributesExtractor attributesExtractor = new PulsarAttributesExtractor();
+        MessagingAttributesGetter<PulsarTrace, Void> messagingAttributesGetter = attributesExtractor
                 .getMessagingAttributesGetter();
         InstrumenterBuilder<PulsarTrace, Void> instrumenterBuilder = Instrumenter.builder(GlobalOpenTelemetry.get(),
                 "io.smallrye.reactive.messaging",
@@ -96,7 +96,7 @@ public class PulsarOutgoingChannel<T> {
         instrumenter = instrumenterBuilder
                 .addAttributesExtractor(
                         MessagingAttributesExtractor.create(messagingAttributesGetter, MessageOperation.PUBLISH))
-                .addAttributesExtractor(AttributesExtractor)
+                .addAttributesExtractor(attributesExtractor)
                 .buildProducerInstrumenter(PulsarTraceTextMapSetter.INSTANCE);
     }
 

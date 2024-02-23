@@ -6,7 +6,7 @@
   <parent>
     <groupId>io.smallrye.reactive</groupId>
     <artifactId>smallrye-reactive-messaging</artifactId>
-    <version>4.17.0-SNAPSHOT</version>
+    <version>4.18.0-SNAPSHOT</version>
   </parent>
 
   <artifactId>smallrye-reactive-messaging-pulsar</artifactId>
@@ -14,7 +14,7 @@
   <name>SmallRye Reactive Messaging : Connector :: Pulsar</name>
 
   <properties>
-    <pulsar.version>3.1.2</pulsar.version>
+    <pulsar.version>3.2.0</pulsar.version>
   </properties>
 
   <dependencies>

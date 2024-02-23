@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 import org.apache.pulsar.client.api.Consumer;
 import org.apache.pulsar.client.api.ConsumerEventListener;
@@ -107,6 +108,7 @@ class ConfigResolverTest {
         ConsumerConfigurationData<Object> data = new ConsumerConfigurationData<>();
         data.setAckReceiptEnabled(true);
         data.setTopicNames(Set.of("t3"));
+        data.setTopicsPattern(Pattern.compile("topic.*"));
         data.setSubscriptionName("my-subscription");
         data.setConsumerEventListener(new ConsumerEventListener() {
             @Override
@@ -127,10 +129,12 @@ class ConfigResolverTest {
 
         PulsarConnectorIncomingConfiguration ic = new PulsarConnectorIncomingConfiguration(getChannelConfig()
                 .with("consumer-configuration", "my-consumer-config")
-                .with("subscriptionName", "other-subscription"));
+                .with("subscriptionName", "other-subscription")
+                .with("topicsPattern", "topic.*"));
         ConsumerConfigurationData<?> conf = configResolver.getConsumerConf(ic);
 
         assertThat(conf.getTopicNames()).containsExactly("t1", "t2");
+        assertThat(conf.getTopicsPattern()).asString().isEqualTo("topic.*");
         assertThat(conf.getSubscriptionName()).isEqualTo("other-subscription");
         assertThat(conf.isAckReceiptEnabled()).isTrue();
         assertThat(conf.getConsumerEventListener()).isNotNull();
@@ -403,4 +407,23 @@ class ConfigResolverTest {
                 .containsEntry("sendTimeoutMs", 2000L)
                 .containsEntry("batchingEnabled", true);
     }
+
+    @Test
+    void testHasTopicConfig() {
+        var data = new ConsumerConfigurationData<>();
+        data.setTopicNames(Set.of("topic1", "topic2"));
+        assertThat(PulsarIncomingChannel.hasTopicConfig(data)).isTrue();
+
+        data = new ConsumerConfigurationData<>();
+        data.setTopicsPattern(Pattern.compile("topic.*"));
+        assertThat(PulsarIncomingChannel.hasTopicConfig(data)).isTrue();
+
+        data = new ConsumerConfigurationData<>();
+        assertThat(PulsarIncomingChannel.hasTopicConfig(data)).isFalse();
+
+        data = new ConsumerConfigurationData<>();
+        data.setTopicNames(Set.of());
+        assertThat(PulsarIncomingChannel.hasTopicConfig(data)).isFalse();
+    }
+
 }

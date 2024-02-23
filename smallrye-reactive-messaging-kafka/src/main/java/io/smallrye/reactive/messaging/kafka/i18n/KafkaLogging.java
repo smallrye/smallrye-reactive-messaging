@@ -316,7 +316,7 @@ public interface KafkaLogging extends BasicLogger {
     @Message(id = 18274, value = "Error caught in producer interceptor `onSend` for channel %s")
     void interceptorOnSendError(String channel, @Cause Throwable cause);
 
-    @LogMessage(level = Logger.Level.TRACE)
+    @LogMessage(level = Logger.Level.INFO)
     @Message(id = 18275, value = "Error caught in producer interceptor `onAcknowledge` for channel %s")
     void interceptorOnAcknowledgeError(String channel, @Cause Throwable cause);
 

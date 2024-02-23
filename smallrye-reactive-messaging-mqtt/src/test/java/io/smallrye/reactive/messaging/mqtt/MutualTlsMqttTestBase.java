@@ -11,10 +11,10 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.slf4j.LoggerFactory;
-import org.testcontainers.containers.BindMode;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.output.Slf4jLogConsumer;
 import org.testcontainers.containers.wait.strategy.Wait;
+import org.testcontainers.utility.MountableFile;
 
 import io.smallrye.config.SmallRyeConfigProviderResolver;
 import io.smallrye.reactive.messaging.health.HealthReport;
@@ -24,7 +24,7 @@ public class MutualTlsMqttTestBase {
 
     public static GenericContainer<?> mosquitto = new GenericContainer<>("eclipse-mosquitto:2.0")
             .withExposedPorts(8883)
-            .withFileSystemBind("src/test/resources/mosquitto-tls", "/mosquitto/config", BindMode.READ_WRITE)
+            .withCopyFileToContainer(MountableFile.forHostPath("src/test/resources/mosquitto-tls"), "/mosquitto/config")
             .withCommand("/usr/sbin/mosquitto -c /mosquitto/config/mosquitto-mtls.conf")
             .waitingFor(Wait.forListeningPort())
             .waitingFor(Wait.forLogMessage(".*mosquitto .* running.*", 1));

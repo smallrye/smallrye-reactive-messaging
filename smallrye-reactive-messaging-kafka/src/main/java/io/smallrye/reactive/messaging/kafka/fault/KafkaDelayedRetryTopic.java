@@ -54,6 +54,7 @@ import io.smallrye.reactive.messaging.kafka.SerializationFailureHandler;
 import io.smallrye.reactive.messaging.kafka.api.OutgoingKafkaRecordMetadata;
 import io.smallrye.reactive.messaging.kafka.commit.ContextHolder;
 import io.smallrye.reactive.messaging.kafka.commit.KafkaLatestCommit;
+import io.smallrye.reactive.messaging.kafka.impl.ConfigHelper;
 import io.smallrye.reactive.messaging.kafka.impl.ReactiveKafkaConsumer;
 import io.smallrye.reactive.messaging.kafka.impl.ReactiveKafkaProducer;
 import io.smallrye.reactive.messaging.providers.impl.ConnectorConfig;
@@ -101,6 +102,10 @@ public class KafkaDelayedRetryTopic extends ContextHolder implements KafkaFailur
         @Inject
         Instance<Config> rootConfig;
 
+        @Inject
+        @Any
+        Instance<Map<String, Object>> configurations;
+
         @Override
         public KafkaFailureHandler create(KafkaConnectorIncomingConfiguration config,
                 Vertx vertx,
@@ -131,7 +136,8 @@ public class KafkaDelayedRetryTopic extends ContextHolder implements KafkaFailur
                             "key-serialization-failure-handler", c -> "dlq-serialization",
                             "value-serialization-failure-handler", c -> "dlq-serialization",
                             INTERCEPTOR_CLASSES_CONFIG, c -> ""));
-            KafkaConnectorOutgoingConfiguration producerConfig = new KafkaConnectorOutgoingConfiguration(connectorConfig);
+            Config kafkaConfig = ConfigHelper.retrieveChannelConfiguration(configurations, connectorConfig);
+            KafkaConnectorOutgoingConfiguration producerConfig = new KafkaConnectorOutgoingConfiguration(kafkaConfig);
 
             log.delayedRetryTopic(config.getChannel(), retryTopics, maxRetries, retryTimeout, deadQueueTopic);
 
@@ -144,7 +150,8 @@ public class KafkaDelayedRetryTopic extends ContextHolder implements KafkaFailur
                             "lazy-client", c -> true,
                             CLIENT_ID_CONFIG, c -> "kafka-delayed-retry-topic-" + consumerClientId,
                             GROUP_ID_CONFIG, c -> "kafka-delayed-retry-topic-" + consumerClientId));
-            KafkaConnectorIncomingConfiguration retryConfig = new KafkaConnectorIncomingConfiguration(retryConsumerConfig);
+            Config retryKafkaConfig = ConfigHelper.retrieveChannelConfiguration(configurations, retryConsumerConfig);
+            KafkaConnectorIncomingConfiguration retryConfig = new KafkaConnectorIncomingConfiguration(retryKafkaConfig);
             ReactiveKafkaConsumer<Object, Object> retryConsumer = new ReactiveKafkaConsumer<>(retryConfig,
                     deserializationFailureHandlers,
                     retryConsumerConfig.getValue(GROUP_ID_CONFIG, String.class), -1,

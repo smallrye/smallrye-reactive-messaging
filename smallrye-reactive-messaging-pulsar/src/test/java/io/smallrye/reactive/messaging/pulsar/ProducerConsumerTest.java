@@ -8,6 +8,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 
 import jakarta.enterprise.context.ApplicationScoped;
 
+import org.apache.pulsar.client.api.SubscriptionInitialPosition;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.junit.jupiter.api.Test;
@@ -20,6 +21,7 @@ public class ProducerConsumerTest extends WeldTestBase {
 
     @Test
     void testProducerConsumer() {
+        topic = "testProducerConsumer";
         ProducerConsumerApp app = runApplication(config(), ProducerConsumerApp.class);
 
         await().untilAsserted(() -> assertThat(app.received()).contains("1", "2", "3", "4", "5"));
@@ -33,7 +35,8 @@ public class ProducerConsumerTest extends WeldTestBase {
                 .with("mp.messaging.outgoing.pulsar.schema", "STRING")
                 .with("mp.messaging.incoming.data.connector", PulsarConnector.CONNECTOR_NAME)
                 .with("mp.messaging.incoming.data.serviceUrl", serviceUrl)
-                .with("mp.messaging.incoming.data.topic", topic)
+                .with("mp.messaging.incoming.data.topicsPattern", "persistent://public/default/" + topic + ".* ")
+                .with("mp.messaging.incoming.data.subscriptionInitialPosition", SubscriptionInitialPosition.Earliest)
                 .with("mp.messaging.incoming.data.schema", "STRING");
     }
 
