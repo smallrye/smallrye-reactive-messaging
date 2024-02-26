@@ -40,7 +40,7 @@ public class SqsConfig {
         try {
             return Optional.of(Region.of(result.get()));
         } catch (IllegalArgumentException e) {
-            // TODO: LOG
+            log.failedToParseAwsRegion(result.get(), e.getMessage());
             return Optional.empty();
         }
     }

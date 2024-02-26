@@ -30,4 +30,8 @@ public interface AwsSqsLogging extends BasicLogger {
     @LogMessage(level = Level.WARN)
     @Message(id = 19303, value = "Failed to load the AWS credential loader, use the default credential provider chain %s")
     void failedToLoadAwsCredentialLoader(String message);
+
+    @LogMessage(level = Level.WARN)
+    @Message(id = 19304, value = "Failed to parse provided AWS Region, will apply the AWS SDK built-in logic to detect region. %s, %s")
+    void failedToParseAwsRegion(String region, String message);
 }
