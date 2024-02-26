@@ -2,8 +2,8 @@ package io.smallrye.reactive.messaging.aws.sqs;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Flow;
-
 import java.util.concurrent.atomic.AtomicBoolean;
+
 import org.eclipse.microprofile.reactive.messaging.Message;
 
 import io.smallrye.mutiny.Uni;

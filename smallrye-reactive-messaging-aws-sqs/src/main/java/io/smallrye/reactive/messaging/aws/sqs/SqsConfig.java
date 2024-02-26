@@ -1,5 +1,7 @@
 package io.smallrye.reactive.messaging.aws.sqs;
 
+import static io.smallrye.reactive.messaging.aws.sqs.i18n.AwsSqsLogging.log;
+
 import java.util.Objects;
 import java.util.Optional;
 
@@ -27,7 +29,7 @@ public class SqsConfig {
     }
 
     public int getMaxNumberOfMessages() {
-        return config.getOptionalValue("maxNumberOfMessages", Integer.class).orElse(10);
+        return config.getOptionalValue("maxNumberOfMessages", Integer.class).orElse(1);
     }
 
     public Optional<Region> getRegion() {
@@ -77,8 +79,7 @@ public class SqsConfig {
             var method = clazz.getMethod("create");
             return (AwsCredentialsProvider) method.invoke(null);
         } catch (Exception e) {
-            // TODO: LOG
-            System.out.printf("exception: %s\n", e.getMessage());
+            log.failedToLoadAwsCredentialLoader(e.getMessage());
             return DefaultCredentialsProvider.create();
         }
     }

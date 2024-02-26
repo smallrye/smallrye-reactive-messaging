@@ -1,18 +1,22 @@
 package io.smallrye.reactive.messaging.aws.sqs;
 
+import static io.smallrye.reactive.messaging.aws.sqs.i18n.AwsSqsLogging.log;
+
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Flow;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
 
 import org.eclipse.microprofile.reactive.messaging.Message;
 
 import io.smallrye.mutiny.Multi;
-import io.smallrye.mutiny.Uni;
 import io.vertx.core.impl.VertxInternal;
 import io.vertx.mutiny.core.Context;
 import io.vertx.mutiny.core.Vertx;
 import software.amazon.awssdk.services.sqs.SqsClient;
 import software.amazon.awssdk.services.sqs.model.ReceiveMessageRequest;
+import software.amazon.awssdk.services.sqs.model.SqsException;
 
 public class SqsInboundChannel {
 
@@ -30,9 +34,15 @@ public class SqsInboundChannel {
         this.context = Context.newInstance(
                 ((VertxInternal) vertx.getDelegate()).createEventLoopContext());
         this.stream = Multi.createBy().repeating()
-                .uni(() -> Uni.createFrom().completionStage(this.request()))
+                .completionStage(this::request)
                 .until(__ -> closed.get())
                 .emitOn(context::runOnContext)
+                .onItem().transformToMultiAndConcatenate(messages -> {
+                    if (messages == null) {
+                        return Multi.createFrom().empty();
+                    }
+                    return Multi.createFrom().iterable(messages);
+                })
                 .map(SqsMessage::new);
     }
 
@@ -40,19 +50,27 @@ public class SqsInboundChannel {
         return stream;
     }
 
-    public CompletableFuture<software.amazon.awssdk.services.sqs.model.Message> request() {
+    public CompletableFuture<List<software.amazon.awssdk.services.sqs.model.Message>> request() {
         return CompletableFuture.supplyAsync(() -> {
             var receiveRequest = ReceiveMessageRequest
                     .builder().queueUrl(this.queueUrl)
                     .waitTimeSeconds(config.getWaitTimeSeconds())
-                    .maxNumberOfMessages(1)
+                    .maxNumberOfMessages(config.getMaxNumberOfMessages())
                     .build();
-            // todo: error handling
-            var messages = client.receiveMessage(receiveRequest).messages();
-            if (messages.isEmpty()) {
+            try {
+                var messages = client.receiveMessage(receiveRequest).messages();
+                if (messages.isEmpty()) {
+                    log.receivedEmptyMessage();
+                    return null;
+                }
+                return messages.stream().map(m -> {
+                    log.receivedMessage(m.body());
+                    return m;
+                }).collect(Collectors.toList());
+            } catch (SqsException e) {
+                log.errorReceivingMessage(e.getMessage());
                 return null;
             }
-            return messages.get(0);
         });
     }
 

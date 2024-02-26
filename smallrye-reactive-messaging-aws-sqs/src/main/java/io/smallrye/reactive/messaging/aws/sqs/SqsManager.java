@@ -1,5 +1,7 @@
 package io.smallrye.reactive.messaging.aws.sqs;
 
+import static io.smallrye.reactive.messaging.aws.sqs.i18n.AwsSqsExceptions.ex;
+
 import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
@@ -32,6 +34,14 @@ public class SqsManager {
 
     public String getQueueUrl(SqsConfig config) {
         return queueUrls.computeIfAbsent(config,
-                q -> getClient(q).getQueueUrl(r -> r.queueName(q.getQueueName())).queueUrl());
+                q -> {
+                    try {
+                        return getClient(q).getQueueUrl(r -> r.queueName(q.getQueueName()))
+                                .queueUrl();
+                    } catch (RuntimeException e) {
+                        ex.illegalStateUnableToRetrieveQueueUrl(e);
+                        return null;
+                    }
+                });
     }
 }

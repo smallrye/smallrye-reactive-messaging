@@ -1,9 +1,12 @@
 package io.smallrye.reactive.messaging.aws.sqs;
 
-import io.smallrye.mutiny.Uni;
-import jakarta.enterprise.context.Dependent;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import jakarta.enterprise.context.Dependent;
+
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
+
+import io.smallrye.mutiny.Uni;
 
 @Dependent
 public class ProducerApp {
