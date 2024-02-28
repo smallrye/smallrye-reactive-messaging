@@ -27,12 +27,13 @@ import org.apache.kafka.common.Uuid;
 import org.apache.kafka.common.security.auth.SecurityProtocol;
 import org.apache.kafka.common.utils.Time;
 import org.apache.kafka.common.utils.Utils;
+import org.apache.kafka.metadata.properties.MetaProperties;
+import org.apache.kafka.metadata.properties.MetaPropertiesVersion;
 import org.jboss.logging.Logger;
 
 import kafka.cluster.EndPoint;
 import kafka.server.KafkaConfig;
 import kafka.server.KafkaRaftServer;
-import kafka.server.MetaProperties;
 import kafka.tools.StorageTool;
 import scala.collection.immutable.Seq;
 import scala.jdk.CollectionConverters;
@@ -366,7 +367,11 @@ public class EmbeddedKafkaBroker implements Closeable {
     }
 
     public static void formatStorage(List<String> directories, String clusterId, int nodeId, boolean ignoreFormatted) {
-        MetaProperties metaProperties = new MetaProperties(clusterId, nodeId);
+        MetaProperties metaProperties = new MetaProperties.Builder()
+                .setVersion(MetaPropertiesVersion.V1)
+                .setClusterId(clusterId)
+                .setNodeId(nodeId)
+                .build();
         Seq<String> dirs = CollectionConverters.ListHasAsScala(directories).asScala().toSeq();
         StorageTool.formatCommand(loggerPrintStream(LOGGER), dirs, metaProperties, MINIMUM_BOOTSTRAP_VERSION, ignoreFormatted);
     }
