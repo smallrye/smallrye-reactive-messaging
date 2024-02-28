@@ -69,20 +69,7 @@ public class KafkaCloudEventHelper {
             ConsumerRecord<K, T> record) {
         DefaultCloudEventMetadataBuilder<T> builder = new DefaultCloudEventMetadataBuilder<>();
 
-        JsonObject content;
-        if (record.value() instanceof JsonObject) {
-            content = (JsonObject) record.value();
-        } else if (record.value() instanceof String) {
-            content = new JsonObject((String) record.value());
-        } else if (record.value() instanceof byte[]) {
-            byte[] bytes = (byte[]) record.value();
-            Buffer buffer = Buffer.buffer(bytes);
-            content = buffer.toJsonObject();
-        } else {
-            throw new IllegalArgumentException(
-                    "Invalid value type. Structured Cloud Event can only be created from String, JsonObject and byte[], found: "
-                            + record.value().getClass());
-        }
+        JsonObject content = (JsonObject) record.value();
 
         // Required
         builder.withSpecVersion(content.getString(CloudEventMetadata.CE_ATTRIBUTE_SPEC_VERSION));
@@ -132,6 +119,30 @@ public class KafkaCloudEventHelper {
         cloudEventMetadata.validate();
         return new DefaultIncomingKafkaCloudEventMetadata<>(
                 new DefaultIncomingCloudEventMetadata<>(cloudEventMetadata));
+    }
+
+    public static JsonObject parseStructuredContent(Object value) {
+        JsonObject content;
+        if (value instanceof JsonObject) {
+            content = (JsonObject) value;
+        } else if (value instanceof String) {
+            content = new JsonObject((String) value);
+        } else if (value instanceof byte[]) {
+            byte[] bytes = (byte[]) value;
+            Buffer buffer = Buffer.buffer(bytes);
+            content = buffer.toJsonObject();
+        } else {
+            throw new IllegalArgumentException(
+                    "Invalid value type. Structured Cloud Event can only be created from String, JsonObject and byte[], found: "
+                            + Optional.ofNullable(value).map(Object::getClass).orElse(null));
+        }
+        // validate required source attribute
+        String source = content.getString(CloudEventMetadata.CE_ATTRIBUTE_SOURCE);
+        if (source == null) {
+            throw new IllegalArgumentException(
+                    "The JSON value must contain the " + CloudEventMetadata.CE_ATTRIBUTE_SOURCE + " attribute");
+        }
+        return content;
     }
 
     public static <T, K> IncomingKafkaCloudEventMetadata<K, T> createFromBinaryCloudEvent(
@@ -204,6 +215,15 @@ public class KafkaCloudEventHelper {
         BaseCloudEventMetadata<T> cloudEventMetadata = builder.build();
         return new DefaultIncomingKafkaCloudEventMetadata<>(
                 new DefaultIncomingCloudEventMetadata<>(cloudEventMetadata));
+    }
+
+    public static <T> T checkBinaryRecord(T payload, Headers headers) {
+        Header sourceHeader = headers.lastHeader(KAFKA_HEADER_FOR_SOURCE);
+        if (sourceHeader == null) {
+            throw new IllegalArgumentException(
+                    "The Kafka record must contain the " + KAFKA_HEADER_FOR_SOURCE + " header");
+        }
+        return payload;
     }
 
     @SuppressWarnings("rawtypes")
@@ -438,32 +458,30 @@ public class KafkaCloudEventHelper {
         NOT_A_CLOUD_EVENT
     }
 
-    public static CloudEventMode getCloudEventMode(ConsumerRecord<?, ?> record) {
-        String contentType = getHeader(KAFKA_HEADER_CONTENT_TYPE, record);
+    public static CloudEventMode getCloudEventMode(Headers headers) {
+        String contentType = getHeader(KAFKA_HEADER_CONTENT_TYPE, headers);
         if (contentType != null && contentType.startsWith(CE_CONTENT_TYPE_PREFIX)) {
             return CloudEventMode.STRUCTURED;
-        } else if (containsAllMandatoryAttributes(record)) {
+        } else if (containsAllMandatoryAttributes(headers)) {
             return CloudEventMode.BINARY;
         }
         return CloudEventMode.NOT_A_CLOUD_EVENT;
     }
 
-    private static boolean containsAllMandatoryAttributes(ConsumerRecord<?, ?> record) {
-        return getHeader(KAFKA_HEADER_FOR_ID, record) != null
-                && getHeader(KAFKA_HEADER_FOR_SOURCE, record) != null
-                && getHeader(KAFKA_HEADER_FOR_TYPE, record) != null
-                && getHeader(KAFKA_HEADER_FOR_SPEC_VERSION, record) != null;
+    private static boolean containsAllMandatoryAttributes(Headers headers) {
+        return getHeader(KAFKA_HEADER_FOR_ID, headers) != null
+                && getHeader(KAFKA_HEADER_FOR_SOURCE, headers) != null
+                && getHeader(KAFKA_HEADER_FOR_TYPE, headers) != null
+                && getHeader(KAFKA_HEADER_FOR_SPEC_VERSION, headers) != null;
     }
 
-    private static String getHeader(String name, ConsumerRecord<?, ?> record) {
-        Headers headers = record.headers();
+    private static String getHeader(String name, Headers headers) {
         for (Header header : headers) {
             if (header.key().equals(name)) {
                 return new String(header.value(), StandardCharsets.UTF_8);
             }
         }
         return null;
-
     }
 
 }
