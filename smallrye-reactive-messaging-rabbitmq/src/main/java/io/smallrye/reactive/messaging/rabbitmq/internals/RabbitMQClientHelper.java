@@ -107,6 +107,12 @@ public class RabbitMQClientHelper {
                 .setUseNio(config.getUseNio())
                 .setVirtualHost(config.getVirtualHost());
 
+        if ("NONE".equals(config.getSslHostnameVerificationAlgorithm())) {
+            options.setHostnameVerificationAlgorithm("");
+        } else {
+            options.setHostnameVerificationAlgorithm(config.getSslHostnameVerificationAlgorithm());
+        }
+
         // JKS TrustStore
         Optional<String> trustStorePath = config.getTrustStorePath();
         if (trustStorePath.isPresent()) {
