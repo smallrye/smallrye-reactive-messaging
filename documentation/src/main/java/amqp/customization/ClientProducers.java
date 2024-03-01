@@ -24,7 +24,7 @@ public class ClientProducers {
                 .setPemKeyCertOptions(keycert)
                 .setPemTrustOptions(trust)
                 .addEnabledSaslMechanism("EXTERNAL")
-                .setHostnameVerificationAlgorithm("")
+                .setHostnameVerificationAlgorithm("") // Disable hostname verification
                 .setConnectTimeout(30000)
                 .setReconnectInterval(5000)
                 .setContainerId("my-container");

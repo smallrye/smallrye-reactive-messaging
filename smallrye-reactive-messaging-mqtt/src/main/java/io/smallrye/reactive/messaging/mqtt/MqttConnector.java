@@ -34,6 +34,7 @@ import io.vertx.mutiny.core.Vertx;
 @ConnectorAttribute(name = "auto-keep-alive", type = "boolean", direction = INCOMING_AND_OUTGOING, description = "Set if the MQTT client must handle `PINGREQ` automatically", defaultValue = "true")
 @ConnectorAttribute(name = "health-enabled", type = "boolean", direction = INCOMING_AND_OUTGOING, description = "Whether health reporting is enabled (default) or disabled", defaultValue = "true")
 @ConnectorAttribute(name = "ssl", type = "boolean", direction = INCOMING_AND_OUTGOING, description = "Set whether SSL/TLS is enabled", defaultValue = "false")
+@ConnectorAttribute(name = "ssl.hostname-verification-algorithm", type = "string", direction = INCOMING_AND_OUTGOING, description = "Set the hostname verifier algorithm for the TLS connection.Accepted values are `HTTPS`, `LDAPS`, and `NONE` (defaults). `NONE` disables the hostname verification.", defaultValue = "NONE")
 @ConnectorAttribute(name = "ssl.keystore.type", type = "string", direction = INCOMING_AND_OUTGOING, description = "Set the keystore type [`pkcs12`, `jks`, `pem`]", defaultValue = "pkcs12")
 @ConnectorAttribute(name = "ssl.keystore.location", type = "string", direction = INCOMING_AND_OUTGOING, description = "Set the keystore location. In case of `pem` type this is the server ca cert path")
 @ConnectorAttribute(name = "ssl.keystore.password", type = "string", direction = INCOMING_AND_OUTGOING, description = "Set the keystore password. In case of `pem` type this is the key path")

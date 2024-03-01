@@ -23,7 +23,7 @@ public class ClientProducers {
                 .setSsl(true)
                 .setPemKeyCertOptions(keycert)
                 .setPemTrustOptions(trust)
-                .setHostnameVerificationAlgorithm("")
+                .setHostnameVerificationAlgorithm("HTTPS")
                 .setConnectTimeout(30000)
                 .setReconnectInterval(5000);
     }

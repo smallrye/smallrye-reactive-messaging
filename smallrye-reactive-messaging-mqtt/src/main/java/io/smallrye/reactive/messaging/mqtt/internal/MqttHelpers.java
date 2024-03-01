@@ -43,6 +43,14 @@ public class MqttHelpers {
         options.setPort(config.getPort().orElseGet(() -> config.getSsl() ? 8883 : 1883));
         options.setReconnectDelay(getReconnectDelayOptions(config));
         options.setSsl(config.getSsl());
+
+        String algorithm = config.getSslHostnameVerificationAlgorithm();
+        if ("NONE".equalsIgnoreCase(algorithm)) {
+            options.setHostnameVerificationAlgorithm("");
+        } else {
+            options.setHostnameVerificationAlgorithm(algorithm);
+        }
+
         options.setKeyCertOptions(getKeyCertOptions(config));
         options.setServerName(config.getServerName());
         options.setTrustOptions(getTrustOptions(config));
@@ -53,6 +61,7 @@ public class MqttHelpers {
         options.setWillRetain(config.getWillRetain());
         options.setUnsubscribeOnDisconnect(config.getUnsubscribeOnDisconnection());
         options.setMetricsName("mqtt|" + config.getChannel());
+
         return options;
     }
 
