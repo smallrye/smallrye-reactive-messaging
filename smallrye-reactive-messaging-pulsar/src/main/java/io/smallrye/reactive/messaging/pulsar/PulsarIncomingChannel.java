@@ -13,6 +13,10 @@ import java.util.stream.Collectors;
 import org.apache.pulsar.client.api.*;
 import org.apache.pulsar.client.impl.MultiplierRedeliveryBackoff;
 import org.apache.pulsar.client.impl.conf.ConsumerConfigurationData;
+import org.apache.pulsar.client.impl.schema.AvroSchema;
+import org.apache.pulsar.client.impl.schema.generic.GenericAvroSchema;
+import org.apache.pulsar.client.impl.schema.generic.GenericJsonSchema;
+import org.apache.pulsar.client.impl.schema.generic.GenericProtobufNativeSchema;
 import org.eclipse.microprofile.reactive.messaging.Message;
 
 import io.opentelemetry.api.GlobalOpenTelemetry;
@@ -112,7 +116,7 @@ public class PulsarIncomingChannel<T> {
                     .until(m -> closed.get())
                     .plug(msgMulti -> {
                         // Calling getValue on the pulsar-client-internal thread to make sure the SchemaInfo is fetched
-                        if (schema.requireFetchingSchemaInfo()) {
+                        if (schemaRequiresBlockingFetch(schema)) {
                             return msgMulti.onItem().invoke(org.apache.pulsar.client.api.Message::getValue);
                         } else {
                             return msgMulti;
@@ -136,7 +140,7 @@ public class PulsarIncomingChannel<T> {
                     .filter(m -> m.size() > 0)
                     .plug(msgMulti -> {
                         // Calling getValue on the pulsar-client-internal thread to make sure the SchemaInfo is fetched
-                        if (schema.requireFetchingSchemaInfo()) {
+                        if (schemaRequiresBlockingFetch(schema)) {
                             return msgMulti.onItem().invoke(msg -> msg.forEach(org.apache.pulsar.client.api.Message::getValue));
                         } else {
                             return msgMulti;
@@ -167,6 +171,14 @@ public class PulsarIncomingChannel<T> {
                         MessagingAttributesExtractor.create(messagingAttributesGetter, MessageOperation.RECEIVE))
                 .addAttributesExtractor(attributesExtractor)
                 .buildConsumerInstrumenter(PulsarTraceTextMapGetter.INSTANCE);
+    }
+
+    private static <T> boolean schemaRequiresBlockingFetch(Schema<T> schema) {
+        return schema.requireFetchingSchemaInfo()
+                || schema instanceof AvroSchema
+                || schema instanceof GenericAvroSchema
+                || schema instanceof GenericJsonSchema
+                || schema instanceof GenericProtobufNativeSchema;
     }
 
     public void incomingTrace(PulsarMessage<T> pulsarMessage) {
