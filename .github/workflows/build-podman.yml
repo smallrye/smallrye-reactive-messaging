@@ -72,5 +72,5 @@ jobs:
                 env:
                     MAVEN_OPTS: ${{ matrix.java.opts }}
                 run: |
-                    mvn -s .github/ci-maven-settings.xml -Dmaven.resolver.transport=wagon -B \
+                    mvn -s .build/ci-maven-settings.xml -Dmaven.resolver.transport=wagon -B \
                       clean install -Dtest-containers=true ${{ matrix.java.build_opts }}
