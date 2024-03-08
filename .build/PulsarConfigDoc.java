@@ -34,7 +34,7 @@ import java.lang.reflect.Modifier;
  * - Config file (whether the property is settable from a configuration file
  * - Default value
  * <p>
- * Run with `.github/PulsarConfigDoc.java -d documentation/src/main/docs/pulsar/config`
+ * Run with `.build/PulsarConfigDoc.java -d documentation/src/main/docs/pulsar/config`
  * <p>
  */
 @CommandLine.Command(name = "pulsar-config-doc", mixinStandardHelpOptions = true, version = "0.1",
