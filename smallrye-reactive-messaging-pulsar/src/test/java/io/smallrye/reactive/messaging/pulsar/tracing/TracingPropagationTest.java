@@ -50,6 +50,7 @@ import io.opentelemetry.sdk.trace.samplers.Sampler;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.ce.OutgoingCloudEventMetadata;
 import io.smallrye.reactive.messaging.pulsar.PulsarConnector;
+import io.smallrye.reactive.messaging.pulsar.PulsarOutgoingMessageMetadata;
 import io.smallrye.reactive.messaging.pulsar.base.WeldTestBase;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 import io.vertx.core.json.Json;
@@ -82,9 +83,18 @@ public class TracingPropagationTest extends WeldTestBase {
         GlobalOpenTelemetry.resetForTest();
     }
 
-    @SuppressWarnings("ConstantConditions")
     @Test
-    public void testFromAppToPulsar() throws PulsarClientException {
+    public void testFromAppGeneratingDataToPulsar() throws PulsarClientException {
+        testFromAppToPulsar(MyAppGeneratingData.class);
+    }
+
+    @Test
+    public void testFromAppGeneratingPulsarDataToPulsar() throws PulsarClientException {
+        testFromAppToPulsar(MyAppGeneratingPulsarData.class);
+    }
+
+    @SuppressWarnings("ConstantConditions")
+    public void testFromAppToPulsar(Class<?> applicationClass) throws PulsarClientException {
         List<org.apache.pulsar.client.api.Message<Integer>> messages = new ArrayList<>();
         receive(client.newConsumer(Schema.INT32)
                 .topic(topic)
@@ -92,7 +102,7 @@ public class TracingPropagationTest extends WeldTestBase {
                 .subscriptionInitialPosition(SubscriptionInitialPosition.Earliest)
                 .subscribe(), 10, messages::add);
 
-        runApplication(getConfigForMyAppGeneratingData(), MyAppGeneratingData.class);
+        runApplication(getConfigForMyAppGeneratingData(), applicationClass);
 
         await().until(() -> messages.size() >= 10);
         List<Integer> values = new ArrayList<>();
@@ -375,6 +385,18 @@ public class TracingPropagationTest extends WeldTestBase {
                             .withSource(URI.create("test://test"))
                             .withType("type")
                             .withId("some id")
+                            .build()));
+        }
+    }
+
+    @ApplicationScoped
+    public static class MyAppGeneratingPulsarData {
+        @Outgoing("pulsar")
+        public Flow.Publisher<Message<Integer>> source() {
+            return Multi.createFrom().range(0, 10)
+                    .map(Message::of)
+                    .map(m -> m.addMetadata(PulsarOutgoingMessageMetadata.builder()
+                            .withEventTime(1)
                             .build()));
         }
     }
