@@ -18,7 +18,7 @@ test:
 
 # Build on CI without tests
 build-ci:
-    ./mvnw -B -ntp -s .build/ci-maven-settings.xml clean verify -DskipTests
+    ./mvnw -B -ntp -s .build/ci-maven-settings.xml clean install -DskipTests
 
 # Test on CI with tests
 test-ci:
