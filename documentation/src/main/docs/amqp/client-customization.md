@@ -16,6 +16,20 @@ connector. You need to indicate the name of the client using the
 mp.messaging.incoming.prices.client-options-name=my-named-options
 ```
 
+If you experience frequent disconnections from the broker, the AmqpClientOptions can also be used to set a heartbeat if you need to keep the AMQP connection permanently. 
+Some brokers might terminate the AMQP connection after a certain idle timeout. 
+You can provide a heartbeat value which will be used by the Vert.x proton client to advertise the idle timeout when opening transport to a remote peer.
+
+```java
+@Produces
+@Identifier("my-named-options")
+public AmqpClientOptions getNamedOptions() {
+  // set a heartbeat of 30s (in milliseconds)
+  return new AmqpClientOptions()
+        .setHeartbeat(30000);
+}
+```
+
 ## Client capabilities
 
 Both incoming and outgoing AMQP channels can be configured with a list
