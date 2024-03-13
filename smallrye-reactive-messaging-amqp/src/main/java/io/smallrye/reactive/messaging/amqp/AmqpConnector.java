@@ -349,7 +349,11 @@ public class AmqpConnector implements InboundConnector, OutboundConnector, Healt
     public void terminate(
             @Observes(notifyObserver = Reception.IF_EXISTS) @Priority(50) @BeforeDestroyed(ApplicationScoped.class) Object event) {
         processors.values().forEach(AmqpCreditBasedSender::cancel);
-        clients.forEach(AmqpClient::closeAndForget);
+        clients.forEach(c -> {
+            // We cannot use andForget as it could report an error is the broker is not available.
+            //noinspection ResultOfMethodCallIgnored
+            c.close().subscribeAsCompletionStage();
+        });
         clients.clear();
     }
 
