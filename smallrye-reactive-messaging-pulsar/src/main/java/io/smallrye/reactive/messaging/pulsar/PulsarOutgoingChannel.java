@@ -3,7 +3,6 @@ package io.smallrye.reactive.messaging.pulsar;
 import static io.smallrye.reactive.messaging.pulsar.i18n.PulsarLogging.log;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -126,12 +125,15 @@ public class PulsarOutgoingChannel<T> {
         final TypedMessageBuilder<T> messageBuilder;
         if (optionalMetadata.isPresent()) {
             PulsarOutgoingMessageMetadata metadata = optionalMetadata.get();
+            Map<String, String> properties = metadata.getProperties();
             if (tracingEnabled) {
-                TracingUtils.traceOutgoing(instrumenter, message, new PulsarTrace.Builder()
-                        .withProperties(metadata.getProperties())
+                PulsarTrace trace = new PulsarTrace.Builder()
+                        .withProperties(properties)
                         .withSequenceId(metadata.getSequenceId())
                         .withTopic(producer.getTopic())
-                        .build());
+                        .build();
+                properties = trace.getProperties();
+                TracingUtils.traceOutgoing(instrumenter, message, trace);
             }
             messageBuilder = createMessageBuilder(message, metadata.getTransaction());
 
@@ -146,7 +148,7 @@ public class PulsarOutgoingChannel<T> {
                 messageBuilder.orderingKey(metadata.getOrderingKey());
             }
             if (metadata.getProperties() != null) {
-                messageBuilder.properties(metadata.getProperties());
+                messageBuilder.properties(properties);
             }
             if (metadata.getReplicatedClusters() != null) {
                 messageBuilder.replicationClusters(metadata.getReplicatedClusters());
@@ -166,12 +168,11 @@ public class PulsarOutgoingChannel<T> {
         } else {
             messageBuilder = createMessageBuilder(message, null);
             if (tracingEnabled) {
-                Map<String, String> properties = new HashMap<>();
-                TracingUtils.traceOutgoing(instrumenter, message, new PulsarTrace.Builder()
-                        .withProperties(properties)
+                PulsarTrace trace = new PulsarTrace.Builder()
                         .withTopic(producer.getTopic())
-                        .build());
-                messageBuilder.properties(properties);
+                        .build();
+                TracingUtils.traceOutgoing(instrumenter, message, trace);
+                messageBuilder.properties(trace.getProperties());
             }
         }
         Object payload = message.getPayload();

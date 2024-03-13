@@ -50,6 +50,7 @@ import io.opentelemetry.sdk.trace.samplers.Sampler;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.ce.OutgoingCloudEventMetadata;
 import io.smallrye.reactive.messaging.pulsar.PulsarConnector;
+import io.smallrye.reactive.messaging.pulsar.PulsarOutgoingMessageMetadata;
 import io.smallrye.reactive.messaging.pulsar.base.WeldTestBase;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 import io.vertx.core.json.Json;
@@ -82,9 +83,18 @@ public class TracingPropagationTest extends WeldTestBase {
         GlobalOpenTelemetry.resetForTest();
     }
 
-    @SuppressWarnings("ConstantConditions")
     @Test
-    public void testFromAppToPulsar() throws PulsarClientException {
+    public void testFromAppGeneratingDataToPulsar() throws PulsarClientException {
+        testFromAppToPulsar(MyAppGeneratingData.class);
+    }
+
+    @Test
+    public void testFromAppGeneratingPulsarDataToPulsar() throws PulsarClientException {
+        testFromAppToPulsar(MyAppGeneratingPulsarData.class);
+    }
+
+    @SuppressWarnings("ConstantConditions")
+    public void testFromAppToPulsar(Class<?> applicationClass) throws PulsarClientException {
         List<org.apache.pulsar.client.api.Message<Integer>> messages = new ArrayList<>();
         receive(client.newConsumer(Schema.INT32)
                 .topic(topic)
@@ -92,7 +102,7 @@ public class TracingPropagationTest extends WeldTestBase {
                 .subscriptionInitialPosition(SubscriptionInitialPosition.Earliest)
                 .subscribe(), 10, messages::add);
 
-        runApplication(getConfigForMyAppGeneratingData(), MyAppGeneratingData.class);
+        runApplication(getConfigForMyAppGeneratingData(), applicationClass);
 
         await().until(() -> messages.size() >= 10);
         List<Integer> values = new ArrayList<>();
@@ -191,12 +201,12 @@ public class TracingPropagationTest extends WeldTestBase {
     public void testFromPulsarToAppToPulsar() throws PulsarClientException {
         String resultTopic = topic + "-result";
         String parentTopic = topic + "-parent";
-        List<Integer> values = new ArrayList<>();
+        List<org.apache.pulsar.client.api.Message> messages = new ArrayList<>();
         receive(client.newConsumer(Schema.INT32)
                 .topic(resultTopic)
                 .subscriptionName(topic + "-consumer")
                 .subscriptionInitialPosition(SubscriptionInitialPosition.Earliest)
-                .subscribe(), 10, i -> values.add(i.getValue()));
+                .subscribe(), 10, messages::add);
 
         runApplication(getConfigForMyAppProcessingData(resultTopic, parentTopic), MyAppProcessingData.class);
 
@@ -205,8 +215,13 @@ public class TracingPropagationTest extends WeldTestBase {
                 .topic(parentTopic)
                 .create(), 10, (i, p) -> p.newMessage().key("a-key").value(i));
 
-        await().until(() -> values.size() == 10);
-        assertThat(values).containsExactly(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
+        await().until(() -> messages.size() == 10);
+        assertThat(messages)
+                .extracting(org.apache.pulsar.client.api.Message::getValue)
+                .containsExactly(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
+        assertThat(messages)
+                .extracting(org.apache.pulsar.client.api.Message::getProperties)
+                .allSatisfy(m -> assertThat(m).containsKey("traceparent"));
 
         CompletableResultCode completableResultCode = tracerProvider.forceFlush();
         completableResultCode.whenComplete(() -> {
@@ -370,6 +385,18 @@ public class TracingPropagationTest extends WeldTestBase {
                             .withSource(URI.create("test://test"))
                             .withType("type")
                             .withId("some id")
+                            .build()));
+        }
+    }
+
+    @ApplicationScoped
+    public static class MyAppGeneratingPulsarData {
+        @Outgoing("pulsar")
+        public Flow.Publisher<Message<Integer>> source() {
+            return Multi.createFrom().range(0, 10)
+                    .map(Message::of)
+                    .map(m -> m.addMetadata(PulsarOutgoingMessageMetadata.builder()
+                            .withEventTime(1)
                             .build()));
         }
     }
