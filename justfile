@@ -18,7 +18,7 @@ test:
 
 # Build on CI without tests
 build-ci:
-    ./mvnw -B -ntp -s .build/ci-maven-settings.xml clean verify -DskipTests
+    ./mvnw -B -ntp -s .build/ci-maven-settings.xml clean install -DskipTests
 
 # Test on CI with tests
 test-ci:
@@ -75,6 +75,7 @@ release: pre-release
     jbang .build/CompatibilityUtils.java extract
     @echo "Call JReleaser"
     ./mvnw -B -ntp jreleaser:full-release -Pjreleaser -pl :smallrye-reactive-messaging -s .build/ci-maven-settings.xml
+    -[[ ${DEPLOY_WEBSITE} == "true" ]] && just deploy-docs
     @echo "Bump to 999-SNAPSHOT and push upstream"
     ./mvnw -B -ntp versions:set -DnewVersion=999-SNAPSHOT -DgenerateBackupPoms=false -s .build/ci-maven-settings.xml
     git commit -am "[RELEASE] - Next development version: 999-SNAPSHOT"
@@ -89,7 +90,6 @@ deploy-to-maven-central: decrypt-secrets init-gpg
 post-release:
     @echo "🚀 Post-release steps..."
     -[[ ${CLEAR_REVAPI} == "true" ]] && just clear-revapi
-    -[[ ${DEPLOY_WEBSITE} == "true" ]] && just deploy-docs
 
 # Update Pulsar Connector Configuration Documentation
 update-pulsar-config-docs:
@@ -98,9 +98,13 @@ update-pulsar-config-docs:
 
 # Deploy documentation
 deploy-docs:
-    @echo "📝 Deploying documentation to GitHub"
-    @if [[ -z "${RELEASE_VERSION}" ]]; then exit 1; fi
-    ./mvnw -B -ntp clean compile -f documentation && cd documentation && pipenv install && pipenv run mike deploy --update-aliases --push --remote origin "${RELEASE_VERSION}" "latest"
+    #!/usr/bin/env bash
+    echo "📝 Deploying documentation to GitHub"
+    if [[ -z "${RELEASE_VERSION}" ]]; then exit 1; fi
+    ./mvnw -B -ntp clean compile -pl documentation
+    cd documentation
+    pipenv install
+    pipenv run mike deploy --update-aliases --push --remote origin "${RELEASE_VERSION}" "latest"
 
 # Clear RevAPI justifications
 clear-revapi:

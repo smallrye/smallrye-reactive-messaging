@@ -842,6 +842,21 @@
       </properties>
       <build>
         <defaultGoal>clean install</defaultGoal>
+        <plugins>
+          <plugin>
+          <groupId>io.sundr</groupId>
+          <artifactId>sundr-maven-plugin</artifactId>
+          <version>${sundr-maven-plugin.version}</version>
+          <executions>
+            <execution>
+              <goals>
+                <goal>generate-bom</goal>
+              </goals>
+              <phase>none</phase>
+            </execution>
+          </executions>
+          </plugin>
+        </plugins>
       </build>
     </profile>
     <profile>
