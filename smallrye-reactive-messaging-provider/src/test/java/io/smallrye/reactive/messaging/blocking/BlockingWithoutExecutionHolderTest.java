@@ -41,6 +41,7 @@ public class BlockingWithoutExecutionHolderTest extends WeldTestBaseWithoutTails
 
     @BeforeEach
     public void setUp() {
+        releaseConfig();
         initializer = SeContainerInitializer.newInstance();
 
         initializer.addBeanClasses(MediatorFactory.class,
