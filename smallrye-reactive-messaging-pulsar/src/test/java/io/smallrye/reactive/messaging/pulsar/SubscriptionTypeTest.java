@@ -26,6 +26,7 @@ import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.pulsar.ack.PulsarMessageAck;
 import io.smallrye.reactive.messaging.pulsar.base.PulsarBaseTest;
+import io.smallrye.reactive.messaging.pulsar.base.UnsatisfiedInstance;
 import io.smallrye.reactive.messaging.pulsar.fault.PulsarNack;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 
@@ -339,7 +340,8 @@ public class SubscriptionTypeTest extends PulsarBaseTest {
     private PulsarIncomingChannel<Integer> createChannel(MapBasedConfig config) throws PulsarClientException {
         PulsarConnectorIncomingConfiguration ic = new PulsarConnectorIncomingConfiguration(config);
         return new PulsarIncomingChannel<>(client, vertx, Schema.INT32,
-                new PulsarMessageAck.Factory(), new PulsarNack.Factory(), ic, configResolver);
+                new PulsarMessageAck.Factory(), new PulsarNack.Factory(), ic, configResolver,
+                UnsatisfiedInstance.instance());
     }
 
     MapBasedConfig config() {

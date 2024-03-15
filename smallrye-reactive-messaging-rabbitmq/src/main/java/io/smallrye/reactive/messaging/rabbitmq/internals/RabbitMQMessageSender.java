@@ -11,8 +11,11 @@ import java.util.concurrent.Flow.Subscriber;
 import java.util.concurrent.Flow.Subscription;
 import java.util.concurrent.atomic.AtomicReference;
 
+import jakarta.enterprise.inject.Instance;
+
 import org.eclipse.microprofile.reactive.messaging.Message;
 
+import io.opentelemetry.api.OpenTelemetry;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.helpers.Subscriptions;
 import io.smallrye.mutiny.tuples.Tuple2;
@@ -51,8 +54,9 @@ public class RabbitMQMessageSender implements Processor<Message<?>, Message<?>>,
      * @param retrieveSender the underlying Vert.x {@link RabbitMQPublisher}
      */
     public RabbitMQMessageSender(
-            final RabbitMQConnectorOutgoingConfiguration oc,
-            final Uni<RabbitMQPublisher> retrieveSender) {
+            RabbitMQConnectorOutgoingConfiguration oc,
+            Uni<RabbitMQPublisher> retrieveSender,
+            Instance<OpenTelemetry> openTelemetryInstance) {
         this.retrieveSender = retrieveSender;
         this.configuration = oc;
         this.configuredExchange = getExchangeName(oc);
@@ -70,7 +74,7 @@ public class RabbitMQMessageSender implements Processor<Message<?>, Message<?>>,
         }
 
         if (oc.getTracingEnabled()) {
-            instrumenter = RabbitMQOpenTelemetryInstrumenter.createForSender();
+            instrumenter = RabbitMQOpenTelemetryInstrumenter.createForSender(openTelemetryInstance);
         } else {
             instrumenter = null;
         }

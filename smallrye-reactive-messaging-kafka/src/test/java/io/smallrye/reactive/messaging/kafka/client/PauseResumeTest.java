@@ -23,6 +23,7 @@ import org.junit.jupiter.api.*;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.helpers.test.AssertSubscriber;
 import io.smallrye.reactive.messaging.kafka.*;
+import io.smallrye.reactive.messaging.kafka.base.UnsatisfiedInstance;
 import io.smallrye.reactive.messaging.kafka.base.WeldTestBase;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
@@ -58,7 +59,8 @@ public class PauseResumeTest extends WeldTestBase {
                 .with("client.id", UUID.randomUUID().toString());
         String group = UUID.randomUUID().toString();
         source = new KafkaSource<>(vertx, group,
-                new KafkaConnectorIncomingConfiguration(config), commitHandlerFactories, failureHandlerFactories,
+                new KafkaConnectorIncomingConfiguration(config),
+                UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
                 getConsumerRebalanceListeners(),
                 CountKafkaCdiEvents.noCdiEvents, getDeserializationFailureHandlers(), -1);
         injectMockConsumer(source, consumer);
@@ -123,7 +125,8 @@ public class PauseResumeTest extends WeldTestBase {
                 .with("client.id", UUID.randomUUID().toString());
         String group = UUID.randomUUID().toString();
         source = new KafkaSource<>(vertx, group,
-                new KafkaConnectorIncomingConfiguration(config), commitHandlerFactories, failureHandlerFactories,
+                new KafkaConnectorIncomingConfiguration(config),
+                UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
                 getConsumerRebalanceListeners(),
                 CountKafkaCdiEvents.noCdiEvents, getDeserializationFailureHandlers(), -1);
         injectMockConsumer(source, consumer);
@@ -195,7 +198,8 @@ public class PauseResumeTest extends WeldTestBase {
                 .with("client.id", UUID.randomUUID().toString());
         String group = UUID.randomUUID().toString();
         source = new KafkaSource<>(vertx, group,
-                new KafkaConnectorIncomingConfiguration(config), commitHandlerFactories, failureHandlerFactories,
+                new KafkaConnectorIncomingConfiguration(config),
+                UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
                 getConsumerRebalanceListeners(),
                 CountKafkaCdiEvents.noCdiEvents, getDeserializationFailureHandlers(), -1);
         injectMockConsumer(source, consumer);
@@ -259,7 +263,8 @@ public class PauseResumeTest extends WeldTestBase {
                 .with("client.id", UUID.randomUUID().toString());
         String group = UUID.randomUUID().toString();
         source = new KafkaSource<>(vertx, group,
-                new KafkaConnectorIncomingConfiguration(config), commitHandlerFactories, failureHandlerFactories,
+                new KafkaConnectorIncomingConfiguration(config),
+                UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
                 getConsumerRebalanceListeners(),
                 CountKafkaCdiEvents.noCdiEvents, getDeserializationFailureHandlers(), -1);
         injectMockConsumer(source, consumer);
@@ -309,7 +314,8 @@ public class PauseResumeTest extends WeldTestBase {
                 .with("client.id", UUID.randomUUID().toString());
         String group = UUID.randomUUID().toString();
         source = new KafkaSource<>(vertx, group,
-                new KafkaConnectorIncomingConfiguration(config), commitHandlerFactories, failureHandlerFactories,
+                new KafkaConnectorIncomingConfiguration(config),
+                UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
                 getConsumerRebalanceListeners(),
                 CountKafkaCdiEvents.noCdiEvents, getDeserializationFailureHandlers(), -1);
         injectMockConsumer(source, consumer);

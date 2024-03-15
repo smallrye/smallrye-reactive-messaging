@@ -6,8 +6,11 @@ import static java.time.Duration.ofSeconds;
 
 import java.util.concurrent.Flow;
 
+import jakarta.enterprise.inject.Instance;
+
 import org.eclipse.microprofile.reactive.messaging.Message;
 
+import io.opentelemetry.api.OpenTelemetry;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.health.HealthReport;
 import io.smallrye.reactive.messaging.providers.helpers.MultiUtils;
@@ -25,7 +28,8 @@ public class OutgoingRabbitMQChannel {
     private final ClientHolder holder;
     private volatile RabbitMQPublisher publisher;
 
-    public OutgoingRabbitMQChannel(RabbitMQConnector connector, RabbitMQConnectorOutgoingConfiguration oc) {
+    public OutgoingRabbitMQChannel(RabbitMQConnector connector, RabbitMQConnectorOutgoingConfiguration oc,
+            Instance<OpenTelemetry> openTelemetryInstance) {
 
         this.config = oc;
         // Create a client
@@ -50,7 +54,7 @@ public class OutgoingRabbitMQChannel {
                 .onFailure().recoverWithNull().memoize().indefinitely();
 
         // Set up a sender based on the publisher we established above
-        final RabbitMQMessageSender processor = new RabbitMQMessageSender(oc, getSender);
+        final RabbitMQMessageSender processor = new RabbitMQMessageSender(oc, getSender, openTelemetryInstance);
 
         // Return a SubscriberBuilder
         subscriber = MultiUtils.via(processor, m -> m.onFailure().invoke(t -> log.error(oc.getChannel(), t)));

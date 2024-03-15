@@ -14,6 +14,7 @@ import org.junit.jupiter.api.Test;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.pulsar.ack.PulsarMessageAck;
 import io.smallrye.reactive.messaging.pulsar.base.PulsarBaseTest;
+import io.smallrye.reactive.messaging.pulsar.base.UnsatisfiedInstance;
 import io.smallrye.reactive.messaging.pulsar.fault.PulsarNack;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 
@@ -26,7 +27,7 @@ public class IncomingMetadataTest extends PulsarBaseTest {
         PulsarConnectorIncomingConfiguration ic = new PulsarConnectorIncomingConfiguration(config());
         PulsarIncomingChannel<Integer> channel = new PulsarIncomingChannel<>(client, vertx, Schema.INT32,
                 new PulsarMessageAck.Factory(), new PulsarNack.Factory(),
-                ic, configResolver);
+                ic, configResolver, UnsatisfiedInstance.instance());
         Multi.createFrom().publisher(channel.getPublisher())
                 .subscribe().with(messages::add);
 

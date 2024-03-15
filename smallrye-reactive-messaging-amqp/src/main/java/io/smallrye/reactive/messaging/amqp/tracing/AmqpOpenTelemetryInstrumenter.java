@@ -1,8 +1,10 @@
 package io.smallrye.reactive.messaging.amqp.tracing;
 
+import jakarta.enterprise.inject.Instance;
+
 import org.eclipse.microprofile.reactive.messaging.Message;
 
-import io.opentelemetry.api.GlobalOpenTelemetry;
+import io.opentelemetry.api.OpenTelemetry;
 import io.opentelemetry.instrumentation.api.instrumenter.Instrumenter;
 import io.opentelemetry.instrumentation.api.instrumenter.InstrumenterBuilder;
 import io.opentelemetry.instrumentation.api.instrumenter.messaging.MessageOperation;
@@ -19,20 +21,20 @@ public class AmqpOpenTelemetryInstrumenter {
         this.instrumenter = instrumenter;
     }
 
-    public static AmqpOpenTelemetryInstrumenter createForConnector() {
-        return create(false);
+    public static AmqpOpenTelemetryInstrumenter createForConnector(Instance<OpenTelemetry> openTelemetryInstance) {
+        return create(TracingUtils.getOpenTelemetry(openTelemetryInstance), false);
     }
 
-    public static AmqpOpenTelemetryInstrumenter createForSender() {
-        return create(true);
+    public static AmqpOpenTelemetryInstrumenter createForSender(Instance<OpenTelemetry> openTelemetryInstance) {
+        return create(TracingUtils.getOpenTelemetry(openTelemetryInstance), true);
     }
 
-    private static AmqpOpenTelemetryInstrumenter create(boolean sender) {
+    private static AmqpOpenTelemetryInstrumenter create(OpenTelemetry openTelemetry, boolean sender) {
         MessageOperation messageOperation = sender ? MessageOperation.PUBLISH : MessageOperation.RECEIVE;
         AmqpAttributesExtractor amqpAttributesExtractor = new AmqpAttributesExtractor();
         MessagingAttributesGetter<AmqpMessage<?>, Void> messagingAttributesGetter = amqpAttributesExtractor
                 .getMessagingAttributesGetter();
-        InstrumenterBuilder<AmqpMessage<?>, Void> builder = Instrumenter.builder(GlobalOpenTelemetry.get(),
+        InstrumenterBuilder<AmqpMessage<?>, Void> builder = Instrumenter.builder(openTelemetry,
                 "io.smallrye.reactive.messaging",
                 MessagingSpanNameExtractor.create(messagingAttributesGetter, messageOperation));
 

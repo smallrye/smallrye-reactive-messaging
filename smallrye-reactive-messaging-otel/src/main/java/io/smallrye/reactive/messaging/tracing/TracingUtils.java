@@ -2,8 +2,12 @@ package io.smallrye.reactive.messaging.tracing;
 
 import java.util.Optional;
 
+import jakarta.enterprise.inject.Instance;
+
 import org.eclipse.microprofile.reactive.messaging.Message;
 
+import io.opentelemetry.api.GlobalOpenTelemetry;
+import io.opentelemetry.api.OpenTelemetry;
 import io.opentelemetry.context.Context;
 import io.opentelemetry.context.Scope;
 import io.opentelemetry.instrumentation.api.instrumenter.Instrumenter;
@@ -13,6 +17,13 @@ import io.smallrye.reactive.messaging.providers.MetadataInjectableMessage;
 public class TracingUtils {
 
     private TracingUtils() {
+    }
+
+    public static OpenTelemetry getOpenTelemetry(Instance<OpenTelemetry> openTelemetryInstance) {
+        if (openTelemetryInstance.isResolvable()) {
+            return openTelemetryInstance.get();
+        }
+        return GlobalOpenTelemetry.get();
     }
 
     public static <T> void traceOutgoing(Instrumenter<T, Void> instrumenter, Message<?> message, T trace) {

@@ -32,6 +32,7 @@ import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.eclipse.microprofile.reactive.messaging.Message;
 
+import io.opentelemetry.api.OpenTelemetry;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.OutgoingMessageMetadata;
 import io.smallrye.reactive.messaging.ce.OutgoingCloudEventMetadata;
@@ -78,7 +79,9 @@ public class KafkaSink {
 
     private final KafkaOpenTelemetryInstrumenter kafkaInstrumenter;
 
-    public KafkaSink(KafkaConnectorOutgoingConfiguration config, KafkaCDIEvents kafkaCDIEvents,
+    public KafkaSink(KafkaConnectorOutgoingConfiguration config,
+            KafkaCDIEvents kafkaCDIEvents,
+            Instance<OpenTelemetry> openTelemetryInstance,
             Instance<SerializationFailureHandler<?>> serializationFailureHandlers,
             Instance<ProducerInterceptor<?, ?>> producerInterceptors) {
         this.isTracingEnabled = config.getTracingEnabled();
@@ -134,7 +137,7 @@ public class KafkaSink {
         }));
 
         if (isTracingEnabled) {
-            kafkaInstrumenter = KafkaOpenTelemetryInstrumenter.createForSink();
+            kafkaInstrumenter = KafkaOpenTelemetryInstrumenter.createForSink(openTelemetryInstance);
         } else {
             kafkaInstrumenter = null;
         }

@@ -32,6 +32,7 @@ import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.spi.Connector;
 
+import io.opentelemetry.api.OpenTelemetry;
 import io.smallrye.reactive.messaging.annotations.ConnectorAttribute;
 import io.smallrye.reactive.messaging.connector.InboundConnector;
 import io.smallrye.reactive.messaging.connector.OutboundConnector;
@@ -94,6 +95,9 @@ public class PulsarConnector implements InboundConnector, OutboundConnector, Hea
     @Any
     private Instance<PulsarFailureHandler.Factory> failureHandlerFactories;
 
+    @Inject
+    private Instance<OpenTelemetry> openTelemetryInstance;
+
     @PostConstruct
     void init() {
         this.vertx = executionHolder.vertx();
@@ -111,7 +115,7 @@ public class PulsarConnector implements InboundConnector, OutboundConnector, Hea
             PulsarIncomingChannel<?> channel = new PulsarIncomingChannel<>(client, vertx, schemaResolver.getSchema(ic),
                     CDIUtils.getInstanceById(ackHandlerFactories, ic.getAckStrategy()).get(),
                     CDIUtils.getInstanceById(failureHandlerFactories, ic.getFailureStrategy()).get(),
-                    ic, configResolver);
+                    ic, configResolver, openTelemetryInstance);
             incomingChannels.add(channel);
             return channel.getPublisher();
         } catch (PulsarClientException e) {
@@ -129,7 +133,7 @@ public class PulsarConnector implements InboundConnector, OutboundConnector, Hea
 
         try {
             PulsarOutgoingChannel<?> channel = new PulsarOutgoingChannel<>(client, schemaResolver.getSchema(oc), oc,
-                    configResolver);
+                    configResolver, openTelemetryInstance);
             outgoingChannels.add(channel);
             return channel.getSubscriber();
         } catch (PulsarClientException e) {

@@ -52,7 +52,8 @@ public class LazyInitializedTest extends WeldTestBase {
         MapBasedConfig config = new MapBasedConfig(props);
 
         KafkaSink sink = new KafkaSink(new KafkaConnectorOutgoingConfiguration(config),
-                CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance());
+                CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(),
+                UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance());
 
         KafkaProducer<?, ?> producer = sink.getProducer();
         assertThat(producer).isNotNull();
@@ -91,7 +92,8 @@ public class LazyInitializedTest extends WeldTestBase {
 
         assertThatThrownBy(() -> {
             KafkaSink sink = new KafkaSink(new KafkaConnectorOutgoingConfiguration(config),
-                    CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance());
+                    CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(),
+                    UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance());
         }).hasCauseInstanceOf(KafkaException.class);
 
     }
@@ -111,6 +113,7 @@ public class LazyInitializedTest extends WeldTestBase {
 
         KafkaSource<Object, Object> source = new KafkaSource<>(Vertx.vertx(), groupId,
                 new KafkaConnectorIncomingConfiguration(config),
+                UnsatisfiedInstance.instance(),
                 commitHandlerFactories,
                 failureHandlerFactories,
                 UnsatisfiedInstance.instance(),
@@ -150,6 +153,7 @@ public class LazyInitializedTest extends WeldTestBase {
         assertThatThrownBy(() -> {
             KafkaSource<Object, Object> source = new KafkaSource<>(Vertx.vertx(), groupId,
                     new KafkaConnectorIncomingConfiguration(config),
+                    UnsatisfiedInstance.instance(),
                     commitHandlerFactories,
                     failureHandlerFactories,
                     UnsatisfiedInstance.instance(),

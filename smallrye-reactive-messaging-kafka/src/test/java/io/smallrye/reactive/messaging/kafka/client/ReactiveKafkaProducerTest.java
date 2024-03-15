@@ -165,15 +165,15 @@ public class ReactiveKafkaProducerTest extends ClientTestBase {
                 .put("channel-name", "test-" + ThreadLocalRandom.current().nextInt())
                 .put("topic", topic);
 
-        KafkaSink sink = new KafkaSink(new KafkaConnectorOutgoingConfiguration(config),
-                CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance());
+        KafkaSink sink = new KafkaSink(new KafkaConnectorOutgoingConfiguration(config), CountKafkaCdiEvents.noCdiEvents,
+                UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance());
         this.sinks.add(sink);
         return sink;
     }
 
     public KafkaSink createSink(MapBasedConfig config) {
-        KafkaSink sink = new KafkaSink(new KafkaConnectorOutgoingConfiguration(config),
-                CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance());
+        KafkaSink sink = new KafkaSink(new KafkaConnectorOutgoingConfiguration(config), CountKafkaCdiEvents.noCdiEvents,
+                UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance());
         this.sinks.add(sink);
         return sink;
     }
@@ -186,8 +186,8 @@ public class ReactiveKafkaProducerTest extends ClientTestBase {
                 .with(ProducerConfig.ACKS_CONFIG, "all")
                 .with("topic", topic);
 
-        KafkaSink sink = new KafkaSink(new KafkaConnectorOutgoingConfiguration(config),
-                CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance());
+        KafkaSink sink = new KafkaSink(new KafkaConnectorOutgoingConfiguration(config), CountKafkaCdiEvents.noCdiEvents,
+                UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance());
         this.sinks.add(sink);
         return sink;
     }

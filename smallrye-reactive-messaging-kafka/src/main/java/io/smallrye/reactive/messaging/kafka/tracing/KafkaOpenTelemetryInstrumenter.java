@@ -1,8 +1,10 @@
 package io.smallrye.reactive.messaging.kafka.tracing;
 
+import jakarta.enterprise.inject.Instance;
+
 import org.eclipse.microprofile.reactive.messaging.Message;
 
-import io.opentelemetry.api.GlobalOpenTelemetry;
+import io.opentelemetry.api.OpenTelemetry;
 import io.opentelemetry.instrumentation.api.instrumenter.Instrumenter;
 import io.opentelemetry.instrumentation.api.instrumenter.InstrumenterBuilder;
 import io.opentelemetry.instrumentation.api.instrumenter.messaging.MessageOperation;
@@ -23,22 +25,22 @@ public class KafkaOpenTelemetryInstrumenter {
         this.instrumenter = instrumenter;
     }
 
-    public static KafkaOpenTelemetryInstrumenter createForSource() {
-        return create(true);
+    public static KafkaOpenTelemetryInstrumenter createForSource(Instance<OpenTelemetry> openTelemetryInstance) {
+        return create(TracingUtils.getOpenTelemetry(openTelemetryInstance), true);
     }
 
-    public static KafkaOpenTelemetryInstrumenter createForSink() {
-        return create(false);
+    public static KafkaOpenTelemetryInstrumenter createForSink(Instance<OpenTelemetry> openTelemetryInstance) {
+        return create(TracingUtils.getOpenTelemetry(openTelemetryInstance), false);
     }
 
-    private static KafkaOpenTelemetryInstrumenter create(boolean source) {
+    private static KafkaOpenTelemetryInstrumenter create(OpenTelemetry openTelemetry, boolean source) {
 
         MessageOperation messageOperation = source ? MessageOperation.RECEIVE : MessageOperation.PUBLISH;
 
         KafkaAttributesExtractor kafkaAttributesExtractor = new KafkaAttributesExtractor();
         MessagingAttributesGetter<KafkaTrace, Void> messagingAttributesGetter = kafkaAttributesExtractor
                 .getMessagingAttributesGetter();
-        InstrumenterBuilder<KafkaTrace, Void> builder = Instrumenter.builder(GlobalOpenTelemetry.get(),
+        InstrumenterBuilder<KafkaTrace, Void> builder = Instrumenter.builder(openTelemetry,
                 "io.smallrye.reactive.messaging",
                 MessagingSpanNameExtractor.create(messagingAttributesGetter, messageOperation));
 

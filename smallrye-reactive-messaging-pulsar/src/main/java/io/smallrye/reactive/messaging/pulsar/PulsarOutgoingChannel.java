@@ -9,6 +9,8 @@ import java.util.Optional;
 import java.util.concurrent.Flow;
 import java.util.stream.Collectors;
 
+import jakarta.enterprise.inject.Instance;
+
 import org.apache.pulsar.client.api.Producer;
 import org.apache.pulsar.client.api.ProducerBuilder;
 import org.apache.pulsar.client.api.PulsarClient;
@@ -19,23 +21,15 @@ import org.apache.pulsar.client.api.transaction.Transaction;
 import org.apache.pulsar.client.impl.conf.ProducerConfigurationData;
 import org.eclipse.microprofile.reactive.messaging.Message;
 
-import io.opentelemetry.api.GlobalOpenTelemetry;
-import io.opentelemetry.instrumentation.api.instrumenter.Instrumenter;
-import io.opentelemetry.instrumentation.api.instrumenter.InstrumenterBuilder;
-import io.opentelemetry.instrumentation.api.instrumenter.messaging.MessageOperation;
-import io.opentelemetry.instrumentation.api.instrumenter.messaging.MessagingAttributesExtractor;
-import io.opentelemetry.instrumentation.api.instrumenter.messaging.MessagingAttributesGetter;
-import io.opentelemetry.instrumentation.api.instrumenter.messaging.MessagingSpanNameExtractor;
+import io.opentelemetry.api.OpenTelemetry;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.OutgoingMessageMetadata;
 import io.smallrye.reactive.messaging.health.HealthReport;
 import io.smallrye.reactive.messaging.providers.helpers.MultiUtils;
 import io.smallrye.reactive.messaging.providers.helpers.SenderProcessor;
-import io.smallrye.reactive.messaging.pulsar.tracing.PulsarAttributesExtractor;
+import io.smallrye.reactive.messaging.pulsar.tracing.PulsarOpenTelemetryInstrumenter;
 import io.smallrye.reactive.messaging.pulsar.tracing.PulsarTrace;
-import io.smallrye.reactive.messaging.pulsar.tracing.PulsarTraceTextMapSetter;
 import io.smallrye.reactive.messaging.pulsar.transactions.PulsarTransactionMetadata;
-import io.smallrye.reactive.messaging.tracing.TracingUtils;
 
 public class PulsarOutgoingChannel<T> {
 
@@ -46,10 +40,10 @@ public class PulsarOutgoingChannel<T> {
     private final boolean healthEnabled;
     private final List<Throwable> failures = new ArrayList<>();
     private final boolean tracingEnabled;
-    private final Instrumenter<PulsarTrace, Void> instrumenter;
+    private final PulsarOpenTelemetryInstrumenter instrumenter;
 
     public PulsarOutgoingChannel(PulsarClient client, Schema<T> schema, PulsarConnectorOutgoingConfiguration oc,
-            ConfigResolver configResolver) throws PulsarClientException {
+            ConfigResolver configResolver, Instance<OpenTelemetry> openTelemetryInstance) throws PulsarClientException {
         this.channel = oc.getChannel();
         this.healthEnabled = oc.getHealthEnabled();
         this.tracingEnabled = oc.getTracingEnabled();
@@ -85,18 +79,11 @@ public class PulsarOutgoingChannel<T> {
             reportFailure(f);
         }));
 
-        PulsarAttributesExtractor attributesExtractor = new PulsarAttributesExtractor();
-        MessagingAttributesGetter<PulsarTrace, Void> messagingAttributesGetter = attributesExtractor
-                .getMessagingAttributesGetter();
-        InstrumenterBuilder<PulsarTrace, Void> instrumenterBuilder = Instrumenter.builder(GlobalOpenTelemetry.get(),
-                "io.smallrye.reactive.messaging",
-                MessagingSpanNameExtractor.create(messagingAttributesGetter, MessageOperation.PUBLISH));
-
-        instrumenter = instrumenterBuilder
-                .addAttributesExtractor(
-                        MessagingAttributesExtractor.create(messagingAttributesGetter, MessageOperation.PUBLISH))
-                .addAttributesExtractor(attributesExtractor)
-                .buildProducerInstrumenter(PulsarTraceTextMapSetter.INSTANCE);
+        if (tracingEnabled) {
+            instrumenter = PulsarOpenTelemetryInstrumenter.createForSink(openTelemetryInstance);
+        } else {
+            instrumenter = null;
+        }
     }
 
     private Uni<Void> sendMessage(Message<?> message) {
@@ -133,7 +120,7 @@ public class PulsarOutgoingChannel<T> {
                         .withTopic(producer.getTopic())
                         .build();
                 properties = trace.getProperties();
-                TracingUtils.traceOutgoing(instrumenter, message, trace);
+                instrumenter.traceOutgoing(message, trace);
             }
             messageBuilder = createMessageBuilder(message, metadata.getTransaction());
 
@@ -171,7 +158,7 @@ public class PulsarOutgoingChannel<T> {
                 PulsarTrace trace = new PulsarTrace.Builder()
                         .withTopic(producer.getTopic())
                         .build();
-                TracingUtils.traceOutgoing(instrumenter, message, trace);
+                instrumenter.traceOutgoing(message, trace);
                 messageBuilder.properties(trace.getProperties());
             }
         }

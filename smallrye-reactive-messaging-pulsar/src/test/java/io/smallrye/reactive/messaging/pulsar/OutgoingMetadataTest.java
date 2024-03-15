@@ -12,10 +12,10 @@ import org.apache.pulsar.client.api.PulsarClientException;
 import org.apache.pulsar.client.api.Schema;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.junit.jupiter.api.Test;
-import org.reactivestreams.Subscriber;
 
 import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.pulsar.base.PulsarBaseTest;
+import io.smallrye.reactive.messaging.pulsar.base.UnsatisfiedInstance;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 
 public class OutgoingMetadataTest extends PulsarBaseTest {
@@ -26,7 +26,8 @@ public class OutgoingMetadataTest extends PulsarBaseTest {
 
         PulsarConnectorOutgoingConfiguration oc = new PulsarConnectorOutgoingConfiguration(config()
                 .with("maxPendingMessagesAcrossPartitions", 10));
-        PulsarOutgoingChannel<String> channel = new PulsarOutgoingChannel<>(client, Schema.STRING, oc, configResolver);
+        PulsarOutgoingChannel<String> channel = new PulsarOutgoingChannel<>(client, Schema.STRING, oc, configResolver,
+                UnsatisfiedInstance.instance());
 
         Flow.Subscriber<? extends Message<?>> subscriber = channel.getSubscriber();
 
@@ -64,7 +65,8 @@ public class OutgoingMetadataTest extends PulsarBaseTest {
 
         PulsarConnectorOutgoingConfiguration oc = new PulsarConnectorOutgoingConfiguration(config()
                 .with("maxPendingMessagesAcrossPartitions", 10));
-        PulsarOutgoingChannel<String> channel = new PulsarOutgoingChannel<>(client, Schema.STRING, oc, configResolver);
+        PulsarOutgoingChannel<String> channel = new PulsarOutgoingChannel<>(client, Schema.STRING, oc, configResolver,
+                UnsatisfiedInstance.instance());
 
         Flow.Subscriber<? extends Message<?>> subscriber = channel.getSubscriber();
 

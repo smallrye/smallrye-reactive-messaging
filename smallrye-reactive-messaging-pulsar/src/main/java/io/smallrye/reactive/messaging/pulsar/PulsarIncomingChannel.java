@@ -10,24 +10,18 @@ import java.util.concurrent.Flow;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
+import jakarta.enterprise.inject.Instance;
+
 import org.apache.pulsar.client.api.*;
 import org.apache.pulsar.client.impl.MultiplierRedeliveryBackoff;
 import org.apache.pulsar.client.impl.conf.ConsumerConfigurationData;
 import org.eclipse.microprofile.reactive.messaging.Message;
 
-import io.opentelemetry.api.GlobalOpenTelemetry;
-import io.opentelemetry.instrumentation.api.instrumenter.Instrumenter;
-import io.opentelemetry.instrumentation.api.instrumenter.InstrumenterBuilder;
-import io.opentelemetry.instrumentation.api.instrumenter.messaging.MessageOperation;
-import io.opentelemetry.instrumentation.api.instrumenter.messaging.MessagingAttributesExtractor;
-import io.opentelemetry.instrumentation.api.instrumenter.messaging.MessagingAttributesGetter;
-import io.opentelemetry.instrumentation.api.instrumenter.messaging.MessagingSpanNameExtractor;
+import io.opentelemetry.api.OpenTelemetry;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.health.HealthReport;
-import io.smallrye.reactive.messaging.pulsar.tracing.PulsarAttributesExtractor;
+import io.smallrye.reactive.messaging.pulsar.tracing.PulsarOpenTelemetryInstrumenter;
 import io.smallrye.reactive.messaging.pulsar.tracing.PulsarTrace;
-import io.smallrye.reactive.messaging.pulsar.tracing.PulsarTraceTextMapGetter;
-import io.smallrye.reactive.messaging.tracing.TracingUtils;
 import io.vertx.core.impl.ContextInternal;
 import io.vertx.core.impl.VertxInternal;
 import io.vertx.mutiny.core.Vertx;
@@ -53,13 +47,14 @@ public class PulsarIncomingChannel<T> {
 
     private final boolean tracingEnabled;
 
-    private final Instrumenter<PulsarTrace, Void> instrumenter;
+    private final PulsarOpenTelemetryInstrumenter instrumenter;
 
     public PulsarIncomingChannel(PulsarClient client, Vertx vertx, Schema<T> schema,
             PulsarAckHandler.Factory ackHandlerFactory,
             PulsarFailureHandler.Factory failureHandlerFactory,
             PulsarConnectorIncomingConfiguration ic,
-            ConfigResolver configResolver) throws PulsarClientException {
+            ConfigResolver configResolver,
+            Instance<OpenTelemetry> openTelemetryInstance) throws PulsarClientException {
         this.channel = ic.getChannel();
         this.healthEnabled = ic.getHealthEnabled();
         this.tracingEnabled = ic.getTracingEnabled();
@@ -155,23 +150,16 @@ public class PulsarIncomingChannel<T> {
             this.publisher = batchReceiveMulti;
         }
 
-        PulsarAttributesExtractor attributesExtractor = new PulsarAttributesExtractor();
-        MessagingAttributesGetter<PulsarTrace, Void> messagingAttributesGetter = attributesExtractor
-                .getMessagingAttributesGetter();
-        InstrumenterBuilder<PulsarTrace, Void> instrumenterBuilder = Instrumenter.builder(GlobalOpenTelemetry.get(),
-                "io.smallrye.reactive.messaging",
-                MessagingSpanNameExtractor.create(messagingAttributesGetter, MessageOperation.RECEIVE));
-
-        instrumenter = instrumenterBuilder
-                .addAttributesExtractor(
-                        MessagingAttributesExtractor.create(messagingAttributesGetter, MessageOperation.RECEIVE))
-                .addAttributesExtractor(attributesExtractor)
-                .buildConsumerInstrumenter(PulsarTraceTextMapGetter.INSTANCE);
+        if (tracingEnabled) {
+            instrumenter = PulsarOpenTelemetryInstrumenter.createForSource(openTelemetryInstance);
+        } else {
+            instrumenter = null;
+        }
     }
 
     public void incomingTrace(PulsarMessage<T> pulsarMessage) {
         PulsarIncomingMessageMetadata metadata = pulsarMessage.getMetadata(PulsarIncomingMessageMetadata.class).get();
-        TracingUtils.traceIncoming(instrumenter, pulsarMessage, new PulsarTrace.Builder()
+        instrumenter.traceIncoming(pulsarMessage, new PulsarTrace.Builder()
                 .withConsumerName(consumer.getConsumerName())
                 .withMessage(metadata.getMessage())
                 .build());

@@ -64,7 +64,7 @@ public class KafkaCommitHandlerTest extends KafkaCompanionTestBase {
         source = new KafkaSource<>(vertx,
                 "test-source-with-auto-commit-enabled",
                 ic,
-                commitHandlerFactories, failureHandlerFactories,
+                UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
                 UnsatisfiedInstance.instance(),
                 CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), -1);
 
@@ -107,7 +107,7 @@ public class KafkaCommitHandlerTest extends KafkaCompanionTestBase {
 
         KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
         source = new KafkaSource<>(vertx, "test-source-with-auto-commit-disabled", ic,
-                commitHandlerFactories, failureHandlerFactories,
+                UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
                 UnsatisfiedInstance.instance(), CountKafkaCdiEvents.noCdiEvents,
                 UnsatisfiedInstance.instance(), -1);
 
@@ -146,7 +146,7 @@ public class KafkaCommitHandlerTest extends KafkaCompanionTestBase {
         KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
         source = new KafkaSource<>(vertx,
                 "test-source-with-throttled-latest-processed-commit", ic,
-                commitHandlerFactories, failureHandlerFactories,
+                UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
                 UnsatisfiedInstance.instance(),
                 CountKafkaCdiEvents.noCdiEvents,
                 UnsatisfiedInstance.instance(), -1);
@@ -195,7 +195,7 @@ public class KafkaCommitHandlerTest extends KafkaCompanionTestBase {
         KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
         source = new KafkaSource<>(vertx,
                 "test-source-with-throttled-latest-processed-commit-without-acking", ic,
-                commitHandlerFactories, failureHandlerFactories,
+                UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
                 UnsatisfiedInstance.instance(),
                 CountKafkaCdiEvents.noCdiEvents,
                 UnsatisfiedInstance.instance(), -1);
@@ -249,14 +249,14 @@ public class KafkaCommitHandlerTest extends KafkaCompanionTestBase {
         KafkaConnectorIncomingConfiguration ic2 = new KafkaConnectorIncomingConfiguration(config2);
         source = new KafkaSource<>(vertx,
                 "test-source-with-throttled-latest-processed-commit", ic1,
-                commitHandlerFactories, failureHandlerFactories,
+                UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
                 UnsatisfiedInstance.instance(),
                 CountKafkaCdiEvents.noCdiEvents,
                 UnsatisfiedInstance.instance(), -1);
 
         KafkaSource<String, Integer> source2 = new KafkaSource<>(vertx,
                 "test-source-with-throttled-latest-processed-commit", ic2,
-                commitHandlerFactories, failureHandlerFactories,
+                UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
                 UnsatisfiedInstance.instance(),
                 CountKafkaCdiEvents.noCdiEvents,
                 UnsatisfiedInstance.instance(), -1);
@@ -343,14 +343,14 @@ public class KafkaCommitHandlerTest extends KafkaCompanionTestBase {
         KafkaConnectorIncomingConfiguration ic2 = new KafkaConnectorIncomingConfiguration(config2);
         source = new KafkaSource<>(vertx,
                 "test-source-with-throttled-latest-processed-commit", ic1,
-                commitHandlerFactories, failureHandlerFactories,
+                UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
                 UnsatisfiedInstance.instance(),
                 CountKafkaCdiEvents.noCdiEvents,
                 UnsatisfiedInstance.instance(), -1);
 
         KafkaSource<String, Integer> source2 = new KafkaSource<>(vertx,
                 "test-source-with-throttled-latest-processed-commit", ic2,
-                commitHandlerFactories, failureHandlerFactories,
+                UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
                 UnsatisfiedInstance.instance(),
                 CountKafkaCdiEvents.noCdiEvents,
                 UnsatisfiedInstance.instance(), -1);

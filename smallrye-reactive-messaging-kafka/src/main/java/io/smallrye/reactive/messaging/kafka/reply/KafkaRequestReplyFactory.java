@@ -15,6 +15,7 @@ import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.reactive.messaging.Channel;
 
+import io.opentelemetry.api.OpenTelemetry;
 import io.smallrye.reactive.messaging.ChannelRegistry;
 import io.smallrye.reactive.messaging.EmitterConfiguration;
 import io.smallrye.reactive.messaging.EmitterFactory;
@@ -75,10 +76,13 @@ public class KafkaRequestReplyFactory implements EmitterFactory<KafkaRequestRepl
     @Any
     Instance<Map<String, Object>> configurations;
 
+    @Inject
+    Instance<OpenTelemetry> openTelemetryInstance;
+
     @Override
     public KafkaRequestReplyImpl<Object, Object> createEmitter(EmitterConfiguration configuration, long defaultBufferSize) {
         return new KafkaRequestReplyImpl<>(configuration, defaultBufferSize, config.get(), configurations, holder.vertx(),
-                kafkaCDIEvents, commitStrategyFactories, failureStrategyFactories, failureHandlers,
+                kafkaCDIEvents, openTelemetryInstance, commitStrategyFactories, failureStrategyFactories, failureHandlers,
                 correlationIdHandlers, replyFailureHandlers, rebalanceListeners);
     }
 

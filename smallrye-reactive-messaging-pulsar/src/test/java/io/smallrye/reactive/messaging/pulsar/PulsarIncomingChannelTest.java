@@ -17,6 +17,7 @@ import org.junit.jupiter.api.Test;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.pulsar.ack.PulsarMessageAck;
 import io.smallrye.reactive.messaging.pulsar.base.PulsarBaseTest;
+import io.smallrye.reactive.messaging.pulsar.base.UnsatisfiedInstance;
 import io.smallrye.reactive.messaging.pulsar.fault.PulsarNack;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 
@@ -30,7 +31,8 @@ public class PulsarIncomingChannelTest extends PulsarBaseTest {
 
         PulsarConnectorIncomingConfiguration ic = new PulsarConnectorIncomingConfiguration(config());
         PulsarIncomingChannel<Person> channel = new PulsarIncomingChannel<>(client, vertx, Schema.JSON(Person.class),
-                new PulsarMessageAck.Factory(), new PulsarNack.Factory(), ic, configResolver);
+                new PulsarMessageAck.Factory(), new PulsarNack.Factory(), ic, configResolver,
+                UnsatisfiedInstance.instance());
         Multi.createFrom().publisher(channel.getPublisher())
                 .subscribe().with(messages::add);
 

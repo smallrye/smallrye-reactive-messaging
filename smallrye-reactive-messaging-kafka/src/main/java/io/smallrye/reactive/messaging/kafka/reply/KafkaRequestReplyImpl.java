@@ -26,6 +26,7 @@ import org.apache.kafka.common.header.internals.RecordHeader;
 import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.reactive.messaging.Message;
 
+import io.opentelemetry.api.OpenTelemetry;
 import io.smallrye.common.annotation.Experimental;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
@@ -80,6 +81,7 @@ public class KafkaRequestReplyImpl<Req, Rep> extends MutinyEmitterImpl<Req>
             Instance<Map<String, Object>> configurations,
             Vertx vertx,
             KafkaCDIEvents kafkaCDIEvents,
+            Instance<OpenTelemetry> openTelemetryInstance,
             Instance<KafkaCommitHandler.Factory> commitHandlerFactory,
             Instance<KafkaFailureHandler.Factory> failureHandlerFactories,
             Instance<DeserializationFailureHandler<?>> deserializationFailureHandlers,
@@ -116,7 +118,7 @@ public class KafkaRequestReplyImpl<Req, Rep> extends MutinyEmitterImpl<Req>
         String consumerGroup = consumerConfig.getGroupId().orElseGet(() -> UUID.randomUUID().toString());
         this.waitForPartitions = getWaitForPartitions(consumerConfig);
         this.gracefulShutdown = consumerConfig.getGracefulShutdown();
-        this.replySource = new KafkaSource<>(vertx, consumerGroup, consumerConfig,
+        this.replySource = new KafkaSource<>(vertx, consumerGroup, consumerConfig, openTelemetryInstance,
                 commitHandlerFactory, failureHandlerFactories, rebalanceListeners, kafkaCDIEvents,
                 deserializationFailureHandlers, -1);
 
