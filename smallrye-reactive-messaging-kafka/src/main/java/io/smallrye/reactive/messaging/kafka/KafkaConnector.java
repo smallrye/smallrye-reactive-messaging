@@ -24,6 +24,7 @@ import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.spi.Connector;
 
+import io.opentelemetry.api.OpenTelemetry;
 import io.opentelemetry.api.trace.SpanBuilder;
 import io.opentelemetry.api.trace.Tracer;
 import io.smallrye.mutiny.Multi;
@@ -162,6 +163,9 @@ public class KafkaConnector implements InboundConnector, OutboundConnector, Heal
     Instance<KafkaFailureHandler.Factory> failureHandlerFactories;
 
     @Inject
+    Instance<OpenTelemetry> openTelemetryInstance;
+
+    @Inject
     KafkaCDIEvents kafkaCDIEvents;
 
     private final List<KafkaSource<?, ?>> sources = new CopyOnWriteArrayList<>();
@@ -209,7 +213,7 @@ public class KafkaConnector implements InboundConnector, OutboundConnector, Heal
         });
 
         if (partitions == 1) {
-            KafkaSource<Object, Object> source = new KafkaSource<>(vertx, group, ic,
+            KafkaSource<Object, Object> source = new KafkaSource<>(vertx, group, ic, openTelemetryInstance,
                     commitHandlerFactories, failureHandlerFactories,
                     consumerRebalanceListeners,
                     kafkaCDIEvents, deserializationFailureHandlers, -1);
@@ -231,7 +235,7 @@ public class KafkaConnector implements InboundConnector, OutboundConnector, Heal
         // create an instance of source per partitions.
         List<Publisher<? extends Message<?>>> streams = new ArrayList<>();
         for (int i = 0; i < partitions; i++) {
-            KafkaSource<Object, Object> source = new KafkaSource<>(vertx, group, ic,
+            KafkaSource<Object, Object> source = new KafkaSource<>(vertx, group, ic, openTelemetryInstance,
                     commitHandlerFactories, failureHandlerFactories,
                     consumerRebalanceListeners,
                     kafkaCDIEvents, deserializationFailureHandlers, i);
@@ -268,7 +272,8 @@ public class KafkaConnector implements InboundConnector, OutboundConnector, Heal
         if (oc.getHealthReadinessTimeout().isPresent()) {
             log.deprecatedConfig("health-readiness-timeout", "health-topic-verification-timeout");
         }
-        KafkaSink sink = new KafkaSink(oc, kafkaCDIEvents, serializationFailureHandlers, producerInterceptors);
+        KafkaSink sink = new KafkaSink(oc, kafkaCDIEvents, openTelemetryInstance,
+                serializationFailureHandlers, producerInterceptors);
         sinks.add(sink);
         return sink.getSink();
     }

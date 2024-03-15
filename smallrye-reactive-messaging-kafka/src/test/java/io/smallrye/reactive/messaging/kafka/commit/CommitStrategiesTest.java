@@ -28,6 +28,7 @@ import io.smallrye.common.annotation.Identifier;
 import io.smallrye.reactive.messaging.health.HealthReport;
 import io.smallrye.reactive.messaging.kafka.*;
 import io.smallrye.reactive.messaging.kafka.api.IncomingKafkaRecordMetadata;
+import io.smallrye.reactive.messaging.kafka.base.UnsatisfiedInstance;
 import io.smallrye.reactive.messaging.kafka.base.WeldTestBase;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
@@ -63,7 +64,8 @@ public class CommitStrategiesTest extends WeldTestBase {
                 .with("lazy-client", true)
                 .with("client.id", UUID.randomUUID().toString());
         source = new KafkaSource<>(vertx, group,
-                new KafkaConnectorIncomingConfiguration(config), commitHandlerFactories, failureHandlerFactories,
+                new KafkaConnectorIncomingConfiguration(config),
+                UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
                 getConsumerRebalanceListeners(),
                 CountKafkaCdiEvents.noCdiEvents, getDeserializationFailureHandlers(), -1);
         injectMockConsumer(source, consumer);
@@ -167,7 +169,8 @@ public class CommitStrategiesTest extends WeldTestBase {
                 .with("auto.commit.interval.ms", 100);
         String group = UUID.randomUUID().toString();
         source = new KafkaSource<>(vertx, group,
-                new KafkaConnectorIncomingConfiguration(config), commitHandlerFactories, failureHandlerFactories,
+                new KafkaConnectorIncomingConfiguration(config),
+                UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
                 getConsumerRebalanceListeners(),
                 CountKafkaCdiEvents.noCdiEvents, getDeserializationFailureHandlers(), -1);
         injectMockConsumer(source, consumer);
@@ -234,7 +237,8 @@ public class CommitStrategiesTest extends WeldTestBase {
                 .with("auto.commit.interval.ms", 100);
         String group = UUID.randomUUID().toString();
         source = new KafkaSource<>(vertx, group,
-                new KafkaConnectorIncomingConfiguration(config), commitHandlerFactories, failureHandlerFactories,
+                new KafkaConnectorIncomingConfiguration(config),
+                UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
                 getConsumerRebalanceListeners(),
                 CountKafkaCdiEvents.noCdiEvents, getDeserializationFailureHandlers(), -1);
         injectMockConsumer(source, consumer);
@@ -317,7 +321,8 @@ public class CommitStrategiesTest extends WeldTestBase {
                 .with("auto.commit.interval.ms", 100);
         String group = UUID.randomUUID().toString();
         source = new KafkaSource<>(vertx, group,
-                new KafkaConnectorIncomingConfiguration(config), commitHandlerFactories, failureHandlerFactories,
+                new KafkaConnectorIncomingConfiguration(config),
+                UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
                 getConsumerRebalanceListeners(),
                 CountKafkaCdiEvents.noCdiEvents, getDeserializationFailureHandlers(), -1);
         injectMockConsumer(source, consumer);
@@ -385,7 +390,8 @@ public class CommitStrategiesTest extends WeldTestBase {
         String group = UUID.randomUUID().toString();
         assertThatThrownBy(() -> {
             source = new KafkaSource<>(vertx, group,
-                    new KafkaConnectorIncomingConfiguration(config), commitHandlerFactories, failureHandlerFactories,
+                    new KafkaConnectorIncomingConfiguration(config),
+                    UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
                     getConsumerRebalanceListeners(),
                     CountKafkaCdiEvents.noCdiEvents, getDeserializationFailureHandlers(), -1);
         }).isInstanceOf(UnsatisfiedResolutionException.class);
@@ -400,7 +406,8 @@ public class CommitStrategiesTest extends WeldTestBase {
                 .with("client.id", UUID.randomUUID().toString());
         String group = UUID.randomUUID().toString();
         assertThatThrownBy(() -> source = new KafkaSource<>(vertx, group,
-                new KafkaConnectorIncomingConfiguration(config), commitHandlerFactories, failureHandlerFactories,
+                new KafkaConnectorIncomingConfiguration(config),
+                UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
                 getConsumerRebalanceListeners(),
                 CountKafkaCdiEvents.noCdiEvents, getDeserializationFailureHandlers(), -1))
                 .isInstanceOf(AmbiguousResolutionException.class).hasMessageContaining("mine");
@@ -416,7 +423,8 @@ public class CommitStrategiesTest extends WeldTestBase {
                 .with("client.id", UUID.randomUUID().toString());
         String group = UUID.randomUUID().toString();
         source = new KafkaSource<>(vertx, group,
-                new KafkaConnectorIncomingConfiguration(config), commitHandlerFactories, failureHandlerFactories,
+                new KafkaConnectorIncomingConfiguration(config),
+                UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
                 getConsumerRebalanceListeners(),
                 CountKafkaCdiEvents.noCdiEvents, getDeserializationFailureHandlers(), -1);
 

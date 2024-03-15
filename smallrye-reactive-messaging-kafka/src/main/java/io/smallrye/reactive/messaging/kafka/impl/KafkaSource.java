@@ -21,6 +21,7 @@ import org.apache.kafka.common.errors.RebalanceInProgressException;
 import org.apache.kafka.common.errors.RecordDeserializationException;
 import org.apache.kafka.common.header.Header;
 
+import io.opentelemetry.api.OpenTelemetry;
 import io.smallrye.common.annotation.Identifier;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
@@ -73,6 +74,7 @@ public class KafkaSource<K, V> {
     public KafkaSource(Vertx vertx,
             String consumerGroup,
             KafkaConnectorIncomingConfiguration config,
+            Instance<OpenTelemetry> openTelemetryInstance,
             Instance<KafkaCommitHandler.Factory> commitHandlerFactories,
             Instance<KafkaFailureHandler.Factory> failureHandlerFactories,
             Instance<KafkaConsumerRebalanceListener> consumerRebalanceListeners,
@@ -227,7 +229,7 @@ public class KafkaSource<K, V> {
         }
 
         if (isTracingEnabled) {
-            kafkaInstrumenter = KafkaOpenTelemetryInstrumenter.createForSource();
+            kafkaInstrumenter = KafkaOpenTelemetryInstrumenter.createForSource(openTelemetryInstance);
         } else {
             kafkaInstrumenter = null;
         }

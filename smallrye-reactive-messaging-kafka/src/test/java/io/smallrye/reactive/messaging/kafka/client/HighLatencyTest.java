@@ -66,7 +66,8 @@ public class HighLatencyTest extends KafkaCompanionProxyTestBase {
                 .with("retry-max-wait", 30);
 
         KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
-        source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic, commitHandlerFactories, failureHandlerFactories,
+        source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
+                UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
                 UnsatisfiedInstance.instance(), CountKafkaCdiEvents.noCdiEvents,
                 UnsatisfiedInstance.instance(), -1);
         List<KafkaRecord<?, ?>> messages1 = new ArrayList<>();

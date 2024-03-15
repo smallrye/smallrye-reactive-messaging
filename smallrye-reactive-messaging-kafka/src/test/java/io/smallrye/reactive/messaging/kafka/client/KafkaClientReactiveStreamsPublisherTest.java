@@ -121,8 +121,8 @@ public class KafkaClientReactiveStreamsPublisherTest
         MapBasedConfig config = createConsumerConfig(groupId)
                 .put("topic", topic);
 
-        source = new KafkaSource<>(vertx, groupId, new KafkaConnectorIncomingConfiguration(config), commitHandlerFactories,
-                failureHandlerFactories,
+        source = new KafkaSource<>(vertx, groupId, new KafkaConnectorIncomingConfiguration(config),
+                UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
                 UnsatisfiedInstance.instance(),
                 CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), 0);
 
