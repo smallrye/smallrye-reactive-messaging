@@ -75,8 +75,8 @@ public class ConcurrencyConnectorConfigTest {
             }
         });
         overallConfig = builder.build();
-        config = new ConcurrencyConnectorConfig("mp.messaging.incoming.", overallConfig, "foo", 1);
-        config2 = new ConcurrencyConnectorConfig("mp.messaging.incoming.", overallConfig, "foo", 2);
+        config = new ConcurrencyConnectorConfig("mp.messaging.incoming.", overallConfig, "some-connector", "foo", 1);
+        config2 = new ConcurrencyConnectorConfig("mp.messaging.incoming.", overallConfig, "some-connector", "foo", 2);
     }
 
     @SetEnvironmentVariable(key = "MP_MESSAGING_INCOMING_FOO_ATTR", value = "new-value")

@@ -38,6 +38,7 @@ public class ConcurrentProcessorTest extends KafkaCompanionTestBase {
                 .with("group.id", groupId)
                 .with("topic", topic)
                 .with("concurrency", 3)
+                .with("failure-strategy", "dead-letter-queue")
                 .with("auto.offset.reset", "earliest")
                 .with("value.deserializer", IntegerDeserializer.class.getName());
     }

@@ -46,6 +46,7 @@ import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.kafka.DeserializationFailureHandler;
 import io.smallrye.reactive.messaging.kafka.IncomingKafkaRecord;
 import io.smallrye.reactive.messaging.kafka.KafkaCDIEvents;
+import io.smallrye.reactive.messaging.kafka.KafkaConnector;
 import io.smallrye.reactive.messaging.kafka.KafkaConnectorIncomingConfiguration;
 import io.smallrye.reactive.messaging.kafka.KafkaConnectorOutgoingConfiguration;
 import io.smallrye.reactive.messaging.kafka.KafkaConsumer;
@@ -127,8 +128,8 @@ public class KafkaDelayedRetryTopic extends ContextHolder implements KafkaFailur
 
             String consumerClientId = (String) consumer.configuration().get(CLIENT_ID_CONFIG);
             ConnectorConfig connectorConfig = new OverrideConnectorConfig(INCOMING_PREFIX, rootConfig.get(),
-                    config.getChannel(), "dead-letter-queue", Map.of(
-                            KEY_SERIALIZER_CLASS_CONFIG, c -> getMirrorSerializer(keyDeserializer),
+                    KafkaConnector.CONNECTOR_NAME, config.getChannel(), "dead-letter-queue",
+                    Map.of(KEY_SERIALIZER_CLASS_CONFIG, c -> getMirrorSerializer(keyDeserializer),
                             VALUE_SERIALIZER_CLASS_CONFIG, c -> getMirrorSerializer(valueDeserializer),
                             CLIENT_ID_CONFIG, c -> config.getDeadLetterQueueProducerClientId()
                                     .orElse("kafka-delayed-retry-topic-producer-" + consumerClientId),
@@ -145,9 +146,9 @@ public class KafkaDelayedRetryTopic extends ContextHolder implements KafkaFailur
             ReactiveKafkaProducer<Object, Object> producer = new ReactiveKafkaProducer<>(producerConfig,
                     serializationFailureHandlers, producerInterceptors, null, (p, c) -> kafkaCDIEvents.producer().fire(p));
 
-            ConnectorConfig retryConsumerConfig = new OverrideConnectorConfig(INCOMING_PREFIX,
-                    rootConfig.get(), config.getChannel(), "delayed-retry-topic.consumer", Map.of(
-                            "lazy-client", c -> true,
+            ConnectorConfig retryConsumerConfig = new OverrideConnectorConfig(INCOMING_PREFIX, rootConfig.get(),
+                    KafkaConnector.CONNECTOR_NAME, config.getChannel(), "delayed-retry-topic.consumer",
+                    Map.of("lazy-client", c -> true,
                             CLIENT_ID_CONFIG, c -> "kafka-delayed-retry-topic-" + consumerClientId,
                             GROUP_ID_CONFIG, c -> "kafka-delayed-retry-topic-" + consumerClientId));
             Config retryKafkaConfig = ConfigHelper.retrieveChannelConfiguration(configurations, retryConsumerConfig);
