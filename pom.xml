@@ -123,6 +123,8 @@
     <revapi-reporter-json.version>0.5.0</revapi-reporter-json.version>
     <revapi-reporter-text.version>0.15.0</revapi-reporter-text.version>
     <revapi.skip>true</revapi.skip>
+
+    <jreleaser-maven-plugin.version>1.13.1</jreleaser-maven-plugin.version>
   </properties>
 
   <modules>
@@ -584,6 +586,11 @@
             </execution>
           </executions>
         </plugin>
+        <plugin>
+          <groupId>org.jreleaser</groupId>
+          <artifactId>jreleaser-maven-plugin</artifactId>
+          <version>${jreleaser-maven-plugin.version}</version>
+        </plugin>
       </plugins>
     </pluginManagement>
 
@@ -835,6 +842,49 @@
       </properties>
       <build>
         <defaultGoal>clean install</defaultGoal>
+      </build>
+    </profile>
+    <profile>
+      <id>jreleaser</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.jreleaser</groupId>
+            <artifactId>jreleaser-maven-plugin</artifactId>
+            <version>${jreleaser-maven-plugin.version}</version>
+            <inherited>false</inherited>
+            <configuration>
+              <projectVersionPattern>SEMVER</projectVersionPattern>
+              <jreleaser>
+                <release>
+                  <github>
+                    <owner>smallrye</owner>
+                    <name>smallrye-reactive-messaging</name>
+                    <overwrite>true</overwrite>
+                    <changelog>
+                      <preset>conventional-commits</preset>
+                      <links>true</links>
+                      <formatted>ALWAYS</formatted>
+                      <hide>
+                        <contributors>
+                          <contributor>GitHub</contributor>
+                          <contributor>dependabot[bot]</contributor>
+                          <contributor>bot</contributor>
+                          <contributor>jreleaserbot</contributor>
+                          <contributor>smallrye-ci</contributor>
+                        </contributors>
+                      </hide>
+                    </changelog>
+                    <prerelease>
+                      <pattern>.*-M[0-9]+</pattern>
+                    </prerelease>
+                    <discussionCategoryName>Announcements</discussionCategoryName>
+                  </github>
+                </release>
+              </jreleaser>
+            </configuration>
+          </plugin>
+        </plugins>
       </build>
     </profile>
   </profiles>
