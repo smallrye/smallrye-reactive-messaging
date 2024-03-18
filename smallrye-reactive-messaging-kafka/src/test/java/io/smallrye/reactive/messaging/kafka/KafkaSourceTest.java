@@ -74,7 +74,8 @@ public class KafkaSourceTest extends KafkaCompanionTestBase {
         MapBasedConfig config = newCommonConfigForSource()
                 .with("value.deserializer", IntegerDeserializer.class.getName());
         KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
-        source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic, commitHandlerFactories, failureHandlerFactories,
+        source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
+                UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
                 UnsatisfiedInstance.instance(), CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), -1);
 
         List<Message<?>> messages = new ArrayList<>();
@@ -96,7 +97,8 @@ public class KafkaSourceTest extends KafkaCompanionTestBase {
 
         companion.topics().createAndWait(topic, 3, Duration.ofMinutes(1));
         KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
-        source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic, commitHandlerFactories, failureHandlerFactories,
+        source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
+                UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
                 UnsatisfiedInstance.instance(), CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), -1);
 
         List<Message<?>> messages = new ArrayList<>();
@@ -118,7 +120,8 @@ public class KafkaSourceTest extends KafkaCompanionTestBase {
         MapBasedConfig config = newCommonConfigForSource()
                 .with("value.deserializer", IntegerDeserializer.class.getName());
         KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
-        source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic, commitHandlerFactories, failureHandlerFactories,
+        source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
+                UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
                 UnsatisfiedInstance.instance(), CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), -1);
 
         List<KafkaRecord> messages = new ArrayList<>();
@@ -227,7 +230,8 @@ public class KafkaSourceTest extends KafkaCompanionTestBase {
             KafkaCompanion kafkaCompanion = new KafkaCompanion(kafka.getBootstrapServers());
 
             KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
-            source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic, commitHandlerFactories, failureHandlerFactories,
+            source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
+                    UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
                     UnsatisfiedInstance.instance(), CountKafkaCdiEvents.noCdiEvents,
                     UnsatisfiedInstance.instance(), -1);
             List<KafkaRecord> messages1 = new ArrayList<>();
@@ -495,7 +499,8 @@ public class KafkaSourceTest extends KafkaCompanionTestBase {
         MapBasedConfig config = newCommonConfigForSource()
                 .with("value.deserializer", IntegerDeserializer.class.getName());
         KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
-        source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic, commitHandlerFactories, failureHandlerFactories,
+        source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
+                UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
                 UnsatisfiedInstance.instance(), CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), -1);
 
         List<Message<?>> messages = new ArrayList<>();
@@ -559,7 +564,8 @@ public class KafkaSourceTest extends KafkaCompanionTestBase {
                 .with("sasl.jaas.config", "") //optional configuration
                 .with("sasl.mechanism", ""); //optional configuration
         KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
-        source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic, commitHandlerFactories, failureHandlerFactories,
+        source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
+                UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
                 UnsatisfiedInstance.instance(), CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), -1);
 
         List<Message<?>> messages = new ArrayList<>();

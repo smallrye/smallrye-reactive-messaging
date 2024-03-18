@@ -33,6 +33,7 @@ import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.spi.Connector;
 
+import io.opentelemetry.api.OpenTelemetry;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.operators.multi.processors.BroadcastProcessor;
@@ -120,6 +121,9 @@ public class AmqpConnector implements InboundConnector, OutboundConnector, Healt
     @Inject
     @Any
     private Instance<SSLContext> clientSslContexts;
+
+    @Inject
+    private Instance<OpenTelemetry> openTelemetryInstance;
 
     private final List<AmqpClient> clients = new CopyOnWriteArrayList<>();
 
@@ -230,7 +234,7 @@ public class AmqpConnector implements InboundConnector, OutboundConnector, Healt
         AmqpFailureHandler onNack = createFailureHandler(ic);
 
         if (tracing && amqpInstrumenter == null) {
-            amqpInstrumenter = AmqpOpenTelemetryInstrumenter.createForConnector();
+            amqpInstrumenter = AmqpOpenTelemetryInstrumenter.createForConnector(openTelemetryInstance);
         }
 
         Multi<? extends Message<?>> multi = holder.getOrEstablishConnection()
@@ -318,7 +322,8 @@ public class AmqpConnector implements InboundConnector, OutboundConnector, Healt
                 this,
                 holder,
                 oc,
-                getSender);
+                getSender,
+                openTelemetryInstance);
         processors.put(oc.getChannel(), processor);
 
         return MultiUtils.via(processor, m -> m.onFailure().invoke(t -> {

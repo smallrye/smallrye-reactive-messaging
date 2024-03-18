@@ -20,6 +20,7 @@ import org.junit.jupiter.api.Test;
 import io.smallrye.reactive.messaging.health.HealthReport;
 import io.smallrye.reactive.messaging.kafka.*;
 import io.smallrye.reactive.messaging.kafka.api.IncomingKafkaRecordMetadata;
+import io.smallrye.reactive.messaging.kafka.base.UnsatisfiedInstance;
 import io.smallrye.reactive.messaging.kafka.base.WeldTestBase;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
@@ -58,7 +59,7 @@ public class RebalanceTest extends WeldTestBase {
                 .with("auto.commit.interval.ms", 100);
         source = new KafkaSource<>(vertx, group,
                 new KafkaConnectorIncomingConfiguration(config),
-                commitHandlerFactories, failureHandlerFactories,
+                UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
                 getConsumerRebalanceListeners(),
                 CountKafkaCdiEvents.noCdiEvents, getDeserializationFailureHandlers(), -1);
         injectMockConsumer(source, consumer);

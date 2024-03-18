@@ -15,6 +15,7 @@ import org.eclipse.microprofile.reactive.messaging.Message;
 
 import com.rabbitmq.client.AMQP;
 
+import io.opentelemetry.api.OpenTelemetry;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.tuples.Tuple2;
@@ -49,9 +50,10 @@ public class IncomingRabbitMQChannel {
     private final RabbitMQConnector connector;
 
     public IncomingRabbitMQChannel(RabbitMQConnector connector,
-            RabbitMQConnectorIncomingConfiguration ic) {
+            RabbitMQConnectorIncomingConfiguration ic, Instance<OpenTelemetry> openTelemetryInstance) {
         if (ic.getTracingEnabled()) {
-            instrumenter = RabbitMQOpenTelemetryInstrumenter.createForConnector();
+            instrumenter = RabbitMQOpenTelemetryInstrumenter
+                    .createForConnector(openTelemetryInstance);
         } else {
             instrumenter = null;
         }

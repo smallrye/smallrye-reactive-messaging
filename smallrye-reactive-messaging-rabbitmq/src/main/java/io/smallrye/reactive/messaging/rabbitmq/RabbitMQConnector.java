@@ -27,6 +27,7 @@ import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 
 import com.rabbitmq.client.impl.CredentialsProvider;
 
+import io.opentelemetry.api.OpenTelemetry;
 import io.smallrye.reactive.messaging.annotations.ConnectorAttribute;
 import io.smallrye.reactive.messaging.connector.InboundConnector;
 import io.smallrye.reactive.messaging.connector.OutboundConnector;
@@ -160,6 +161,9 @@ public class RabbitMQConnector implements InboundConnector, OutboundConnector, H
     @Any
     Instance<Map<String, ?>> configMaps;
 
+    @Inject
+    Instance<OpenTelemetry> openTelemetryInstance;
+
     RabbitMQConnector() {
         // used for proxies
     }
@@ -182,7 +186,7 @@ public class RabbitMQConnector implements InboundConnector, OutboundConnector, H
     @Override
     public Flow.Publisher<? extends Message<?>> getPublisher(final Config config) {
         final RabbitMQConnectorIncomingConfiguration ic = new RabbitMQConnectorIncomingConfiguration(config);
-        IncomingRabbitMQChannel incoming = new IncomingRabbitMQChannel(this, ic);
+        IncomingRabbitMQChannel incoming = new IncomingRabbitMQChannel(this, ic, openTelemetryInstance);
         this.incomings.add(incoming);
         return incoming.getStream();
     }
@@ -204,7 +208,7 @@ public class RabbitMQConnector implements InboundConnector, OutboundConnector, H
     @Override
     public Flow.Subscriber<? extends Message<?>> getSubscriber(final Config config) {
         final RabbitMQConnectorOutgoingConfiguration oc = new RabbitMQConnectorOutgoingConfiguration(config);
-        OutgoingRabbitMQChannel outgoing = new OutgoingRabbitMQChannel(this, oc);
+        OutgoingRabbitMQChannel outgoing = new OutgoingRabbitMQChannel(this, oc, openTelemetryInstance);
         outgoings.add(outgoing);
         return outgoing.getSubscriber();
     }

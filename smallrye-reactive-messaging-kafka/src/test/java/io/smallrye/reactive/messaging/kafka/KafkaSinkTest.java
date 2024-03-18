@@ -63,6 +63,7 @@ public class KafkaSinkTest extends KafkaCompanionTestBase {
                 .with("channel-name", "testSinkUsingInteger");
         KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
         sink = new KafkaSink(oc, CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(),
+                UnsatisfiedInstance.instance(),
                 UnsatisfiedInstance.instance());
 
         Flow.Subscriber<? extends Message<?>> subscriber = sink.getSink();
@@ -84,6 +85,7 @@ public class KafkaSinkTest extends KafkaCompanionTestBase {
                 .with("partition", 0);
         KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
         sink = new KafkaSink(oc, CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(),
+                UnsatisfiedInstance.instance(),
                 UnsatisfiedInstance.instance());
 
         Flow.Subscriber<? extends Message<?>> subscriber = sink.getSink();
@@ -106,6 +108,7 @@ public class KafkaSinkTest extends KafkaCompanionTestBase {
                 .with("channel-name", "testSinkUsingString");
         KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
         sink = new KafkaSink(oc, CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(),
+                UnsatisfiedInstance.instance(),
                 UnsatisfiedInstance.instance());
 
         Flow.Subscriber<? extends Message<?>> subscriber = sink.getSink();
@@ -237,7 +240,8 @@ public class KafkaSinkTest extends KafkaCompanionTestBase {
                 .with("retries", 0L); // disable retry.
         KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
         CountKafkaCdiEvents testCdiEvents = new CountKafkaCdiEvents();
-        sink = new KafkaSink(oc, testCdiEvents, UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance());
+        sink = new KafkaSink(oc, testCdiEvents, UnsatisfiedInstance.instance(),
+                UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance());
 
         await().until(() -> {
             HealthReport.HealthReportBuilder builder = HealthReport.builder();
@@ -286,8 +290,8 @@ public class KafkaSinkTest extends KafkaCompanionTestBase {
                 .with("retries", 0L)
                 .with("channel-name", "testInvalidTypeWithDefaultInflightMessages");
         KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
-        sink = new KafkaSink(oc, CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(),
-                UnsatisfiedInstance.instance());
+        sink = new KafkaSink(oc, CountKafkaCdiEvents.noCdiEvents,
+                UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance());
 
         Flow.Subscriber subscriber = sink.getSink();
         Multi.createFrom().range(0, 5)

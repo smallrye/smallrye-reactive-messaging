@@ -13,8 +13,11 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
+import jakarta.enterprise.inject.Instance;
+
 import org.eclipse.microprofile.reactive.messaging.Message;
 
+import io.opentelemetry.api.OpenTelemetry;
 import io.smallrye.common.annotation.CheckReturnValue;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.helpers.Subscriptions;
@@ -57,7 +60,8 @@ public class AmqpCreditBasedSender implements Processor<Message<?>, Message<?>>,
     private volatile boolean creditRetrievalInProgress = false;
 
     public AmqpCreditBasedSender(AmqpConnector connector, ConnectionHolder holder,
-            AmqpConnectorOutgoingConfiguration configuration, Uni<AmqpSender> retrieveSender) {
+            AmqpConnectorOutgoingConfiguration configuration, Uni<AmqpSender> retrieveSender,
+            Instance<OpenTelemetry> openTelemetryInstance) {
         this.connector = connector;
         this.holder = holder;
         this.retrieveSender = retrieveSender;
@@ -75,7 +79,7 @@ public class AmqpCreditBasedSender implements Processor<Message<?>, Message<?>>,
         this.retryInterval = configuration.getReconnectInterval();
 
         if (tracingEnabled) {
-            amqpInstrumenter = AmqpOpenTelemetryInstrumenter.createForSender();
+            amqpInstrumenter = AmqpOpenTelemetryInstrumenter.createForSender(openTelemetryInstance);
         } else {
             amqpInstrumenter = null;
         }
