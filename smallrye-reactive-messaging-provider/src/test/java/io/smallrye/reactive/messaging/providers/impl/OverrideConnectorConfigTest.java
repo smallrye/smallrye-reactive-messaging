@@ -74,8 +74,8 @@ class OverrideConnectorConfigTest {
             }
         });
         overallConfig = builder.build();
-        config = new OverrideConnectorConfig("mp.messaging.incoming.", overallConfig, "foo", "bar");
-        config2 = new OverrideConnectorConfig("mp.messaging.incoming.", overallConfig, "foo", "bar",
+        config = new OverrideConnectorConfig("mp.messaging.incoming.", overallConfig, "some-connector", "foo", "bar");
+        config2 = new OverrideConnectorConfig("mp.messaging.incoming.", overallConfig, "some-connector", "foo", "bar",
                 Map.of("attr1", c -> "some-other-value",
                         "attr2", c -> c.getOriginalValue("attr2", Integer.class).map(i -> i + 10)
                                 .orElse(10)));

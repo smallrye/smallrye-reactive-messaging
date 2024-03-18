@@ -40,16 +40,12 @@ public class ConnectorConfig implements Config {
     protected final String connector;
     protected final String channelPrefix;
 
-    protected ConnectorConfig(String prefix, Config overall, String channel) {
+    protected ConnectorConfig(String prefix, Config overall, String connector, String channel) {
         this.prefix = Objects.requireNonNull(prefix, msg.prefixMustNotBeSet());
         this.overall = Objects.requireNonNull(overall, msg.configMustNotBeSet());
         this.name = Objects.requireNonNull(channel, msg.channelMustNotBeSet());
         this.channelPrefix = channelPrefix(prefix, name);
-
-        Optional<String> value = overall.getOptionalValue(channelKey(CONNECTOR_ATTRIBUTE), String.class);
-        this.connector = value
-                .orElseGet(() -> overall.getOptionalValue(channelKey("type"), String.class) // Legacy
-                        .orElseThrow(() -> ex.illegalArgumentChannelConnectorConfiguration(name)));
+        this.connector = connector;
 
         // Detect invalid channel-name attribute
         for (String key : overall.getPropertyNames()) {
@@ -57,6 +53,16 @@ public class ConnectorConfig implements Config {
                 throw ex.illegalArgumentInvalidChannelConfiguration(name);
             }
         }
+    }
+
+    protected ConnectorConfig(String prefix, Config overall, String channel) {
+        this(prefix, overall, getConnectorAttribute(prefix, overall, channel), channel);
+    }
+
+    public static String getConnectorAttribute(String prefix, Config overall, String channel) {
+        return overall.getOptionalValue(channelPrefix(prefix, channel) + CONNECTOR_ATTRIBUTE, String.class)
+                .orElseGet(() -> overall.getOptionalValue(channelPrefix(prefix, channel) + "type", String.class) // Legacy
+                        .orElseThrow(() -> ex.illegalArgumentChannelConnectorConfiguration(channel)));
     }
 
     public static String channelPrefix(String prefix, String name) {

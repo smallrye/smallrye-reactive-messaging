@@ -29,18 +29,18 @@ public class OverrideConnectorConfig extends ConnectorConfig {
     private final String nestedChannel;
     private final Map<String, Function<OverrideConnectorConfig, Object>> overrides;
 
-    public OverrideConnectorConfig(String prefix, Config overall, String channel,
+    public OverrideConnectorConfig(String prefix, Config overall, String connector, String channel,
             Map<String, Function<OverrideConnectorConfig, Object>> overrides) {
-        this(prefix, overall, channel, null, overrides);
+        this(prefix, overall, connector, channel, null, overrides);
     }
 
-    public OverrideConnectorConfig(String prefix, Config overall, String channel, String nestedChannel) {
-        this(prefix, overall, channel, nestedChannel, new HashMap<>());
+    public OverrideConnectorConfig(String prefix, Config overall, String connector, String channel, String nestedChannel) {
+        this(prefix, overall, connector, channel, nestedChannel, new HashMap<>());
     }
 
-    public OverrideConnectorConfig(String prefix, Config overall, String channel, String nestedChannel,
+    public OverrideConnectorConfig(String prefix, Config overall, String connector, String channel, String nestedChannel,
             Map<String, Function<OverrideConnectorConfig, Object>> overrides) {
-        super(prefix, overall, channel);
+        super(prefix, overall, connector, channel);
         this.nestedChannel = nestedChannel;
         this.overrides = overrides;
     }

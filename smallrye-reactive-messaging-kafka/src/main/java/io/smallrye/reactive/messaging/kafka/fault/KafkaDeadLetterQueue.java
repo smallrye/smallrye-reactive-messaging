@@ -30,6 +30,7 @@ import io.smallrye.common.annotation.Identifier;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.kafka.IncomingKafkaRecord;
 import io.smallrye.reactive.messaging.kafka.KafkaCDIEvents;
+import io.smallrye.reactive.messaging.kafka.KafkaConnector;
 import io.smallrye.reactive.messaging.kafka.KafkaConnectorIncomingConfiguration;
 import io.smallrye.reactive.messaging.kafka.KafkaConnectorOutgoingConfiguration;
 import io.smallrye.reactive.messaging.kafka.KafkaConsumer;
@@ -100,8 +101,8 @@ public class KafkaDeadLetterQueue implements KafkaFailureHandler {
 
             String consumerClientId = (String) consumer.configuration().get(CLIENT_ID_CONFIG);
             ConnectorConfig connectorConfig = new OverrideConnectorConfig(INCOMING_PREFIX, rootConfig.get(),
-                    config.getChannel(), "dead-letter-queue", Map.of(
-                            KEY_SERIALIZER_CLASS_CONFIG, c -> getMirrorSerializer(keyDeserializer),
+                    KafkaConnector.CONNECTOR_NAME, config.getChannel(), "dead-letter-queue",
+                    Map.of(KEY_SERIALIZER_CLASS_CONFIG, c -> getMirrorSerializer(keyDeserializer),
                             VALUE_SERIALIZER_CLASS_CONFIG, c -> getMirrorSerializer(valueDeserializer),
                             CLIENT_ID_CONFIG, c -> config.getDeadLetterQueueProducerClientId()
                                     .orElse("kafka-dead-letter-topic-producer-" + consumerClientId),

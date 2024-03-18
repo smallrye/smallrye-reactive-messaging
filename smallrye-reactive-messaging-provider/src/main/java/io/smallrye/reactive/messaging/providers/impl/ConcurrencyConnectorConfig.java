@@ -48,8 +48,8 @@ public class ConcurrencyConnectorConfig extends ConnectorConfig {
     private final String indexedChannelPrefix;
     private final String indexedChannel;
 
-    public ConcurrencyConnectorConfig(String prefix, Config overall, String channel, int index) {
-        super(prefix, overall, channel);
+    public ConcurrencyConnectorConfig(String prefix, Config overall, String connector, String channel, int index) {
+        super(prefix, overall, connector, channel);
         this.indexedChannel = channel + CONCURRENCY_CONFIG_SEPARATOR + index;
         this.indexedChannelPrefix = channelPrefix(prefix, indexedChannel);
     }
@@ -59,7 +59,7 @@ public class ConcurrencyConnectorConfig extends ConnectorConfig {
     }
 
     public ConcurrencyConnectorConfig(ConnectorConfig config, int index) {
-        this(config.prefix, config.overall, config.name, index);
+        this(config.prefix, config.overall, config.connector, config.name, index);
     }
 
     public String indexedChannelKey(String propertyName) {
