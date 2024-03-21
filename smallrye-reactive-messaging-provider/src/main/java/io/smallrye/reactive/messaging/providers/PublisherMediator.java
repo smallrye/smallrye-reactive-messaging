@@ -112,7 +112,8 @@ public class PublisherMediator extends AbstractMediator {
 
     private <P> void produceAPublisherBuilderOfPayloads() {
         PublisherBuilder<P> builder = invoke();
-        this.publisher = decorate(MultiUtils.publisher(AdaptersToFlow.publisher(builder.map(Message::of).buildRs())));
+        this.publisher = decorate(MultiUtils.publisher(
+                AdaptersToFlow.publisher(builder.map(this::payloadToMessage).buildRs())));
     }
 
     private void produceAPublisherOfMessages() {
@@ -127,12 +128,12 @@ public class PublisherMediator extends AbstractMediator {
 
     private <P> void produceAPublisherOfPayloads() {
         Flow.Publisher<P> pub = invoke();
-        this.publisher = decorate(MultiUtils.publisher(pub).map(Message::of));
+        this.publisher = decorate(MultiUtils.publisher(pub).map(this::payloadToMessage));
     }
 
     private <P> void produceAReactiveStreamsPublisherOfPayloads() {
         Publisher<P> pub = invoke();
-        this.publisher = decorate(Multi.createFrom().publisher(AdaptersToFlow.publisher(pub)).map(Message::of));
+        this.publisher = decorate(Multi.createFrom().publisher(AdaptersToFlow.publisher(pub)).map(this::payloadToMessage));
     }
 
     private void produceIndividualMessages() {
@@ -160,15 +161,15 @@ public class PublisherMediator extends AbstractMediator {
             if (configuration.isBlockingExecutionOrdered()) {
                 this.publisher = decorate(MultiUtils.createFromGenerator(this::invokeBlocking)
                         .onItem().transformToUniAndConcatenate(u -> u)
-                        .onItem().transform(Message::of));
+                        .onItem().transform(this::payloadToMessage));
             } else {
                 this.publisher = decorate(MultiUtils.createFromGenerator(this::invokeBlocking)
                         .onItem().transformToUni(u -> u).merge(maxConcurrency())
-                        .onItem().transform(Message::of));
+                        .onItem().transform(this::payloadToMessage));
             }
         } else {
             this.publisher = decorate(MultiUtils.createFromGenerator(this::invoke)
-                    .onItem().transform(Message::of));
+                    .onItem().transform(this::payloadToMessage));
         }
     }
 
@@ -179,7 +180,7 @@ public class PublisherMediator extends AbstractMediator {
 
     private <P> void produceIndividualCompletionStageOfPayloads() {
         this.publisher = decorate(MultiUtils.<CompletionStage<P>> createFromGenerator(this::invoke)
-                .onItem().transformToUniAndConcatenate(cs -> Uni.createFrom().completionStage(cs).map(Message::of)));
+                .onItem().transformToUniAndConcatenate(cs -> Uni.createFrom().completionStage(cs).map(this::payloadToMessage)));
     }
 
     private void produceIndividualUniOfMessages() {
@@ -189,6 +190,6 @@ public class PublisherMediator extends AbstractMediator {
 
     private void produceIndividualUniOfPayloads() {
         this.publisher = decorate(MultiUtils.<Uni<?>> createFromGenerator(this::invoke)
-                .onItem().transformToUniAndConcatenate(u -> u.map(Message::of)));
+                .onItem().transformToUniAndConcatenate(u -> u.map(this::payloadToMessage)));
     }
 }

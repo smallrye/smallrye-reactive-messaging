@@ -17,8 +17,8 @@ These annotations are used on *methods*:
 {{ insert('beans/MessageProcessingBean.java') }}
 ```
 
-!!! note
-Reactive Messaging beans can either be in the *application* scope (`@ApplicationScoped`) or dependent scope (`@Dependent`).
+!!!note
+    Reactive Messaging beans can either be in the *application* scope (`@ApplicationScoped`) or dependent scope (`@Dependent`).
 
 Manipulating messages can be cumbersome.
 When you are only interested in the payload, you can use the following syntax: The following code is equivalent to the snippet from above:
@@ -27,10 +27,10 @@ When you are only interested in the payload, you can use the following syntax: T
 {{ insert('beans/PayloadProcessingBean.java') }}
 ```
 
-!!! important
-You should not call methods annotated with `@Incoming` and/or
-`@Outgoing` directly from your code. They are invoked by the framework.
-Having user code invoking them would not have the expected outcome.
+!!!important
+    You should not call methods annotated with `@Incoming` and/or
+    `@Outgoing` directly from your code. They are invoked by the framework.
+    Having user code invoking them would not have the expected outcome.
 
 
 SmallRye Reactive Messaging automatically binds matching `@Outgoing` to
@@ -83,15 +83,41 @@ You can also create new instance of `Message` from an existing one:
 ``` java
 {{ insert('messages/MessageExamples.java', 'copy') }}
 ```
-
-!!! note "Acknowledgement?"
-Acknowledgement is an important part of messaging systems. This will be
-covered in the [acknowledgement](acknowledgement.md)
-section.
+!!! warning "Acknowledgement?"
+    Acknowledgement is an important part of messaging systems. This will be covered in the [acknowledgement](acknowledgement.md) section.
 
 !!! note "Connector Metadata"
-Most connectors are providing metadata to let you extract technical
-details about the message, but also customize the outbound dispatching.
+    Most connectors are providing metadata to let you extract technical
+    details about the message, but also customize the outbound dispatching.
+
+## Messages vs. Payloads
+
+Reactive messaging offers flexibility when it comes to handling messages and their acknowledgements.
+The application developer can choose to finely handle acknowledgements per-message basis, by handling the
+`Message`-based signatures. Otherwise, when handling payloads, acknowledgements
+(and negative-acknowledgements) are handled by the framework.
+The following sections in this documentation detail both development models.
+
+While being the easier development model, in the past using payload-based signatures did not allow associating connector-specific metadata,
+making the `Message`-based signatures the de-facto choice even for the most common scenarios.
+This lead to using the connector custom-message implementation types,
+such as `IncomingKafkaRecord`, `KafkaRecord` or `IncomingRabbitMQMessage`,
+as a convenience for accessing connector-specific metadata.
+
+Not only this forces to handle acknowledgements manually,
+it also doesn't allow for incoming or outgoing `Messages` to be [intercepted](decorators.md#intercepting-incoming-and-outgoing-messages)
+or [observed](observability.md).
+
+!!! warning "Custom `Message` types & Message interception"
+    Custom `Message` types such as `IncomingKafkaRecord`, `KafkaRecord` or `IncomingRabbitMQMessage`
+    are not compatible with features intercepting messages.
+    Therefore, it is no longer recommended to use custom `Message` implementations in consumptions methods.
+    Instead, you can either use the generic `Message` type and access specific metadata,
+    or use the payload with [metadata injection](incoming-metadata-injection.md)
+
+Since [incoming metadata injection](incoming-metadata-injection.md) and [generic payloads](generic-payloads.md)
+features added to SmallRye Reactive Messaging,
+it is easier to use payload signatures and benefit from acknowledgement handling and still access connector-specific metadata.
 
 ## Generating Messages
 
@@ -109,10 +135,10 @@ called for every *request* from the downstream:
 ```
 
 !!! note "Requests?"
-Reactive Messaging connects components to build a reactive stream.
-In a  reactive stream, the emissions are controlled by the consumer
-(downstream) indicating to the publisher (upstream) how many items it
-can consume. With this protocol, the consumers are never flooded.
+    Reactive Messaging connects components to build a reactive stream.
+    In a reactive stream, the emissions are controlled by the consumer
+    (downstream) indicating to the publisher (upstream) how many items it
+    can consume. With this protocol, the consumers are never flooded.
 
 
 ### Generating messages using CompletionStage
@@ -300,7 +326,7 @@ directly either synchronously or asynchronously:
 ```
 
 !!! note "What about metadata?"
-With these methods, the metadata are automatically propagated.
+    With these methods, the metadata are automatically propagated.
 
 ## Processing streams
 
@@ -322,7 +348,7 @@ You can receive either a (Reactive Streams) `Publisher`, a
 `Publisher` or a `Publisher` directly.
 
 !!!important
-These signatures do not support metadata propagation. In the case of a
-stream of `Message`, you need to propagate the metadata manually. In the
-case of a stream of payload, propagation is not supported, and incoming
-metadata are lost.
+    These signatures do not support metadata propagation. In the case of a
+    stream of `Message`, you need to propagate the metadata manually. In the
+    case of a stream of payload, propagation is not supported, and incoming
+    metadata are lost.

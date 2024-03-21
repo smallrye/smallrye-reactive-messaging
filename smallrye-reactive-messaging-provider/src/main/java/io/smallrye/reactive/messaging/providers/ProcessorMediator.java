@@ -19,7 +19,9 @@ import org.reactivestreams.Publisher;
 
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
+import io.smallrye.reactive.messaging.GenericPayload;
 import io.smallrye.reactive.messaging.MediatorConfiguration;
+import io.smallrye.reactive.messaging.Messages;
 import io.smallrye.reactive.messaging.Shape;
 import io.smallrye.reactive.messaging.providers.helpers.AcknowledgementCoordinator;
 import io.smallrye.reactive.messaging.providers.helpers.ClassUtils;
@@ -224,7 +226,7 @@ public class ProcessorMediator extends AbstractMediator {
             Multi<?> multi = MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration)
                     .onItem().transform(Message::getPayload);
             return MultiUtils.via(multi, AdaptersToFlow.processor(returnedProcessorBuilder.buildRs()))
-                    .onItem().transform(Message::of);
+                    .onItem().transform(this::payloadToMessage);
         };
     }
 
@@ -236,7 +238,7 @@ public class ProcessorMediator extends AbstractMediator {
             Multi<?> multi = MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration)
                     .onItem().transform(Message::getPayload);
             return MultiUtils.via(multi, AdaptersToFlow.processor(returnedProcessor))
-                    .onItem().transform(Message::of);
+                    .onItem().transform(this::payloadToMessage);
         };
     }
 
@@ -248,7 +250,7 @@ public class ProcessorMediator extends AbstractMediator {
             Multi<?> multi = MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration)
                     .onItem().transform(Message::getPayload);
             return MultiUtils.via(multi, returnedProcessor)
-                    .onItem().transform(Message::of);
+                    .onItem().transform(this::payloadToMessage);
         };
     }
 
@@ -391,6 +393,15 @@ public class ProcessorMediator extends AbstractMediator {
                 throw ex.processingException(getMethodAsString(), fail);
             }
         } else if (res != null) {
+            if (res instanceof GenericPayload) {
+                GenericPayload<Object> genericPayload = (GenericPayload<Object>) res;
+                if (isPostAck()) {
+                    return Uni.createFrom().item(genericPayload.toMessage(message));
+                } else {
+                    return Uni.createFrom().item(Message.of(genericPayload.getPayload(),
+                            Messages.merge(message.getMetadata(), genericPayload.getMetadata())));
+                }
+            }
             if (isPostAck()) {
                 return Uni.createFrom().item(message.withPayload(res));
             } else {

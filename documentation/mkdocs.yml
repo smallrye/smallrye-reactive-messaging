@@ -33,6 +33,7 @@ nav:
             - 'Advanced Configuration' : concepts/advanced-config.md
             - 'Message Context' : concepts/message-context.md
             - 'Metadata Injection': concepts/incoming-metadata-injection.md
+            - 'Generic Payloads': concepts/generic-payloads.md
 
   - Kafka:
         - kafka/kafka.md

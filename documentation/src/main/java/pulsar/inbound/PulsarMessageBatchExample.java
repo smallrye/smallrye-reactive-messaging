@@ -1,38 +1,36 @@
 package pulsar.inbound;
 
+import java.util.List;
 import java.util.concurrent.CompletionStage;
 
 import jakarta.enterprise.context.ApplicationScoped;
 
-import org.apache.pulsar.client.api.Message;
-import org.apache.pulsar.client.api.Messages;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
+import org.eclipse.microprofile.reactive.messaging.Message;
 
-import io.smallrye.reactive.messaging.pulsar.PulsarIncomingBatchMessage;
-import io.smallrye.reactive.messaging.pulsar.PulsarIncomingMessageMetadata;
-import io.smallrye.reactive.messaging.pulsar.PulsarMessage;
+import io.smallrye.reactive.messaging.pulsar.PulsarIncomingBatchMessageMetadata;
 
 @ApplicationScoped
 public class PulsarMessageBatchExample {
 
     // <code>
     @Incoming("prices")
-    public CompletionStage<Void> consumeMessage(PulsarIncomingBatchMessage<Double> messages) {
-        for (PulsarMessage<Double> msg : messages) {
-            msg.getMetadata(PulsarIncomingMessageMetadata.class).ifPresent(metadata -> {
-                String key = metadata.getKey();
-                String topic = metadata.getTopicName();
-                long timestamp = metadata.getEventTime();
+    public CompletionStage<Void> consumeMessage(Message<List<Double>> messages) {
+        messages.getMetadata(PulsarIncomingBatchMessageMetadata.class).ifPresent(metadata -> {
+            for (org.apache.pulsar.client.api.Message<Object> message : metadata.getMessages()) {
+                String key = message.getKey();
+                String topic = message.getTopicName();
+                long timestamp = message.getEventTime();
                 //... process messages
-            });
-        }
+            }
+        });
         // ack will commit the latest offsets (per partition) of the batch.
         return messages.ack();
     }
 
     @Incoming("prices")
-    public void consumeRecords(Messages<Double> messages) {
-        for (Message<Double> msg : messages) {
+    public void consumeRecords(org.apache.pulsar.client.api.Messages<Double> messages) {
+        for (org.apache.pulsar.client.api.Message<Double> msg : messages) {
             //... process messages
         }
     }

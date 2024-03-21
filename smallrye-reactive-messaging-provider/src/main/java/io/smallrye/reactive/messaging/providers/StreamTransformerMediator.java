@@ -261,7 +261,7 @@ public class StreamTransformerMediator extends AbstractMediator {
             PublisherBuilder<Object> result = invoke(argument);
             Objects.requireNonNull(result, msg.methodReturnedNull(configuration.methodAsString()));
             return MultiUtils.publisher(AdaptersToFlow.publisher(result.buildRs()))
-                    .onItem().transform(Message::of);
+                    .onItem().transform(this::payloadToMessage);
         };
     }
 
@@ -273,7 +273,7 @@ public class StreamTransformerMediator extends AbstractMediator {
             Publisher<Object> result = invoke(argument);
             Objects.requireNonNull(result, msg.methodReturnedNull(configuration.methodAsString()));
             return Multi.createFrom().publisher(AdaptersToFlow.publisher(result))
-                    .onItem().transform(Message::of);
+                    .onItem().transform(this::payloadToMessage);
         };
     }
 
@@ -291,7 +291,7 @@ public class StreamTransformerMediator extends AbstractMediator {
         MultiSplitter<?, K> result = invoke(argument);
         Map<K, String> keyChannelMappings = findKeyOutgoingChannelMappings(result.keyType().getEnumConstants());
         keyChannelMappings.forEach((key, outgoing) -> {
-            Multi<? extends Message<?>> m = result.get(key).onItem().transform(Message::of)
+            Multi<? extends Message<?>> m = result.get(key).onItem().transform(this::payloadToMessage)
                     // concat map with prefetch handles the request starvation issue with SplitMulti and also syncs requests
                     .onItem().transformToUni(u -> Uni.createFrom().item(u)).concatenate(true);
             outgoingPublisherMap.put(outgoing, m);
@@ -307,7 +307,7 @@ public class StreamTransformerMediator extends AbstractMediator {
             Flow.Publisher<Object> result = invoke(argument);
             Objects.requireNonNull(result, msg.methodReturnedNull(configuration.methodAsString()));
             return MultiUtils.publisher(result)
-                    .onItem().transform(Message::of);
+                    .onItem().transform(this::payloadToMessage);
         };
     }
 
@@ -319,7 +319,7 @@ public class StreamTransformerMediator extends AbstractMediator {
                     .flatMap(km -> {
                         Flow.Publisher<?> result = invoke(km);
                         return Objects.requireNonNull(result, msg.methodReturnedNull(configuration.methodAsString()));
-                    }).map(Message::of);
+                    }).map(this::payloadToMessage);
         };
     }
 
