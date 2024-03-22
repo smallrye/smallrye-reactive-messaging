@@ -19,6 +19,7 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
@@ -711,6 +712,29 @@ public class ConsumerBuilder<K, V> implements ConsumerRebalanceListener, Closeab
     }
 
     /**
+     * Create {@link ConsumerTask} for consuming records from the topics matching the given pattern.
+     * <p>
+     * The plug function is used to modify the {@link Multi} generating the records, ex. limiting the number of records
+     * produced.
+     * <p>
+     * The task will run until a failure occurs or is explicitly stopped (subscription to the {@link Multi} cancelled).
+     *
+     * @param topicsPattern Pattern to subscribe to
+     * @param plugFunction the function to apply to the resulting multi
+     * @return the {@link ConsumerTask}
+     */
+    public ConsumerTask<K, V> fromTopics(Pattern topicsPattern,
+            Function<Multi<ConsumerRecord<K, V>>, Multi<ConsumerRecord<K, V>>> plugFunction) {
+        return new ConsumerTask<>(Multi.createFrom().deferred(() -> {
+            if (!polling.compareAndSet(false, true)) {
+                return Multi.createFrom().failure(new IllegalStateException("Consumer already in use"));
+            }
+            getOrCreateConsumer().subscribe(topicsPattern, this);
+            return getConsumeMulti().plug(plugFunction);
+        }));
+    }
+
+    /**
      * Create {@link ConsumerTask} for consuming records from the given topic.
      * <p>
      * The plug function is used to modify the {@link Multi} generating the records, ex. limiting the number of records
@@ -743,6 +767,19 @@ public class ConsumerBuilder<K, V> implements ConsumerRebalanceListener, Closeab
     }
 
     /**
+     * Create {@link ConsumerTask} for consuming records from the topics matching the given pattern.
+     * <p>
+     * The resulting {@link ConsumerTask} will be already started.
+     * The task will run until a failure occurs or is explicitly stopped (subscription to the {@link Multi} cancelled).
+     *
+     * @param topicsPattern Pattern to subscribe to
+     * @return the {@link ConsumerTask}
+     */
+    public ConsumerTask<K, V> fromTopics(Pattern topicsPattern) {
+        return fromTopics(topicsPattern, Function.identity());
+    }
+
+    /**
      * Create {@link ConsumerTask} for consuming records from the given topics.
      * <p>
      * The resulting {@link ConsumerTask} will be already started.
@@ -770,6 +807,20 @@ public class ConsumerBuilder<K, V> implements ConsumerRebalanceListener, Closeab
     }
 
     /**
+     * Create {@link ConsumerTask} for consuming records from the topics matching the given pattern.
+     * <p>
+     * The resulting {@link ConsumerTask} will be already started.
+     * The task will run until the given number of records consumed.
+     *
+     * @param topicsPattern Pattern to subscribe to
+     * @param numberOfRecords the number of records to produce
+     * @return the {@link ConsumerTask}
+     */
+    public ConsumerTask<K, V> fromTopics(Pattern topicsPattern, long numberOfRecords) {
+        return fromTopics(topicsPattern, until(numberOfRecords));
+    }
+
+    /**
      * Create {@link ConsumerTask} for consuming records from the given topics.
      * <p>
      * The resulting {@link ConsumerTask} will be already started.
@@ -781,6 +832,20 @@ public class ConsumerBuilder<K, V> implements ConsumerRebalanceListener, Closeab
      */
     public ConsumerTask<K, V> fromTopics(Set<String> topics, Duration during) {
         return fromTopics(topics, until(during));
+    }
+
+    /**
+     * Create {@link ConsumerTask} for consuming records from the topics matching the given pattern.
+     * <p>
+     * The resulting {@link ConsumerTask} will be already started.
+     * The task will run during the given duration.
+     *
+     * @param topicsPattern Pattern to subscribe to
+     * @param during the duration of the producing task to run
+     * @return the {@link ConsumerTask}
+     */
+    public ConsumerTask<K, V> fromTopics(Pattern topicsPattern, Duration during) {
+        return fromTopics(topicsPattern, until(during));
     }
 
     /**
