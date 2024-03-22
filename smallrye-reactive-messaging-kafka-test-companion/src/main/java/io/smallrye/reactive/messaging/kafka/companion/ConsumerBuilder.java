@@ -251,7 +251,7 @@ public class ConsumerBuilder<K, V> implements ConsumerRebalanceListener, Closeab
      * @param value the value for property
      * @return this {@link ConsumerBuilder}
      */
-    public ConsumerBuilder<K, V> withProp(String key, String value) {
+    public ConsumerBuilder<K, V> withProp(String key, Object value) {
         props.put(key, value);
         return this;
     }

@@ -97,7 +97,7 @@ public class ProducerTest extends KafkaCompanionTestBase {
 
     @Test
     void testProducerWithProps() {
-        Map<String, String> props = new HashMap<>();
+        Map<String, Object> props = new HashMap<>();
         props.put(ProducerConfig.BATCH_SIZE_CONFIG, "5");
         props.put(ProducerConfig.LINGER_MS_CONFIG, "100");
         ProducerTask records = companion.produceIntegers()

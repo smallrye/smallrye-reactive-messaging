@@ -24,7 +24,29 @@
     "criticality" : "highlight",
     "minSeverity" : "POTENTIALLY_BREAKING",
     "minCriticality" : "documented",
-    "differences" : [ ]
+    "differences" : [
+        {
+            "code": "java.method.parameterTypeChanged",
+            "old": "parameter io.smallrye.reactive.messaging.kafka.companion.ConsumerBuilder<K, V> io.smallrye.reactive.messaging.kafka.companion.ConsumerBuilder<K, V>::withProp(java.lang.String, ===java.lang.String===)",
+            "new": "parameter io.smallrye.reactive.messaging.kafka.companion.ConsumerBuilder<K, V> io.smallrye.reactive.messaging.kafka.companion.ConsumerBuilder<K, V>::withProp(java.lang.String, ===java.lang.Object===)",
+            "parameterIndex": "1",
+            "justification": "Companion producer/consumer withProp methods"
+        },
+        {
+            "code": "java.method.parameterTypeChanged",
+            "old": "parameter io.smallrye.reactive.messaging.kafka.companion.ProducerBuilder<K, V> io.smallrye.reactive.messaging.kafka.companion.ProducerBuilder<K, V>::withProp(java.lang.String, ===java.lang.String===)",
+            "new": "parameter io.smallrye.reactive.messaging.kafka.companion.ProducerBuilder<K, V> io.smallrye.reactive.messaging.kafka.companion.ProducerBuilder<K, V>::withProp(java.lang.String, ===java.lang.Object===)",
+            "parameterIndex": "1",
+            "justification": "Companion producer/consumer withProp methods"
+        },
+        {
+            "code": "java.method.parameterTypeParameterChanged",
+            "old": "parameter io.smallrye.reactive.messaging.kafka.companion.ProducerBuilder<K, V> io.smallrye.reactive.messaging.kafka.companion.ProducerBuilder<K, V>::withProps(===java.util.Map<java.lang.String, java.lang.String>===)",
+            "new": "parameter io.smallrye.reactive.messaging.kafka.companion.ProducerBuilder<K, V> io.smallrye.reactive.messaging.kafka.companion.ProducerBuilder<K, V>::withProps(===java.util.Map<java.lang.String, java.lang.Object>===)",
+            "parameterIndex": "0",
+            "justification": "Companion producer/consumer withProp methods"
+        }
+    ]
   }
 }, {
   "extension" : "revapi.reporter.json",
