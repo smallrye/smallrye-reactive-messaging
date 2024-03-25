@@ -18,7 +18,7 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
 
-import io.smallrye.mutiny.helpers.queues.Queues;
+import io.smallrye.mutiny.infrastructure.Infrastructure;
 import io.smallrye.reactive.messaging.*;
 import io.smallrye.reactive.messaging.EmitterConfiguration;
 import io.smallrye.reactive.messaging.PublisherDecorator;
@@ -114,12 +114,12 @@ public class MediatorManager {
         String poolName = configuration.getWorkerPoolName();
         // if the poll name is null we are on the default worker pool, set the default concurrent requests
         if (poolName == null) {
-            return Queues.BUFFER_S;
+            return Infrastructure.getBufferSizeS();
         }
         String concurrencyConfigKey = WORKER_CONFIG_PREFIX + "." + poolName + "." + WORKER_CONCURRENCY;
         Optional<Integer> concurrency = configInstance.get().getOptionalValue(concurrencyConfigKey, Integer.class);
         // Fallback to the default concurrent requests if setting is not found
-        return concurrency.orElse(Queues.BUFFER_S);
+        return concurrency.orElse(Infrastructure.getBufferSizeS());
     }
 
     public Map<String, Integer> getIncomingConcurrency(MediatorConfiguration configuration) {
