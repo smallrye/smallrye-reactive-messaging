@@ -5,8 +5,8 @@ import java.util.concurrent.CompletionStage;
 import jakarta.enterprise.context.ApplicationScoped;
 
 import org.eclipse.microprofile.reactive.messaging.Incoming;
+import org.eclipse.microprofile.reactive.messaging.Message;
 
-import io.smallrye.reactive.messaging.kafka.KafkaRecord;
 import io.smallrye.reactive.messaging.kafka.commit.CheckpointMetadata;
 
 @ApplicationScoped
@@ -14,7 +14,7 @@ public class KafkaCheckpointExample {
 
     // <code>
     @Incoming("prices")
-    public CompletionStage<Void> consume(KafkaRecord<String, Double> record) {
+    public CompletionStage<Void> consume(Message<Double> record) {
         // Get the `CheckpointMetadata` from the incoming message
         CheckpointMetadata<Double> checkpoint = CheckpointMetadata.fromMessage(record);
 

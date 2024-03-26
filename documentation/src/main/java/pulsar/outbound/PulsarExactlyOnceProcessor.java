@@ -1,13 +1,16 @@
 package pulsar.outbound;
 
+import java.util.List;
+
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
 import org.eclipse.microprofile.reactive.messaging.Channel;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
+import org.eclipse.microprofile.reactive.messaging.Message;
 
 import io.smallrye.mutiny.Uni;
-import io.smallrye.reactive.messaging.pulsar.PulsarIncomingBatchMessage;
+import io.smallrye.reactive.messaging.pulsar.PulsarIncomingBatchMessageMetadata;
 import io.smallrye.reactive.messaging.pulsar.PulsarMessage;
 import io.smallrye.reactive.messaging.pulsar.transactions.PulsarTransactions;
 
@@ -19,10 +22,11 @@ public class PulsarExactlyOnceProcessor {
     PulsarTransactions<Integer> txProducer;
 
     @Incoming("in-channel")
-    public Uni<Void> emitInTransaction(PulsarIncomingBatchMessage<Integer> batch) {
+    public Uni<Void> emitInTransaction(Message<List<Integer>> batch) {
         return txProducer.withTransactionAndAck(batch, emitter -> {
-            for (PulsarMessage<Integer> record : batch) {
-                emitter.send(PulsarMessage.of(record.getPayload() + 1, record.getKey()));
+            PulsarIncomingBatchMessageMetadata metadata = batch.getMetadata(PulsarIncomingBatchMessageMetadata.class).get();
+            for (org.apache.pulsar.client.api.Message<Integer> message : metadata.<Integer> getMessages()) {
+                emitter.send(PulsarMessage.of(message.getValue() + 1, message.getKey()));
             }
             return Uni.createFrom().voidItem();
         });

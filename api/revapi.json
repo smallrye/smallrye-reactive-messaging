@@ -27,7 +27,17 @@
     "criticality" : "highlight",
     "minSeverity" : "POTENTIALLY_BREAKING",
     "minCriticality" : "documented",
-    "differences" : [ ]
+    "differences" : [
+        {
+            "ignore": true,
+            "code": "java.method.visibilityIncreased",
+            "old": "method org.eclipse.microprofile.reactive.messaging.Metadata io.smallrye.reactive.messaging.Messages::merge(org.eclipse.microprofile.reactive.messaging.Metadata, org.eclipse.microprofile.reactive.messaging.Metadata)",
+            "new": "method org.eclipse.microprofile.reactive.messaging.Metadata io.smallrye.reactive.messaging.Messages::merge(org.eclipse.microprofile.reactive.messaging.Metadata, org.eclipse.microprofile.reactive.messaging.Metadata)",
+            "oldVisibility": "private",
+            "newVisibility": "public",
+            "justification": "Metadata merge utility function exposed from the Messages API"
+        }
+    ]
   }
 }, {
   "extension" : "revapi.reporter.json",

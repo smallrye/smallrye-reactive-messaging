@@ -327,4 +327,8 @@ public abstract class AbstractMediator {
         return Uni.createFrom().item(message);
     }
 
+    protected Message<Object> payloadToMessage(Object payload) {
+        return (payload instanceof GenericPayload) ? ((GenericPayload<Object>) payload).toMessage() : Message.of(payload);
+    }
+
 }

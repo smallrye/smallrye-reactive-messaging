@@ -142,7 +142,7 @@ public interface Messages {
     }
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
-    private static Metadata merge(Metadata first, Metadata second) {
+    static Metadata merge(Metadata first, Metadata second) {
         Metadata result = first;
         for (Object meta : second) {
             Class<?> clazz = meta.getClass();

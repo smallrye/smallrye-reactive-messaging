@@ -209,7 +209,7 @@ public class ProducerBuilder<K, V> implements Closeable {
      * @param value the value for property
      * @return this {@link ProducerBuilder}
      */
-    public ProducerBuilder<K, V> withProp(String key, String value) {
+    public ProducerBuilder<K, V> withProp(String key, Object value) {
         props.put(key, value);
         return this;
     }
@@ -220,7 +220,7 @@ public class ProducerBuilder<K, V> implements Closeable {
      * @param properties the properties
      * @return this {@link ProducerBuilder}
      */
-    public ProducerBuilder<K, V> withProps(Map<String, String> properties) {
+    public ProducerBuilder<K, V> withProps(Map<String, Object> properties) {
         props.putAll(properties);
         return this;
     }
