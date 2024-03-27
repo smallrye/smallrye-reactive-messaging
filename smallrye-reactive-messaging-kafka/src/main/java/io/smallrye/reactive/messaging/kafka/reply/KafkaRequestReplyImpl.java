@@ -257,7 +257,8 @@ public class KafkaRequestReplyImpl<Req, Rep> extends MutinyEmitterImpl<Req>
     @Override
     public void onItem(KafkaRecord<?, Rep> record) {
         Header header = record.getHeaders().lastHeader(replyCorrelationIdHeader);
-        if (header != null) {
+        // If reply topic header is NOT null, it is considered a request not a reply
+        if (header != null && record.getHeaders().lastHeader(replyTopicHeader) == null) {
             CorrelationId correlationId = correlationIdHandler.parse(header.value());
             PendingReplyImpl<Rep> reply = pendingReplies.remove(correlationId);
             if (reply != null) {
