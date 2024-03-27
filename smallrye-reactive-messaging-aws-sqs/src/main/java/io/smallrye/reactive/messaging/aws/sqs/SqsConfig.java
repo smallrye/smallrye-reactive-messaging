@@ -1,0 +1,86 @@
+package io.smallrye.reactive.messaging.aws.sqs;
+
+import static io.smallrye.reactive.messaging.aws.sqs.i18n.AwsSqsLogging.log;
+
+import java.util.Objects;
+import java.util.Optional;
+
+import org.eclipse.microprofile.config.Config;
+
+import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
+import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
+import software.amazon.awssdk.regions.Region;
+
+public class SqsConfig {
+
+    private final Config config;
+
+    public SqsConfig(Config config) {
+        this.config = config;
+    }
+
+    public String getQueueName() {
+        return config.getOptionalValue("queue", String.class)
+                .orElseThrow(() -> new IllegalArgumentException("queue must be set"));
+    }
+
+    public int getWaitTimeSeconds() {
+        return config.getOptionalValue("waitTimeSeconds", Integer.class).orElse(20);
+    }
+
+    public int getMaxNumberOfMessages() {
+        return config.getOptionalValue("maxNumberOfMessages", Integer.class).orElse(1);
+    }
+
+    public Optional<Region> getRegion() {
+        var result = config.getOptionalValue("region", String.class);
+        if (result.isEmpty()) {
+            return Optional.empty();
+        }
+        try {
+            return Optional.of(Region.of(result.get()));
+        } catch (IllegalArgumentException e) {
+            log.failedToParseAwsRegion(result.get(), e.getMessage());
+            return Optional.empty();
+        }
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        var that = (SqsConfig) o;
+        return getMaxNumberOfMessages() == that.getMaxNumberOfMessages() &&
+                getWaitTimeSeconds() == that.getWaitTimeSeconds() &&
+                Objects.equals(getEndpointOverride(), that.getEndpointOverride()) &&
+                Objects.equals(getRegion(), that.getRegion()) &&
+                Objects.equals(getQueueName(), that.getQueueName());
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(getEndpointOverride(), getRegion(), getQueueName(),
+                getMaxNumberOfMessages(), getWaitTimeSeconds());
+    }
+
+    public Optional<String> getEndpointOverride() {
+        return config.getOptionalValue("endpointOverride", String.class);
+    }
+
+    public AwsCredentialsProvider getCredentialsProvider() {
+        var className = config.getOptionalValue("credentialsProvider", String.class)
+                .orElse("software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider");
+        try {
+            var clazz = (Class<? extends AwsCredentialsProvider>) Class.forName(className);
+            var method = clazz.getMethod("create");
+            return (AwsCredentialsProvider) method.invoke(null);
+        } catch (Exception e) {
+            log.failedToLoadAwsCredentialLoader(e.getMessage());
+            return DefaultCredentialsProvider.create();
+        }
+    }
+}
