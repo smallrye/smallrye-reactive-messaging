@@ -119,6 +119,69 @@ public class KafkaSourceWithCloudEventsTest extends KafkaCompanionTestBase {
 
     @SuppressWarnings("unchecked")
     @Test
+    public void testReceivingStructuredCloudEventsWithNonValidJson() {
+        KafkaMapBasedConfig config = newCommonConfig();
+        config.put("topic", topic);
+        config.put("value.deserializer", StringDeserializer.class.getName());
+        config.put("failure-strategy", "ignore");
+        config.put("fail-on-deserialization-failure", false);
+        config.put("channel-name", topic);
+        KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
+        source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic, commitHandlerFactories, failureHandlerFactories,
+                UnsatisfiedInstance.instance(), CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), -1);
+
+        List<Message<?>> messages = new ArrayList<>();
+        source.getStream().subscribe().with(messages::add);
+
+        companion.produceStrings().fromRecords(
+                new ProducerRecord<>(topic, null, null, null, "{\"type\":",
+                        Collections.singletonList(
+                                new RecordHeader("content-type",
+                                        "application/cloudevents+json; charset=utf-8".getBytes()))),
+                new ProducerRecord<>(topic, null, null, null, new JsonObject()
+                        .put("specversion", CloudEventMetadata.CE_VERSION_1_0)
+                        .put("type", "type")
+                        .put("id", "id")
+                        .put("source", "test://test")
+                        .put("subject", "foo")
+                        .put("datacontenttype", "application/json")
+                        .put("dataschema", "http://schema.io")
+                        .put("time", "2020-07-23T09:12:34Z")
+                        .put("data", new JsonObject().put("name", "neo")).encode(),
+                        Collections.singletonList(
+                                new RecordHeader("content-type",
+                                        "application/cloudevents+json; charset=utf-8".getBytes()))));
+
+        await().atMost(2, TimeUnit.MINUTES).until(() -> messages.size() >= 1);
+
+        Message<?> message = messages.get(0);
+        IncomingKafkaCloudEventMetadata<String, JsonObject> metadata = message
+                .getMetadata(IncomingKafkaCloudEventMetadata.class)
+                .orElse(null);
+        assertThat(metadata).isNotNull();
+        assertThat(metadata.getSpecVersion()).isEqualTo(CloudEventMetadata.CE_VERSION_1_0);
+        assertThat(metadata.getType()).isEqualTo("type");
+        assertThat(metadata.getId()).isEqualTo("id");
+        assertThat(metadata.getSource()).isEqualTo(URI.create("test://test"));
+        assertThat(metadata.getSubject()).hasValue("foo");
+        assertThat(metadata.getDataContentType()).hasValue("application/json");
+        assertThat(metadata.getDataSchema()).hasValue(URI.create("http://schema.io"));
+        assertThat(metadata.getTimeStamp()).isNotEmpty();
+        assertThat(metadata.getData().getString("name")).isEqualTo("neo");
+
+        // Extensions
+        assertThat(metadata.getKey()).isNull();
+        // Rule 3.1 - partitionkey attribute
+        assertThat(metadata.<String> getExtension("partitionkey")).isEmpty();
+        assertThat(metadata.getTopic()).isEqualTo(topic);
+
+        assertThat(message.getPayload()).isInstanceOf(JsonObject.class);
+        assertThat(((JsonObject) message.getPayload()).getString("name")).isEqualTo("neo");
+
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
     public void testReceivingStructuredCloudEventsWithJsonObjectDeserializer() {
         KafkaMapBasedConfig config = newCommonConfig();
         config.put("topic", topic);

@@ -42,16 +42,18 @@ public class IncomingKafkaRecord<K, T> implements KafkaRecord<K, T>, MetadataInj
         boolean payloadSet = false;
         if (cloudEventEnabled) {
             // Cloud Event detection
-            KafkaCloudEventHelper.CloudEventMode mode = KafkaCloudEventHelper.getCloudEventMode(record);
+            KafkaCloudEventHelper.CloudEventMode mode = KafkaCloudEventHelper.getCloudEventMode(record.headers());
             switch (mode) {
                 case NOT_A_CLOUD_EVENT:
                     break;
                 case STRUCTURED:
-                    CloudEventMetadata<T> event = KafkaCloudEventHelper
-                            .createFromStructuredCloudEvent(record);
-                    meta.add(event);
-                    payloadSet = true;
-                    payload = event.getData();
+                    if (record.value() != null) {
+                        CloudEventMetadata<T> event = KafkaCloudEventHelper
+                                .createFromStructuredCloudEvent(record);
+                        meta.add(event);
+                        payloadSet = true;
+                        payload = event.getData();
+                    }
                     break;
                 case BINARY:
                     meta.add(KafkaCloudEventHelper.createFromBinaryCloudEvent(record));

@@ -72,6 +72,7 @@ public class ReactiveKafkaConsumer<K, V> implements io.smallrye.reactive.messagi
                 config.getLazyClient(),
                 config.getPollTimeout(),
                 config.getFailOnDeserializationFailure(),
+                config.getCloudEvents(),
                 onConsumerCreated,
                 reportFailure,
                 context);
@@ -84,6 +85,7 @@ public class ReactiveKafkaConsumer<K, V> implements io.smallrye.reactive.messagi
             boolean lazyClient,
             int pollTimeout,
             boolean failOnDeserializationFailure,
+            boolean cloudEventsEnabled,
             java.util.function.Consumer<Consumer<K, V>> onConsumerCreated,
             BiConsumer<Throwable, Boolean> reportFailure,
             Context context) {
@@ -99,9 +101,9 @@ public class ReactiveKafkaConsumer<K, V> implements io.smallrye.reactive.messagi
         }
 
         Deserializer<K> keyDeserializer = new DeserializerWrapper<>(keyDeserializerCN, true,
-                keyDeserializationFailureHandler, reportFailure, failOnDeserializationFailure);
+                keyDeserializationFailureHandler, reportFailure, failOnDeserializationFailure, cloudEventsEnabled);
         Deserializer<V> valueDeserializer = new DeserializerWrapper<>(valueDeserializerCN, false,
-                valueDeserializationFailureHandler, reportFailure, failOnDeserializationFailure);
+                valueDeserializationFailureHandler, reportFailure, failOnDeserializationFailure, cloudEventsEnabled);
 
         // Configure the underlying deserializers
         keyDeserializer.configure(kafkaConfiguration, true);
