@@ -1,0 +1,22 @@
+<settings>
+  <servers>
+    <server>
+      <id>oss.sonatype</id>
+      <username>smallrye</username>
+      <password>M!cr0_ryE-3ma11</password>
+    </server>
+  </servers>
+  <profiles>
+    <profile>
+      <id>ossrh</id>
+      <activation>
+        <activeByDefault>true</activeByDefault>
+      </activation>
+      <properties>
+        <gpg.executable>gpg2</gpg.executable>
+        <gpg.passphrase>M!croProf1le</gpg.passphrase>
+        <gpg.keyname>smallrye@googlegroups.com</gpg.keyname>
+      </properties>
+    </profile>
+  </profiles>
+</settings>
