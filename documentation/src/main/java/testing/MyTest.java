@@ -12,6 +12,7 @@ import io.smallrye.reactive.messaging.memory.InMemoryConnector;
 import io.smallrye.reactive.messaging.memory.InMemorySink;
 import io.smallrye.reactive.messaging.memory.InMemorySource;
 
+// @io.quarkus.test.junit.QuarkusTest or the Junit 5 extension that allows injection in tests
 public class MyTest {
 
     // 1. Switch the channels to the in-memory connector:
