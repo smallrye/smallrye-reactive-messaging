@@ -144,6 +144,7 @@
     <module>smallrye-reactive-messaging-rabbitmq</module>
     <module>smallrye-reactive-messaging-gcp-pubsub</module>
     <module>smallrye-reactive-messaging-pulsar</module>
+    <module>smallrye-reactive-messaging-aws-sqs</module>
     <module>examples/quickstart</module>
     <module>examples/kafka-quickstart</module>
     <module>examples/kafka-quickstart-kotlin</module>
@@ -301,6 +302,16 @@
       <dependency>
         <groupId>org.testcontainers</groupId>
         <artifactId>testcontainers</artifactId>
+        <version>${testcontainers.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.testcontainers</groupId>
+        <artifactId>localstack</artifactId>
+        <version>${testcontainers.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.testcontainers</groupId>
+        <artifactId>junit-jupiter</artifactId>
         <version>${testcontainers.version}</version>
       </dependency>
       <dependency>

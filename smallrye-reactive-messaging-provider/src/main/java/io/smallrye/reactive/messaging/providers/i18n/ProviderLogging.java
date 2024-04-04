@@ -135,4 +135,12 @@ public interface ProviderLogging extends BasicLogger {
 
     @Message(id = 240, value = "Could not find an SSLContext bean with the @Identifier=%s")
     IllegalStateException couldFindSslContextWithIdentifier(String sslContextIdentifier);
+
+    @LogMessage(level = Logger.Level.DEBUG)
+    @Message(id = 241, value = "Pausing polling messages for channel %s, queue size %s >= %s")
+    void pausingRequestingMessages(String channel, int size, int maxQueueSize);
+
+    @LogMessage(level = Logger.Level.DEBUG)
+    @Message(id = 242, value = "Resuming polling messages for channel %s, queue size %s <= %s")
+    void resumingRequestingMessages(String channel, int size, int halfMaxQueueSize);
 }
