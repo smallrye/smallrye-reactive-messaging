@@ -2,6 +2,7 @@ package io.smallrye.reactive.messaging.kafka.fault;
 
 import static io.smallrye.reactive.messaging.kafka.DeserializationFailureHandler.DESERIALIZATION_FAILURE_DLQ;
 import static io.smallrye.reactive.messaging.kafka.i18n.KafkaLogging.log;
+import static io.smallrye.reactive.messaging.providers.wiring.Wiring.wireOutgoingConnectorToUpstream;
 import static org.apache.kafka.clients.CommonClientConfigs.CLIENT_ID_CONFIG;
 import static org.apache.kafka.clients.consumer.ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG;
 import static org.apache.kafka.clients.consumer.ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG;
@@ -13,6 +14,7 @@ import static org.eclipse.microprofile.reactive.messaging.spi.ConnectorFactory.I
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.BiConsumer;
 
 import jakarta.enterprise.context.ApplicationScoped;
@@ -24,21 +26,24 @@ import org.apache.kafka.clients.producer.ProducerInterceptor;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.eclipse.microprofile.config.Config;
+import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Metadata;
 
+import io.opentelemetry.api.OpenTelemetry;
 import io.smallrye.common.annotation.Identifier;
 import io.smallrye.mutiny.Uni;
+import io.smallrye.mutiny.operators.multi.processors.UnicastProcessor;
+import io.smallrye.reactive.messaging.SubscriberDecorator;
 import io.smallrye.reactive.messaging.kafka.IncomingKafkaRecord;
 import io.smallrye.reactive.messaging.kafka.KafkaCDIEvents;
 import io.smallrye.reactive.messaging.kafka.KafkaConnector;
 import io.smallrye.reactive.messaging.kafka.KafkaConnectorIncomingConfiguration;
 import io.smallrye.reactive.messaging.kafka.KafkaConnectorOutgoingConfiguration;
 import io.smallrye.reactive.messaging.kafka.KafkaConsumer;
-import io.smallrye.reactive.messaging.kafka.KafkaProducer;
 import io.smallrye.reactive.messaging.kafka.SerializationFailureHandler;
 import io.smallrye.reactive.messaging.kafka.api.OutgoingKafkaRecordMetadata;
 import io.smallrye.reactive.messaging.kafka.impl.ConfigHelper;
-import io.smallrye.reactive.messaging.kafka.impl.ReactiveKafkaProducer;
+import io.smallrye.reactive.messaging.kafka.impl.KafkaSink;
 import io.smallrye.reactive.messaging.providers.impl.ConnectorConfig;
 import io.smallrye.reactive.messaging.providers.impl.OverrideConnectorConfig;
 import io.vertx.mutiny.core.Vertx;
@@ -55,17 +60,18 @@ public class KafkaDeadLetterQueue implements KafkaFailureHandler {
     public static final String DEAD_LETTER_OFFSET = "dead-letter-offset";
     public static final String DEAD_LETTER_PARTITION = "dead-letter-partition";
 
-    private final String channel;
-    private final KafkaProducer producer;
-    private final String topic;
-    private final BiConsumer<Throwable, Boolean> reportFailure;
+    public static final String CHANNEL_DLQ_SUFFIX = "dead-letter-queue";
 
-    public KafkaDeadLetterQueue(String channel, String topic, KafkaProducer producer,
-            BiConsumer<Throwable, Boolean> reportFailure) {
+    private final String channel;
+    private final KafkaSink dlqSink;
+    private final UnicastProcessor<Message<?>> dlqSource;
+    private final String topic;
+
+    public KafkaDeadLetterQueue(String channel, String topic, KafkaSink dlqSink, UnicastProcessor<Message<?>> dlqSource) {
         this.channel = channel;
         this.topic = topic;
-        this.producer = producer;
-        this.reportFailure = reportFailure;
+        this.dlqSink = dlqSink;
+        this.dlqSource = dlqSource;
     }
 
     @ApplicationScoped
@@ -90,6 +96,12 @@ public class KafkaDeadLetterQueue implements KafkaFailureHandler {
         @Any
         Instance<Map<String, Object>> configurations;
 
+        @Inject
+        Instance<OpenTelemetry> openTelemetryInstance;
+
+        @Inject
+        Instance<SubscriberDecorator> subscriberDecorators;
+
         @Override
         public KafkaFailureHandler create(KafkaConnectorIncomingConfiguration config,
                 Vertx vertx,
@@ -101,7 +113,7 @@ public class KafkaDeadLetterQueue implements KafkaFailureHandler {
 
             String consumerClientId = (String) consumer.configuration().get(CLIENT_ID_CONFIG);
             ConnectorConfig connectorConfig = new OverrideConnectorConfig(INCOMING_PREFIX, rootConfig.get(),
-                    KafkaConnector.CONNECTOR_NAME, config.getChannel(), "dead-letter-queue",
+                    KafkaConnector.CONNECTOR_NAME, config.getChannel(), CHANNEL_DLQ_SUFFIX,
                     Map.of(KEY_SERIALIZER_CLASS_CONFIG, c -> getMirrorSerializer(keyDeserializer),
                             VALUE_SERIALIZER_CLASS_CONFIG, c -> getMirrorSerializer(valueDeserializer),
                             CLIENT_ID_CONFIG, c -> config.getDeadLetterQueueProducerClientId()
@@ -118,11 +130,12 @@ public class KafkaDeadLetterQueue implements KafkaFailureHandler {
             log.deadLetterConfig(producerConfig.getTopic().orElse(null), producerConfig.getKeySerializer(),
                     producerConfig.getValueSerializer());
 
-            // fire producer event (e.g. bind metrics)
-            ReactiveKafkaProducer<Object, Object> producer = new ReactiveKafkaProducer<>(producerConfig,
-                    serializationFailureHandlers, producerInterceptors, null, (p, c) -> kafkaCDIEvents.producer().fire(p));
-
-            return new KafkaDeadLetterQueue(config.getChannel(), deadQueueTopic, producer, reportFailure);
+            UnicastProcessor<Message<?>> processor = UnicastProcessor.create();
+            KafkaSink kafkaSink = new KafkaSink(producerConfig, kafkaCDIEvents, openTelemetryInstance,
+                    serializationFailureHandlers, producerInterceptors);
+            wireOutgoingConnectorToUpstream(processor, kafkaSink.getSink(), subscriberDecorators,
+                    producerConfig.getChannel() + "-" + CHANNEL_DLQ_SUFFIX);
+            return new KafkaDeadLetterQueue(config.getChannel(), deadQueueTopic, kafkaSink, processor);
         }
     }
 
@@ -182,10 +195,14 @@ public class KafkaDeadLetterQueue implements KafkaFailureHandler {
         // remove DESERIALIZATION_FAILURE_DLQ header to prevent unconditional DQL in next consume
         dead.headers().remove(DESERIALIZATION_FAILURE_DLQ);
         log.messageNackedDeadLetter(channel, topic);
-        return producer.send(dead)
-                .onFailure().invoke(t -> reportFailure.accept((Throwable) t, true))
-                .onItem().ignore().andContinueWithNull()
-                .chain(() -> Uni.createFrom().completionStage(record.ack()))
+        CompletableFuture<Void> future = new CompletableFuture<>();
+        dlqSource.onNext(record.withPayload(dead)
+                .withAck(() -> record.ack().thenAccept(__ -> future.complete(null)))
+                .withNack(throwable -> {
+                    future.completeExceptionally(throwable);
+                    return future;
+                }));
+        return Uni.createFrom().completionStage(future)
                 .emitOn(record::runOnMessageContext);
     }
 
@@ -195,6 +212,6 @@ public class KafkaDeadLetterQueue implements KafkaFailureHandler {
 
     @Override
     public void terminate() {
-        producer.close();
+        dlqSink.closeQuietly();
     }
 }
