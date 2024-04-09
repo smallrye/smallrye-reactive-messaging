@@ -3,6 +3,7 @@ package io.smallrye.reactive.messaging.jms;
 import static io.smallrye.reactive.messaging.jms.i18n.JmsExceptions.ex;
 import static io.smallrye.reactive.messaging.jms.i18n.JmsLogging.log;
 
+import java.time.Duration;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Flow;
 
@@ -21,61 +22,76 @@ import io.smallrye.reactive.messaging.providers.helpers.MultiUtils;
 
 class JmsSink {
 
-    private final JMSProducer producer;
-    private final Destination destination;
     private final Flow.Subscriber<Message<?>> sink;
-    private final JMSContext context;
     private final JsonMapping jsonMapping;
     private final Executor executor;
 
-    JmsSink(JMSContext context, JmsConnectorOutgoingConfiguration config, JsonMapping jsonMapping, Executor executor) {
+    JmsSink(JmsResourceHolder<JMSProducer> resourceHolder, JmsConnectorOutgoingConfiguration config, JsonMapping jsonMapping,
+            Executor executor) {
         String name = config.getDestination().orElseGet(config::getChannel);
-
-        this.destination = getDestination(context, name, config.getDestinationType());
-        this.context = context;
+        String type = config.getDestinationType();
+        boolean retry = config.getRetry();
+        int retryMaxRetries = config.getRetryMaxRetries();
+        Duration retryInitialDelay = Duration.parse(config.getRetryInitialDelay());
+        Duration retryMaxDelay = Duration.parse(config.getRetryMaxDelay());
+        double retryJitter = config.getRetryJitter();
+        resourceHolder.configure(r -> getDestination(r.getContext(), name, type),
+                r -> {
+                    JMSContext context = r.getContext();
+                    JMSProducer producer = context.createProducer();
+                    config.getDeliveryDelay().ifPresent(producer::setDeliveryDelay);
+                    config.getDeliveryMode().ifPresent(v -> {
+                        if (v.equalsIgnoreCase("persistent")) {
+                            producer.setDeliveryMode(DeliveryMode.PERSISTENT);
+                        } else if (v.equalsIgnoreCase("non_persistent")) {
+                            producer.setDeliveryMode(DeliveryMode.NON_PERSISTENT);
+                        } else {
+                            throw ex.illegalArgumentInvalidDeliveryMode(v);
+                        }
+                    });
+                    config.getDisableMessageId().ifPresent(producer::setDisableMessageID);
+                    config.getDisableMessageTimestamp().ifPresent(producer::setDisableMessageTimestamp);
+                    config.getCorrelationId().ifPresent(producer::setJMSCorrelationID);
+                    config.getTtl().ifPresent(producer::setTimeToLive);
+                    config.getPriority().ifPresent(producer::setPriority);
+                    config.getReplyTo().ifPresent(rt -> {
+                        String replyToDestinationType = config.getReplyToDestinationType();
+                        Destination replyToDestination;
+                        if (replyToDestinationType.equalsIgnoreCase("topic")) {
+                            replyToDestination = context.createTopic(rt);
+                        } else if (replyToDestinationType.equalsIgnoreCase("queue")) {
+                            replyToDestination = context.createQueue(rt);
+                        } else {
+                            throw ex.illegalArgumentInvalidDestinationType(replyToDestinationType);
+                        }
+                        producer.setJMSReplyTo(replyToDestination);
+                    });
+                    return producer;
+                });
+        resourceHolder.getDestination();
+        resourceHolder.getClient();
         this.jsonMapping = jsonMapping;
         this.executor = executor;
 
-        producer = context.createProducer();
-        config.getDeliveryDelay().ifPresent(producer::setDeliveryDelay);
-        config.getDeliveryMode().ifPresent(v -> {
-            if (v.equalsIgnoreCase("persistent")) {
-                producer.setDeliveryMode(DeliveryMode.PERSISTENT);
-            } else if (v.equalsIgnoreCase("non_persistent")) {
-                producer.setDeliveryMode(DeliveryMode.NON_PERSISTENT);
-            } else {
-                throw ex.illegalArgumentInvalidDeliveryMode(v);
-            }
-        });
-        config.getDisableMessageId().ifPresent(producer::setDisableMessageID);
-        config.getDisableMessageTimestamp().ifPresent(producer::setDisableMessageTimestamp);
-        config.getCorrelationId().ifPresent(producer::setJMSCorrelationID);
-        config.getTtl().ifPresent(producer::setTimeToLive);
-        config.getPriority().ifPresent(producer::setPriority);
-        config.getReplyTo().ifPresent(rt -> {
-            String replyToDestinationType = config.getReplyToDestinationType();
-            Destination replyToDestination;
-            if (replyToDestinationType.equalsIgnoreCase("topic")) {
-                replyToDestination = context.createTopic(rt);
-            } else if (replyToDestinationType.equalsIgnoreCase("queue")) {
-                replyToDestination = context.createQueue(rt);
-            } else {
-                throw ex.illegalArgumentInvalidDestinationType(replyToDestinationType);
-            }
-            producer.setJMSReplyTo(replyToDestination);
-        });
-
-        sink = MultiUtils.via(m -> m.onItem().transformToUniAndConcatenate(this::send)
+        sink = MultiUtils.via(m -> m.onItem().transformToUniAndConcatenate(message -> send(resourceHolder, message)
+                .onFailure(t -> retry)
+                .retry()
+                .withJitter(retryJitter)
+                .withBackOff(retryInitialDelay, retryMaxDelay)
+                .atMost(retryMaxRetries))
                 .onFailure().invoke(log::unableToSend));
 
     }
 
-    private Uni<? extends Message<?>> send(Message<?> message) {
+    private Uni<? extends Message<?>> send(JmsResourceHolder<JMSProducer> resourceHolder, Message<?> message) {
         Object payload = message.getPayload();
 
+        Destination destination = resourceHolder.getDestination();
+        JMSContext context = resourceHolder.getContext();
         // If the payload is a JMS Message, send it as it is, ignoring metadata.
         if (payload instanceof jakarta.jms.Message) {
-            return dispatch(message, () -> producer.send(destination, (jakarta.jms.Message) payload));
+            return dispatch(message,
+                    () -> resourceHolder.getClient().send(destination, (jakarta.jms.Message) payload));
         }
 
         try {
@@ -129,12 +145,12 @@ class JmsSink {
                     JmsPropertiesBuilder.OutgoingJmsProperties op = ((JmsPropertiesBuilder.OutgoingJmsProperties) properties);
                     op.getProperties().forEach(p -> p.apply(outgoing));
                 }
-                actualDestination = dest != null ? dest : this.destination;
+                actualDestination = dest != null ? dest : destination;
             } else {
-                actualDestination = this.destination;
+                actualDestination = destination;
             }
 
-            return dispatch(message, () -> producer.send(actualDestination, outgoing));
+            return dispatch(message, () -> resourceHolder.getClient().send(actualDestination, outgoing));
         } catch (JMSException e) {
             return Uni.createFrom().failure(new IllegalStateException(e));
         }

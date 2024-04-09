@@ -48,6 +48,10 @@ public class JmsSourceTest extends JmsTestBase {
         factory.close();
     }
 
+    private JmsResourceHolder<JMSConsumer> getResourceHolder(String channelName) {
+        return new JmsResourceHolder<>(channelName, () -> jms);
+    }
+
     @Test
     public void testWithString() throws JMSException {
         WeldContainer container = prepare();
@@ -106,6 +110,36 @@ public class JmsSourceTest extends JmsTestBase {
     }
 
     @Test
+    public void testWithDisconnection() {
+        WeldContainer container = prepare();
+
+        RawMessageConsumerBean bean = container.select(RawMessageConsumerBean.class).get();
+        assertThat(bean.messages()).isEmpty();
+
+        Queue q = jms.createQueue("queue-one");
+        JMSProducer producer = jms.createProducer();
+        producer.send(q, 10000L);
+        producer.send(q, 20000L);
+
+        await().untilAsserted(() -> assertThat(bean.messages()).hasSize(2)
+                .extracting(m -> (Long) m.getPayload())
+                .containsExactly(10000L, 20000L));
+
+        stopArtemis();
+        startArtemis();
+
+        init();
+        q = jms.createQueue("queue-one");
+        producer = jms.createProducer();
+        producer.send(q, 30000L);
+        producer.send(q, 40000L);
+
+        await().untilAsserted(() -> assertThat(bean.messages()).hasSize(4)
+                .extracting(m -> (Long) m.getPayload())
+                .containsExactly(10000L, 20000L, 30000L, 40000L));
+    }
+
+    @Test
     public void testWithDurableTopic() {
         Map<String, Object> map = new HashMap<>();
         map.put("mp.messaging.incoming.jms.connector", JmsConnector.CONNECTOR_NAME);
@@ -151,7 +185,7 @@ public class JmsSourceTest extends JmsTestBase {
 
     @Test
     public void testMultipleRequests() {
-        JmsSource source = new JmsSource(jms,
+        JmsSource source = new JmsSource(getResourceHolder("queue"),
                 new JmsConnectorIncomingConfiguration(new MapBasedConfig().put("channel-name", "queue")),
                 null, null);
         Publisher<IncomingJmsMessage<?>> publisher = source.getSource();
@@ -198,11 +232,13 @@ public class JmsSourceTest extends JmsTestBase {
         await().until(() -> list.size() == 50);
         assertThat(list.stream().map(r -> (Integer) r.getPayload()).collect(Collectors.toList()))
                 .containsAll(IntStream.of(49).boxed().collect(Collectors.toList()));
+
+        source.close();
     }
 
     @Test
     public void testBroadcast() {
-        JmsSource source = new JmsSource(jms,
+        JmsSource source = new JmsSource(getResourceHolder("queue"),
                 new JmsConnectorIncomingConfiguration(new MapBasedConfig()
                         .with("channel-name", "queue").with("broadcast", true)),
                 null, null);
@@ -226,6 +262,8 @@ public class JmsSourceTest extends JmsTestBase {
 
         await().until(() -> list1.size() == 50);
         await().until(() -> list2.size() == 50);
+
+        source.close();
 
         assertThat(list1.stream().map(r -> (Integer) r.getPayload()).collect(Collectors.toList()))
                 .containsAll(IntStream.of(49).boxed().collect(Collectors.toList()));
