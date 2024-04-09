@@ -14,7 +14,6 @@ import io.smallrye.reactive.messaging.aws.sqs.i18n.AwsSqsExceptions;
 import io.smallrye.reactive.messaging.json.JsonMapping;
 import io.smallrye.reactive.messaging.providers.MetadataInjectableMessage;
 import io.smallrye.reactive.messaging.providers.locals.ContextAwareMessage;
-
 import software.amazon.awssdk.services.sqs.model.Message;
 import software.amazon.awssdk.services.sqs.model.MessageAttributeValue;
 

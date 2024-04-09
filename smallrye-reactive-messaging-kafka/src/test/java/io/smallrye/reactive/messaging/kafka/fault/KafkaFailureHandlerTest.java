@@ -42,6 +42,7 @@ import org.apache.kafka.common.errors.RecordDeserializationException;
 import org.apache.kafka.common.serialization.IntegerDeserializer;
 import org.apache.kafka.common.serialization.IntegerSerializer;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
+import org.eclipse.microprofile.reactive.messaging.Message;
 import org.junit.jupiter.api.Test;
 
 import io.smallrye.mutiny.Uni;
@@ -49,6 +50,10 @@ import io.smallrye.reactive.messaging.kafka.KafkaRecord;
 import io.smallrye.reactive.messaging.kafka.base.KafkaCompanionTestBase;
 import io.smallrye.reactive.messaging.kafka.base.KafkaMapBasedConfig;
 import io.smallrye.reactive.messaging.kafka.companion.ConsumerTask;
+import io.smallrye.reactive.messaging.observation.DefaultMessageObservation;
+import io.smallrye.reactive.messaging.observation.MessageObservation;
+import io.smallrye.reactive.messaging.observation.MessageObservationCollector;
+import io.smallrye.reactive.messaging.observation.ObservationContext;
 
 public class KafkaFailureHandlerTest extends KafkaCompanionTestBase {
 
@@ -125,6 +130,7 @@ public class KafkaFailureHandlerTest extends KafkaCompanionTestBase {
 
     @Test
     public void testDeadLetterQueueStrategyWithDefaultTopic() {
+        addBeans(MyObservationCollector.class);
 
         ConsumerTask<String, Integer> records = companion.consumeIntegers().fromTopics("dead-letter-topic-kafka", 3);
 
@@ -154,6 +160,35 @@ public class KafkaFailureHandlerTest extends KafkaCompanionTestBase {
 
         assertThat(bean.consumers()).isEqualTo(1);
         assertThat(bean.producers()).isEqualTo(1);
+
+        MyObservationCollector collector = get(MyObservationCollector.class);
+        await().untilAsserted(() -> assertThat(collector.observed()).hasSize(3)
+                .allSatisfy(MessageObservation::isDone));
+    }
+
+    @ApplicationScoped
+    public static class MyObservationCollector implements MessageObservationCollector<ObservationContext> {
+
+        List<MessageObservation> observed = new CopyOnWriteArrayList<>();
+
+        @Override
+        public ObservationContext initObservation(String channel, boolean incoming, boolean emitter) {
+            if (incoming) {
+                return null;
+            }
+            return ObservationContext.DEFAULT;
+        }
+
+        @Override
+        public MessageObservation onNewMessage(String channel, Message<?> message, ObservationContext observationContext) {
+            DefaultMessageObservation observation = new DefaultMessageObservation(channel);
+            observed.add(observation);
+            return observation;
+        }
+
+        public List<MessageObservation> observed() {
+            return observed;
+        }
     }
 
     @Test
@@ -433,7 +468,7 @@ public class KafkaFailureHandlerTest extends KafkaCompanionTestBase {
 
     @Test
     public void testDelayedRetryStrategy() {
-        addBeans(KafkaDelayedRetryTopic.Factory.class);
+        addBeans(KafkaDelayedRetryTopic.Factory.class, MyObservationCollector.class);
         List<String> delayedRetryTopics = List.of(getRetryTopic(topic, 2000), getRetryTopic(topic, 4000));
         MyReceiverBean bean = runApplication(getDelayedRetryConfig(topic, delayedRetryTopics), MyReceiverBean.class);
         await().until(this::isReady);
@@ -470,6 +505,10 @@ public class KafkaFailureHandlerTest extends KafkaCompanionTestBase {
 
         assertThat(bean.consumers()).isEqualTo(2L);
         assertThat(bean.producers()).isEqualTo(1);
+
+        MyObservationCollector collector = get(MyObservationCollector.class);
+        await().untilAsserted(() -> assertThat(collector.observed()).hasSize(9)
+                .allSatisfy(MessageObservation::isDone));
     }
 
     @Test

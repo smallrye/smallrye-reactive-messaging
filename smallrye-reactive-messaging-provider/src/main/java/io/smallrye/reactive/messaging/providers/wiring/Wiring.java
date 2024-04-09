@@ -432,11 +432,7 @@ public class Wiring {
             }
             // TODO Improve this.
             Flow.Subscriber connector = registry.getSubscribers(name).get(0);
-            for (SubscriberDecorator decorator : getSortedInstances(subscriberDecorators)) {
-                merged = decorator.decorate(merged, Collections.singletonList(name), true);
-            }
-            // The connector will cancel the subscription.
-            merged.subscribe().withSubscriber(connector);
+            wireOutgoingConnectorToUpstream(merged, connector, subscriberDecorators, name);
         }
 
         @Override
@@ -1094,6 +1090,17 @@ public class Wiring {
                     + "', outgoing:'" + String.join(",", configuration.getOutgoings())
                     + "', concurrency:'" + concurrency + "'}";
         }
+    }
+
+    public static void wireOutgoingConnectorToUpstream(Multi<? extends Message<?>> multi,
+            Flow.Subscriber outgoingConnector,
+            Instance<SubscriberDecorator> subscriberDecorators, String channelName) {
+        List<String> channelNames = Collections.singletonList(channelName);
+        for (SubscriberDecorator decorator : getSortedInstances(subscriberDecorators)) {
+            multi = decorator.decorate(multi, channelNames, true);
+        }
+        // The connector will cancel the subscription.
+        multi.subscribe().withSubscriber(outgoingConnector);
     }
 
 }
