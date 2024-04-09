@@ -2,7 +2,6 @@ package io.smallrye.reactive.messaging.pulsar.base;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
-import java.util.Collections;
 
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
@@ -13,7 +12,7 @@ import com.github.dockerjava.api.command.InspectContainerResponse;
 
 public class PulsarContainer extends GenericContainer<PulsarContainer> {
 
-    public static final DockerImageName PULSAR_IMAGE = DockerImageName.parse("apachepulsar/pulsar:3.0.0");
+    public static final DockerImageName PULSAR_IMAGE = DockerImageName.parse("apachepulsar/pulsar:3.2.2");
 
     public static final String STARTER_SCRIPT = "/run_pulsar.sh";
 
