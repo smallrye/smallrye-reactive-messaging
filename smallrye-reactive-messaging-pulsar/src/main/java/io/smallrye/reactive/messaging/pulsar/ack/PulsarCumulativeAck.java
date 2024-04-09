@@ -3,6 +3,7 @@ package io.smallrye.reactive.messaging.pulsar.ack;
 import jakarta.enterprise.context.ApplicationScoped;
 
 import org.apache.pulsar.client.api.Consumer;
+import org.apache.pulsar.client.api.MessageId;
 
 import io.smallrye.common.annotation.Identifier;
 import io.smallrye.mutiny.Uni;
@@ -33,12 +34,14 @@ public class PulsarCumulativeAck implements PulsarAckHandler {
 
     @Override
     public Uni<Void> handle(PulsarIncomingMessage<?> message) {
+        MessageId messageId = message.getMessageId();
+        message.unwrap().release();
         return Uni.createFrom().completionStage(() -> {
             var txnMetadata = message.getMetadata(PulsarTransactionMetadata.class);
             if (txnMetadata.isPresent()) {
-                return consumer.acknowledgeCumulativeAsync(message.getMessageId(), txnMetadata.get().getTransaction());
+                return consumer.acknowledgeCumulativeAsync(messageId, txnMetadata.get().getTransaction());
             } else {
-                return consumer.acknowledgeCumulativeAsync(message.getMessageId());
+                return consumer.acknowledgeCumulativeAsync(messageId);
             }
         })
                 .emitOn(message::runOnMessageContext);
