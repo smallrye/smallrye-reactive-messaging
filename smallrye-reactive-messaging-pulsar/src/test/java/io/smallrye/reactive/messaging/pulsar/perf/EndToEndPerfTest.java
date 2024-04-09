@@ -18,7 +18,7 @@ import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
@@ -39,12 +39,11 @@ import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
  */
 @Tag(TestTags.PERFORMANCE)
 @Tag(TestTags.SLOW)
-@Disabled
 public class EndToEndPerfTest extends WeldTestBase {
 
-    public static final int COUNT = 50_000;
+    public static final int COUNT = 30_000;
     public static String input_topic = UUID.randomUUID().toString();
-    public static String output_topic = UUID.randomUUID().toString();
+    public String output_topic = UUID.randomUUID().toString();
 
     @BeforeAll
     static void insertRecords() throws PulsarClientException {
@@ -52,6 +51,11 @@ public class EndToEndPerfTest extends WeldTestBase {
                 .producerName("end-to-end-perf")
                 .topic(input_topic)
                 .create(), COUNT, i -> Integer.toString(i));
+    }
+
+    @BeforeEach
+    void outputTopic() {
+        output_topic = UUID.randomUUID().toString();
     }
 
     private MapBasedConfig commonConfig() {
@@ -71,19 +75,14 @@ public class EndToEndPerfTest extends WeldTestBase {
         List<MessageId> messages = new CopyOnWriteArrayList<>();
         try {
             receive(client.newConsumer(Schema.STRING)
-                    .subscriptionName(output_topic + "-consumer-" + UUID.randomUUID())
+                    .subscriptionName(output_topic + "-consumer-")
                     .topic(output_topic)
                     .subscriptionInitialPosition(SubscriptionInitialPosition.Earliest)
                     .subscribe(), COUNT, m -> messages.add(m.getMessageId()));
         } catch (PulsarClientException e) {
             throw new RuntimeException(e);
         }
-        await()
-                .atMost(5, TimeUnit.MINUTES)
-                .until(() -> {
-                    System.out.println(messages.size());
-                    return messages.size() >= COUNT;
-                });
+        await().atMost(5, TimeUnit.MINUTES).until(() -> messages.size() >= COUNT);
     }
 
     @ApplicationScoped

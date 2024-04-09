@@ -65,7 +65,7 @@ import io.vertx.mutiny.core.Vertx;
 @ConnectorAttribute(name = "batchReceive", type = "boolean", direction = ConnectorAttribute.Direction.INCOMING, description = "Whether batch receive is used to consume messages", defaultValue = "false")
 
 @ConnectorAttribute(name = "producer-configuration", type = "string", direction = ConnectorAttribute.Direction.OUTGOING, description = "Identifier of a CDI bean that provides the default Pulsar producer configuration for this channel. The channel configuration can still override any attribute. The bean must have a type of Map<String, Object> and must use the @io.smallrye.common.annotation.Identifier qualifier to set the identifier.")
-@ConnectorAttribute(name = "maxPendingMessages", type = "int", direction = ConnectorAttribute.Direction.OUTGOING, description = "The maximum size of a queue holding pending messages, i.e messages waiting to receive an acknowledgment from a broker", defaultValue = "1000")
+@ConnectorAttribute(name = "max-inflight-messages", type = "int", direction = ConnectorAttribute.Direction.OUTGOING, description = "The maximum size of a queue holding pending messages, i.e messages waiting to receive an acknowledgment from a broker. Defaults to 1000 messages")
 @ConnectorAttribute(name = "waitForWriteCompletion", type = "boolean", direction = ConnectorAttribute.Direction.OUTGOING, description = "Whether the client waits for the broker to acknowledge the written record before acknowledging the message", defaultValue = "true")
 public class PulsarConnector implements InboundConnector, OutboundConnector, HealthReporter {
 
