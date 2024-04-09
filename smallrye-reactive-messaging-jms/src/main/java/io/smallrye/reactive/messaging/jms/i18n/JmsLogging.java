@@ -31,4 +31,12 @@ public interface JmsLogging extends BasicLogger {
     @LogMessage(level = Logger.Level.WARN)
     @Message(id = 15803, value = "Unable to receive JMS messages - client has been closed")
     void clientClosed();
+
+    @LogMessage(level = Logger.Level.WARN)
+    @Message(id = 15804, value = "Terminal error on channel %s")
+    void terminalErrorOnChannel(String channelName);
+
+    @LogMessage(level = Logger.Level.ERROR)
+    @Message(id = 15805, value = "Terminal error on channel %s. Retries exhausted %s No more messages will be received.")
+    void terminalErrorRetriesExhausted(String channelName, Throwable e);
 }

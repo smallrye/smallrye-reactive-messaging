@@ -59,6 +59,11 @@ import io.smallrye.reactive.messaging.providers.i18n.ProviderLogging;
 @ConnectorAttribute(name = "reply-to", description = "The reply to destination if any", direction = Direction.OUTGOING, type = "string")
 @ConnectorAttribute(name = "reply-to-destination-type", description = "The type of destination for the response. It can be either `queue` or `topic`", direction = Direction.OUTGOING, type = "string", defaultValue = "queue")
 @ConnectorAttribute(name = "merge", direction = OUTGOING, description = "Whether the connector should allow multiple upstreams", type = "boolean", defaultValue = "false")
+@ConnectorAttribute(name = "retry.terminal", direction = Direction.INCOMING, description = "Whether to retry on terminal stream errors.", type = "boolean", defaultValue = "true")
+@ConnectorAttribute(name = "retry.terminal.max-retries", direction = Direction.INCOMING, description = "Maximum number of retries for terminal stream errors.", type = "int", defaultValue = "3")
+@ConnectorAttribute(name = "retry.terminal.initial-delay", direction = Direction.INCOMING, description = "The initial delay for the retry.", type = "string", defaultValue = "PT1S")
+@ConnectorAttribute(name = "retry.terminal.max-delay", direction = Direction.INCOMING, description = "The maximum delay", type = "string", defaultValue = "PT10S")
+@ConnectorAttribute(name = "retry.terminal.jitter", direction = Direction.INCOMING, description = "How much the delay jitters as a multiplier between 0 and 1. The formula is current delay * jitter. For example, with a current delay of 2H, a jitter of 0.5 will result in an actual delay somewhere between 1H and 3H.", type = "double", defaultValue = "0.5")
 public class JmsConnector implements InboundConnector, OutboundConnector {
 
     /**

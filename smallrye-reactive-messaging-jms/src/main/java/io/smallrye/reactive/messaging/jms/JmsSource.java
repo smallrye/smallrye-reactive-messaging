@@ -3,19 +3,16 @@ package io.smallrye.reactive.messaging.jms;
 import static io.smallrye.reactive.messaging.jms.i18n.JmsExceptions.ex;
 import static io.smallrye.reactive.messaging.jms.i18n.JmsLogging.log;
 
+import java.time.Duration;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Flow;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Supplier;
 
-import jakarta.jms.Destination;
-import jakarta.jms.IllegalStateRuntimeException;
-import jakarta.jms.JMSConsumer;
-import jakarta.jms.JMSContext;
-import jakarta.jms.Message;
-import jakarta.jms.Topic;
+import jakarta.jms.*;
 
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.helpers.Subscriptions;
@@ -23,15 +20,57 @@ import io.smallrye.reactive.messaging.json.JsonMapping;
 
 class JmsSource {
 
-    private final Flow.Publisher<IncomingJmsMessage<?>> source;
+    private final Multi<IncomingJmsMessage<?>> source;
 
-    private final JmsPublisher publisher;
+    private JmsPublisher publisher;
+    private final JmsConnectorIncomingConfiguration config;
 
     JmsSource(JMSContext context, JmsConnectorIncomingConfiguration config, JsonMapping jsonMapping, Executor executor) {
+        this.config = config;
+        publisher = createJmsPublisher(context, config);
+
+        Multi<IncomingJmsMessage<?>> multi = Multi.createFrom()
+                .deferred(supplyPublisher(context))
+                .<IncomingJmsMessage<?>> map(m -> new IncomingJmsMessage<>(m, executor, jsonMapping))
+                .onFailure().invoke(throwable -> {
+                    String channelName = config.getChannel();
+                    log.terminalErrorOnChannel(channelName);
+                })
+                .onFailure(t -> config.getRetryTerminal())
+                .retry()
+                .withBackOff(Duration.parse(config.getRetryTerminalInitialDelay()),
+                        Duration.parse(config.getRetryTerminalMaxDelay()))
+                .withJitter(config.getRetryTerminalJitter())
+                .atMost(config.getRetryTerminalMaxRetries())
+                .onFailure()
+                .invoke(throwable -> {
+                    String channelName = config.getChannel();
+                    log.terminalErrorRetriesExhausted(channelName, throwable);
+                });
+        boolean broadcast = config.getBroadcast();
+        if (!broadcast) {
+            source = multi;
+        } else {
+            source = multi.broadcast().toAllSubscribers();
+        }
+    }
+
+    private Supplier<Multi<? extends Message>> supplyPublisher(JMSContext context) {
+        return () -> {
+            if (publisher != null) {
+                publisher.close();
+            }
+            this.publisher = createJmsPublisher(context, config);
+
+            return Multi.createFrom().publisher(publisher);
+        };
+    }
+
+    private JmsPublisher createJmsPublisher(JMSContext context, JmsConnectorIncomingConfiguration config) {
+        final JmsPublisher publisher;
         String name = config.getDestination().orElseGet(config::getChannel);
         String selector = config.getSelector().orElse(null);
         boolean nolocal = config.getNoLocal();
-        boolean broadcast = config.getBroadcast();
         boolean durable = config.getDurable();
 
         Destination destination = getDestination(context, name, config);
@@ -47,14 +86,7 @@ class JmsSource {
         }
 
         publisher = new JmsPublisher(consumer);
-
-        Multi<IncomingJmsMessage<?>> multi = Multi.createFrom().publisher(publisher)
-                .map(m -> new IncomingJmsMessage<>(m, executor, jsonMapping));
-        if (!broadcast) {
-            source = multi;
-        } else {
-            source = multi.broadcast().toAllSubscribers();
-        }
+        return publisher;
     }
 
     void close() {
@@ -76,7 +108,7 @@ class JmsSource {
 
     }
 
-    Flow.Publisher<IncomingJmsMessage<?>> getSource() {
+    Multi<IncomingJmsMessage<?>> getSource() {
         return source;
     }
 
@@ -139,8 +171,11 @@ class JmsSource {
                         }
                     } catch (IllegalStateRuntimeException e) {
                         log.clientClosed();
+                        downstream.get().onError(e);
+                    } catch (JMSRuntimeException e) {
+                        log.clientClosed();
+                        downstream.get().onError(e);
                     }
-
                 });
             }
         }
