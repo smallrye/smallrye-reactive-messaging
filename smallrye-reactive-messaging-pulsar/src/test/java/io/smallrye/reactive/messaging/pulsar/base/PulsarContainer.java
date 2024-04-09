@@ -29,7 +29,6 @@ public class PulsarContainer extends GenericContainer<PulsarContainer> {
         super.withStartupTimeout(Duration.ofSeconds(60));
         super.waitingFor(Wait.forLogMessage(".*Created namespace public/default.*", 1));
         super.withCommand("sh", "-c", runStarterScript());
-        super.withTmpFs(Collections.singletonMap("/pulsar/data", "rw"));
     }
 
     protected String runStarterScript() {
