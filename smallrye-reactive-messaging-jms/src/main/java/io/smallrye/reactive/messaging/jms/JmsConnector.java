@@ -19,7 +19,9 @@ import jakarta.enterprise.inject.Instance;
 import jakarta.enterprise.inject.literal.NamedLiteral;
 import jakarta.inject.Inject;
 import jakarta.jms.ConnectionFactory;
+import jakarta.jms.JMSConsumer;
 import jakarta.jms.JMSContext;
+import jakarta.jms.JMSProducer;
 
 import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
@@ -59,6 +61,11 @@ import io.smallrye.reactive.messaging.providers.i18n.ProviderLogging;
 @ConnectorAttribute(name = "reply-to", description = "The reply to destination if any", direction = Direction.OUTGOING, type = "string")
 @ConnectorAttribute(name = "reply-to-destination-type", description = "The type of destination for the response. It can be either `queue` or `topic`", direction = Direction.OUTGOING, type = "string", defaultValue = "queue")
 @ConnectorAttribute(name = "merge", direction = OUTGOING, description = "Whether the connector should allow multiple upstreams", type = "boolean", defaultValue = "false")
+@ConnectorAttribute(name = "retry", direction = Direction.INCOMING_AND_OUTGOING, description = "Whether to retry on terminal stream errors.", type = "boolean", defaultValue = "true")
+@ConnectorAttribute(name = "retry.max-retries", direction = Direction.INCOMING_AND_OUTGOING, description = "Maximum number of retries for terminal stream errors.", type = "int", defaultValue = "3")
+@ConnectorAttribute(name = "retry.initial-delay", direction = Direction.INCOMING_AND_OUTGOING, description = "The initial delay for the retry.", type = "string", defaultValue = "PT1S")
+@ConnectorAttribute(name = "retry.max-delay", direction = Direction.INCOMING_AND_OUTGOING, description = "The maximum delay", type = "string", defaultValue = "PT10S")
+@ConnectorAttribute(name = "retry.jitter", direction = Direction.INCOMING_AND_OUTGOING, description = "How much the delay jitters as a multiplier between 0 and 1. The formula is current delay * jitter. For example, with a current delay of 2H, a jitter of 0.5 will result in an actual delay somewhere between 1H and 3H.", type = "double", defaultValue = "0.5")
 public class JmsConnector implements InboundConnector, OutboundConnector {
 
     /**
@@ -96,7 +103,7 @@ public class JmsConnector implements InboundConnector, OutboundConnector {
     private ExecutorService executor;
     private JsonMapping jsonMapping;
     private final List<JmsSource> sources = new CopyOnWriteArrayList<>();
-    private final List<JMSContext> contexts = new CopyOnWriteArrayList<>();
+    private final List<JmsResourceHolder<?>> contexts = new CopyOnWriteArrayList<>();
 
     @PostConstruct
     public void init() {
@@ -118,16 +125,16 @@ public class JmsConnector implements InboundConnector, OutboundConnector {
     @PreDestroy
     public void cleanup() {
         sources.forEach(JmsSource::close);
-        contexts.forEach(JMSContext::close);
+        contexts.forEach(JmsResourceHolder::close);
         this.executor.shutdown();
     }
 
     @Override
     public Flow.Publisher<? extends Message<?>> getPublisher(Config config) {
         JmsConnectorIncomingConfiguration ic = new JmsConnectorIncomingConfiguration(config);
-        JMSContext context = createJmsContext(ic);
-        contexts.add(context);
-        JmsSource source = new JmsSource(context, ic, jsonMapping, executor);
+        JmsResourceHolder<JMSConsumer> holder = new JmsResourceHolder<>(ic.getChannel(), () -> createJmsContext(ic));
+        contexts.add(holder);
+        JmsSource source = new JmsSource(holder, ic, jsonMapping, executor);
         sources.add(source);
         return source.getSource();
     }
@@ -146,9 +153,9 @@ public class JmsConnector implements InboundConnector, OutboundConnector {
     @Override
     public Flow.Subscriber<? extends Message<?>> getSubscriber(Config config) {
         JmsConnectorOutgoingConfiguration oc = new JmsConnectorOutgoingConfiguration(config);
-        JMSContext context = createJmsContext(oc);
-        contexts.add(context);
-        return new JmsSink(context, oc, jsonMapping, executor).getSink();
+        JmsResourceHolder<JMSProducer> holder = new JmsResourceHolder<>(oc.getChannel(), () -> createJmsContext(oc));
+        contexts.add(holder);
+        return new JmsSink(holder, oc, jsonMapping, executor).getSink();
     }
 
     private ConnectionFactory pickTheFactory(String factoryName) {
