@@ -54,6 +54,9 @@ public class PulsarOutgoingChannel<T> {
         if (conf.getTopicName() == null) {
             conf.setTopicName(oc.getTopic().orElse(channel));
         }
+        if (conf.getMaxPendingMessages() > 0 && conf.getMaxPendingMessagesAcrossPartitions() == 0) {
+            conf.setMaxPendingMessagesAcrossPartitions(conf.getMaxPendingMessages());
+        }
         Map<String, Object> producerConf = configResolver.configToMap(conf);
         ProducerBuilder<T> builder = client.newProducer(schema)
                 .loadConf(producerConf);
@@ -68,10 +71,7 @@ public class PulsarOutgoingChannel<T> {
         }
         this.producer = builder.create();
         log.createdProducerWithConfig(channel, SchemaResolver.getSchemaName(schema), conf);
-        long requests = oc.getMaxPendingMessages();
-        if (requests <= 0) {
-            requests = Long.MAX_VALUE;
-        }
+        long requests = getRequests(oc, conf);
 
         processor = new SenderProcessor(requests, oc.getWaitForWriteCompletion(), this::sendMessage);
         subscriber = MultiUtils.via(processor, m -> m.onFailure().invoke(f -> {
@@ -83,6 +83,21 @@ public class PulsarOutgoingChannel<T> {
             instrumenter = PulsarOpenTelemetryInstrumenter.createForSink(openTelemetryInstance);
         } else {
             instrumenter = null;
+        }
+    }
+
+    private long getRequests(PulsarConnectorOutgoingConfiguration oc, ProducerConfigurationData conf) {
+        Optional<Integer> maxInflightMessages = oc.getMaxInflightMessages();
+        if (maxInflightMessages.isPresent()) {
+            if (maxInflightMessages.get() <= 0) {
+                return Long.MAX_VALUE;
+            } else {
+                return maxInflightMessages.get();
+            }
+        } else if (producer.getNumOfPartitions() > 1 && conf.getMaxPendingMessagesAcrossPartitions() > 0) {
+            return conf.getMaxPendingMessagesAcrossPartitions();
+        } else {
+            return 1000;
         }
     }
 

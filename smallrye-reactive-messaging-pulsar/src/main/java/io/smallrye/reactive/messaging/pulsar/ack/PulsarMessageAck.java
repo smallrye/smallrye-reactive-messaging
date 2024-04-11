@@ -5,6 +5,7 @@ import static io.smallrye.reactive.messaging.pulsar.i18n.PulsarLogging.log;
 import jakarta.enterprise.context.ApplicationScoped;
 
 import org.apache.pulsar.client.api.Consumer;
+import org.apache.pulsar.client.api.MessageId;
 
 import io.smallrye.common.annotation.Identifier;
 import io.smallrye.mutiny.Uni;
@@ -35,12 +36,15 @@ public class PulsarMessageAck implements PulsarAckHandler {
 
     @Override
     public Uni<Void> handle(PulsarIncomingMessage<?> message) {
+        MessageId messageId = message.getMessageId();
+        message.unwrap().release();
         return Uni.createFrom().completionStage(() -> {
             var txnMetadata = message.getMetadata(PulsarTransactionMetadata.class);
             if (txnMetadata.isPresent()) {
-                return consumer.acknowledgeAsync(message.getMessageId(), txnMetadata.get().getTransaction());
+                message.unwrap().release();
+                return consumer.acknowledgeAsync(messageId, txnMetadata.get().getTransaction());
             } else {
-                return consumer.acknowledgeAsync(message.getMessageId());
+                return consumer.acknowledgeAsync(messageId);
             }
         })
                 .onFailure().invoke(log::unableToAcknowledgeMessage)
