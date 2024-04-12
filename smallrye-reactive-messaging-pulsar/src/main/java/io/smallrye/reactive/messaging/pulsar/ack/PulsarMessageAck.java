@@ -41,7 +41,6 @@ public class PulsarMessageAck implements PulsarAckHandler {
         return Uni.createFrom().completionStage(() -> {
             var txnMetadata = message.getMetadata(PulsarTransactionMetadata.class);
             if (txnMetadata.isPresent()) {
-                message.unwrap().release();
                 return consumer.acknowledgeAsync(messageId, txnMetadata.get().getTransaction());
             } else {
                 return consumer.acknowledgeAsync(messageId);
