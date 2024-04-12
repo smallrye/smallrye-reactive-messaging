@@ -104,15 +104,21 @@ If a record cannot be written, the message is `nacked`.
 The Pulsar outbound connector handles back-pressure monitoring the number
 of pending messages waiting to be written to the Pulsar broker.
 The number of pending messages is configured using the
-`maxPendingMessages` attribute and defaults to 1000.
+`max-inflight-messages` attribute and defaults to 1000.
 
 The connector only sends that amount of messages concurrently. No other
 messages will be sent until at least one pending message gets
 acknowledged by the broker. Then, the connector writes a new message to
 Pulsar when one of the broker’s pending messages get acknowledged.
 
-You can also remove the limit of pending messages by setting `maxPendingMessages` to `0`.
-Note that Pulsar also enables to configure the number of pending messages per partition using `maxPendingMessagesAcrossPartitions`.
+The Pulsar producer also has a limit on the number of pending messages controlled by
+`maxPendingMessages` and for partitioned topics `maxPendingMessagesAcrossPartitions` producer configuration properties.
+The default value for the both is `0` which means the limit is enforced by the connector and not the underlying producer.
+If a `maxPendingMessagesAcrossPartitions` is set and subscribed topic is partitioned, the connector will set the `max-inflight-messages` use the producer's limit.
+
+!!! warning "Deprecation"
+    Previously a single connector attribute `maxPendingMessages` controlled both the connector back-pressure and the Pulsar producer configuration.
+    The `max-inflight-messages` attribute is not the same as the Pulsar producer `maxPendingMessages` configuration property.
 
 ## Producer Batching
 
