@@ -42,6 +42,7 @@ public class PulsarIgnore implements PulsarFailureHandler {
     public Uni<Void> handle(PulsarIncomingMessage<?> message, Throwable reason, Metadata metadata) {
         log.messageFailureIgnored(channel, reason.getMessage());
         log.messageFailureFullCause(reason);
+        message.unwrap().release();
         return Uni.createFrom().completionStage(message.ack())
                 .emitOn(message::runOnMessageContext);
     }

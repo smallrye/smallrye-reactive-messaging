@@ -42,6 +42,7 @@ public class PulsarContinue implements PulsarFailureHandler {
     public Uni<Void> handle(PulsarIncomingMessage<?> message, Throwable reason, Metadata metadata) {
         log.messageFailureContinued(channel, reason.getMessage());
         log.messageFailureFullCause(reason);
+        message.unwrap().release();
         return Uni.createFrom().voidItem()
                 .emitOn(message::runOnMessageContext);
     }
