@@ -59,7 +59,6 @@ public class PulsarReconsumeLater implements PulsarFailureHandler {
 
         log.messageFailureDelayed(channel, delay.toSeconds(), reason.getMessage());
         log.messageFailureFullCause(reason);
-        message.unwrap().release();
         return Uni.createFrom()
                 .completionStage(
                         () -> consumer.reconsumeLaterAsync(message.unwrap(), customProperties, delay.toSeconds(), SECONDS))
