@@ -114,7 +114,7 @@
 
     <nats-embedded.version>2.1.2</nats-embedded.version>
     <slf4j-log4j12.version>2.0.13</slf4j-log4j12.version>
-    <slf4j-reload4j.version>2.0.12</slf4j-reload4j.version>
+    <slf4j-reload4j.version>2.0.13</slf4j-reload4j.version>
     <opencsv.version>5.9</opencsv.version>
     <strimzi-test-container.version>0.106.0</strimzi-test-container.version>
 
