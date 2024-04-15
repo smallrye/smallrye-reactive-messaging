@@ -45,6 +45,7 @@ public class PulsarFailStop implements PulsarFailureHandler {
         // We don't commit, we just fail and stop the client.
         log.messageFailureFailStop(channel);
         reportFailure.accept(reason, true);
+        message.unwrap().release();
         return Uni.createFrom().<Void> failure(reason)
                 .emitOn(message::runOnMessageContext);
     }
