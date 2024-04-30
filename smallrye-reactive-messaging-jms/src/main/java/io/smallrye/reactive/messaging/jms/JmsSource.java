@@ -4,6 +4,8 @@ import static io.smallrye.reactive.messaging.jms.i18n.JmsExceptions.ex;
 import static io.smallrye.reactive.messaging.jms.i18n.JmsLogging.log;
 
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -11,21 +13,29 @@ import java.util.concurrent.Flow;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
+import jakarta.enterprise.inject.Instance;
 import jakarta.jms.*;
 
+import io.smallrye.common.annotation.Identifier;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.helpers.Subscriptions;
+import io.smallrye.reactive.messaging.jms.fault.JmsFailureHandler;
 import io.smallrye.reactive.messaging.json.JsonMapping;
+import io.vertx.mutiny.core.Vertx;
 
 class JmsSource {
 
     private final Multi<IncomingJmsMessage<?>> source;
     private final JmsResourceHolder<JMSConsumer> resourceHolder;
+    private final List<Throwable> failures = new ArrayList<>();
 
     private final JmsPublisher publisher;
+    private final Instance<JmsFailureHandler.Factory> failureHandlerFactories;
+    private final JmsConnectorIncomingConfiguration config;
+    private final JmsFailureHandler failureHandler;
 
     JmsSource(JmsResourceHolder<JMSConsumer> resourceHolder, JmsConnectorIncomingConfiguration config, JsonMapping jsonMapping,
-            Executor executor) {
+            Executor executor, Instance<JmsFailureHandler.Factory> failureHandlerFactories) {
         String channel = config.getChannel();
         final String destinationName = config.getDestination().orElseGet(config::getChannel);
         String selector = config.getSelector().orElse(null);
@@ -33,6 +43,7 @@ class JmsSource {
         boolean durable = config.getDurable();
         String type = config.getDestinationType();
         boolean retry = config.getRetry();
+        this.config = config;
         this.resourceHolder = resourceHolder.configure(r -> getDestination(r.getContext(), destinationName, type),
                 r -> {
                     if (durable) {
@@ -47,8 +58,10 @@ class JmsSource {
                 });
         resourceHolder.getClient();
         this.publisher = new JmsPublisher(resourceHolder);
+        this.failureHandlerFactories = failureHandlerFactories;
+        this.failureHandler = createFailureHandler(Vertx.vertx()); //FIXME Find correct vertx instance
         source = Multi.createFrom().publisher(publisher)
-                .<IncomingJmsMessage<?>> map(m -> new IncomingJmsMessage<>(m, executor, jsonMapping))
+                .<IncomingJmsMessage<?>> map(m -> new IncomingJmsMessage<>(m, executor, jsonMapping, failureHandler))
                 .onFailure(t -> {
                     log.terminalErrorOnChannel(channel);
                     this.resourceHolder.close();
@@ -90,6 +103,30 @@ class JmsSource {
 
     Multi<IncomingJmsMessage<?>> getSource() {
         return source;
+    }
+
+    private JmsFailureHandler createFailureHandler(Vertx vertx) {
+        String strategy = config.getFailureStrategy();
+        Instance<JmsFailureHandler.Factory> failureHandlerFactory = failureHandlerFactories
+                .select(Identifier.Literal.of(strategy));
+        if (failureHandlerFactory.isResolvable()) {
+            return failureHandlerFactory.get().create(config, vertx, resourceHolder.getClient(), this::reportFailure);
+        } else {
+            throw ex.illegalArgumentInvalidFailureStrategy(strategy);
+        }
+    }
+
+    public synchronized void reportFailure(Throwable failure, boolean fatal) {
+        //log.failureReported(topics, failure);
+        // Don't keep all the failures, there are only there for reporting.
+        if (failures.size() == 10) {
+            failures.remove(0);
+        }
+        failures.add(failure);
+
+        if (fatal) {
+            close();
+        }
     }
 
     @SuppressWarnings("PublisherImplementation")

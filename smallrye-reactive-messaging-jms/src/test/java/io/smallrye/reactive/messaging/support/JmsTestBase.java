@@ -1,5 +1,7 @@
 package io.smallrye.reactive.messaging.support;
 
+import jakarta.enterprise.inject.Instance;
+
 import org.eclipse.microprofile.config.ConfigProvider;
 import org.jboss.weld.environment.se.Weld;
 import org.jboss.weld.environment.se.WeldContainer;
@@ -10,6 +12,9 @@ import io.smallrye.config.SmallRyeConfigProviderResolver;
 import io.smallrye.config.inject.ConfigExtension;
 import io.smallrye.reactive.messaging.jms.JmsConnector;
 import io.smallrye.reactive.messaging.jms.TestMapping;
+import io.smallrye.reactive.messaging.jms.fault.JmsFailStop;
+import io.smallrye.reactive.messaging.jms.fault.JmsFailureHandler;
+import io.smallrye.reactive.messaging.jms.fault.JmsIgnoreFailure;
 import io.smallrye.reactive.messaging.providers.MediatorFactory;
 import io.smallrye.reactive.messaging.providers.connectors.ExecutionHolder;
 import io.smallrye.reactive.messaging.providers.connectors.WorkerPoolRegistry;
@@ -30,6 +35,9 @@ public class JmsTestBase {
 
     private static final ArtemisHolder holder = new ArtemisHolder();
     private Weld weld;
+    public static Instance<JmsFailureHandler.Factory> failureHandlerFactories = new MultipleInstance<>(
+            new JmsFailStop.Factory(),
+            new JmsIgnoreFailure.Factory());
 
     @BeforeEach
     public void startArtemis() {
@@ -85,6 +93,8 @@ public class JmsTestBase {
         weld.addBeanClass(ConfiguredChannelFactory.class);
         weld.addBeanClass(ChannelProducer.class);
         weld.addBeanClass(ExecutionHolder.class);
+        weld.addBeanClass(JmsFailStop.Factory.class);
+        weld.addBeanClass(JmsIgnoreFailure.Factory.class);
         weld.addBeanClass(WorkerPoolRegistry.class);
         weld.addBeanClass(HealthCenter.class);
         weld.addBeanClass(Wiring.class);
@@ -106,5 +116,4 @@ public class JmsTestBase {
             MapBasedConfig.cleanup();
         }
     }
-
 }
