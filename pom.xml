@@ -86,7 +86,7 @@
     <artemis.version>2.33.0</artemis.version>
     <commons-io.version>2.16.1</commons-io.version>
 
-    <jboss-log-manager.version>3.0.5.Final</jboss-log-manager.version>
+    <jboss-log-manager.version>3.0.6.Final</jboss-log-manager.version>
 
     <kafka.version>3.7.0</kafka.version>
 
