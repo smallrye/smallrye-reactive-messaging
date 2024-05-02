@@ -61,7 +61,13 @@ public class RabbitMQUsage {
     public RabbitMQUsage(final Vertx vertx, final String host, final int port, final int managementPort, final String user,
             final String pwd) {
         this.managementPort = managementPort;
-        this.options = new RabbitMQOptions().setHost(host).setPort(port).setUser(user).setPassword(pwd);
+        this.options = new RabbitMQOptions()
+                .setHost(host)
+                .setPort(port)
+                .setUser(user)
+                .setPassword(pwd)
+                .setAutomaticRecoveryOnInitialConnection(false)
+                .setReconnectAttempts(1);
         this.client = RabbitMQClient.create(new Vertx(vertx.getDelegate()), options);
     }
 
@@ -97,7 +103,7 @@ public class RabbitMQUsage {
         client.startAndAwait();
 
         Thread t = new Thread(() -> {
-            LOGGER.infof("Starting RabbitMQ sender to write %s messages with routing key %s", messageCount, routingKey);
+            LOGGER.debugf("Starting RabbitMQ sender to write %s messages with routing key %s", messageCount, routingKey);
             try {
                 for (int i = 0; i != messageCount; ++i) {
                     Object payload = messageSupplier.get();
@@ -105,7 +111,7 @@ public class RabbitMQUsage {
                     client.basicPublish(exchange, routingKey, properties, body)
                             .subscribe().with(
                                     v -> {
-                                        LOGGER.infof("Producer sent message %s", payload);
+                                        LOGGER.debugf("Producer sent message %s", payload);
                                         done.countDown();
                                     },
                                     Throwable::printStackTrace);
@@ -113,7 +119,7 @@ public class RabbitMQUsage {
             } catch (Exception e) {
                 LOGGER.error("Unable to send message", e);
             }
-            LOGGER.infof("Finished sending %s messages with routing key %s", messageCount, routingKey);
+            LOGGER.debugf("Finished sending %s messages with routing key %s", messageCount, routingKey);
         });
 
         t.setName(exchange + "-thread");
@@ -146,7 +152,7 @@ public class RabbitMQUsage {
         // Now set up a consumer
         client.basicConsumerAndAwait(queue, new QueueOptions()).handler(
                 msg -> {
-                    LOGGER.infof("Consumer %s: consuming message", exchange);
+                    LOGGER.debugf("Consumer %s: consuming message", exchange);
                     consumerFunction.accept(msg);
                 });
     }
@@ -155,23 +161,23 @@ public class RabbitMQUsage {
         final String queue = "tempConsumeIntegers";
         // Start by the machinery to receive the messages
         client.startAndAwait();
-        LOGGER.infof("RabbitMQ client now started");
+        LOGGER.debugf("RabbitMQ client now started");
         client.exchangeDeclareAndAwait(exchange, "topic", false, true);
-        LOGGER.infof("RabbitMQ exchange declared %s", exchange);
+        LOGGER.debugf("RabbitMQ exchange declared %s", exchange);
         client.queueDeclareAndAwait(queue, false, false, true);
-        LOGGER.infof("RabbitMQ queue declared %s", queue);
-        LOGGER.infof("About to bind RabbitMQ queue % to exchange %s via routing key %s", queue, exchange, routingKey);
+        LOGGER.debugf("RabbitMQ queue declared %s", queue);
+        LOGGER.debugf("About to bind RabbitMQ queue % to exchange %s via routing key %s", queue, exchange, routingKey);
         client.queueBindAndAwait(queue, exchange, routingKey);
-        LOGGER.infof("RabbitMQ queue % bound to exchange %s via routing key %s", queue, exchange, routingKey);
+        LOGGER.debugf("RabbitMQ queue % bound to exchange %s via routing key %s", queue, exchange, routingKey);
 
         // Now set up a consumer
         client.basicConsumerAndAwait(queue, new QueueOptions()).handler(
                 msg -> {
                     final String payload = msg.body().toString();
-                    LOGGER.infof("Consumer %s: consuming message %s", exchange, payload);
+                    LOGGER.debugf("Consumer %s: consuming message %s", exchange, payload);
                     consumer.accept(Integer.parseInt(payload));
                 });
-        LOGGER.infof("Created consumer");
+        LOGGER.debugf("Created consumer");
     }
 
     public void close() {
