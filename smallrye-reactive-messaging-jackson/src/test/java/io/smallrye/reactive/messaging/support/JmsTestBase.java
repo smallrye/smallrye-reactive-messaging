@@ -9,6 +9,8 @@ import org.junit.jupiter.api.BeforeEach;
 import io.smallrye.config.SmallRyeConfigProviderResolver;
 import io.smallrye.config.inject.ConfigExtension;
 import io.smallrye.reactive.messaging.jms.JmsConnector;
+import io.smallrye.reactive.messaging.jms.fault.JmsFailStop;
+import io.smallrye.reactive.messaging.jms.fault.JmsIgnoreFailure;
 import io.smallrye.reactive.messaging.json.jackson.JacksonMapping;
 import io.smallrye.reactive.messaging.json.jackson.ObjectMapperProvider;
 import io.smallrye.reactive.messaging.providers.MediatorFactory;
@@ -96,7 +98,8 @@ public class JmsTestBase {
         weld.addBeanClass(EmitterFactoryImpl.class);
         weld.addBeanClass(MutinyEmitterFactoryImpl.class);
         weld.addBeanClass(LegacyEmitterFactoryImpl.class);
-
+        weld.addBeanClass(JmsFailStop.Factory.class);
+        weld.addBeanClass(JmsIgnoreFailure.Factory.class);
         weld.addBeanClass(JmsConnector.class);
         weld.addBeanClass(ObjectMapperProvider.class);
         weld.addBeanClass(JacksonMapping.class);
