@@ -40,7 +40,7 @@ public class RabbitMQBrokerTestBase {
             .withExposedPorts(5672, 15672)
             .withNetworkAliases("rabbitmq")
             .withNetwork(Network.SHARED)
-            .withLogConsumer(of -> LOGGER.info(of.getUtf8String()))
+            .withLogConsumer(of -> LOGGER.debug(of.getUtf8String()))
             .waitingFor(Wait.forLogMessage(".*Server startup complete.*\\n", 1))
             .withCopyFileToContainer(MountableFile.forClasspathResource("rabbitmq/enabled_plugins"),
                     "/etc/rabbitmq/enabled_plugins");
