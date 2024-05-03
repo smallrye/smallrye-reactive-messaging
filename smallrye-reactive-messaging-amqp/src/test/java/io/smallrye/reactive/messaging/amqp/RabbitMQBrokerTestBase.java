@@ -1,5 +1,7 @@
 package io.smallrye.reactive.messaging.amqp;
 
+import java.time.Duration;
+
 import org.eclipse.microprofile.config.ConfigProvider;
 import org.jboss.weld.environment.se.WeldContainer;
 import org.junit.jupiter.api.AfterAll;
@@ -24,11 +26,12 @@ public class RabbitMQBrokerTestBase {
     private static final Logger LOGGER = LoggerFactory.getLogger("RabbitMQ");
 
     private static final GenericContainer<?> RABBIT = new GenericContainer<>(
-            DockerImageName.parse("rabbitmq:3-management"))
+            DockerImageName.parse("rabbitmq:3.11-management"))
             .withExposedPorts(5672, 15672)
             .withLogConsumer(of -> LOGGER.info(of.getUtf8String()))
             .waitingFor(
-                    Wait.forLogMessage(".*Server startup complete; 4 plugins started.*\\n", 1))
+                    Wait.forLogMessage(".*Server startup complete; 4 plugins started.*\\n", 1)
+                            .withStartupTimeout(Duration.ofSeconds(30)))
             .withFileSystemBind("src/test/resources/rabbitmq/enabled_plugins", "/etc/rabbitmq/enabled_plugins",
                     BindMode.READ_ONLY);
 

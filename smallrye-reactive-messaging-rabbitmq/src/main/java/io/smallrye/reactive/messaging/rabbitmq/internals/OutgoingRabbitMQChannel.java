@@ -1,9 +1,9 @@
 package io.smallrye.reactive.messaging.rabbitmq.internals;
 
 import static io.smallrye.reactive.messaging.rabbitmq.i18n.RabbitMQLogging.log;
-import static io.smallrye.reactive.messaging.rabbitmq.internals.RabbitMQClientHelper.declareExchangeIfNeeded;
 import static java.time.Duration.ofSeconds;
 
+import java.time.Duration;
 import java.util.concurrent.Flow;
 
 import jakarta.enterprise.inject.Instance;
@@ -96,7 +96,11 @@ public class OutgoingRabbitMQChannel {
 
     public void terminate() {
         if (publisher != null) {
-            publisher.stopAndAwait();
+            try {
+                publisher.stop().await().atMost(Duration.ofMillis(config.getConnectionTimeout()));
+            } catch (Exception e) {
+                log.infof(e, "Error terminating outgoing channel %s", config.getChannel());
+            }
         }
     }
 }
