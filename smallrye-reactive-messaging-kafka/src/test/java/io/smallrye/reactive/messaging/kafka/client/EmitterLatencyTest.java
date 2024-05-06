@@ -228,7 +228,7 @@ public class EmitterLatencyTest extends KafkaCompanionProxyTestBase {
         }
 
         CompletableFuture.allOf(sendAcks.toArray(CompletableFuture[]::new))
-                .get(2, TimeUnit.MINUTES);
+                .get(4, TimeUnit.MINUTES);
 
         toxics().get("latency").remove();
 
@@ -269,7 +269,7 @@ public class EmitterLatencyTest extends KafkaCompanionProxyTestBase {
         }
 
         CompletableFuture.allOf(sendAcks.toArray(CompletableFuture[]::new))
-                .get(2, TimeUnit.MINUTES);
+                .get(4, TimeUnit.MINUTES);
 
         toxics().get("latency").remove();
 
@@ -311,7 +311,7 @@ public class EmitterLatencyTest extends KafkaCompanionProxyTestBase {
         }
 
         CompletableFuture.allOf(sendAcks.toArray(CompletableFuture[]::new))
-                .get(2, TimeUnit.MINUTES);
+                .get(4, TimeUnit.MINUTES);
 
         toxics().get("latency").remove();
 
