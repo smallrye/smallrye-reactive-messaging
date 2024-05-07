@@ -2,6 +2,7 @@ package io.smallrye.reactive.messaging.rabbitmq;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
+import java.time.Duration;
 import java.util.UUID;
 
 import jakarta.enterprise.inject.Any;
@@ -36,12 +37,13 @@ public class RabbitMQBrokerTestBase {
     private static final Logger LOGGER = LoggerFactory.getLogger("RabbitMQ");
 
     private static final GenericContainer<?> RABBIT = new GenericContainer<>(
-            DockerImageName.parse("rabbitmq:3-management"))
+            DockerImageName.parse("rabbitmq:3.11-management"))
             .withExposedPorts(5672, 15672)
             .withNetworkAliases("rabbitmq")
             .withNetwork(Network.SHARED)
             .withLogConsumer(of -> LOGGER.debug(of.getUtf8String()))
-            .waitingFor(Wait.forLogMessage(".*Server startup complete.*\\n", 1))
+            .waitingFor(Wait.forLogMessage(".*Server startup complete.*\\n", 1)
+                    .withStartupTimeout(Duration.ofSeconds(30)))
             .withCopyFileToContainer(MountableFile.forClasspathResource("rabbitmq/enabled_plugins"),
                     "/etc/rabbitmq/enabled_plugins");
 
