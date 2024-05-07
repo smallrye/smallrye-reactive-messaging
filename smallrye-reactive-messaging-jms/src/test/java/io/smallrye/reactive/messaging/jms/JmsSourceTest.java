@@ -27,6 +27,7 @@ import org.junit.jupiter.api.Test;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.support.JmsTestBase;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
+import io.vertx.mutiny.core.Vertx;
 
 @SuppressWarnings("ReactiveStreamsSubscriberImplementation")
 public class JmsSourceTest extends JmsTestBase {
@@ -185,7 +186,7 @@ public class JmsSourceTest extends JmsTestBase {
 
     @Test
     public void testMultipleRequests() {
-        JmsSource source = new JmsSource(getResourceHolder("queue"),
+        JmsSource source = new JmsSource(Vertx.vertx(), getResourceHolder("queue"),
                 new JmsConnectorIncomingConfiguration(new MapBasedConfig().put("channel-name", "queue")),
                 null, null, failureHandlerFactories);
         Publisher<IncomingJmsMessage<?>> publisher = source.getSource();
@@ -238,7 +239,7 @@ public class JmsSourceTest extends JmsTestBase {
 
     @Test
     public void testBroadcast() {
-        JmsSource source = new JmsSource(getResourceHolder("queue"),
+        JmsSource source = new JmsSource(Vertx.vertx(), getResourceHolder("queue"),
                 new JmsConnectorIncomingConfiguration(new MapBasedConfig()
                         .with("channel-name", "queue").with("broadcast", true)),
                 null, null, failureHandlerFactories);

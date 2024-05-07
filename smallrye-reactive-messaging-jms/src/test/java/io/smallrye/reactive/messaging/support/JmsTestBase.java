@@ -1,6 +1,12 @@
 package io.smallrye.reactive.messaging.support;
 
+import java.util.function.Supplier;
+
 import jakarta.enterprise.inject.Instance;
+import jakarta.jms.ConnectionFactory;
+import jakarta.jms.JMSContext;
+import jakarta.jms.JMSProducer;
+import jakarta.jms.Queue;
 
 import org.eclipse.microprofile.config.ConfigProvider;
 import org.jboss.weld.environment.se.Weld;
@@ -114,6 +120,17 @@ public class JmsTestBase {
             config.write();
         } else {
             MapBasedConfig.cleanup();
+        }
+    }
+
+    public void produceIntegers(ConnectionFactory cf, String destination, int numberOfMessages,
+            Supplier<Integer> messageSupplier) {
+        try (JMSContext context = cf.createContext()) {
+            JMSProducer producer = context.createProducer();
+            Queue q = context.createQueue(destination);
+            for (int i = 0; i < numberOfMessages; i++) {
+                producer.send(q, messageSupplier.get());
+            }
         }
     }
 }

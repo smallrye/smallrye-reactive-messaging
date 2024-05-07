@@ -2,15 +2,12 @@ package io.smallrye.reactive.messaging.jms.fault;
 
 import java.util.function.BiConsumer;
 
-import jakarta.jms.JMSConsumer;
-
 import org.eclipse.microprofile.reactive.messaging.Metadata;
 
 import io.smallrye.common.annotation.Experimental;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.jms.IncomingJmsMessage;
 import io.smallrye.reactive.messaging.jms.JmsConnectorIncomingConfiguration;
-import io.vertx.mutiny.core.Vertx;
 
 /**
  * Jms Failure handling strategy
@@ -34,8 +31,6 @@ public interface JmsFailureHandler {
     interface Factory {
         JmsFailureHandler create(
                 JmsConnectorIncomingConfiguration config,
-                Vertx vertx,
-                JMSConsumer consumer,
                 BiConsumer<Throwable, Boolean> reportFailure);
     }
 

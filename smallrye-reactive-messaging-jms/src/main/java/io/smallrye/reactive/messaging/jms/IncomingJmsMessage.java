@@ -1,6 +1,7 @@
 package io.smallrye.reactive.messaging.jms;
 
 import static io.smallrye.reactive.messaging.jms.i18n.JmsExceptions.ex;
+import static io.smallrye.reactive.messaging.providers.locals.ContextAwareMessage.captureContextMetadata;
 
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
@@ -14,8 +15,9 @@ import org.eclipse.microprofile.reactive.messaging.Metadata;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.jms.fault.JmsFailureHandler;
 import io.smallrye.reactive.messaging.json.JsonMapping;
+import io.smallrye.reactive.messaging.providers.locals.ContextAwareMessage;
 
-public class IncomingJmsMessage<T> implements org.eclipse.microprofile.reactive.messaging.Message<T> {
+public class IncomingJmsMessage<T> implements ContextAwareMessage<T> {
     private final Message delegate;
     private final Executor executor;
     private final Class<T> clazz;
@@ -45,7 +47,7 @@ public class IncomingJmsMessage<T> implements org.eclipse.microprofile.reactive.
         }
 
         this.jmsMetadata = new IncomingJmsMessageMetadata(message);
-        this.metadata = Metadata.of(this.jmsMetadata);
+        this.metadata = captureContextMetadata(this.jmsMetadata);
     }
 
     @SuppressWarnings("unchecked")
@@ -122,6 +124,7 @@ public class IncomingJmsMessage<T> implements org.eclipse.microprofile.reactive.
                     }
                 })
                 .runSubscriptionOn(executor)
+                .emitOn(this::runOnMessageContext)
                 .subscribeAsCompletionStage();
     }
 

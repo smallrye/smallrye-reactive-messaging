@@ -21,6 +21,8 @@ import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.helpers.Subscriptions;
 import io.smallrye.reactive.messaging.jms.fault.JmsFailureHandler;
 import io.smallrye.reactive.messaging.json.JsonMapping;
+import io.vertx.core.impl.VertxInternal;
+import io.vertx.mutiny.core.Context;
 import io.vertx.mutiny.core.Vertx;
 
 class JmsSource {
@@ -33,8 +35,10 @@ class JmsSource {
     private final Instance<JmsFailureHandler.Factory> failureHandlerFactories;
     private final JmsConnectorIncomingConfiguration config;
     private final JmsFailureHandler failureHandler;
+    private final Context context;
 
-    JmsSource(JmsResourceHolder<JMSConsumer> resourceHolder, JmsConnectorIncomingConfiguration config, JsonMapping jsonMapping,
+    JmsSource(Vertx vertx, JmsResourceHolder<JMSConsumer> resourceHolder, JmsConnectorIncomingConfiguration config,
+            JsonMapping jsonMapping,
             Executor executor, Instance<JmsFailureHandler.Factory> failureHandlerFactories) {
         String channel = config.getChannel();
         final String destinationName = config.getDestination().orElseGet(config::getChannel);
@@ -59,8 +63,10 @@ class JmsSource {
         resourceHolder.getClient();
         this.publisher = new JmsPublisher(resourceHolder);
         this.failureHandlerFactories = failureHandlerFactories;
-        this.failureHandler = createFailureHandler(Vertx.vertx()); //FIXME Find correct vertx instance
+        this.context = Context.newInstance(((VertxInternal) vertx.getDelegate()).createEventLoopContext());
+        this.failureHandler = createFailureHandler();
         source = Multi.createFrom().publisher(publisher)
+                .emitOn(r -> context.runOnContext(r))
                 .<IncomingJmsMessage<?>> map(m -> new IncomingJmsMessage<>(m, executor, jsonMapping, failureHandler))
                 .onFailure(t -> {
                     log.terminalErrorOnChannel(channel);
@@ -105,12 +111,12 @@ class JmsSource {
         return source;
     }
 
-    private JmsFailureHandler createFailureHandler(Vertx vertx) {
+    private JmsFailureHandler createFailureHandler() {
         String strategy = config.getFailureStrategy();
         Instance<JmsFailureHandler.Factory> failureHandlerFactory = failureHandlerFactories
                 .select(Identifier.Literal.of(strategy));
         if (failureHandlerFactory.isResolvable()) {
-            return failureHandlerFactory.get().create(config, vertx, resourceHolder.getClient(), this::reportFailure);
+            return failureHandlerFactory.get().create(config, this::reportFailure);
         } else {
             throw ex.illegalArgumentInvalidFailureStrategy(strategy);
         }

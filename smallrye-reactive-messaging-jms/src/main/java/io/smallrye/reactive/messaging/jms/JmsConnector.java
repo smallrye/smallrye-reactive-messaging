@@ -35,6 +35,7 @@ import io.smallrye.reactive.messaging.connector.InboundConnector;
 import io.smallrye.reactive.messaging.connector.OutboundConnector;
 import io.smallrye.reactive.messaging.jms.fault.JmsFailureHandler;
 import io.smallrye.reactive.messaging.json.JsonMapping;
+import io.smallrye.reactive.messaging.providers.connectors.ExecutionHolder;
 import io.smallrye.reactive.messaging.providers.i18n.ProviderLogging;
 
 @ApplicationScoped
@@ -108,6 +109,9 @@ public class JmsConnector implements InboundConnector, OutboundConnector {
     @Any
     Instance<JmsFailureHandler.Factory> failureHandlerFactories;
 
+    @Inject
+    ExecutionHolder executionHolder;
+
     private ExecutorService executor;
     private JsonMapping jsonMapping;
     private final List<JmsSource> sources = new CopyOnWriteArrayList<>();
@@ -142,7 +146,7 @@ public class JmsConnector implements InboundConnector, OutboundConnector {
         JmsConnectorIncomingConfiguration ic = new JmsConnectorIncomingConfiguration(config);
         JmsResourceHolder<JMSConsumer> holder = new JmsResourceHolder<>(ic.getChannel(), () -> createJmsContext(ic));
         contexts.add(holder);
-        JmsSource source = new JmsSource(holder, ic, jsonMapping, executor, failureHandlerFactories);
+        JmsSource source = new JmsSource(executionHolder.vertx(), holder, ic, jsonMapping, executor, failureHandlerFactories);
         sources.add(source);
         return source.getSource();
     }
