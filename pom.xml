@@ -100,7 +100,7 @@
     <testcontainers.version>1.19.8</testcontainers.version>
 
     <sonar.coverage.jacoco.xmlReportPaths>${project.basedir}/target/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
-    <mockito.version>5.11.0</mockito.version>
+    <mockito.version>5.12.0</mockito.version>
     <junit-pioneer.version>2.2.0</junit-pioneer.version>
     <junit-platform-commons.version>1.9.3</junit-platform-commons.version>
     <system-stubs-jupiter.version>2.1.6</system-stubs-jupiter.version>
