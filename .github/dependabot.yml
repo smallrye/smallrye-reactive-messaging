@@ -68,3 +68,7 @@ updates:
   - dependency-name: org.slf4j:simple
     versions:
     - "> 1.8.0"
+- package-ecosystem: "github-actions"
+  directory: "/"
+  schedule:
+      interval: "weekly"
