@@ -135,4 +135,8 @@ public interface AMQPLogging extends BasicLogger {
     @LogMessage(level = Logger.Level.ERROR)
     @Message(id = 16229, value = "Unable to deserialize AMQP message on channel `%s`, message ignored")
     void unableToCreateMessage(String channel, @Cause Exception e);
+
+    @LogMessage(level = Logger.Level.INFO)
+    @Message(id = 16230, value = "No credits for channel %s, checking periodically for credits")
+    void stillNoMoreCreditsForChannel(String channel);
 }

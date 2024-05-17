@@ -216,6 +216,8 @@ public class AmqpCreditBasedSender implements Processor<Message<?>, Message<?>>,
                             // we cancel the periodic task.
                             holder.getVertx().cancelTimer(id);
                             creditRetrievalInProgress = false;
+                        } else {
+                            log.stillNoMoreCreditsForChannel(configuration.getChannel());
                         }
                     });
                 } else {
