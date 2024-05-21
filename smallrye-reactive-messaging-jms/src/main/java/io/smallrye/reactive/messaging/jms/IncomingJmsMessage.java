@@ -36,7 +36,7 @@ public class IncomingJmsMessage<T> implements org.eclipse.microprofile.reactive.
             // ignore it
         }
         try {
-            this.clazz = cn != null ? load(cn) : null;
+            this.clazz = cn != null && !cn.isEmpty() ? load(cn) : null;
         } catch (ClassNotFoundException e) {
             throw ex.illegalStateUnableToLoadClass(e);
         }
