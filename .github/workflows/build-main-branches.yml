@@ -38,17 +38,12 @@ jobs:
                 ]
         name: Build with Java ${{ matrix.java.version }} ${{ matrix.java.name }}
         steps:
-            -   uses: actions/cache@v2
-                with:
-                    path: ~/.m2/repository
-                    key: maven-${{ hashFiles('**/pom.xml') }}
-                    restore-keys: |
-                        maven-
-            -   uses: actions/checkout@v2
-            -   uses: actions/setup-java@v2
+            -   uses: actions/checkout@v4
+            -   uses: actions/setup-java@v4
                 with:
                     java-version: ${{ matrix.java.version }}
                     distribution: temurin
+                    cache: maven
             -   name: Build with Maven
                 env:
                     MAVEN_OPTS: ${{ matrix.java.opts }}
@@ -60,17 +55,12 @@ jobs:
         needs: build
         runs-on: ubuntu-latest
         steps:
-            -   uses: actions/cache@v2
-                with:
-                    path: ~/.m2/repository
-                    key: maven-${{ hashFiles('**/pom.xml') }}
-                    restore-keys: |
-                        maven-
-            -   uses: actions/checkout@v2
-            -   uses: actions/setup-java@v2
+            -   uses: actions/checkout@v4
+            -   uses: actions/setup-java@v4
                 with:
                     java-version: 11
                     distribution: temurin
+                    cache: maven
             -   name: Coverage and Sonar
                 env:
                     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -87,5 +77,5 @@ jobs:
                         -Dsonar.login=$SONAR_LOGIN \
                         --fail-at-end
             -   name: Codecov
-                uses: codecov/codecov-action@v1.0.13
+                uses: codecov/codecov-action@v4.4.1
                 if: false

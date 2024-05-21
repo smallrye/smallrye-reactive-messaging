@@ -65,7 +65,7 @@
     <rxjava.version>2.2.21</rxjava.version>
     <cloudevent.version>1.1.0</cloudevent.version>
     <weld.version>5.1.2.Final</weld.version>
-    <camel.version>4.5.0</camel.version>
+    <camel.version>4.6.0</camel.version>
 
     <microprofile-reactive-messaging.version>3.0.1</microprofile-reactive-messaging.version>
     <microprofile-reactive-streams.version>3.0</microprofile-reactive-streams.version>
@@ -80,7 +80,7 @@
     <smallrye-testing.version>2.3.0</smallrye-testing.version>
     <smallrye-fault-tolerance.version>6.3.0</smallrye-fault-tolerance.version>
 
-    <micrometer.version>1.12.5</micrometer.version>
+    <micrometer.version>1.13.0</micrometer.version>
 
     <mutiny.version>2.6.0</mutiny.version>
     <artemis.version>2.33.0</artemis.version>
@@ -97,20 +97,20 @@
     <smallrye-reactive-converters.version>3.0.0</smallrye-reactive-converters.version>
     <mutiny-zero.version>1.1.0</mutiny-zero.version>
 
-    <testcontainers.version>1.19.7</testcontainers.version>
+    <testcontainers.version>1.19.8</testcontainers.version>
 
     <sonar.coverage.jacoco.xmlReportPaths>${project.basedir}/target/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
-    <mockito.version>5.11.0</mockito.version>
+    <mockito.version>5.12.0</mockito.version>
     <junit-pioneer.version>2.2.0</junit-pioneer.version>
     <junit-platform-commons.version>1.9.3</junit-platform-commons.version>
     <system-stubs-jupiter.version>2.1.6</system-stubs-jupiter.version>
 
     <jakarta.jms.api.version>3.1.0</jakarta.jms.api.version>
-    <jackson.version>2.17.0</jackson.version>
+    <jackson.version>2.17.1</jackson.version>
     <yasson.version>2.0.3</yasson.version>
 
-    <jandex-maven-plugin.version>3.1.7</jandex-maven-plugin.version>
-    <sundr-maven-plugin.version>0.103.1</sundr-maven-plugin.version>
+    <jandex-maven-plugin.version>3.2.0</jandex-maven-plugin.version>
+    <sundr-maven-plugin.version>0.200.0</sundr-maven-plugin.version>
 
     <nats-embedded.version>2.1.2</nats-embedded.version>
     <slf4j-log4j12.version>2.0.13</slf4j-log4j12.version>
@@ -497,7 +497,7 @@
         <plugin>
           <groupId>org.codehaus.mojo</groupId>
           <artifactId>build-helper-maven-plugin</artifactId>
-          <version>3.5.0</version>
+          <version>3.6.0</version>
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
