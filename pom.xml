@@ -61,7 +61,7 @@
     <maven.compiler.source>11</maven.compiler.source>
     <maven.compiler.target>11</maven.compiler.target>
 
-    <vertx.version>4.5.7</vertx.version>
+    <vertx.version>4.5.8</vertx.version>
     <rxjava.version>2.2.21</rxjava.version>
     <cloudevent.version>1.1.0</cloudevent.version>
     <weld.version>5.1.2.Final</weld.version>
@@ -93,7 +93,7 @@
     <opentelemetry.version>1.31.0-alpha</opentelemetry.version>
     <opentelemetry-semconv.version>1.21.0-alpha</opentelemetry-semconv.version>
 
-    <smallrye-vertx-mutiny-clients.version>3.12.0</smallrye-vertx-mutiny-clients.version>
+    <smallrye-vertx-mutiny-clients.version>3.13.0</smallrye-vertx-mutiny-clients.version>
     <smallrye-reactive-converters.version>3.0.0</smallrye-reactive-converters.version>
     <mutiny-zero.version>1.1.0</mutiny-zero.version>
 
