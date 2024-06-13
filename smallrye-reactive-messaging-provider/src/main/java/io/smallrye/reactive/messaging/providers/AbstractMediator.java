@@ -18,6 +18,7 @@ import jakarta.enterprise.inject.Instance;
 
 import org.eclipse.microprofile.reactive.messaging.Acknowledgment;
 import org.eclipse.microprofile.reactive.messaging.Message;
+import org.eclipse.microprofile.reactive.messaging.Metadata;
 
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
@@ -329,6 +330,11 @@ public abstract class AbstractMediator {
 
     protected Message<Object> payloadToMessage(Object payload) {
         return (payload instanceof GenericPayload) ? ((GenericPayload<Object>) payload).toMessage() : Message.of(payload);
+    }
+
+    protected Message<Object> payloadToMessage(Object payload, Metadata metadata) {
+        return (payload instanceof GenericPayload) ? ((GenericPayload<Object>) payload).toMessage()
+                : Message.of(payload, metadata);
     }
 
 }
