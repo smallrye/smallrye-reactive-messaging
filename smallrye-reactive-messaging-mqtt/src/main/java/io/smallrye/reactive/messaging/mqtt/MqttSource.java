@@ -16,7 +16,6 @@ import io.smallrye.reactive.messaging.mqtt.internal.MqttTopicHelper;
 import io.smallrye.reactive.messaging.mqtt.session.MqttClientSessionOptions;
 import io.smallrye.reactive.messaging.mqtt.session.RequestedQoS;
 import io.smallrye.reactive.messaging.providers.helpers.VertxContext;
-import io.smallrye.reactive.messaging.providers.impl.ConcurrencyConnectorConfig;
 import io.vertx.core.impl.VertxInternal;
 import io.vertx.mutiny.core.Context;
 import io.vertx.mutiny.core.Vertx;
@@ -54,9 +53,7 @@ public class MqttSource {
         } else {
             pattern = null;
         }
-        final Context root = ConcurrencyConnectorConfig.getConcurrency(config.config).filter(i -> i > 1)
-                .map(__ -> Context.newInstance(((VertxInternal) vertx.getDelegate()).createEventLoopContext()))
-                .orElse(null);
+        final Context root = Context.newInstance(((VertxInternal) vertx.getDelegate()).createEventLoopContext());
         holder = Clients.getHolder(vertx, options);
         holder.start().onSuccess(ignore -> started.set(true));
         holder.getClient()
@@ -69,7 +66,7 @@ public class MqttSource {
 
         this.source = holder.stream()
                 .select().where(m -> MqttTopicHelper.matches(topic, pattern, m))
-                .plug(m -> (root != null) ? m.emitOn(c -> VertxContext.runOnContext(root.getDelegate(), c)) : m)
+                .emitOn(c -> VertxContext.runOnContext(root.getDelegate(), c))
                 .onItem().transform(m -> new ReceivingMqttMessage(m, onNack))
                 .stage(multi -> {
                     if (broadcast)

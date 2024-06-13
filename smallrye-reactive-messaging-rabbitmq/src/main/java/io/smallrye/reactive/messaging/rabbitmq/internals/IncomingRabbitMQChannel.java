@@ -22,7 +22,6 @@ import io.smallrye.mutiny.tuples.Tuple2;
 import io.smallrye.reactive.messaging.health.HealthReport;
 import io.smallrye.reactive.messaging.providers.helpers.CDIUtils;
 import io.smallrye.reactive.messaging.providers.helpers.VertxContext;
-import io.smallrye.reactive.messaging.providers.impl.ConcurrencyConnectorConfig;
 import io.smallrye.reactive.messaging.rabbitmq.ClientHolder;
 import io.smallrye.reactive.messaging.rabbitmq.IncomingRabbitMQMessage;
 import io.smallrye.reactive.messaging.rabbitmq.RabbitMQConnector;
@@ -131,10 +130,7 @@ public class IncomingRabbitMQChannel {
                     .subscribe().with(ignored -> promise.complete(), promise::fail);
         });
 
-        Context root = null;
-        if (ConcurrencyConnectorConfig.getConcurrency(ic.config()).filter(i -> i > 1).isPresent()) {
-            root = Context.newInstance(((VertxInternal) connector.vertx().getDelegate()).createEventLoopContext());
-        }
+        Context root = Context.newInstance(((VertxInternal) connector.vertx().getDelegate()).createEventLoopContext());
         final ClientHolder holder = new ClientHolder(client, ic, connector.vertx(), root);
         return holder.getOrEstablishConnection()
                 .invoke(() -> log.connectionEstablished(ic.getChannel()))
