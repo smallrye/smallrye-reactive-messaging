@@ -34,6 +34,7 @@ import io.smallrye.reactive.messaging.providers.extension.MediatorManager;
 import io.smallrye.reactive.messaging.providers.extension.MutinyEmitterFactoryImpl;
 import io.smallrye.reactive.messaging.providers.extension.ObservationDecorator;
 import io.smallrye.reactive.messaging.providers.extension.OutgoingObservationDecorator;
+import io.smallrye.reactive.messaging.providers.extension.PausableChannelDecorator;
 import io.smallrye.reactive.messaging.providers.extension.ReactiveMessagingExtension;
 import io.smallrye.reactive.messaging.providers.impl.ConfiguredChannelFactory;
 import io.smallrye.reactive.messaging.providers.impl.ConnectorFactories;
@@ -123,6 +124,7 @@ public class WeldTestBaseWithoutTails {
                 LegacyEmitterFactoryImpl.class,
                 OutgoingInterceptorDecorator.class,
                 IncomingInterceptorDecorator.class,
+                PausableChannelDecorator.class,
                 // Observation Decorator
                 ObservationDecorator.class,
                 OutgoingObservationDecorator.class,
