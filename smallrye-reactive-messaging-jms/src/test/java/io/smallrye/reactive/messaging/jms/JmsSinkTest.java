@@ -276,14 +276,21 @@ public class JmsSinkTest extends JmsTestBase {
                 .extracting(m -> m.getBody(String.class))
                 .containsExactly("1"));
 
+        // close client
+        close();
+
         // send just before stopping
         bean.send("2");
         stopArtemis();
+
+        assertThat(received).hasSize(1);
+
         startArtemis();
 
         // send after restart
         bean.send("3");
 
+        // init the client
         init();
         consumer = jms.createConsumer(q);
         consumer.setMessageListener(received::add);
