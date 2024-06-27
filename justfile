@@ -28,21 +28,6 @@ test-ci:
 perform-release: pre-release release post-release
     @echo "🎉 Successfully released Smallrye Reactive Messaging ${RELEASE_VERSION} 🚀"
 
-# Decrypt secrets
-decrypt-secrets:
-    @if [[ -z "${SECRET_FILES_PASSPHRASE}" ]]; then exit 1; fi
-    @echo "🔐 Decrypting smallrye signature"
-    gpg --quiet --batch --yes --decrypt --passphrase="${SECRET_FILES_PASSPHRASE}" \
-        --output smallrye-sign.asc .build/smallrye-sign.asc.gpg
-    @echo "🔐 Decrypting Maven settings"
-    gpg --quiet --batch --yes --decrypt --passphrase="${SECRET_FILES_PASSPHRASE}" \
-        --output maven-settings.xml .build/maven-settings.xml.gpg
-
-# Initialize GnuPG
-init-gpg:
-    @echo "🔐 GnuPG setup"
-    gpg --fast-import --no-tty --batch --yes smallrye-sign.asc
-
 # Initialize Git
 init-git:
     @echo "🔀 Git setup"
@@ -50,16 +35,16 @@ init-git:
     git config --global user.email "smallrye@googlegroups.com"
 
 # Steps before releasing
-pre-release: decrypt-secrets init-gpg init-git
+pre-release: init-git
     @echo "🚀 Pre-release steps..."
     @if [[ -z "${RELEASE_TOKEN}" ]]; then exit 1; fi
     @if [[ -z "${RELEASE_VERSION}" ]]; then exit 1; fi
     @echo "Pre-release verifications"
     jbang .build/PreRelease.java --token=${RELEASE_TOKEN} --release-version=${RELEASE_VERSION}
     @echo "Bump project version to ${RELEASE_VERSION}"
-    ./mvnw -B -ntp versions:set -DnewVersion=${RELEASE_VERSION} -DgenerateBackupPoms=false -s .build/ci-maven-settings.xml
+    ./mvnw -B -ntp versions:set -DnewVersion=${RELEASE_VERSION} -DgenerateBackupPoms=false
     @echo "Check that the project builds (no tests)"
-    ./mvnw -B -ntp clean install -Prelease -DskipTests -s maven-settings.xml
+    ./mvnw -B -ntp clean install -Prelease -DskipTests
     @echo "Check that the website builds"
     -[[ ${DEPLOY_WEBSITE} == "true" ]] && cd documentation && pipenv install && pipenv run mkdocs build
 
@@ -74,22 +59,22 @@ release: pre-release
     git push
     jbang .build/CompatibilityUtils.java extract
     @echo "Call JReleaser"
-    ./mvnw -B -ntp jreleaser:full-release -Pjreleaser -pl :smallrye-reactive-messaging -s .build/ci-maven-settings.xml
+    ./mvnw -B -ntp jreleaser:full-release -Pjreleaser -pl :smallrye-reactive-messaging
+    -[[ ${DEPLOY_WEBSITE} == "true" ]] && just deploy-docs
     @echo "Bump to 999-SNAPSHOT and push upstream"
-    ./mvnw -B -ntp versions:set -DnewVersion=999-SNAPSHOT -DgenerateBackupPoms=false -s .build/ci-maven-settings.xml
+    ./mvnw -B -ntp versions:set -DnewVersion=999-SNAPSHOT -DgenerateBackupPoms=false
     git commit -am "[RELEASE] - Next development version: 999-SNAPSHOT"
     git push
 
 # Deploy to Maven Central
-deploy-to-maven-central: decrypt-secrets init-gpg
+deploy-to-maven-central:
     @echo "🔖 Deploy to Maven Central"
-    ./mvnw -B -ntp deploy -Prelease -DskipTests -s maven-settings.xml
+    ./mvnw -B -ntp deploy -Prelease -DskipTests
 
 # Steps post-release
 post-release:
     @echo "🚀 Post-release steps..."
     -[[ ${CLEAR_REVAPI} == "true" ]] && just clear-revapi
-    -[[ ${DEPLOY_WEBSITE} == "true" ]] && just deploy-docs
 
 # Update Pulsar Connector Configuration Documentation
 update-pulsar-config-docs:
@@ -98,9 +83,13 @@ update-pulsar-config-docs:
 
 # Deploy documentation
 deploy-docs:
-    @echo "📝 Deploying documentation to GitHub"
-    @if [[ -z "${RELEASE_VERSION}" ]]; then exit 1; fi
-    ./mvnw -B -ntp clean compile -f documentation && cd documentation && pipenv install && pipenv run mike deploy --update-aliases --push --remote origin "${RELEASE_VERSION}" "latest"
+    #!/usr/bin/env bash
+    echo "📝 Deploying documentation to GitHub"
+    if [[ -z "${RELEASE_VERSION}" ]]; then exit 1; fi
+    ./mvnw -B -ntp clean compile -pl documentation
+    cd documentation
+    pipenv install
+    pipenv run mike deploy --update-aliases --push --remote origin "${RELEASE_VERSION}" "latest"
 
 # Clear RevAPI justifications
 clear-revapi:
