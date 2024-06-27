@@ -148,7 +148,7 @@ public class TracingAmqpToAppToAmqpTest extends AmqpBrokerTestBase {
             assertEquals(PRODUCER, producer.getKind());
             assertEquals("result-topic", producer.getAttributes().get(MESSAGING_DESTINATION_NAME));
             assertEquals("result-topic publish", producer.getName());
-            assertNull(producer.getAttributes().get(MESSAGING_OPERATION));
+            assertEquals("publish", producer.getAttributes().get(MESSAGING_OPERATION));
         });
     }
 

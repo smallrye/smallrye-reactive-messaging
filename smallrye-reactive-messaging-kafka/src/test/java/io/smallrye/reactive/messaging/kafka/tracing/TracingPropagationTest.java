@@ -113,8 +113,9 @@ public class TracingPropagationTest extends KafkaCompanionTestBase {
 
             SpanData span = spans.get(0);
             assertEquals(SpanKind.PRODUCER, span.getKind());
-            assertEquals(4, span.getAttributes().size());
+            assertEquals(5, span.getAttributes().size());
             assertEquals("kafka", span.getAttributes().get(MESSAGING_SYSTEM));
+            assertEquals("publish", span.getAttributes().get(MESSAGING_OPERATION));
             assertEquals(topic, span.getAttributes().get(MESSAGING_DESTINATION_NAME));
             assertEquals("kafka-producer-kafka", span.getAttributes().get(MESSAGING_KAFKA_CLIENT_ID));
             assertEquals(0, span.getAttributes().get(MESSAGING_KAFKA_MESSAGE_OFFSET));
@@ -150,8 +151,9 @@ public class TracingPropagationTest extends KafkaCompanionTestBase {
 
             SpanData span = spans.get(0);
             assertEquals(SpanKind.PRODUCER, span.getKind());
-            assertEquals(4, span.getAttributes().size());
+            assertEquals(5, span.getAttributes().size());
             assertEquals("kafka", span.getAttributes().get(MESSAGING_SYSTEM));
+            assertEquals("publish", span.getAttributes().get(MESSAGING_OPERATION));
             assertEquals(topic, span.getAttributes().get(MESSAGING_DESTINATION_NAME));
             assertEquals("kafka-producer-kafka", span.getAttributes().get(MESSAGING_KAFKA_CLIENT_ID));
             assertEquals(0, span.getAttributes().get(MESSAGING_KAFKA_MESSAGE_OFFSET));
@@ -186,8 +188,9 @@ public class TracingPropagationTest extends KafkaCompanionTestBase {
 
             SpanData span = spans.get(0);
             assertEquals(SpanKind.PRODUCER, span.getKind());
-            assertEquals(4, span.getAttributes().size());
+            assertEquals(5, span.getAttributes().size());
             assertEquals("kafka", span.getAttributes().get(MESSAGING_SYSTEM));
+            assertEquals("publish", span.getAttributes().get(MESSAGING_OPERATION));
             assertEquals(topic, span.getAttributes().get(MESSAGING_DESTINATION_NAME));
             assertEquals("kafka-producer-kafka", span.getAttributes().get(MESSAGING_KAFKA_CLIENT_ID));
             assertEquals(0, span.getAttributes().get(MESSAGING_KAFKA_MESSAGE_OFFSET));
@@ -242,8 +245,9 @@ public class TracingPropagationTest extends KafkaCompanionTestBase {
             SpanData producer = spans.stream().filter(spanData -> spanData.getParentSpanId().equals(consumer.getSpanId()))
                     .findFirst().get();
             assertEquals(SpanKind.PRODUCER, producer.getKind());
-            assertEquals(4, producer.getAttributes().size());
+            assertEquals(5, producer.getAttributes().size());
             assertEquals("kafka", producer.getAttributes().get(MESSAGING_SYSTEM));
+            assertEquals("publish", producer.getAttributes().get(MESSAGING_OPERATION));
             assertEquals(resultTopic, producer.getAttributes().get(MESSAGING_DESTINATION_NAME));
             assertEquals("kafka-producer-kafka", producer.getAttributes().get(MESSAGING_KAFKA_CLIENT_ID));
             assertEquals(0, producer.getAttributes().get(MESSAGING_KAFKA_MESSAGE_OFFSET));
