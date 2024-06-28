@@ -34,6 +34,7 @@ nav:
             - 'Message Context' : concepts/message-context.md
             - 'Metadata Injection': concepts/incoming-metadata-injection.md
             - 'Generic Payloads': concepts/generic-payloads.md
+            - 'Pausable Channels': concepts/pausable-channels.md
 
   - Kafka:
         - kafka/kafka.md

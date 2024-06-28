@@ -22,9 +22,12 @@ import org.eclipse.microprofile.reactive.messaging.spi.*;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.ChannelRegistar;
 import io.smallrye.reactive.messaging.ChannelRegistry;
+import io.smallrye.reactive.messaging.PausableChannelConfiguration;
 import io.smallrye.reactive.messaging.PublisherDecorator;
 import io.smallrye.reactive.messaging.connector.InboundConnector;
 import io.smallrye.reactive.messaging.connector.OutboundConnector;
+import io.smallrye.reactive.messaging.providers.DefaultPausableChannelConfiguration;
+import io.smallrye.reactive.messaging.providers.extension.PausableChannelDecorator;
 import io.smallrye.reactive.messaging.providers.helpers.MultiUtils;
 
 /**
@@ -139,12 +142,14 @@ public class ConfiguredChannelFactory implements ChannelRegistar {
                 if (config.getOptionalValue(ConnectorConfig.CHANNEL_ENABLED_PROPERTY, Boolean.TYPE).orElse(true)) {
                     int concurrency = getConcurrency(config).orElse(1);
                     if (concurrency <= 1) {
+                        addPausableChannelConfiguration(channel, config);
                         registry.register(channel, createPublisher(channel, config),
                                 config.getOptionalValue(ConnectorConfig.BROADCAST_PROPERTY, Boolean.class).orElse(false));
                     } else {
                         for (int i = 0; i < concurrency; i++) {
                             ConcurrencyConnectorConfig indexedConfig = new ConcurrencyConnectorConfig(config, i + 1);
                             String indexedChannel = indexedConfig.getIndexedChannel();
+                            addPausableChannelConfiguration(indexedChannel, indexedConfig);
                             registry.register(channel, createPublisher(indexedChannel, indexedConfig),
                                     config.getOptionalValue(ConnectorConfig.BROADCAST_PROPERTY, Boolean.class).orElse(false));
                         }
@@ -158,6 +163,7 @@ public class ConfiguredChannelFactory implements ChannelRegistar {
                 String channel = entry.getKey();
                 ConnectorConfig config = entry.getValue();
                 if (config.getOptionalValue(ConnectorConfig.CHANNEL_ENABLED_PROPERTY, Boolean.TYPE).orElse(true)) {
+                    addPausableChannelConfiguration(channel, config);
                     registry.register(channel, createSubscriber(channel, config),
                             config.getOptionalValue(ConnectorConfig.MERGE_PROPERTY, Boolean.class).orElse(false));
                 } else {
@@ -167,6 +173,20 @@ public class ConfiguredChannelFactory implements ChannelRegistar {
         } catch (RuntimeException e) { // NOSONAR
             log.unableToCreatePublisherOrSubscriber(e);
             throw e;
+        }
+    }
+
+    private void addPausableChannelConfiguration(String channel, ConnectorConfig config) {
+        Instance<PausableChannelDecorator> select = publisherDecoratorInstance.select(PausableChannelDecorator.class);
+        if (select.isResolvable()) {
+            PausableChannelDecorator pausableChannels = select.get();
+            config.getOptionalValue(PausableChannelConfiguration.PAUSABLE_PROPERTY, Boolean.class).ifPresent(pausable -> {
+                if (pausable) {
+                    pausableChannels.addConfiguration(new DefaultPausableChannelConfiguration(channel,
+                            config.getOptionalValue(PausableChannelConfiguration.PAUSED_PROPERTY, Boolean.class)
+                                    .orElse(false)));
+                }
+            });
         }
     }
 
