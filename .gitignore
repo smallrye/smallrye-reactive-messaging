@@ -140,3 +140,7 @@ local.properties
 **/nb*.xml
 
 **/.cache/formatter-maven-cache.properties
+
+# File created during the release on the CI
+maven-settings.xml
+smallrye-sign.asc

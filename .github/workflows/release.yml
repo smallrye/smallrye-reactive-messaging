@@ -24,7 +24,6 @@ jobs:
         env:
             GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
             RELEASE_TOKEN: ${{ secrets.RELEASE_TOKEN }}
-            SECRET_FILES_PASSPHRASE: ${{ secrets.SECRET_FILES_PASSPHRASE }}
             RELEASE_VERSION: ${{ github.event.inputs.version }}
             DEPLOY_WEBSITE: ${{ github.event.inputs.deployWebsite }}
             CLEAR_REVAPI: ${{ github.event.inputs.clearRevAPI }}
