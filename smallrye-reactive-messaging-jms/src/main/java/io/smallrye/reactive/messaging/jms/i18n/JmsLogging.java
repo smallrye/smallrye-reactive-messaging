@@ -43,4 +43,16 @@ public interface JmsLogging extends BasicLogger {
     @LogMessage(level = Logger.Level.WARN)
     @Message(id = 15806, value = "JMS Exception occurred. Closing the JMS context %s")
     void jmsException(String channelName, @Cause Throwable e);
+
+    @LogMessage(level = Logger.Level.WARN)
+    @Message(id = 15807, value = "A message sent to channel `%s` has been nacked, ignored failure is: %s.")
+    void messageNackedIgnore(String channel, String message);
+
+    @LogMessage(level = Logger.Level.DEBUG)
+    @Message(id = 15808, value = "The full ignored failure is")
+    void messageNackedFullIgnored(@Cause Throwable reason);
+
+    @LogMessage(level = Logger.Level.ERROR)
+    @Message(id = 15809, value = "A message sent to channel `%s` has been nacked, fail-stop")
+    void messageNackedFailStop(String channel);
 }

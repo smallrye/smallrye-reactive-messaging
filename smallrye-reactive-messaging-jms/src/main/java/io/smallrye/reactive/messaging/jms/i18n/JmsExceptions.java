@@ -56,4 +56,7 @@ public interface JmsExceptions {
     @Message(id = 15613, value = "There is already a subscriber")
     IllegalStateException illegalStateAlreadySubscriber();
 
+    @Message(id = 18614, value = "Invalid failure strategy: %s")
+    IllegalArgumentException illegalArgumentInvalidFailureStrategy(String strategy);
+
 }
