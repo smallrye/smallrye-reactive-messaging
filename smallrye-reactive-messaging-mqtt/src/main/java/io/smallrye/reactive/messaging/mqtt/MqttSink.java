@@ -32,6 +32,7 @@ public class MqttSink {
     private final String topic;
     private final int qos;
     private final boolean healthEnabled;
+    private final boolean retain;
 
     private final Flow.Subscriber<? extends Message<?>> sink;
 
@@ -48,6 +49,7 @@ public class MqttSink {
         topic = config.getTopic().orElse(channel);
         qos = config.getQos();
         healthEnabled = config.getHealthEnabled();
+        retain = config.getRetain();
 
         sink = MultiUtils.via(m -> m.onSubscription()
                 .call(() -> {
@@ -89,7 +91,7 @@ public class MqttSink {
             isRetain = mm.isRetain();
         } else {
             actualTopicToBeUsed = this.topic;
-            isRetain = false;
+            isRetain = this.retain;
             actualQoS = MqttQoS.valueOf(this.qos);
         }
 
