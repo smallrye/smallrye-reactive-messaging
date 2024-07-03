@@ -5,14 +5,17 @@ import static org.awaitility.Awaitility.await;
 import static org.hamcrest.core.Is.is;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Flow.Subscriber;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.eclipse.microprofile.reactive.messaging.Message;
+import org.eclipse.paho.client.mqttv3.MqttMessage;
 import org.jboss.weld.environment.se.Weld;
 import org.jboss.weld.environment.se.WeldContainer;
 import org.junit.jupiter.api.AfterEach;
@@ -144,6 +147,42 @@ public class MqttSinkTest extends MqttTestBase {
         container = weld.initialize();
 
         assertThat(latch.await(10, TimeUnit.SECONDS)).isTrue();
+
+    }
+
+    @Test
+    public void testSinkUsingRawWithRetain() throws InterruptedException {
+        String topic = UUID.randomUUID().toString();
+        CountDownLatch latch = new CountDownLatch(1);
+        List<MqttMessage> expected = new CopyOnWriteArrayList<>();
+        usage.consumeRaw(topic, 10, 10, TimeUnit.SECONDS,
+                latch::countDown,
+                (top, msg) -> expected.add(msg));
+
+        Map<String, Object> config = new HashMap<>();
+        config.put("channel-name", topic);
+        config.put("topic", topic);
+        config.put("host", address);
+        config.put("port", port);
+        config.put("retain", true);
+        MqttSink sink = new MqttSink(vertx, new MqttConnectorOutgoingConfiguration(new MapBasedConfig(config)), null);
+
+        Subscriber<? extends Message<?>> subscriber = sink.getSink();
+        Multi.createFrom().range(1_234, 1_244)
+                .map(Message::of)
+                .subscribe((Subscriber<? super Message<Integer>>) subscriber);
+
+        assertThat(latch.await(1, TimeUnit.MINUTES)).isTrue();
+        await().untilAsserted(() -> assertThat(expected).hasSize(10)
+                .allSatisfy(m -> assertThat(m.isRetained()).isFalse()));
+
+        List<MqttMessage> expectedRetained = new CopyOnWriteArrayList<>();
+        usage.consumeRaw(topic, 10, 10, TimeUnit.SECONDS,
+                latch::countDown,
+                (top, msg) -> expectedRetained.add(msg));
+
+        await().pollDelay(2, TimeUnit.SECONDS).untilAsserted(() -> assertThat(expectedRetained).hasSize(1)
+                .allSatisfy(m -> assertThat(m.isRetained()).isTrue()));
 
     }
 
