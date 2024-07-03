@@ -90,8 +90,8 @@
 
     <kafka.version>3.7.1</kafka.version>
 
-    <opentelemetry.version>1.32.0-alpha</opentelemetry.version>
-    <opentelemetry-semconv.version>1.21.0-alpha</opentelemetry-semconv.version>
+    <opentelemetry.instrumentation.version>2.5.0-alpha</opentelemetry.instrumentation.version>
+    <opentelemetry-semconv.version>1.25.0-alpha</opentelemetry-semconv.version>
 
     <smallrye-vertx-mutiny-clients.version>3.13.0</smallrye-vertx-mutiny-clients.version>
     <smallrye-reactive-converters.version>3.0.0</smallrye-reactive-converters.version>
@@ -282,7 +282,7 @@
       <dependency>
         <groupId>io.opentelemetry.instrumentation</groupId>
         <artifactId>opentelemetry-instrumentation-bom-alpha</artifactId>
-        <version>${opentelemetry.version}</version>
+        <version>${opentelemetry.instrumentation.version}</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>

@@ -1,9 +1,12 @@
 package io.smallrye.reactive.messaging.amqp.tracing;
 
+import java.util.Collections;
+import java.util.List;
+
 import io.opentelemetry.api.common.AttributesBuilder;
 import io.opentelemetry.context.Context;
+import io.opentelemetry.instrumentation.api.incubator.semconv.messaging.MessagingAttributesGetter;
 import io.opentelemetry.instrumentation.api.instrumenter.AttributesExtractor;
-import io.opentelemetry.instrumentation.api.instrumenter.messaging.MessagingAttributesGetter;
 import io.smallrye.reactive.messaging.amqp.AmqpMessage;
 
 public class AmqpAttributesExtractor implements AttributesExtractor<AmqpMessage<?>, Void> {
@@ -61,21 +64,44 @@ public class AmqpAttributesExtractor implements AttributesExtractor<AmqpMessage<
 
         // Recommended
         @Override
-        public Long getMessagePayloadSize(final AmqpMessage<?> amqpMessage) {
-            return null;
-        }
-
-        // Recommended
-        @Override
-        public Long getMessagePayloadCompressedSize(final AmqpMessage<?> amqpMessage) {
-            return null;
-        }
-
-        // Recommended
-        @Override
         public String getMessageId(final AmqpMessage<?> amqpMessage, final Void unused) {
             Object messageId = amqpMessage.getMessageId();
             return messageId instanceof String ? (String) messageId : null;
+        }
+
+        @Override
+        public List<String> getMessageHeader(AmqpMessage<?> amqpMessage, String name) {
+            return Collections.emptyList();
+        }
+
+        @Override
+        public String getDestinationTemplate(AmqpMessage<?> amqpMessage) {
+            return null;
+        }
+
+        @Override
+        public boolean isAnonymousDestination(AmqpMessage<?> amqpMessage) {
+            return false;
+        }
+
+        @Override
+        public Long getMessageBodySize(AmqpMessage<?> amqpMessage) {
+            return null;
+        }
+
+        @Override
+        public Long getMessageEnvelopeSize(AmqpMessage<?> amqpMessage) {
+            return null;
+        }
+
+        @Override
+        public String getClientId(AmqpMessage<?> amqpMessage) {
+            return null;
+        }
+
+        @Override
+        public Long getBatchMessageCount(AmqpMessage<?> amqpMessage, Void unused) {
+            return null;
         }
     }
 }

@@ -3,7 +3,10 @@ package ${package}.tracing;
 import io.opentelemetry.api.common.AttributesBuilder;
 import io.opentelemetry.context.Context;
 import io.opentelemetry.instrumentation.api.instrumenter.AttributesExtractor;
-import io.opentelemetry.instrumentation.api.instrumenter.messaging.MessagingAttributesGetter;
+import io.opentelemetry.instrumentation.api.incubator.semconv.messaging.MessagingAttributesGetter;
+
+import java.util.Collections;
+import java.util.List;
 
 public class ${connectorPrefix}AttributesExtractor implements AttributesExtractor<${connectorPrefix}Trace, Void> {
     private final MessagingAttributesGetter<${connectorPrefix}Trace, Void> messagingAttributesGetter;
@@ -53,17 +56,42 @@ public class ${connectorPrefix}AttributesExtractor implements AttributesExtracto
         }
 
         @Override
-        public Long getMessagePayloadSize(final ${connectorPrefix}Trace myTrace) {
-            return null;
-        }
-
-        @Override
-        public Long getMessagePayloadCompressedSize(final ${connectorPrefix}Trace myTrace) {
-            return null;
-        }
-
-        @Override
         public String getMessageId(final ${connectorPrefix}Trace myTrace, final Void unused) {
+            return null;
+        }
+
+        @Override
+        public List<String> getMessageHeader(final ${connectorPrefix}Trace myTrace, final String name) {
+            return Collections.emptyList();
+        }
+
+        @Override
+        public String getDestinationTemplate(final ${connectorPrefix}Trace myTrace) {
+            return null;
+        }
+
+        @Override
+        public boolean isAnonymousDestination(final ${connectorPrefix}Trace myTrace) {
+            return false;
+        }
+
+        @Override
+        public Long getMessageBodySize(final ${connectorPrefix}Trace myTrace) {
+            return null;
+        }
+
+        @Override
+        public Long getMessageEnvelopeSize(final ${connectorPrefix}Trace myTrace) {
+            return null;
+        }
+
+        @Override
+        public String getClientId(final ${connectorPrefix}Trace myTrace) {
+            return null;
+        }
+
+        @Override
+        public Long getBatchMessageCount(final ${connectorPrefix}Trace myTrace, final Void unused) {
             return null;
         }
     }
