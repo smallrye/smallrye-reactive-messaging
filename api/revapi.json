@@ -27,18 +27,7 @@
     "criticality" : "highlight",
     "minSeverity" : "POTENTIALLY_BREAKING",
     "minCriticality" : "documented",
-    "differences" : [
-        {
-            "code": "java.method.addedToInterface",
-            "new": "method io.smallrye.reactive.messaging.PausableChannel io.smallrye.reactive.messaging.ChannelRegistry::getPausable(java.lang.String)",
-            "justification": "Added PausableChannel to the ChannelRegistry interface to allow pausing and resuming channels."
-        },
-        {
-            "code": "java.method.addedToInterface",
-            "new": "method void io.smallrye.reactive.messaging.ChannelRegistry::register(java.lang.String, io.smallrye.reactive.messaging.PausableChannel)",
-            "justification": "Added PausableChannel to the ChannelRegistry interface to allow pausing and resuming channels."
-        }
-    ]
+    "differences" : [ ]
   }
 }, {
   "extension" : "revapi.reporter.json",
