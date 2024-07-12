@@ -2,10 +2,13 @@ package io.smallrye.reactive.messaging.pulsar.tracing;
 
 import static io.opentelemetry.semconv.SemanticAttributes.MESSAGING_CONSUMER_ID;
 
+import java.util.Collections;
+import java.util.List;
+
 import io.opentelemetry.api.common.AttributesBuilder;
 import io.opentelemetry.context.Context;
+import io.opentelemetry.instrumentation.api.incubator.semconv.messaging.MessagingAttributesGetter;
 import io.opentelemetry.instrumentation.api.instrumenter.AttributesExtractor;
-import io.opentelemetry.instrumentation.api.instrumenter.messaging.MessagingAttributesGetter;
 
 public class PulsarAttributesExtractor implements AttributesExtractor<PulsarTrace, Void> {
     private final MessagingAttributesGetter<PulsarTrace, Void> messagingAttributesGetter;
@@ -56,18 +59,43 @@ public class PulsarAttributesExtractor implements AttributesExtractor<PulsarTrac
         }
 
         @Override
-        public Long getMessagePayloadSize(PulsarTrace pulsarTrace) {
-            return pulsarTrace.getUncompressedPayloadSize();
+        public String getMessageId(PulsarTrace pulsarTrace, Void unused) {
+            return pulsarTrace.getMessageId();
         }
 
         @Override
-        public Long getMessagePayloadCompressedSize(PulsarTrace pulsarTrace) {
+        public List<String> getMessageHeader(PulsarTrace pulsarTrace, String name) {
+            return Collections.emptyList();
+        }
+
+        @Override
+        public String getDestinationTemplate(PulsarTrace pulsarTrace) {
             return null;
         }
 
         @Override
-        public String getMessageId(PulsarTrace pulsarTrace, Void unused) {
-            return pulsarTrace.getMessageId();
+        public boolean isAnonymousDestination(PulsarTrace pulsarTrace) {
+            return false;
+        }
+
+        @Override
+        public Long getMessageBodySize(PulsarTrace pulsarTrace) {
+            return pulsarTrace.getUncompressedPayloadSize();
+        }
+
+        @Override
+        public Long getMessageEnvelopeSize(PulsarTrace pulsarTrace) {
+            return null;
+        }
+
+        @Override
+        public String getClientId(PulsarTrace pulsarTrace) {
+            return null;
+        }
+
+        @Override
+        public Long getBatchMessageCount(PulsarTrace pulsarTrace, Void unused) {
+            return null;
         }
     }
 }

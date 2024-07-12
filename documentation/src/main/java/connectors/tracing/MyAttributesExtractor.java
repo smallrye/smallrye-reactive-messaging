@@ -1,9 +1,12 @@
 package connectors.tracing;
 
+import java.util.Collections;
+import java.util.List;
+
 import io.opentelemetry.api.common.AttributesBuilder;
 import io.opentelemetry.context.Context;
+import io.opentelemetry.instrumentation.api.incubator.semconv.messaging.MessagingAttributesGetter;
 import io.opentelemetry.instrumentation.api.instrumenter.AttributesExtractor;
-import io.opentelemetry.instrumentation.api.instrumenter.messaging.MessagingAttributesGetter;
 
 public class MyAttributesExtractor implements AttributesExtractor<MyTrace, Void> {
     private final MessagingAttributesGetter<MyTrace, Void> messagingAttributesGetter;
@@ -66,5 +69,41 @@ public class MyAttributesExtractor implements AttributesExtractor<MyTrace, Void>
         public String getMessageId(final MyTrace myTrace, final Void unused) {
             return null;
         }
+
+        @Override
+        public List<String> getMessageHeader(MyTrace myTrace, String name) {
+            return Collections.emptyList();
+        }
+
+        @Override
+        public String getDestinationTemplate(MyTrace myTrace) {
+            return null;
+        }
+
+        @Override
+        public boolean isAnonymousDestination(MyTrace myTrace) {
+            return false;
+        }
+
+        @Override
+        public Long getMessageBodySize(MyTrace myTrace) {
+            return null;
+        }
+
+        @Override
+        public Long getMessageEnvelopeSize(MyTrace myTrace) {
+            return null;
+        }
+
+        @Override
+        public String getClientId(MyTrace myTrace) {
+            return null;
+        }
+
+        @Override
+        public Long getBatchMessageCount(MyTrace myTrace, Void unused) {
+            return null;
+        }
+
     }
 }
