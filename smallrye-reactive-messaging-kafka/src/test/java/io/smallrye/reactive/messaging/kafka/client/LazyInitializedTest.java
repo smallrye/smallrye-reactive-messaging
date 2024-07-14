@@ -44,6 +44,7 @@ public class LazyInitializedTest extends WeldTestBase {
         Map<String, Object> props = new HashMap<>();
         props.put("tracing-enabled", false);
         props.put("lazy-client", true);
+        props.put("retries", 0L);
         props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, "invalid-bootstrap-servers");
         props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, IntegerSerializer.class.getName());
         props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());

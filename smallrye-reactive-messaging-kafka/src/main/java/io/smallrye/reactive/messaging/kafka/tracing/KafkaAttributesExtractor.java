@@ -1,15 +1,17 @@
 package io.smallrye.reactive.messaging.kafka.tracing;
 
 import static io.opentelemetry.semconv.SemanticAttributes.MESSAGING_CONSUMER_ID;
-import static io.opentelemetry.semconv.SemanticAttributes.MESSAGING_KAFKA_CLIENT_ID;
 import static io.opentelemetry.semconv.SemanticAttributes.MESSAGING_KAFKA_CONSUMER_GROUP;
 import static io.opentelemetry.semconv.SemanticAttributes.MESSAGING_KAFKA_MESSAGE_OFFSET;
 import static io.opentelemetry.semconv.SemanticAttributes.MESSAGING_KAFKA_PARTITION;
 
+import java.util.Collections;
+import java.util.List;
+
 import io.opentelemetry.api.common.AttributesBuilder;
 import io.opentelemetry.context.Context;
+import io.opentelemetry.instrumentation.api.incubator.semconv.messaging.MessagingAttributesGetter;
 import io.opentelemetry.instrumentation.api.instrumenter.AttributesExtractor;
-import io.opentelemetry.instrumentation.api.instrumenter.messaging.MessagingAttributesGetter;
 
 public class KafkaAttributesExtractor implements AttributesExtractor<KafkaTrace, Void> {
     private final MessagingAttributesGetter<KafkaTrace, Void> messagingAttributesGetter;
@@ -38,9 +40,6 @@ public class KafkaAttributesExtractor implements AttributesExtractor<KafkaTrace,
         }
         if (groupId != null) {
             attributes.put(MESSAGING_KAFKA_CONSUMER_GROUP, groupId);
-        }
-        if (clientId != null) {
-            attributes.put(MESSAGING_KAFKA_CLIENT_ID, clientId);
         }
     }
 
@@ -80,17 +79,45 @@ public class KafkaAttributesExtractor implements AttributesExtractor<KafkaTrace,
         }
 
         @Override
-        public Long getMessagePayloadSize(final KafkaTrace kafkaTrace) {
-            return null;
-        }
-
-        @Override
-        public Long getMessagePayloadCompressedSize(final KafkaTrace kafkaTrace) {
-            return null;
-        }
-
-        @Override
         public String getMessageId(final KafkaTrace kafkaTrace, final Void unused) {
+            return null;
+        }
+
+        @Override
+        public List<String> getMessageHeader(KafkaTrace kafkaTrace, String name) {
+            return Collections.emptyList();
+        }
+
+        @Override
+        public String getDestinationTemplate(KafkaTrace kafkaTrace) {
+            return null;
+        }
+
+        @Override
+        public boolean isAnonymousDestination(KafkaTrace kafkaTrace) {
+            return false;
+        }
+
+        @Override
+        public Long getMessageBodySize(KafkaTrace kafkaTrace) {
+            return null;
+        }
+
+        @Override
+        public Long getMessageEnvelopeSize(KafkaTrace kafkaTrace) {
+            return null;
+        }
+
+        @Override
+        public String getClientId(KafkaTrace kafkaTrace) {
+            if (kafkaTrace.getClientId() == null) {
+                return null;
+            }
+            return kafkaTrace.getClientId();
+        }
+
+        @Override
+        public Long getBatchMessageCount(KafkaTrace kafkaTrace, Void unused) {
             return null;
         }
     }

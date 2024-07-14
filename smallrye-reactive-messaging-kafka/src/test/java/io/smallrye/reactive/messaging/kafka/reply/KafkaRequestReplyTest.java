@@ -27,6 +27,7 @@ import org.apache.kafka.common.serialization.StringSerializer;
 import org.eclipse.microprofile.reactive.messaging.Channel;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Message;
+import org.eclipse.microprofile.reactive.messaging.Metadata;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.junit.jupiter.api.Test;
 
@@ -468,13 +469,14 @@ public class KafkaRequestReplyTest extends KafkaCompanionTestBase {
                 .with("reply.auto.offset.reset", "earliest"), RequestReplyProducer.class);
 
         for (int i = 0; i < 10; i++) {
-            app.requestReply().request(i).subscribe().with(replies::add);
+            app.requestReply().request(Message.of(i, Metadata.of(OutgoingKafkaRecordMetadata.builder()
+                    .withKey("" + i).build()))).subscribe().with(r -> replies.add(r.getPayload()));
         }
         await().untilAsserted(() -> assertThat(replies).hasSize(10));
-        assertThat(replies).containsExactly("0", "1", "2", "3", "4", "5", "6", "7", "8", "9");
+        assertThat(replies).containsExactlyInAnyOrder("0", "1", "2", "3", "4", "5", "6", "7", "8", "9");
 
         assertThat(companion.consumeStrings().fromTopics(replyTopic, 10).awaitCompletion())
-                .extracting(ConsumerRecord::value).containsExactly("0", "1", "2", "3", "4", "5", "6", "7", "8", "9");
+                .extracting(ConsumerRecord::value).containsExactlyInAnyOrder("0", "1", "2", "3", "4", "5", "6", "7", "8", "9");
     }
 
     @Test

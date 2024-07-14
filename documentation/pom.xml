@@ -156,7 +156,7 @@
         <!-- Unpack the connector config page to a specific modules in the `partials` family. -->
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-dependency-plugin</artifactId>
-        <version>3.6.1</version>
+        <version>3.7.1</version>
         <executions>
           <execution>
             <id>extract-generated-documentation</id>
@@ -234,7 +234,7 @@
       <plugin>
         <groupId>org.sonatype.plugins</groupId>
         <artifactId>nexus-staging-maven-plugin</artifactId>
-        <version>1.6.13</version>
+        <version>1.7.0</version>
         <configuration>
           <skipNexusStagingDeployMojo>true</skipNexusStagingDeployMojo>
         </configuration>

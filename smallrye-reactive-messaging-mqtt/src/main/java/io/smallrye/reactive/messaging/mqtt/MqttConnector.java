@@ -64,6 +64,7 @@ import io.vertx.mutiny.core.Vertx;
 @ConnectorAttribute(name = "merge", direction = OUTGOING, description = "Whether the connector should allow multiple upstreams", type = "boolean", defaultValue = "false")
 @ConnectorAttribute(name = "buffer-size", direction = INCOMING, description = "The size buffer of incoming messages waiting to be processed", type = "int", defaultValue = "128")
 @ConnectorAttribute(name = "unsubscribe-on-disconnection", direction = INCOMING_AND_OUTGOING, description = "This flag restore the old behavior to unsubscribe from the broken on disconnection", type = "boolean", defaultValue = "false")
+@ConnectorAttribute(name = "retain", direction = OUTGOING, description = "Whether the published message should be retained", type = "boolean", defaultValue = "false")
 public class MqttConnector implements InboundConnector, OutboundConnector, HealthReporter {
 
     static final String CONNECTOR_NAME = "smallrye-mqtt";

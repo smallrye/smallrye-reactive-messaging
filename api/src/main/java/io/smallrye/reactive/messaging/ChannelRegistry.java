@@ -43,4 +43,8 @@ public interface ChannelRegistry {
 
     Map<String, Boolean> getOutgoingChannels();
 
+    void register(String name, PausableChannel pausable);
+
+    PausableChannel getPausable(String name);
+
 }

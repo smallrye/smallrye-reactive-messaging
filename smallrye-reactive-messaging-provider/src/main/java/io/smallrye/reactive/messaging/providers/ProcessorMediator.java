@@ -263,10 +263,10 @@ public class ProcessorMediator extends AbstractMediator {
                     // POST_PROCESSING must not be used when returning an infinite stream
                     AcknowledgementCoordinator coordinator = new AcknowledgementCoordinator(message);
                     return MultiUtils.publisher(AdaptersToFlow.publisher(pb.buildRs()))
-                            .onItem().transform(payload -> coordinator.track(Message.of(payload, message.getMetadata())));
+                            .onItem().transform(payload -> coordinator.track(payloadToMessage(payload, message.getMetadata())));
                 } else {
                     return MultiUtils.publisher(AdaptersToFlow.publisher(pb.buildRs()))
-                            .onItem().transform(payload -> Message.of(payload, message.getMetadata()));
+                            .onItem().transform(payload -> payloadToMessage(payload, message.getMetadata()));
                 }
             });
         };
@@ -281,10 +281,10 @@ public class ProcessorMediator extends AbstractMediator {
                     // POST_PROCESSING must not be used when returning an infinite stream
                     AcknowledgementCoordinator coordinator = new AcknowledgementCoordinator(message);
                     return MultiUtils.publisher(AdaptersToFlow.publisher(pub))
-                            .onItem().transform(payload -> coordinator.track(Message.of(payload, message.getMetadata())));
+                            .onItem().transform(payload -> coordinator.track(payloadToMessage(payload, message.getMetadata())));
                 } else {
                     return MultiUtils.publisher(AdaptersToFlow.publisher(pub))
-                            .onItem().transform(payload -> Message.of(payload, message.getMetadata()));
+                            .onItem().transform(payload -> payloadToMessage(payload, message.getMetadata()));
                 }
             });
         };
@@ -299,10 +299,10 @@ public class ProcessorMediator extends AbstractMediator {
                     // POST_PROCESSING must not be used when returning an infinite stream
                     AcknowledgementCoordinator coordinator = new AcknowledgementCoordinator(message);
                     return MultiUtils.publisher(pub)
-                            .onItem().transform(payload -> coordinator.track(Message.of(payload, message.getMetadata())));
+                            .onItem().transform(payload -> coordinator.track(payloadToMessage(payload, message.getMetadata())));
                 } else {
                     return MultiUtils.publisher(pub)
-                            .onItem().transform(payload -> Message.of(payload, message.getMetadata()));
+                            .onItem().transform(payload -> payloadToMessage(payload, message.getMetadata()));
                 }
             });
         };

@@ -2,7 +2,11 @@ package io.smallrye.reactive.messaging.providers.impl;
 
 import static io.smallrye.reactive.messaging.providers.i18n.ProviderMessages.msg;
 
-import java.util.*;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Flow;
@@ -15,6 +19,7 @@ import org.eclipse.microprofile.reactive.messaging.Message;
 
 import io.smallrye.reactive.messaging.ChannelRegistry;
 import io.smallrye.reactive.messaging.MutinyEmitter;
+import io.smallrye.reactive.messaging.PausableChannel;
 
 @ApplicationScoped
 public class InternalChannelRegistry implements ChannelRegistry {
@@ -26,6 +31,7 @@ public class InternalChannelRegistry implements ChannelRegistry {
     private final Map<String, Boolean> incoming = new ConcurrentHashMap<>();
 
     private final Map<Class<?>, Map<String, Object>> emitters = new ConcurrentHashMap<>();
+    private final Map<String, PausableChannel> pausables = new ConcurrentHashMap<>();
 
     @Override
     public Flow.Publisher<? extends Message<?>> register(String name,
@@ -133,6 +139,16 @@ public class InternalChannelRegistry implements ChannelRegistry {
     @Override
     public Map<String, Boolean> getOutgoingChannels() {
         return incoming;
+    }
+
+    @Override
+    public void register(String name, PausableChannel pausable) {
+        pausables.put(name, pausable);
+    }
+
+    @Override
+    public PausableChannel getPausable(String name) {
+        return pausables.get(name);
     }
 
 }

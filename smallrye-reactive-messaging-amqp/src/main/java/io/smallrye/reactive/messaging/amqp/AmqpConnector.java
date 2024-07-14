@@ -53,7 +53,6 @@ import io.smallrye.reactive.messaging.health.HealthReporter;
 import io.smallrye.reactive.messaging.providers.connectors.ExecutionHolder;
 import io.smallrye.reactive.messaging.providers.helpers.MultiUtils;
 import io.smallrye.reactive.messaging.providers.helpers.VertxContext;
-import io.smallrye.reactive.messaging.providers.impl.ConcurrencyConnectorConfig;
 import io.vertx.amqp.AmqpClientOptions;
 import io.vertx.amqp.AmqpReceiverOptions;
 import io.vertx.amqp.AmqpSenderOptions;
@@ -224,10 +223,7 @@ public class AmqpConnector implements InboundConnector, OutboundConnector, Healt
 
         AmqpClient client = AmqpClientHelper.createClient(this, ic, clientOptions, clientSslContexts);
 
-        Context root = null;
-        if (ConcurrencyConnectorConfig.getConcurrency(config).filter(i -> i > 1).isPresent()) {
-            root = Context.newInstance(((VertxInternal) getVertx().getDelegate()).createEventLoopContext());
-        }
+        Context root = Context.newInstance(((VertxInternal) getVertx().getDelegate()).createEventLoopContext());
         ConnectionHolder holder = new ConnectionHolder(client, ic, getVertx(), root);
         holders.put(ic.getChannel(), holder);
 

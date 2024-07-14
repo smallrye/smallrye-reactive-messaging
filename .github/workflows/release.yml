@@ -24,10 +24,10 @@ jobs:
         env:
             GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
             RELEASE_TOKEN: ${{ secrets.RELEASE_TOKEN }}
-            SECRET_FILES_PASSPHRASE: ${{ secrets.SECRET_FILES_PASSPHRASE }}
             RELEASE_VERSION: ${{ github.event.inputs.version }}
             DEPLOY_WEBSITE: ${{ github.event.inputs.deployWebsite }}
             CLEAR_REVAPI: ${{ github.event.inputs.clearRevAPI }}
+            MAVEN_GPG_PASSPHRASE: ${{ secrets.MAVEN_GPG_PASSPHRASE }}
             JRELEASER_TAG_NAME: ${{ github.event.inputs.version }}
             JRELEASER_PREVIOUS_TAG_NAME: ${{ github.event.inputs.previousVersion }}
             JRELEASER_GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
@@ -44,6 +44,8 @@ jobs:
                   java-version: '17'
                   distribution: 'temurin'
                   cache: maven
+                  gpg-private-key: ${{ secrets.MAVEN_GPG_PRIVATE_KEY }}
+                  gpg-passphrase: 'MAVEN_GPG_PASSPHRASE'
             - name: Install just
               uses: taiki-e/install-action@just
             - name: Setup Python

@@ -9,7 +9,6 @@ import static java.util.stream.Collectors.toList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
 
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -148,7 +147,7 @@ public class TracingAmqpToAppToAmqpTest extends AmqpBrokerTestBase {
             assertEquals(PRODUCER, producer.getKind());
             assertEquals("result-topic", producer.getAttributes().get(MESSAGING_DESTINATION_NAME));
             assertEquals("result-topic publish", producer.getName());
-            assertNull(producer.getAttributes().get(MESSAGING_OPERATION));
+            assertEquals("publish", producer.getAttributes().get(MESSAGING_OPERATION));
         });
     }
 

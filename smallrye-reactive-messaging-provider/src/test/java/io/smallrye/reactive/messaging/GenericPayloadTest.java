@@ -120,6 +120,74 @@ public class GenericPayloadTest extends WeldTestBaseWithoutTails {
     }
 
     @Test
+    public void testMultiProcessorGenericPayload() {
+        addBeanClass(MyCollector.class);
+        addBeanClass(GenericPayloadMultiProcessor.class);
+        addBeanClass(GenericPayloadConverter.class);
+
+        initialize();
+
+        GenericPayloadMultiProcessor processor = get(GenericPayloadMultiProcessor.class);
+        MyCollector collector = get(MyCollector.class);
+        await().untilAsserted(() -> assertThat(collector.messages())
+                .hasSize(10)
+                .allSatisfy(m -> assertThat(m.getMetadata(Object.class).get()).isEqualTo(processor.metadata()))
+                .extracting(Message::getPayload)
+                .containsExactly("0", "1", "2", "3", "4", "5", "6", "7", "8", "9"));
+    }
+
+    @ApplicationScoped
+    private static class GenericPayloadMultiProcessor {
+        Object metadata = new Object();
+
+        @Incoming("count")
+        @Outgoing("sink")
+        Multi<GenericPayload<String>> process(GenericPayload<Integer> payload) {
+            return Multi.createFrom().items(payload.withPayload("" + payload.getPayload())
+                    .withMetadata(Metadata.of(metadata)));
+        }
+
+        public Object metadata() {
+            return metadata;
+        }
+
+    }
+
+    @Test
+    public void testStreamTransformerGenericPayload() {
+        addBeanClass(MyCollector.class);
+        addBeanClass(GenericPayloadStreamTransformer.class);
+        addBeanClass(GenericPayloadConverter.class);
+
+        initialize();
+
+        GenericPayloadStreamTransformer processor = get(GenericPayloadStreamTransformer.class);
+        MyCollector collector = get(MyCollector.class);
+        await().untilAsserted(() -> assertThat(collector.messages())
+                .hasSize(10)
+                .allSatisfy(m -> assertThat(m.getMetadata(Object.class).get()).isEqualTo(processor.metadata()))
+                .extracting(Message::getPayload)
+                .containsExactly("0", "1", "2", "3", "4", "5", "6", "7", "8", "9"));
+    }
+
+    @ApplicationScoped
+    private static class GenericPayloadStreamTransformer {
+        Object metadata = new Object();
+
+        @Incoming("count")
+        @Outgoing("sink")
+        Multi<GenericPayload<String>> process(Multi<Integer> payload) {
+            return payload
+                    .map(i -> GenericPayload.of("" + i, Metadata.of(metadata)));
+        }
+
+        public Object metadata() {
+            return metadata;
+        }
+
+    }
+
+    @Test
     public void testEmitterGenericPayloadNotSupported() {
         addBeanClass(MyCollector.class);
         addBeanClass(GenericPayloadEmitter.class);

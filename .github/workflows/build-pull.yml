@@ -50,5 +50,5 @@ jobs:
                     mvn -s .build/ci-maven-settings.xml -Dmaven.resolver.transport=wagon \
                        -B clean install -Pcoverage -Dtest-containers=true ${{ matrix.java.build_opts }}
             -   name: Codecov
-                uses: codecov/codecov-action@v4.4.1
+                uses: codecov/codecov-action@v4.5.0
                 if: false
