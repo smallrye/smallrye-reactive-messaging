@@ -63,7 +63,7 @@ public class SqsInboundChannel {
         this.customizer = customizer;
 
         SqsAckHandler ackHandler = conf.getAckDelete() ? new SqsDeleteAckHandler(client, queueUrlUni)
-                : new SqsNothingAckHandler();
+                : new SqsNothingAckHandler(client, queueUrlUni);
         PausablePollingStream<List<software.amazon.awssdk.services.sqs.model.Message>, software.amazon.awssdk.services.sqs.model.Message> pollingStream = new PausablePollingStream<>(
                 channel, request(null, 0), (messages, processor) -> {
                     if (messages != null) {

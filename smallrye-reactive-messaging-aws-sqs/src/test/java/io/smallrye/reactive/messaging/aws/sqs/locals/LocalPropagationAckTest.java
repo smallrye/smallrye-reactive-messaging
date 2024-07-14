@@ -54,7 +54,7 @@ public class LocalPropagationAckTest extends SqsTestBase {
         SqsClientProvider.client = getSqsClient();
         addBeans(SqsClientProvider.class);
         IncomingChannelWithAckOnMessageContext bean = runApplication(dataconfig()
-                .with("mp.messaging.incoming.data.ack.delete", false),
+                .with("mp.messaging.incoming.data.ack.delete", true),
                 IncomingChannelWithAckOnMessageContext.class);
         bean.process(i -> i + 1);
         await().until(() -> bean.getResults().size() >= 5);
