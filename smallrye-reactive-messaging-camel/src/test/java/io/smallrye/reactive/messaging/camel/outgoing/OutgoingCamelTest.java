@@ -134,9 +134,9 @@ public class OutgoingCamelTest extends CamelTestBase {
             final CompletableFuture<Exchange> completableFuture = CompletableFuture
                     .supplyAsync(
                             () -> camelContext().createConsumerTemplate()
-                                    .receive("nats:out?servers=127.0.0.1:7656&connectionTimeout=60000", 60000));
+                                    .receive("nats:out?servers=127.0.0.1:7656&connectionTimeout=50000", 60000));
             camelContext().createProducerTemplate()
-                    .asyncRequestBodyAndHeader("nats:in?servers=127.0.0.1:7656&connectionTimeout=60000", "a", HEADER_KEY,
+                    .asyncRequestBodyAndHeader("nats:in?servers=127.0.0.1:7656&connectionTimeout=50000", "a", HEADER_KEY,
                             HEADER_VALUE);
 
             final Exchange exchange = completableFuture.get(60, TimeUnit.SECONDS);
@@ -171,8 +171,8 @@ public class OutgoingCamelTest extends CamelTestBase {
         final String inPrefix = "mp.messaging.incoming.in.";
         final String outPrefix = "mp.messaging.outgoing.out.";
         final Map<String, Object> config = new HashMap<>();
-        config.putIfAbsent(inPrefix + "endpoint-uri", "nats:in?servers=127.0.0.1:7656&connectionTimeout=60000");
-        config.putIfAbsent(outPrefix + "endpoint-uri", "nats:out?servers=127.0.0.1:7656&connectionTimeout=60000");
+        config.putIfAbsent(inPrefix + "endpoint-uri", "nats:in?servers=127.0.0.1:7656&connectionTimeout=50000");
+        config.putIfAbsent(outPrefix + "endpoint-uri", "nats:out?servers=127.0.0.1:7656&connectionTimeout=50000");
         config.putIfAbsent(inPrefix + "connector", CamelConnector.CONNECTOR_NAME);
         config.putIfAbsent(outPrefix + "connector", CamelConnector.CONNECTOR_NAME);
         return new MapBasedConfig(config);
