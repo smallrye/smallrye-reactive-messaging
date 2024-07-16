@@ -5,6 +5,7 @@ import static org.awaitility.Awaitility.await;
 
 import java.time.Duration;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -14,6 +15,7 @@ import jakarta.inject.Inject;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.clients.consumer.OffsetResetStrategy;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.Uuid;
 import org.apache.kafka.common.serialization.IntegerDeserializer;
@@ -21,10 +23,12 @@ import org.apache.kafka.common.serialization.IntegerSerializer;
 import org.eclipse.microprofile.reactive.messaging.Channel;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.OnOverflow;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.kafka.KafkaRecord;
+import io.smallrye.reactive.messaging.kafka.TestTags;
 import io.smallrye.reactive.messaging.kafka.base.KafkaCompanionTestBase;
 import io.smallrye.reactive.messaging.kafka.base.KafkaMapBasedConfig;
 import io.smallrye.reactive.messaging.kafka.companion.ConsumerTask;
@@ -65,13 +69,21 @@ public class ExactlyOnceProcessingTest extends KafkaCompanionTestBase {
         @Channel("transactional-producer")
         KafkaTransactions<Integer> transaction;
 
+        List<Integer> processed = new CopyOnWriteArrayList<>();
+
         @Incoming("exactly-once-consumer")
         Uni<Void> process(KafkaRecord<String, Integer> record) {
             return transaction.withTransaction(record, emitter -> {
                 emitter.send(KafkaRecord.of(record.getKey(), record.getPayload()));
+                processed.add(record.getPayload());
                 return Uni.createFrom().voidItem();
             });
         }
+
+        public List<Integer> getProcessed() {
+            return processed;
+        }
+
     }
 
     @Test
@@ -114,6 +126,51 @@ public class ExactlyOnceProcessingTest extends KafkaCompanionTestBase {
 
         HealthCenter healthCenter = get(HealthCenter.class);
         await().until(() -> !healthCenter.getLiveness().isOk());
+    }
+
+    @Test
+    @Tag(TestTags.SLOW)
+    void testExactlyOnceProcessorWithWithMultiplePartitions() throws InterruptedException {
+        inTopic = companion.topics().createAndWait(Uuid.randomUuid().toString(), 3);
+        outTopic = companion.topics().createAndWait(Uuid.randomUuid().toString(), 3);
+        int numberOfRecords = 10000;
+        MapBasedConfig config = new MapBasedConfig(producerConfig());
+        config.putAll(consumerConfig());
+        runApplication(config, ExactlyOnceProcessor.class);
+
+        companion.produceIntegers().usingGenerator(i -> new ProducerRecord<>(inTopic, i % 3, "k" + i, i), numberOfRecords);
+
+        HealthCenter healthCenter = get(HealthCenter.class);
+        await().until(() -> healthCenter.getLiveness().isOk());
+
+        Thread.sleep(1000);
+
+        List<Integer> processed = new CopyOnWriteArrayList<>();
+
+        try (var toClose = companion.processTransactional(Set.of(inTopic),
+                companion.consumeIntegers()
+                        .withOffsetReset(OffsetResetStrategy.EARLIEST)
+                        .withProp(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, "1")
+                        .withOnPartitionsAssigned(partitions -> System.out.println(partitions + " assigned"))
+                        .withGroupId("my-consumer"),
+                companion.produceIntegers()
+                        .withTransactionalId("tx-producer-1")
+                        .withProp("acks", "all"),
+                c -> {
+                    processed.add(c.value());
+                    return new ProducerRecord<>(outTopic, c.value());
+                })) {
+            List<ConsumerRecord<String, Integer>> committed = companion.consumeIntegers()
+                    .withProp(ConsumerConfig.ISOLATION_LEVEL_CONFIG, "read_committed")
+                    .fromTopics(outTopic, numberOfRecords)
+                    .awaitCompletion(Duration.ofMinutes(3))
+                    .getRecords();
+
+            assertThat(committed)
+                    .extracting(ConsumerRecord::value)
+                    .doesNotHaveDuplicates()
+                    .containsAll(IntStream.range(0, numberOfRecords).boxed().collect(Collectors.toList()));
+        }
     }
 
     private KafkaMapBasedConfig producerConfig() {
