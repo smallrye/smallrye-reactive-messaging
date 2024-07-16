@@ -58,6 +58,7 @@ public class ReactiveKafkaConsumer<K, V> implements io.smallrye.reactive.messagi
     private final KafkaRecordStream<K, V> stream;
     private final KafkaRecordBatchStream<K, V> batchStream;
     private final Map<String, Object> kafkaConfiguration;
+    private final AtomicReference<ConsumerGroupMetadata> consumerGroupMetadataRef = new AtomicReference<>();
 
     public ReactiveKafkaConsumer(KafkaConnectorIncomingConfiguration config,
             Instance<DeserializationFailureHandler<?>> deserializationFailureHandlers,
@@ -140,6 +141,13 @@ public class ReactiveKafkaConsumer<K, V> implements io.smallrye.reactive.messagi
         } catch (Exception e) {
             close();
             throw e;
+        }
+    }
+
+    public void setCachedConsumerGroupMetadata() {
+        Consumer<K, V> consumer = consumerRef.get();
+        if (consumer != null) {
+            consumerGroupMetadataRef.set(consumer.groupMetadata());
         }
     }
 
@@ -318,7 +326,8 @@ public class ReactiveKafkaConsumer<K, V> implements io.smallrye.reactive.messagi
     @Override
     @CheckReturnValue
     public Uni<ConsumerGroupMetadata> consumerGroupMetadata() {
-        return runOnPollingThread((Function<Consumer<K, V>, ConsumerGroupMetadata>) Consumer::groupMetadata);
+        return Uni.createFrom().item(consumerGroupMetadataRef::get)
+                .onItem().ifNull().switchTo(() -> runOnPollingThread((Consumer<K, V> c) -> c.groupMetadata()));
     }
 
     @Override
