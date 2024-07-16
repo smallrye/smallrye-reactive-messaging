@@ -179,7 +179,10 @@ public class KafkaTransactionsImpl<T> extends MutinyEmitterImpl<T> implements Ka
                     .onCancellation().call(() -> abort())
                     // when there was no exception,
                     // commit or rollback the transaction
-                    .call(() -> abort ? abort() : commit())
+                    .call(() -> abort ? abort() : commit().onFailure().recoverWithUni(throwable -> {
+                        KafkaLogging.log.transactionCommitFailed(throwable);
+                        return abort();
+                    }))
                     // finally, call after commit or after abort callbacks
                     .onFailure().recoverWithUni(throwable -> afterAbort.apply(throwable))
                     .onItem().transformToUni(result -> afterCommit.apply(result));
