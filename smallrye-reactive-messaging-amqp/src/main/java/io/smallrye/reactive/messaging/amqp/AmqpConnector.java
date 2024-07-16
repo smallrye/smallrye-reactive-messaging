@@ -18,8 +18,6 @@ import java.util.concurrent.Flow;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
-import javax.net.ssl.SSLContext;
-
 import jakarta.annotation.Priority;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.context.BeforeDestroyed;
@@ -37,6 +35,7 @@ import io.opentelemetry.api.OpenTelemetry;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.operators.multi.processors.BroadcastProcessor;
+import io.smallrye.reactive.messaging.ClientCustomizer;
 import io.smallrye.reactive.messaging.amqp.fault.AmqpAccept;
 import io.smallrye.reactive.messaging.amqp.fault.AmqpFailStop;
 import io.smallrye.reactive.messaging.amqp.fault.AmqpFailureHandler;
@@ -119,7 +118,7 @@ public class AmqpConnector implements InboundConnector, OutboundConnector, Healt
 
     @Inject
     @Any
-    private Instance<SSLContext> clientSslContexts;
+    private Instance<ClientCustomizer<AmqpClientOptions>> configCustomizers;
 
     @Inject
     private Instance<OpenTelemetry> openTelemetryInstance;
@@ -221,7 +220,7 @@ public class AmqpConnector implements InboundConnector, OutboundConnector, Healt
                 .setCapabilities(getClientCapabilities(ic))
                 .setSelector(ic.getSelector().orElse(null));
 
-        AmqpClient client = AmqpClientHelper.createClient(this, ic, clientOptions, clientSslContexts);
+        AmqpClient client = AmqpClientHelper.createClient(this, ic, clientOptions, configCustomizers);
 
         Context root = Context.newInstance(((VertxInternal) getVertx().getDelegate()).createEventLoopContext());
         ConnectionHolder holder = new ConnectionHolder(client, ic, getVertx(), root);
@@ -265,7 +264,7 @@ public class AmqpConnector implements InboundConnector, OutboundConnector, Healt
         opened.put(oc.getChannel(), false);
 
         AtomicReference<AmqpSender> sender = new AtomicReference<>();
-        AmqpClient client = AmqpClientHelper.createClient(this, oc, clientOptions, clientSslContexts);
+        AmqpClient client = AmqpClientHelper.createClient(this, oc, clientOptions, configCustomizers);
         String link = oc.getLinkName().orElseGet(oc::getChannel);
         ConnectionHolder holder = new ConnectionHolder(client, oc, getVertx(), null);
 

@@ -10,11 +10,13 @@ import java.util.regex.Pattern;
 import jakarta.enterprise.inject.Instance;
 
 import io.smallrye.mutiny.Uni;
+import io.smallrye.reactive.messaging.ClientCustomizer;
 import io.smallrye.reactive.messaging.health.HealthReport.HealthReportBuilder;
 import io.smallrye.reactive.messaging.mqtt.internal.MqttHelpers;
 import io.smallrye.reactive.messaging.mqtt.internal.MqttTopicHelper;
 import io.smallrye.reactive.messaging.mqtt.session.MqttClientSessionOptions;
 import io.smallrye.reactive.messaging.mqtt.session.RequestedQoS;
+import io.smallrye.reactive.messaging.providers.helpers.ConfigUtils;
 import io.smallrye.reactive.messaging.providers.helpers.VertxContext;
 import io.vertx.core.impl.VertxInternal;
 import io.vertx.mutiny.core.Context;
@@ -33,8 +35,10 @@ public class MqttSource {
     private final Clients.ClientHolder holder;
 
     public MqttSource(Vertx vertx, MqttConnectorIncomingConfiguration config,
+            Instance<ClientCustomizer<MqttClientSessionOptions>> configCustomizers,
             Instance<MqttClientSessionOptions> instances) {
-        MqttClientSessionOptions options = MqttHelpers.createClientOptions(config, instances);
+        MqttClientSessionOptions options = ConfigUtils.customize(config.config(), configCustomizers,
+                MqttHelpers.createClientOptions(config, instances));
 
         channel = config.getChannel();
         String topic = config.getTopic().orElse(channel);

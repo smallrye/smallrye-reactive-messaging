@@ -74,7 +74,8 @@ public class KafkaSourceBatchWithCloudEventsTest extends KafkaCompanionTestBase 
         KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
         source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
                 UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
-                UnsatisfiedInstance.instance(), CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), -1);
+                UnsatisfiedInstance.instance(), CountKafkaCdiEvents.noCdiEvents,
+                UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance(), -1);
 
         List<Message<?>> messages = new ArrayList<>();
         source.getBatchStream().subscribe().with(m -> messages.addAll(getRecordsFromBatchMessage(m)));
@@ -129,7 +130,8 @@ public class KafkaSourceBatchWithCloudEventsTest extends KafkaCompanionTestBase 
         KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
         source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
                 UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
-                UnsatisfiedInstance.instance(), CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), -1);
+                UnsatisfiedInstance.instance(), CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(),
+                UnsatisfiedInstance.instance(), -1);
 
         List<Message<?>> messages = new ArrayList<>();
         source.getBatchStream().subscribe().with(messages::add);
@@ -163,7 +165,8 @@ public class KafkaSourceBatchWithCloudEventsTest extends KafkaCompanionTestBase 
         KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
         source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
                 UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
-                UnsatisfiedInstance.instance(), CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), -1);
+                UnsatisfiedInstance.instance(), CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(),
+                UnsatisfiedInstance.instance(), -1);
 
         List<Message<?>> messages = new ArrayList<>();
         source.getBatchStream().subscribe().with(m -> messages.addAll(getRecordsFromBatchMessage(m)));
@@ -310,7 +313,8 @@ public class KafkaSourceBatchWithCloudEventsTest extends KafkaCompanionTestBase 
         KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
         source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
                 UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
-                UnsatisfiedInstance.instance(), CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), -1);
+                UnsatisfiedInstance.instance(), CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(),
+                UnsatisfiedInstance.instance(), -1);
 
         List<Message<?>> messages = new ArrayList<>();
         source.getBatchStream().subscribe().with(m -> messages.addAll(getRecordsFromBatchMessage(m)));
@@ -349,7 +353,8 @@ public class KafkaSourceBatchWithCloudEventsTest extends KafkaCompanionTestBase 
         KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
         source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
                 UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
-                UnsatisfiedInstance.instance(), CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), -1);
+                UnsatisfiedInstance.instance(), CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(),
+                UnsatisfiedInstance.instance(), -1);
 
         List<Message<?>> messages = new ArrayList<>();
         source.getBatchStream().subscribe().with(m -> messages.addAll(getRecordsFromBatchMessage(m)));
@@ -392,7 +397,8 @@ public class KafkaSourceBatchWithCloudEventsTest extends KafkaCompanionTestBase 
         KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
         source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
                 UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
-                UnsatisfiedInstance.instance(), CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), -1);
+                UnsatisfiedInstance.instance(), CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(),
+                UnsatisfiedInstance.instance(), -1);
 
         List<Message<?>> messages = new ArrayList<>();
         source.getBatchStream().subscribe().with(m -> messages.addAll(getRecordsFromBatchMessage(m)));

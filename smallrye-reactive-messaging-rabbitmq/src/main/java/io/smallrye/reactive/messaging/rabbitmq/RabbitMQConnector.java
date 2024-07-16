@@ -28,6 +28,7 @@ import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 import com.rabbitmq.client.impl.CredentialsProvider;
 
 import io.opentelemetry.api.OpenTelemetry;
+import io.smallrye.reactive.messaging.ClientCustomizer;
 import io.smallrye.reactive.messaging.annotations.ConnectorAttribute;
 import io.smallrye.reactive.messaging.connector.InboundConnector;
 import io.smallrye.reactive.messaging.connector.OutboundConnector;
@@ -145,6 +146,10 @@ public class RabbitMQConnector implements InboundConnector, OutboundConnector, H
     @Inject
     @Any
     Instance<RabbitMQOptions> clientOptions;
+
+    @Inject
+    @Any
+    Instance<ClientCustomizer<RabbitMQOptions>> configCustomizers;
 
     @Inject
     @Any
@@ -284,6 +289,10 @@ public class RabbitMQConnector implements InboundConnector, OutboundConnector, H
 
     public Instance<RabbitMQOptions> clientOptions() {
         return clientOptions;
+    }
+
+    public Instance<ClientCustomizer<RabbitMQOptions>> configCustomizers() {
+        return configCustomizers;
     }
 
     public Instance<CredentialsProvider> credentialsProviders() {

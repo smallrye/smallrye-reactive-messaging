@@ -45,7 +45,7 @@ public class SecureMqttSourceTest extends SecureMqttTestBase {
         config.put("password", "foo");
         config.put("channel-name", topic);
         MqttSource source = new MqttSource(vertx, new MqttConnectorIncomingConfiguration(new MapBasedConfig(config)),
-                null);
+                null, null);
 
         List<MqttMessage<?>> messages = new ArrayList<>();
         Flow.Publisher<? extends MqttMessage<?>> stream = source.getSource();

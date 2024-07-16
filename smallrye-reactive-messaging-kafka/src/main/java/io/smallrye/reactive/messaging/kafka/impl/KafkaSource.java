@@ -25,6 +25,7 @@ import io.opentelemetry.api.OpenTelemetry;
 import io.smallrye.common.annotation.Identifier;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
+import io.smallrye.reactive.messaging.ClientCustomizer;
 import io.smallrye.reactive.messaging.health.HealthReport;
 import io.smallrye.reactive.messaging.kafka.*;
 import io.smallrye.reactive.messaging.kafka.commit.ContextHolder;
@@ -79,6 +80,7 @@ public class KafkaSource<K, V> {
             Instance<KafkaFailureHandler.Factory> failureHandlerFactories,
             Instance<KafkaConsumerRebalanceListener> consumerRebalanceListeners,
             KafkaCDIEvents kafkaCDIEvents,
+            Instance<ClientCustomizer<Map<String, Object>>> configCustomizers,
             Instance<DeserializationFailureHandler<?>> deserializationFailureHandlers,
             int index) {
 
@@ -109,8 +111,8 @@ public class KafkaSource<K, V> {
         // So, we force the creation of different event loop context.
         context = ((VertxInternal) vertx.getDelegate()).createEventLoopContext();
         // fire consumer event (e.g. bind metrics)
-        client = new ReactiveKafkaConsumer<>(config, deserializationFailureHandlers, consumerGroup, index,
-                this::reportFailure, getContext().getDelegate(), c -> kafkaCDIEvents.consumer().fire(c));
+        client = new ReactiveKafkaConsumer<>(config, configCustomizers, deserializationFailureHandlers, consumerGroup,
+                index, this::reportFailure, getContext().getDelegate(), c -> kafkaCDIEvents.consumer().fire(c));
 
         String commitStrategy = config
                 .getCommitStrategy()

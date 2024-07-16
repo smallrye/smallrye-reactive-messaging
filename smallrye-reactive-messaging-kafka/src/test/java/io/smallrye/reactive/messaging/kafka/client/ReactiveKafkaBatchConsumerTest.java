@@ -49,7 +49,8 @@ public class ReactiveKafkaBatchConsumerTest extends ClientTestBase {
 
         source = new KafkaSource<>(vertx, groupId, new KafkaConnectorIncomingConfiguration(config),
                 UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
-                listeners, CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), 0);
+                listeners, CountKafkaCdiEvents.noCdiEvents,
+                UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance(), 0);
         return source;
     }
 

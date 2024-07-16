@@ -100,7 +100,7 @@ public class PulsarIncomingChannel<T> {
             builder.batchReceivePolicy(BatchReceivePolicy.DEFAULT_POLICY);
         }
 
-        this.consumer = builder.subscribe();
+        this.consumer = configResolver.customize(builder, ic).subscribe();
         log.createdConsumerWithConfig(channel, SchemaResolver.getSchemaName(schema), conf);
         this.ackHandler = ackHandlerFactory.create(consumer, ic);
         this.failureHandler = failureHandlerFactory.create(consumer, ic, this::reportFailure);

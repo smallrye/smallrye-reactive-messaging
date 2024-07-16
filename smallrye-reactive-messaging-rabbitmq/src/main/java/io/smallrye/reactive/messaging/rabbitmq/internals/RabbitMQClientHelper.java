@@ -22,6 +22,7 @@ import io.smallrye.common.annotation.Identifier;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.providers.helpers.CDIUtils;
+import io.smallrye.reactive.messaging.providers.helpers.ConfigUtils;
 import io.smallrye.reactive.messaging.providers.i18n.ProviderLogging;
 import io.smallrye.reactive.messaging.rabbitmq.RabbitMQConnector;
 import io.smallrye.reactive.messaging.rabbitmq.RabbitMQConnectorCommonConfiguration;
@@ -54,7 +55,8 @@ public class RabbitMQClientHelper {
             if (DEFAULT_METRICS_NAME.equals(options.getMetricsName())) {
                 options.setMetricsName("rabbitmq|" + config.getChannel());
             }
-            RabbitMQClient client = RabbitMQClient.create(vertx, options);
+            RabbitMQOptions intercepted = ConfigUtils.customize(config.config(), connector.configCustomizers(), options);
+            RabbitMQClient client = RabbitMQClient.create(vertx, intercepted);
             connector.registerClient(config.getChannel(), client);
             return client;
         } catch (Exception e) {

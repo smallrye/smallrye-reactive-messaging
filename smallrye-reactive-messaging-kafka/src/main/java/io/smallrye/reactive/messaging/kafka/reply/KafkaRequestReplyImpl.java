@@ -33,6 +33,7 @@ import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.helpers.Subscriptions;
 import io.smallrye.mutiny.subscription.MultiSubscriber;
 import io.smallrye.mutiny.subscription.UniEmitter;
+import io.smallrye.reactive.messaging.ClientCustomizer;
 import io.smallrye.reactive.messaging.EmitterConfiguration;
 import io.smallrye.reactive.messaging.OutgoingMessageMetadata;
 import io.smallrye.reactive.messaging.kafka.DeserializationFailureHandler;
@@ -85,6 +86,7 @@ public class KafkaRequestReplyImpl<Req, Rep> extends MutinyEmitterImpl<Req>
             Instance<OpenTelemetry> openTelemetryInstance,
             Instance<KafkaCommitHandler.Factory> commitHandlerFactory,
             Instance<KafkaFailureHandler.Factory> failureHandlerFactories,
+            Instance<ClientCustomizer<Map<String, Object>>> configCustomizers,
             Instance<DeserializationFailureHandler<?>> deserializationFailureHandlers,
             Instance<CorrelationIdHandler> correlationIdHandlers,
             Instance<ReplyFailureHandler> replyFailureHandlers,
@@ -121,7 +123,7 @@ public class KafkaRequestReplyImpl<Req, Rep> extends MutinyEmitterImpl<Req>
         this.gracefulShutdown = consumerConfig.getGracefulShutdown();
         this.replySource = new KafkaSource<>(vertx, consumerGroup, consumerConfig, openTelemetryInstance,
                 commitHandlerFactory, failureHandlerFactories, rebalanceListeners, kafkaCDIEvents,
-                deserializationFailureHandlers, -1);
+                configCustomizers, deserializationFailureHandlers, -1);
 
         if (consumerConfig.getBatch()) {
             replySource.getBatchStream()

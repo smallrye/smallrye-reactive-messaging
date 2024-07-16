@@ -43,8 +43,14 @@ public class PulsarClientBaseTest {
 
     public Vertx vertx;
 
-    public ConfigResolver configResolver = new ConfigResolver(UnsatisfiedInstance.instance(),
-            UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance());
+    public ConfigResolver configResolver = new ConfigResolver(
+            UnsatisfiedInstance.instance(),
+            UnsatisfiedInstance.instance(),
+            UnsatisfiedInstance.instance(),
+            UnsatisfiedInstance.instance(),
+            UnsatisfiedInstance.instance(),
+            UnsatisfiedInstance.instance(),
+            UnsatisfiedInstance.instance());
 
     public MapBasedConfig baseConfig() {
         return new MapBasedConfig().with("serviceUrl", serviceUrl);

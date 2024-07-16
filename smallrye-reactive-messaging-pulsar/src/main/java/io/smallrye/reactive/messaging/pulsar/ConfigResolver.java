@@ -11,6 +11,10 @@ import jakarta.enterprise.inject.Any;
 import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
 
+import org.apache.pulsar.client.api.ClientBuilder;
+import org.apache.pulsar.client.api.ConsumerBuilder;
+import org.apache.pulsar.client.api.ProducerBuilder;
+import org.apache.pulsar.client.impl.ClientBuilderImpl;
 import org.apache.pulsar.client.impl.conf.ClientConfigurationData;
 import org.apache.pulsar.client.impl.conf.ConsumerConfigurationData;
 import org.apache.pulsar.client.impl.conf.ProducerConfigurationData;
@@ -24,16 +28,17 @@ import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.CaseFormat;
 
+import io.smallrye.reactive.messaging.ClientCustomizer;
+import io.smallrye.reactive.messaging.providers.helpers.ConfigUtils;
 import io.vertx.core.json.JsonObject;
 
 /**
  * Precedence of config resolution, the least priority to the highest, each step overriding the previous one.
- *
+ * <p>
  * 1. Map&lt;String, Object&gt; config map produced with default config identifier
  * 2. Map&lt;String, Object&gt; config map produced with identifier in the configuration or channel name
  * 3. ConfigurationData object produced with identifier in the configuration or channel name
  * 4. Channel configuration properties named with ConfigurationData field names
- *
  */
 @ApplicationScoped
 public class ConfigResolver {
@@ -53,16 +58,25 @@ public class ConfigResolver {
     private final Instance<ProducerConfigurationData> producerConfigurations;
 
     private final ObjectMapper mapper;
+    private final Instance<ClientCustomizer<ClientBuilder>> clientConfigCustomizers;
+    private final Instance<ClientCustomizer<ConsumerBuilder<?>>> consumerConfigCustomizers;
+    private final Instance<ClientCustomizer<ProducerBuilder<?>>> producerConfigCustomizers;
 
     @Inject
     public ConfigResolver(@Any Instance<Map<String, Object>> configurations,
             @Any Instance<ClientConfigurationData> clientConfigurations,
+            @Any Instance<ClientCustomizer<ClientBuilder>> clientConfigCustomizers,
             @Any Instance<ConsumerConfigurationData<?>> consumerConfigurations,
-            @Any Instance<ProducerConfigurationData> producerConfigurations) {
+            @Any Instance<ClientCustomizer<ConsumerBuilder<?>>> consumerConfigCustomizers,
+            @Any Instance<ProducerConfigurationData> producerConfigurations,
+            @Any Instance<ClientCustomizer<ProducerBuilder<?>>> producerConfigCustomizers) {
         this.configurations = configurations;
         this.clientConfigurations = clientConfigurations;
+        this.clientConfigCustomizers = clientConfigCustomizers;
         this.consumerConfigurations = consumerConfigurations;
+        this.consumerConfigCustomizers = consumerConfigCustomizers;
         this.producerConfigurations = producerConfigurations;
+        this.producerConfigCustomizers = producerConfigCustomizers;
         this.mapper = new ObjectMapper();
         this.mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
         this.mapper.configure(DeserializationFeature.READ_UNKNOWN_ENUM_VALUES_AS_NULL, false);
@@ -89,8 +103,11 @@ public class ConfigResolver {
                 cc.getClientConfiguration().orElse(cc.getChannel()), HashMap::new);
         ClientConfigurationData conf = getInstanceById(clientConfigurations,
                 cc.getClientConfiguration().orElse(cc.getChannel()), ClientConfigurationData::new);
-        Config config = cc.config();
-        return mergeConfig(conf.clone(), mergeMap(defaultConfig, channelConfig), config);
+        return mergeConfig(conf.clone(), mergeMap(defaultConfig, channelConfig), cc.config());
+    }
+
+    public ClientBuilderImpl customize(ClientBuilderImpl builder, PulsarConnectorCommonConfiguration cc) {
+        return (ClientBuilderImpl) ConfigUtils.customize(cc.config(), clientConfigCustomizers, builder);
     }
 
     /**
@@ -105,8 +122,11 @@ public class ConfigResolver {
                 ic.getConsumerConfiguration().orElse(ic.getChannel()), HashMap::new);
         ConsumerConfigurationData<?> conf = getInstanceById(consumerConfigurations,
                 ic.getConsumerConfiguration().orElse(ic.getChannel()), ConsumerConfigurationData::new);
-        Config incomingConfig = ic.config();
-        return mergeConfig(conf.clone(), mergeMap(defaultConfig, channelConfig), incomingConfig);
+        return mergeConfig(conf.clone(), mergeMap(defaultConfig, channelConfig), ic.config());
+    }
+
+    public <T> ConsumerBuilder<T> customize(ConsumerBuilder<T> builder, PulsarConnectorIncomingConfiguration ic) {
+        return (ConsumerBuilder<T>) ConfigUtils.customize(ic.config(), consumerConfigCustomizers, builder);
     }
 
     /**
@@ -121,8 +141,11 @@ public class ConfigResolver {
                 oc.getProducerConfiguration().orElse(oc.getChannel()), HashMap::new);
         ProducerConfigurationData conf = getInstanceById(producerConfigurations,
                 oc.getProducerConfiguration().orElse(oc.getChannel()), ProducerConfigurationData::new);
-        Config outgoingConfig = oc.config();
-        return mergeConfig(conf.clone(), mergeMap(defaultConfig, channelConfig), outgoingConfig);
+        return mergeConfig(conf.clone(), mergeMap(defaultConfig, channelConfig), oc.config());
+    }
+
+    public <T> ProducerBuilder<T> customize(ProducerBuilder<T> builder, PulsarConnectorOutgoingConfiguration oc) {
+        return (ProducerBuilder<T>) ConfigUtils.customize(oc.config(), producerConfigCustomizers, builder);
     }
 
     private Map<String, Object> mergeMap(Map<String, Object> defaultConfig, Map<String, Object> channelConfig) {
