@@ -4,6 +4,8 @@ import java.util.Arrays;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.apache.kafka.clients.consumer.ConsumerGroupMetadata;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.common.header.internals.RecordHeaders;
@@ -13,6 +15,8 @@ import io.smallrye.reactive.messaging.kafka.api.OutgoingKafkaRecordMetadata;
 import io.smallrye.reactive.messaging.kafka.reply.KafkaRequestReply;
 
 public class KafkaRecordHelper {
+
+    public static final String SMALLRYE_GENERATION_ID = "__smallrye_generationId";
 
     public static Headers getHeaders(OutgoingKafkaRecordMetadata<?> om,
             IncomingKafkaRecordMetadata<?, ?> im,
@@ -47,4 +51,18 @@ public class KafkaRecordHelper {
     public static boolean isNotBlank(String s) {
         return s != null && !s.trim().isEmpty();
     }
+
+    public static void addGenerationIdToHeaders(ConsumerRecord<?, ?> record, ConsumerGroupMetadata metadata) {
+        record.headers().add(SMALLRYE_GENERATION_ID, Integer.toString(metadata.generationId()).getBytes());
+    }
+
+    public static int extractGenerationIdFrom(ConsumerRecord<?, ?> record) {
+        Header header = record.headers().lastHeader(SMALLRYE_GENERATION_ID);
+        if (header != null) {
+            record.headers().remove(SMALLRYE_GENERATION_ID);
+            return Integer.parseInt(new String(header.value()));
+        }
+        return -1;
+    }
+
 }

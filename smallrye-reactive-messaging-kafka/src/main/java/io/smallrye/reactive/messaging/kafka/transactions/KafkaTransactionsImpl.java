@@ -78,6 +78,7 @@ public class KafkaTransactionsImpl<T> extends MutinyEmitterImpl<T> implements Ka
         try {
             String channel;
             Map<TopicPartition, OffsetAndMetadata> offsets;
+            int generationId;
 
             Optional<IncomingKafkaRecordBatchMetadata> batchMetadata = message
                     .getMetadata(IncomingKafkaRecordBatchMetadata.class);
@@ -85,18 +86,19 @@ public class KafkaTransactionsImpl<T> extends MutinyEmitterImpl<T> implements Ka
             if (batchMetadata.isPresent()) {
                 IncomingKafkaRecordBatchMetadata<?, ?> metadata = batchMetadata.get();
                 channel = metadata.getChannel();
+                generationId = metadata.getConsumerGroupGenerationId();
                 offsets = metadata.getOffsets().entrySet().stream()
                         .collect(Collectors.toMap(Map.Entry::getKey, e -> new OffsetAndMetadata(e.getValue().offset() + 1)));
             } else if (recordMetadata.isPresent()) {
                 IncomingKafkaRecordMetadata<?, ?> metadata = recordMetadata.get();
                 channel = metadata.getChannel();
                 offsets = new HashMap<>();
+                generationId = metadata.getConsumerGroupGenerationId();
                 offsets.put(TopicPartitions.getTopicPartition(metadata.getTopic(), metadata.getPartition()),
                         new OffsetAndMetadata(metadata.getOffset() + 1));
             } else {
                 throw KafkaExceptions.ex.noKafkaMetadataFound(message);
             }
-
             List<KafkaConsumer<Object, Object>> consumers = clientService.getConsumers(channel);
             if (consumers.isEmpty()) {
                 throw KafkaExceptions.ex.unableToFindConsumerForChannel(channel);
@@ -107,8 +109,20 @@ public class KafkaTransactionsImpl<T> extends MutinyEmitterImpl<T> implements Ka
             if (currentTransaction == null) {
                 return new Transaction<R>(
                         /* before commit */
-                        consumer.consumerGroupMetadata()
-                                .chain(groupMetadata -> producer.sendOffsetsToTransaction(offsets, groupMetadata)),
+                        consumer.consumerGroupMetadata().chain(groupMetadata -> {
+                            // if the generationId is the same, we can send the offsets to tx
+                            if (groupMetadata.generationId() == generationId) {
+                                // stay on the polling thread
+                                producer.unwrap().sendOffsetsToTransaction(offsets, groupMetadata);
+                                return Uni.createFrom().voidItem();
+                            } else {
+                                // abort the transaction if the generationId is different,
+                                // after abort will set the consumer position to the last committed positions
+                                return Uni.createFrom().failure(
+                                        KafkaExceptions.ex.exactlyOnceProcessingRebalance(channel, groupMetadata.toString(),
+                                                String.valueOf(generationId)));
+                            }
+                        }),
                         r -> Uni.createFrom().item(r),
                         VOID_UNI,
                         /* after abort */
@@ -179,7 +193,10 @@ public class KafkaTransactionsImpl<T> extends MutinyEmitterImpl<T> implements Ka
                     .onCancellation().call(() -> abort())
                     // when there was no exception,
                     // commit or rollback the transaction
-                    .call(() -> abort ? abort() : commit())
+                    .call(() -> abort ? abort() : commit().onFailure().recoverWithUni(throwable -> {
+                        KafkaLogging.log.transactionCommitFailed(throwable);
+                        return abort();
+                    }))
                     // finally, call after commit or after abort callbacks
                     .onFailure().recoverWithUni(throwable -> afterAbort.apply(throwable))
                     .onItem().transformToUni(result -> afterCommit.apply(result));

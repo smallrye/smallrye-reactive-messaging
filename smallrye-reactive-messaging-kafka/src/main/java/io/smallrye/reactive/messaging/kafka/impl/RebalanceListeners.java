@@ -48,6 +48,7 @@ public class RebalanceListeners {
         public void onPartitionsRevoked(Collection<TopicPartition> partitions) {
             log.executingConsumerRevokedRebalanceListener(consumerGroup);
             try {
+                reactiveKafkaConsumer.setCachedConsumerGroupMetadata();
                 reactiveKafkaConsumer.removeFromQueueRecordsFromTopicPartitions(partitions);
                 commitHandler.partitionsRevoked(partitions);
                 if (listener != null) {
@@ -63,6 +64,7 @@ public class RebalanceListeners {
         @Override
         public void onPartitionsAssigned(Collection<TopicPartition> partitions) {
             try {
+                reactiveKafkaConsumer.setCachedConsumerGroupMetadata();
                 if (reactiveKafkaConsumer.isPaused()) {
                     reactiveKafkaConsumer.unwrap().pause(partitions);
                 }

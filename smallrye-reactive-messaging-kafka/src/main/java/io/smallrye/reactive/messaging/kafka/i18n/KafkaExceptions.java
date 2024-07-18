@@ -93,4 +93,8 @@ public interface KafkaExceptions {
 
     @Message(id = 18024, value = "Invalid Kafka incoming configuration for channel `%s`, `assign-seek` portion `%s` is invalid. If topic portion is not present, a single `topic` configuration is needed.")
     IllegalArgumentException invalidAssignSeekTopic(String channel, String assignSeek);
+
+    @Message(id = 18025, value = "Partition rebalance during exactly-once processing for channel `%s`: current consumer group metadata: %s, generation id for message: %s")
+    IllegalStateException exactlyOnceProcessingRebalance(String channel, String groupMetadata, String generationId);
+
 }

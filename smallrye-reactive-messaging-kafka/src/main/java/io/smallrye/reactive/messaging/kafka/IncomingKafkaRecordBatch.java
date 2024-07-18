@@ -45,8 +45,13 @@ public class IncomingKafkaRecordBatch<K, T> implements KafkaRecordBatch<K, T> {
         this.incomingRecords = Collections.unmodifiableList(incomingRecords);
         this.latestOffsetRecords = Collections.unmodifiableMap(latestOffsetRecords);
         Map<TopicPartition, OffsetAndMetadata> offsets = new HashMap<>();
-        latestOffsetRecords.forEach((e, r) -> offsets.put(e, new OffsetAndMetadata(r.getOffset())));
-        this.metadata = captureContextMetadata(new IncomingKafkaRecordBatchMetadata<>(records, channel, index, offsets));
+        int generationId = -1;
+        for (var entry : latestOffsetRecords.entrySet()) {
+            generationId = entry.getValue().getConsumerGroupGenerationId();
+            offsets.put(entry.getKey(), new OffsetAndMetadata(entry.getValue().getOffset()));
+        }
+        this.metadata = captureContextMetadata(
+                new IncomingKafkaRecordBatchMetadata<>(records, channel, index, offsets, generationId));
     }
 
     @Override

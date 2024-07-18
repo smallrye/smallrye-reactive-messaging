@@ -14,6 +14,7 @@ import io.smallrye.reactive.messaging.ce.CloudEventMetadata;
 import io.smallrye.reactive.messaging.kafka.api.IncomingKafkaRecordMetadata;
 import io.smallrye.reactive.messaging.kafka.commit.KafkaCommitHandler;
 import io.smallrye.reactive.messaging.kafka.fault.KafkaFailureHandler;
+import io.smallrye.reactive.messaging.kafka.impl.KafkaRecordHelper;
 import io.smallrye.reactive.messaging.kafka.impl.ce.KafkaCloudEventHelper;
 import io.smallrye.reactive.messaging.providers.MetadataInjectableMessage;
 import io.smallrye.reactive.messaging.providers.locals.ContextAwareMessage;
@@ -34,7 +35,8 @@ public class IncomingKafkaRecord<K, T> implements KafkaRecord<K, T>, MetadataInj
             boolean cloudEventEnabled,
             boolean tracingEnabled) {
         this.commitHandler = commitHandler;
-        this.kafkaMetadata = new IncomingKafkaRecordMetadata<>(record, channel, index);
+        int generationId = KafkaRecordHelper.extractGenerationIdFrom(record);
+        this.kafkaMetadata = new IncomingKafkaRecordMetadata<>(record, channel, index, generationId);
 
         ArrayList<Object> meta = new ArrayList<>();
         meta.add(this.kafkaMetadata);
@@ -100,6 +102,10 @@ public class IncomingKafkaRecord<K, T> implements KafkaRecord<K, T>, MetadataInj
 
     public long getOffset() {
         return kafkaMetadata.getOffset();
+    }
+
+    public int getConsumerGroupGenerationId() {
+        return kafkaMetadata.getConsumerGroupGenerationId();
     }
 
     @Override

@@ -23,18 +23,20 @@ public class IncomingKafkaRecordBatchMetadata<K, T> {
     private final String channel;
     private final int index;
     private final Map<TopicPartition, OffsetAndMetadata> offsets;
+    private final int consumerGroupGenerationId;
 
     public IncomingKafkaRecordBatchMetadata(ConsumerRecords<K, T> records, String channel, int index,
-            Map<TopicPartition, OffsetAndMetadata> offsets) {
+            Map<TopicPartition, OffsetAndMetadata> offsets, int consumerGroupGenerationId) {
         this.records = records;
         this.channel = channel;
         this.index = index;
         this.offsets = Collections.unmodifiableMap(offsets);
+        this.consumerGroupGenerationId = consumerGroupGenerationId;
     }
 
     public IncomingKafkaRecordBatchMetadata(ConsumerRecords<K, T> records, String channel,
             Map<TopicPartition, OffsetAndMetadata> offsets) {
-        this(records, channel, -1, offsets);
+        this(records, channel, -1, offsets, -1);
     }
 
     /**
@@ -71,5 +73,12 @@ public class IncomingKafkaRecordBatchMetadata<K, T> {
 
     public int getConsumerIndex() {
         return index;
+    }
+
+    /**
+     * @return the consumer group metadata generation id at the time of polling this record
+     */
+    public int getConsumerGroupGenerationId() {
+        return consumerGroupGenerationId;
     }
 }
