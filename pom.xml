@@ -116,7 +116,7 @@
     <slf4j-log4j12.version>2.0.13</slf4j-log4j12.version>
     <slf4j-reload4j.version>2.0.13</slf4j-reload4j.version>
     <opencsv.version>5.9</opencsv.version>
-    <strimzi-test-container.version>0.106.0</strimzi-test-container.version>
+    <strimzi-test-container.version>0.107.0</strimzi-test-container.version>
 
     <revapi-maven-plugin.version>0.15.0</revapi-maven-plugin.version>
     <revapi-java.version>0.28.1</revapi-java.version>
