@@ -57,19 +57,8 @@ public class PulsarOutgoingChannel<T> {
         if (conf.getMaxPendingMessages() > 0 && conf.getMaxPendingMessagesAcrossPartitions() == 0) {
             conf.setMaxPendingMessagesAcrossPartitions(conf.getMaxPendingMessages());
         }
-        Map<String, Object> producerConf = configResolver.configToMap(conf);
-        ProducerBuilder<T> builder = client.newProducer(schema)
-                .loadConf(producerConf);
-        if (conf.getBatcherBuilder() != null) {
-            builder.batcherBuilder(conf.getBatcherBuilder());
-        }
-        if (conf.getCryptoKeyReader() != null) {
-            builder.cryptoKeyReader(conf.getCryptoKeyReader());
-        }
-        for (String encryptionKey : conf.getEncryptionKeys()) {
-            builder.addEncryptionKey(encryptionKey);
-        }
-        this.producer = configResolver.customize(builder, oc).create();
+        ProducerBuilder<T> builder = configResolver.configure(client.newProducer(schema), oc, conf);
+        this.producer = builder.create();
         log.createdProducerWithConfig(channel, SchemaResolver.getSchemaName(schema), conf);
         long requests = getRequests(oc, conf);
 

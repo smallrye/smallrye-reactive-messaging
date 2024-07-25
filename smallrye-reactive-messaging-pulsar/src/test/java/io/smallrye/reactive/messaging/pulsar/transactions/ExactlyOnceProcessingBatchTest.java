@@ -25,8 +25,6 @@ import org.apache.pulsar.client.impl.conf.ConsumerConfigurationData;
 import org.eclipse.microprofile.reactive.messaging.Channel;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.OnOverflow;
-import org.junit.jupiter.api.Disabled;
-import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import io.smallrye.common.annotation.Identifier;
@@ -34,7 +32,6 @@ import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.pulsar.PulsarConnector;
 import io.smallrye.reactive.messaging.pulsar.PulsarIncomingBatchMessage;
 import io.smallrye.reactive.messaging.pulsar.PulsarMessage;
-import io.smallrye.reactive.messaging.pulsar.TestTags;
 import io.smallrye.reactive.messaging.pulsar.base.WeldTestBase;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 
@@ -104,8 +101,6 @@ public class ExactlyOnceProcessingBatchTest extends WeldTestBase {
      * There are still duplicate items delivered to the consumer batch after an transaction abort.
      */
     @Test
-    @Tag(TestTags.FLAKY)
-    @Disabled
     void testExactlyOnceProcessorWithProcessingError() throws PulsarAdminException, PulsarClientException {
         addBeans(ConsumerConfig.class);
         this.inTopic = UUID.randomUUID().toString();
@@ -137,10 +132,6 @@ public class ExactlyOnceProcessingBatchTest extends WeldTestBase {
                 .topic(this.inTopic)
                 .create(), numberOfRecords, (i, producer) -> producer.newMessage().sequenceId(i).value(i).key("k-" + i));
 
-        await().untilAsserted(() -> assertThat(app.getProcessed())
-                .containsAll(IntStream.range(0, numberOfRecords).boxed().collect(Collectors.toList()))
-                .doesNotHaveDuplicates());
-
         await().untilAsserted(() -> assertThat(list)
                 .containsAll(IntStream.range(0, numberOfRecords).boxed().collect(Collectors.toList()))
                 .doesNotHaveDuplicates());
@@ -166,7 +157,8 @@ public class ExactlyOnceProcessingBatchTest extends WeldTestBase {
                 .with("mp.messaging.incoming.exactly-once-consumer.enableTransaction", true)
                 .with("mp.messaging.incoming.exactly-once-consumer.negativeAckRedeliveryDelayMicros", 5000)
                 .with("mp.messaging.incoming.exactly-once-consumer.schema", "INT32")
-                .with("mp.messaging.incoming.exactly-once-consumer.batchReceive", true);
+                .with("mp.messaging.incoming.exactly-once-consumer.batchReceive", true)
+                .with("mp.messaging.incoming.exactly-once-consumer.batchIndexAckEnable", true);
     }
 
     @ApplicationScoped

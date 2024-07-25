@@ -21,12 +21,10 @@ import jakarta.enterprise.inject.Any;
 import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
 
-import org.apache.pulsar.client.api.AuthenticationFactory;
 import org.apache.pulsar.client.api.Consumer;
 import org.apache.pulsar.client.api.Producer;
 import org.apache.pulsar.client.api.PulsarClient;
 import org.apache.pulsar.client.api.PulsarClientException;
-import org.apache.pulsar.client.impl.ClientBuilderImpl;
 import org.apache.pulsar.client.impl.PulsarClientImpl;
 import org.apache.pulsar.client.impl.conf.ClientConfigurationData;
 import org.eclipse.microprofile.config.Config;
@@ -41,7 +39,6 @@ import io.smallrye.reactive.messaging.health.HealthReport;
 import io.smallrye.reactive.messaging.health.HealthReporter;
 import io.smallrye.reactive.messaging.providers.connectors.ExecutionHolder;
 import io.smallrye.reactive.messaging.providers.helpers.CDIUtils;
-import io.smallrye.reactive.messaging.providers.helpers.Validation;
 import io.vertx.mutiny.core.Vertx;
 
 @ApplicationScoped
@@ -166,33 +163,11 @@ public class PulsarConnector implements InboundConnector, OutboundConnector, Hea
 
     private PulsarClientImpl createPulsarClient(PulsarConnectorCommonConfiguration cc, ClientConfigurationData configuration) {
         try {
-            setAuth(configuration);
-            log.createdClientWithConfig(configuration);
-            ClientBuilderImpl customized = configResolver.customize(new ClientBuilderImpl(configuration), cc);
-            return new PulsarClientImpl(customized.getClientConfigurationData(), vertx.nettyEventLoopGroup());
+            ClientConfigurationData data = configResolver.configure(cc, configuration).getClientConfigurationData();
+            log.createdClientWithConfig(data);
+            return new PulsarClientImpl(data, vertx.nettyEventLoopGroup());
         } catch (PulsarClientException e) {
             throw ex.illegalStateUnableToBuildClient(e);
-        }
-    }
-
-    /**
-     * Sets the authentication object in the given configuration object using
-     * `authPluginClassName` and `authParams`/`authParamMap` attributes
-     * This use to be done by the PulsarClientImpl
-     *
-     * @param conf client configuration
-     * @throws PulsarClientException
-     */
-    private void setAuth(ClientConfigurationData conf) throws PulsarClientException {
-        if (Validation.isBlank(conf.getAuthPluginClassName())
-                || (Validation.isBlank(conf.getAuthParams()) && conf.getAuthParamMap() == null)) {
-            return;
-        }
-
-        if (!Validation.isBlank(conf.getAuthParams())) {
-            conf.setAuthentication(AuthenticationFactory.create(conf.getAuthPluginClassName(), conf.getAuthParams()));
-        } else if (conf.getAuthParamMap() != null) {
-            conf.setAuthentication(AuthenticationFactory.create(conf.getAuthPluginClassName(), conf.getAuthParamMap()));
         }
     }
 

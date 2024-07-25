@@ -1,9 +1,11 @@
 package io.smallrye.reactive.messaging.pulsar;
 
 import static io.smallrye.reactive.messaging.providers.helpers.CDIUtils.getInstanceById;
+import static io.smallrye.reactive.messaging.pulsar.i18n.PulsarLogging.log;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 
 import jakarta.enterprise.context.ApplicationScoped;
@@ -11,10 +13,18 @@ import jakarta.enterprise.inject.Any;
 import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
 
+import org.apache.pulsar.client.api.AuthenticationFactory;
+import org.apache.pulsar.client.api.BatchReceivePolicy;
 import org.apache.pulsar.client.api.ClientBuilder;
 import org.apache.pulsar.client.api.ConsumerBuilder;
+import org.apache.pulsar.client.api.DeadLetterPolicy;
+import org.apache.pulsar.client.api.KeySharedPolicy;
 import org.apache.pulsar.client.api.ProducerBuilder;
+import org.apache.pulsar.client.api.PulsarClientException;
+import org.apache.pulsar.client.api.RedeliveryBackoff;
+import org.apache.pulsar.client.api.SubscriptionType;
 import org.apache.pulsar.client.impl.ClientBuilderImpl;
+import org.apache.pulsar.client.impl.MultiplierRedeliveryBackoff;
 import org.apache.pulsar.client.impl.conf.ClientConfigurationData;
 import org.apache.pulsar.client.impl.conf.ConsumerConfigurationData;
 import org.apache.pulsar.client.impl.conf.ProducerConfigurationData;
@@ -30,6 +40,7 @@ import com.google.common.base.CaseFormat;
 
 import io.smallrye.reactive.messaging.ClientCustomizer;
 import io.smallrye.reactive.messaging.providers.helpers.ConfigUtils;
+import io.smallrye.reactive.messaging.providers.helpers.Validation;
 import io.vertx.core.json.JsonObject;
 
 /**
@@ -110,6 +121,33 @@ public class ConfigResolver {
         return (ClientBuilderImpl) ConfigUtils.customize(cc.config(), clientConfigCustomizers, builder);
     }
 
+    public ClientBuilderImpl configure(PulsarConnectorCommonConfiguration cc, ClientConfigurationData conf)
+            throws PulsarClientException {
+        setAuth(conf);
+        return customize(new ClientBuilderImpl(conf), cc);
+    }
+
+    /**
+     * Sets the authentication object in the given configuration object using
+     * `authPluginClassName` and `authParams`/`authParamMap` attributes
+     * This use to be done by the PulsarClientImpl
+     *
+     * @param conf client configuration
+     * @throws PulsarClientException
+     */
+    private void setAuth(ClientConfigurationData conf) throws PulsarClientException {
+        if (Validation.isBlank(conf.getAuthPluginClassName())
+                || (Validation.isBlank(conf.getAuthParams()) && conf.getAuthParamMap() == null)) {
+            return;
+        }
+
+        if (!Validation.isBlank(conf.getAuthParams())) {
+            conf.setAuthentication(AuthenticationFactory.create(conf.getAuthPluginClassName(), conf.getAuthParams()));
+        } else if (conf.getAuthParamMap() != null) {
+            conf.setAuthentication(AuthenticationFactory.create(conf.getAuthPluginClassName(), conf.getAuthParamMap()));
+        }
+    }
+
     /**
      * Extract the configuration map for building Pulsar consumer
      *
@@ -129,6 +167,62 @@ public class ConfigResolver {
         return (ConsumerBuilder<T>) ConfigUtils.customize(ic.config(), consumerConfigCustomizers, builder);
     }
 
+    public <T> ConsumerBuilder<T> configure(ConsumerBuilder<T> builder,
+            PulsarConnectorIncomingConfiguration ic,
+            ConsumerConfigurationData<?> conf) {
+        builder.loadConf(configToMap(conf));
+        ic.getDeadLetterPolicyMaxRedeliverCount().ifPresent(i -> builder.deadLetterPolicy(getDeadLetterPolicy(ic, i)));
+        ic.getNegativeAckRedeliveryBackoff()
+                .ifPresent(s -> builder.negativeAckRedeliveryBackoff(parseBackoff(s, ic.getChannel())));
+        ic.getAckTimeoutRedeliveryBackoff()
+                .ifPresent(s -> builder.ackTimeoutRedeliveryBackoff(parseBackoff(s, ic.getChannel())));
+        if (conf.getConsumerEventListener() != null) {
+            builder.consumerEventListener(conf.getConsumerEventListener());
+        }
+        if (conf.getPayloadProcessor() != null) {
+            builder.messagePayloadProcessor(conf.getPayloadProcessor());
+        }
+        if (conf.getKeySharedPolicy() != null) {
+            builder.keySharedPolicy(conf.getKeySharedPolicy());
+        } else if (conf.getSubscriptionType() == SubscriptionType.Key_Shared) {
+            builder.keySharedPolicy(KeySharedPolicy.autoSplitHashRange());
+        }
+        if (conf.getCryptoKeyReader() != null) {
+            builder.cryptoKeyReader(conf.getCryptoKeyReader());
+        }
+        if (conf.getMessageCrypto() != null) {
+            builder.messageCrypto(conf.getMessageCrypto());
+        }
+        if (ic.getBatchReceive()) {
+            builder.batchReceivePolicy(
+                    Objects.requireNonNullElse(conf.getBatchReceivePolicy(), BatchReceivePolicy.DEFAULT_POLICY));
+        }
+        return customize(builder, ic);
+    }
+
+    private static DeadLetterPolicy getDeadLetterPolicy(PulsarConnectorIncomingConfiguration ic, Integer redeliverCount) {
+        return DeadLetterPolicy.builder()
+                .maxRedeliverCount(redeliverCount)
+                .deadLetterTopic(ic.getDeadLetterPolicyDeadLetterTopic().orElse(null))
+                .retryLetterTopic(ic.getDeadLetterPolicyRetryLetterTopic().orElse(null))
+                .initialSubscriptionName(ic.getDeadLetterPolicyInitialSubscriptionName().orElse(null))
+                .build();
+    }
+
+    private RedeliveryBackoff parseBackoff(String backoffString, String channel) {
+        String[] strings = backoffString.split(",");
+        try {
+            return MultiplierRedeliveryBackoff.builder()
+                    .minDelayMs(Long.parseLong(strings[0]))
+                    .maxDelayMs(Long.parseLong(strings[1]))
+                    .multiplier(Double.parseDouble(strings[2]))
+                    .build();
+        } catch (Exception e) {
+            log.unableToParseRedeliveryBackoff(backoffString, channel);
+            return null;
+        }
+    }
+
     /**
      * Extract the configuration map for building Pulsar producer
      *
@@ -146,6 +240,25 @@ public class ConfigResolver {
 
     public <T> ProducerBuilder<T> customize(ProducerBuilder<T> builder, PulsarConnectorOutgoingConfiguration oc) {
         return (ProducerBuilder<T>) ConfigUtils.customize(oc.config(), producerConfigCustomizers, builder);
+    }
+
+    public <T> ProducerBuilder<T> configure(ProducerBuilder<T> builder,
+            PulsarConnectorOutgoingConfiguration oc,
+            ProducerConfigurationData conf) {
+        builder.loadConf(configToMap(conf));
+        if (conf.getCustomMessageRouter() != null) {
+            builder.messageRouter(conf.getCustomMessageRouter());
+        }
+        if (conf.getBatcherBuilder() != null) {
+            builder.batcherBuilder(conf.getBatcherBuilder());
+        }
+        if (conf.getCryptoKeyReader() != null) {
+            builder.cryptoKeyReader(conf.getCryptoKeyReader());
+        }
+        for (String encryptionKey : conf.getEncryptionKeys()) {
+            builder.addEncryptionKey(encryptionKey);
+        }
+        return customize(builder, oc);
     }
 
     private Map<String, Object> mergeMap(Map<String, Object> defaultConfig, Map<String, Object> channelConfig) {
