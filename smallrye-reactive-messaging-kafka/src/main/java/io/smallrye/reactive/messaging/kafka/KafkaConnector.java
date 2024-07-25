@@ -28,6 +28,7 @@ import io.opentelemetry.api.OpenTelemetry;
 import io.opentelemetry.api.trace.SpanBuilder;
 import io.opentelemetry.api.trace.Tracer;
 import io.smallrye.mutiny.Multi;
+import io.smallrye.reactive.messaging.ClientCustomizer;
 import io.smallrye.reactive.messaging.annotations.ConnectorAttribute;
 import io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Direction;
 import io.smallrye.reactive.messaging.connector.InboundConnector;
@@ -152,6 +153,10 @@ public class KafkaConnector implements InboundConnector, OutboundConnector, Heal
 
     @Inject
     @Any
+    Instance<ClientCustomizer<Map<String, Object>>> configCustomizers;
+
+    @Inject
+    @Any
     Instance<SerializationFailureHandler<?>> serializationFailureHandlers;
 
     @Inject
@@ -216,7 +221,7 @@ public class KafkaConnector implements InboundConnector, OutboundConnector, Heal
             KafkaSource<Object, Object> source = new KafkaSource<>(vertx, group, ic, openTelemetryInstance,
                     commitHandlerFactories, failureHandlerFactories,
                     consumerRebalanceListeners,
-                    kafkaCDIEvents, deserializationFailureHandlers, -1);
+                    kafkaCDIEvents, configCustomizers, deserializationFailureHandlers, -1);
             sources.add(source);
             boolean broadcast = ic.getBroadcast();
             Multi<? extends Message<?>> stream;
@@ -238,7 +243,7 @@ public class KafkaConnector implements InboundConnector, OutboundConnector, Heal
             KafkaSource<Object, Object> source = new KafkaSource<>(vertx, group, ic, openTelemetryInstance,
                     commitHandlerFactories, failureHandlerFactories,
                     consumerRebalanceListeners,
-                    kafkaCDIEvents, deserializationFailureHandlers, i);
+                    kafkaCDIEvents, configCustomizers, deserializationFailureHandlers, i);
             sources.add(source);
             if (!ic.getBatch()) {
                 streams.add(source.getStream());
@@ -273,7 +278,7 @@ public class KafkaConnector implements InboundConnector, OutboundConnector, Heal
             log.deprecatedConfig("health-readiness-timeout", "health-topic-verification-timeout");
         }
         KafkaSink sink = new KafkaSink(oc, kafkaCDIEvents, openTelemetryInstance,
-                serializationFailureHandlers, producerInterceptors);
+                configCustomizers, serializationFailureHandlers, producerInterceptors);
         sinks.add(sink);
         return sink.getSink();
     }

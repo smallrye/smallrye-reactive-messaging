@@ -66,7 +66,7 @@ public class KafkaCommitHandlerTest extends KafkaCompanionTestBase {
                 ic,
                 UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
                 UnsatisfiedInstance.instance(),
-                CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), -1);
+                CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance(), -1);
 
         List<Message<?>> messages = Collections.synchronizedList(new ArrayList<>());
         source.getStream().subscribe().with(messages::add);
@@ -109,7 +109,7 @@ public class KafkaCommitHandlerTest extends KafkaCompanionTestBase {
         source = new KafkaSource<>(vertx, "test-source-with-auto-commit-disabled", ic,
                 UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
                 UnsatisfiedInstance.instance(), CountKafkaCdiEvents.noCdiEvents,
-                UnsatisfiedInstance.instance(), -1);
+                UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance(), -1);
 
         List<Message<?>> messages = Collections.synchronizedList(new ArrayList<>());
         source.getStream().subscribe().with(messages::add);
@@ -149,7 +149,7 @@ public class KafkaCommitHandlerTest extends KafkaCompanionTestBase {
                 UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
                 UnsatisfiedInstance.instance(),
                 CountKafkaCdiEvents.noCdiEvents,
-                UnsatisfiedInstance.instance(), -1);
+                UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance(), -1);
 
         List<Message<?>> messages = Collections.synchronizedList(new ArrayList<>());
         source.getStream().subscribe().with(messages::add);
@@ -198,7 +198,7 @@ public class KafkaCommitHandlerTest extends KafkaCompanionTestBase {
                 UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
                 UnsatisfiedInstance.instance(),
                 CountKafkaCdiEvents.noCdiEvents,
-                UnsatisfiedInstance.instance(), -1);
+                UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance(), -1);
 
         List<Message<?>> messages = Collections.synchronizedList(new ArrayList<>());
         source.getStream().subscribe().with(messages::add);
@@ -252,14 +252,14 @@ public class KafkaCommitHandlerTest extends KafkaCompanionTestBase {
                 UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
                 UnsatisfiedInstance.instance(),
                 CountKafkaCdiEvents.noCdiEvents,
-                UnsatisfiedInstance.instance(), -1);
+                UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance(), -1);
 
         KafkaSource<String, Integer> source2 = new KafkaSource<>(vertx,
                 "test-source-with-throttled-latest-processed-commit", ic2,
                 UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
                 UnsatisfiedInstance.instance(),
                 CountKafkaCdiEvents.noCdiEvents,
-                UnsatisfiedInstance.instance(), -1);
+                UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance(), -1);
 
         List<Message<?>> messages1 = Collections.synchronizedList(new ArrayList<>());
         source.getStream().subscribe().with(m -> {
@@ -346,14 +346,14 @@ public class KafkaCommitHandlerTest extends KafkaCompanionTestBase {
                 UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
                 UnsatisfiedInstance.instance(),
                 CountKafkaCdiEvents.noCdiEvents,
-                UnsatisfiedInstance.instance(), -1);
+                UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance(), -1);
 
         KafkaSource<String, Integer> source2 = new KafkaSource<>(vertx,
                 "test-source-with-throttled-latest-processed-commit", ic2,
                 UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
                 UnsatisfiedInstance.instance(),
                 CountKafkaCdiEvents.noCdiEvents,
-                UnsatisfiedInstance.instance(), -1);
+                UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance(), -1);
 
         // start source1
         List<Message<?>> messages1 = Collections.synchronizedList(new ArrayList<>());

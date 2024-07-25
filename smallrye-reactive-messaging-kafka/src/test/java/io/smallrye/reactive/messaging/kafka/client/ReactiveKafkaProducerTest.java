@@ -14,7 +14,6 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.junit.jupiter.api.Test;
-import org.reactivestreams.Subscriber;
 
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.subscription.MultiEmitter;
@@ -166,14 +165,16 @@ public class ReactiveKafkaProducerTest extends ClientTestBase {
                 .put("topic", topic);
 
         KafkaSink sink = new KafkaSink(new KafkaConnectorOutgoingConfiguration(config), CountKafkaCdiEvents.noCdiEvents,
-                UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance());
+                UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance(),
+                UnsatisfiedInstance.instance());
         this.sinks.add(sink);
         return sink;
     }
 
     public KafkaSink createSink(MapBasedConfig config) {
         KafkaSink sink = new KafkaSink(new KafkaConnectorOutgoingConfiguration(config), CountKafkaCdiEvents.noCdiEvents,
-                UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance());
+                UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance(),
+                UnsatisfiedInstance.instance());
         this.sinks.add(sink);
         return sink;
     }
@@ -187,7 +188,8 @@ public class ReactiveKafkaProducerTest extends ClientTestBase {
                 .with("topic", topic);
 
         KafkaSink sink = new KafkaSink(new KafkaConnectorOutgoingConfiguration(config), CountKafkaCdiEvents.noCdiEvents,
-                UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance());
+                UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance(),
+                UnsatisfiedInstance.instance());
         this.sinks.add(sink);
         return sink;
     }

@@ -69,7 +69,7 @@ public class PulsarOutgoingChannel<T> {
         for (String encryptionKey : conf.getEncryptionKeys()) {
             builder.addEncryptionKey(encryptionKey);
         }
-        this.producer = builder.create();
+        this.producer = configResolver.customize(builder, oc).create();
         log.createdProducerWithConfig(channel, SchemaResolver.getSchemaName(schema), conf);
         long requests = getRequests(oc, conf);
 

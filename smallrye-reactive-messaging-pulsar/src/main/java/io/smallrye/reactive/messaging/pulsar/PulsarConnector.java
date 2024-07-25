@@ -26,6 +26,7 @@ import org.apache.pulsar.client.api.Consumer;
 import org.apache.pulsar.client.api.Producer;
 import org.apache.pulsar.client.api.PulsarClient;
 import org.apache.pulsar.client.api.PulsarClientException;
+import org.apache.pulsar.client.impl.ClientBuilderImpl;
 import org.apache.pulsar.client.impl.PulsarClientImpl;
 import org.apache.pulsar.client.impl.conf.ClientConfigurationData;
 import org.eclipse.microprofile.config.Config;
@@ -108,7 +109,7 @@ public class PulsarConnector implements InboundConnector, OutboundConnector, Hea
         PulsarConnectorIncomingConfiguration ic = new PulsarConnectorIncomingConfiguration(config);
 
         ClientConfigurationData clientConf = configResolver.getClientConf(ic);
-        PulsarClient client = clients.computeIfAbsent(clientHash(clientConf), ignored -> createPulsarClient(clientConf));
+        PulsarClient client = clients.computeIfAbsent(clientHash(clientConf), x -> createPulsarClient(ic, clientConf));
         clientsByChannel.put(ic.getChannel(), client);
 
         try {
@@ -128,7 +129,7 @@ public class PulsarConnector implements InboundConnector, OutboundConnector, Hea
         PulsarConnectorOutgoingConfiguration oc = new PulsarConnectorOutgoingConfiguration(config);
 
         ClientConfigurationData clientConf = configResolver.getClientConf(oc);
-        PulsarClient client = clients.computeIfAbsent(clientHash(clientConf), ignored -> createPulsarClient(clientConf));
+        PulsarClient client = clients.computeIfAbsent(clientHash(clientConf), x -> createPulsarClient(oc, clientConf));
         clientsByChannel.put(oc.getChannel(), client);
 
         try {
@@ -163,11 +164,12 @@ public class PulsarConnector implements InboundConnector, OutboundConnector, Hea
         clientsByChannel.clear();
     }
 
-    private PulsarClientImpl createPulsarClient(ClientConfigurationData configuration) {
+    private PulsarClientImpl createPulsarClient(PulsarConnectorCommonConfiguration cc, ClientConfigurationData configuration) {
         try {
             setAuth(configuration);
             log.createdClientWithConfig(configuration);
-            return new PulsarClientImpl(configuration, vertx.nettyEventLoopGroup());
+            ClientBuilderImpl customized = configResolver.customize(new ClientBuilderImpl(configuration), cc);
+            return new PulsarClientImpl(customized.getClientConfigurationData(), vertx.nettyEventLoopGroup());
         } catch (PulsarClientException e) {
             throw ex.illegalStateUnableToBuildClient(e);
         }

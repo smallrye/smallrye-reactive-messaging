@@ -33,6 +33,7 @@ import io.opentelemetry.api.OpenTelemetry;
 import io.smallrye.common.annotation.Identifier;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.operators.multi.processors.UnicastProcessor;
+import io.smallrye.reactive.messaging.ClientCustomizer;
 import io.smallrye.reactive.messaging.SubscriberDecorator;
 import io.smallrye.reactive.messaging.kafka.IncomingKafkaRecord;
 import io.smallrye.reactive.messaging.kafka.KafkaCDIEvents;
@@ -87,6 +88,10 @@ public class KafkaDeadLetterQueue implements KafkaFailureHandler {
 
         @Inject
         @Any
+        Instance<ClientCustomizer<Map<String, Object>>> configCustomizers;
+
+        @Inject
+        @Any
         Instance<ProducerInterceptor<?, ?>> producerInterceptors;
 
         @Inject
@@ -132,7 +137,7 @@ public class KafkaDeadLetterQueue implements KafkaFailureHandler {
 
             UnicastProcessor<Message<?>> processor = UnicastProcessor.create();
             KafkaSink kafkaSink = new KafkaSink(producerConfig, kafkaCDIEvents, openTelemetryInstance,
-                    serializationFailureHandlers, producerInterceptors);
+                    configCustomizers, serializationFailureHandlers, producerInterceptors);
             wireOutgoingConnectorToUpstream(processor, kafkaSink.getSink(), subscriberDecorators,
                     producerConfig.getChannel() + "-" + CHANNEL_DLQ_SUFFIX);
             return new KafkaDeadLetterQueue(config.getChannel(), deadQueueTopic, kafkaSink, processor);

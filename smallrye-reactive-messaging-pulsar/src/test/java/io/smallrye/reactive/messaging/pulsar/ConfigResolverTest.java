@@ -7,16 +7,22 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
+import jakarta.enterprise.context.ApplicationScoped;
+
 import org.apache.pulsar.client.api.Consumer;
 import org.apache.pulsar.client.api.ConsumerEventListener;
+import org.apache.pulsar.client.api.ProducerBuilder;
 import org.apache.pulsar.client.api.PulsarClient;
 import org.apache.pulsar.client.api.ServiceUrlProvider;
 import org.apache.pulsar.client.impl.DefaultCryptoKeyReader;
+import org.apache.pulsar.client.impl.ProducerBuilderImpl;
 import org.apache.pulsar.client.impl.conf.ClientConfigurationData;
 import org.apache.pulsar.client.impl.conf.ConsumerConfigurationData;
 import org.apache.pulsar.client.impl.conf.ProducerConfigurationData;
+import org.eclipse.microprofile.config.Config;
 import org.junit.jupiter.api.Test;
 
+import io.smallrye.reactive.messaging.ClientCustomizer;
 import io.smallrye.reactive.messaging.pulsar.base.SingletonInstance;
 import io.smallrye.reactive.messaging.pulsar.base.UnsatisfiedInstance;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
@@ -26,6 +32,9 @@ class ConfigResolverTest {
     @Test
     void emptyConsumerConfig() {
         ConfigResolver configResolver = new ConfigResolver(
+                UnsatisfiedInstance.instance(),
+                UnsatisfiedInstance.instance(),
+                UnsatisfiedInstance.instance(),
                 UnsatisfiedInstance.instance(),
                 UnsatisfiedInstance.instance(),
                 UnsatisfiedInstance.instance(),
@@ -70,6 +79,9 @@ class ConfigResolverTest {
                 new SingletonInstance<>("my-consumer-config", Map.of("topicNames", Arrays.asList("t1", "t2"))),
                 UnsatisfiedInstance.instance(),
                 UnsatisfiedInstance.instance(),
+                UnsatisfiedInstance.instance(),
+                UnsatisfiedInstance.instance(),
+                UnsatisfiedInstance.instance(),
                 UnsatisfiedInstance.instance());
 
         PulsarConnectorIncomingConfiguration ic = new PulsarConnectorIncomingConfiguration(getChannelConfig()
@@ -90,6 +102,9 @@ class ConfigResolverTest {
     void configDefaultConsumerConfig() {
         ConfigResolver configResolver = new ConfigResolver(
                 new SingletonInstance<>("default-pulsar-consumer", Map.of("topicNames", Arrays.asList("t1", "t2"))),
+                UnsatisfiedInstance.instance(),
+                UnsatisfiedInstance.instance(),
+                UnsatisfiedInstance.instance(),
                 UnsatisfiedInstance.instance(),
                 UnsatisfiedInstance.instance(),
                 UnsatisfiedInstance.instance());
@@ -124,7 +139,10 @@ class ConfigResolverTest {
         ConfigResolver configResolver = new ConfigResolver(
                 new SingletonInstance<>("my-consumer-config", Map.of("topicNames", Arrays.asList("t1", "t2"))),
                 UnsatisfiedInstance.instance(),
+                UnsatisfiedInstance.instance(),
                 new SingletonInstance<>("my-consumer-config", data),
+                UnsatisfiedInstance.instance(),
+                UnsatisfiedInstance.instance(),
                 UnsatisfiedInstance.instance());
 
         PulsarConnectorIncomingConfiguration ic = new PulsarConnectorIncomingConfiguration(getChannelConfig()
@@ -164,7 +182,10 @@ class ConfigResolverTest {
         ConfigResolver configResolver = new ConfigResolver(
                 UnsatisfiedInstance.instance(),
                 UnsatisfiedInstance.instance(),
+                UnsatisfiedInstance.instance(),
                 new SingletonInstance<>("channel", data),
+                UnsatisfiedInstance.instance(),
+                UnsatisfiedInstance.instance(),
                 UnsatisfiedInstance.instance());
 
         PulsarConnectorIncomingConfiguration ic = new PulsarConnectorIncomingConfiguration(getChannelConfig()
@@ -184,6 +205,9 @@ class ConfigResolverTest {
     @Test
     void emptyClientConfig() {
         ConfigResolver configResolver = new ConfigResolver(
+                UnsatisfiedInstance.instance(),
+                UnsatisfiedInstance.instance(),
+                UnsatisfiedInstance.instance(),
                 UnsatisfiedInstance.instance(),
                 UnsatisfiedInstance.instance(),
                 UnsatisfiedInstance.instance(),
@@ -226,6 +250,9 @@ class ConfigResolverTest {
                 new SingletonInstance<>("my-client-config", Map.of("serviceUrl", "pulsar://localhost")),
                 UnsatisfiedInstance.instance(),
                 UnsatisfiedInstance.instance(),
+                UnsatisfiedInstance.instance(),
+                UnsatisfiedInstance.instance(),
+                UnsatisfiedInstance.instance(),
                 UnsatisfiedInstance.instance());
 
         PulsarConnectorCommonConfiguration cc = new PulsarConnectorCommonConfiguration(getChannelConfig()
@@ -240,6 +267,9 @@ class ConfigResolverTest {
     void configDefaultClientConfig() {
         ConfigResolver configResolver = new ConfigResolver(
                 new SingletonInstance<>("default-pulsar-client", Map.of("serviceUrl", "pulsar://localhost")),
+                UnsatisfiedInstance.instance(),
+                UnsatisfiedInstance.instance(),
+                UnsatisfiedInstance.instance(),
                 UnsatisfiedInstance.instance(),
                 UnsatisfiedInstance.instance(),
                 UnsatisfiedInstance.instance());
@@ -270,6 +300,9 @@ class ConfigResolverTest {
                 new SingletonInstance<>("my-client-config", Map.of("serviceUrl", "pulsar://localhost")),
                 new SingletonInstance<>("my-client-config", data),
                 UnsatisfiedInstance.instance(),
+                UnsatisfiedInstance.instance(),
+                UnsatisfiedInstance.instance(),
+                UnsatisfiedInstance.instance(),
                 UnsatisfiedInstance.instance());
 
         PulsarConnectorCommonConfiguration cc = new PulsarConnectorCommonConfiguration(getChannelConfig()
@@ -288,6 +321,9 @@ class ConfigResolverTest {
     @Test
     void emptyProducerConfig() {
         ConfigResolver configResolver = new ConfigResolver(
+                UnsatisfiedInstance.instance(),
+                UnsatisfiedInstance.instance(),
+                UnsatisfiedInstance.instance(),
                 UnsatisfiedInstance.instance(),
                 UnsatisfiedInstance.instance(),
                 UnsatisfiedInstance.instance(),
@@ -324,6 +360,9 @@ class ConfigResolverTest {
                 new SingletonInstance<>("my-producer-config", Map.of("topicName", "t1")),
                 UnsatisfiedInstance.instance(),
                 UnsatisfiedInstance.instance(),
+                UnsatisfiedInstance.instance(),
+                UnsatisfiedInstance.instance(),
+                UnsatisfiedInstance.instance(),
                 UnsatisfiedInstance.instance());
 
         PulsarConnectorOutgoingConfiguration oc = new PulsarConnectorOutgoingConfiguration(getChannelConfig()
@@ -338,6 +377,9 @@ class ConfigResolverTest {
     void configDefaultProducerConfig() {
         ConfigResolver configResolver = new ConfigResolver(
                 new SingletonInstance<>("default-pulsar-producer", Map.of("topicName", "t1")),
+                UnsatisfiedInstance.instance(),
+                UnsatisfiedInstance.instance(),
+                UnsatisfiedInstance.instance(),
                 UnsatisfiedInstance.instance(),
                 UnsatisfiedInstance.instance(),
                 UnsatisfiedInstance.instance());
@@ -362,7 +404,10 @@ class ConfigResolverTest {
                 new SingletonInstance<>("my-producer-config", Map.of("topicName", "t1")),
                 UnsatisfiedInstance.instance(),
                 UnsatisfiedInstance.instance(),
-                new SingletonInstance<>("my-producer-config", data));
+                UnsatisfiedInstance.instance(),
+                UnsatisfiedInstance.instance(),
+                new SingletonInstance<>("my-producer-config", data),
+                UnsatisfiedInstance.instance());
 
         PulsarConnectorOutgoingConfiguration oc = new PulsarConnectorOutgoingConfiguration(getChannelConfig()
                 .with("producer-configuration", "my-producer-config")
@@ -392,7 +437,10 @@ class ConfigResolverTest {
                 UnsatisfiedInstance.instance(),
                 UnsatisfiedInstance.instance(),
                 UnsatisfiedInstance.instance(),
-                new SingletonInstance<>("channel", data));
+                UnsatisfiedInstance.instance(),
+                UnsatisfiedInstance.instance(),
+                new SingletonInstance<>("channel", data),
+                UnsatisfiedInstance.instance());
 
         PulsarConnectorOutgoingConfiguration oc = new PulsarConnectorOutgoingConfiguration(getChannelConfig()
                 .with("sendTimeoutMs", 2000));
@@ -406,6 +454,54 @@ class ConfigResolverTest {
         assertThat(map).containsEntry("topicName", "t1")
                 .containsEntry("sendTimeoutMs", 2000L)
                 .containsEntry("batchingEnabled", true);
+    }
+
+    @Test
+    void configInterceptProducerConfig() {
+        ProducerConfigurationData data = new ProducerConfigurationData();
+        data.setBatchingEnabled(true);
+        data.setBatchingMaxMessages(1000);
+        data.setTopicName("t1");
+        data.setSendTimeoutMs(1000L);
+        data.setCryptoKeyReader(DefaultCryptoKeyReader.builder()
+                .publicKey("x", "x").build());
+
+        ConfigResolver configResolver = new ConfigResolver(
+                UnsatisfiedInstance.instance(),
+                UnsatisfiedInstance.instance(),
+                UnsatisfiedInstance.instance(),
+                UnsatisfiedInstance.instance(),
+                UnsatisfiedInstance.instance(),
+                new SingletonInstance<>("channel", data),
+                new SingletonInstance<>("channel", new MyProducerClientCustomizer()));
+
+        PulsarConnectorOutgoingConfiguration oc = new PulsarConnectorOutgoingConfiguration(getChannelConfig()
+                .with("sendTimeoutMs", 2000));
+        ProducerConfigurationData conf = configResolver.getProducerConf(oc);
+        ProducerBuilderImpl<Boolean> producerBuilder = new ProducerBuilderImpl<>(null, null);
+        ProducerBuilder<Boolean> builder = producerBuilder.loadConf(configResolver.configToMap(conf));
+        ProducerBuilder customized = configResolver.customize(builder, oc);
+        conf = ((ProducerBuilderImpl) customized).getConf();
+        assertThat(conf.getTopicName()).isEqualTo("intercepted");
+        assertThat(conf.isBatchingEnabled()).isTrue();
+        assertThat(conf.getBatchingMaxMessages()).isEqualTo(1000);
+        assertThat(conf.getSendTimeoutMs()).isEqualTo(2000L);
+        assertThat(conf.getCryptoKeyReader()).isNull();
+        Map<String, Object> map = configResolver.configToMap(conf);
+        assertThat(map).containsEntry("topicName", "intercepted")
+                .containsEntry("sendTimeoutMs", 2000L)
+                .containsEntry("batchingEnabled", true);
+    }
+
+    @ApplicationScoped
+    public static class MyProducerClientCustomizer implements ClientCustomizer<ProducerBuilder<?>> {
+
+        @Override
+        public ProducerBuilder<?> customize(String channel, Config channelConfig, ProducerBuilder<?> config) {
+            System.out.println("Applying custom producer config " + channel + " - " + config + " - " + channelConfig);
+            config.topic("intercepted");
+            return config;
+        }
     }
 
     @Test

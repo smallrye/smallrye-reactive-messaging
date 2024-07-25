@@ -12,6 +12,7 @@ import jakarta.enterprise.inject.Produces;
 import jakarta.enterprise.inject.spi.DeploymentException;
 import jakarta.inject.Inject;
 
+import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.reactive.messaging.Channel;
 import org.eclipse.microprofile.reactive.messaging.Emitter;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
@@ -21,6 +22,7 @@ import org.jboss.weld.environment.se.WeldContainer;
 import org.junit.jupiter.api.Test;
 
 import io.smallrye.common.annotation.Identifier;
+import io.smallrye.reactive.messaging.ClientCustomizer;
 import io.smallrye.reactive.messaging.mqtt.session.MqttClientSessionOptions;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 
@@ -74,6 +76,35 @@ public class MqttCustomOptionTest extends MqttTestBase {
                 .isInstanceOf(DeploymentException.class);
     }
 
+    @Test
+    public void testConfigInterceptor() {
+        Weld weld = new Weld();
+        weld.addBeanClass(MyOptionCustomizer.class)
+                .addBeanClass(Application.class)
+                .addBeanClass(MyClientCustomizer.class);
+
+        new MapBasedConfig()
+                .with("mp.messaging.outgoing.sink.host", "localhost")
+                .with("mp.messaging.outgoing.sink.connector", MqttConnector.CONNECTOR_NAME)
+                .with("mp.messaging.outgoing.sink.client-options-name", "options")
+                .with("mp.messaging.outgoing.sink.port", 1234) // Wrong on purpose
+                .with("mp.messaging.outgoing.sink.tracing-enabled", false)
+
+                .with("mp.messaging.incoming.source.host", "localhost")
+                .with("mp.messaging.incoming.source.connector", MqttConnector.CONNECTOR_NAME)
+                .with("mp.messaging.incoming.source.client-options-name", "options")
+                .with("mp.messaging.incoming.source.tracing-enabled", false)
+                .write();
+
+        try (WeldContainer container = weld.initialize()) {
+            MqttConnector connector = container.getBeanManager().createInstance().select(MqttConnector.class,
+                    ConnectorLiteral.of(MqttConnector.CONNECTOR_NAME)).get();
+
+            await().pollDelay(Duration.ofSeconds(1)).until(() -> connector.getReadiness().isOk());
+        }
+
+    }
+
     @ApplicationScoped
     public static class Application {
 
@@ -109,6 +140,16 @@ public class MqttCustomOptionTest extends MqttTestBase {
                     .setPort(9999)
                     .setUsername(System.getProperty("mqtt-user"))
                     .setPassword(System.getProperty("mqtt-pwd"));
+        }
+    }
+
+    @ApplicationScoped
+    public static class MyClientCustomizer implements ClientCustomizer<MqttClientSessionOptions> {
+
+        @Override
+        public MqttClientSessionOptions customize(String channel, Config channelConfig, MqttClientSessionOptions config) {
+            System.out.println("Applying custom options " + channel + " - " + config + " - " + channelConfig);
+            return config.setPort(Integer.parseInt(System.getProperty("mqtt-port")));
         }
     }
 

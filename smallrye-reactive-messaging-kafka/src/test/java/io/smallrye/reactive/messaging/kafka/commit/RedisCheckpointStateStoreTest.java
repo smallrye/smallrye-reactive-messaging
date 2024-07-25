@@ -161,7 +161,7 @@ public class RedisCheckpointStateStoreTest extends KafkaCompanionTestBase {
                 checkpointFactory,
                 failureHandlerFactories,
                 UnsatisfiedInstance.instance(),
-                CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), -1);
+                CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance(), -1);
 
         List<Message<?>> messages = Collections.synchronizedList(new ArrayList<>());
         source.getStream().onItem().transformToUniAndConcatenate(m -> {
@@ -188,7 +188,7 @@ public class RedisCheckpointStateStoreTest extends KafkaCompanionTestBase {
                 checkpointFactory,
                 failureHandlerFactories,
                 UnsatisfiedInstance.instance(),
-                CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), -1);
+                CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance(), -1);
 
         List<Message<?>> messages2 = Collections.synchronizedList(new ArrayList<>());
         source2.getStream().onItem().transformToUniAndConcatenate(m -> {
