@@ -2,6 +2,11 @@
   {
     "version": "4.24.0-M1",
     "title": "4.24.0-M1",
+    "aliases": []
+  },
+  {
+    "version": "4.24.0",
+    "title": "4.24.0",
     "aliases": [
       "latest"
     ]
