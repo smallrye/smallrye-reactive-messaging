@@ -24,19 +24,7 @@
     "criticality" : "highlight",
     "minSeverity" : "POTENTIALLY_BREAKING",
     "minCriticality" : "documented",
-    "differences" : [ {
-        "code": "java.method.numberOfParametersChanged",
-        "old": "method void io.smallrye.reactive.messaging.kafka.api.IncomingKafkaRecordBatchMetadata<K, T>::<init>(org.apache.kafka.clients.consumer.ConsumerRecords<K, T>, java.lang.String, int, java.util.Map<org.apache.kafka.common.TopicPartition, org.apache.kafka.clients.consumer.OffsetAndMetadata>)",
-        "new": "method void io.smallrye.reactive.messaging.kafka.api.IncomingKafkaRecordBatchMetadata<K, T>::<init>(org.apache.kafka.clients.consumer.ConsumerRecords<K, T>, java.lang.String, int, java.util.Map<org.apache.kafka.common.TopicPartition, org.apache.kafka.clients.consumer.OffsetAndMetadata>, int)",
-        "justification": "Added consumer group generation id to the constructor"
-    },
-    {
-        "code": "java.method.numberOfParametersChanged",
-        "old": "method void io.smallrye.reactive.messaging.kafka.api.IncomingKafkaRecordMetadata<K, T>::<init>(org.apache.kafka.clients.consumer.ConsumerRecord<K, T>, java.lang.String, int)",
-        "new": "method void io.smallrye.reactive.messaging.kafka.api.IncomingKafkaRecordMetadata<K, T>::<init>(org.apache.kafka.clients.consumer.ConsumerRecord<K, T>, java.lang.String, int, int)",
-        "justification": "Added consumer group generation id to the constructor"
-    }
-    ]
+    "differences" : [ ]
   }
 }, {
   "extension" : "revapi.reporter.json",
