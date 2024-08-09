@@ -36,10 +36,13 @@ class JmsSource {
     private final JmsConnectorIncomingConfiguration config;
     private final JmsFailureHandler failureHandler;
     private final Context context;
+    private final JmsConnector jmsConnector;
 
-    JmsSource(Vertx vertx, JmsResourceHolder<JMSConsumer> resourceHolder, JmsConnectorIncomingConfiguration config,
+    JmsSource(JmsConnector jmsConnector, Vertx vertx, JmsResourceHolder<JMSConsumer> resourceHolder,
+            JmsConnectorIncomingConfiguration config,
             JsonMapping jsonMapping,
             Executor executor, Instance<JmsFailureHandler.Factory> failureHandlerFactories) {
+        this.jmsConnector = jmsConnector;
         String channel = config.getChannel();
         final String destinationName = config.getDestination().orElseGet(config::getChannel);
         String selector = config.getSelector().orElse(null);
@@ -116,7 +119,7 @@ class JmsSource {
         Instance<JmsFailureHandler.Factory> failureHandlerFactory = failureHandlerFactories
                 .select(Identifier.Literal.of(strategy));
         if (failureHandlerFactory.isResolvable()) {
-            return failureHandlerFactory.get().create(config, this::reportFailure);
+            return failureHandlerFactory.get().create(jmsConnector, config, this::reportFailure);
         } else {
             throw ex.illegalArgumentInvalidFailureStrategy(strategy);
         }

@@ -7,6 +7,7 @@ import org.eclipse.microprofile.reactive.messaging.Metadata;
 import io.smallrye.common.annotation.Experimental;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.jms.IncomingJmsMessage;
+import io.smallrye.reactive.messaging.jms.JmsConnector;
 import io.smallrye.reactive.messaging.jms.JmsConnectorIncomingConfiguration;
 
 /**
@@ -30,6 +31,7 @@ public interface JmsFailureHandler {
      */
     interface Factory {
         JmsFailureHandler create(
+                JmsConnector connector,
                 JmsConnectorIncomingConfiguration config,
                 BiConsumer<Throwable, Boolean> reportFailure);
     }

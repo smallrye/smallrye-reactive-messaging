@@ -55,4 +55,9 @@ public interface JmsLogging extends BasicLogger {
     @LogMessage(level = Logger.Level.ERROR)
     @Message(id = 15809, value = "A message sent to channel `%s` has been nacked, fail-stop")
     void messageNackedFailStop(String channel);
+
+    @LogMessage(level = Logger.Level.INFO)
+    @Message(id = 15810, value = "A message sent to channel `%s` has been nacked, sending the message to a dead letter queue %s")
+    void messageNackedDeadLetter(String channel, String dlq);
+
 }

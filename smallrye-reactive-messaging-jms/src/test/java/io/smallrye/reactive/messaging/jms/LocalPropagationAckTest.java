@@ -24,6 +24,7 @@ import org.junit.jupiter.api.TestInfo;
 
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
+import io.smallrye.reactive.messaging.jms.fault.JmsFailureHandler;
 import io.smallrye.reactive.messaging.providers.locals.LocalContextMetadata;
 import io.smallrye.reactive.messaging.support.JmsTestBase;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
@@ -78,7 +79,7 @@ public class LocalPropagationAckTest extends JmsTestBase {
     @Test
     public void testChannelWithNackOnMessageContextFail() {
         IncomingChannelWithAckOnMessageContext bean = runApplication(dataconfig()
-                .with("mp.messaging.incoming.data.failure-strategy", "fail"),
+                .with("mp.messaging.incoming.data.failure-strategy", JmsFailureHandler.Strategy.FAIL),
                 IncomingChannelWithAckOnMessageContext.class);
         bean.process(i -> {
             throw new RuntimeException("boom");
@@ -93,7 +94,7 @@ public class LocalPropagationAckTest extends JmsTestBase {
     @Test
     public void testChannelWithNackOnMessageContextIgnore() {
         IncomingChannelWithAckOnMessageContext bean = runApplication(dataconfig()
-                .with("mp.messaging.incoming.data.failure-strategy", "ignore"),
+                .with("mp.messaging.incoming.data.failure-strategy", JmsFailureHandler.Strategy.IGNORE),
                 IncomingChannelWithAckOnMessageContext.class);
         bean.process(i -> {
             throw new RuntimeException("boom");
@@ -103,6 +104,25 @@ public class LocalPropagationAckTest extends JmsTestBase {
 
         await().atMost(20, TimeUnit.SECONDS).until(() -> bean.getResults().size() >= 5);
         assertThat(bean.getResults()).containsExactly(1, 2, 3, 4, 5);
+    }
+
+    @Test
+    public void testChannelWithNackOnMessageContextDlq() {
+        IncomingChannelWithAckOnMessageContext bean = runApplication(dataconfig()
+                .with("mp.messaging.incoming.data.dead-letter-queue.destination", "dlqDestination")
+                .with("mp.messaging.incoming.data.failure-strategy", JmsFailureHandler.Strategy.DEAD_LETTER_QUEUE),
+                IncomingChannelWithAckOnMessageContext.class);
+        bean.process(i -> {
+            if (i != 3) {
+                return i + 1;
+            }
+            throw new RuntimeException("boom");
+        });
+
+        produceIntegers();
+
+        await().atMost(20, TimeUnit.SECONDS).until(() -> bean.getResults().size() >= 4);
+        assertThat(bean.getResults()).containsExactly(2, 3, 5, 6);
     }
 
     @ApplicationScoped

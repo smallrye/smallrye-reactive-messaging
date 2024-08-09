@@ -1,5 +1,7 @@
 package io.smallrye.reactive.messaging.jms.i18n;
 
+import java.util.NoSuchElementException;
+
 import org.jboss.logging.Messages;
 import org.jboss.logging.annotations.Cause;
 import org.jboss.logging.annotations.Message;
@@ -56,7 +58,13 @@ public interface JmsExceptions {
     @Message(id = 15613, value = "There is already a subscriber")
     IllegalStateException illegalStateAlreadySubscriber();
 
-    @Message(id = 18614, value = "Invalid failure strategy: %s")
+    @Message(id = 15614, value = "Invalid failure strategy: %s")
     IllegalArgumentException illegalArgumentInvalidFailureStrategy(String strategy);
+
+    @Message(id = 15615, value = "The config property '%s' is required but it could not be found in any config source")
+    NoSuchElementException missingProperty(String propertyName);
+
+    @Message(id = 15616, value = "Cannot convert property '%s' of type %s to %s")
+    NoSuchElementException cannotConvertProperty(String propertyName, Class<?> type, Class<?> targetType);
 
 }

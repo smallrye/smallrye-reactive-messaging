@@ -18,6 +18,7 @@ import io.smallrye.config.SmallRyeConfigProviderResolver;
 import io.smallrye.config.inject.ConfigExtension;
 import io.smallrye.reactive.messaging.jms.JmsConnector;
 import io.smallrye.reactive.messaging.jms.TestMapping;
+import io.smallrye.reactive.messaging.jms.fault.JmsDlqFailure;
 import io.smallrye.reactive.messaging.jms.fault.JmsFailStop;
 import io.smallrye.reactive.messaging.jms.fault.JmsFailureHandler;
 import io.smallrye.reactive.messaging.jms.fault.JmsIgnoreFailure;
@@ -101,6 +102,7 @@ public class JmsTestBase {
         weld.addBeanClass(ExecutionHolder.class);
         weld.addBeanClass(JmsFailStop.Factory.class);
         weld.addBeanClass(JmsIgnoreFailure.Factory.class);
+        weld.addBeanClass(JmsDlqFailure.Factory.class);
         weld.addBeanClass(WorkerPoolRegistry.class);
         weld.addBeanClass(HealthCenter.class);
         weld.addBeanClass(Wiring.class);

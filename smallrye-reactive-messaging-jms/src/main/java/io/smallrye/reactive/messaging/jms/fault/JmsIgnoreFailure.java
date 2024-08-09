@@ -11,6 +11,7 @@ import org.eclipse.microprofile.reactive.messaging.Metadata;
 import io.smallrye.common.annotation.Identifier;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.jms.IncomingJmsMessage;
+import io.smallrye.reactive.messaging.jms.JmsConnector;
 import io.smallrye.reactive.messaging.jms.JmsConnectorIncomingConfiguration;
 
 public class JmsIgnoreFailure implements JmsFailureHandler {
@@ -22,7 +23,7 @@ public class JmsIgnoreFailure implements JmsFailureHandler {
     public static class Factory implements JmsFailureHandler.Factory {
 
         @Override
-        public JmsFailureHandler create(JmsConnectorIncomingConfiguration config,
+        public JmsFailureHandler create(JmsConnector jmsConnector, JmsConnectorIncomingConfiguration config,
                 BiConsumer<Throwable, Boolean> reportFailure) {
             return new JmsIgnoreFailure(config.getChannel());
         }

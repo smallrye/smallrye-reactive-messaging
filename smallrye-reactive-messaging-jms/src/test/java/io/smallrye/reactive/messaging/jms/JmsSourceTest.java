@@ -186,7 +186,7 @@ public class JmsSourceTest extends JmsTestBase {
 
     @Test
     public void testMultipleRequests() {
-        JmsSource source = new JmsSource(Vertx.vertx(), getResourceHolder("queue"),
+        JmsSource source = new JmsSource(null, Vertx.vertx(), getResourceHolder("queue"),
                 new JmsConnectorIncomingConfiguration(new MapBasedConfig().put("channel-name", "queue")),
                 null, null, failureHandlerFactories);
         Publisher<IncomingJmsMessage<?>> publisher = source.getSource();
@@ -239,7 +239,7 @@ public class JmsSourceTest extends JmsTestBase {
 
     @Test
     public void testBroadcast() {
-        JmsSource source = new JmsSource(Vertx.vertx(), getResourceHolder("queue"),
+        JmsSource source = new JmsSource(null, Vertx.vertx(), getResourceHolder("queue"),
                 new JmsConnectorIncomingConfiguration(new MapBasedConfig()
                         .with("channel-name", "queue").with("broadcast", true)),
                 null, null, failureHandlerFactories);
