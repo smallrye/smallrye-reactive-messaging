@@ -187,7 +187,7 @@ public class JmsSourceTest extends JmsTestBase {
     public void testMultipleRequests() {
         JmsSource source = new JmsSource(getResourceHolder("queue"),
                 new JmsConnectorIncomingConfiguration(new MapBasedConfig().put("channel-name", "queue")),
-                null, null);
+                UnsatisfiedInstance.instance(), null, null);
         Publisher<IncomingJmsMessage<?>> publisher = source.getSource();
 
         new Thread(() -> {
@@ -241,7 +241,7 @@ public class JmsSourceTest extends JmsTestBase {
         JmsSource source = new JmsSource(getResourceHolder("queue"),
                 new JmsConnectorIncomingConfiguration(new MapBasedConfig()
                         .with("channel-name", "queue").with("broadcast", true)),
-                null, null);
+                UnsatisfiedInstance.instance(), null, null);
         Flow.Publisher<IncomingJmsMessage<?>> publisher = source.getSource();
 
         List<IncomingJmsMessage<?>> list1 = new ArrayList<>();

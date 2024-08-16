@@ -4,9 +4,13 @@ import static io.smallrye.reactive.messaging.jms.i18n.JmsExceptions.ex;
 import static io.smallrye.reactive.messaging.jms.i18n.JmsLogging.log;
 
 import java.time.Duration;
+import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Flow;
 
+import jakarta.enterprise.inject.Instance;
 import jakarta.jms.BytesMessage;
 import jakarta.jms.DeliveryMode;
 import jakarta.jms.Destination;
@@ -16,7 +20,10 @@ import jakarta.jms.JMSProducer;
 
 import org.eclipse.microprofile.reactive.messaging.Message;
 
+import io.opentelemetry.api.OpenTelemetry;
 import io.smallrye.mutiny.Uni;
+import io.smallrye.reactive.messaging.jms.tracing.JmsOpenTelemetryInstrumenter;
+import io.smallrye.reactive.messaging.jms.tracing.JmsTrace;
 import io.smallrye.reactive.messaging.json.JsonMapping;
 import io.smallrye.reactive.messaging.providers.helpers.MultiUtils;
 
@@ -25,9 +32,14 @@ class JmsSink {
     private final Flow.Subscriber<Message<?>> sink;
     private final JsonMapping jsonMapping;
     private final Executor executor;
+    private final JmsOpenTelemetryInstrumenter jmsInstrumenter;
+    private final boolean isTracingEnabled;
 
-    JmsSink(JmsResourceHolder<JMSProducer> resourceHolder, JmsConnectorOutgoingConfiguration config, JsonMapping jsonMapping,
+    JmsSink(JmsResourceHolder<JMSProducer> resourceHolder, JmsConnectorOutgoingConfiguration config,
+            Instance<OpenTelemetry> openTelemetryInstance, JsonMapping jsonMapping,
             Executor executor) {
+        this.isTracingEnabled = config.getTracingEnabled();
+
         String name = config.getDestination().orElseGet(config::getChannel);
         String type = config.getDestinationType();
         boolean retry = config.getRetry();
@@ -73,6 +85,12 @@ class JmsSink {
         this.jsonMapping = jsonMapping;
         this.executor = executor;
 
+        if (isTracingEnabled) {
+            jmsInstrumenter = JmsOpenTelemetryInstrumenter.createForSink(openTelemetryInstance);
+        } else {
+            jmsInstrumenter = null;
+        }
+
         sink = MultiUtils.via(m -> m.onItem().transformToUniAndConcatenate(message -> send(resourceHolder, message)
                 .onFailure(t -> retry)
                 .retry()
@@ -90,6 +108,8 @@ class JmsSink {
         JMSContext context = resourceHolder.getContext();
         // If the payload is a JMS Message, send it as it is, ignoring metadata.
         if (payload instanceof jakarta.jms.Message) {
+            outgoingTrace(resourceHolder, message, (jakarta.jms.Message) payload);
+
             return dispatch(message,
                     () -> resourceHolder.getClient().send(destination, (jakarta.jms.Message) payload));
         }
@@ -150,9 +170,32 @@ class JmsSink {
                 actualDestination = destination;
             }
 
+            outgoingTrace(resourceHolder, message, outgoing);
             return dispatch(message, () -> resourceHolder.getClient().send(actualDestination, outgoing));
         } catch (JMSException e) {
             return Uni.createFrom().failure(new IllegalStateException(e));
+        }
+    }
+
+    private void outgoingTrace(JmsResourceHolder<JMSProducer> resourceHolder, Message<?> message, jakarta.jms.Message payload) {
+        if (isTracingEnabled) {
+            jakarta.jms.Message jmsPayload = payload;
+            Map<String, Object> messageProperties = new HashMap<>();
+            try {
+                Enumeration<?> propertyNames = jmsPayload.getPropertyNames();
+
+                while (propertyNames.hasMoreElements()) {
+                    String propertyName = (String) propertyNames.nextElement();
+                    messageProperties.put(propertyName, jmsPayload.getObjectProperty(propertyName));
+                }
+            } catch (JMSException e) {
+                throw new RuntimeException(e);
+            }
+            JmsTrace kafkaTrace = new JmsTrace.Builder()
+                    .withQueue(resourceHolder.getDestination().toString())//TODO Find the correct queue name
+                    .withProperties(messageProperties)
+                    .build();
+            jmsInstrumenter.traceOutgoing(message, kafkaTrace);
         }
     }
 

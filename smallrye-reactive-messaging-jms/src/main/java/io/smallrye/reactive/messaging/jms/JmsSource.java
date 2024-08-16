@@ -4,6 +4,10 @@ import static io.smallrye.reactive.messaging.jms.i18n.JmsExceptions.ex;
 import static io.smallrye.reactive.messaging.jms.i18n.JmsLogging.log;
 
 import java.time.Duration;
+import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -11,10 +15,14 @@ import java.util.concurrent.Flow;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
+import jakarta.enterprise.inject.Instance;
 import jakarta.jms.*;
 
+import io.opentelemetry.api.OpenTelemetry;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.helpers.Subscriptions;
+import io.smallrye.reactive.messaging.jms.tracing.JmsOpenTelemetryInstrumenter;
+import io.smallrye.reactive.messaging.jms.tracing.JmsTrace;
 import io.smallrye.reactive.messaging.json.JsonMapping;
 
 class JmsSource {
@@ -23,9 +31,13 @@ class JmsSource {
     private final JmsResourceHolder<JMSConsumer> resourceHolder;
 
     private final JmsPublisher publisher;
+    private final boolean isTracingEnabled;
+    private final JmsOpenTelemetryInstrumenter jmsInstrumenter;
 
-    JmsSource(JmsResourceHolder<JMSConsumer> resourceHolder, JmsConnectorIncomingConfiguration config, JsonMapping jsonMapping,
+    JmsSource(JmsResourceHolder<JMSConsumer> resourceHolder, JmsConnectorIncomingConfiguration config,
+            Instance<OpenTelemetry> openTelemetryInstance, JsonMapping jsonMapping,
             Executor executor) {
+        this.isTracingEnabled = config.getTracingEnabled();
         String channel = config.getChannel();
         final String destinationName = config.getDestination().orElseGet(config::getChannel);
         String selector = config.getSelector().orElse(null);
@@ -46,9 +58,16 @@ class JmsSource {
                     }
                 });
         resourceHolder.getClient();
+        if (isTracingEnabled) {
+            jmsInstrumenter = JmsOpenTelemetryInstrumenter.createForSource(openTelemetryInstance);
+        } else {
+            jmsInstrumenter = null;
+        }
+
         this.publisher = new JmsPublisher(resourceHolder);
         source = Multi.createFrom().publisher(publisher)
                 .<IncomingJmsMessage<?>> map(m -> new IncomingJmsMessage<>(m, executor, jsonMapping))
+                .onItem().invoke(this::incomingTrace)
                 .onFailure(t -> {
                     log.terminalErrorOnChannel(channel);
                     this.resourceHolder.close();
@@ -188,6 +207,44 @@ class JmsSource {
                     return v;
                 }
             }
+        }
+    }
+
+    public void incomingTrace(IncomingJmsMessage<?> jmsMessage) {
+        if (isTracingEnabled) {
+            Optional<IncomingJmsMessageMetadata> metadata = jmsMessage.getMetadata(IncomingJmsMessageMetadata.class);
+            Optional<String> queueName = metadata.map(a -> {
+                Destination destination = a.getDestination();
+                if (destination instanceof Queue) {
+                    Queue queue = (Queue) destination;
+                    try {
+                        return queue.getQueueName();
+                    } catch (JMSException e) {
+                        return null;
+                    }
+                }
+                return null;
+            });
+            Message unwrapped = jmsMessage.unwrap(Message.class);
+
+            Map<String, Object> properties = new HashMap<>();
+            try {
+                Enumeration<?> propertyNames = unwrapped.getPropertyNames();
+                while (propertyNames.hasMoreElements()) {
+                    String name = (String) propertyNames.nextElement();
+                    Object value = unwrapped.getObjectProperty(name);
+                    properties.put(name, value);
+                }
+            } catch (JMSException e) {
+                throw new RuntimeException(e);
+            }
+
+            JmsTrace jmsTrace = new JmsTrace.Builder()
+                    .withQueue(queueName.orElse(null))
+                    .withProperties(properties)
+                    .build();
+
+            jmsInstrumenter.traceIncoming(jmsMessage, jmsTrace);
         }
     }
 }
