@@ -261,8 +261,8 @@ public class RabbitMQMessageSender implements Processor<Message<?>, Message<?>>,
             final Message<?> msg,
             final String exchange,
             final RabbitMQConnectorOutgoingConfiguration configuration) {
-        final int retryAttempts = configuration.getReconnectAttempts();
-        final int retryInterval = configuration.getReconnectInterval();
+        final int retryAttempts = configuration.getRetryOnFailAttempts();
+        final int retryInterval = configuration.getRetryOnFailInterval();
         final String defaultRoutingKey = configuration.getDefaultRoutingKey();
 
         final RabbitMQMessageConverter.OutgoingRabbitMQMessage outgoingRabbitMQMessage = RabbitMQMessageConverter

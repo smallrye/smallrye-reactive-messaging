@@ -11,6 +11,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
+import io.smallrye.common.annotation.CheckReturnValue;
 import jakarta.enterprise.context.ApplicationScoped;
 
 import org.eclipse.microprofile.config.ConfigProvider;
@@ -473,6 +474,9 @@ class RabbitMQTest extends RabbitMQBrokerTestBase {
 
         List<Long> deliveryTags = new CopyOnWriteArrayList<>();
 
+        List<Long> deliveryTagsNack = new CopyOnWriteArrayList<>();
+
+
         @Override
         public void onMessageAck(Message<?> message) {
             message.getMetadata(OutgoingMessageMetadata.class).ifPresent(m -> deliveryTags.add((long) m.getResult()));
@@ -480,13 +484,72 @@ class RabbitMQTest extends RabbitMQBrokerTestBase {
 
         @Override
         public void onMessageNack(Message<?> message, Throwable failure) {
-
+            message.getMetadata(OutgoingMessageMetadata.class).ifPresent(m -> deliveryTagsNack.add(((Integer) message.getPayload()).longValue()));
         }
 
         public List<Long> getDeliveryTags() {
             return deliveryTags;
         }
+
+        public List<Long> getDeliveryTagsNack() {
+            return deliveryTagsNack;
+        }
+
+        public int numberOfProcessedMessage(){
+            return deliveryTags.size() + deliveryTagsNack.size();
+        }
     }
+
+    /**
+     * Verifies that messages can be sent to RabbitMQ with publish confirms.
+     *
+     * @throws InterruptedException
+     */
+    @Test
+    void testSendingMessagesToRabbitMQPublishConfirmsWithNack() throws InterruptedException {
+        final String routingKey = "normal";
+
+        List<Long> receivedTags = new CopyOnWriteArrayList<>();
+        CountDownLatch latch = new CountDownLatch(10);
+        usage.prepareNackQueue(exchangeName, routingKey);/*, v -> {
+            receivedTags.add(v.envelope().getDeliveryTag());
+            latch.countDown();
+        });*/
+
+        weld.addBeanClasses(ProducingBean.class, DeliveryTagInterceptor.class);
+
+        new MapBasedConfig()
+                .put("mp.messaging.outgoing.sink.exchange.name", exchangeName)
+                .put("mp.messaging.outgoing.sink.exchange.declare", false)
+                .put("mp.messaging.outgoing.sink.default-routing-key", routingKey)
+                .put("mp.messaging.outgoing.sink.publish-confirms", true)
+                .put("mp.messaging.outgoing.sink.retry-on-fail-attempts", 0)
+                .put("mp.messaging.outgoing.sink.connector", RabbitMQConnector.CONNECTOR_NAME)
+                .put("mp.messaging.outgoing.sink.host", host)
+                .put("mp.messaging.outgoing.sink.port", port)
+                .put("mp.messaging.outgoing.sink.tracing.enabled", false)
+                .put("rabbitmq-username", username)
+                .put("rabbitmq-password", password)
+                .write();
+
+        container = weld.initialize();
+        await().until(() -> isRabbitMQConnectorAvailable(container));
+
+        DeliveryTagInterceptor interceptor = get(container, DeliveryTagInterceptor.class);
+        await().until(() ->
+                interceptor.numberOfProcessedMessage() == 10);
+
+
+
+        assertThat(interceptor.getDeliveryTags())
+                .hasSizeBetween(1,2);
+
+        assertThat(interceptor.getDeliveryTagsNack())
+                .hasSizeBetween(8,9);
+    }
+
+
+
 
     /**
      * Verifies that messages can be sent to RabbitMQ.
