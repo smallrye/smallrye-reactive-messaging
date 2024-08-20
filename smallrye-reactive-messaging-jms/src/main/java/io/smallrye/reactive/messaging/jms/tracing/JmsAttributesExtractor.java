@@ -37,7 +37,7 @@ public class JmsAttributesExtractor implements AttributesExtractor<JmsTrace, Voi
     public void onEnd(
             final AttributesBuilder attributes,
             final Context context,
-            final JmsTrace kafkaTrace,
+            final JmsTrace jmsTrace,
             final Void unused,
             final Throwable error) {
 

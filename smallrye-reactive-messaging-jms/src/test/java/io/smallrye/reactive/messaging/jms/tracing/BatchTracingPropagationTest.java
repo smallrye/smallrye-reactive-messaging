@@ -115,7 +115,7 @@ public class BatchTracingPropagationTest extends JmsTestBase {
     }
 
     @Test
-    public void testFromKafkaToAppWithParentSpan() {
+    public void testFromJmsToAppWithParentSpan() {
         String parentTopic = "queue-one-parent";
         Map<String, Object> map = new HashMap<>();
         map.put("mp.messaging.outgoing.queue-one.connector", JmsConnector.CONNECTOR_NAME);
@@ -150,7 +150,7 @@ public class BatchTracingPropagationTest extends JmsTestBase {
     }
 
     @Test
-    public void testFromKafkaToAppWithNoParent() {
+    public void testFromJmsToAppWithNoParent() {
         Map<String, Object> map = new HashMap<>();
         map.put("mp.messaging.outgoing.queue-one.connector", JmsConnector.CONNECTOR_NAME);
         map.put("mp.messaging.incoming.jms.connector", JmsConnector.CONNECTOR_NAME);

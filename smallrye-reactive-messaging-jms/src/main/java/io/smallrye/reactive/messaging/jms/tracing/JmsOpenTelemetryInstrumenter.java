@@ -59,11 +59,11 @@ public class JmsOpenTelemetryInstrumenter {
         return new JmsOpenTelemetryInstrumenter(instrumenter);
     }
 
-    public Message<?> traceIncoming(Message<?> message, JmsTrace kafkaTrace) {
-        return TracingUtils.traceIncoming(instrumenter, message, kafkaTrace, true);
+    public Message<?> traceIncoming(Message<?> message, JmsTrace jmsTrace) {
+        return TracingUtils.traceIncoming(instrumenter, message, jmsTrace, true);
     }
 
-    public void traceOutgoing(Message<?> message, JmsTrace kafkaTrace) {
-        TracingUtils.traceOutgoing(instrumenter, message, kafkaTrace);
+    public void traceOutgoing(Message<?> message, JmsTrace jmsTrace) {
+        TracingUtils.traceOutgoing(instrumenter, message, jmsTrace);
     }
 }

@@ -191,11 +191,11 @@ class JmsSink {
             } catch (JMSException e) {
                 throw new RuntimeException(e);
             }
-            JmsTrace kafkaTrace = new JmsTrace.Builder()
+            JmsTrace jmsTrace = new JmsTrace.Builder()
                     .withQueue(resourceHolder.getDestination().toString())//TODO Find the correct queue name
                     .withProperties(messageProperties)
                     .build();
-            jmsInstrumenter.traceOutgoing(message, kafkaTrace);
+            jmsInstrumenter.traceOutgoing(message, jmsTrace);
         }
     }
 

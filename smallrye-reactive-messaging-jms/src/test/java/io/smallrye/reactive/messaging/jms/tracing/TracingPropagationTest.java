@@ -103,7 +103,7 @@ public class TracingPropagationTest extends JmsTestBase {
 
     @Test
     @Disabled("Not working yet. ")
-    public void testFromKafkaToAppToKafka() {
+    public void testFromJmsToAppToKafka() {
         String queue = "queue-one";
         String resultTopic = queue + "-result";
         String parentTopic = queue + "-parent";
