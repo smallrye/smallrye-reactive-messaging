@@ -28,9 +28,6 @@ public class JmsAttributesExtractor implements AttributesExtractor<JmsTrace, Voi
             }
             attributes.put(MESSAGING_CONSUMER_ID, consumerId);
         }
-        if (groupId != null) {
-            attributes.put(MESSAGING_KAFKA_CONSUMER_GROUP, groupId);
-        }
     }
 
     @Override

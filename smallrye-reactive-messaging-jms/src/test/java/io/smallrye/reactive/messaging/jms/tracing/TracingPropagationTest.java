@@ -141,7 +141,6 @@ public class TracingPropagationTest extends JmsTestBase {
             assertEquals("receive", consumer.getAttributes().get(MESSAGING_OPERATION));
             assertEquals(parentTopic, consumer.getAttributes().get(MESSAGING_DESTINATION_NAME));
             assertEquals("jms-consumer-source", consumer.getAttributes().get(MESSAGING_CLIENT_ID));
-            assertEquals(0, consumer.getAttributes().get(MESSAGING_KAFKA_MESSAGE_OFFSET));
             assertEquals(parentTopic + " receive", consumer.getName());
 
             SpanData producer = spans.stream().filter(spanData -> spanData.getParentSpanId().equals(consumer.getSpanId()))
@@ -206,7 +205,6 @@ public class TracingPropagationTest extends JmsTestBase {
     //            assertEquals("receive", consumer.getAttributes().get(MESSAGING_OPERATION));
     //            assertEquals(parentTopic, consumer.getAttributes().get(MESSAGING_DESTINATION_NAME));
     //            assertEquals("kafka-consumer-stuff", consumer.getAttributes().get(MESSAGING_CLIENT_ID));
-    //            assertEquals(0, consumer.getAttributes().get(MESSAGING_KAFKA_MESSAGE_OFFSET));
     //            assertEquals(parentTopic + " receive", consumer.getName());
     //        });
     //    }
