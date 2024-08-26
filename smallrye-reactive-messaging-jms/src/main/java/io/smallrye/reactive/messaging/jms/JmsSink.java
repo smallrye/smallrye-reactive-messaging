@@ -108,8 +108,7 @@ class JmsSink {
         JMSContext context = resourceHolder.getContext();
         // If the payload is a JMS Message, send it as it is, ignoring metadata.
         if (payload instanceof jakarta.jms.Message) {
-            outgoingTrace(resourceHolder, message, (jakarta.jms.Message) payload);
-
+            outgoingTrace(destination, message, (jakarta.jms.Message) payload);
             return dispatch(message,
                     () -> resourceHolder.getClient().send(destination, (jakarta.jms.Message) payload));
         }
@@ -170,14 +169,14 @@ class JmsSink {
                 actualDestination = destination;
             }
 
-            outgoingTrace(resourceHolder, message, outgoing);
+            outgoingTrace(actualDestination, message, outgoing);
             return dispatch(message, () -> resourceHolder.getClient().send(actualDestination, outgoing));
         } catch (JMSException e) {
             return Uni.createFrom().failure(new IllegalStateException(e));
         }
     }
 
-    private void outgoingTrace(JmsResourceHolder<JMSProducer> resourceHolder, Message<?> message, jakarta.jms.Message payload) {
+    private void outgoingTrace(Destination actualDestination, Message<?> message, jakarta.jms.Message payload) {
         if (isTracingEnabled) {
             jakarta.jms.Message jmsPayload = payload;
             Map<String, Object> messageProperties = new HashMap<>();
@@ -192,7 +191,7 @@ class JmsSink {
                 throw new RuntimeException(e);
             }
             JmsTrace jmsTrace = new JmsTrace.Builder()
-                    .withQueue(resourceHolder.getDestination().toString())//TODO Find the correct queue name
+                    .withQueue(actualDestination.toString())
                     .withProperties(messageProperties)
                     .build();
             jmsInstrumenter.traceOutgoing(message, jmsTrace);
