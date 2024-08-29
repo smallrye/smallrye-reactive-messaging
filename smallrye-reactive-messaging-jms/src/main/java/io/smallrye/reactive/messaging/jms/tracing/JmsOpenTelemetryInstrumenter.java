@@ -60,7 +60,7 @@ public class JmsOpenTelemetryInstrumenter {
     }
 
     public Message<?> traceIncoming(Message<?> message, JmsTrace jmsTrace) {
-        return TracingUtils.traceIncoming(instrumenter, message, jmsTrace, true);
+        return TracingUtils.traceIncoming(instrumenter, message, jmsTrace);
     }
 
     public void traceOutgoing(Message<?> message, JmsTrace jmsTrace) {

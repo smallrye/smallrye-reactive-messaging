@@ -26,7 +26,7 @@ public class JmsAttributesExtractor implements AttributesExtractor<JmsTrace, Voi
             if (!clientId.isEmpty()) {
                 consumerId += " - " + clientId;
             }
-            attributes.put(MESSAGING_CONSUMER_ID, consumerId);
+            attributes.put(MESSAGING_CLIENT_ID, consumerId);
         }
     }
 

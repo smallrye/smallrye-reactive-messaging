@@ -13,14 +13,15 @@ import org.eclipse.microprofile.reactive.messaging.Metadata;
 
 import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.json.JsonMapping;
+import io.smallrye.reactive.messaging.providers.MetadataInjectableMessage;
 
-public class IncomingJmsMessage<T> implements org.eclipse.microprofile.reactive.messaging.Message<T> {
+public class IncomingJmsMessage<T> implements MetadataInjectableMessage<T> {
     private final Message delegate;
     private final Executor executor;
     private final Class<T> clazz;
     private final JsonMapping jsonMapping;
     private final IncomingJmsMessageMetadata jmsMetadata;
-    private final Metadata metadata;
+    private Metadata metadata;
 
     IncomingJmsMessage(Message message, Executor executor, JsonMapping jsonMapping) {
         this.delegate = message;
@@ -139,4 +140,8 @@ public class IncomingJmsMessage<T> implements org.eclipse.microprofile.reactive.
         throw ex.illegalStateUnableToUnwrap(unwrapType);
     }
 
+    @Override
+    public void injectMetadata(Object metadataObject) {
+        metadata = this.metadata.with(metadataObject);
+    }
 }

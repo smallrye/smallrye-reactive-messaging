@@ -16,7 +16,14 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
 import jakarta.enterprise.inject.Instance;
-import jakarta.jms.*;
+import jakarta.jms.Destination;
+import jakarta.jms.JMSConsumer;
+import jakarta.jms.JMSContext;
+import jakarta.jms.JMSException;
+import jakarta.jms.JMSRuntimeException;
+import jakarta.jms.Message;
+import jakarta.jms.Queue;
+import jakarta.jms.Topic;
 
 import io.opentelemetry.api.OpenTelemetry;
 import io.smallrye.mutiny.Multi;
