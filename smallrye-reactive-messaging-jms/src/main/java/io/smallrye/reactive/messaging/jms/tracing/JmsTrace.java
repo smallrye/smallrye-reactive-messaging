@@ -4,24 +4,12 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class JmsTrace {
-    private final String groupId;
-    private final String clientId;
     private final String queue;
     private final Map<String, Object> messageProperties;
 
-    private JmsTrace(final String groupId, final String clientId, final String queue, Map<String, Object> messageProperties) {
-        this.groupId = groupId;
-        this.clientId = clientId;
+    private JmsTrace(final String queue, Map<String, Object> messageProperties) {
         this.queue = queue;
         this.messageProperties = messageProperties;
-    }
-
-    public String getGroupId() {
-        return groupId;
-    }
-
-    public String getClientId() {
-        return clientId;
     }
 
     public String getQueue() {
@@ -33,20 +21,8 @@ public class JmsTrace {
     }
 
     public static class Builder {
-        private String groupId;
-        private String clientId;
         private String queue;
         private Map<String, Object> properties;
-
-        public Builder withGroupId(final String groupId) {
-            this.groupId = groupId;
-            return this;
-        }
-
-        public Builder withClientId(final String clientId) {
-            this.clientId = clientId;
-            return this;
-        }
 
         public Builder withQueue(final String queue) {
             this.queue = queue;
@@ -59,7 +35,7 @@ public class JmsTrace {
         }
 
         public JmsTrace build() {
-            return new JmsTrace(groupId, clientId, queue, properties);
+            return new JmsTrace(queue, properties);
         }
     }
 }

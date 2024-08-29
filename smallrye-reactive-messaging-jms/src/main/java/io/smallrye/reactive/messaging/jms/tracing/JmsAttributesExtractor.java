@@ -19,15 +19,7 @@ public class JmsAttributesExtractor implements AttributesExtractor<JmsTrace, Voi
 
     @Override
     public void onStart(final AttributesBuilder attributes, final Context parentContext, final JmsTrace jmsTrace) {
-        String groupId = jmsTrace.getGroupId();
-        String clientId = jmsTrace.getClientId();
-        if (groupId != null && clientId != null) {
-            String consumerId = groupId;
-            if (!clientId.isEmpty()) {
-                consumerId += " - " + clientId;
-            }
-            attributes.put(MESSAGING_CLIENT_ID, consumerId);
-        }
+
     }
 
     @Override
@@ -97,10 +89,7 @@ public class JmsAttributesExtractor implements AttributesExtractor<JmsTrace, Voi
 
         @Override
         public String getClientId(JmsTrace jmsTrace) {
-            if (jmsTrace.getClientId() == null) {
-                return null;
-            }
-            return jmsTrace.getClientId();
+            return null;
         }
 
         @Override
