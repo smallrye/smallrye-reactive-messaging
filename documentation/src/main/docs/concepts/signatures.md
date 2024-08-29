@@ -55,14 +55,14 @@ and available acknowledgement strategies (when applicable).
 | `@Outgoing @Incoming Flow.Processor<I, O> method()`                       | Called once at *assembly* time                   | *PRE_PROCESSING*, NONE                  | not supported        |
 | `@Outgoing @Incoming ProcessorBuilder<Message<I>, Message<O>> method()`   | Called once at *assembly* time                   | *MANUAL*, PRE_PROCESSING, NONE          | manual               |
 | `@Outgoing @Incoming ProcessorBuilder<I, O> method()`                     | Called once at *assembly* time                   | *PRE_PROCESSING*, NONE                  | not supported        |
-| `@Outgoing @Incoming Publisher<Message<O>> method(Message<I> msg)`        | Called once at *assembly* time                   | *MANUAL*, PRE_PROCESSING, NONE          | manual               |
-| `@Outgoing @Incoming Publisher<O> method(I payload)`                      | Called once at *assembly* time                   | *PRE_PROCESSING*, NONE                  | automatic            |
-| `@Outgoing @Incoming Multi<Message<O>> method(Message<I> msg)`            | Called once at *assembly* time                   | *MANUAL*, PRE_PROCESSING, NONE          | manual               |
-| `@Outgoing @Incoming Multi<O> method(I payload)`                          | Called once at *assembly* time                   | *PRE_PROCESSING*, NONE                  | automatic            |
-| `@Outgoing @Incoming Flow.Publisher<Message<O>> method(Message<I> msg)`   | Called once at *assembly* time                   | *MANUAL*, PRE_PROCESSING, NONE          | manual               |
-| `@Outgoing @Incoming Flow.Publisher<O> method(I payload)`                 | Called once at *assembly* time                   | *PRE_PROCESSING*, NONE                  | automatic            |
-| `@Outgoing @Incoming PublisherBuilder<Message<O>> method(Message<I> msg)` | Called once at *assembly* time                   | *MANUAL*, PRE_PROCESSING, NONE          | manual               |
-| `@Outgoing @Incoming PublisherBuilder<O> method(I payload)`               | Called once at *assembly* time                   | *PRE_PROCESSING*, NONE                  | automatic            |
+| `@Outgoing @Incoming Publisher<Message<O>> method(Message<I> msg)`        | Called for every incoming message (sequentially) | *MANUAL*, PRE_PROCESSING, NONE          | manual               |
+| `@Outgoing @Incoming Publisher<O> method(I payload)`                      | Called for every incoming payload (sequentially) | *PRE_PROCESSING*, POST_PROCESSING, NONE | automatic            |
+| `@Outgoing @Incoming Multi<Message<O>> method(Message<I> msg)`            | Called for every incoming message (sequentially) | *MANUAL*, PRE_PROCESSING, NONE          | manual               |
+| `@Outgoing @Incoming Multi<O> method(I payload)`                          | Called for every incoming payload (sequentially) | *PRE_PROCESSING*, POST_PROCESSING, NONE | automatic            |
+| `@Outgoing @Incoming Flow.Publisher<Message<O>> method(Message<I> msg)`   | Called for every incoming message (sequentially) | *MANUAL*, PRE_PROCESSING, NONE          | manual               |
+| `@Outgoing @Incoming Flow.Publisher<O> method(I payload)`                 | Called for every incoming payload (sequentially) | *PRE_PROCESSING*, POST_PROCESSING, NONE | automatic            |
+| `@Outgoing @Incoming PublisherBuilder<Message<O>> method(Message<I> msg)` | Called for every incoming message (sequentially) | *MANUAL*, PRE_PROCESSING, NONE          | manual               |
+| `@Outgoing @Incoming PublisherBuilder<O> method(I payload)`               | Called for every incoming payload (sequentially) | *PRE_PROCESSING*, POST_PROCESSING, NONE | automatic            |
 
 ## Method signatures to manipulate streams
 

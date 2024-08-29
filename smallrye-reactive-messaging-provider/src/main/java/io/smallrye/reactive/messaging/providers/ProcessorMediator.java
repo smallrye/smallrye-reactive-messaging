@@ -258,13 +258,19 @@ public class ProcessorMediator extends AbstractMediator {
         this.mapper = upstream -> {
             Multi<? extends Message<?>> multi = MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration);
             return multi.onItem().transformToMultiAndConcatenate(message -> {
-                PublisherBuilder<?> pb = invoke(getArguments(message));
-                if (configuration.getAcknowledgment() == Acknowledgment.Strategy.POST_PROCESSING) {
-                    // POST_PROCESSING must not be used when returning an infinite stream
-                    AcknowledgementCoordinator coordinator = new AcknowledgementCoordinator(message);
-                    return MultiUtils.publisher(AdaptersToFlow.publisher(pb.buildRs()))
-                            .onItem().transform(payload -> coordinator.track(payloadToMessage(payload, message.getMetadata())));
+                if (isPostAck()) {
+                    try {
+                        PublisherBuilder<?> pb = invoke(getArguments(message));
+                        // POST_PROCESSING must not be used when returning an infinite stream
+                        AcknowledgementCoordinator coordinator = new AcknowledgementCoordinator(message);
+                        return MultiUtils.publisher(AdaptersToFlow.publisher(pb.buildRs()))
+                                .onItem()
+                                .transform(payload -> coordinator.track(payloadToMessage(payload, message.getMetadata())));
+                    } catch (Throwable t) {
+                        return handlePostInvocation(message, t);
+                    }
                 } else {
+                    PublisherBuilder<?> pb = invoke(getArguments(message));
                     return MultiUtils.publisher(AdaptersToFlow.publisher(pb.buildRs()))
                             .onItem().transform(payload -> payloadToMessage(payload, message.getMetadata()));
                 }
@@ -276,13 +282,19 @@ public class ProcessorMediator extends AbstractMediator {
         this.mapper = upstream -> {
             Multi<? extends Message<?>> multi = MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration);
             return multi.onItem().transformToMultiAndConcatenate(message -> {
-                Publisher<?> pub = invoke(getArguments(message));
-                if (configuration.getAcknowledgment() == Acknowledgment.Strategy.POST_PROCESSING) {
-                    // POST_PROCESSING must not be used when returning an infinite stream
-                    AcknowledgementCoordinator coordinator = new AcknowledgementCoordinator(message);
-                    return MultiUtils.publisher(AdaptersToFlow.publisher(pub))
-                            .onItem().transform(payload -> coordinator.track(payloadToMessage(payload, message.getMetadata())));
+                if (isPostAck()) {
+                    try {
+                        Publisher<?> pub = invoke(getArguments(message));
+                        // POST_PROCESSING must not be used when returning an infinite stream
+                        AcknowledgementCoordinator coordinator = new AcknowledgementCoordinator(message);
+                        return MultiUtils.publisher(AdaptersToFlow.publisher(pub))
+                                .onItem()
+                                .transform(payload -> coordinator.track(payloadToMessage(payload, message.getMetadata())));
+                    } catch (Throwable t) {
+                        return handlePostInvocation(message, t);
+                    }
                 } else {
+                    Publisher<?> pub = invoke(getArguments(message));
                     return MultiUtils.publisher(AdaptersToFlow.publisher(pub))
                             .onItem().transform(payload -> payloadToMessage(payload, message.getMetadata()));
                 }
@@ -294,13 +306,20 @@ public class ProcessorMediator extends AbstractMediator {
         this.mapper = upstream -> {
             Multi<? extends Message<?>> multi = MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration);
             return multi.onItem().transformToMultiAndConcatenate(message -> {
-                Flow.Publisher<?> pub = invoke(getArguments(message));
-                if (configuration.getAcknowledgment() == Acknowledgment.Strategy.POST_PROCESSING) {
-                    // POST_PROCESSING must not be used when returning an infinite stream
-                    AcknowledgementCoordinator coordinator = new AcknowledgementCoordinator(message);
-                    return MultiUtils.publisher(pub)
-                            .onItem().transform(payload -> coordinator.track(payloadToMessage(payload, message.getMetadata())));
+                if (isPostAck()) {
+                    try {
+                        Flow.Publisher<?> pub = invoke(getArguments(message));
+                        // POST_PROCESSING must not be used when returning an infinite stream
+                        AcknowledgementCoordinator coordinator = new AcknowledgementCoordinator(message);
+                        return MultiUtils.publisher(pub)
+                                .onItem()
+                                .transform(payload -> coordinator.track(payloadToMessage(payload, message.getMetadata())));
+
+                    } catch (Throwable t) {
+                        return handlePostInvocation(message, t);
+                    }
                 } else {
+                    Flow.Publisher<?> pub = invoke(getArguments(message));
                     return MultiUtils.publisher(pub)
                             .onItem().transform(payload -> payloadToMessage(payload, message.getMetadata()));
                 }
@@ -382,6 +401,10 @@ public class ProcessorMediator extends AbstractMediator {
         } else {
             return Multi.createFrom().item(m);
         }
+    }
+
+    private Multi<? extends Message<?>> handlePostInvocation(Message<?> message, Throwable fail) {
+        return Uni.createFrom().completionStage(() -> message.nack(fail).thenApply(x -> (Message<?>) null)).toMulti();
     }
 
     private Uni<? extends Message<Object>> handlePostInvocation(Message<?> message, Object res, Throwable fail) {
