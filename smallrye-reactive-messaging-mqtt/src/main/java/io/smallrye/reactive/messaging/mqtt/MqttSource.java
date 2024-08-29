@@ -70,6 +70,7 @@ public class MqttSource {
 
         this.source = holder.stream()
                 .select().where(m -> MqttTopicHelper.matches(topic, pattern, m))
+                .onOverflow().buffer(config.getBufferSize())
                 .emitOn(c -> VertxContext.runOnContext(root.getDelegate(), c))
                 .onItem().transform(m -> new ReceivingMqttMessage(m, onNack))
                 .stage(multi -> {
@@ -78,7 +79,6 @@ public class MqttSource {
 
                     return multi;
                 })
-                .onOverflow().buffer(config.getBufferSize())
                 .onCancellation().call(() -> {
                     alive.set(false);
                     if (config.getUnsubscribeOnDisconnection())

@@ -11,7 +11,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
-import io.smallrye.common.annotation.CheckReturnValue;
 import jakarta.enterprise.context.ApplicationScoped;
 
 import org.eclipse.microprofile.config.ConfigProvider;
@@ -476,7 +475,6 @@ class RabbitMQTest extends RabbitMQBrokerTestBase {
 
         List<Long> deliveryTagsNack = new CopyOnWriteArrayList<>();
 
-
         @Override
         public void onMessageAck(Message<?> message) {
             message.getMetadata(OutgoingMessageMetadata.class).ifPresent(m -> deliveryTags.add((long) m.getResult()));
@@ -484,7 +482,8 @@ class RabbitMQTest extends RabbitMQBrokerTestBase {
 
         @Override
         public void onMessageNack(Message<?> message, Throwable failure) {
-            message.getMetadata(OutgoingMessageMetadata.class).ifPresent(m -> deliveryTagsNack.add(((Integer) message.getPayload()).longValue()));
+            message.getMetadata(OutgoingMessageMetadata.class)
+                    .ifPresent(m -> deliveryTagsNack.add(((Integer) message.getPayload()).longValue()));
         }
 
         public List<Long> getDeliveryTags() {
@@ -495,7 +494,7 @@ class RabbitMQTest extends RabbitMQBrokerTestBase {
             return deliveryTagsNack;
         }
 
-        public int numberOfProcessedMessage(){
+        public int numberOfProcessedMessage() {
             return deliveryTags.size() + deliveryTagsNack.size();
         }
     }
@@ -511,10 +510,12 @@ class RabbitMQTest extends RabbitMQBrokerTestBase {
 
         List<Long> receivedTags = new CopyOnWriteArrayList<>();
         CountDownLatch latch = new CountDownLatch(10);
-        usage.prepareNackQueue(exchangeName, routingKey);/*, v -> {
-            receivedTags.add(v.envelope().getDeliveryTag());
-            latch.countDown();
-        });*/
+        usage.prepareNackQueue(exchangeName, routingKey);/*
+                                                          * , v -> {
+                                                          * receivedTags.add(v.envelope().getDeliveryTag());
+                                                          * latch.countDown();
+                                                          * });
+                                                          */
 
         weld.addBeanClasses(ProducingBean.class, DeliveryTagInterceptor.class);
 
@@ -536,20 +537,14 @@ class RabbitMQTest extends RabbitMQBrokerTestBase {
         await().until(() -> isRabbitMQConnectorAvailable(container));
 
         DeliveryTagInterceptor interceptor = get(container, DeliveryTagInterceptor.class);
-        await().until(() ->
-                interceptor.numberOfProcessedMessage() == 10);
-
-
+        await().until(() -> interceptor.numberOfProcessedMessage() == 10);
 
         assertThat(interceptor.getDeliveryTags())
-                .hasSizeBetween(1,2);
+                .hasSizeBetween(1, 2);
 
         assertThat(interceptor.getDeliveryTagsNack())
-                .hasSizeBetween(8,9);
+                .hasSizeBetween(8, 9);
     }
-
-
-
 
     /**
      * Verifies that messages can be sent to RabbitMQ.
