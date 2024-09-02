@@ -124,7 +124,7 @@
     <revapi-reporter-text.version>0.15.0</revapi-reporter-text.version>
     <revapi.skip>true</revapi.skip>
 
-    <jreleaser-maven-plugin.version>1.13.1</jreleaser-maven-plugin.version>
+    <jreleaser-maven-plugin.version>1.14.0</jreleaser-maven-plugin.version>
   </properties>
 
   <modules>
