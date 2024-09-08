@@ -89,9 +89,13 @@ A snapshot of the list of pending replies is available through the `KafkaRequest
 The requestor can be found in a position where a request is sent, and it's reply is already published to the reply topic,
 before the requestor starts and polls the consumer.
 In case the reply consumer is configured with `auto.offset.reset=latest`, which is the default value, this can lead to the requestor missing replies.
+
 If `auto.offset.reset` is `latest`, at wiring time, before any request can take place, the `KafkaRequestReply`
 finds partitions that the consumer needs to subscribe and waits for their assignment to the consumer.
-On other occasons the `KafkaRequestReply#waitForAssignments` method can be used.
+The timeout of the initial subscription can be adjusted with `reply.initial-assignment-timeout` which defaults to the `reply.timeout`.
+If this timeout fails, `KafkaRequestReply` will enter an invalid state which will require it to be restarted.
+
+On other occasions the `KafkaRequestReply#waitForAssignments` method can be used.
 
 ## Correlation Ids
 

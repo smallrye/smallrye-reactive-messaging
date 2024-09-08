@@ -75,6 +75,7 @@ public class KafkaRequestReplyImpl<Req, Rep> extends MutinyEmitterImpl<Req>
     private final KafkaSource<Object, Rep> replySource;
     private final Set<TopicPartition> waitForPartitions;
     private final boolean gracefulShutdown;
+    private final Duration initialAssignmentTimeout;
     private Function<Message<Rep>, Message<Rep>> replyConverter;
 
     public KafkaRequestReplyImpl(EmitterConfiguration config,
@@ -103,6 +104,8 @@ public class KafkaRequestReplyImpl<Req, Rep> extends MutinyEmitterImpl<Req>
         this.replyTopic = consumerConfig.getTopic().orElse(null);
         this.replyPartition = connectorConfig.getOptionalValue(REPLY_PARTITION_KEY, Integer.class).orElse(-1);
         this.replyTimeout = Duration.ofMillis(connectorConfig.getOptionalValue(REPLY_TIMEOUT_KEY, Integer.class).orElse(5000));
+        this.initialAssignmentTimeout = Duration.ofMillis(connectorConfig
+                .getOptionalValue(REPLY_INITIAL_ASSIGNMENT_TIMEOUT_KEY, Integer.class).orElse((int) replyTimeout.toMillis()));
 
         this.autoOffsetReset = consumerConfig.getAutoOffsetReset();
         this.replyCorrelationIdHeader = connectorConfig.getOptionalValue(REPLY_CORRELATION_ID_HEADER_KEY, String.class)
@@ -151,8 +154,10 @@ public class KafkaRequestReplyImpl<Req, Rep> extends MutinyEmitterImpl<Req>
     @Override
     public Flow.Publisher<Message<? extends Req>> getPublisher() {
         return this.publisher
-                .plug(m -> "latest".equals(autoOffsetReset)
-                        ? m.onSubscription().call(() -> waitForAssignments().ifNoItem().after(replyTimeout).fail())
+                .plug(m -> "latest".equals(autoOffsetReset) ? m.onSubscription().call(() -> waitForAssignments()
+                        .ifNoItem()
+                        .after(initialAssignmentTimeout)
+                        .fail())
                         : m)
                 .onTermination().invoke(this::complete);
     }
