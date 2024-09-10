@@ -26,7 +26,6 @@ import io.smallrye.reactive.messaging.Shape;
 import io.smallrye.reactive.messaging.providers.helpers.AcknowledgementCoordinator;
 import io.smallrye.reactive.messaging.providers.helpers.ClassUtils;
 import io.smallrye.reactive.messaging.providers.helpers.MultiUtils;
-import io.smallrye.reactive.messaging.providers.i18n.ProviderLogging;
 import mutiny.zero.flow.adapters.AdaptersToFlow;
 
 @SuppressWarnings("ReactiveStreamsUnusedPublisher")
@@ -494,8 +493,9 @@ public class ProcessorMediator extends AbstractMediator {
         } else if (res != null) {
             if (isPostAck()) {
                 // Here we chain the outgoing message to the incoming, but maybe the message has already been (n)acked
-                return Uni.createFrom().item((Message<Object>) res.withAckWithMetadata(m -> res.ack(m).thenCompose(x -> in.ack(m)))
-                        .withNackWithMetadata((t, m) -> res.nack(t, m).thenCompose(x -> in.nack(t, m))));
+                return Uni.createFrom()
+                        .item((Message<Object>) res.withAckWithMetadata(m -> res.ack(m).thenCompose(x -> in.ack(m)))
+                                .withNackWithMetadata((t, m) -> res.nack(t, m).thenCompose(x -> in.nack(t, m))));
             }
 
             return Uni.createFrom().item((Message<Object>) res);
