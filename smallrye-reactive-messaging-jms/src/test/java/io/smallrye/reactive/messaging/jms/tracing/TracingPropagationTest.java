@@ -50,6 +50,7 @@ import io.opentelemetry.sdk.trace.SpanProcessor;
 import io.opentelemetry.sdk.trace.data.SpanData;
 import io.opentelemetry.sdk.trace.export.SimpleSpanProcessor;
 import io.opentelemetry.sdk.trace.samplers.Sampler;
+import io.smallrye.reactive.messaging.jms.IncomingJmsMessageMetadata;
 import io.smallrye.reactive.messaging.jms.JmsConnector;
 import io.smallrye.reactive.messaging.jms.PayloadConsumerBean;
 import io.smallrye.reactive.messaging.jms.ProducerBean;
@@ -103,22 +104,26 @@ public class TracingPropagationTest extends JmsTestBase {
         String queue = "queue-one";
         Map<String, Object> map = new HashMap<>();
         map.put("mp.messaging.outgoing.queue-one.connector", JmsConnector.CONNECTOR_NAME);
-        map.put("mp.messaging.incoming.jms.connector", JmsConnector.CONNECTOR_NAME);
-        map.put("mp.messaging.incoming.jms.destination", "queue-one");
+        map.put("mp.messaging.incoming.stuff.connector", JmsConnector.CONNECTOR_NAME);
+        map.put("mp.messaging.incoming.stuff.destination", "queue-one");
         MapBasedConfig config = new MapBasedConfig(map);
         addConfig(config);
-        WeldContainer container = deploy(PayloadConsumerBean.class, ProducerBean.class);
+        WeldContainer container = deploy(MyAppReceivingData.class, ProducerBean.class);
 
-        PayloadConsumerBean bean = container.select(PayloadConsumerBean.class).get();
-        await().until(() -> bean.list().size() >= 10);
-        assertThat(bean.list()).containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
+        MyAppReceivingData bean = container.select(MyAppReceivingData.class).get();
+        await().until(() -> bean.results().size() >= 10);
+        assertThat(bean.results())
+                .extracting(m -> m.getMetadata(IncomingJmsMessageMetadata.class).get())
+                .allSatisfy(m -> assertThat(m.getStringProperty("traceparent")).isNotNull())
+                .extracting(m -> Integer.parseInt(m.getBody(String.class)))
+                .containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
 
         CompletableResultCode completableResultCode = tracerProvider.forceFlush();
         completableResultCode.join(10, TimeUnit.SECONDS);
         List<SpanData> spans = spanExporter.getFinishedSpanItems();
         assertEquals(20, spans.size());
 
-        assertEquals(20, spans.stream().map(SpanData::getTraceId).collect(Collectors.toSet()).size());
+        assertEquals(10, spans.stream().map(SpanData::getTraceId).collect(Collectors.toSet()).size());
 
         SpanData span = spans.get(0);
         assertEquals(SpanKind.PRODUCER, span.getKind());
@@ -316,15 +321,15 @@ public class TracingPropagationTest extends JmsTestBase {
 
     @ApplicationScoped
     public static class MyAppReceivingData {
-        private final List<Integer> results = new CopyOnWriteArrayList<>();
+        private final List<Message<Integer>> results = new CopyOnWriteArrayList<>();
 
         @Incoming("stuff")
         public CompletionStage<Void> consume(Message<Integer> input) {
-            results.add(input.getPayload());
+            results.add(input);
             return input.ack();
         }
 
-        public List<Integer> results() {
+        public List<Message<Integer>> results() {
             return results;
         }
     }

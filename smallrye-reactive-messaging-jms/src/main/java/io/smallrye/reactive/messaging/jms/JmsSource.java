@@ -248,7 +248,7 @@ class JmsSource {
 
             JmsTrace jmsTrace = new JmsTrace.Builder()
                     .withQueue(queueName.orElse(null))
-                    .withProperties(properties)
+                    .withMessage(unwrapped)
                     .build();
 
             jmsInstrumenter.traceIncoming(jmsMessage, jmsTrace);

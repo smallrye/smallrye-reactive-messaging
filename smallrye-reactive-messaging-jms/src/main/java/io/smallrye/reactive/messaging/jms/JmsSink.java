@@ -192,7 +192,7 @@ class JmsSink {
             }
             JmsTrace jmsTrace = new JmsTrace.Builder()
                     .withQueue(actualDestination.toString())
-                    .withProperties(messageProperties)
+                    .withMessage(jmsPayload)
                     .build();
             jmsInstrumenter.traceOutgoing(message, jmsTrace);
         }

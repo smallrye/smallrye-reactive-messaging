@@ -1,7 +1,5 @@
 package io.smallrye.reactive.messaging.jms.tracing;
 
-import static io.opentelemetry.semconv.SemanticAttributes.*;
-
 import java.util.Collections;
 import java.util.List;
 
