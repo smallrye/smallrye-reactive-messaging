@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 import java.lang.reflect.InvocationTargetException;
+import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -49,6 +50,23 @@ public class SynchronousPayloadProcessorAckTest extends WeldTestBaseWithoutTails
     }
 
     @Test
+    public void testThatMessagesAreAckedAfterSuccessfulProcessingOfPayloadReturningMessage() throws InterruptedException {
+        addBeanClass(SuccessfulPayloadToMessageProcessor.class);
+        initialize();
+        Emitter<String> emitter = get(EmitterBean.class).emitter();
+        Sink sink = get(Sink.class);
+
+        Set<String> acked = new ConcurrentHashSet<>();
+        Set<String> nacked = new ConcurrentHashSet<>();
+
+        run(acked, nacked, emitter);
+
+        await().until(() -> sink.list().size() == 10);
+        assertThat(acked).hasSize(10);
+        assertThat(nacked).hasSize(0);
+    }
+
+    @Test
     public void testThatMessagesAreAckedAfterSuccessfulProcessingOfMessage() throws InterruptedException {
         addBeanClass(SuccessfulMessageToPayloadProcessor.class);
         initialize();
@@ -63,6 +81,79 @@ public class SynchronousPayloadProcessorAckTest extends WeldTestBaseWithoutTails
         await().until(() -> sink.list().size() == 10);
         assertThat(acked).hasSize(10);
         assertThat(nacked).hasSize(0);
+    }
+
+
+    @Test
+    public void testThatMessagesAreAckedAfterSuccessfulProcessingOfMessageReturningMessage() throws InterruptedException {
+        addBeanClass(SuccessfulMessageToMessageProcessor.class);
+        initialize();
+        Emitter<String> emitter = get(EmitterBean.class).emitter();
+        Sink sink = get(Sink.class);
+
+        Set<String> acked = new ConcurrentHashSet<>();
+        Set<String> nacked = new ConcurrentHashSet<>();
+
+        run(acked, nacked, emitter);
+
+        await().until(() -> sink.list().size() == 10);
+        assertThat(acked).hasSize(10);
+        assertThat(nacked).hasSize(0);
+    }
+
+    @Test
+    public void testThatMessagesAreAckedAfterSuccessfulProcessingOfMessageReturningMessagePostProcessing() throws InterruptedException {
+        addBeanClass(SuccessfulMessageToMessageProcessorPostProcessing.class);
+        initialize();
+        Emitter<String> emitter = get(EmitterBean.class).emitter();
+        Sink sink = get(Sink.class);
+
+        Set<String> acked = new ConcurrentHashSet<>();
+        Set<String> nacked = new ConcurrentHashSet<>();
+
+        run(acked, nacked, emitter);
+
+        await().until(() -> sink.list().size() == 10);
+        assertThat(acked).hasSize(10);
+        assertThat(nacked).hasSize(0);
+    }
+
+
+    @Test
+    public void testThatMessagesAreAckedAfterSuccessfulProcessingOfMessageReturningMessagePostProcessingDuplicate() throws InterruptedException {
+        addBeanClass(SuccessfulMessageToMessageProcessorPostProcessingDuplicate.class);
+        initialize();
+        Emitter<String> emitter = get(EmitterBean.class).emitter();
+        Sink sink = get(Sink.class);
+
+        List<String> acked = new CopyOnWriteArrayList<>();
+        List<String> nacked = new CopyOnWriteArrayList<>();
+
+        run(acked, nacked, emitter);
+
+        await().until(() -> sink.list().size() == 10);
+        assertThat(acked).hasSize(20);
+        assertThat(nacked).hasSize(0);
+    }
+
+
+    @Test
+    public void testThatMessagesAreNackedAfterFailingProcessingOfMessageReturningMessage() throws InterruptedException {
+        addBeanClass(FailingMessageToMessageProcessor.class);
+        initialize();
+        Emitter<String> emitter = get(EmitterBean.class).emitter();
+        Sink sink = get(Sink.class);
+
+        Set<String> acked = new ConcurrentHashSet<>();
+        Set<String> nacked = new ConcurrentHashSet<>();
+
+        List<Throwable> throwables = run(acked, nacked, emitter);
+
+        await().until(() -> sink.list().size() == 8);
+        assertThat(acked).hasSize(9);
+        assertThat(nacked).hasSize(1);
+        assertThat(throwables).hasSize(1).allSatisfy(t -> assertThat(t).isInstanceOf(ProcessingException.class)
+                .hasCauseInstanceOf(InvocationTargetException.class).hasStackTraceContaining("b"));
     }
 
     @Test
@@ -175,7 +266,7 @@ public class SynchronousPayloadProcessorAckTest extends WeldTestBaseWithoutTails
                 .hasCauseInstanceOf(InvocationTargetException.class).hasStackTraceContaining("b"));
     }
 
-    private List<Throwable> run(Set<String> acked, Set<String> nacked, Emitter<String> emitter)
+    private List<Throwable> run(Collection<String> acked, Collection<String> nacked, Emitter<String> emitter)
             throws InterruptedException {
         List<Throwable> reasons = new CopyOnWriteArrayList<>();
         CountDownLatch done = new CountDownLatch(1);
@@ -230,6 +321,17 @@ public class SynchronousPayloadProcessorAckTest extends WeldTestBaseWithoutTails
 
     }
 
+    public static class SuccessfulPayloadToMessageProcessor {
+
+        @Incoming("data")
+        @Outgoing("out")
+        @Acknowledgment(Acknowledgment.Strategy.POST_PROCESSING)
+        public Message<String> process(String s) {
+            return Message.of(s.toUpperCase());
+        }
+
+    }
+
     @ApplicationScoped
     public static class SuccessfulMessageToPayloadProcessor {
 
@@ -238,6 +340,38 @@ public class SynchronousPayloadProcessorAckTest extends WeldTestBaseWithoutTails
         @Acknowledgment(Acknowledgment.Strategy.POST_PROCESSING)
         public String process(Message<String> s) {
             return s.getPayload().toUpperCase();
+        }
+
+    }
+
+    public static class SuccessfulMessageToMessageProcessor {
+
+        @Incoming("data")
+        @Outgoing("out")
+        public Message<String> process(Message<String> s) {
+            return s.withPayload(s.getPayload().toUpperCase());
+        }
+
+    }
+
+    public static class SuccessfulMessageToMessageProcessorPostProcessingDuplicate {
+
+        @Incoming("data")
+        @Outgoing("out")
+        @Acknowledgment(Acknowledgment.Strategy.POST_PROCESSING)
+        public Message<String> process(Message<String> s) {
+            return s.withPayload(s.getPayload().toUpperCase());
+        }
+
+    }
+
+    public static class SuccessfulMessageToMessageProcessorPostProcessing {
+
+        @Incoming("data")
+        @Outgoing("out")
+        @Acknowledgment(Acknowledgment.Strategy.POST_PROCESSING)
+        public Message<String> process(Message<String> s) {
+            return Message.of(s.getPayload().toUpperCase());
         }
 
     }
@@ -282,6 +416,29 @@ public class SynchronousPayloadProcessorAckTest extends WeldTestBaseWithoutTails
             }
 
             return s.toUpperCase();
+        }
+
+    }
+
+    @ApplicationScoped
+    public static class FailingMessageToMessageProcessor {
+
+        @Incoming("data")
+        @Outgoing("out")
+        @Acknowledgment(Acknowledgment.Strategy.POST_PROCESSING)
+        public Message<String> process(Message<String> m) {
+            String s = m.getPayload();
+            if (s.equalsIgnoreCase("b")) {
+                // nacked.
+                throw new IllegalArgumentException("b");
+            }
+
+            if (s.equalsIgnoreCase("e")) {
+                // acked but not forwarded
+                return null;
+            }
+
+            return m.withPayload(s.toUpperCase());
         }
 
     }

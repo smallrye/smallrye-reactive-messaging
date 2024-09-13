@@ -30,6 +30,7 @@ import org.jboss.logging.Logger;
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.BasicProperties;
 
+import io.smallrye.common.annotation.CheckReturnValue;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.mutiny.core.Vertx;
@@ -155,6 +156,41 @@ public class RabbitMQUsage {
                     LOGGER.debugf("Consumer %s: consuming message", exchange);
                     consumerFunction.accept(msg);
                 });
+    }
+
+    /**
+     * Use the supplied function to asynchronously consume messages from a queue.
+     *
+     * @param exchange the exchange
+     * @param routingKey the routing key
+     */
+    public void prepareNackQueue(String exchange, String routingKey) {
+        final String queue = "tempConsumeMessagesNack";
+        // Start by the machinery to receive the messages
+        client.startAndAwait();
+        client.exchangeDeclareAndAwait(exchange, "topic", false, true);
+
+        JsonObject config = new JsonObject();
+        config.put("x-max-length", 1);
+        config.put("x-overflow", "reject-publish");
+
+        queueDeclareAndAwait(queue, false, false, true, config);
+
+        client.queueBindAndAwait(queue, exchange, routingKey);
+
+    }
+
+    public com.rabbitmq.client.AMQP.Queue.DeclareOk queueDeclareAndAwait(String queue, boolean durable, boolean exclusive,
+            boolean autoDelete, JsonObject config) {
+        return queueDeclare(queue, durable, exclusive, autoDelete, config).await().indefinitely();
+    }
+
+    @CheckReturnValue
+    public io.smallrye.mutiny.Uni<com.rabbitmq.client.AMQP.Queue.DeclareOk> queueDeclare(String queue, boolean durable,
+            boolean exclusive, boolean autoDelete, JsonObject config) {
+        return io.smallrye.mutiny.vertx.AsyncResultUni.toUni(resultHandler -> {
+            client.getDelegate().queueDeclare(queue, durable, exclusive, autoDelete, config, resultHandler);
+        });
     }
 
     public void consumeIntegers(String exchange, String routingKey, Consumer<Integer> consumer) {

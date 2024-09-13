@@ -16,7 +16,7 @@
   <properties>
     <maven.compiler.source>1.8</maven.compiler.source>
     <maven.compiler.target>1.8</maven.compiler.target>
-    <kotlin.version>2.0.0</kotlin.version>
+    <kotlin.version>2.0.20</kotlin.version>
     <weld-core.version>5.1.0.Final</weld-core.version>
 
     <mainClass>acme.Main</mainClass>
@@ -137,7 +137,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-install-plugin</artifactId>
-        <version>3.1.2</version>
+        <version>3.1.3</version>
         <configuration>
           <skip>true</skip>
         </configuration>

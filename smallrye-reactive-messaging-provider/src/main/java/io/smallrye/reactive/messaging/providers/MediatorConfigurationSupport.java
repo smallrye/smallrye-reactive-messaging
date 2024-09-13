@@ -422,7 +422,10 @@ public class MediatorConfigurationSupport {
 
         if (production == MediatorConfiguration.Production.INDIVIDUAL_MESSAGE
                 && acknowledgment == Acknowledgment.Strategy.POST_PROCESSING) {
-            throw ex.illegalStateForValidateProcessor(methodAsString);
+            // relax here the validation for the post-processing acknowledgment
+            if (consumption == MediatorConfiguration.Consumption.MESSAGE) {
+                log.postProcessingNotFullySupported(methodAsString);
+            }
         }
 
         return new ValidationOutput(production, consumption, useBuilderTypes, useReactiveStreams, payloadType);
