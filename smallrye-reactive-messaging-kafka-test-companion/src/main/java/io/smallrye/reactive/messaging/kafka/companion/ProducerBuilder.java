@@ -131,6 +131,11 @@ public class ProducerBuilder<K, V> implements Closeable {
             Serializer<K> keySerializer, Serializer<V> valueSerializer) {
         this.props = props;
         this.kafkaApiTimeout = kafkaApiTimeout;
+
+        // configure serializers
+        keySerializer.configure(props, true);
+        valueSerializer.configure(props, false);
+
         this.producerCreator = p -> new KafkaProducer<>(p, keySerializer, valueSerializer);
     }
 

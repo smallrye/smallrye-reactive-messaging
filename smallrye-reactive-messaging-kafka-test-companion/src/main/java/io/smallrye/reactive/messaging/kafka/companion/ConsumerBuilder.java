@@ -143,6 +143,11 @@ public class ConsumerBuilder<K, V> implements ConsumerRebalanceListener, Closeab
             Deserializer<K> keyDeser, Deserializer<V> valueDeser) {
         this.props = props;
         this.kafkaApiTimeout = kafkaApiTimeout;
+
+        // configure deserializers
+        keyDeser.configure(props, true);
+        valueDeser.configure(props, false);
+
         this.consumerCreator = p -> new KafkaConsumer<>(p, keyDeser, valueDeser);
     }
 
