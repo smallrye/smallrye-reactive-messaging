@@ -68,7 +68,7 @@
     <camel.version>4.8.0</camel.version>
 
     <microprofile-reactive-messaging.version>3.0.1</microprofile-reactive-messaging.version>
-    <microprofile-reactive-streams.version>3.0</microprofile-reactive-streams.version>
+    <microprofile-reactive-streams.version>3.0.1</microprofile-reactive-streams.version>
     <microprofile-config.version>3.1</microprofile-config.version>
     <microprofile-metrics-api.version>4.0.1</microprofile-metrics-api.version>
     <microprofile-health-api.version>4.0</microprofile-health-api.version>
