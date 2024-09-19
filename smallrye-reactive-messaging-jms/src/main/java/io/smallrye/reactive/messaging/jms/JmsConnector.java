@@ -35,6 +35,7 @@ import io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Direction;
 import io.smallrye.reactive.messaging.connector.InboundConnector;
 import io.smallrye.reactive.messaging.connector.OutboundConnector;
 import io.smallrye.reactive.messaging.json.JsonMapping;
+import io.smallrye.reactive.messaging.providers.connectors.ExecutionHolder;
 import io.smallrye.reactive.messaging.providers.i18n.ProviderLogging;
 
 @ApplicationScoped
@@ -95,6 +96,9 @@ public class JmsConnector implements InboundConnector, OutboundConnector {
     Instance<JsonMapping> jsonMapper;
 
     @Inject
+    ExecutionHolder executionHolders;
+
+    @Inject
     @ConfigProperty(name = "smallrye.jms.threads.max-pool-size", defaultValue = DEFAULT_MAX_POOL_SIZE)
     int maxPoolSize;
 
@@ -139,7 +143,7 @@ public class JmsConnector implements InboundConnector, OutboundConnector {
         JmsConnectorIncomingConfiguration ic = new JmsConnectorIncomingConfiguration(config);
         JmsResourceHolder<JMSConsumer> holder = new JmsResourceHolder<>(ic.getChannel(), () -> createJmsContext(ic));
         contexts.add(holder);
-        JmsSource source = new JmsSource(holder, ic, openTelemetryInstance, jsonMapping, executor);
+        JmsSource source = new JmsSource(executionHolders.vertx(), holder, ic, openTelemetryInstance, jsonMapping, executor);
         sources.add(source);
         return source.getSource();
     }

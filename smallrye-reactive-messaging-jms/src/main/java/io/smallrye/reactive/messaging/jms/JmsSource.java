@@ -31,6 +31,9 @@ import io.smallrye.mutiny.helpers.Subscriptions;
 import io.smallrye.reactive.messaging.jms.tracing.JmsOpenTelemetryInstrumenter;
 import io.smallrye.reactive.messaging.jms.tracing.JmsTrace;
 import io.smallrye.reactive.messaging.json.JsonMapping;
+import io.vertx.core.impl.VertxInternal;
+import io.vertx.mutiny.core.Context;
+import io.vertx.mutiny.core.Vertx;
 
 class JmsSource {
 
@@ -40,8 +43,9 @@ class JmsSource {
     private final JmsPublisher publisher;
     private final boolean isTracingEnabled;
     private final JmsOpenTelemetryInstrumenter jmsInstrumenter;
+    private final Context context;
 
-    JmsSource(JmsResourceHolder<JMSConsumer> resourceHolder, JmsConnectorIncomingConfiguration config,
+    JmsSource(Vertx vertx, JmsResourceHolder<JMSConsumer> resourceHolder, JmsConnectorIncomingConfiguration config,
             Instance<OpenTelemetry> openTelemetryInstance, JsonMapping jsonMapping,
             Executor executor) {
         this.isTracingEnabled = config.getTracingEnabled();
@@ -72,7 +76,9 @@ class JmsSource {
         }
 
         this.publisher = new JmsPublisher(resourceHolder);
+        this.context = Context.newInstance(((VertxInternal) vertx.getDelegate()).createEventLoopContext());
         source = Multi.createFrom().publisher(publisher)
+                .emitOn(context::runOnContext)
                 .<IncomingJmsMessage<?>> map(m -> new IncomingJmsMessage<>(m, executor, jsonMapping))
                 .onItem().invoke(this::incomingTrace)
                 .onFailure(t -> {
