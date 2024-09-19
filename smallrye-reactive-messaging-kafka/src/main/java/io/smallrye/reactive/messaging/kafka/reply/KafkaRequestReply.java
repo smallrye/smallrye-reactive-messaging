@@ -76,6 +76,7 @@ public interface KafkaRequestReply<Req, Rep> extends EmitterType {
     /**
      * The config key for the initial assignment timeout.
      * This timeout is used at start when the {@code auto.offset.reset} is set to {@code latest}.
+     * The value {@code -1} disables waiting for initial assignment.
      */
     String REPLY_INITIAL_ASSIGNMENT_TIMEOUT_KEY = "reply.initial-assignment-timeout";
 

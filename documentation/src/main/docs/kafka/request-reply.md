@@ -94,6 +94,7 @@ If `auto.offset.reset` is `latest`, at wiring time, before any request can take 
 finds partitions that the consumer needs to subscribe and waits for their assignment to the consumer.
 The timeout of the initial subscription can be adjusted with `reply.initial-assignment-timeout` which defaults to the `reply.timeout`.
 If this timeout fails, `KafkaRequestReply` will enter an invalid state which will require it to be restarted.
+If set to `-1`, the `KafkaRequestReply` will not wait for the initial assignment of the reply consumer to sent requests.
 
 On other occasions the `KafkaRequestReply#waitForAssignments` method can be used.
 
