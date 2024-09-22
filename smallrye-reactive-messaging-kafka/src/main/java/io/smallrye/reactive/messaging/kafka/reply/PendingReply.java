@@ -21,4 +21,14 @@ public interface PendingReply {
      * @return the recordMetadata of the request
      */
     RecordMetadata recordMetadata();
+
+    /**
+     * Complete the pending reply.
+     */
+    void complete();
+
+    /**
+     * @return whether the pending reply was terminated (with a completion or failure).
+     */
+    boolean isCancelled();
 }
