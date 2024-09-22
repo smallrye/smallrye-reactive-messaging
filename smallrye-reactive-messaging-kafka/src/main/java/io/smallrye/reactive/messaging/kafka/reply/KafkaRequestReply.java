@@ -9,6 +9,7 @@ import org.apache.kafka.common.TopicPartition;
 import org.eclipse.microprofile.reactive.messaging.Message;
 
 import io.smallrye.common.annotation.Experimental;
+import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.EmitterType;
 import io.smallrye.reactive.messaging.kafka.KafkaConsumer;
@@ -126,6 +127,22 @@ public interface KafkaRequestReply<Req, Rep> extends EmitterType {
      * @return a Uni object representing the result of the send and receive operation
      */
     Uni<Message<Rep>> request(Message<Req> request);
+
+    /**
+     * Sends a request and receives responses.
+     *
+     * @param request the request object to be sent
+     * @return a Multi object representing the results of the send and receive operation
+     */
+    Multi<Rep> requestMulti(Req request);
+
+    /**
+     * Sends a request and receives responses.
+     *
+     * @param request the request object to be sent
+     * @return a Multi object representing the results of the send and receive operation
+     */
+    Multi<Message<Rep>> requestMulti(Message<Req> request);
 
     /**
      * Blocks until the consumer has been assigned all partitions for consumption.
