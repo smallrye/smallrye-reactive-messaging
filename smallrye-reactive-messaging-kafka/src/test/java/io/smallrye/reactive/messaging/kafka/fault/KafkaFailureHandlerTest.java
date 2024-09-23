@@ -39,6 +39,7 @@ import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.errors.RecordDeserializationException;
+import org.apache.kafka.common.serialization.DoubleDeserializer;
 import org.apache.kafka.common.serialization.IntegerDeserializer;
 import org.apache.kafka.common.serialization.IntegerSerializer;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
@@ -284,7 +285,8 @@ public class KafkaFailureHandlerTest extends KafkaCompanionTestBase {
         MyReceiverBean bean = runApplication(getDeadLetterQueueConfig(topic)
                 .with("dead-letter-queue.topic", dlqTopic)
                 .with("fail-on-deserialization-failure", false)
-                .with("key.deserializer.encoding", "unknown-encoding"), MyReceiverBean.class);
+                .with("key.deserializer", DoubleDeserializer.class.getName()) // wrong key deserializer
+                , MyReceiverBean.class);
         await().until(this::isReady);
 
         companion.produce(Integer.class, String.class)
