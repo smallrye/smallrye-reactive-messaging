@@ -18,7 +18,7 @@ public class PayloadConsumerBean {
         list.add(v);
     }
 
-    List<Integer> list() {
+    public List<Integer> list() {
         return new ArrayList<>(list);
     }
 

@@ -28,12 +28,14 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.spi.Connector;
 
+import io.opentelemetry.api.OpenTelemetry;
 import io.smallrye.common.annotation.Identifier;
 import io.smallrye.reactive.messaging.annotations.ConnectorAttribute;
 import io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Direction;
 import io.smallrye.reactive.messaging.connector.InboundConnector;
 import io.smallrye.reactive.messaging.connector.OutboundConnector;
 import io.smallrye.reactive.messaging.json.JsonMapping;
+import io.smallrye.reactive.messaging.providers.connectors.ExecutionHolder;
 import io.smallrye.reactive.messaging.providers.i18n.ProviderLogging;
 
 @ApplicationScoped
@@ -50,6 +52,7 @@ import io.smallrye.reactive.messaging.providers.i18n.ProviderLogging;
 @ConnectorAttribute(name = "broadcast", description = "Whether or not the JMS message should be dispatched to multiple consumers", direction = Direction.INCOMING, type = "boolean", defaultValue = "false")
 @ConnectorAttribute(name = "durable", description = "Set to `true` to use a durable subscription", direction = Direction.INCOMING, type = "boolean", defaultValue = "false")
 @ConnectorAttribute(name = "destination-type", description = "The type of destination. It can be either `queue` or `topic`", direction = Direction.INCOMING_AND_OUTGOING, type = "string", defaultValue = "queue")
+@ConnectorAttribute(name = "tracing-enabled", type = "boolean", direction = Direction.INCOMING_AND_OUTGOING, description = "Whether tracing is enabled (default) or disabled", defaultValue = "true")
 
 @ConnectorAttribute(name = "disable-message-id", description = "Omit the message id in the outbound JMS message", direction = Direction.OUTGOING, type = "boolean")
 @ConnectorAttribute(name = "disable-message-timestamp", description = "Omit the message timestamp in the outbound JMS message", direction = Direction.OUTGOING, type = "boolean")
@@ -93,12 +96,18 @@ public class JmsConnector implements InboundConnector, OutboundConnector {
     Instance<JsonMapping> jsonMapper;
 
     @Inject
+    ExecutionHolder executionHolders;
+
+    @Inject
     @ConfigProperty(name = "smallrye.jms.threads.max-pool-size", defaultValue = DEFAULT_MAX_POOL_SIZE)
     int maxPoolSize;
 
     @Inject
     @ConfigProperty(name = "smallrye.jms.threads.ttl", defaultValue = DEFAULT_THREAD_TTL)
     int ttl;
+
+    @Inject
+    Instance<OpenTelemetry> openTelemetryInstance;
 
     private ExecutorService executor;
     private JsonMapping jsonMapping;
@@ -134,7 +143,7 @@ public class JmsConnector implements InboundConnector, OutboundConnector {
         JmsConnectorIncomingConfiguration ic = new JmsConnectorIncomingConfiguration(config);
         JmsResourceHolder<JMSConsumer> holder = new JmsResourceHolder<>(ic.getChannel(), () -> createJmsContext(ic));
         contexts.add(holder);
-        JmsSource source = new JmsSource(holder, ic, jsonMapping, executor);
+        JmsSource source = new JmsSource(executionHolders.vertx(), holder, ic, openTelemetryInstance, jsonMapping, executor);
         sources.add(source);
         return source.getSource();
     }
@@ -155,7 +164,7 @@ public class JmsConnector implements InboundConnector, OutboundConnector {
         JmsConnectorOutgoingConfiguration oc = new JmsConnectorOutgoingConfiguration(config);
         JmsResourceHolder<JMSProducer> holder = new JmsResourceHolder<>(oc.getChannel(), () -> createJmsContext(oc));
         contexts.add(holder);
-        return new JmsSink(holder, oc, jsonMapping, executor).getSink();
+        return new JmsSink(holder, oc, openTelemetryInstance, jsonMapping, executor).getSink();
     }
 
     private ConnectionFactory pickTheFactory(String factoryName) {
