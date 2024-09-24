@@ -43,7 +43,8 @@ public class AsynchronousPayloadProcessorAckTest extends WeldTestBaseWithoutTail
     }
 
     @Test
-    public void testThatMessagesAreAckedAfterSuccessfulProcessingOfPayloadReturningCompletionStageOfMessage() throws InterruptedException {
+    public void testThatMessagesAreAckedAfterSuccessfulProcessingOfPayloadReturningCompletionStageOfMessage()
+            throws InterruptedException {
         addBeanClass(SuccessfulPayloadProcessorCompletionStageOfMessage.class);
         initialize();
         Emitter<String> emitter = get(EmitterBean.class).emitter();
@@ -194,7 +195,6 @@ public class AsynchronousPayloadProcessorAckTest extends WeldTestBaseWithoutTail
         }
 
     }
-
 
     @ApplicationScoped
     public static class SuccessfulPayloadProcessorCompletionStageOfMessage {
