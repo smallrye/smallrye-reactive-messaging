@@ -480,6 +480,30 @@ public class KafkaRequestReplyTest extends KafkaCompanionTestBase {
     }
 
     @Test
+    void testReplyWithoutWaitForAssignment() {
+        addBeans(ReplyServer.class);
+        topic = companion.topics().createAndWait(topic, 3);
+        String replyTopic = topic + "-replies";
+        companion.topics().createAndWait(replyTopic, 3);
+
+        List<String> replies = new CopyOnWriteArrayList<>();
+
+        RequestReplyProducer app = runApplication(config()
+                .withPrefix("mp.messaging.outgoing.request-reply")
+                .with("reply.initial-assignment-timeout", "-1"), RequestReplyProducer.class);
+
+        for (int i = 0; i < 10; i++) {
+            app.requestReply().request(Message.of(i, Metadata.of(OutgoingKafkaRecordMetadata.builder()
+                    .withKey("" + i).build()))).subscribe().with(r -> replies.add(r.getPayload()));
+        }
+        await().untilAsserted(() -> assertThat(replies).hasSize(10));
+        assertThat(replies).containsExactlyInAnyOrder("0", "1", "2", "3", "4", "5", "6", "7", "8", "9");
+
+        assertThat(companion.consumeStrings().fromTopics(replyTopic, 10).awaitCompletion())
+                .extracting(ConsumerRecord::value).containsExactlyInAnyOrder("0", "1", "2", "3", "4", "5", "6", "7", "8", "9");
+    }
+
+    @Test
     void testReplyAssignAndSeekOffset() {
         addBeans(ReplyServer.class);
         topic = companion.topics().createAndWait(topic, 3);
