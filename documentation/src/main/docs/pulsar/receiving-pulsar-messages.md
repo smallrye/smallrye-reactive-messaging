@@ -142,15 +142,25 @@ mp.messaging.incoming.data.subscriptionType=Shared
 By default, incoming methods receive each Pulsar message individually.
 You can enable batch mode using `batchReceive=true` property, or setting a `batchReceivePolicy` in consumer configuration.
 
-```java
+``` java
 {{ insert('pulsar/inbound/PulsarMessageBatchExample.java', 'code') }}
 ```
 
 Or you can directly receive the list of payloads to the consume method:
 
-```java
+``` java
 {{ insert('pulsar/inbound/PulsarMessageBatchPayloadExample.java', 'code') }}
 ```
+
+### Accessing metadata of batch records
+
+When receiving records in batch mode, the metadata of each record is accessible through the `PulsarIncomingBatchMessageMetadata` :
+
+``` java
+{{ insert('pulsar/inbound/PulsarMessageBatchExample.java', 'batch') }}
+```
+
+Like in this example, this can be useful to propagate the tracing information of each record.
 
 ## Configuration Reference
 

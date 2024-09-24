@@ -60,9 +60,8 @@ If the target type is a primitive type ort `String`, the resulting
 message contains the mapped payload.
 
 If the target type is a class, the object is built using included JSON
-deserializer (JSON-B and Jackson provided OOB, for more details see
-[Serde](serde)), from the `JMSType`. If not, the default behavior is
-used (Java deserialization).
+deserializer (JSON-B and Jackson provided OOB from the `JMSType`.
+If not, the default behavior is used (Java deserialization).
 
 ## Inbound Metadata
 

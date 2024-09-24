@@ -1,6 +1,6 @@
 package kafka.inbound;
 
-import java.time.Instant;
+import java.util.List;
 import java.util.concurrent.CompletionStage;
 
 import jakarta.enterprise.context.ApplicationScoped;
@@ -9,27 +9,25 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.common.TopicPartition;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
+import org.eclipse.microprofile.reactive.messaging.Message;
 
-import io.smallrye.reactive.messaging.kafka.KafkaRecord;
-import io.smallrye.reactive.messaging.kafka.KafkaRecordBatch;
-import io.smallrye.reactive.messaging.kafka.api.IncomingKafkaRecordMetadata;
+import io.smallrye.reactive.messaging.TracingMetadata;
+import io.smallrye.reactive.messaging.kafka.api.IncomingKafkaRecordBatchMetadata;
 
 @ApplicationScoped
 public class KafkaRecordBatchExample {
 
     // <code>
     @Incoming("prices")
-    public CompletionStage<Void> consumeMessage(KafkaRecordBatch<String, Double> records) {
-        for (KafkaRecord<String, Double> record : records) {
-            record.getMetadata(IncomingKafkaRecordMetadata.class).ifPresent(metadata -> {
-                int partition = metadata.getPartition();
-                long offset = metadata.getOffset();
-                Instant timestamp = metadata.getTimestamp();
-                //... process messages
-            });
+    public CompletionStage<Void> consumeMessage(Message<List<Double>> msg) {
+        IncomingKafkaRecordBatchMetadata<String, Double> batchMetadata = msg.getMetadata(IncomingKafkaRecordBatchMetadata.class).get();
+        for (ConsumerRecord<String, Double> record : batchMetadata.getRecords()) {
+            int partition = record.partition();
+            long offset = record.offset();
+            long timestamp = record.timestamp();
         }
         // ack will commit the latest offsets (per partition) of the batch.
-        return records.ack();
+        return msg.ack();
     }
 
     @Incoming("prices")
@@ -41,5 +39,20 @@ public class KafkaRecordBatchExample {
         }
     }
     // </code>
+
+    // <batch>
+    @Incoming("prices")
+    public void consumeRecords(ConsumerRecords<String, Double> records, IncomingKafkaRecordBatchMetadata<String, Double> metadata) {
+        for (TopicPartition partition : records.partitions()) {
+            for (ConsumerRecord<String, Double> record : records.records(partition)) {
+                TracingMetadata tracing = metadata.getMetadataForRecord(record, TracingMetadata.class);
+                if (tracing != null) {
+                    tracing.getCurrentContext().makeCurrent();
+                }
+                //... process messages
+            }
+        }
+    }
+    // </batch>
 
 }

@@ -17,6 +17,7 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
+import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Metadata;
 
 import io.smallrye.mutiny.Multi;
@@ -50,8 +51,10 @@ public class IncomingKafkaRecordBatch<K, T> implements KafkaRecordBatch<K, T> {
             generationId = entry.getValue().getConsumerGroupGenerationId();
             offsets.put(entry.getKey(), new OffsetAndMetadata(entry.getValue().getOffset()));
         }
+        // This is safe because the IncomingKafkaRecord is Message
+        List<Message<?>> batchedRecords = (List<Message<?>>) (List) this.incomingRecords;
         this.metadata = captureContextMetadata(
-                new IncomingKafkaRecordBatchMetadata<>(records, channel, index, offsets, generationId));
+                new IncomingKafkaRecordBatchMetadata<>(records, batchedRecords, channel, index, offsets, generationId));
     }
 
     @Override

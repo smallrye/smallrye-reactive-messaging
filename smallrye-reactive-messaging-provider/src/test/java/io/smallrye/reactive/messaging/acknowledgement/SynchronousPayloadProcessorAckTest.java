@@ -83,7 +83,6 @@ public class SynchronousPayloadProcessorAckTest extends WeldTestBaseWithoutTails
         assertThat(nacked).hasSize(0);
     }
 
-
     @Test
     public void testThatMessagesAreAckedAfterSuccessfulProcessingOfMessageReturningMessage() throws InterruptedException {
         addBeanClass(SuccessfulMessageToMessageProcessor.class);
@@ -102,7 +101,8 @@ public class SynchronousPayloadProcessorAckTest extends WeldTestBaseWithoutTails
     }
 
     @Test
-    public void testThatMessagesAreAckedAfterSuccessfulProcessingOfMessageReturningMessagePostProcessing() throws InterruptedException {
+    public void testThatMessagesAreAckedAfterSuccessfulProcessingOfMessageReturningMessagePostProcessing()
+            throws InterruptedException {
         addBeanClass(SuccessfulMessageToMessageProcessorPostProcessing.class);
         initialize();
         Emitter<String> emitter = get(EmitterBean.class).emitter();
@@ -118,9 +118,9 @@ public class SynchronousPayloadProcessorAckTest extends WeldTestBaseWithoutTails
         assertThat(nacked).hasSize(0);
     }
 
-
     @Test
-    public void testThatMessagesAreAckedAfterSuccessfulProcessingOfMessageReturningMessagePostProcessingDuplicate() throws InterruptedException {
+    public void testThatMessagesAreAckedAfterSuccessfulProcessingOfMessageReturningMessagePostProcessingDuplicate()
+            throws InterruptedException {
         addBeanClass(SuccessfulMessageToMessageProcessorPostProcessingDuplicate.class);
         initialize();
         Emitter<String> emitter = get(EmitterBean.class).emitter();
@@ -135,7 +135,6 @@ public class SynchronousPayloadProcessorAckTest extends WeldTestBaseWithoutTails
         assertThat(acked).hasSize(20);
         assertThat(nacked).hasSize(0);
     }
-
 
     @Test
     public void testThatMessagesAreNackedAfterFailingProcessingOfMessageReturningMessage() throws InterruptedException {

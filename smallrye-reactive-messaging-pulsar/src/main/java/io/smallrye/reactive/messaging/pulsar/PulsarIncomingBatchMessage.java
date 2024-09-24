@@ -35,7 +35,8 @@ public class PulsarIncomingBatchMessage<T> implements PulsarBatchMessage<T>, Met
         }
         this.incomingMessages = Collections.unmodifiableList(incomings);
         this.payload = Collections.unmodifiableList(payloads);
-        this.metadata = captureContextMetadata(new PulsarIncomingBatchMessageMetadata(messages));
+        List<PulsarIncomingMessage<?>> batchedMessages = (List<PulsarIncomingMessage<?>>) (List) incomings;
+        this.metadata = captureContextMetadata(new PulsarIncomingBatchMessageMetadata(messages, batchedMessages));
     }
 
     @Override

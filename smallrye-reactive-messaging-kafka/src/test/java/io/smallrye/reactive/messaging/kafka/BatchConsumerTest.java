@@ -22,6 +22,7 @@ import org.eclipse.microprofile.reactive.messaging.Message;
 import org.junit.jupiter.api.Test;
 
 import io.smallrye.reactive.messaging.kafka.api.IncomingKafkaRecordBatchMetadata;
+import io.smallrye.reactive.messaging.kafka.api.IncomingKafkaRecordMetadata;
 import io.smallrye.reactive.messaging.kafka.base.KafkaCompanionTestBase;
 import io.smallrye.reactive.messaging.kafka.base.KafkaMapBasedConfig;
 
@@ -92,6 +93,13 @@ public class BatchConsumerTest extends KafkaCompanionTestBase {
         assertThat(records.values()).flatMap(l -> l).hasSize(10).allSatisfy(r -> {
             assertThat(r.value()).startsWith("v-");
             assertThat(r.key()).startsWith("k");
+        });
+        assertThat(bean.metadata()).allSatisfy(m -> {
+            assertThat(m.getBatchedMessages()).isNotEmpty();
+            assertThat(m.getRecords()).allSatisfy(r -> {
+                assertThat(m.getMetadataForRecord(r, IncomingKafkaRecordMetadata.class)).isNotNull()
+                        .extracting(IncomingKafkaRecordMetadata::getRecord).isEqualTo(r);
+            });
         });
     }
 
