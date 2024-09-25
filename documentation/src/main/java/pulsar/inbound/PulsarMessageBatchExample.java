@@ -37,11 +37,10 @@ public class PulsarMessageBatchExample {
     }
     // </code>
 
-
     // <batch>
     @Incoming("prices")
     public void consumeMessages(org.apache.pulsar.client.api.Messages<Double> messages,
-                                PulsarIncomingBatchMessageMetadata metadata) {
+            PulsarIncomingBatchMessageMetadata metadata) {
         for (org.apache.pulsar.client.api.Message<Double> message : messages) {
             TracingMetadata tracing = metadata.getMetadataForMessage(message, TracingMetadata.class);
             if (tracing != null) {

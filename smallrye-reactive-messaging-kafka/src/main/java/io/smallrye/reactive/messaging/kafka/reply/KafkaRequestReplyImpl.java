@@ -7,7 +7,6 @@ import java.time.Duration;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -108,7 +107,8 @@ public class KafkaRequestReplyImpl<Req, Rep> extends MutinyEmitterImpl<Req>
         int initialAssignmentTimeoutMillis = connectorConfig
                 .getOptionalValue(REPLY_INITIAL_ASSIGNMENT_TIMEOUT_KEY, Integer.class)
                 .orElse((int) replyTimeout.toMillis());
-        this.initialAssignmentTimeout = initialAssignmentTimeoutMillis < 0 ? null : Duration.ofMillis(initialAssignmentTimeoutMillis);
+        this.initialAssignmentTimeout = initialAssignmentTimeoutMillis < 0 ? null
+                : Duration.ofMillis(initialAssignmentTimeoutMillis);
 
         this.autoOffsetReset = consumerConfig.getAutoOffsetReset();
         this.replyCorrelationIdHeader = connectorConfig.getOptionalValue(REPLY_CORRELATION_ID_HEADER_KEY, String.class)

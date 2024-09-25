@@ -20,7 +20,8 @@ public class KafkaRecordBatchExample {
     // <code>
     @Incoming("prices")
     public CompletionStage<Void> consumeMessage(Message<List<Double>> msg) {
-        IncomingKafkaRecordBatchMetadata<String, Double> batchMetadata = msg.getMetadata(IncomingKafkaRecordBatchMetadata.class).get();
+        IncomingKafkaRecordBatchMetadata<String, Double> batchMetadata = msg.getMetadata(IncomingKafkaRecordBatchMetadata.class)
+                .get();
         for (ConsumerRecord<String, Double> record : batchMetadata.getRecords()) {
             int partition = record.partition();
             long offset = record.offset();
@@ -42,7 +43,8 @@ public class KafkaRecordBatchExample {
 
     // <batch>
     @Incoming("prices")
-    public void consumeRecords(ConsumerRecords<String, Double> records, IncomingKafkaRecordBatchMetadata<String, Double> metadata) {
+    public void consumeRecords(ConsumerRecords<String, Double> records,
+            IncomingKafkaRecordBatchMetadata<String, Double> metadata) {
         for (TopicPartition partition : records.partitions()) {
             for (ConsumerRecord<String, Double> record : records.records(partition)) {
                 TracingMetadata tracing = metadata.getMetadataForRecord(record, TracingMetadata.class);
