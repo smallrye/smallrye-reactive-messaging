@@ -1,5 +1,12 @@
 [
   {
+    "version": "4.25.0",
+    "title": "4.25.0",
+    "aliases": [
+      "latest"
+    ]
+  },
+  {
     "version": "4.24.0-M1",
     "title": "4.24.0-M1",
     "aliases": []
@@ -47,9 +54,7 @@
   {
     "version": "4.18.1",
     "title": "4.18.1",
-    "aliases": [
-      "latest"
-    ]
+    "aliases": []
   },
   {
     "version": "4.18.0",

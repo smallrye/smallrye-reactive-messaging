@@ -1,0 +1,3404 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://smallrye.io/smallrye-reactive-messaging/4.25.0/concepts/model/">
+      
+      
+        <link rel="prev" href="../concepts/">
+      
+      
+        <link rel="next" href="../emitter/">
+      
+      
+      <link rel="icon" href="../../images/favicon.png">
+      <meta name="generator" content="mkdocs-1.5.3, mkdocs-material-9.4.8">
+    
+    
+      
+        <title>Development Model - SmallRye Reactive Messaging</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.4b4a2bd9.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.356b1318.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Red+Hat+Text:300,300i,400,400i,700,700i%7CUbuntu+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Red Hat Text";--md-code-font:"Ubuntu Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../css/print-site-enum-headings1.css">
+    
+      <link rel="stylesheet" href="../../css/print-site-enum-headings2.css">
+    
+      <link rel="stylesheet" href="../../css/print-site-enum-headings3.css">
+    
+      <link rel="stylesheet" href="../../css/print-site-enum-headings4.css">
+    
+      <link rel="stylesheet" href="../../css/print-site-enum-headings5.css">
+    
+      <link rel="stylesheet" href="../../css/print-site-enum-headings6.css">
+    
+      <link rel="stylesheet" href="../../css/print-site.css">
+    
+      <link rel="stylesheet" href="../../css/print-site-material.css">
+    
+      <link rel="stylesheet" href="../../css/smallrye.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="blue-grey" data-md-color-accent="blue">
+  
+    
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#development-model" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+      </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="SmallRye Reactive Messaging" class="md-header__button md-logo" aria-label="SmallRye Reactive Messaging" data-md-component="logo">
+      
+  <img src="../../images/logo.png" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2Z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            SmallRye Reactive Messaging
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Development Model
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+    
+    
+    
+      <label class="md-header__button md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+      </label>
+      <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12Z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41Z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/smallrye/smallrye-reactive-messaging" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.4.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="SmallRye Reactive Messaging" class="md-nav__button md-logo" aria-label="SmallRye Reactive Messaging" data-md-component="logo">
+      
+  <img src="../../images/logo.png" alt="logo">
+
+    </a>
+    SmallRye Reactive Messaging
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/smallrye/smallrye-reactive-messaging" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.4.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Home
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    Core
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            Core
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Getting Started
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_2" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_2_2" id="__nav_2_2_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Concepts
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_2_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_2_2">
+            <span class="md-nav__icon md-icon"></span>
+            Concepts
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../concepts/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Introduction
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    Development Model
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  <span class="md-ellipsis">
+    Development Model
+  </span>
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#incoming-and-outgoing" class="md-nav__link">
+    @Incoming and @Outgoing
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#creating-messages" class="md-nav__link">
+    Creating messages
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#messages-vs-payloads" class="md-nav__link">
+    Messages vs. Payloads
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#generating-messages" class="md-nav__link">
+    Generating Messages
+  </a>
+  
+    <nav class="md-nav" aria-label="Generating Messages">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#generating-messages-synchronously" class="md-nav__link">
+    Generating messages synchronously
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#generating-messages-using-completionstage" class="md-nav__link">
+    Generating messages using CompletionStage
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#generating-messages-using-uni" class="md-nav__link">
+    Generating messages using Uni
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#generating-reactive-streams-of-messages" class="md-nav__link">
+    Generating Reactive Streams of messages
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#generating-payloads" class="md-nav__link">
+    Generating Payloads
+  </a>
+  
+    <nav class="md-nav" aria-label="Generating Payloads">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#generating-payload-synchronously" class="md-nav__link">
+    Generating payload synchronously
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#generating-payload-using-completionstage" class="md-nav__link">
+    Generating payload using CompletionStage
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#generating-payload-by-producing-unis" class="md-nav__link">
+    Generating payload by producing Unis
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#generating-reactive-streams-of-payloads" class="md-nav__link">
+    Generating Reactive Streams of payloads
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#consuming-messages" class="md-nav__link">
+    Consuming Messages
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#consuming-payloads" class="md-nav__link">
+    Consuming Payloads
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#processing-messages" class="md-nav__link">
+    Processing Messages
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#processing-payloads" class="md-nav__link">
+    Processing payloads
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#processing-streams" class="md-nav__link">
+    Processing streams
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../emitter/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Emitters and Channel
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../connectors/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Connectors
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../contributing-connectors/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Contributing Connectors
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../acknowledgement/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Acknowledgement
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../blocking/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Blocking Processing
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../signatures/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Method Signatures
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../skipping/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Skipping Messages
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../converters/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Message Converters
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../keyed-multi/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Keyed Streams
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../decorators/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Channel Decorators and Interceptors
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../broadcast/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Broadcast
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../merge/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Merge channels
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../incoming-concurrency/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Incoming Channel Concurrency
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../incomings/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    @Incomings
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../outgoings/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    @Outgoings
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../testing/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Testing
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../logging/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Logging
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../observability/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Observability API
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../advanced-config/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Advanced Configuration
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../message-context/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Message Context
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../incoming-metadata-injection/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Metadata Injection
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../generic-payloads/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Generic Payloads
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pausable-channels/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Pausable Channels
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+      
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    Kafka
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            Kafka
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../kafka/kafka/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Apache Kafka Connector
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../kafka/receiving-kafka-records/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Receiving records
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../kafka/writing-kafka-records/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Writing records
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../kafka/health/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Health Checks
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../kafka/avro-configuration/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Using Avro
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../kafka/protobuf-configuration/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Using Protobuf
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../kafka/consumer-rebalance-listener/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Rebalance Listeners
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../kafka/kerberos/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Kerberos authentication
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../kafka/client-service/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Accessing the client
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../kafka/default-configuration/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Customizing Default Kafka Configuration
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../kafka/test-companion/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Test Companion for Kafka
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../kafka/transactions/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Kafka Transactions and Exactly-Once Processing
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../kafka/request-reply/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Kafka Request/Reply
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+      
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    AMQP 1.0
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            AMQP 1.0
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../amqp/amqp/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    AMQP 1.0 Connector
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../amqp/receiving-amqp-messages/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Receiving messages
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../amqp/sending-amqp-messages/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Sending messages
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../amqp/health/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Health Checks
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../amqp/client-customization/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Client Customization
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../amqp/rabbitmq/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Using RabbitMQ
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+      
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    RabbitMQ
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            RabbitMQ
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../rabbitmq/rabbitmq/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    RabbitMQ Connector
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../rabbitmq/receiving-messages-from-rabbitmq/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Receiving messages
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../rabbitmq/sending-messages-to-rabbitmq/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Sending messages
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../rabbitmq/rabbitmq-health/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Health Checks
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../rabbitmq/rabbitmq-client-customization/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Client Customization
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../rabbitmq/rabbitmq-cloud/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Connecting to managed instances
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+      
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    Pulsar
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            Pulsar
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../pulsar/pulsar/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Apache Pulsar Connector
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../pulsar/receiving-pulsar-messages/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Receiving messages
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../pulsar/sending-messages-to-pulsar/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Sending messages
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../pulsar/schema-configuration/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Configuring the Schema
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../pulsar/client-configuration/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Configuring the Pulsar client
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../pulsar/health/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Health Checks
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../pulsar/client-service/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Accessing the client
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../pulsar/transactions/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Pulsar Transactions and Exactly-Once Processing
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+      
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    Apache Camel
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            Apache Camel
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../camel/camel/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Apache Camel Connector
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../camel/receiving-messages-from-camel/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Receiving messages from Camel
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../camel/sending-messages-to-camel/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Sending messages to Camel
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../camel/camel-processor/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Implementing Camel processor
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../camel/using-existing-routes/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Using existing Camel routes
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+      
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    JMS
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8">
+            <span class="md-nav__icon md-icon"></span>
+            JMS
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../jms/jms/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    The JMS connector
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../jms/receiving-jms-messages/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Receiving JMS messages
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../jms/sending-jms-messages/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Sending JMS messages
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../jms/advanced-jms/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Advanced configuration
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+      
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_9" >
+        
+          
+          <label class="md-nav__link" for="__nav_9" id="__nav_9_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    MQTT
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_9_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_9">
+            <span class="md-nav__icon md-icon"></span>
+            MQTT
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../mqtt/mqtt/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    MQTT Connector
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../mqtt/receiving-mqtt-messages/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Receiving MQTT messages
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../mqtt/sending-messages-to-mqtt/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Sending MQTT messages
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../mqtt/client-customization/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Customizing the MQTT client
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+      
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_10" >
+        
+          
+          <label class="md-nav__link" for="__nav_10" id="__nav_10_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    AWS SQS
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_10_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_10">
+            <span class="md-nav__icon md-icon"></span>
+            AWS SQS
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sqs/sqs/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    AWS SQS Connector
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sqs/receiving-aws-sqs-messages/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Receiving AWS SQS messages
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sqs/sending-aws-sqs-messages/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Sending AWS SQS messages
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#incoming-and-outgoing" class="md-nav__link">
+    @Incoming and @Outgoing
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#creating-messages" class="md-nav__link">
+    Creating messages
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#messages-vs-payloads" class="md-nav__link">
+    Messages vs. Payloads
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#generating-messages" class="md-nav__link">
+    Generating Messages
+  </a>
+  
+    <nav class="md-nav" aria-label="Generating Messages">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#generating-messages-synchronously" class="md-nav__link">
+    Generating messages synchronously
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#generating-messages-using-completionstage" class="md-nav__link">
+    Generating messages using CompletionStage
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#generating-messages-using-uni" class="md-nav__link">
+    Generating messages using Uni
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#generating-reactive-streams-of-messages" class="md-nav__link">
+    Generating Reactive Streams of messages
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#generating-payloads" class="md-nav__link">
+    Generating Payloads
+  </a>
+  
+    <nav class="md-nav" aria-label="Generating Payloads">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#generating-payload-synchronously" class="md-nav__link">
+    Generating payload synchronously
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#generating-payload-using-completionstage" class="md-nav__link">
+    Generating payload using CompletionStage
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#generating-payload-by-producing-unis" class="md-nav__link">
+    Generating payload by producing Unis
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#generating-reactive-streams-of-payloads" class="md-nav__link">
+    Generating Reactive Streams of payloads
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#consuming-messages" class="md-nav__link">
+    Consuming Messages
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#consuming-payloads" class="md-nav__link">
+    Consuming Payloads
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#processing-messages" class="md-nav__link">
+    Processing Messages
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#processing-payloads" class="md-nav__link">
+    Processing payloads
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#processing-streams" class="md-nav__link">
+    Processing streams
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+  
+  
+
+
+<h1 id="development-model">Development Model</h1>
+<p>Reactive Messaging proposes a CDI-based programming model to implement event-driven applications.
+Following the CDI principles, <em>beans</em> are forming the main building block of your application.
+Reactive Messaging provides a set of annotations and types to implement beans that generate, consume or process messages.</p>
+<h2 id="incoming-and-outgoing">@Incoming and @Outgoing</h2>
+<p>Reactive Messaging provides two main annotations:</p>
+<ul>
+<li><a class='docissimo, docissimo-javadoc' href='https://javadoc.io/doc/io.smallrye.reactive/smallrye-reactive-messaging-api/4.25.0/org/eclipse/microprofile/reactive/messaging/Incoming.html'>org.eclipse.microprofile.reactive.messaging.Incoming</a> - indicates the consumed channel</li>
+<li><a class='docissimo, docissimo-javadoc' href='https://javadoc.io/doc/io.smallrye.reactive/smallrye-reactive-messaging-api/4.25.0/org/eclipse/microprofile/reactive/messaging/Outgoing.html'>org.eclipse.microprofile.reactive.messaging.Outgoing</a> - indicates the populated channel</li>
+</ul>
+<p>These annotations are used on <em>methods</em>:</p>
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-1"> 1</a></span>
+<span class="normal"><a href="#__codelineno-0-2"> 2</a></span>
+<span class="normal"><a href="#__codelineno-0-3"> 3</a></span>
+<span class="normal"><a href="#__codelineno-0-4"> 4</a></span>
+<span class="normal"><a href="#__codelineno-0-5"> 5</a></span>
+<span class="normal"><a href="#__codelineno-0-6"> 6</a></span>
+<span class="normal"><a href="#__codelineno-0-7"> 7</a></span>
+<span class="normal"><a href="#__codelineno-0-8"> 8</a></span>
+<span class="normal"><a href="#__codelineno-0-9"> 9</a></span>
+<span class="normal"><a href="#__codelineno-0-10">10</a></span>
+<span class="normal"><a href="#__codelineno-0-11">11</a></span>
+<span class="normal"><a href="#__codelineno-0-12">12</a></span>
+<span class="normal"><a href="#__codelineno-0-13">13</a></span>
+<span class="normal"><a href="#__codelineno-0-14">14</a></span>
+<span class="normal"><a href="#__codelineno-0-15">15</a></span>
+<span class="normal"><a href="#__codelineno-0-16">16</a></span>
+<span class="normal"><a href="#__codelineno-0-17">17</a></span>
+<span class="normal"><a href="#__codelineno-0-18">18</a></span>
+<span class="normal"><a href="#__codelineno-0-19">19</a></span>
+<span class="normal"><a href="#__codelineno-0-20">20</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1"></a><span class="kn">package</span><span class="w"> </span><span class="nn">beans</span><span class="p">;</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2"></a>
+<a id="__codelineno-0-3" name="__codelineno-0-3"></a><span class="kn">import</span><span class="w"> </span><span class="nn">jakarta.enterprise.context.ApplicationScoped</span><span class="p">;</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4"></a>
+<a id="__codelineno-0-5" name="__codelineno-0-5"></a><span class="kn">import</span><span class="w"> </span><span class="nn">org.eclipse.microprofile.reactive.messaging.Incoming</span><span class="p">;</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6"></a><span class="kn">import</span><span class="w"> </span><span class="nn">org.eclipse.microprofile.reactive.messaging.Message</span><span class="p">;</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7"></a><span class="kn">import</span><span class="w"> </span><span class="nn">org.eclipse.microprofile.reactive.messaging.Outgoing</span><span class="p">;</span>
+<a id="__codelineno-0-8" name="__codelineno-0-8"></a>
+<a id="__codelineno-0-9" name="__codelineno-0-9"></a><span class="nd">@ApplicationScoped</span>
+<a id="__codelineno-0-10" name="__codelineno-0-10"></a><span class="kd">public</span><span class="w"> </span><span class="kd">class</span> <span class="nc">MessageProcessingBean</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-0-11" name="__codelineno-0-11"></a>
+<a id="__codelineno-0-12" name="__codelineno-0-12"></a><span class="w">    </span><span class="nd">@Incoming</span><span class="p">(</span><span class="s">&quot;consumed-channel&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-13" name="__codelineno-0-13"></a><span class="w">    </span><span class="nd">@Outgoing</span><span class="p">(</span><span class="s">&quot;populated-channel&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-14" name="__codelineno-0-14"></a><span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="n">Message</span><span class="o">&lt;</span><span class="n">String</span><span class="o">&gt;</span><span class="w"> </span><span class="nf">process</span><span class="p">(</span><span class="n">Message</span><span class="o">&lt;</span><span class="n">String</span><span class="o">&gt;</span><span class="w"> </span><span class="n">in</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-0-15" name="__codelineno-0-15"></a><span class="w">        </span><span class="c1">// Process the payload</span>
+<a id="__codelineno-0-16" name="__codelineno-0-16"></a><span class="w">        </span><span class="n">String</span><span class="w"> </span><span class="n">payload</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">in</span><span class="p">.</span><span class="na">getPayload</span><span class="p">().</span><span class="na">toUpperCase</span><span class="p">();</span>
+<a id="__codelineno-0-17" name="__codelineno-0-17"></a><span class="w">        </span><span class="c1">// Create a new message from `in` and just update the payload</span>
+<a id="__codelineno-0-18" name="__codelineno-0-18"></a><span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">in</span><span class="p">.</span><span class="na">withPayload</span><span class="p">(</span><span class="n">payload</span><span class="p">);</span>
+<a id="__codelineno-0-19" name="__codelineno-0-19"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-0-20" name="__codelineno-0-20"></a><span class="p">}</span>
+</code></pre></div></td></tr></table></div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Reactive Messaging beans can either be in the <em>application</em> scope (<code>@ApplicationScoped</code>) or dependent scope (<code>@Dependent</code>).</p>
+</div>
+<p>Manipulating messages can be cumbersome.
+When you are only interested in the payload, you can use the following syntax: The following code is equivalent to the snippet from above:</p>
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-1-1"> 1</a></span>
+<span class="normal"><a href="#__codelineno-1-2"> 2</a></span>
+<span class="normal"><a href="#__codelineno-1-3"> 3</a></span>
+<span class="normal"><a href="#__codelineno-1-4"> 4</a></span>
+<span class="normal"><a href="#__codelineno-1-5"> 5</a></span>
+<span class="normal"><a href="#__codelineno-1-6"> 6</a></span>
+<span class="normal"><a href="#__codelineno-1-7"> 7</a></span>
+<span class="normal"><a href="#__codelineno-1-8"> 8</a></span>
+<span class="normal"><a href="#__codelineno-1-9"> 9</a></span>
+<span class="normal"><a href="#__codelineno-1-10">10</a></span>
+<span class="normal"><a href="#__codelineno-1-11">11</a></span>
+<span class="normal"><a href="#__codelineno-1-12">12</a></span>
+<span class="normal"><a href="#__codelineno-1-13">13</a></span>
+<span class="normal"><a href="#__codelineno-1-14">14</a></span>
+<span class="normal"><a href="#__codelineno-1-15">15</a></span>
+<span class="normal"><a href="#__codelineno-1-16">16</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1"></a><span class="kn">package</span><span class="w"> </span><span class="nn">beans</span><span class="p">;</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2"></a>
+<a id="__codelineno-1-3" name="__codelineno-1-3"></a><span class="kn">import</span><span class="w"> </span><span class="nn">jakarta.enterprise.context.ApplicationScoped</span><span class="p">;</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4"></a>
+<a id="__codelineno-1-5" name="__codelineno-1-5"></a><span class="kn">import</span><span class="w"> </span><span class="nn">org.eclipse.microprofile.reactive.messaging.Incoming</span><span class="p">;</span>
+<a id="__codelineno-1-6" name="__codelineno-1-6"></a><span class="kn">import</span><span class="w"> </span><span class="nn">org.eclipse.microprofile.reactive.messaging.Outgoing</span><span class="p">;</span>
+<a id="__codelineno-1-7" name="__codelineno-1-7"></a>
+<a id="__codelineno-1-8" name="__codelineno-1-8"></a><span class="nd">@ApplicationScoped</span>
+<a id="__codelineno-1-9" name="__codelineno-1-9"></a><span class="kd">public</span><span class="w"> </span><span class="kd">class</span> <span class="nc">PayloadProcessingBean</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-1-10" name="__codelineno-1-10"></a>
+<a id="__codelineno-1-11" name="__codelineno-1-11"></a><span class="w">    </span><span class="nd">@Incoming</span><span class="p">(</span><span class="s">&quot;consumed-channel&quot;</span><span class="p">)</span>
+<a id="__codelineno-1-12" name="__codelineno-1-12"></a><span class="w">    </span><span class="nd">@Outgoing</span><span class="p">(</span><span class="s">&quot;populated-channel&quot;</span><span class="p">)</span>
+<a id="__codelineno-1-13" name="__codelineno-1-13"></a><span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="n">String</span><span class="w"> </span><span class="nf">process</span><span class="p">(</span><span class="n">String</span><span class="w"> </span><span class="n">in</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-1-14" name="__codelineno-1-14"></a><span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">in</span><span class="p">.</span><span class="na">toUpperCase</span><span class="p">();</span>
+<a id="__codelineno-1-15" name="__codelineno-1-15"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-1-16" name="__codelineno-1-16"></a><span class="p">}</span>
+</code></pre></div></td></tr></table></div>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>You should not call methods annotated with <code>@Incoming</code> and/or
+<code>@Outgoing</code> directly from your code. They are invoked by the framework.
+Having user code invoking them would not have the expected outcome.</p>
+</div>
+<p>SmallRye Reactive Messaging automatically binds matching <code>@Outgoing</code> to
+<code>@Incoming</code> to form a chain:</p>
+<figure class="docissimo, docissimo-figure">
+              <img src="../../images/chain.png" style="margin-left:auto; margin-right:auto;" alt="A chain of components">
+              <figcaption style="margin-left:auto; margin-right:auto;">A chain of components</figcaption>
+            </figure>
+
+<p>If we consider the following code:</p>
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-2-1"> 1</a></span>
+<span class="normal"><a href="#__codelineno-2-2"> 2</a></span>
+<span class="normal"><a href="#__codelineno-2-3"> 3</a></span>
+<span class="normal"><a href="#__codelineno-2-4"> 4</a></span>
+<span class="normal"><a href="#__codelineno-2-5"> 5</a></span>
+<span class="normal"><a href="#__codelineno-2-6"> 6</a></span>
+<span class="normal"><a href="#__codelineno-2-7"> 7</a></span>
+<span class="normal"><a href="#__codelineno-2-8"> 8</a></span>
+<span class="normal"><a href="#__codelineno-2-9"> 9</a></span>
+<span class="normal"><a href="#__codelineno-2-10">10</a></span>
+<span class="normal"><a href="#__codelineno-2-11">11</a></span>
+<span class="normal"><a href="#__codelineno-2-12">12</a></span>
+<span class="normal"><a href="#__codelineno-2-13">13</a></span>
+<span class="normal"><a href="#__codelineno-2-14">14</a></span>
+<span class="normal"><a href="#__codelineno-2-15">15</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1"></a><span class="nd">@Outgoing</span><span class="p">(</span><span class="s">&quot;source&quot;</span><span class="p">)</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2"></a><span class="kd">public</span><span class="w"> </span><span class="n">Multi</span><span class="o">&lt;</span><span class="n">String</span><span class="o">&gt;</span><span class="w"> </span><span class="nf">generate</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3"></a><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">Multi</span><span class="p">.</span><span class="na">createFrom</span><span class="p">().</span><span class="na">items</span><span class="p">(</span><span class="s">&quot;Hello&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;from&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;reactive&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;messaging&quot;</span><span class="p">);</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4"></a><span class="p">}</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5"></a>
+<a id="__codelineno-2-6" name="__codelineno-2-6"></a><span class="nd">@Incoming</span><span class="p">(</span><span class="s">&quot;source&quot;</span><span class="p">)</span>
+<a id="__codelineno-2-7" name="__codelineno-2-7"></a><span class="nd">@Outgoing</span><span class="p">(</span><span class="s">&quot;sink&quot;</span><span class="p">)</span>
+<a id="__codelineno-2-8" name="__codelineno-2-8"></a><span class="kd">public</span><span class="w"> </span><span class="n">String</span><span class="w"> </span><span class="nf">process</span><span class="p">(</span><span class="n">String</span><span class="w"> </span><span class="n">in</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-2-9" name="__codelineno-2-9"></a><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">in</span><span class="p">.</span><span class="na">toUpperCase</span><span class="p">();</span>
+<a id="__codelineno-2-10" name="__codelineno-2-10"></a><span class="p">}</span>
+<a id="__codelineno-2-11" name="__codelineno-2-11"></a>
+<a id="__codelineno-2-12" name="__codelineno-2-12"></a><span class="nd">@Incoming</span><span class="p">(</span><span class="s">&quot;sink&quot;</span><span class="p">)</span>
+<a id="__codelineno-2-13" name="__codelineno-2-13"></a><span class="kd">public</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">consume</span><span class="p">(</span><span class="n">String</span><span class="w"> </span><span class="n">processed</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-2-14" name="__codelineno-2-14"></a><span class="w">    </span><span class="n">System</span><span class="p">.</span><span class="na">out</span><span class="p">.</span><span class="na">println</span><span class="p">(</span><span class="n">processed</span><span class="p">);</span>
+<a id="__codelineno-2-15" name="__codelineno-2-15"></a><span class="p">}</span>
+</code></pre></div></td></tr></table></div>
+<p>It would generate the following chain:</p>
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-3-1">1</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1"></a>generate --&gt; [ source ] --&gt; process --&gt; [ sink ] --&gt; consume
+</code></pre></div></td></tr></table></div>
+<p>Methods annotated with <code>@Incoming</code> or <code>@Outgoing</code> don’t have to be in the same <em>bean</em> (<em>class</em>).
+You can distribute them among a set of beans.
+Remote interactions are also possible when using connectors.</p>
+<p>Methods annotated with:</p>
+<ul>
+<li>only <code>@Outgoing</code> are used to generate messages or payloads</li>
+<li>only <code>@Incoming</code> are used to consume messages or payloads</li>
+<li>both <code>@Incoming</code> and <code>@Outgoing</code> are used to process messages or payloads; or transform the stream</li>
+</ul>
+<h2 id="creating-messages">Creating messages</h2>
+<p>Messages are envelopes around payload.
+They are the vehicle.
+While manipulating payload is convenient, messages let you add metadata, handle acknowledgement...</p>
+<p>Creating <code>Messages</code> is done using the <a class='docissimo, docissimo-javadoc' href='https://javadoc.io/doc/io.smallrye.reactive/smallrye-reactive-messaging-api/4.25.0/io/eclipse/microprofile/reactive/messaging/Message.html'>Message</a> interface directly:</p>
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-4-1"> 1</a></span>
+<span class="normal"><a href="#__codelineno-4-2"> 2</a></span>
+<span class="normal"><a href="#__codelineno-4-3"> 3</a></span>
+<span class="normal"><a href="#__codelineno-4-4"> 4</a></span>
+<span class="normal"><a href="#__codelineno-4-5"> 5</a></span>
+<span class="normal"><a href="#__codelineno-4-6"> 6</a></span>
+<span class="normal"><a href="#__codelineno-4-7"> 7</a></span>
+<span class="normal"><a href="#__codelineno-4-8"> 8</a></span>
+<span class="normal"><a href="#__codelineno-4-9"> 9</a></span>
+<span class="normal"><a href="#__codelineno-4-10">10</a></span>
+<span class="normal"><a href="#__codelineno-4-11">11</a></span>
+<span class="normal"><a href="#__codelineno-4-12">12</a></span>
+<span class="normal"><a href="#__codelineno-4-13">13</a></span>
+<span class="normal"><a href="#__codelineno-4-14">14</a></span>
+<span class="normal"><a href="#__codelineno-4-15">15</a></span>
+<span class="normal"><a href="#__codelineno-4-16">16</a></span>
+<span class="normal"><a href="#__codelineno-4-17">17</a></span>
+<span class="normal"><a href="#__codelineno-4-18">18</a></span>
+<span class="normal"><a href="#__codelineno-4-19">19</a></span>
+<span class="normal"><a href="#__codelineno-4-20">20</a></span>
+<span class="normal"><a href="#__codelineno-4-21">21</a></span>
+<span class="normal"><a href="#__codelineno-4-22">22</a></span>
+<span class="normal"><a href="#__codelineno-4-23">23</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1"></a><span class="c1">// Create a simple message wrapping a payload</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2"></a><span class="n">Message</span><span class="o">&lt;</span><span class="n">Price</span><span class="o">&gt;</span><span class="w"> </span><span class="n">m1</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Message</span><span class="p">.</span><span class="na">of</span><span class="p">(</span><span class="n">price</span><span class="p">);</span>
+<a id="__codelineno-4-3" name="__codelineno-4-3"></a>
+<a id="__codelineno-4-4" name="__codelineno-4-4"></a><span class="c1">// Create a message with metadata</span>
+<a id="__codelineno-4-5" name="__codelineno-4-5"></a><span class="n">Message</span><span class="o">&lt;</span><span class="n">Price</span><span class="o">&gt;</span><span class="w"> </span><span class="n">m2</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Message</span><span class="p">.</span><span class="na">of</span><span class="p">(</span><span class="n">price</span><span class="p">,</span><span class="w"> </span><span class="n">Metadata</span><span class="p">.</span><span class="na">of</span><span class="p">(</span><span class="k">new</span><span class="w"> </span><span class="n">PriceMetadata</span><span class="p">()));</span>
+<a id="__codelineno-4-6" name="__codelineno-4-6"></a>
+<a id="__codelineno-4-7" name="__codelineno-4-7"></a><span class="c1">// Create a message with several metadata</span>
+<a id="__codelineno-4-8" name="__codelineno-4-8"></a><span class="n">Message</span><span class="o">&lt;</span><span class="n">Price</span><span class="o">&gt;</span><span class="w"> </span><span class="n">m3</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Message</span><span class="p">.</span><span class="na">of</span><span class="p">(</span><span class="n">price</span><span class="p">,</span>
+<a id="__codelineno-4-9" name="__codelineno-4-9"></a><span class="w">        </span><span class="n">Metadata</span><span class="p">.</span><span class="na">of</span><span class="p">(</span><span class="k">new</span><span class="w"> </span><span class="n">PriceMetadata</span><span class="p">(),</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">MyMetadata</span><span class="p">()));</span>
+<a id="__codelineno-4-10" name="__codelineno-4-10"></a>
+<a id="__codelineno-4-11" name="__codelineno-4-11"></a><span class="c1">// Create a message with an acknowledgement callback</span>
+<a id="__codelineno-4-12" name="__codelineno-4-12"></a><span class="n">Message</span><span class="o">&lt;</span><span class="n">Price</span><span class="o">&gt;</span><span class="w"> </span><span class="n">m4</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Message</span><span class="p">.</span><span class="na">of</span><span class="p">(</span><span class="n">price</span><span class="p">,</span><span class="w"> </span><span class="p">()</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-4-13" name="__codelineno-4-13"></a><span class="w">    </span><span class="c1">// Called when the message is acknowledged by the next consumer.</span>
+<a id="__codelineno-4-14" name="__codelineno-4-14"></a><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">CompletableFuture</span><span class="p">.</span><span class="na">completedFuture</span><span class="p">(</span><span class="kc">null</span><span class="p">);</span>
+<a id="__codelineno-4-15" name="__codelineno-4-15"></a><span class="p">});</span>
+<a id="__codelineno-4-16" name="__codelineno-4-16"></a>
+<a id="__codelineno-4-17" name="__codelineno-4-17"></a><span class="c1">// Create a message with both metadata and acknowledgement callback</span>
+<a id="__codelineno-4-18" name="__codelineno-4-18"></a><span class="n">Message</span><span class="o">&lt;</span><span class="n">Price</span><span class="o">&gt;</span><span class="w"> </span><span class="n">m5</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Message</span><span class="p">.</span><span class="na">of</span><span class="p">(</span><span class="n">price</span><span class="p">,</span>
+<a id="__codelineno-4-19" name="__codelineno-4-19"></a><span class="w">        </span><span class="n">Metadata</span><span class="p">.</span><span class="na">of</span><span class="p">(</span><span class="k">new</span><span class="w"> </span><span class="n">PriceMetadata</span><span class="p">()),</span>
+<a id="__codelineno-4-20" name="__codelineno-4-20"></a><span class="w">        </span><span class="p">()</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-4-21" name="__codelineno-4-21"></a><span class="w">            </span><span class="c1">// Called when the message is acknowledged by the next consumer.</span>
+<a id="__codelineno-4-22" name="__codelineno-4-22"></a><span class="w">            </span><span class="k">return</span><span class="w"> </span><span class="n">CompletableFuture</span><span class="p">.</span><span class="na">completedFuture</span><span class="p">(</span><span class="kc">null</span><span class="p">);</span>
+<a id="__codelineno-4-23" name="__codelineno-4-23"></a><span class="w">        </span><span class="p">});</span>
+</code></pre></div></td></tr></table></div>
+<p>Messages accept <code>null</code> as payload.
+Channels connected to outbound connectors interpret messages with <code>null</code> payload differently depending on the technology.
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-5-1">1</a></span>
+<span class="normal"><a href="#__codelineno-5-2">2</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1"></a><span class="c1">// Create a message with null payload</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2"></a><span class="n">Message</span><span class="o">&lt;</span><span class="n">Price</span><span class="o">&gt;</span><span class="w"> </span><span class="n">m6</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Message</span><span class="p">.</span><span class="na">of</span><span class="p">(</span><span class="kc">null</span><span class="p">,</span><span class="w"> </span><span class="n">Metadata</span><span class="p">.</span><span class="na">of</span><span class="p">(</span><span class="k">new</span><span class="w"> </span><span class="n">PriceMetadata</span><span class="p">()));</span>
+</code></pre></div></td></tr></table></div></p>
+<p>You can also create new instance of <code>Message</code> from an existing one:</p>
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-6-1"> 1</a></span>
+<span class="normal"><a href="#__codelineno-6-2"> 2</a></span>
+<span class="normal"><a href="#__codelineno-6-3"> 3</a></span>
+<span class="normal"><a href="#__codelineno-6-4"> 4</a></span>
+<span class="normal"><a href="#__codelineno-6-5"> 5</a></span>
+<span class="normal"><a href="#__codelineno-6-6"> 6</a></span>
+<span class="normal"><a href="#__codelineno-6-7"> 7</a></span>
+<span class="normal"><a href="#__codelineno-6-8"> 8</a></span>
+<span class="normal"><a href="#__codelineno-6-9"> 9</a></span>
+<span class="normal"><a href="#__codelineno-6-10">10</a></span>
+<span class="normal"><a href="#__codelineno-6-11">11</a></span>
+<span class="normal"><a href="#__codelineno-6-12">12</a></span>
+<span class="normal"><a href="#__codelineno-6-13">13</a></span>
+<span class="normal"><a href="#__codelineno-6-14">14</a></span>
+<span class="normal"><a href="#__codelineno-6-15">15</a></span>
+<span class="normal"><a href="#__codelineno-6-16">16</a></span>
+<span class="normal"><a href="#__codelineno-6-17">17</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1"></a><span class="c1">// Create a new message with a new payload but with the same metadata</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2"></a><span class="n">Message</span><span class="o">&lt;</span><span class="n">Price</span><span class="o">&gt;</span><span class="w"> </span><span class="n">m1</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">message</span><span class="p">.</span><span class="na">withPayload</span><span class="p">(</span><span class="k">new</span><span class="w"> </span><span class="n">Price</span><span class="p">(</span><span class="mf">12.4</span><span class="p">));</span>
+<a id="__codelineno-6-3" name="__codelineno-6-3"></a>
+<a id="__codelineno-6-4" name="__codelineno-6-4"></a><span class="c1">// Create a new message with a new payload and add another metadata</span>
+<a id="__codelineno-6-5" name="__codelineno-6-5"></a><span class="n">Message</span><span class="o">&lt;</span><span class="n">Price</span><span class="o">&gt;</span><span class="w"> </span><span class="n">m2</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">message</span>
+<a id="__codelineno-6-6" name="__codelineno-6-6"></a><span class="w">        </span><span class="p">.</span><span class="na">withPayload</span><span class="p">(</span><span class="k">new</span><span class="w"> </span><span class="n">Price</span><span class="p">(</span><span class="mf">15.0</span><span class="p">))</span>
+<a id="__codelineno-6-7" name="__codelineno-6-7"></a><span class="w">        </span><span class="p">.</span><span class="na">withMetadata</span><span class="p">(</span><span class="n">Metadata</span><span class="p">.</span><span class="na">of</span><span class="p">(</span><span class="k">new</span><span class="w"> </span><span class="n">PriceMetadata</span><span class="p">()));</span>
+<a id="__codelineno-6-8" name="__codelineno-6-8"></a>
+<a id="__codelineno-6-9" name="__codelineno-6-9"></a><span class="c1">// Create a new message with a new payload and a custom acknowledgement</span>
+<a id="__codelineno-6-10" name="__codelineno-6-10"></a><span class="n">Message</span><span class="o">&lt;</span><span class="n">Price</span><span class="o">&gt;</span><span class="w"> </span><span class="n">m3</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">message</span>
+<a id="__codelineno-6-11" name="__codelineno-6-11"></a><span class="w">        </span><span class="p">.</span><span class="na">withPayload</span><span class="p">(</span><span class="k">new</span><span class="w"> </span><span class="n">Price</span><span class="p">(</span><span class="mf">15.0</span><span class="p">))</span>
+<a id="__codelineno-6-12" name="__codelineno-6-12"></a><span class="w">        </span><span class="p">.</span><span class="na">withAck</span><span class="p">(()</span><span class="w"> </span><span class="o">-&gt;</span>
+<a id="__codelineno-6-13" name="__codelineno-6-13"></a><span class="w">        </span><span class="c1">// acknowledge the incoming message</span>
+<a id="__codelineno-6-14" name="__codelineno-6-14"></a><span class="w">        </span><span class="n">message</span><span class="p">.</span><span class="na">ack</span><span class="p">()</span>
+<a id="__codelineno-6-15" name="__codelineno-6-15"></a><span class="w">                </span><span class="p">.</span><span class="na">thenAccept</span><span class="p">(</span><span class="n">x</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-6-16" name="__codelineno-6-16"></a><span class="w">                    </span><span class="c1">// do something</span>
+<a id="__codelineno-6-17" name="__codelineno-6-17"></a><span class="w">                </span><span class="p">}));</span>
+</code></pre></div></td></tr></table></div>
+<div class="admonition warning">
+<p class="admonition-title">Acknowledgement?</p>
+<p>Acknowledgement is an important part of messaging systems. This will be covered in the <a href="../acknowledgement/">acknowledgement</a> section.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Connector Metadata</p>
+<p>Most connectors are providing metadata to let you extract technical
+details about the message, but also customize the outbound dispatching.</p>
+</div>
+<h2 id="messages-vs-payloads">Messages vs. Payloads</h2>
+<p>Reactive messaging offers flexibility when it comes to handling messages and their acknowledgements.
+The application developer can choose to finely handle acknowledgements per-message basis, by handling the
+<code>Message</code>-based signatures. Otherwise, when handling payloads, acknowledgements
+(and negative-acknowledgements) are handled by the framework.
+The following sections in this documentation detail both development models.</p>
+<p>While being the easier development model, in the past using payload-based signatures did not allow associating connector-specific metadata,
+making the <code>Message</code>-based signatures the de-facto choice even for the most common scenarios.
+This lead to using the connector custom-message implementation types,
+such as <code>IncomingKafkaRecord</code>, <code>KafkaRecord</code> or <code>IncomingRabbitMQMessage</code>,
+as a convenience for accessing connector-specific metadata.</p>
+<p>Not only this forces to handle acknowledgements manually,
+it also doesn't allow for incoming or outgoing <code>Messages</code> to be <a href="../decorators/#intercepting-incoming-and-outgoing-messages">intercepted</a>
+or <a href="../observability/">observed</a>.</p>
+<div class="admonition warning">
+<p class="admonition-title">Custom <code>Message</code> types &amp; Message interception</p>
+<p>Custom <code>Message</code> types such as <code>IncomingKafkaRecord</code>, <code>KafkaRecord</code> or <code>IncomingRabbitMQMessage</code>
+are not compatible with features intercepting messages.
+Therefore, it is no longer recommended to use custom <code>Message</code> implementations in consumptions methods.
+Instead, you can either use the generic <code>Message</code> type and access specific metadata,
+or use the payload with <a href="../incoming-metadata-injection/">metadata injection</a></p>
+</div>
+<p>Since <a href="../incoming-metadata-injection/">incoming metadata injection</a> and <a href="../generic-payloads/">generic payloads</a>
+features added to SmallRye Reactive Messaging,
+it is easier to use payload signatures and benefit from acknowledgement handling and still access connector-specific metadata.</p>
+<h2 id="generating-messages">Generating Messages</h2>
+<p>To produce messages to a channel, you need to use the <code>@Outgoing</code>
+annotation. This annotation takes a single parameter: the name of the
+populated channel.</p>
+<h3 id="generating-messages-synchronously">Generating messages synchronously</h3>
+<p>You can generate messages synchronously. In this case, the method is
+called for every <em>request</em> from the downstream:</p>
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-7-1">1</a></span>
+<span class="normal"><a href="#__codelineno-7-2">2</a></span>
+<span class="normal"><a href="#__codelineno-7-3">3</a></span>
+<span class="normal"><a href="#__codelineno-7-4">4</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1"></a><span class="nd">@Outgoing</span><span class="p">(</span><span class="s">&quot;my-channel&quot;</span><span class="p">)</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2"></a><span class="kd">public</span><span class="w"> </span><span class="n">Message</span><span class="o">&lt;</span><span class="n">Integer</span><span class="o">&gt;</span><span class="w"> </span><span class="nf">generateMessagesSynchronously</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-7-3" name="__codelineno-7-3"></a><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">Message</span><span class="p">.</span><span class="na">of</span><span class="p">(</span><span class="n">counter</span><span class="p">.</span><span class="na">getAndIncrement</span><span class="p">());</span>
+<a id="__codelineno-7-4" name="__codelineno-7-4"></a><span class="p">}</span>
+</code></pre></div></td></tr></table></div>
+<div class="admonition note">
+<p class="admonition-title">Requests?</p>
+<p>Reactive Messaging connects components to build a reactive stream.
+In a reactive stream, the emissions are controlled by the consumer
+(downstream) indicating to the publisher (upstream) how many items it
+can consume. With this protocol, the consumers are never flooded.</p>
+</div>
+<h3 id="generating-messages-using-completionstage">Generating messages using CompletionStage</h3>
+<p>You can also return a <code>CompletionStage</code> / <code>CompletableFuture</code>.
+In this  case, Reactive Messaging waits until the <code>CompletionStage</code> gets  completed before calling it again.</p>
+<p>For instance, this signature is useful to poll messages from a source  using an asynchronous client:</p>
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-8-1">1</a></span>
+<span class="normal"><a href="#__codelineno-8-2">2</a></span>
+<span class="normal"><a href="#__codelineno-8-3">3</a></span>
+<span class="normal"><a href="#__codelineno-8-4">4</a></span>
+<span class="normal"><a href="#__codelineno-8-5">5</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1"></a><span class="nd">@Outgoing</span><span class="p">(</span><span class="s">&quot;my-channel&quot;</span><span class="p">)</span>
+<a id="__codelineno-8-2" name="__codelineno-8-2"></a><span class="kd">public</span><span class="w"> </span><span class="n">CompletionStage</span><span class="o">&lt;</span><span class="n">Message</span><span class="o">&lt;</span><span class="n">Price</span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="nf">generateMessagesAsCompletionStage</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-8-3" name="__codelineno-8-3"></a><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">asyncClient</span><span class="p">.</span><span class="na">poll</span><span class="p">()</span>
+<a id="__codelineno-8-4" name="__codelineno-8-4"></a><span class="w">            </span><span class="p">.</span><span class="na">thenApply</span><span class="p">(</span><span class="n">Message</span><span class="p">::</span><span class="n">of</span><span class="p">);</span>
+<a id="__codelineno-8-5" name="__codelineno-8-5"></a><span class="p">}</span>
+</code></pre></div></td></tr></table></div>
+<h3 id="generating-messages-using-uni">Generating messages using Uni</h3>
+<p>You can also return a <a href="https://smallrye.io/smallrye-mutiny/#_uni_and_multi">Uni</a> instance.
+In  this case, Reactive Messaging waits until the <code>Uni</code> emits its item  before calling it again.</p>
+<p>This signature is useful when integrating asynchronous clients providing  a Mutiny API.</p>
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-9-1">1</a></span>
+<span class="normal"><a href="#__codelineno-9-2">2</a></span>
+<span class="normal"><a href="#__codelineno-9-3">3</a></span>
+<span class="normal"><a href="#__codelineno-9-4">4</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1"></a><span class="nd">@Outgoing</span><span class="p">(</span><span class="s">&quot;my-channel&quot;</span><span class="p">)</span>
+<a id="__codelineno-9-2" name="__codelineno-9-2"></a><span class="kd">public</span><span class="w"> </span><span class="n">Uni</span><span class="o">&lt;</span><span class="n">Message</span><span class="o">&lt;</span><span class="n">Integer</span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="nf">generateMessagesAsync</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-9-3" name="__codelineno-9-3"></a><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">Uni</span><span class="p">.</span><span class="na">createFrom</span><span class="p">().</span><span class="na">item</span><span class="p">(()</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="n">Message</span><span class="p">.</span><span class="na">of</span><span class="p">(</span><span class="n">counter</span><span class="p">.</span><span class="na">getAndIncrement</span><span class="p">()));</span>
+<a id="__codelineno-9-4" name="__codelineno-9-4"></a><span class="p">}</span>
+</code></pre></div></td></tr></table></div>
+<h3 id="generating-reactive-streams-of-messages">Generating Reactive Streams of messages</h3>
+<p>Instead of producing the message one by one, you can return the stream
+directly. If you have a data source producing Reactive Streams
+<code>Publisher</code> (or sub-types, such as <code>Multi</code>), this is the signature you are looking for:</p>
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-10-1">1</a></span>
+<span class="normal"><a href="#__codelineno-10-2">2</a></span>
+<span class="normal"><a href="#__codelineno-10-3">3</a></span>
+<span class="normal"><a href="#__codelineno-10-4">4</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1"></a><span class="kd">public</span><span class="w"> </span><span class="n">Flow</span><span class="p">.</span><span class="na">Publisher</span><span class="o">&lt;</span><span class="n">Message</span><span class="o">&lt;</span><span class="n">String</span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="nf">generateMessageStream</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-10-2" name="__codelineno-10-2"></a><span class="w">    </span><span class="n">Multi</span><span class="o">&lt;</span><span class="n">String</span><span class="o">&gt;</span><span class="w"> </span><span class="n">multi</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">reactiveClient</span><span class="p">.</span><span class="na">getStream</span><span class="p">();</span>
+<a id="__codelineno-10-3" name="__codelineno-10-3"></a><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">multi</span><span class="p">.</span><span class="na">map</span><span class="p">(</span><span class="n">Message</span><span class="p">::</span><span class="n">of</span><span class="p">);</span>
+<a id="__codelineno-10-4" name="__codelineno-10-4"></a><span class="p">}</span>
+</code></pre></div></td></tr></table></div>
+<p>In this case, the method is called once to retrieve the <code>Publisher</code>.</p>
+<h2 id="generating-payloads">Generating Payloads</h2>
+<p>Instead of <code>Message</code>, you can produce <em>payloads</em>. In this case, Reactive
+Messaging produces a simple message from the <em>payload</em> using
+<code>Message.of</code>.</p>
+<h3 id="generating-payload-synchronously">Generating payload synchronously</h3>
+<p>You can produce <em>payloads</em> synchronously. The framework calls the method
+upon request and create <code>Messages</code> around the produced payloads.</p>
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-11-1">1</a></span>
+<span class="normal"><a href="#__codelineno-11-2">2</a></span>
+<span class="normal"><a href="#__codelineno-11-3">3</a></span>
+<span class="normal"><a href="#__codelineno-11-4">4</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1"></a><span class="nd">@Outgoing</span><span class="p">(</span><span class="s">&quot;my-channel&quot;</span><span class="p">)</span>
+<a id="__codelineno-11-2" name="__codelineno-11-2"></a><span class="kd">public</span><span class="w"> </span><span class="n">Integer</span><span class="w"> </span><span class="nf">generatePayloadsSynchronously</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-11-3" name="__codelineno-11-3"></a><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">counter</span><span class="p">.</span><span class="na">getAndIncrement</span><span class="p">();</span>
+<a id="__codelineno-11-4" name="__codelineno-11-4"></a><span class="p">}</span>
+</code></pre></div></td></tr></table></div>
+<h3 id="generating-payload-using-completionstage">Generating payload using CompletionStage</h3>
+<p>You can also return <code>CompletionStage</code> or <code>CompletableFuture</code>. For
+example, if you have an asynchronous client returning <code>CompletionStage</code>,
+you can use it as follows, to poll the data one by one:</p>
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-12-1">1</a></span>
+<span class="normal"><a href="#__codelineno-12-2">2</a></span>
+<span class="normal"><a href="#__codelineno-12-3">3</a></span>
+<span class="normal"><a href="#__codelineno-12-4">4</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1"></a><span class="nd">@Outgoing</span><span class="p">(</span><span class="s">&quot;my-channel&quot;</span><span class="p">)</span>
+<a id="__codelineno-12-2" name="__codelineno-12-2"></a><span class="kd">public</span><span class="w"> </span><span class="n">CompletionStage</span><span class="o">&lt;</span><span class="n">Price</span><span class="o">&gt;</span><span class="w"> </span><span class="nf">generatePayloadsAsCompletionStage</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-12-3" name="__codelineno-12-3"></a><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">asyncClient</span><span class="p">.</span><span class="na">poll</span><span class="p">();</span>
+<a id="__codelineno-12-4" name="__codelineno-12-4"></a><span class="p">}</span>
+</code></pre></div></td></tr></table></div>
+<h3 id="generating-payload-by-producing-unis">Generating payload by producing Unis</h3>
+<p>You can also return a <code>Uni</code> if you have a client using Mutiny types:</p>
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-13-1">1</a></span>
+<span class="normal"><a href="#__codelineno-13-2">2</a></span>
+<span class="normal"><a href="#__codelineno-13-3">3</a></span>
+<span class="normal"><a href="#__codelineno-13-4">4</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1"></a><span class="nd">@Outgoing</span><span class="p">(</span><span class="s">&quot;my-channel&quot;</span><span class="p">)</span>
+<a id="__codelineno-13-2" name="__codelineno-13-2"></a><span class="kd">public</span><span class="w"> </span><span class="n">Uni</span><span class="o">&lt;</span><span class="n">Integer</span><span class="o">&gt;</span><span class="w"> </span><span class="nf">generatePayloadsAsync</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-13-3" name="__codelineno-13-3"></a><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">Uni</span><span class="p">.</span><span class="na">createFrom</span><span class="p">().</span><span class="na">item</span><span class="p">(()</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="n">counter</span><span class="p">.</span><span class="na">getAndIncrement</span><span class="p">());</span>
+<a id="__codelineno-13-4" name="__codelineno-13-4"></a><span class="p">}</span>
+</code></pre></div></td></tr></table></div>
+<h3 id="generating-reactive-streams-of-payloads">Generating Reactive Streams of payloads</h3>
+<p>Finally, you can return a <code>Publisher</code> (or a sub-type such as a <code>Multi</code>):</p>
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-14-1">1</a></span>
+<span class="normal"><a href="#__codelineno-14-2">2</a></span>
+<span class="normal"><a href="#__codelineno-14-3">3</a></span>
+<span class="normal"><a href="#__codelineno-14-4">4</a></span>
+<span class="normal"><a href="#__codelineno-14-5">5</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1"></a><span class="nd">@Outgoing</span><span class="p">(</span><span class="s">&quot;my-channel&quot;</span><span class="p">)</span>
+<a id="__codelineno-14-2" name="__codelineno-14-2"></a><span class="kd">public</span><span class="w"> </span><span class="n">Multi</span><span class="o">&lt;</span><span class="n">String</span><span class="o">&gt;</span><span class="w"> </span><span class="nf">generatePayloadsStream</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-14-3" name="__codelineno-14-3"></a><span class="w">    </span><span class="n">Multi</span><span class="o">&lt;</span><span class="n">String</span><span class="o">&gt;</span><span class="w"> </span><span class="n">multi</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">reactiveClient</span><span class="p">.</span><span class="na">getStream</span><span class="p">();</span>
+<a id="__codelineno-14-4" name="__codelineno-14-4"></a><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">multi</span><span class="p">;</span>
+<a id="__codelineno-14-5" name="__codelineno-14-5"></a><span class="p">}</span>
+</code></pre></div></td></tr></table></div>
+<p>In this case, Reactive Messaging calls the method only once to retrieve
+the <code>Publisher</code>.</p>
+<h2 id="consuming-messages">Consuming Messages</h2>
+<p>To consume messages from a channel, you need to use the <code>@Incoming</code>
+annotation. This annotation takes a single parameter: the name of the
+consumed channel.</p>
+<p>Because <code>Messages</code> must be acknowledged, consuming messages requires
+returning <em>asynchronous results</em> that would complete when the incoming
+message get acknowledged.</p>
+<p>For example, you can receive the <code>Message</code>, process it and return the
+acknowledgement as result:</p>
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-15-1">1</a></span>
+<span class="normal"><a href="#__codelineno-15-2">2</a></span>
+<span class="normal"><a href="#__codelineno-15-3">3</a></span>
+<span class="normal"><a href="#__codelineno-15-4">4</a></span>
+<span class="normal"><a href="#__codelineno-15-5">5</a></span>
+<span class="normal"><a href="#__codelineno-15-6">6</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1"></a><span class="nd">@Incoming</span><span class="p">(</span><span class="s">&quot;my-channel&quot;</span><span class="p">)</span>
+<a id="__codelineno-15-2" name="__codelineno-15-2"></a><span class="kd">public</span><span class="w"> </span><span class="n">CompletionStage</span><span class="o">&lt;</span><span class="n">Void</span><span class="o">&gt;</span><span class="w"> </span><span class="nf">consumeMessage</span><span class="p">(</span><span class="n">Message</span><span class="o">&lt;</span><span class="n">Price</span><span class="o">&gt;</span><span class="w"> </span><span class="n">message</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-15-3" name="__codelineno-15-3"></a><span class="w">    </span><span class="n">handle</span><span class="p">(</span><span class="n">message</span><span class="p">.</span><span class="na">getPayload</span><span class="p">());</span>
+<a id="__codelineno-15-4" name="__codelineno-15-4"></a><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">message</span><span class="p">.</span><span class="na">ack</span><span class="p">();</span>
+<a id="__codelineno-15-5" name="__codelineno-15-5"></a><span class="p">}</span>
+<a id="__codelineno-15-6" name="__codelineno-15-6"></a><span class="err">&#39;</span>
+</code></pre></div></td></tr></table></div>
+<p>You can also return a <code>Uni</code> if you need to implement more complicated
+processing:</p>
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-16-1">1</a></span>
+<span class="normal"><a href="#__codelineno-16-2">2</a></span>
+<span class="normal"><a href="#__codelineno-16-3">3</a></span>
+<span class="normal"><a href="#__codelineno-16-4">4</a></span>
+<span class="normal"><a href="#__codelineno-16-5">5</a></span>
+<span class="normal"><a href="#__codelineno-16-6">6</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-16-1" name="__codelineno-16-1"></a><span class="nd">@Incoming</span><span class="p">(</span><span class="s">&quot;my-channel&quot;</span><span class="p">)</span>
+<a id="__codelineno-16-2" name="__codelineno-16-2"></a><span class="kd">public</span><span class="w"> </span><span class="n">Uni</span><span class="o">&lt;</span><span class="n">Void</span><span class="o">&gt;</span><span class="w"> </span><span class="nf">consumeMessageUni</span><span class="p">(</span><span class="n">Message</span><span class="o">&lt;</span><span class="n">Price</span><span class="o">&gt;</span><span class="w"> </span><span class="n">message</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-16-3" name="__codelineno-16-3"></a><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">Uni</span><span class="p">.</span><span class="na">createFrom</span><span class="p">().</span><span class="na">item</span><span class="p">(</span><span class="n">message</span><span class="p">)</span>
+<a id="__codelineno-16-4" name="__codelineno-16-4"></a><span class="w">            </span><span class="p">.</span><span class="na">onItem</span><span class="p">().</span><span class="na">invoke</span><span class="p">(</span><span class="n">m</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="n">handle</span><span class="p">(</span><span class="n">m</span><span class="p">.</span><span class="na">getPayload</span><span class="p">()))</span>
+<a id="__codelineno-16-5" name="__codelineno-16-5"></a><span class="w">            </span><span class="p">.</span><span class="na">onItem</span><span class="p">().</span><span class="na">transformToUni</span><span class="p">(</span><span class="n">x</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="n">Uni</span><span class="p">.</span><span class="na">createFrom</span><span class="p">().</span><span class="na">completionStage</span><span class="p">(</span><span class="n">message</span><span class="p">.</span><span class="na">ack</span><span class="p">()));</span>
+<a id="__codelineno-16-6" name="__codelineno-16-6"></a><span class="p">}</span>
+</code></pre></div></td></tr></table></div>
+<h2 id="consuming-payloads">Consuming Payloads</h2>
+<p>Unlike consuming messages, consuming payloads support both synchronous
+and asynchronous consumption.</p>
+<p>For example, you can consume a payload as follows:</p>
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-17-1">1</a></span>
+<span class="normal"><a href="#__codelineno-17-2">2</a></span>
+<span class="normal"><a href="#__codelineno-17-3">3</a></span>
+<span class="normal"><a href="#__codelineno-17-4">4</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-17-1" name="__codelineno-17-1"></a><span class="nd">@Incoming</span><span class="p">(</span><span class="s">&quot;my-channel&quot;</span><span class="p">)</span>
+<a id="__codelineno-17-2" name="__codelineno-17-2"></a><span class="kd">public</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">consumePayload</span><span class="p">(</span><span class="n">Price</span><span class="w"> </span><span class="n">payload</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-17-3" name="__codelineno-17-3"></a><span class="w">    </span><span class="c1">// do something</span>
+<a id="__codelineno-17-4" name="__codelineno-17-4"></a><span class="p">}</span>
+</code></pre></div></td></tr></table></div>
+<p>In this case, you don’t need to deal with the acknowledgement yourself.
+The framework acknowledges the incoming message (that wrapped the
+payload) once your method returns successfully.</p>
+<p>If you need to achieve asynchronous actions, you can return a
+<code>CompletionStage</code> or a <code>Uni</code>:</p>
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-18-1">1</a></span>
+<span class="normal"><a href="#__codelineno-18-2">2</a></span>
+<span class="normal"><a href="#__codelineno-18-3">3</a></span>
+<span class="normal"><a href="#__codelineno-18-4">4</a></span>
+<span class="normal"><a href="#__codelineno-18-5">5</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-18-1" name="__codelineno-18-1"></a><span class="nd">@Incoming</span><span class="p">(</span><span class="s">&quot;my-channel&quot;</span><span class="p">)</span>
+<a id="__codelineno-18-2" name="__codelineno-18-2"></a><span class="kd">public</span><span class="w"> </span><span class="n">CompletionStage</span><span class="o">&lt;</span><span class="n">Void</span><span class="o">&gt;</span><span class="w"> </span><span class="nf">consumePayloadCS</span><span class="p">(</span><span class="n">Price</span><span class="w"> </span><span class="n">payload</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-18-3" name="__codelineno-18-3"></a><span class="w">    </span><span class="n">CompletionStage</span><span class="o">&lt;</span><span class="n">Void</span><span class="o">&gt;</span><span class="w"> </span><span class="n">cs</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">handleAsync</span><span class="p">(</span><span class="n">payload</span><span class="p">);</span>
+<a id="__codelineno-18-4" name="__codelineno-18-4"></a><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">cs</span><span class="p">;</span>
+<a id="__codelineno-18-5" name="__codelineno-18-5"></a><span class="p">}</span>
+</code></pre></div></td></tr></table></div>
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-19-1">1</a></span>
+<span class="normal"><a href="#__codelineno-19-2">2</a></span>
+<span class="normal"><a href="#__codelineno-19-3">3</a></span>
+<span class="normal"><a href="#__codelineno-19-4">4</a></span>
+<span class="normal"><a href="#__codelineno-19-5">5</a></span>
+<span class="normal"><a href="#__codelineno-19-6">6</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-19-1" name="__codelineno-19-1"></a><span class="nd">@Incoming</span><span class="p">(</span><span class="s">&quot;my-channel&quot;</span><span class="p">)</span>
+<a id="__codelineno-19-2" name="__codelineno-19-2"></a><span class="kd">public</span><span class="w"> </span><span class="n">Uni</span><span class="o">&lt;</span><span class="n">Void</span><span class="o">&gt;</span><span class="w"> </span><span class="nf">consumePayloadUni</span><span class="p">(</span><span class="n">Price</span><span class="w"> </span><span class="n">payload</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-19-3" name="__codelineno-19-3"></a><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">Uni</span><span class="p">.</span><span class="na">createFrom</span><span class="p">().</span><span class="na">item</span><span class="p">(</span><span class="n">payload</span><span class="p">)</span>
+<a id="__codelineno-19-4" name="__codelineno-19-4"></a><span class="w">            </span><span class="p">.</span><span class="na">onItem</span><span class="p">().</span><span class="na">invoke</span><span class="p">(</span><span class="k">this</span><span class="p">::</span><span class="n">handle</span><span class="p">)</span>
+<a id="__codelineno-19-5" name="__codelineno-19-5"></a><span class="w">            </span><span class="p">.</span><span class="na">onItem</span><span class="p">().</span><span class="na">ignore</span><span class="p">().</span><span class="na">andContinueWithNull</span><span class="p">();</span>
+<a id="__codelineno-19-6" name="__codelineno-19-6"></a><span class="p">}</span>
+</code></pre></div></td></tr></table></div>
+<p>In these 2 cases, the framework acknowledges the incoming message when
+the returned construct gets <em>completed</em>.</p>
+<h2 id="processing-messages">Processing Messages</h2>
+<p>You can process <code>Message</code> both synchronously or asynchronously.
+This  later case is useful when you need to execute an asynchronous action during your processing such as invoking a remote service.</p>
+<p>Do process <code>Messages</code> synchronously uses:</p>
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-20-1">1</a></span>
+<span class="normal"><a href="#__codelineno-20-2">2</a></span>
+<span class="normal"><a href="#__codelineno-20-3">3</a></span>
+<span class="normal"><a href="#__codelineno-20-4">4</a></span>
+<span class="normal"><a href="#__codelineno-20-5">5</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-20-1" name="__codelineno-20-1"></a><span class="nd">@Incoming</span><span class="p">(</span><span class="s">&quot;in&quot;</span><span class="p">)</span>
+<a id="__codelineno-20-2" name="__codelineno-20-2"></a><span class="nd">@Outgoing</span><span class="p">(</span><span class="s">&quot;out&quot;</span><span class="p">)</span>
+<a id="__codelineno-20-3" name="__codelineno-20-3"></a><span class="kd">public</span><span class="w"> </span><span class="n">Message</span><span class="o">&lt;</span><span class="n">String</span><span class="o">&gt;</span><span class="w"> </span><span class="nf">processMessage</span><span class="p">(</span><span class="n">Message</span><span class="o">&lt;</span><span class="n">Integer</span><span class="o">&gt;</span><span class="w"> </span><span class="n">in</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-20-4" name="__codelineno-20-4"></a><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">in</span><span class="p">.</span><span class="na">withPayload</span><span class="p">(</span><span class="n">Integer</span><span class="p">.</span><span class="na">toString</span><span class="p">(</span><span class="n">in</span><span class="p">.</span><span class="na">getPayload</span><span class="p">()));</span>
+<a id="__codelineno-20-5" name="__codelineno-20-5"></a><span class="p">}</span>
+</code></pre></div></td></tr></table></div>
+<p>This method transforms the <code>int</code> payload to a <code>String</code>, and wraps it
+into a <code>Message</code>.</p>
+<p>'''important "Using <code>Message.withX</code> methods"
+You may be surprised by the usage of <code>Message.withX</code> methods. It allows
+metadata propagation as the metadata would be copied from the incoming
+message and so dispatched to the next method.</p>
+<p>You can also process <code>Messages</code> asynchronously:</p>
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-21-1">1</a></span>
+<span class="normal"><a href="#__codelineno-21-2">2</a></span>
+<span class="normal"><a href="#__codelineno-21-3">3</a></span>
+<span class="normal"><a href="#__codelineno-21-4">4</a></span>
+<span class="normal"><a href="#__codelineno-21-5">5</a></span>
+<span class="normal"><a href="#__codelineno-21-6">6</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-21-1" name="__codelineno-21-1"></a><span class="nd">@Incoming</span><span class="p">(</span><span class="s">&quot;in&quot;</span><span class="p">)</span>
+<a id="__codelineno-21-2" name="__codelineno-21-2"></a><span class="nd">@Outgoing</span><span class="p">(</span><span class="s">&quot;out&quot;</span><span class="p">)</span>
+<a id="__codelineno-21-3" name="__codelineno-21-3"></a><span class="kd">public</span><span class="w"> </span><span class="n">CompletionStage</span><span class="o">&lt;</span><span class="n">Message</span><span class="o">&lt;</span><span class="n">String</span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="nf">processMessageCS</span><span class="p">(</span><span class="n">Message</span><span class="o">&lt;</span><span class="n">Integer</span><span class="o">&gt;</span><span class="w"> </span><span class="n">in</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-21-4" name="__codelineno-21-4"></a><span class="w">    </span><span class="n">CompletionStage</span><span class="o">&lt;</span><span class="n">String</span><span class="o">&gt;</span><span class="w"> </span><span class="n">cs</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">invokeService</span><span class="p">(</span><span class="n">in</span><span class="p">.</span><span class="na">getPayload</span><span class="p">());</span>
+<a id="__codelineno-21-5" name="__codelineno-21-5"></a><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">cs</span><span class="p">.</span><span class="na">thenApply</span><span class="p">(</span><span class="n">in</span><span class="p">::</span><span class="n">withPayload</span><span class="p">);</span>
+<a id="__codelineno-21-6" name="__codelineno-21-6"></a><span class="p">}</span>
+</code></pre></div></td></tr></table></div>
+<p>Or using Mutiny:</p>
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-22-1">1</a></span>
+<span class="normal"><a href="#__codelineno-22-2">2</a></span>
+<span class="normal"><a href="#__codelineno-22-3">3</a></span>
+<span class="normal"><a href="#__codelineno-22-4">4</a></span>
+<span class="normal"><a href="#__codelineno-22-5">5</a></span>
+<span class="normal"><a href="#__codelineno-22-6">6</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-22-1" name="__codelineno-22-1"></a><span class="nd">@Incoming</span><span class="p">(</span><span class="s">&quot;in&quot;</span><span class="p">)</span>
+<a id="__codelineno-22-2" name="__codelineno-22-2"></a><span class="nd">@Outgoing</span><span class="p">(</span><span class="s">&quot;out&quot;</span><span class="p">)</span>
+<a id="__codelineno-22-3" name="__codelineno-22-3"></a><span class="kd">public</span><span class="w"> </span><span class="n">Uni</span><span class="o">&lt;</span><span class="n">Message</span><span class="o">&lt;</span><span class="n">String</span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="nf">processMessageUni</span><span class="p">(</span><span class="n">Message</span><span class="o">&lt;</span><span class="n">String</span><span class="o">&gt;</span><span class="w"> </span><span class="n">in</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-22-4" name="__codelineno-22-4"></a><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">invokeService</span><span class="p">(</span><span class="n">in</span><span class="p">.</span><span class="na">getPayload</span><span class="p">())</span>
+<a id="__codelineno-22-5" name="__codelineno-22-5"></a><span class="w">            </span><span class="p">.</span><span class="na">map</span><span class="p">(</span><span class="n">in</span><span class="p">::</span><span class="n">withPayload</span><span class="p">);</span>
+<a id="__codelineno-22-6" name="__codelineno-22-6"></a><span class="p">}</span>
+</code></pre></div></td></tr></table></div>
+<p>In general, you want to create the new <code>Message</code> from the incoming one.
+It enables metadata propagation and post-acknowledgement. For this, use
+the <code>withX</code> method from the <code>Message</code> class returning a new <code>Message</code>
+instance but copy the <em>content</em> (metadata, ack/nack...).</p>
+<h2 id="processing-payloads">Processing payloads</h2>
+<p>If you don’t need to manipulate the envelope, you can process payload
+directly either synchronously or asynchronously:</p>
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-23-1">1</a></span>
+<span class="normal"><a href="#__codelineno-23-2">2</a></span>
+<span class="normal"><a href="#__codelineno-23-3">3</a></span>
+<span class="normal"><a href="#__codelineno-23-4">4</a></span>
+<span class="normal"><a href="#__codelineno-23-5">5</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-23-1" name="__codelineno-23-1"></a><span class="nd">@Incoming</span><span class="p">(</span><span class="s">&quot;in&quot;</span><span class="p">)</span>
+<a id="__codelineno-23-2" name="__codelineno-23-2"></a><span class="nd">@Outgoing</span><span class="p">(</span><span class="s">&quot;out&quot;</span><span class="p">)</span>
+<a id="__codelineno-23-3" name="__codelineno-23-3"></a><span class="kd">public</span><span class="w"> </span><span class="n">String</span><span class="w"> </span><span class="nf">processPayload</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">in</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-23-4" name="__codelineno-23-4"></a><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">Integer</span><span class="p">.</span><span class="na">toString</span><span class="p">(</span><span class="n">in</span><span class="p">);</span>
+<a id="__codelineno-23-5" name="__codelineno-23-5"></a><span class="p">}</span>
+</code></pre></div></td></tr></table></div>
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-24-1">1</a></span>
+<span class="normal"><a href="#__codelineno-24-2">2</a></span>
+<span class="normal"><a href="#__codelineno-24-3">3</a></span>
+<span class="normal"><a href="#__codelineno-24-4">4</a></span>
+<span class="normal"><a href="#__codelineno-24-5">5</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-24-1" name="__codelineno-24-1"></a><span class="nd">@Incoming</span><span class="p">(</span><span class="s">&quot;in&quot;</span><span class="p">)</span>
+<a id="__codelineno-24-2" name="__codelineno-24-2"></a><span class="nd">@Outgoing</span><span class="p">(</span><span class="s">&quot;out&quot;</span><span class="p">)</span>
+<a id="__codelineno-24-3" name="__codelineno-24-3"></a><span class="kd">public</span><span class="w"> </span><span class="n">CompletionStage</span><span class="o">&lt;</span><span class="n">String</span><span class="o">&gt;</span><span class="w"> </span><span class="nf">processPayloadCS</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">in</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-24-4" name="__codelineno-24-4"></a><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">invokeService</span><span class="p">(</span><span class="n">in</span><span class="p">);</span>
+<a id="__codelineno-24-5" name="__codelineno-24-5"></a><span class="p">}</span>
+</code></pre></div></td></tr></table></div>
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-25-1">1</a></span>
+<span class="normal"><a href="#__codelineno-25-2">2</a></span>
+<span class="normal"><a href="#__codelineno-25-3">3</a></span>
+<span class="normal"><a href="#__codelineno-25-4">4</a></span>
+<span class="normal"><a href="#__codelineno-25-5">5</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-25-1" name="__codelineno-25-1"></a><span class="nd">@Incoming</span><span class="p">(</span><span class="s">&quot;in&quot;</span><span class="p">)</span>
+<a id="__codelineno-25-2" name="__codelineno-25-2"></a><span class="nd">@Outgoing</span><span class="p">(</span><span class="s">&quot;out&quot;</span><span class="p">)</span>
+<a id="__codelineno-25-3" name="__codelineno-25-3"></a><span class="kd">public</span><span class="w"> </span><span class="n">Uni</span><span class="o">&lt;</span><span class="n">String</span><span class="o">&gt;</span><span class="w"> </span><span class="nf">processPayload</span><span class="p">(</span><span class="n">String</span><span class="w"> </span><span class="n">in</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-25-4" name="__codelineno-25-4"></a><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">invokeService</span><span class="p">(</span><span class="n">in</span><span class="p">);</span>
+<a id="__codelineno-25-5" name="__codelineno-25-5"></a><span class="p">}</span>
+</code></pre></div></td></tr></table></div>
+<div class="admonition note">
+<p class="admonition-title">What about metadata?</p>
+<p>With these methods, the metadata are automatically propagated.</p>
+</div>
+<h2 id="processing-streams">Processing streams</h2>
+<p>The previous processing method were taking single <code>Message</code> or payload.
+Sometimes you need more advanced manipulation. For this, SmallRye
+Reactive Messaging lets you process the stream of <code>Message</code> or the
+stream of payloads directly:</p>
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-26-1"> 1</a></span>
+<span class="normal"><a href="#__codelineno-26-2"> 2</a></span>
+<span class="normal"><a href="#__codelineno-26-3"> 3</a></span>
+<span class="normal"><a href="#__codelineno-26-4"> 4</a></span>
+<span class="normal"><a href="#__codelineno-26-5"> 5</a></span>
+<span class="normal"><a href="#__codelineno-26-6"> 6</a></span>
+<span class="normal"><a href="#__codelineno-26-7"> 7</a></span>
+<span class="normal"><a href="#__codelineno-26-8"> 8</a></span>
+<span class="normal"><a href="#__codelineno-26-9"> 9</a></span>
+<span class="normal"><a href="#__codelineno-26-10">10</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-26-1" name="__codelineno-26-1"></a><span class="nd">@Incoming</span><span class="p">(</span><span class="s">&quot;in&quot;</span><span class="p">)</span>
+<a id="__codelineno-26-2" name="__codelineno-26-2"></a><span class="nd">@Outgoing</span><span class="p">(</span><span class="s">&quot;out&quot;</span><span class="p">)</span>
+<a id="__codelineno-26-3" name="__codelineno-26-3"></a><span class="kd">public</span><span class="w"> </span><span class="n">Multi</span><span class="o">&lt;</span><span class="n">Message</span><span class="o">&lt;</span><span class="n">String</span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="nf">processMessageStream</span><span class="p">(</span><span class="n">Multi</span><span class="o">&lt;</span><span class="n">Message</span><span class="o">&lt;</span><span class="n">Integer</span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="n">stream</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-26-4" name="__codelineno-26-4"></a><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">stream</span>
+<a id="__codelineno-26-5" name="__codelineno-26-5"></a><span class="w">            </span><span class="p">.</span><span class="na">onItem</span><span class="p">().</span><span class="na">transformToUni</span><span class="p">(</span><span class="n">message</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="n">invokeService</span><span class="p">(</span><span class="n">message</span><span class="p">.</span><span class="na">getPayload</span><span class="p">())</span>
+<a id="__codelineno-26-6" name="__codelineno-26-6"></a><span class="w">                    </span><span class="p">.</span><span class="na">onFailure</span><span class="p">().</span><span class="na">recoverWithItem</span><span class="p">(</span><span class="s">&quot;fallback&quot;</span><span class="p">)</span>
+<a id="__codelineno-26-7" name="__codelineno-26-7"></a><span class="w">                    </span><span class="p">.</span><span class="na">onItem</span><span class="p">().</span><span class="na">transform</span><span class="p">(</span><span class="n">message</span><span class="p">::</span><span class="n">withPayload</span><span class="p">))</span>
+<a id="__codelineno-26-8" name="__codelineno-26-8"></a><span class="w">            </span><span class="p">.</span><span class="na">concatenate</span><span class="p">();</span>
+<a id="__codelineno-26-9" name="__codelineno-26-9"></a>
+<a id="__codelineno-26-10" name="__codelineno-26-10"></a><span class="p">}</span>
+</code></pre></div></td></tr></table></div>
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-27-1">1</a></span>
+<span class="normal"><a href="#__codelineno-27-2">2</a></span>
+<span class="normal"><a href="#__codelineno-27-3">3</a></span>
+<span class="normal"><a href="#__codelineno-27-4">4</a></span>
+<span class="normal"><a href="#__codelineno-27-5">5</a></span>
+<span class="normal"><a href="#__codelineno-27-6">6</a></span>
+<span class="normal"><a href="#__codelineno-27-7">7</a></span>
+<span class="normal"><a href="#__codelineno-27-8">8</a></span>
+<span class="normal"><a href="#__codelineno-27-9">9</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-27-1" name="__codelineno-27-1"></a><span class="nd">@Incoming</span><span class="p">(</span><span class="s">&quot;in&quot;</span><span class="p">)</span>
+<a id="__codelineno-27-2" name="__codelineno-27-2"></a><span class="nd">@Outgoing</span><span class="p">(</span><span class="s">&quot;out&quot;</span><span class="p">)</span>
+<a id="__codelineno-27-3" name="__codelineno-27-3"></a><span class="kd">public</span><span class="w"> </span><span class="n">Multi</span><span class="o">&lt;</span><span class="n">String</span><span class="o">&gt;</span><span class="w"> </span><span class="nf">processPayloadStream</span><span class="p">(</span><span class="n">Multi</span><span class="o">&lt;</span><span class="n">Integer</span><span class="o">&gt;</span><span class="w"> </span><span class="n">stream</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-27-4" name="__codelineno-27-4"></a><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">stream</span>
+<a id="__codelineno-27-5" name="__codelineno-27-5"></a><span class="w">            </span><span class="p">.</span><span class="na">onItem</span><span class="p">().</span><span class="na">transformToUni</span><span class="p">(</span><span class="n">payload</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="n">invokeService</span><span class="p">(</span><span class="n">payload</span><span class="p">)</span>
+<a id="__codelineno-27-6" name="__codelineno-27-6"></a><span class="w">                    </span><span class="p">.</span><span class="na">onFailure</span><span class="p">().</span><span class="na">recoverWithItem</span><span class="p">(</span><span class="s">&quot;fallback&quot;</span><span class="p">))</span>
+<a id="__codelineno-27-7" name="__codelineno-27-7"></a><span class="w">            </span><span class="p">.</span><span class="na">concatenate</span><span class="p">();</span>
+<a id="__codelineno-27-8" name="__codelineno-27-8"></a>
+<a id="__codelineno-27-9" name="__codelineno-27-9"></a><span class="p">}</span>
+</code></pre></div></td></tr></table></div>
+<p>You can receive either a (Reactive Streams) <code>Publisher</code>, a
+<code>PublisherBuilder</code> or (Mutiny) <code>Multi</code>. You can return any subclass of
+<code>Publisher</code> or a <code>Publisher</code> directly.</p>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>These signatures do not support metadata propagation. In the case of a
+stream of <code>Message</code>, you need to propagate the metadata manually. In the
+case of a stream of payload, propagation is not supported, and incoming
+metadata are lost.</p>
+</div>
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Sponsored by <a href="https://www.redhat.com"><img style="vertical-align: middle; height: 2.5em;" alt="Red Hat" src="https://github.com/jbossorg/website/raw/master/docs/img/redhat_reversed.svg"/></a> <br/> <a href="https://creativecommons.org/licenses/by/3.0/">CC by 3.0</a> | <a href="https://www.redhat.com/en/about/privacy-policy">Privacy Policy</a>
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    <script id="__config" type="application/json">{"base": "../..", "features": ["navigation.sections", "navigation.tracking", "navigation.indexes"], "search": "../../assets/javascripts/workers/search.f886a092.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.81fa17fe.min.js"></script>
+      
+        <script src="../../js/print-site.js"></script>
+      
+    
+  </body>
+</html>
