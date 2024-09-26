@@ -143,4 +143,8 @@ public interface ProviderLogging extends BasicLogger {
     @LogMessage(level = Logger.Level.DEBUG)
     @Message(id = 242, value = "Resuming polling messages for channel %s, queue size %s <= %s")
     void resumingRequestingMessages(String channel, int size, int halfMaxQueueSize);
+
+    @LogMessage(level = Logger.Level.DEBUG)
+    @Message(id = 244, value = "Trying to get Vertx instance using Identifier qualifier: %s.")
+    void vertxFromCDIQualifier(String cdiQualifier);
 }
