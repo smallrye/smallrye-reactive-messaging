@@ -7,9 +7,14 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.context.BeforeDestroyed;
 import jakarta.enterprise.event.Observes;
 import jakarta.enterprise.event.Reception;
+import jakarta.enterprise.inject.Any;
+import jakarta.enterprise.inject.Default;
 import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
 
+import org.eclipse.microprofile.config.Config;
+
+import io.smallrye.common.annotation.Identifier;
 import io.vertx.mutiny.core.Vertx;
 
 /**
@@ -18,6 +23,8 @@ import io.vertx.mutiny.core.Vertx;
  */
 @ApplicationScoped
 public class ExecutionHolder {
+
+    private static final String REACTIVE_MESSAGING_VERTX_CDI_QUALIFIER = "mp.messaging.connector.vertx.cdi.identifier";
 
     private boolean internalVertxInstance = false;
     final Vertx vertx;
@@ -40,17 +47,34 @@ public class ExecutionHolder {
     }
 
     @Inject
-    public ExecutionHolder(Instance<Vertx> instanceOfVertx) {
-        if (instanceOfVertx == null || instanceOfVertx.isUnsatisfied()) {
+    public ExecutionHolder(@Any Instance<Vertx> instanceOfVertx, Instance<Config> config) {
+        String cdiQualifier = null;
+        if (config != null && !config.isUnsatisfied()) {
+            final Config theConfig = config.get();
+            cdiQualifier = theConfig.getConfigValue(REACTIVE_MESSAGING_VERTX_CDI_QUALIFIER).getValue();
+        }
+        final Instance<Vertx> vertxInstance;
+        if (cdiQualifier != null && !cdiQualifier.isEmpty()) {
+            log.vertxFromCDIQualifier(cdiQualifier);
+            vertxInstance = instanceOfVertx.select(Identifier.Literal.of(cdiQualifier));
+        } else {
+            vertxInstance = instanceOfVertx.select(Default.Literal.INSTANCE);
+        }
+        if (vertxInstance == null || vertxInstance.isUnsatisfied()) {
             internalVertxInstance = true;
             this.vertx = Vertx.vertx();
             log.vertXInstanceCreated();
         } else {
-            this.vertx = instanceOfVertx.get();
+            this.vertx = vertxInstance.get();
         }
     }
 
     public Vertx vertx() {
         return vertx;
+    }
+
+    // this is used in the test
+    boolean isInternalVertxInstance() {
+        return internalVertxInstance;
     }
 }
