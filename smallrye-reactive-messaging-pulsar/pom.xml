@@ -14,7 +14,7 @@
   <name>SmallRye Reactive Messaging : Connector :: Pulsar</name>
 
   <properties>
-    <pulsar.version>3.3.0</pulsar.version>
+    <pulsar.version>4.0.0-preview.1</pulsar.version>
   </properties>
 
   <dependencies>
