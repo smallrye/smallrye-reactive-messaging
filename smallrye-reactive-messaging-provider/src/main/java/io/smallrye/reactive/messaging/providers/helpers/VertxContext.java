@@ -3,6 +3,7 @@ package io.smallrye.reactive.messaging.providers.helpers;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.Executors;
 import java.util.function.Consumer;
 
 import io.vertx.core.Context;
@@ -17,6 +18,14 @@ public class VertxContext {
 
     public static Context createNewDuplicatedContext() {
         return io.smallrye.common.vertx.VertxContext.createNewDuplicatedContext();
+    }
+
+    public static void executeBlocking(Context context, Runnable runnable) {
+        executeBlocking(context, runnable, true);
+    }
+
+    public static void executeBlocking(Context context, Runnable runnable, boolean ordered) {
+        context.executeBlocking(Executors.callable(runnable), ordered);
     }
 
     public static void runOnContext(Context context, Runnable runnable) {

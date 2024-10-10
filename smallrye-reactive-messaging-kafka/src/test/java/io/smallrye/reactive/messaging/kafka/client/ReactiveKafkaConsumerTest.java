@@ -434,7 +434,7 @@ public class ReactiveKafkaConsumerTest extends ClientTestBase {
         // Verify rebalance
         await().until(() -> Uni.combine().all()
                 .unis(source.getConsumer().getAssignments(), source2.getConsumer().getAssignments())
-                .combinedWith((tp1, tp2) -> tp1.size() + tp2.size()).await().indefinitely() == partitions);
+                .with((tp1, tp2) -> tp1.size() + tp2.size()).await().indefinitely() == partitions);
         Set<TopicPartition> assignedToSource2 = source2.getConsumer().getAssignments().await().indefinitely();
 
         subscriber.request(100);
