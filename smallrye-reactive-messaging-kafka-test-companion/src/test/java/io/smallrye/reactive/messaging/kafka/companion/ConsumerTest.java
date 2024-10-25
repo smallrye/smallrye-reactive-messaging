@@ -218,7 +218,8 @@ public class ConsumerTest extends KafkaCompanionTestBase {
 
         ConsumerTask<String, String> task = consumer.fromTopics(topic, Duration.ofSeconds(5));
 
-        await().untilAsserted(() -> assertThat(consumer.committed().get(tp(topic, 0)).offset()).isEqualTo(101L));
+        await().untilAsserted(() -> assertThat(consumer.committed().get(tp(topic, 0))).isNotNull()
+                .extracting(OffsetAndMetadata::offset).isEqualTo(101L));
 
         task.awaitCompletion();
     }
