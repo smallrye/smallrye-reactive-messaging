@@ -15,13 +15,13 @@ import org.apache.kafka.clients.CommonClientConfigs;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.Endpoint;
 import org.apache.kafka.common.config.SslConfigs;
+import org.apache.kafka.server.config.ServerLogConfigs;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import io.smallrye.reactive.messaging.kafka.companion.KafkaCompanion;
 import io.smallrye.reactive.messaging.kafka.companion.TestTags;
-import kafka.server.KafkaConfig;
 
 @Tag(TestTags.FLAKY)
 public class EmbeddedKafkaTest {
@@ -42,7 +42,7 @@ public class EmbeddedKafkaTest {
     void testWithExistingLogDir(@TempDir File dir) {
         EmbeddedKafkaBroker broker = new EmbeddedKafkaBroker()
                 .withNodeId(0)
-                .withAdditionalProperties(props -> props.put(KafkaConfig.LogDirProp(), dir.toPath().toString()))
+                .withAdditionalProperties(props -> props.put(ServerLogConfigs.LOG_DIR_CONFIG, dir.toPath().toString()))
                 .withDeleteLogDirsOnClose(false);
 
         // format storage before starting

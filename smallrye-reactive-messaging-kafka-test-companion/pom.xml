@@ -59,6 +59,30 @@
       <version>${kafka.version}</version>
       <optional>true</optional>
     </dependency>
+    <dependency>
+      <groupId>org.apache.kafka</groupId>
+      <artifactId>kafka-server</artifactId>
+      <version>${kafka.version}</version>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.kafka</groupId>
+      <artifactId>kafka-raft</artifactId>
+      <version>${kafka.version}</version>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.kafka</groupId>
+      <artifactId>kafka-group-coordinator</artifactId>
+      <version>${kafka.version}</version>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.kafka</groupId>
+      <artifactId>kafka-storage</artifactId>
+      <version>${kafka.version}</version>
+      <optional>true</optional>
+    </dependency>
     <!-- Optional dependencies for usage in Tests -->
     <dependency>
       <groupId>org.junit.jupiter</groupId>
