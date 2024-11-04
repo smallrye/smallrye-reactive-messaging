@@ -26,11 +26,14 @@ import org.junit.jupiter.api.Test;
 
 import io.smallrye.mutiny.CompositeException;
 import io.smallrye.mutiny.Uni;
+import io.smallrye.reactive.messaging.annotations.Blocking;
 import io.smallrye.reactive.messaging.kafka.KafkaRecord;
 import io.smallrye.reactive.messaging.kafka.base.KafkaCompanionTestBase;
 import io.smallrye.reactive.messaging.kafka.base.KafkaMapBasedConfig;
 import io.smallrye.reactive.messaging.kafka.base.PerfTestUtils;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
+import io.vertx.core.Vertx;
+import io.vertx.mutiny.core.Context;
 
 public class TransactionalProducerTest extends KafkaCompanionTestBase {
 
@@ -61,12 +64,38 @@ public class TransactionalProducerTest extends KafkaCompanionTestBase {
     void testTransactionFromVertxContext() {
         topic = companion.topics().createAndWait(topic, 3);
         int numberOfRecords = 100;
-        TransactionalProducer application = runApplication(config(), TransactionalProducer.class);
+        TransactionalProducerEventLoop application = runApplication(config(), TransactionalProducerEventLoop.class);
 
         Uni.createFrom().emitter(e -> {
             application.produceInTransaction(numberOfRecords)
+                    .invoke(() -> {
+                        assertThat(Vertx.currentContext()).isNotNull();
+                        assertThat(Context.isOnEventLoopThread()).isTrue();
+                    })
                     .subscribe().with(unused -> e.complete(null), e::fail);
         }).runSubscriptionOn(runnable -> vertx.runOnContext(runnable))
+                .await().indefinitely();
+
+        companion.consumeIntegers()
+                .withProp(ConsumerConfig.ISOLATION_LEVEL_CONFIG, "read_committed")
+                .fromTopics(topic, numberOfRecords)
+                .awaitCompletion(Duration.ofMinutes(1));
+    }
+
+    @Test
+    void testTransactionFromVertxContextBlocking() {
+        topic = companion.topics().createAndWait(topic, 3);
+        int numberOfRecords = 100;
+        TransactionalProducerBlocking application = runApplication(config(), TransactionalProducerBlocking.class);
+
+        vertx.executeBlocking(Uni.createFrom().emitter(e -> {
+            application.produceInTransaction(numberOfRecords)
+                    .invoke(() -> {
+                        assertThat(Vertx.currentContext()).isNotNull();
+                        assertThat(Context.isOnWorkerThread()).isTrue();
+                    })
+                    .subscribe().with(unused -> e.complete(null), e::fail);
+        }))
                 .await().indefinitely();
 
         companion.consumeIntegers()
@@ -84,6 +113,48 @@ public class TransactionalProducerTest extends KafkaCompanionTestBase {
 
         Uni<Void> produceInTransaction(final int numberOfRecords) {
             return transaction.withTransaction(emitter -> {
+                for (int i = 0; i < numberOfRecords; i++) {
+                    emitter.send(KafkaRecord.of("" + i % 10, i));
+                }
+                assertThat(transaction.isTransactionInProgress()).isTrue();
+                return Uni.createFrom().voidItem();
+            });
+        }
+    }
+
+    @ApplicationScoped
+    public static class TransactionalProducerEventLoop {
+
+        @Inject
+        @Channel("transactional-producer")
+        KafkaTransactions<Integer> transaction;
+
+        Uni<Void> produceInTransaction(final int numberOfRecords) {
+            return transaction.withTransaction(emitter -> {
+                assertThat(Vertx.currentContext()).isNotNull();
+                assertThat(Context.isOnEventLoopThread()).isTrue();
+                for (int i = 0; i < numberOfRecords; i++) {
+                    emitter.send(KafkaRecord.of("" + i % 10, i));
+                }
+                assertThat(transaction.isTransactionInProgress()).isTrue();
+                return Uni.createFrom().voidItem();
+            });
+        }
+    }
+
+    @ApplicationScoped
+    public static class TransactionalProducerBlocking {
+
+        @Inject
+        @Channel("transactional-producer")
+        KafkaTransactions<Integer> transaction;
+
+        Uni<Void> produceInTransaction(final int numberOfRecords) {
+            assertThat(Vertx.currentContext()).isNotNull();
+            assertThat(Context.isOnWorkerThread()).isTrue();
+            return transaction.withTransaction(emitter -> {
+                assertThat(Vertx.currentContext()).isNotNull();
+                assertThat(Context.isOnWorkerThread()).isTrue();
                 for (int i = 0; i < numberOfRecords; i++) {
                     emitter.send(KafkaRecord.of("" + i % 10, i));
                 }
@@ -258,6 +329,30 @@ public class TransactionalProducerTest extends KafkaCompanionTestBase {
                 .awaitCompletion(Duration.ofMinutes(1));
     }
 
+    @Test
+    void testTransactionalConsumerBlocking() {
+        String inTopic = companion.topics().createAndWait(UUID.randomUUID().toString(), 1);
+
+        companion.produceStrings().usingGenerator(i -> new ProducerRecord<>(inTopic, "v-" + i), 10)
+                .awaitCompletion();
+
+        KafkaMapBasedConfig inConfig = kafkaConfig("mp.messaging.incoming.in", false)
+                .with("topic", inTopic)
+                .with("auto.offset.reset", "earliest")
+                .with("value.deserializer", StringDeserializer.class.getName());
+
+        KafkaMapBasedConfig outconfig = config();
+        MapBasedConfig config = new MapBasedConfig(outconfig.getMap());
+        config.putAll(inConfig.getMap());
+
+        runApplication(config, TransactionalProducerFromIncomingBlocking.class);
+
+        companion.consumeIntegers()
+                .withProp(ConsumerConfig.ISOLATION_LEVEL_CONFIG, "read_committed")
+                .fromTopics(topic, 30)
+                .awaitCompletion(Duration.ofMinutes(1));
+    }
+
     @ApplicationScoped
     public static class TransactionalProducerFromIncoming {
 
@@ -268,6 +363,28 @@ public class TransactionalProducerTest extends KafkaCompanionTestBase {
         @Incoming("in")
         Uni<Void> produceInTransaction(String msg) {
             return transaction.withTransaction(emitter -> {
+                emitter.send(KafkaRecord.of(msg, 1));
+                emitter.send(KafkaRecord.of(msg, 2));
+                emitter.send(KafkaRecord.of(msg, 3));
+                return Uni.createFrom().voidItem();
+            });
+        }
+
+    }
+
+    @ApplicationScoped
+    public static class TransactionalProducerFromIncomingBlocking {
+
+        @Inject
+        @Channel("transactional-producer")
+        KafkaTransactions<Integer> transaction;
+
+        @Incoming("in")
+        @Blocking
+        Uni<Void> produceInTransaction(String msg) {
+            return transaction.withTransaction(emitter -> {
+                assertThat(Vertx.currentContext()).isNotNull();
+                assertThat(Context.isOnWorkerThread()).isTrue();
                 emitter.send(KafkaRecord.of(msg, 1));
                 emitter.send(KafkaRecord.of(msg, 2));
                 emitter.send(KafkaRecord.of(msg, 3));

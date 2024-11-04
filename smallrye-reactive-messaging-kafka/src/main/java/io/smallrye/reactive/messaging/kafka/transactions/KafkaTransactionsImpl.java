@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.Executor;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -171,12 +172,12 @@ public class KafkaTransactionsImpl<T> extends MutinyEmitterImpl<T> implements Ka
 
         Uni<R> execute(Function<TransactionalEmitter<T>, Uni<R>> work) {
             currentTransaction = this;
-            // If run on Vert.x context, `work` is called on the same context.
-            Context context = Vertx.currentContext();
+            final ContextExecutor executor = new ContextExecutor();
             return producer.beginTransaction()
-                    .plug(u -> context == null ? u : u.emitOn(r -> VertxContext.runOnContext(context, r)))
+                    .plug(executor::emitOn)
                     .chain(() -> executeInTransaction(work))
-                    .eventually(() -> currentTransaction = null);
+                    .eventually(() -> currentTransaction = null)
+                    .plug(executor::emitOn);
         }
 
         private Uni<R> executeInTransaction(Function<TransactionalEmitter<T>, Uni<R>> work) {
@@ -239,6 +240,43 @@ public class KafkaTransactionsImpl<T> extends MutinyEmitterImpl<T> implements Ka
         @Override
         public boolean isMarkedForAbort() {
             return abort;
+        }
+    }
+
+    /**
+     * An executor that captures the caller Vert.x context and whether the caller is on an event loop thread or worker thread.
+     * Runs the command on the Vert.x event loop thread if the current thread is an event loop thread.
+     * <p>
+     * And if run on worker thread, `work` is called on the worker thread.
+     */
+    private static class ContextExecutor implements Executor {
+        private final Context context;
+        private final boolean ioThread;
+
+        ContextExecutor() {
+            this(Vertx.currentContext(), Context.isOnEventLoopThread());
+        }
+
+        ContextExecutor(Context context, boolean ioThread) {
+            this.context = context;
+            this.ioThread = ioThread;
+        }
+
+        <T> Uni<T> emitOn(Uni<T> uni) {
+            return context == null ? uni : uni.emitOn(this);
+        }
+
+        @Override
+        public void execute(Runnable command) {
+            if (context == null) {
+                command.run();
+            } else {
+                if (ioThread) {
+                    VertxContext.runOnContext(context, command);
+                } else {
+                    VertxContext.executeBlocking(context, command);
+                }
+            }
         }
     }
 

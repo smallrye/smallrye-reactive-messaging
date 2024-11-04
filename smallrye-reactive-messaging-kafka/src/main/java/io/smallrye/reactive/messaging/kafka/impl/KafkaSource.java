@@ -369,7 +369,7 @@ public class KafkaSource<K, V> {
         if (records.size() == 1) {
             return records.get(0).onItem().transform(ignored -> batch);
         }
-        return Uni.combine().all().unis(records).combinedWith(ignored -> batch);
+        return Uni.combine().all().unis(records).with(ignored -> batch);
     }
 
     private KafkaFailureHandler createFailureHandler(Vertx vertx) {
