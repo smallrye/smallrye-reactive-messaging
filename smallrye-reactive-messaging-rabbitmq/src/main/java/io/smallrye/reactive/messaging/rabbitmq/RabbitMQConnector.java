@@ -261,7 +261,7 @@ public class RabbitMQConnector implements InboundConnector, OutboundConnector, H
             outgoing.terminate();
         }
 
-        clients.forEach((channel, rabbitMQClient) -> rabbitMQClient.stopAndForget());
+        clients.forEach((channel, rabbitMQClient) -> rabbitMQClient.stopAndAwait());
         clients.clear();
     }
 
