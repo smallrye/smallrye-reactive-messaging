@@ -1,4 +1,5 @@
-name: Deploy Docs Smallrye Reactive Messaging
+name: Deploy Docs
+run-name: Deploy ${{github.event.inputs.version || github.ref_name}} Docs
 
 on:
     workflow_dispatch:
@@ -9,17 +10,12 @@ on:
 jobs:
     deploy-docs:
         runs-on: ubuntu-latest
-        env:
-            GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
-            RELEASE_TOKEN: ${{ secrets.RELEASE_TOKEN }}
-            RELEASE_VERSION: ${{ github.event.inputs.version }}
 
         steps:
             - name: Git checkout
               uses: actions/checkout@v4
               with:
                   fetch-depth: 0
-                  token: ${{ secrets.RELEASE_TOKEN }}
             - name: Java setup
               uses: actions/setup-java@v4
               with:
@@ -36,9 +32,5 @@ jobs:
                   cache-dependency-path: documentation/Pipfile.lock
             - name: Install pipenv
               run: pip install pipenv
-            - name: Set Release Version
-              run: |
-                echo "RELEASE_VERSION=${RELEASE_VERSION:-"$(./mvnw help:evaluate -Dexpression=project.version -q -DforceStdout)"}" >> $GITHUB_ENV
             - name: Perform the deploy docs
-              run: |
-                just build-ci deploy-docs
+              run: just build-ci deploy-docs ${{ github.event.inputs.version }}
