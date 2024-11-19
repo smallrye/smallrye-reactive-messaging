@@ -84,7 +84,7 @@
 
     <mutiny.version>2.6.1</mutiny.version>
     <artemis.version>2.38.0</artemis.version>
-    <commons-io.version>2.17.0</commons-io.version>
+    <commons-io.version>2.18.0</commons-io.version>
 
     <jboss-log-manager.version>3.0.6.Final</jboss-log-manager.version>
 
