@@ -239,21 +239,19 @@ public class IncomingRabbitMQChannel {
             RabbitMQAckHandler onAck) {
 
         final String queueName = RabbitMQClientHelper.getQueueName(ic);
-        final boolean isTracingEnabled = ic.getTracingEnabled();
         final String contentTypeOverride = ic.getContentTypeOverride().orElse(null);
         log.receiverListeningAddress(queueName);
 
-        if (isTracingEnabled) {
-            return receiver.toMulti()
-                    .emitOn(c -> VertxContext.runOnContext(holder.getContext().getDelegate(), c))
-                    .map(m -> new IncomingRabbitMQMessage<>(m, holder, onNack, onAck, contentTypeOverride))
-                    .map(msg -> instrumenter.traceIncoming(msg,
-                            RabbitMQTrace.traceQueue(queueName, msg.message.envelope().getRoutingKey(),
-                                    msg.getHeaders())));
+        Multi<IncomingRabbitMQMessage<?>> multi = receiver.toMulti()
+                // close the consumer on stream termination
+                .onTermination().call(receiver::cancel)
+                .emitOn(c -> VertxContext.runOnContext(holder.getContext().getDelegate(), c))
+                .map(m -> new IncomingRabbitMQMessage<>(m, holder, onNack, onAck, contentTypeOverride));
+        if (ic.getTracingEnabled()) {
+            return multi.map(msg -> instrumenter.traceIncoming(msg,
+                    RabbitMQTrace.traceQueue(queueName, msg.message.envelope().getRoutingKey(), msg.getHeaders())));
         } else {
-            return receiver.toMulti()
-                    .emitOn(c -> VertxContext.runOnContext(holder.getContext().getDelegate(), c))
-                    .map(m -> new IncomingRabbitMQMessage<>(m, holder, onNack, onAck, contentTypeOverride));
+            return multi;
         }
     }
 
