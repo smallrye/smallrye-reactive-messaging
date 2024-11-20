@@ -225,6 +225,8 @@ public class IncomingRabbitMQChannel {
     private Uni<RabbitMQConsumer> createConsumer(RabbitMQConnectorIncomingConfiguration ic, RabbitMQClient client) {
         QueueOptions queueOptions = new QueueOptions();
         queueOptions.setConsumerArguments(parseArguments(ic.getConsumerArguments()));
+        ic.getConsumerTag().ifPresent(queueOptions::setConsumerTag);
+        ic.getConsumerExclusive().ifPresent(queueOptions::setConsumerExclusive);
         return client.basicConsumer(serverQueueName(RabbitMQClientHelper.getQueueName(ic)), queueOptions
                 .setAutoAck(ic.getAutoAcknowledgement())
                 .setMaxInternalQueueSize(ic.getMaxIncomingInternalQueueSize())
