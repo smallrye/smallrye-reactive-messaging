@@ -112,10 +112,16 @@ cannot be sent successfully), the message is nacked.
 
 ## Back Pressure and Credits
 
-The back-pressure is handled by AMQP *credits*. The outbound connector
-only requests the amount of allowed credits. When the amount of credits
-reaches 0, it waits (in a non-blocking fashion) until the broker grants
-more credits to the AMQP sender.
+The back-pressure is handled by the `max-inflight-messages` attribute and AMQP *credits*.
+The outbound connector requests messages minimum between `max-inflight-messages` and credits allowed by the broker.
+When the amount of credits reaches 0, it waits (in a non-blocking fashion) until the broker grants more credits to the AMQP sender.
+
+When `max-inflight-messages` is set to 0, only AMQP credits apply to limit the requests.
+
+Note that if an AMQP message send fails, it is retried until `reconnect-attempts` is reached.
+If the client reconnects to the broker during the retry, failing messages are sent again but the message order is not preserved.
+
+To preserve the message order in this case you can set `max-inflight-messages` to
 
 ## Configuration Reference
 
