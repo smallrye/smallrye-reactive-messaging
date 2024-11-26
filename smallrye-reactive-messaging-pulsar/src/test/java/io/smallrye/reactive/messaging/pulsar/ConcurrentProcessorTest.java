@@ -39,7 +39,7 @@ public class ConcurrentProcessorTest extends WeldTestBase {
                 .with("mp.messaging.incoming.data.subscriptionInitialPosition", SubscriptionInitialPosition.Earliest)
                 .with("mp.messaging.incoming.data.subscriptionName", topic + "-subscription")
                 .with("mp.messaging.incoming.data.subscriptionType", SubscriptionType.Key_Shared)
-                .with("mp.messaging.incoming.data.concurrency", 3);
+                .with("mp.messaging.incoming.data.concurrency", 6); // TODO Since Pulsar 4.0 at least one consumer is always idle
     }
 
     @Test
