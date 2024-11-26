@@ -99,6 +99,36 @@ public class AmqpSinkTest extends AmqpTestBase {
 
     @Test
     @Timeout(30)
+    public void testSinkCreditsDepleted() throws Exception {
+        int msgCount = 10_000;
+        String topic = "short-topic";
+        CountDownLatch msgsReceived = new CountDownLatch(msgCount);
+        List<org.apache.qpid.proton.message.Message> messagesReceived = Collections
+                .synchronizedList(new ArrayList<>(msgCount));
+        AtomicReference<String> attachAddress = new AtomicReference<>("non-null-initialisation-value");
+
+        server = setupMockServerForTypeTest(messagesReceived, msgsReceived, attachAddress);
+
+        Flow.Subscriber<? extends Message<?>> sink = createProviderAndSinkMaxInflight(topic, server.actualPort());
+
+        //noinspection unchecked
+        Multi.createFrom().range(0, msgCount)
+                .map(Message::of)
+                .subscribe((Flow.Subscriber<? super Message<Integer>>) sink);
+
+        System.out.println("waiting to consume");
+        await().pollDelay(5, TimeUnit.SECONDS).until(() -> true);
+        System.out.println("Starting to consume");
+
+        assertThat(messagesReceived).allSatisfy(msg -> {
+            assertThat(msg.getBody()).isInstanceOf(AmqpValue.class);
+            assertThat(msg.getAddress()).isEqualTo(topic);
+        }).extracting(msg -> ((AmqpValue) msg.getBody()).getValue())
+                .hasSize(msgCount);
+    }
+
+    @Test
+    @Timeout(30)
     public void testSinkUsingIntegerUsingNonAnonymousSender() throws Exception {
         int msgCount = 10;
         String topic = UUID.randomUUID().toString();
@@ -1281,6 +1311,14 @@ public class AmqpSinkTest extends AmqpTestBase {
     private Flow.Subscriber<? extends Message<?>> createProviderAndSink(String topic, int port) {
         Map<String, Object> config = createBaseConfig(topic, port);
         config.put("address", topic);
+
+        return getSubscriberBuilder(config);
+    }
+
+    private Flow.Subscriber<? extends Message<?>> createProviderAndSinkMaxInflight(String topic, int port) {
+        Map<String, Object> config = createBaseConfig(topic, port);
+        config.put("address", topic);
+        config.put("max-inflight-messages", 100L);
 
         return getSubscriberBuilder(config);
     }
