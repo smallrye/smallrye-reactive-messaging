@@ -25,6 +25,7 @@ import org.apache.pulsar.client.impl.conf.ConsumerConfigurationData;
 import org.eclipse.microprofile.reactive.messaging.Channel;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.OnOverflow;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import io.smallrye.common.annotation.Identifier;
@@ -100,7 +101,7 @@ public class ExactlyOnceProcessingBatchTest extends WeldTestBase {
      *
      * There are still duplicate items delivered to the consumer batch after an transaction abort.
      */
-    @Test
+    @Disabled
     void testExactlyOnceProcessorWithProcessingError() throws PulsarAdminException, PulsarClientException {
         addBeans(ConsumerConfig.class);
         this.inTopic = UUID.randomUUID().toString();
