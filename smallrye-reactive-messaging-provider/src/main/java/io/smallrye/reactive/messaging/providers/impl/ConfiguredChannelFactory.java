@@ -184,7 +184,12 @@ public class ConfiguredChannelFactory implements ChannelRegistar {
                 if (pausable) {
                     pausableChannels.addConfiguration(new DefaultPausableChannelConfiguration(channel,
                             config.getOptionalValue(PausableChannelConfiguration.PAUSED_PROPERTY, Boolean.class)
-                                    .orElse(false)));
+                                    .orElse(false),
+                            config.getOptionalValue(PausableChannelConfiguration.LATE_SUBSCRIPTION_PROPERTY, Boolean.class)
+                                    .orElse(false),
+                            config.getOptionalValue(PausableChannelConfiguration.BUFFER_ALREADY_REQUESTED_PROPERTY,
+                                    Boolean.class)
+                                    .orElse(true)));
                 }
             });
         }
