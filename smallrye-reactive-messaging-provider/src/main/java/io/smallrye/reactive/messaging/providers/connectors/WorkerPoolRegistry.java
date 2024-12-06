@@ -30,7 +30,9 @@ import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.annotations.Blocking;
 import io.smallrye.reactive.messaging.providers.helpers.Validation;
+import io.vertx.core.impl.ContextInternal;
 import io.vertx.mutiny.core.Context;
+import io.vertx.mutiny.core.Vertx;
 import io.vertx.mutiny.core.WorkerExecutor;
 
 @ApplicationScoped
@@ -66,32 +68,66 @@ public class WorkerPoolRegistry {
         }
     }
 
-    public <T> Uni<T> executeWork(Context currentContext, Uni<T> uni, String workerName, boolean ordered) {
+    public <T> Uni<T> executeWork(Context msgContext, Uni<T> uni, String workerName, boolean ordered) {
         if (holder == null) {
             throw new UnsupportedOperationException("@Blocking disabled");
         }
         Objects.requireNonNull(uni, msg.actionNotProvided());
-
         if (workerName == null) {
-            if (currentContext != null) {
-                return currentContext.executeBlocking(Uni.createFrom().deferred(() -> uni), ordered);
+            if (msgContext != null) {
+                return msgContext.executeBlocking(uni, ordered);
             }
             // No current context, use the Vert.x instance.
             return holder.vertx().executeBlocking(uni, ordered);
         } else {
-            if (currentContext != null) {
-                return getWorker(workerName).executeBlocking(uni, ordered)
+            WorkerExecutor worker = getWorker(workerName);
+            if (msgContext != null) {
+                return uniOnMessageContext(worker.executeBlocking(uni, ordered), msgContext)
                         .onItemOrFailure().transformToUni((item, failure) -> {
                             return Uni.createFrom().emitter(emitter -> {
                                 if (failure != null) {
-                                    currentContext.runOnContext(() -> emitter.fail(failure));
+                                    msgContext.runOnContext(() -> emitter.fail(failure));
                                 } else {
-                                    currentContext.runOnContext(() -> emitter.complete(item));
+                                    msgContext.runOnContext(() -> emitter.complete(item));
                                 }
                             });
                         });
             }
-            return getWorker(workerName).executeBlocking(uni, ordered);
+            return worker.executeBlocking(uni, ordered);
+        }
+    }
+
+    private static <T> Uni<T> uniOnMessageContext(Uni<T> uni, Context msgContext) {
+        if (msgContext != null && !msgContext.equals(Vertx.currentContext())) {
+            return Uni.createFrom().deferred(() -> uni)
+                    .runSubscriptionOn(r -> new ContextPreservingRunnable(r, msgContext).run());
+        }
+        return uni;
+    }
+
+    private static final class ContextPreservingRunnable implements Runnable {
+
+        private final Runnable task;
+        private final io.vertx.core.Context context;
+
+        public ContextPreservingRunnable(Runnable task, Context context) {
+            this.task = task;
+            this.context = context.getDelegate();
+        }
+
+        @Override
+        public void run() {
+            if (context instanceof ContextInternal) {
+                ContextInternal contextInternal = (ContextInternal) context;
+                final var previousContext = contextInternal.beginDispatch();
+                try {
+                    task.run();
+                } finally {
+                    contextInternal.endDispatch(previousContext);
+                }
+            } else {
+                task.run();
+            }
         }
     }
 
