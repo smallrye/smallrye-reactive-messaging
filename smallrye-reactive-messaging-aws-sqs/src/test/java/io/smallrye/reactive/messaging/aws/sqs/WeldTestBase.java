@@ -7,6 +7,12 @@ import org.jboss.weld.environment.se.WeldContainer;
 import org.junit.jupiter.api.BeforeEach;
 
 import io.smallrye.config.inject.ConfigExtension;
+import io.smallrye.reactive.messaging.aws.sqs.ack.SqsDeleteAckHandler;
+import io.smallrye.reactive.messaging.aws.sqs.ack.SqsIgnoreAckHandler;
+import io.smallrye.reactive.messaging.aws.sqs.fault.SqsDeleteFailureHandler;
+import io.smallrye.reactive.messaging.aws.sqs.fault.SqsFailStop;
+import io.smallrye.reactive.messaging.aws.sqs.fault.SqsIgnoreFailureHandler;
+import io.smallrye.reactive.messaging.aws.sqs.fault.SqsVisibilityFailureHandler;
 import io.smallrye.reactive.messaging.providers.MediatorFactory;
 import io.smallrye.reactive.messaging.providers.connectors.ExecutionHolder;
 import io.smallrye.reactive.messaging.providers.connectors.WorkerPoolRegistry;
@@ -59,6 +65,12 @@ public class WeldTestBase {
         weld.addBeanClass(MicrometerDecorator.class);
         weld.addBeanClass(SqsManager.class);
         weld.addBeanClass(SqsMessageMessageConverter.class);
+        weld.addBeanClass(SqsDeleteAckHandler.Factory.class);
+        weld.addBeanClass(SqsIgnoreAckHandler.Factory.class);
+        weld.addBeanClass(SqsIgnoreFailureHandler.Factory.class);
+        weld.addBeanClass(SqsDeleteFailureHandler.Factory.class);
+        weld.addBeanClass(SqsVisibilityFailureHandler.Factory.class);
+        weld.addBeanClass(SqsFailStop.Factory.class);
         weld.disableDiscovery();
     }
 

@@ -88,10 +88,38 @@ SQS message attributes can be accessed from the metadata either by name or by th
 {{ insert('sqs/inbound/SqsMetadataExample.java') }}
 ```
 
-## Acknowledgement
+## Acknowledgement Strategies
 
 The default strategy for acknowledging AWS SQS Message is to *delete* the message from the queue.
-With `ack.delete` set to `false`, the message is not deleted from the queue.
+You can set the `ack-strategy` attribute to `ignore` if you want to ignore the message.
+
+[NOTE] Deprecated
+    `ack.delete` attribute is deprecated and will be removed in a future release.
+
+You can implement a custom strategy by implementing the {{ javadoc('io.smallrye.reactive.messaging.aws.sqs.SqsAckHandler', False, 'io.smallrye.reactive/smallrye-reactive-messaging-aws-sqs') }},
+interface with a `Factory` class and registering it as a CDI bean with an `@Identifier`.
+
+``` java
+{{ insert('sqs/inbound/SqsCustomAckStrategy.java') }}
+```
+
+## Failure Strategies
+
+The default strategy for handling message processing failures is `ignore`.
+It lets the visibility timeout of the message consumer to expire and reconsume the message.
+
+Other possible strategies are:
+
+- `fail`: the failure is logged and the channel fail-stops.
+- `delete`: the message is removed from the queue.
+- `visibility`: the message visibility timeout is reset to 0.
+
+You can implement a custom strategy by implementing the {{ javadoc('io.smallrye.reactive.messaging.aws.sqs.SqsFailureHandler', False, 'io.smallrye.reactive/smallrye-reactive-messaging-aws-sqs') }},
+interface with a `Factory` class and registering it as a CDI bean with an `@Identifier`.
+
+``` java
+{{ insert('sqs/inbound/SqsCustomNackStrategy.java') }}
+```
 
 ## Configuration Reference
 

@@ -43,4 +43,8 @@ public interface AwsSqsLogging extends BasicLogger {
     @LogMessage(level = Level.ERROR)
     @Message(id = 19306, value = "Error while sending message from channel '%s'")
     void unableToDispatch(String channel, @Cause Throwable e);
+
+    @LogMessage(level = Level.ERROR)
+    @Message(id = 19307, value = "A message sent to channel `%s` has been nacked, fail-stop")
+    void messageNackedFailStop(String channel);
 }
