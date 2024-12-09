@@ -14,7 +14,7 @@
   <name>SmallRye Reactive Messaging : Connector :: Pulsar</name>
 
   <properties>
-    <pulsar.version>4.0.0</pulsar.version>
+    <pulsar.version>4.0.1</pulsar.version>
   </properties>
 
   <dependencies>
@@ -46,6 +46,12 @@
           <artifactId>log4j-slf4j-impl</artifactId>
         </exclusion>
       </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>javax.ws.rs</groupId>
+      <artifactId>javax.ws.rs-api</artifactId>
+      <version>2.1</version>
+      <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>javax.annotation</groupId>
