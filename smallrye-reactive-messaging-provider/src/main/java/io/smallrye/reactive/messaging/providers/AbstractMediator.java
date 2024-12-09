@@ -13,6 +13,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Flow;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 import jakarta.enterprise.inject.Instance;
 
@@ -22,6 +23,8 @@ import org.eclipse.microprofile.reactive.messaging.Metadata;
 
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
+import io.smallrye.mutiny.infrastructure.Infrastructure;
+import io.smallrye.mutiny.operators.uni.builders.UniCreateFromDeferredSupplier;
 import io.smallrye.reactive.messaging.*;
 import io.smallrye.reactive.messaging.PublisherDecorator;
 import io.smallrye.reactive.messaging.keyed.KeyValueExtractor;
@@ -183,10 +186,10 @@ public abstract class AbstractMediator {
         try {
             Optional<LocalContextMetadata> metadata = message != null ? message.getMetadata().get(LocalContextMetadata.class)
                     : Optional.empty();
-            Context currentContext = metadata.map(m -> Context.newInstance(m.context()))
+            Context msgContext = metadata.map(m -> Context.newInstance(m.context()))
                     .orElseGet(Vertx::currentContext);
-            return workerPoolRegistry.executeWork(currentContext,
-                    Uni.createFrom().deferred(() -> {
+            return workerPoolRegistry.executeWork(msgContext,
+                    skipContextPropagation(() -> {
                         try {
                             Object result = this.invoker.invoke(args);
                             if (result instanceof CompletionStage) {
@@ -207,6 +210,17 @@ public abstract class AbstractMediator {
             log.methodException(configuration().methodAsString(), e);
             throw e;
         }
+    }
+
+    /**
+     * Skips Mutiny supplier decoration in order to avoid context propagation.
+     *
+     * @param supplier the supplier to skip context propagation
+     * @return a Uni that skips context propagation
+     * @param <T> the type of the Uni
+     */
+    public static <T> Uni<T> skipContextPropagation(Supplier<Uni<? extends T>> supplier) {
+        return Infrastructure.onUniCreation(new UniCreateFromDeferredSupplier<>(supplier));
     }
 
     protected CompletionStage<Message<?>> getAckOrCompletion(Message<?> message) {
