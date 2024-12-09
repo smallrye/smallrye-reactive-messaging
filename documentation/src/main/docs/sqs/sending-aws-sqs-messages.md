@@ -21,6 +21,20 @@ explicitly specify metadata on the outgoing message:
 {{ insert('sqs/outbound/SqsMessageStringProducer.java') }}
 ```
 
+## Sending messages in batch
+
+You can configure the outbound channel to send messages in batch of maximum 10 messages (AWS SQS limitation).
+
+You can customize the size of batches, `10` being the default batch size, and the delay to wait for new messages to be added to the batch, 3000ms being the default delay:
+
+``` java
+mp.messaging.outgoing.prices.connector=smallrye-sqs
+mp.messaging.outgoing.prices.queue=prices
+mp.messaging.outgoing.prices.batch=true
+mp.messaging.outgoing.prices.batch-size=5
+mp.messaging.outgoing.prices.batch-delay=3000
+```
+
 ## Serialization
 
 When sending a `Message<T>`, the connector converts the message into a AWS SQS Message.

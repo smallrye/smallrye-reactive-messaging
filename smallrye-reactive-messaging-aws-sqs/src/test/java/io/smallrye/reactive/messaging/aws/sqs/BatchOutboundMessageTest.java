@@ -25,7 +25,7 @@ import software.amazon.awssdk.services.sqs.model.MessageAttributeValue;
 import software.amazon.awssdk.services.sqs.model.QueueAttributeName;
 import software.amazon.awssdk.services.sqs.model.SendMessageRequest;
 
-public class OutboundMessageTest extends SqsTestBase {
+public class BatchOutboundMessageTest extends SqsTestBase {
 
     @Test
     void testOutboundMessage() {
@@ -35,7 +35,28 @@ public class OutboundMessageTest extends SqsTestBase {
         String queueUrl = createQueue(queue);
         MapBasedConfig config = new MapBasedConfig()
                 .with("mp.messaging.outgoing.sink.connector", SqsConnector.CONNECTOR_NAME)
-                .with("mp.messaging.outgoing.sink.queue", queue);
+                .with("mp.messaging.outgoing.sink.queue", queue)
+                .with("mp.messaging.outgoing.sink.batch", true);
+
+        runApplication(config, RequestBuilderProducingApp.class);
+        var received = receiveMessages(queueUrl, r -> r.messageAttributeNames("key"), expected, Duration.ofSeconds(10));
+        assertThat(received).hasSize(10)
+                .allSatisfy(m -> assertThat(m.messageAttributes()).containsKey("key"))
+                .extracting(m -> m.body()).containsExactly("0", "1", "2", "3", "4", "5", "6", "7", "8", "9");
+    }
+
+    @Test
+    void testOutboundMessageBatchSizeDelay() {
+        SqsClientProvider.client = getSqsClient();
+        addBeans(SqsClientProvider.class);
+        int expected = 10;
+        String queueUrl = createQueue(queue);
+        MapBasedConfig config = new MapBasedConfig()
+                .with("mp.messaging.outgoing.sink.connector", SqsConnector.CONNECTOR_NAME)
+                .with("mp.messaging.outgoing.sink.queue", queue)
+                .with("mp.messaging.outgoing.sink.batch", true)
+                .with("mp.messaging.outgoing.sink.batch-size", 3)
+                .with("mp.messaging.outgoing.sink.batch-delay", 1000);
 
         runApplication(config, RequestBuilderProducingApp.class);
         var received = receiveMessages(queueUrl, r -> r.messageAttributeNames("key"), expected, Duration.ofSeconds(10));
@@ -52,7 +73,8 @@ public class OutboundMessageTest extends SqsTestBase {
         String queueUrl = createQueue(queue);
         MapBasedConfig config = new MapBasedConfig()
                 .with("mp.messaging.outgoing.sink.connector", SqsConnector.CONNECTOR_NAME)
-                .with("mp.messaging.outgoing.sink.queue", queue);
+                .with("mp.messaging.outgoing.sink.queue", queue)
+                .with("mp.messaging.outgoing.sink.batch", true);
 
         runApplication(config, OutgoingMetadataProducingApp.class);
         var received = receiveMessages(queueUrl, r -> r.messageAttributeNames("key"), expected, Duration.ofSeconds(10));
@@ -84,7 +106,8 @@ public class OutboundMessageTest extends SqsTestBase {
                 .with("mp.messaging.incoming.data.connector", SqsConnector.CONNECTOR_NAME)
                 .with("mp.messaging.incoming.data.queue", queue)
                 .with("mp.messaging.outgoing.sink.connector", SqsConnector.CONNECTOR_NAME)
-                .with("mp.messaging.outgoing.sink.queue", queueSink);
+                .with("mp.messaging.outgoing.sink.queue", queueSink)
+                .with("mp.messaging.outgoing.sink.batch", true);
 
         runApplication(config, MessageProducingApp.class);
         await().pollDelay(3, TimeUnit.SECONDS).until(() -> true);
