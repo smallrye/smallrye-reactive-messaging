@@ -65,6 +65,21 @@ Like the core Emitter's `send` methods, `request` method also can receive a `Mes
     The ingested reply type of the `KafkaRequestReply` is discovered at runtime,
     in order to configure a `MessageConveter` to be applied on the incoming message before returning the `Uni` result.
 
+## Requesting multiple replies
+
+You can use the `requestMulti` method to expect any number of replies represented by the `Multi` return type.
+
+For example this can be used to aggregate multiple replies to a single request.
+
+``` java
+{{ insert('kafka/outbound/KafkaRequestReplyMultiEmitter.java') }}
+```
+Like the other `request` you can also request `Message` types.
+
+!!! note
+    The channel attribute `reply.timeout` will be applied between each message, if reached the returned `Multi` will
+    fail.
+
 ## Scaling Request/Reply
 
 If multiple requestor instances are configured on the same outgoing topic, and the same reply topic,
