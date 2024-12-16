@@ -145,18 +145,11 @@
     <module>smallrye-reactive-messaging-gcp-pubsub</module>
     <module>smallrye-reactive-messaging-pulsar</module>
     <module>smallrye-reactive-messaging-aws-sqs</module>
-    <module>examples/quickstart</module>
-    <module>examples/kafka-quickstart</module>
-    <module>examples/kafka-quickstart-kotlin</module>
-    <module>examples/mqtt-quickstart</module>
-    <module>examples/amqp-quickstart</module>
-    <module>examples/rabbitmq-quickstart</module>
 
     <module>smallrye-connector-attribute-processor</module>
     <module>smallrye-reactive-messaging-connector-archetype</module>
 
     <module>test-common</module>
-    <module>tck</module>
   </modules>
 
   <dependencyManagement>
@@ -719,11 +712,30 @@
     <profile>
       <id>with-camel</id>
       <activation>
-        <jdk>[17, 20]</jdk>
+        <jdk>[17,)</jdk>
       </activation>
       <modules>
         <module>smallrye-reactive-messaging-camel</module>
         <module>documentation</module>
+      </modules>
+    </profile>
+    <profile>
+      <id>skipped-from-release</id>
+      <activation>
+        <property>
+          <name>performRelease</name>
+          <value>!true</value>
+        </property>
+      </activation>
+      <modules>
+<!--        <module>documentation</module>--> <!-- deploy skipped in module -->
+        <module>tck</module>
+        <module>examples/quickstart</module>
+        <module>examples/kafka-quickstart</module>
+        <module>examples/kafka-quickstart-kotlin</module>
+        <module>examples/mqtt-quickstart</module>
+        <module>examples/amqp-quickstart</module>
+        <module>examples/rabbitmq-quickstart</module>
       </modules>
     </profile>
     <profile>
