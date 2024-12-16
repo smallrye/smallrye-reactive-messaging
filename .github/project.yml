@@ -3,4 +3,3 @@ release:
     previous-version: 4.25.0
     current-version: 4.26.0-RC1
     next-version: 999-SNAPSHOT
-
