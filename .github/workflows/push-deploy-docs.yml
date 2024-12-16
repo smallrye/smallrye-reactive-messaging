@@ -3,9 +3,11 @@ run-name: Deploy ${{github.event.inputs.version || github.ref_name}} Docs
 
 on:
     workflow_dispatch:
+    workflow_call:
         inputs:
             version:
                 description: 'Release version'
+                type: string
 
 jobs:
     deploy-docs:
