@@ -16,18 +16,9 @@ jobs:
             RELEASE_VERSION: ${{ github.event.inputs.version }}
 
         steps:
-            - name: Create GitHub App Token
-              id: app-token
-              uses: actions/create-github-app-token@v1
-              with:
-                  app-id: ${{ vars.CI_APP_ID }}
-                  private-key: ${{ secrets.CI_APP_PRIVATE_KEY }}
-
-            - name: Checkout
+            - name: Git checkout
               uses: actions/checkout@v4
               with:
-                  ref: ${{ github.ref }}
-                  token: ${{ steps.app-token.outputs.token }}
                   fetch-depth: 0
 
             - name: Java setup
@@ -36,17 +27,6 @@ jobs:
                   java-version: '21'
                   distribution: 'temurin'
                   cache: maven
-
-            - name: Get GitHub App User ID
-              id: get-user-id
-              run: echo "user-id=$(gh api "/users/${{ steps.app-token.outputs.app-slug }}[bot]" --jq .id)" >> "$GITHUB_OUTPUT"
-              env:
-                  GH_TOKEN: ${{ steps.app-token.outputs.token }}
-
-            - name: Configure Git author
-              run: |
-                  git config --global user.name '${{ steps.app-token.outputs.app-slug }}[bot]'
-                  git config --global user.email '${{ steps.get-user-id.outputs.user-id }}+${{ steps.app-token.outputs.app-slug }}[bot]@users.noreply.github.com>'
 
             - name: Install just
               uses: taiki-e/install-action@just
@@ -64,5 +44,11 @@ jobs:
             - name: Set Release Version
               run: |
                 echo "RELEASE_VERSION=${RELEASE_VERSION:-"$(./mvnw help:evaluate -Dexpression=project.version -q -DforceStdout)"}" >> $GITHUB_ENV
+
+            - name: Git user setup
+              run: |
+                git config --global user.name "SmallRye CI"
+                git config --global user.email "smallrye@googlegroups.com"
+
             - name: Perform the deploy docs
               run: just build-ci deploy-docs ${{ env.RELEASE_VERSION }}
