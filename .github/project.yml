@@ -1,6 +1,5 @@
 name: SmallRye Reactive Messaging
 release:
     previous-version: 4.25.0
-    current-version: 4.26.0-RC2
+    current-version: 4.26.0-RC3
     next-version: 999-SNAPSHOT
-
