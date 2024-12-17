@@ -28,6 +28,7 @@ jobs:
               with:
                   ref: ${{ github.ref }}
                   token: ${{ steps.app-token.outputs.token }}
+                  fetch-depth: 0
 
             - name: Java setup
               uses: actions/setup-java@v4
