@@ -1,0 +1,3272 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://smallrye.io/smallrye-reactive-messaging/4.26.0-RC4/rabbitmq/sending-messages-to-rabbitmq/">
+      
+      
+        <link rel="prev" href="../receiving-messages-from-rabbitmq/">
+      
+      
+        <link rel="next" href="../rabbitmq-health/">
+      
+      
+      <link rel="icon" href="../../images/favicon.png">
+      <meta name="generator" content="mkdocs-1.5.3, mkdocs-material-9.4.8">
+    
+    
+      
+        <title>Sending messages - SmallRye Reactive Messaging</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.4b4a2bd9.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.356b1318.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Red+Hat+Text:300,300i,400,400i,700,700i%7CUbuntu+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Red Hat Text";--md-code-font:"Ubuntu Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../css/print-site-enum-headings1.css">
+    
+      <link rel="stylesheet" href="../../css/print-site-enum-headings2.css">
+    
+      <link rel="stylesheet" href="../../css/print-site-enum-headings3.css">
+    
+      <link rel="stylesheet" href="../../css/print-site-enum-headings4.css">
+    
+      <link rel="stylesheet" href="../../css/print-site-enum-headings5.css">
+    
+      <link rel="stylesheet" href="../../css/print-site-enum-headings6.css">
+    
+      <link rel="stylesheet" href="../../css/print-site.css">
+    
+      <link rel="stylesheet" href="../../css/print-site-material.css">
+    
+      <link rel="stylesheet" href="../../css/smallrye.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="blue-grey" data-md-color-accent="blue">
+  
+    
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#sending-messages-to-rabbitmq" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+      </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="SmallRye Reactive Messaging" class="md-header__button md-logo" aria-label="SmallRye Reactive Messaging" data-md-component="logo">
+      
+  <img src="../../images/logo.png" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2Z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            SmallRye Reactive Messaging
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Sending messages
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+    
+    
+    
+      <label class="md-header__button md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+      </label>
+      <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12Z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41Z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/smallrye/smallrye-reactive-messaging" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.4.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="SmallRye Reactive Messaging" class="md-nav__button md-logo" aria-label="SmallRye Reactive Messaging" data-md-component="logo">
+      
+  <img src="../../images/logo.png" alt="logo">
+
+    </a>
+    SmallRye Reactive Messaging
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/smallrye/smallrye-reactive-messaging" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.4.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Home
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+      
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    Core
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            Core
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Getting Started
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_2" id="__nav_2_2_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Concepts
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_2">
+            <span class="md-nav__icon md-icon"></span>
+            Concepts
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/concepts/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Introduction
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/model/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Development Model
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/emitter/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Emitters and Channel
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/connectors/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Connectors
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/contributing-connectors/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Contributing Connectors
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/acknowledgement/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Acknowledgement
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/blocking/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Blocking Processing
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/signatures/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Method Signatures
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/skipping/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Skipping Messages
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/converters/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Message Converters
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/keyed-multi/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Keyed Streams
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/decorators/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Channel Decorators and Interceptors
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/broadcast/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Broadcast
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/merge/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Merge channels
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/incoming-concurrency/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Incoming Channel Concurrency
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/incomings/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    @Incomings
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/outgoings/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    @Outgoings
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/testing/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Testing
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/logging/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Logging
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/observability/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Observability API
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/advanced-config/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Advanced Configuration
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/message-context/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Message Context
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/incoming-metadata-injection/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Metadata Injection
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/generic-payloads/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Generic Payloads
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/pausable-channels/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Pausable Channels
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+      
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    Kafka
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            Kafka
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../kafka/kafka/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Apache Kafka Connector
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../kafka/receiving-kafka-records/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Receiving records
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../kafka/writing-kafka-records/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Writing records
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../kafka/health/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Health Checks
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../kafka/avro-configuration/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Using Avro
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../kafka/protobuf-configuration/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Using Protobuf
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../kafka/consumer-rebalance-listener/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Rebalance Listeners
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../kafka/kerberos/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Kerberos authentication
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../kafka/client-service/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Accessing the client
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../kafka/default-configuration/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Customizing Default Kafka Configuration
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../kafka/test-companion/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Test Companion for Kafka
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../kafka/transactions/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Kafka Transactions and Exactly-Once Processing
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../kafka/request-reply/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Kafka Request/Reply
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+      
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    AMQP 1.0
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            AMQP 1.0
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../amqp/amqp/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    AMQP 1.0 Connector
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../amqp/receiving-amqp-messages/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Receiving messages
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../amqp/sending-amqp-messages/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Sending messages
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../amqp/health/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Health Checks
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../amqp/client-customization/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Client Customization
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../amqp/rabbitmq/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Using RabbitMQ
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    RabbitMQ
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            RabbitMQ
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../rabbitmq/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    RabbitMQ Connector
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../receiving-messages-from-rabbitmq/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Receiving messages
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    Sending messages
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  <span class="md-ellipsis">
+    Sending messages
+  </span>
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#example" class="md-nav__link">
+    Example
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#serialization" class="md-nav__link">
+    Serialization
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#outbound-metadata" class="md-nav__link">
+    Outbound Metadata
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#acknowledgement" class="md-nav__link">
+    Acknowledgement
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#configuration-reference" class="md-nav__link">
+    Configuration Reference
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#using-existing-destinations" class="md-nav__link">
+    Using existing destinations
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sending-to-specific-queues-via-the-default-exchange" class="md-nav__link">
+    Sending to specific queues via the default exchange
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#custom-arguments-for-exchange-declaration" class="md-nav__link">
+    Custom arguments for Exchange declaration
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../rabbitmq-health/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Health Checks
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../rabbitmq-client-customization/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Client Customization
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../rabbitmq-cloud/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Connecting to managed instances
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+      
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    Pulsar
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            Pulsar
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../pulsar/pulsar/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Apache Pulsar Connector
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../pulsar/receiving-pulsar-messages/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Receiving messages
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../pulsar/sending-messages-to-pulsar/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Sending messages
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../pulsar/schema-configuration/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Configuring the Schema
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../pulsar/client-configuration/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Configuring the Pulsar client
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../pulsar/health/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Health Checks
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../pulsar/client-service/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Accessing the client
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../pulsar/transactions/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Pulsar Transactions and Exactly-Once Processing
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+      
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    Apache Camel
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            Apache Camel
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../camel/camel/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Apache Camel Connector
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../camel/receiving-messages-from-camel/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Receiving messages from Camel
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../camel/sending-messages-to-camel/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Sending messages to Camel
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../camel/camel-processor/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Implementing Camel processor
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../camel/using-existing-routes/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Using existing Camel routes
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+      
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    JMS
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8">
+            <span class="md-nav__icon md-icon"></span>
+            JMS
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../jms/jms/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    The JMS connector
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../jms/receiving-jms-messages/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Receiving JMS messages
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../jms/sending-jms-messages/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Sending JMS messages
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../jms/advanced-jms/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Advanced configuration
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+      
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_9" >
+        
+          
+          <label class="md-nav__link" for="__nav_9" id="__nav_9_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    MQTT
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_9_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_9">
+            <span class="md-nav__icon md-icon"></span>
+            MQTT
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../mqtt/mqtt/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    MQTT Connector
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../mqtt/receiving-mqtt-messages/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Receiving MQTT messages
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../mqtt/sending-messages-to-mqtt/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Sending MQTT messages
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../mqtt/client-customization/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Customizing the MQTT client
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+      
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_10" >
+        
+          
+          <label class="md-nav__link" for="__nav_10" id="__nav_10_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    AWS SQS
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_10_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_10">
+            <span class="md-nav__icon md-icon"></span>
+            AWS SQS
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sqs/sqs/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    AWS SQS Connector
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sqs/receiving-aws-sqs-messages/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Receiving AWS SQS messages
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sqs/sending-aws-sqs-messages/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Sending AWS SQS messages
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#example" class="md-nav__link">
+    Example
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#serialization" class="md-nav__link">
+    Serialization
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#outbound-metadata" class="md-nav__link">
+    Outbound Metadata
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#acknowledgement" class="md-nav__link">
+    Acknowledgement
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#configuration-reference" class="md-nav__link">
+    Configuration Reference
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#using-existing-destinations" class="md-nav__link">
+    Using existing destinations
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sending-to-specific-queues-via-the-default-exchange" class="md-nav__link">
+    Sending to specific queues via the default exchange
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#custom-arguments-for-exchange-declaration" class="md-nav__link">
+    Custom arguments for Exchange declaration
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+  
+  
+
+
+<h1 id="sending-messages-to-rabbitmq">Sending messages to RabbitMQ</h1>
+<p>The RabbitMQ connector can write Reactive Messaging <code>Messages</code> as
+RabbitMQ Messages.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>In this context, the reactive messaging concept of a <em>Channel</em> is
+realised as a <a href="https://www.rabbitmq.com/tutorials/amqp-concepts.html#exchanges">RabbitMQ
+Exchange</a>.</p>
+</div>
+<h2 id="example">Example</h2>
+<p>Let’s imagine you have a RabbitMQ broker running, and accessible using
+the <code>rabbitmq:5672</code> address (by default it would use <code>localhost:5672</code>).
+Configure your application to send the messages from the <code>prices</code>
+channel as a RabbitMQ Message as follows:</p>
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-1">1</a></span>
+<span class="normal"><a href="#__codelineno-0-2">2</a></span>
+<span class="normal"><a href="#__codelineno-0-3">3</a></span>
+<span class="normal"><a href="#__codelineno-0-4">4</a></span>
+<span class="normal"><a href="#__codelineno-0-5">5</a></span>
+<span class="normal"><a href="#__codelineno-0-6">6</a></span>
+<span class="normal"><a href="#__codelineno-0-7">7</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1"></a>rabbitmq-host=rabbitmq   # &lt;1&gt;
+<a id="__codelineno-0-2" name="__codelineno-0-2"></a>rabbitmq-port=5672       # &lt;2&gt;
+<a id="__codelineno-0-3" name="__codelineno-0-3"></a>rabbitmq-username=my-username # &lt;3&gt;
+<a id="__codelineno-0-4" name="__codelineno-0-4"></a>rabbitmq-password=my-password  # &lt;4&gt;
+<a id="__codelineno-0-5" name="__codelineno-0-5"></a>
+<a id="__codelineno-0-6" name="__codelineno-0-6"></a>mp.messaging.outgoing.prices.connector=smallrye-rabbitmq # &lt;5&gt;
+<a id="__codelineno-0-7" name="__codelineno-0-7"></a>mp.messaging.outgoing.prices.default-routing-key=normal    # &lt;6&gt;
+</code></pre></div></td></tr></table></div>
+<ol>
+<li>
+<p>Configures the broker/router host name. You can do it per channel
+    (using the <code>host</code> attribute) or globally using <code>rabbitmq-host</code></p>
+</li>
+<li>
+<p>Configures the broker/router port. You can do it per channel (using
+    the <code>port</code> attribute) or globally using <code>rabbitmq-port</code>. The default
+    is <code>5672</code>.</p>
+</li>
+<li>
+<p>Configures the broker/router username if required. You can do it per
+    channel (using the <code>username</code> attribute) or globally using
+    <code>rabbitmq-username</code>.</p>
+</li>
+<li>
+<p>Configures the broker/router password if required. You can do it per
+    channel (using the <code>password</code> attribute) or globally using
+    <code>rabbitmq-password</code>.</p>
+</li>
+<li>
+<p>Instructs the <code>prices</code> channel to be managed by the RabbitMQ
+    connector</p>
+</li>
+<li>
+<p>Supplies the default routing key to be included in outbound
+    messages; this will be if the "raw payload" form of message sending
+    is used (see below).</p>
+</li>
+</ol>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>You don’t need to set the RabbitMQ exchange name. By default, it uses
+the channel name (<code>prices</code>) as the name of the exchange to send messages
+to. You can configure the <code>exchange.name</code> attribute to override it.</p>
+</div>
+<p>Then, your application can send <code>Message&lt;Double&gt;</code> to the prices channel.
+It can use <code>double</code> payloads as in the following snippet:</p>
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-1-1"> 1</a></span>
+<span class="normal"><a href="#__codelineno-1-2"> 2</a></span>
+<span class="normal"><a href="#__codelineno-1-3"> 3</a></span>
+<span class="normal"><a href="#__codelineno-1-4"> 4</a></span>
+<span class="normal"><a href="#__codelineno-1-5"> 5</a></span>
+<span class="normal"><a href="#__codelineno-1-6"> 6</a></span>
+<span class="normal"><a href="#__codelineno-1-7"> 7</a></span>
+<span class="normal"><a href="#__codelineno-1-8"> 8</a></span>
+<span class="normal"><a href="#__codelineno-1-9"> 9</a></span>
+<span class="normal"><a href="#__codelineno-1-10">10</a></span>
+<span class="normal"><a href="#__codelineno-1-11">11</a></span>
+<span class="normal"><a href="#__codelineno-1-12">12</a></span>
+<span class="normal"><a href="#__codelineno-1-13">13</a></span>
+<span class="normal"><a href="#__codelineno-1-14">14</a></span>
+<span class="normal"><a href="#__codelineno-1-15">15</a></span>
+<span class="normal"><a href="#__codelineno-1-16">16</a></span>
+<span class="normal"><a href="#__codelineno-1-17">17</a></span>
+<span class="normal"><a href="#__codelineno-1-18">18</a></span>
+<span class="normal"><a href="#__codelineno-1-19">19</a></span>
+<span class="normal"><a href="#__codelineno-1-20">20</a></span>
+<span class="normal"><a href="#__codelineno-1-21">21</a></span>
+<span class="normal"><a href="#__codelineno-1-22">22</a></span>
+<span class="normal"><a href="#__codelineno-1-23">23</a></span>
+<span class="normal"><a href="#__codelineno-1-24">24</a></span>
+<span class="normal"><a href="#__codelineno-1-25">25</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1"></a><span class="kn">package</span><span class="w"> </span><span class="nn">rabbitmq.outbound</span><span class="p">;</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2"></a>
+<a id="__codelineno-1-3" name="__codelineno-1-3"></a><span class="kn">import</span><span class="w"> </span><span class="nn">java.time.Duration</span><span class="p">;</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4"></a><span class="kn">import</span><span class="w"> </span><span class="nn">java.util.Random</span><span class="p">;</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5"></a>
+<a id="__codelineno-1-6" name="__codelineno-1-6"></a><span class="kn">import</span><span class="w"> </span><span class="nn">jakarta.enterprise.context.ApplicationScoped</span><span class="p">;</span>
+<a id="__codelineno-1-7" name="__codelineno-1-7"></a>
+<a id="__codelineno-1-8" name="__codelineno-1-8"></a><span class="kn">import</span><span class="w"> </span><span class="nn">org.eclipse.microprofile.reactive.messaging.Outgoing</span><span class="p">;</span>
+<a id="__codelineno-1-9" name="__codelineno-1-9"></a>
+<a id="__codelineno-1-10" name="__codelineno-1-10"></a><span class="kn">import</span><span class="w"> </span><span class="nn">io.smallrye.mutiny.Multi</span><span class="p">;</span>
+<a id="__codelineno-1-11" name="__codelineno-1-11"></a>
+<a id="__codelineno-1-12" name="__codelineno-1-12"></a><span class="nd">@ApplicationScoped</span>
+<a id="__codelineno-1-13" name="__codelineno-1-13"></a><span class="kd">public</span><span class="w"> </span><span class="kd">class</span> <span class="nc">RabbitMQPriceProducer</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-1-14" name="__codelineno-1-14"></a>
+<a id="__codelineno-1-15" name="__codelineno-1-15"></a><span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="n">Random</span><span class="w"> </span><span class="n">random</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">Random</span><span class="p">();</span>
+<a id="__codelineno-1-16" name="__codelineno-1-16"></a>
+<a id="__codelineno-1-17" name="__codelineno-1-17"></a><span class="w">    </span><span class="nd">@Outgoing</span><span class="p">(</span><span class="s">&quot;prices&quot;</span><span class="p">)</span>
+<a id="__codelineno-1-18" name="__codelineno-1-18"></a><span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="n">Multi</span><span class="o">&lt;</span><span class="n">Double</span><span class="o">&gt;</span><span class="w"> </span><span class="nf">generate</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-1-19" name="__codelineno-1-19"></a><span class="w">        </span><span class="c1">// Build an infinite stream of random prices</span>
+<a id="__codelineno-1-20" name="__codelineno-1-20"></a><span class="w">        </span><span class="c1">// It emits a price every second</span>
+<a id="__codelineno-1-21" name="__codelineno-1-21"></a><span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">Multi</span><span class="p">.</span><span class="na">createFrom</span><span class="p">().</span><span class="na">ticks</span><span class="p">().</span><span class="na">every</span><span class="p">(</span><span class="n">Duration</span><span class="p">.</span><span class="na">ofSeconds</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span>
+<a id="__codelineno-1-22" name="__codelineno-1-22"></a><span class="w">                </span><span class="p">.</span><span class="na">map</span><span class="p">(</span><span class="n">x</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="n">random</span><span class="p">.</span><span class="na">nextDouble</span><span class="p">());</span>
+<a id="__codelineno-1-23" name="__codelineno-1-23"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-1-24" name="__codelineno-1-24"></a>
+<a id="__codelineno-1-25" name="__codelineno-1-25"></a><span class="p">}</span>
+</code></pre></div></td></tr></table></div>
+<p>Or, you can send <code>Message&lt;Double&gt;</code>, which affords the opportunity to
+explicitly specify metadata on the outgoing message:</p>
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-2-1"> 1</a></span>
+<span class="normal"><a href="#__codelineno-2-2"> 2</a></span>
+<span class="normal"><a href="#__codelineno-2-3"> 3</a></span>
+<span class="normal"><a href="#__codelineno-2-4"> 4</a></span>
+<span class="normal"><a href="#__codelineno-2-5"> 5</a></span>
+<span class="normal"><a href="#__codelineno-2-6"> 6</a></span>
+<span class="normal"><a href="#__codelineno-2-7"> 7</a></span>
+<span class="normal"><a href="#__codelineno-2-8"> 8</a></span>
+<span class="normal"><a href="#__codelineno-2-9"> 9</a></span>
+<span class="normal"><a href="#__codelineno-2-10">10</a></span>
+<span class="normal"><a href="#__codelineno-2-11">11</a></span>
+<span class="normal"><a href="#__codelineno-2-12">12</a></span>
+<span class="normal"><a href="#__codelineno-2-13">13</a></span>
+<span class="normal"><a href="#__codelineno-2-14">14</a></span>
+<span class="normal"><a href="#__codelineno-2-15">15</a></span>
+<span class="normal"><a href="#__codelineno-2-16">16</a></span>
+<span class="normal"><a href="#__codelineno-2-17">17</a></span>
+<span class="normal"><a href="#__codelineno-2-18">18</a></span>
+<span class="normal"><a href="#__codelineno-2-19">19</a></span>
+<span class="normal"><a href="#__codelineno-2-20">20</a></span>
+<span class="normal"><a href="#__codelineno-2-21">21</a></span>
+<span class="normal"><a href="#__codelineno-2-22">22</a></span>
+<span class="normal"><a href="#__codelineno-2-23">23</a></span>
+<span class="normal"><a href="#__codelineno-2-24">24</a></span>
+<span class="normal"><a href="#__codelineno-2-25">25</a></span>
+<span class="normal"><a href="#__codelineno-2-26">26</a></span>
+<span class="normal"><a href="#__codelineno-2-27">27</a></span>
+<span class="normal"><a href="#__codelineno-2-28">28</a></span>
+<span class="normal"><a href="#__codelineno-2-29">29</a></span>
+<span class="normal"><a href="#__codelineno-2-30">30</a></span>
+<span class="normal"><a href="#__codelineno-2-31">31</a></span>
+<span class="normal"><a href="#__codelineno-2-32">32</a></span>
+<span class="normal"><a href="#__codelineno-2-33">33</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1"></a><span class="kn">package</span><span class="w"> </span><span class="nn">rabbitmq.outbound</span><span class="p">;</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2"></a>
+<a id="__codelineno-2-3" name="__codelineno-2-3"></a><span class="kn">import</span><span class="w"> </span><span class="nn">java.time.Duration</span><span class="p">;</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4"></a><span class="kn">import</span><span class="w"> </span><span class="nn">java.time.ZonedDateTime</span><span class="p">;</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5"></a><span class="kn">import</span><span class="w"> </span><span class="nn">java.util.Random</span><span class="p">;</span>
+<a id="__codelineno-2-6" name="__codelineno-2-6"></a>
+<a id="__codelineno-2-7" name="__codelineno-2-7"></a><span class="kn">import</span><span class="w"> </span><span class="nn">jakarta.enterprise.context.ApplicationScoped</span><span class="p">;</span>
+<a id="__codelineno-2-8" name="__codelineno-2-8"></a>
+<a id="__codelineno-2-9" name="__codelineno-2-9"></a><span class="kn">import</span><span class="w"> </span><span class="nn">org.eclipse.microprofile.reactive.messaging.Message</span><span class="p">;</span>
+<a id="__codelineno-2-10" name="__codelineno-2-10"></a><span class="kn">import</span><span class="w"> </span><span class="nn">org.eclipse.microprofile.reactive.messaging.Metadata</span><span class="p">;</span>
+<a id="__codelineno-2-11" name="__codelineno-2-11"></a><span class="kn">import</span><span class="w"> </span><span class="nn">org.eclipse.microprofile.reactive.messaging.Outgoing</span><span class="p">;</span>
+<a id="__codelineno-2-12" name="__codelineno-2-12"></a>
+<a id="__codelineno-2-13" name="__codelineno-2-13"></a><span class="kn">import</span><span class="w"> </span><span class="nn">io.smallrye.mutiny.Multi</span><span class="p">;</span>
+<a id="__codelineno-2-14" name="__codelineno-2-14"></a><span class="kn">import</span><span class="w"> </span><span class="nn">io.smallrye.reactive.messaging.rabbitmq.OutgoingRabbitMQMetadata</span><span class="p">;</span>
+<a id="__codelineno-2-15" name="__codelineno-2-15"></a>
+<a id="__codelineno-2-16" name="__codelineno-2-16"></a><span class="nd">@ApplicationScoped</span>
+<a id="__codelineno-2-17" name="__codelineno-2-17"></a><span class="kd">public</span><span class="w"> </span><span class="kd">class</span> <span class="nc">RabbitMQPriceMessageProducer</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-2-18" name="__codelineno-2-18"></a>
+<a id="__codelineno-2-19" name="__codelineno-2-19"></a><span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="n">Random</span><span class="w"> </span><span class="n">random</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">Random</span><span class="p">();</span>
+<a id="__codelineno-2-20" name="__codelineno-2-20"></a>
+<a id="__codelineno-2-21" name="__codelineno-2-21"></a><span class="w">    </span><span class="nd">@Outgoing</span><span class="p">(</span><span class="s">&quot;prices&quot;</span><span class="p">)</span>
+<a id="__codelineno-2-22" name="__codelineno-2-22"></a><span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="n">Multi</span><span class="o">&lt;</span><span class="n">Message</span><span class="o">&lt;</span><span class="n">Double</span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="nf">generate</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-2-23" name="__codelineno-2-23"></a><span class="w">        </span><span class="c1">// Build an infinite stream of random prices</span>
+<a id="__codelineno-2-24" name="__codelineno-2-24"></a><span class="w">        </span><span class="c1">// It emits a price every second</span>
+<a id="__codelineno-2-25" name="__codelineno-2-25"></a><span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">Multi</span><span class="p">.</span><span class="na">createFrom</span><span class="p">().</span><span class="na">ticks</span><span class="p">().</span><span class="na">every</span><span class="p">(</span><span class="n">Duration</span><span class="p">.</span><span class="na">ofSeconds</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span>
+<a id="__codelineno-2-26" name="__codelineno-2-26"></a><span class="w">                </span><span class="p">.</span><span class="na">map</span><span class="p">(</span><span class="n">x</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="n">Message</span><span class="p">.</span><span class="na">of</span><span class="p">(</span><span class="n">random</span><span class="p">.</span><span class="na">nextDouble</span><span class="p">(),</span>
+<a id="__codelineno-2-27" name="__codelineno-2-27"></a><span class="w">                        </span><span class="n">Metadata</span><span class="p">.</span><span class="na">of</span><span class="p">(</span><span class="k">new</span><span class="w"> </span><span class="n">OutgoingRabbitMQMetadata</span><span class="p">.</span><span class="na">Builder</span><span class="p">()</span>
+<a id="__codelineno-2-28" name="__codelineno-2-28"></a><span class="w">                                </span><span class="p">.</span><span class="na">withRoutingKey</span><span class="p">(</span><span class="s">&quot;normal&quot;</span><span class="p">)</span>
+<a id="__codelineno-2-29" name="__codelineno-2-29"></a><span class="w">                                </span><span class="p">.</span><span class="na">withTimestamp</span><span class="p">(</span><span class="n">ZonedDateTime</span><span class="p">.</span><span class="na">now</span><span class="p">())</span>
+<a id="__codelineno-2-30" name="__codelineno-2-30"></a><span class="w">                                </span><span class="p">.</span><span class="na">build</span><span class="p">())));</span>
+<a id="__codelineno-2-31" name="__codelineno-2-31"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-2-32" name="__codelineno-2-32"></a>
+<a id="__codelineno-2-33" name="__codelineno-2-33"></a><span class="p">}</span>
+</code></pre></div></td></tr></table></div>
+<h2 id="serialization">Serialization</h2>
+<p>When sending a <code>Message&lt;T&gt;</code>, the connector converts the message into a
+RabbitMQ Message. The payload is converted to the RabbitMQ Message body.</p>
+<table>
+<thead>
+<tr>
+<th>T</th>
+<th>RabbitMQ Message Body</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>primitive types or <code>UUID</code>/<code>String</code></td>
+<td>String value with <code>content_type</code> set to <code>text/plain</code></td>
+</tr>
+<tr>
+<td><a href="https://vertx.io/docs/apidocs/io/vertx/core/json/JsonObject.html"><code>JsonObject</code></a> or <a href="https://vertx.io/docs/apidocs/io/vertx/core/json/JsonArray.html"><code>JsonArray</code></a></td>
+<td>Serialized String payload with <code>content_type</code> set to <code>application/json</code></td>
+</tr>
+<tr>
+<td><code>io.vertx.mutiny.core.buffer.Buffer</code></td>
+<td>Binary content, with <code>content_type</code> set to <code>application/octet-stream</code></td>
+</tr>
+<tr>
+<td><code>byte[]</code></td>
+<td>Binary content, with content_type set to <code>application/octet-stream</code></td>
+</tr>
+<tr>
+<td>Any other class</td>
+<td>The payload is converted to JSON (using a Json Mapper) then serialized with <code>content_type</code> set to <code>application/json</code></td>
+</tr>
+</tbody>
+</table>
+<p>If the message payload cannot be serialized to JSON, the message is
+<em>nacked</em>.</p>
+<h2 id="outbound-metadata">Outbound Metadata</h2>
+<p>When sending <code>Messages</code>, you can add an instance of <a class='docissimo, docissimo-javadoc' href='https://javadoc.io/doc/io.smallrye.reactive/smallrye-reactive-messaging-rabbitmq/4.26.0-RC4/io/smallrye/reactive/messaging/rabbitmq/OutgoingRabbitMQMetadata.html'>OutgoingRabbitMQMetadata</a>
+to influence how the message is handled by RabbitMQ. For example, you
+can configure the routing key, timestamp and headers:</p>
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-3-1">1</a></span>
+<span class="normal"><a href="#__codelineno-3-2">2</a></span>
+<span class="normal"><a href="#__codelineno-3-3">3</a></span>
+<span class="normal"><a href="#__codelineno-3-4">4</a></span>
+<span class="normal"><a href="#__codelineno-3-5">5</a></span>
+<span class="normal"><a href="#__codelineno-3-6">6</a></span>
+<span class="normal"><a href="#__codelineno-3-7">7</a></span>
+<span class="normal"><a href="#__codelineno-3-8">8</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1"></a><span class="kd">final</span><span class="w"> </span><span class="n">OutgoingRabbitMQMetadata</span><span class="w"> </span><span class="n">metadata</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">OutgoingRabbitMQMetadata</span><span class="p">.</span><span class="na">Builder</span><span class="p">()</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2"></a><span class="w">        </span><span class="p">.</span><span class="na">withHeader</span><span class="p">(</span><span class="s">&quot;my-header&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;xyzzy&quot;</span><span class="p">)</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3"></a><span class="w">        </span><span class="p">.</span><span class="na">withRoutingKey</span><span class="p">(</span><span class="s">&quot;urgent&quot;</span><span class="p">)</span>
+<a id="__codelineno-3-4" name="__codelineno-3-4"></a><span class="w">        </span><span class="p">.</span><span class="na">withTimestamp</span><span class="p">(</span><span class="n">ZonedDateTime</span><span class="p">.</span><span class="na">now</span><span class="p">())</span>
+<a id="__codelineno-3-5" name="__codelineno-3-5"></a><span class="w">        </span><span class="p">.</span><span class="na">build</span><span class="p">();</span>
+<a id="__codelineno-3-6" name="__codelineno-3-6"></a>
+<a id="__codelineno-3-7" name="__codelineno-3-7"></a><span class="c1">// Add `metadata` to the metadata of the outgoing message.</span>
+<a id="__codelineno-3-8" name="__codelineno-3-8"></a><span class="k">return</span><span class="w"> </span><span class="n">Message</span><span class="p">.</span><span class="na">of</span><span class="p">(</span><span class="s">&quot;Hello&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">Metadata</span><span class="p">.</span><span class="na">of</span><span class="p">(</span><span class="n">metadata</span><span class="p">));</span>
+</code></pre></div></td></tr></table></div>
+<h2 id="acknowledgement">Acknowledgement</h2>
+<p>By default, the Reactive Messaging <code>Message</code> is acknowledged when the
+broker acknowledges the message.</p>
+<h2 id="configuration-reference">Configuration Reference</h2>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Attribute (<em>alias</em>)</th>
+<th style="text-align: left;">Description</th>
+<th style="text-align: center;">Type</th>
+<th style="text-align: center;">Mandatory</th>
+<th style="text-align: left;">Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><em>addresses</em> <em>(rabbitmq-addresses)</em></td>
+<td style="text-align: left;">The multiple addresses for cluster mode, when given overrides the host and port</td>
+<td style="text-align: center;">string</td>
+<td style="text-align: center;">false</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>automatic-recovery-enabled</em></td>
+<td style="text-align: left;">Whether automatic connection recovery is enabled</td>
+<td style="text-align: center;">boolean</td>
+<td style="text-align: center;">false</td>
+<td style="text-align: left;"><code>false</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>automatic-recovery-on-initial-connection</em></td>
+<td style="text-align: left;">Whether automatic recovery on initial connections is enabled</td>
+<td style="text-align: center;">boolean</td>
+<td style="text-align: center;">false</td>
+<td style="text-align: left;"><code>true</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>client-options-name</em> <em>(rabbitmq-client-options-name)</em></td>
+<td style="text-align: left;">The name of the RabbitMQ Client Option bean used to customize the RabbitMQ client configuration</td>
+<td style="text-align: center;">string</td>
+<td style="text-align: center;">false</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>connection-timeout</em></td>
+<td style="text-align: left;">The TCP connection timeout (ms); 0 is interpreted as no timeout</td>
+<td style="text-align: center;">int</td>
+<td style="text-align: center;">false</td>
+<td style="text-align: left;"><code>60000</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>credentials-provider-name</em> <em>(rabbitmq-credentials-provider-name)</em></td>
+<td style="text-align: left;">The name of the RabbitMQ Credentials Provider bean used to provide dynamic credentials to the RabbitMQ client</td>
+<td style="text-align: center;">string</td>
+<td style="text-align: center;">false</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>default-routing-key</em></td>
+<td style="text-align: left;">The default routing key to use when sending messages to the exchange</td>
+<td style="text-align: center;">string</td>
+<td style="text-align: center;">false</td>
+<td style="text-align: left;">``</td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>default-ttl</em></td>
+<td style="text-align: left;">If specified, the time (ms) sent messages can remain in queues undelivered before they are dead</td>
+<td style="text-align: center;">long</td>
+<td style="text-align: center;">false</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>exchange.arguments</em></td>
+<td style="text-align: left;">The identifier of the key-value Map exposed as bean used to provide arguments for exchange creation</td>
+<td style="text-align: center;">string</td>
+<td style="text-align: center;">false</td>
+<td style="text-align: left;"><code>rabbitmq-exchange-arguments</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>exchange.auto-delete</em></td>
+<td style="text-align: left;">Whether the exchange should be deleted after use</td>
+<td style="text-align: center;">boolean</td>
+<td style="text-align: center;">false</td>
+<td style="text-align: left;"><code>false</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>exchange.declare</em></td>
+<td style="text-align: left;">Whether to declare the exchange; set to false if the exchange is expected to be set up independently</td>
+<td style="text-align: center;">boolean</td>
+<td style="text-align: center;">false</td>
+<td style="text-align: left;"><code>true</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>exchange.durable</em></td>
+<td style="text-align: left;">Whether the exchange is durable</td>
+<td style="text-align: center;">boolean</td>
+<td style="text-align: center;">false</td>
+<td style="text-align: left;"><code>true</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>exchange.name</em></td>
+<td style="text-align: left;">The exchange that messages are published to or consumed from. If not set, the channel name is used. If set to "", the default exchange is used.</td>
+<td style="text-align: center;">string</td>
+<td style="text-align: center;">false</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>exchange.type</em></td>
+<td style="text-align: left;">The exchange type: direct, fanout, headers or topic (default)</td>
+<td style="text-align: center;">string</td>
+<td style="text-align: center;">false</td>
+<td style="text-align: left;"><code>topic</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>handshake-timeout</em></td>
+<td style="text-align: left;">The AMQP 0-9-1 protocol handshake timeout (ms)</td>
+<td style="text-align: center;">int</td>
+<td style="text-align: center;">false</td>
+<td style="text-align: left;"><code>10000</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>health-enabled</em></td>
+<td style="text-align: left;">Whether health reporting is enabled (default) or disabled</td>
+<td style="text-align: center;">boolean</td>
+<td style="text-align: center;">false</td>
+<td style="text-align: left;"><code>true</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>health-readiness-enabled</em></td>
+<td style="text-align: left;">Whether readiness health reporting is enabled (default) or disabled</td>
+<td style="text-align: center;">boolean</td>
+<td style="text-align: center;">false</td>
+<td style="text-align: left;"><code>true</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>host</em> <em>(rabbitmq-host)</em></td>
+<td style="text-align: left;">The broker hostname</td>
+<td style="text-align: center;">string</td>
+<td style="text-align: center;">false</td>
+<td style="text-align: left;"><code>localhost</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>include-properties</em></td>
+<td style="text-align: left;">Whether to include properties when a broker message is passed on the event bus</td>
+<td style="text-align: center;">boolean</td>
+<td style="text-align: center;">false</td>
+<td style="text-align: left;"><code>false</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>max-inflight-messages</em></td>
+<td style="text-align: left;">The maximum number of messages to be written to RabbitMQ concurrently; must be a positive number</td>
+<td style="text-align: center;">long</td>
+<td style="text-align: center;">false</td>
+<td style="text-align: left;"><code>1024</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>max-outgoing-internal-queue-size</em></td>
+<td style="text-align: left;">The maximum size of the outgoing internal queue</td>
+<td style="text-align: center;">int</td>
+<td style="text-align: center;">false</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>network-recovery-interval</em></td>
+<td style="text-align: left;">How long (ms) will automatic recovery wait before attempting to reconnect</td>
+<td style="text-align: center;">int</td>
+<td style="text-align: center;">false</td>
+<td style="text-align: left;"><code>5000</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>password</em> <em>(rabbitmq-password)</em></td>
+<td style="text-align: left;">The password used to authenticate to the broker</td>
+<td style="text-align: center;">string</td>
+<td style="text-align: center;">false</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>port</em> <em>(rabbitmq-port)</em></td>
+<td style="text-align: left;">The broker port</td>
+<td style="text-align: center;">int</td>
+<td style="text-align: center;">false</td>
+<td style="text-align: left;"><code>5672</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>publish-confirms</em></td>
+<td style="text-align: left;">If set to true, published messages are acknowledged when the publish confirm is received from the broker</td>
+<td style="text-align: center;">boolean</td>
+<td style="text-align: center;">false</td>
+<td style="text-align: left;"><code>false</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>reconnect-attempts</em> <em>(rabbitmq-reconnect-attempts)</em></td>
+<td style="text-align: left;">The number of reconnection attempts</td>
+<td style="text-align: center;">int</td>
+<td style="text-align: center;">false</td>
+<td style="text-align: left;"><code>100</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>reconnect-interval</em> <em>(rabbitmq-reconnect-interval)</em></td>
+<td style="text-align: left;">The interval (in seconds) between two reconnection attempts</td>
+<td style="text-align: center;">int</td>
+<td style="text-align: center;">false</td>
+<td style="text-align: left;"><code>10</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>requested-channel-max</em></td>
+<td style="text-align: left;">The initially requested maximum channel number</td>
+<td style="text-align: center;">int</td>
+<td style="text-align: center;">false</td>
+<td style="text-align: left;"><code>2047</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>requested-heartbeat</em></td>
+<td style="text-align: left;">The initially requested heartbeat interval (seconds), zero for none</td>
+<td style="text-align: center;">int</td>
+<td style="text-align: center;">false</td>
+<td style="text-align: left;"><code>60</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>retry-on-fail-attempts</em></td>
+<td style="text-align: left;">The number of tentative to retry on failure</td>
+<td style="text-align: center;">int</td>
+<td style="text-align: center;">false</td>
+<td style="text-align: left;"><code>6</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>retry-on-fail-interval</em></td>
+<td style="text-align: left;">The interval (in seconds) between two sending attempts</td>
+<td style="text-align: center;">int</td>
+<td style="text-align: center;">false</td>
+<td style="text-align: left;"><code>5</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>ssl</em> <em>(rabbitmq-ssl)</em></td>
+<td style="text-align: left;">Whether or not the connection should use SSL</td>
+<td style="text-align: center;">boolean</td>
+<td style="text-align: center;">false</td>
+<td style="text-align: left;"><code>false</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>ssl.hostname-verification-algorithm</em></td>
+<td style="text-align: left;">Set the hostname verifier algorithm for the TLS connection. Accepted values are <code>HTTPS</code>, and <code>NONE</code> (defaults). <code>NONE</code> disables the hostname verification.</td>
+<td style="text-align: center;">string</td>
+<td style="text-align: center;">false</td>
+<td style="text-align: left;"><code>NONE</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>tracing.attribute-headers</em></td>
+<td style="text-align: left;">A comma-separated list of headers that should be recorded as span attributes. Relevant only if tracing.enabled=true</td>
+<td style="text-align: center;">string</td>
+<td style="text-align: center;">false</td>
+<td style="text-align: left;">``</td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>tracing.enabled</em></td>
+<td style="text-align: left;">Whether tracing is enabled (default) or disabled</td>
+<td style="text-align: center;">boolean</td>
+<td style="text-align: center;">false</td>
+<td style="text-align: left;"><code>true</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>trust-all</em> <em>(rabbitmq-trust-all)</em></td>
+<td style="text-align: left;">Whether to skip trust certificate verification</td>
+<td style="text-align: center;">boolean</td>
+<td style="text-align: center;">false</td>
+<td style="text-align: left;"><code>false</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>trust-store-password</em> <em>(rabbitmq-trust-store-password)</em></td>
+<td style="text-align: left;">The password of the JKS trust store</td>
+<td style="text-align: center;">string</td>
+<td style="text-align: center;">false</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>trust-store-path</em> <em>(rabbitmq-trust-store-path)</em></td>
+<td style="text-align: left;">The path to a JKS trust store</td>
+<td style="text-align: center;">string</td>
+<td style="text-align: center;">false</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>use-nio</em></td>
+<td style="text-align: left;">Whether usage of NIO Sockets is enabled</td>
+<td style="text-align: center;">boolean</td>
+<td style="text-align: center;">false</td>
+<td style="text-align: left;"><code>false</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>user</em></td>
+<td style="text-align: left;">The user name to use when connecting to the broker</td>
+<td style="text-align: center;">string</td>
+<td style="text-align: center;">false</td>
+<td style="text-align: left;"><code>guest</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>username</em> <em>(rabbitmq-username)</em></td>
+<td style="text-align: left;">The username used to authenticate to the broker</td>
+<td style="text-align: center;">string</td>
+<td style="text-align: center;">false</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>virtual-host</em> <em>(rabbitmq-virtual-host)</em></td>
+<td style="text-align: left;">The virtual host to use when connecting to the broker</td>
+<td style="text-align: center;">string</td>
+<td style="text-align: center;">false</td>
+<td style="text-align: left;"><code>/</code></td>
+</tr>
+</tbody>
+</table>
+<h2 id="using-existing-destinations">Using existing destinations</h2>
+<p>To use an existing <em>exchange</em>, you may need to configure the
+<code>exchange.name</code> attribute.</p>
+<p>For example, if you have a RabbitMQ broker already configured with an
+exchange called <code>people</code> that you wish to send messages to, you need the
+following configuration:</p>
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-4-1">1</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1"></a><span class="na">mp.messaging.outgoing.people.connector</span><span class="o">=</span><span class="s">smallrye-rabbitmq</span>
+</code></pre></div></td></tr></table></div>
+<p>You would need to configure the <code>exchange.name</code> attribute, if the
+exchange name were not the channel name:</p>
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-5-1">1</a></span>
+<span class="normal"><a href="#__codelineno-5-2">2</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1"></a><span class="na">mp.messaging.outgoing.people-out.connector</span><span class="o">=</span><span class="s">smallrye-rabbitmq</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2"></a><span class="na">mp.messaging.outgoing.people-out.exchange.name</span><span class="o">=</span><span class="s">people</span>
+</code></pre></div></td></tr></table></div>
+<p>If you want RabbitMQ to create the <code>people</code> exchange, you need the
+following configuration:</p>
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-6-1">1</a></span>
+<span class="normal"><a href="#__codelineno-6-2">2</a></span>
+<span class="normal"><a href="#__codelineno-6-3">3</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1"></a><span class="na">mp.messaging.outgoing.people-out.connector</span><span class="o">=</span><span class="s">smallrye-amqp</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2"></a><span class="na">mp.messaging.outgoing.people-out.exchange.name</span><span class="o">=</span><span class="s">people</span>
+<a id="__codelineno-6-3" name="__codelineno-6-3"></a><span class="na">mp.messaging.outgoing.people-out.exchange.declare</span><span class="o">=</span><span class="s">true</span>
+</code></pre></div></td></tr></table></div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The above example will create a <code>topic</code> exchange and use an empty
+default <code>routing-key</code> (unless overridden programatically using outgoing
+metadata for the message). If you want to create a different type of
+exchange or have a different default routing key, then the
+<code>exchange.type</code> and <code>default-routing-key</code> properties need to be
+explicitly specified.</p>
+</div>
+<h2 id="sending-to-specific-queues-via-the-default-exchange">Sending to specific queues via the default exchange</h2>
+<p>To send a message to a specific queue (usually a reply queue),
+you have to configure the default exchange as an outgoing channel and set the name of the queue as routing key in the message metadata.
+The name of the exchange needs to be set to <code>""</code>.</p>
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-7-1">1</a></span>
+<span class="normal"><a href="#__codelineno-7-2">2</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1"></a><span class="na">mp.messaging.outgoing.channel-name-for-default-exchange.connector</span><span class="o">=</span><span class="s">smallrye-rabbitmq</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2"></a><span class="na">mp.messaging.outgoing.channel-name-for-default-exchange.exchange.name</span><span class="o">=</span><span class="s">&quot;&quot;</span>
+</code></pre></div></td></tr></table></div>
+<h2 id="custom-arguments-for-exchange-declaration">Custom arguments for Exchange declaration</h2>
+<p>When exchange declaration is made by the Reactive Messaging channel, using the <code>exchange.declare=true</code> configuration,
+custom exchange arguments can be specified using the <code>exchange.arguments</code> attribute.
+<code>exchange.arguments</code> accepts the identifier (using the <code>@Identifier</code> qualifier) of a <code>Map&lt;String, Object&gt;</code> exposed as a CDI bean.
+If no arguments has been configured, the default <strong>rabbitmq-exchange-arguments</strong> identifier is looked for.</p>
+<p>The following CDI bean produces such a configuration identified with <strong>my-arguments</strong>:</p>
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-8-1"> 1</a></span>
+<span class="normal"><a href="#__codelineno-8-2"> 2</a></span>
+<span class="normal"><a href="#__codelineno-8-3"> 3</a></span>
+<span class="normal"><a href="#__codelineno-8-4"> 4</a></span>
+<span class="normal"><a href="#__codelineno-8-5"> 5</a></span>
+<span class="normal"><a href="#__codelineno-8-6"> 6</a></span>
+<span class="normal"><a href="#__codelineno-8-7"> 7</a></span>
+<span class="normal"><a href="#__codelineno-8-8"> 8</a></span>
+<span class="normal"><a href="#__codelineno-8-9"> 9</a></span>
+<span class="normal"><a href="#__codelineno-8-10">10</a></span>
+<span class="normal"><a href="#__codelineno-8-11">11</a></span>
+<span class="normal"><a href="#__codelineno-8-12">12</a></span>
+<span class="normal"><a href="#__codelineno-8-13">13</a></span>
+<span class="normal"><a href="#__codelineno-8-14">14</a></span>
+<span class="normal"><a href="#__codelineno-8-15">15</a></span>
+<span class="normal"><a href="#__codelineno-8-16">16</a></span>
+<span class="normal"><a href="#__codelineno-8-17">17</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1"></a><span class="kn">package</span><span class="w"> </span><span class="nn">rabbitmq.customization</span><span class="p">;</span>
+<a id="__codelineno-8-2" name="__codelineno-8-2"></a>
+<a id="__codelineno-8-3" name="__codelineno-8-3"></a><span class="kn">import</span><span class="w"> </span><span class="nn">java.util.Map</span><span class="p">;</span>
+<a id="__codelineno-8-4" name="__codelineno-8-4"></a>
+<a id="__codelineno-8-5" name="__codelineno-8-5"></a><span class="kn">import</span><span class="w"> </span><span class="nn">jakarta.enterprise.context.ApplicationScoped</span><span class="p">;</span>
+<a id="__codelineno-8-6" name="__codelineno-8-6"></a><span class="kn">import</span><span class="w"> </span><span class="nn">jakarta.enterprise.inject.Produces</span><span class="p">;</span>
+<a id="__codelineno-8-7" name="__codelineno-8-7"></a>
+<a id="__codelineno-8-8" name="__codelineno-8-8"></a><span class="kn">import</span><span class="w"> </span><span class="nn">io.smallrye.common.annotation.Identifier</span><span class="p">;</span>
+<a id="__codelineno-8-9" name="__codelineno-8-9"></a>
+<a id="__codelineno-8-10" name="__codelineno-8-10"></a><span class="nd">@ApplicationScoped</span>
+<a id="__codelineno-8-11" name="__codelineno-8-11"></a><span class="kd">public</span><span class="w"> </span><span class="kd">class</span> <span class="nc">ArgumentProducers</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-8-12" name="__codelineno-8-12"></a><span class="w">    </span><span class="nd">@Produces</span>
+<a id="__codelineno-8-13" name="__codelineno-8-13"></a><span class="w">    </span><span class="nd">@Identifier</span><span class="p">(</span><span class="s">&quot;my-arguments&quot;</span><span class="p">)</span>
+<a id="__codelineno-8-14" name="__codelineno-8-14"></a><span class="w">    </span><span class="n">Map</span><span class="o">&lt;</span><span class="n">String</span><span class="p">,</span><span class="w"> </span><span class="n">Object</span><span class="o">&gt;</span><span class="w"> </span><span class="nf">customArguments</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-8-15" name="__codelineno-8-15"></a><span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">Map</span><span class="p">.</span><span class="na">of</span><span class="p">(</span><span class="s">&quot;custom-arg&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;value&quot;</span><span class="p">);</span>
+<a id="__codelineno-8-16" name="__codelineno-8-16"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-8-17" name="__codelineno-8-17"></a><span class="p">}</span>
+</code></pre></div></td></tr></table></div>
+<p>Then the channel can be configured to use those arguments in exchange declaration:</p>
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-9-1">1</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1"></a><span class="na">mp.messaging.outgoing.data.exchange.arguments</span><span class="o">=</span><span class="s">my-arguments</span>
+</code></pre></div></td></tr></table></div>
+<p>Similarly, the <code>dead-letter-exchange.arguments</code> allows configuring custom arguments for dead letter exchange when one is declared (<code>dlx.declare=true</code>).</p>
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Sponsored by <a href="https://www.redhat.com"><img style="vertical-align: middle; height: 2.5em;" alt="Red Hat" src="https://github.com/jbossorg/website/raw/master/docs/img/redhat_reversed.svg"/></a> <br/> <a href="https://creativecommons.org/licenses/by/3.0/">CC by 3.0</a> | <a href="https://www.redhat.com/en/about/privacy-policy">Privacy Policy</a>
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    <script id="__config" type="application/json">{"base": "../..", "features": ["navigation.sections", "navigation.tracking", "navigation.indexes"], "search": "../../assets/javascripts/workers/search.f886a092.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.81fa17fe.min.js"></script>
+      
+        <script src="../../js/print-site.js"></script>
+      
+    
+  </body>
+</html>

@@ -1,0 +1,3628 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://smallrye.io/smallrye-reactive-messaging/4.26.0-RC4/kafka/writing-kafka-records/">
+      
+      
+        <link rel="prev" href="../receiving-kafka-records/">
+      
+      
+        <link rel="next" href="../health/">
+      
+      
+      <link rel="icon" href="../../images/favicon.png">
+      <meta name="generator" content="mkdocs-1.5.3, mkdocs-material-9.4.8">
+    
+    
+      
+        <title>Writing records - SmallRye Reactive Messaging</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.4b4a2bd9.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.356b1318.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Red+Hat+Text:300,300i,400,400i,700,700i%7CUbuntu+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Red Hat Text";--md-code-font:"Ubuntu Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../css/print-site-enum-headings1.css">
+    
+      <link rel="stylesheet" href="../../css/print-site-enum-headings2.css">
+    
+      <link rel="stylesheet" href="../../css/print-site-enum-headings3.css">
+    
+      <link rel="stylesheet" href="../../css/print-site-enum-headings4.css">
+    
+      <link rel="stylesheet" href="../../css/print-site-enum-headings5.css">
+    
+      <link rel="stylesheet" href="../../css/print-site-enum-headings6.css">
+    
+      <link rel="stylesheet" href="../../css/print-site.css">
+    
+      <link rel="stylesheet" href="../../css/print-site-material.css">
+    
+      <link rel="stylesheet" href="../../css/smallrye.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="blue-grey" data-md-color-accent="blue">
+  
+    
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#writing-kafka-records" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+      </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="SmallRye Reactive Messaging" class="md-header__button md-logo" aria-label="SmallRye Reactive Messaging" data-md-component="logo">
+      
+  <img src="../../images/logo.png" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2Z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            SmallRye Reactive Messaging
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Writing records
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+    
+    
+    
+      <label class="md-header__button md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+      </label>
+      <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12Z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41Z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/smallrye/smallrye-reactive-messaging" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.4.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="SmallRye Reactive Messaging" class="md-nav__button md-logo" aria-label="SmallRye Reactive Messaging" data-md-component="logo">
+      
+  <img src="../../images/logo.png" alt="logo">
+
+    </a>
+    SmallRye Reactive Messaging
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/smallrye/smallrye-reactive-messaging" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.4.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Home
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+      
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    Core
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            Core
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Getting Started
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_2" id="__nav_2_2_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Concepts
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_2">
+            <span class="md-nav__icon md-icon"></span>
+            Concepts
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/concepts/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Introduction
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/model/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Development Model
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/emitter/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Emitters and Channel
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/connectors/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Connectors
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/contributing-connectors/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Contributing Connectors
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/acknowledgement/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Acknowledgement
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/blocking/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Blocking Processing
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/signatures/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Method Signatures
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/skipping/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Skipping Messages
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/converters/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Message Converters
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/keyed-multi/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Keyed Streams
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/decorators/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Channel Decorators and Interceptors
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/broadcast/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Broadcast
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/merge/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Merge channels
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/incoming-concurrency/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Incoming Channel Concurrency
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/incomings/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    @Incomings
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/outgoings/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    @Outgoings
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/testing/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Testing
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/logging/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Logging
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/observability/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Observability API
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/advanced-config/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Advanced Configuration
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/message-context/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Message Context
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/incoming-metadata-injection/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Metadata Injection
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/generic-payloads/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Generic Payloads
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/pausable-channels/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Pausable Channels
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    Kafka
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            Kafka
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../kafka/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Apache Kafka Connector
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../receiving-kafka-records/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Receiving records
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    Writing records
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  <span class="md-ellipsis">
+    Writing records
+  </span>
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#example" class="md-nav__link">
+    Example
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#serialization" class="md-nav__link">
+    Serialization
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sending-keyvalue-pairs" class="md-nav__link">
+    Sending key/value pairs
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#outbound-metadata" class="md-nav__link">
+    Outbound Metadata
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#propagating-record-key" class="md-nav__link">
+    Propagating Record Key
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#propagating-record-headers" class="md-nav__link">
+    Propagating Record headers
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#dynamic-topic-names" class="md-nav__link">
+    Dynamic topic names
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#acknowledgement" class="md-nav__link">
+    Acknowledgement
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#back-pressure-and-inflight-records" class="md-nav__link">
+    Back-pressure and inflight records
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#handling-serialization-failures" class="md-nav__link">
+    Handling serialization failures
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sending-cloud-events" class="md-nav__link">
+    Sending Cloud Events
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#using-producerrecord" class="md-nav__link">
+    Using ProducerRecord
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#producer-interceptors" class="md-nav__link">
+    Producer Interceptors
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#configuration-reference" class="md-nav__link">
+    Configuration Reference
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../health/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Health Checks
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../avro-configuration/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Using Avro
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../protobuf-configuration/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Using Protobuf
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../consumer-rebalance-listener/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Rebalance Listeners
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../kerberos/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Kerberos authentication
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../client-service/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Accessing the client
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../default-configuration/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Customizing Default Kafka Configuration
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../test-companion/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Test Companion for Kafka
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../transactions/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Kafka Transactions and Exactly-Once Processing
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../request-reply/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Kafka Request/Reply
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+      
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    AMQP 1.0
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            AMQP 1.0
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../amqp/amqp/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    AMQP 1.0 Connector
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../amqp/receiving-amqp-messages/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Receiving messages
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../amqp/sending-amqp-messages/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Sending messages
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../amqp/health/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Health Checks
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../amqp/client-customization/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Client Customization
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../amqp/rabbitmq/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Using RabbitMQ
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+      
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    RabbitMQ
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            RabbitMQ
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../rabbitmq/rabbitmq/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    RabbitMQ Connector
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../rabbitmq/receiving-messages-from-rabbitmq/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Receiving messages
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../rabbitmq/sending-messages-to-rabbitmq/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Sending messages
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../rabbitmq/rabbitmq-health/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Health Checks
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../rabbitmq/rabbitmq-client-customization/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Client Customization
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../rabbitmq/rabbitmq-cloud/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Connecting to managed instances
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+      
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    Pulsar
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            Pulsar
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../pulsar/pulsar/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Apache Pulsar Connector
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../pulsar/receiving-pulsar-messages/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Receiving messages
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../pulsar/sending-messages-to-pulsar/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Sending messages
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../pulsar/schema-configuration/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Configuring the Schema
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../pulsar/client-configuration/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Configuring the Pulsar client
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../pulsar/health/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Health Checks
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../pulsar/client-service/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Accessing the client
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../pulsar/transactions/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Pulsar Transactions and Exactly-Once Processing
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+      
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    Apache Camel
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            Apache Camel
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../camel/camel/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Apache Camel Connector
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../camel/receiving-messages-from-camel/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Receiving messages from Camel
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../camel/sending-messages-to-camel/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Sending messages to Camel
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../camel/camel-processor/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Implementing Camel processor
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../camel/using-existing-routes/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Using existing Camel routes
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+      
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    JMS
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8">
+            <span class="md-nav__icon md-icon"></span>
+            JMS
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../jms/jms/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    The JMS connector
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../jms/receiving-jms-messages/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Receiving JMS messages
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../jms/sending-jms-messages/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Sending JMS messages
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../jms/advanced-jms/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Advanced configuration
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+      
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_9" >
+        
+          
+          <label class="md-nav__link" for="__nav_9" id="__nav_9_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    MQTT
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_9_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_9">
+            <span class="md-nav__icon md-icon"></span>
+            MQTT
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../mqtt/mqtt/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    MQTT Connector
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../mqtt/receiving-mqtt-messages/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Receiving MQTT messages
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../mqtt/sending-messages-to-mqtt/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Sending MQTT messages
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../mqtt/client-customization/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Customizing the MQTT client
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+      
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_10" >
+        
+          
+          <label class="md-nav__link" for="__nav_10" id="__nav_10_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    AWS SQS
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_10_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_10">
+            <span class="md-nav__icon md-icon"></span>
+            AWS SQS
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sqs/sqs/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    AWS SQS Connector
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sqs/receiving-aws-sqs-messages/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Receiving AWS SQS messages
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sqs/sending-aws-sqs-messages/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Sending AWS SQS messages
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#example" class="md-nav__link">
+    Example
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#serialization" class="md-nav__link">
+    Serialization
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sending-keyvalue-pairs" class="md-nav__link">
+    Sending key/value pairs
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#outbound-metadata" class="md-nav__link">
+    Outbound Metadata
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#propagating-record-key" class="md-nav__link">
+    Propagating Record Key
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#propagating-record-headers" class="md-nav__link">
+    Propagating Record headers
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#dynamic-topic-names" class="md-nav__link">
+    Dynamic topic names
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#acknowledgement" class="md-nav__link">
+    Acknowledgement
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#back-pressure-and-inflight-records" class="md-nav__link">
+    Back-pressure and inflight records
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#handling-serialization-failures" class="md-nav__link">
+    Handling serialization failures
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sending-cloud-events" class="md-nav__link">
+    Sending Cloud Events
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#using-producerrecord" class="md-nav__link">
+    Using ProducerRecord
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#producer-interceptors" class="md-nav__link">
+    Producer Interceptors
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#configuration-reference" class="md-nav__link">
+    Configuration Reference
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+  
+  
+
+
+<h1 id="writing-kafka-records">Writing Kafka Records</h1>
+<p>The Kafka Connector can write Reactive Messaging <code>Messages</code> as Kafka
+Records.</p>
+<h2 id="example">Example</h2>
+<p>Let’s imagine you have a Kafka broker running, and accessible using the
+<code>kafka:9092</code> address (by default it would use <code>localhost:9092</code>).
+Configure your application to write the messages from the <code>prices</code>
+channel into a Kafka <em>topic</em> as follows:</p>
+<p><div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-1">1</a></span>
+<span class="normal"><a href="#__codelineno-0-2">2</a></span>
+<span class="normal"><a href="#__codelineno-0-3">3</a></span>
+<span class="normal"><a href="#__codelineno-0-4">4</a></span>
+<span class="normal"><a href="#__codelineno-0-5">5</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1"></a><span class="na">kafka.bootstrap.servers</span><span class="o">=</span><span class="s">kafka:9092 # &lt;1&gt;</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2"></a>
+<a id="__codelineno-0-3" name="__codelineno-0-3"></a><span class="na">mp.messaging.outgoing.prices-out.connector</span><span class="o">=</span><span class="s">smallrye-kafka # &lt;2&gt;</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4"></a><span class="na">mp.messaging.outgoing.prices-out.value.serializer</span><span class="o">=</span><span class="s">org.apache.kafka.common.serialization.DoubleSerializer # &lt;3&gt;</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5"></a><span class="na">mp.messaging.outgoing.prices-out.topic</span><span class="o">=</span><span class="s">prices # &lt;4&gt;</span>
+</code></pre></div></td></tr></table></div>
+1.  Configure the broker location. You can configure it globally or per
+    channel
+2.  Configure the connector to manage the <code>prices</code> channel
+3.  Sets the (Kafka) serializer to encode the message payload into the
+    record’s value
+4.  Make sure the topic name is <code>prices</code> (and not the default
+    <code>prices-out</code>)</p>
+<p>Then, your application must send <code>Message&lt;Double&gt;</code> to the <code>prices</code>
+channel. It can use <code>double</code> payloads as in the following snippet:</p>
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-1-1"> 1</a></span>
+<span class="normal"><a href="#__codelineno-1-2"> 2</a></span>
+<span class="normal"><a href="#__codelineno-1-3"> 3</a></span>
+<span class="normal"><a href="#__codelineno-1-4"> 4</a></span>
+<span class="normal"><a href="#__codelineno-1-5"> 5</a></span>
+<span class="normal"><a href="#__codelineno-1-6"> 6</a></span>
+<span class="normal"><a href="#__codelineno-1-7"> 7</a></span>
+<span class="normal"><a href="#__codelineno-1-8"> 8</a></span>
+<span class="normal"><a href="#__codelineno-1-9"> 9</a></span>
+<span class="normal"><a href="#__codelineno-1-10">10</a></span>
+<span class="normal"><a href="#__codelineno-1-11">11</a></span>
+<span class="normal"><a href="#__codelineno-1-12">12</a></span>
+<span class="normal"><a href="#__codelineno-1-13">13</a></span>
+<span class="normal"><a href="#__codelineno-1-14">14</a></span>
+<span class="normal"><a href="#__codelineno-1-15">15</a></span>
+<span class="normal"><a href="#__codelineno-1-16">16</a></span>
+<span class="normal"><a href="#__codelineno-1-17">17</a></span>
+<span class="normal"><a href="#__codelineno-1-18">18</a></span>
+<span class="normal"><a href="#__codelineno-1-19">19</a></span>
+<span class="normal"><a href="#__codelineno-1-20">20</a></span>
+<span class="normal"><a href="#__codelineno-1-21">21</a></span>
+<span class="normal"><a href="#__codelineno-1-22">22</a></span>
+<span class="normal"><a href="#__codelineno-1-23">23</a></span>
+<span class="normal"><a href="#__codelineno-1-24">24</a></span>
+<span class="normal"><a href="#__codelineno-1-25">25</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1"></a><span class="kn">package</span><span class="w"> </span><span class="nn">kafka.outbound</span><span class="p">;</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2"></a>
+<a id="__codelineno-1-3" name="__codelineno-1-3"></a><span class="kn">import</span><span class="w"> </span><span class="nn">java.time.Duration</span><span class="p">;</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4"></a><span class="kn">import</span><span class="w"> </span><span class="nn">java.util.Random</span><span class="p">;</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5"></a>
+<a id="__codelineno-1-6" name="__codelineno-1-6"></a><span class="kn">import</span><span class="w"> </span><span class="nn">jakarta.enterprise.context.ApplicationScoped</span><span class="p">;</span>
+<a id="__codelineno-1-7" name="__codelineno-1-7"></a>
+<a id="__codelineno-1-8" name="__codelineno-1-8"></a><span class="kn">import</span><span class="w"> </span><span class="nn">org.eclipse.microprofile.reactive.messaging.Outgoing</span><span class="p">;</span>
+<a id="__codelineno-1-9" name="__codelineno-1-9"></a>
+<a id="__codelineno-1-10" name="__codelineno-1-10"></a><span class="kn">import</span><span class="w"> </span><span class="nn">io.smallrye.mutiny.Multi</span><span class="p">;</span>
+<a id="__codelineno-1-11" name="__codelineno-1-11"></a>
+<a id="__codelineno-1-12" name="__codelineno-1-12"></a><span class="nd">@ApplicationScoped</span>
+<a id="__codelineno-1-13" name="__codelineno-1-13"></a><span class="kd">public</span><span class="w"> </span><span class="kd">class</span> <span class="nc">KafkaPriceProducer</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-1-14" name="__codelineno-1-14"></a>
+<a id="__codelineno-1-15" name="__codelineno-1-15"></a><span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="kd">final</span><span class="w"> </span><span class="n">Random</span><span class="w"> </span><span class="n">random</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">Random</span><span class="p">();</span>
+<a id="__codelineno-1-16" name="__codelineno-1-16"></a>
+<a id="__codelineno-1-17" name="__codelineno-1-17"></a><span class="w">    </span><span class="nd">@Outgoing</span><span class="p">(</span><span class="s">&quot;prices-out&quot;</span><span class="p">)</span>
+<a id="__codelineno-1-18" name="__codelineno-1-18"></a><span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="n">Multi</span><span class="o">&lt;</span><span class="n">Double</span><span class="o">&gt;</span><span class="w"> </span><span class="nf">generate</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-1-19" name="__codelineno-1-19"></a><span class="w">        </span><span class="c1">// Build an infinite stream of random prices</span>
+<a id="__codelineno-1-20" name="__codelineno-1-20"></a><span class="w">        </span><span class="c1">// It emits a price every second</span>
+<a id="__codelineno-1-21" name="__codelineno-1-21"></a><span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">Multi</span><span class="p">.</span><span class="na">createFrom</span><span class="p">().</span><span class="na">ticks</span><span class="p">().</span><span class="na">every</span><span class="p">(</span><span class="n">Duration</span><span class="p">.</span><span class="na">ofSeconds</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span>
+<a id="__codelineno-1-22" name="__codelineno-1-22"></a><span class="w">                </span><span class="p">.</span><span class="na">map</span><span class="p">(</span><span class="n">x</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="n">random</span><span class="p">.</span><span class="na">nextDouble</span><span class="p">());</span>
+<a id="__codelineno-1-23" name="__codelineno-1-23"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-1-24" name="__codelineno-1-24"></a>
+<a id="__codelineno-1-25" name="__codelineno-1-25"></a><span class="p">}</span>
+</code></pre></div></td></tr></table></div>
+<p>Or, you can send <code>Message&lt;Double&gt;</code>:</p>
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-2-1"> 1</a></span>
+<span class="normal"><a href="#__codelineno-2-2"> 2</a></span>
+<span class="normal"><a href="#__codelineno-2-3"> 3</a></span>
+<span class="normal"><a href="#__codelineno-2-4"> 4</a></span>
+<span class="normal"><a href="#__codelineno-2-5"> 5</a></span>
+<span class="normal"><a href="#__codelineno-2-6"> 6</a></span>
+<span class="normal"><a href="#__codelineno-2-7"> 7</a></span>
+<span class="normal"><a href="#__codelineno-2-8"> 8</a></span>
+<span class="normal"><a href="#__codelineno-2-9"> 9</a></span>
+<span class="normal"><a href="#__codelineno-2-10">10</a></span>
+<span class="normal"><a href="#__codelineno-2-11">11</a></span>
+<span class="normal"><a href="#__codelineno-2-12">12</a></span>
+<span class="normal"><a href="#__codelineno-2-13">13</a></span>
+<span class="normal"><a href="#__codelineno-2-14">14</a></span>
+<span class="normal"><a href="#__codelineno-2-15">15</a></span>
+<span class="normal"><a href="#__codelineno-2-16">16</a></span>
+<span class="normal"><a href="#__codelineno-2-17">17</a></span>
+<span class="normal"><a href="#__codelineno-2-18">18</a></span>
+<span class="normal"><a href="#__codelineno-2-19">19</a></span>
+<span class="normal"><a href="#__codelineno-2-20">20</a></span>
+<span class="normal"><a href="#__codelineno-2-21">21</a></span>
+<span class="normal"><a href="#__codelineno-2-22">22</a></span>
+<span class="normal"><a href="#__codelineno-2-23">23</a></span>
+<span class="normal"><a href="#__codelineno-2-24">24</a></span>
+<span class="normal"><a href="#__codelineno-2-25">25</a></span>
+<span class="normal"><a href="#__codelineno-2-26">26</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1"></a><span class="kn">package</span><span class="w"> </span><span class="nn">kafka.outbound</span><span class="p">;</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2"></a>
+<a id="__codelineno-2-3" name="__codelineno-2-3"></a><span class="kn">import</span><span class="w"> </span><span class="nn">java.time.Duration</span><span class="p">;</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4"></a><span class="kn">import</span><span class="w"> </span><span class="nn">java.util.Random</span><span class="p">;</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5"></a>
+<a id="__codelineno-2-6" name="__codelineno-2-6"></a><span class="kn">import</span><span class="w"> </span><span class="nn">jakarta.enterprise.context.ApplicationScoped</span><span class="p">;</span>
+<a id="__codelineno-2-7" name="__codelineno-2-7"></a>
+<a id="__codelineno-2-8" name="__codelineno-2-8"></a><span class="kn">import</span><span class="w"> </span><span class="nn">org.eclipse.microprofile.reactive.messaging.Message</span><span class="p">;</span>
+<a id="__codelineno-2-9" name="__codelineno-2-9"></a><span class="kn">import</span><span class="w"> </span><span class="nn">org.eclipse.microprofile.reactive.messaging.Outgoing</span><span class="p">;</span>
+<a id="__codelineno-2-10" name="__codelineno-2-10"></a>
+<a id="__codelineno-2-11" name="__codelineno-2-11"></a><span class="kn">import</span><span class="w"> </span><span class="nn">io.smallrye.mutiny.Multi</span><span class="p">;</span>
+<a id="__codelineno-2-12" name="__codelineno-2-12"></a>
+<a id="__codelineno-2-13" name="__codelineno-2-13"></a><span class="nd">@ApplicationScoped</span>
+<a id="__codelineno-2-14" name="__codelineno-2-14"></a><span class="kd">public</span><span class="w"> </span><span class="kd">class</span> <span class="nc">KafkaPriceMessageProducer</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-2-15" name="__codelineno-2-15"></a>
+<a id="__codelineno-2-16" name="__codelineno-2-16"></a><span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="kd">final</span><span class="w"> </span><span class="n">Random</span><span class="w"> </span><span class="n">random</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">Random</span><span class="p">();</span>
+<a id="__codelineno-2-17" name="__codelineno-2-17"></a>
+<a id="__codelineno-2-18" name="__codelineno-2-18"></a><span class="w">    </span><span class="nd">@Outgoing</span><span class="p">(</span><span class="s">&quot;prices-out&quot;</span><span class="p">)</span>
+<a id="__codelineno-2-19" name="__codelineno-2-19"></a><span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="n">Multi</span><span class="o">&lt;</span><span class="n">Message</span><span class="o">&lt;</span><span class="n">Double</span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="nf">generate</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-2-20" name="__codelineno-2-20"></a><span class="w">        </span><span class="c1">// Build an infinite stream of random prices</span>
+<a id="__codelineno-2-21" name="__codelineno-2-21"></a><span class="w">        </span><span class="c1">// It emits a price every second</span>
+<a id="__codelineno-2-22" name="__codelineno-2-22"></a><span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">Multi</span><span class="p">.</span><span class="na">createFrom</span><span class="p">().</span><span class="na">ticks</span><span class="p">().</span><span class="na">every</span><span class="p">(</span><span class="n">Duration</span><span class="p">.</span><span class="na">ofSeconds</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span>
+<a id="__codelineno-2-23" name="__codelineno-2-23"></a><span class="w">                </span><span class="p">.</span><span class="na">map</span><span class="p">(</span><span class="n">x</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="n">Message</span><span class="p">.</span><span class="na">of</span><span class="p">(</span><span class="n">random</span><span class="p">.</span><span class="na">nextDouble</span><span class="p">()));</span>
+<a id="__codelineno-2-24" name="__codelineno-2-24"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-2-25" name="__codelineno-2-25"></a>
+<a id="__codelineno-2-26" name="__codelineno-2-26"></a><span class="p">}</span>
+</code></pre></div></td></tr></table></div>
+<h2 id="serialization">Serialization</h2>
+<p>The serialization is handled by the underlying Kafka Client. You need to
+configure the:</p>
+<ul>
+<li>
+<p><code>mp.messaging.outgoing.[channel-name].value.serializer</code> to configure
+    the value serializer (mandatory)</p>
+</li>
+<li>
+<p><code>mp.messaging.outgoing.[channel-name].key.serializer</code> to configure
+    the key serializer (optional, default to <code>String</code>)</p>
+</li>
+</ul>
+<p>If you want to use a custom serializer, add it to your <code>CLASSPATH</code> and
+configure the associate attribute.</p>
+<p>By default, the written record contains:</p>
+<ul>
+<li>
+<p>the <code>Message</code> payload as <em>value</em></p>
+</li>
+<li>
+<p>no key, or the key configured using the <code>key</code> attribute or the key
+    passed in the metadata attached to the <code>Message</code></p>
+</li>
+<li>
+<p>the timestamp computed for the system clock (<code>now</code>) or the timestamp
+    passed in the metadata attached to the <code>Message</code></p>
+</li>
+</ul>
+<h2 id="sending-keyvalue-pairs">Sending key/value pairs</h2>
+<p>In the Kafka world, it’s often necessary to send <em>records</em>, i.e. a
+key/value pair. The connector provides the <a class='docissimo, docissimo-javadoc' href='https://javadoc.io/doc/io.smallrye.reactive/smallrye-reactive-messaging-kafka/4.26.0-RC4/io/smallrye/reactive/messaging/kafka/Record.html'>io.smallrye.reactive.messaging.kafka.Record</a>
+class that you can use to send a pair:</p>
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-3-1">1</a></span>
+<span class="normal"><a href="#__codelineno-3-2">2</a></span>
+<span class="normal"><a href="#__codelineno-3-3">3</a></span>
+<span class="normal"><a href="#__codelineno-3-4">4</a></span>
+<span class="normal"><a href="#__codelineno-3-5">5</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1"></a><span class="nd">@Incoming</span><span class="p">(</span><span class="s">&quot;in&quot;</span><span class="p">)</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2"></a><span class="nd">@Outgoing</span><span class="p">(</span><span class="s">&quot;out&quot;</span><span class="p">)</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3"></a><span class="kd">public</span><span class="w"> </span><span class="n">Record</span><span class="o">&lt;</span><span class="n">String</span><span class="p">,</span><span class="w"> </span><span class="n">String</span><span class="o">&gt;</span><span class="w"> </span><span class="nf">process</span><span class="p">(</span><span class="n">String</span><span class="w"> </span><span class="n">in</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-3-4" name="__codelineno-3-4"></a><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">Record</span><span class="p">.</span><span class="na">of</span><span class="p">(</span><span class="s">&quot;my-key&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">in</span><span class="p">);</span>
+<a id="__codelineno-3-5" name="__codelineno-3-5"></a><span class="p">}</span>
+</code></pre></div></td></tr></table></div>
+<p>When the connector receives a message with a <code>Record</code> payload, it
+extracts the key and value from it. The configured serializers for the
+key and the value must be compatible with the record’s key and value.
+Note that the <code>key</code> and the <code>value</code> can be <code>null</code>. It is also possible
+to create a record with a <code>null</code> key AND a <code>null</code> value.</p>
+<p>If you need more control on the written records, use
+<code>OutgoingKafkaRecordMetadata</code>.</p>
+<h2 id="outbound-metadata">Outbound Metadata</h2>
+<p>When sending <code>Messages</code>, you can add an instance of
+<a class='docissimo, docissimo-javadoc' href='https://javadoc.io/doc/io.smallrye.reactive/smallrye-reactive-messaging-kafka/4.26.0-RC4/io/smallrye/reactive/messaging/kafka/api/OutgoingKafkaRecordMetadata.html'>OutgoingKafkaRecordMetadata</a>
+to influence how the message is going to be written to Kafka. For example,
+you can add Kafka headers, configure the record key…</p>
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-4-1"> 1</a></span>
+<span class="normal"><a href="#__codelineno-4-2"> 2</a></span>
+<span class="normal"><a href="#__codelineno-4-3"> 3</a></span>
+<span class="normal"><a href="#__codelineno-4-4"> 4</a></span>
+<span class="normal"><a href="#__codelineno-4-5"> 5</a></span>
+<span class="normal"><a href="#__codelineno-4-6"> 6</a></span>
+<span class="normal"><a href="#__codelineno-4-7"> 7</a></span>
+<span class="normal"><a href="#__codelineno-4-8"> 8</a></span>
+<span class="normal"><a href="#__codelineno-4-9"> 9</a></span>
+<span class="normal"><a href="#__codelineno-4-10">10</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1"></a><span class="c1">// Creates an OutgoingKafkaRecordMetadata</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2"></a><span class="c1">// The type parameter is the type of the record&#39;s key</span>
+<a id="__codelineno-4-3" name="__codelineno-4-3"></a><span class="n">OutgoingKafkaRecordMetadata</span><span class="o">&lt;</span><span class="n">String</span><span class="o">&gt;</span><span class="w"> </span><span class="n">metadata</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">OutgoingKafkaRecordMetadata</span><span class="p">.</span><span class="o">&lt;</span><span class="n">String</span><span class="o">&gt;</span><span class="w"> </span><span class="nf">builder</span><span class="p">()</span>
+<a id="__codelineno-4-4" name="__codelineno-4-4"></a><span class="w">        </span><span class="p">.</span><span class="na">withKey</span><span class="p">(</span><span class="s">&quot;my-key&quot;</span><span class="p">)</span>
+<a id="__codelineno-4-5" name="__codelineno-4-5"></a><span class="w">        </span><span class="p">.</span><span class="na">withHeaders</span><span class="p">(</span><span class="k">new</span><span class="w"> </span><span class="n">RecordHeaders</span><span class="p">().</span><span class="na">add</span><span class="p">(</span><span class="s">&quot;my-header&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;value&quot;</span><span class="p">.</span><span class="na">getBytes</span><span class="p">()))</span>
+<a id="__codelineno-4-6" name="__codelineno-4-6"></a><span class="w">        </span><span class="p">.</span><span class="na">build</span><span class="p">();</span>
+<a id="__codelineno-4-7" name="__codelineno-4-7"></a>
+<a id="__codelineno-4-8" name="__codelineno-4-8"></a><span class="c1">// Create a new message from the `incoming` message</span>
+<a id="__codelineno-4-9" name="__codelineno-4-9"></a><span class="c1">// Add `metadata` to the metadata from the `incoming` message.</span>
+<a id="__codelineno-4-10" name="__codelineno-4-10"></a><span class="k">return</span><span class="w"> </span><span class="n">incoming</span><span class="p">.</span><span class="na">addMetadata</span><span class="p">(</span><span class="n">metadata</span><span class="p">);</span>
+</code></pre></div></td></tr></table></div>
+<h2 id="propagating-record-key">Propagating Record Key</h2>
+<p>When processing messages, you can propagate incoming record key to the
+outgoing record.</p>
+<p>Consider the following example method, which consumes messages from the
+channel <code>in</code>, transforms the payload, and writes the result to the
+channel <code>out</code>.</p>
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-5-1">1</a></span>
+<span class="normal"><a href="#__codelineno-5-2">2</a></span>
+<span class="normal"><a href="#__codelineno-5-3">3</a></span>
+<span class="normal"><a href="#__codelineno-5-4">4</a></span>
+<span class="normal"><a href="#__codelineno-5-5">5</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1"></a><span class="nd">@Incoming</span><span class="p">(</span><span class="s">&quot;in&quot;</span><span class="p">)</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2"></a><span class="nd">@Outgoing</span><span class="p">(</span><span class="s">&quot;out&quot;</span><span class="p">)</span>
+<a id="__codelineno-5-3" name="__codelineno-5-3"></a><span class="kd">public</span><span class="w"> </span><span class="kt">double</span><span class="w"> </span><span class="nf">process</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">in</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-5-4" name="__codelineno-5-4"></a><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">in</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mf">0.88</span><span class="p">;</span>
+<a id="__codelineno-5-5" name="__codelineno-5-5"></a><span class="p">}</span>
+</code></pre></div></td></tr></table></div>
+<p>Enabled with
+<code>mp.messaging.outgoing.[channel-name].propagate-record-key=true</code>
+configuration, record key propagation produces the outgoing record with
+the same <em>key</em> as the incoming record.</p>
+<p>If the outgoing record already contains a <em>key</em>, it <strong>won’t be
+overridden</strong> by the incoming record key. If the incoming record does
+have a <em>null</em> key, the <code>mp.messaging.outgoing.[channel-name].key</code>
+property is used.</p>
+<h2 id="propagating-record-headers">Propagating Record headers</h2>
+<p>You can also propagate incoming record headers to the outgoing record, by specifying the list of headers to be considered.</p>
+<p><code>mp.messaging.outgoing.[channel-name].propagate-headers=Authorization,Proxy-Authorization</code></p>
+<p>If the ougoing record already defines a header with the same key, it won't be overriden by the incoming header.</p>
+<h2 id="dynamic-topic-names">Dynamic topic names</h2>
+<p>Sometimes it is desirable to select the destination of a message
+dynamically. In this case, you should not configure the topic inside
+your application configuration file, but instead, use the outbound
+metadata to set the name of the topic.</p>
+<p>For example, you can route to a dynamic topic based on the incoming
+message:</p>
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-6-1">1</a></span>
+<span class="normal"><a href="#__codelineno-6-2">2</a></span>
+<span class="normal"><a href="#__codelineno-6-3">3</a></span>
+<span class="normal"><a href="#__codelineno-6-4">4</a></span>
+<span class="normal"><a href="#__codelineno-6-5">5</a></span>
+<span class="normal"><a href="#__codelineno-6-6">6</a></span>
+<span class="normal"><a href="#__codelineno-6-7">7</a></span>
+<span class="normal"><a href="#__codelineno-6-8">8</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1"></a><span class="n">String</span><span class="w"> </span><span class="n">topicName</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">selectTopicFromIncommingMessage</span><span class="p">(</span><span class="n">incoming</span><span class="p">);</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2"></a><span class="n">OutgoingKafkaRecordMetadata</span><span class="o">&lt;</span><span class="n">String</span><span class="o">&gt;</span><span class="w"> </span><span class="n">metadata</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">OutgoingKafkaRecordMetadata</span><span class="p">.</span><span class="o">&lt;</span><span class="n">String</span><span class="o">&gt;</span><span class="w"> </span><span class="nf">builder</span><span class="p">()</span>
+<a id="__codelineno-6-3" name="__codelineno-6-3"></a><span class="w">        </span><span class="p">.</span><span class="na">withTopic</span><span class="p">(</span><span class="n">topicName</span><span class="p">)</span>
+<a id="__codelineno-6-4" name="__codelineno-6-4"></a><span class="w">        </span><span class="p">.</span><span class="na">build</span><span class="p">();</span>
+<a id="__codelineno-6-5" name="__codelineno-6-5"></a>
+<a id="__codelineno-6-6" name="__codelineno-6-6"></a><span class="c1">// Create a new message from the `incoming` message</span>
+<a id="__codelineno-6-7" name="__codelineno-6-7"></a><span class="c1">// Add `metadata` to the metadata from the `incoming` message.</span>
+<a id="__codelineno-6-8" name="__codelineno-6-8"></a><span class="k">return</span><span class="w"> </span><span class="n">incoming</span><span class="p">.</span><span class="na">addMetadata</span><span class="p">(</span><span class="n">metadata</span><span class="p">);</span>
+</code></pre></div></td></tr></table></div>
+<h2 id="acknowledgement">Acknowledgement</h2>
+<p>Kafka acknowledgement can take times depending on the configuration.
+Also, it stores in-memory the records that cannot be written.</p>
+<p>By default, the connector does wait for Kafka to acknowledge the record
+to continue the processing (acknowledging the received <code>Message</code>). You
+can disable this by setting the <code>waitForWriteCompletion</code> attribute to
+<code>false</code>.</p>
+<p>Note that the <code>acks</code> attribute has a huge impact on the record
+acknowledgement.</p>
+<p>If a record cannot be written, the message is <code>nacked</code>.</p>
+<h2 id="back-pressure-and-inflight-records">Back-pressure and inflight records</h2>
+<p>The Kafka outbound connector handles back-pressure monitoring the number
+of in-flight messages waiting to be written to the Kafka broker. The
+number of in-flight messages is configured using the
+<code>max-inflight-messages</code> attribute and defaults to 1024.</p>
+<p>The connector only sends that amount of messages concurrently. No other
+messages will be sent until at least one in-flight message gets
+acknowledged by the broker. Then, the connector writes a new message to
+Kafka when one of the broker’s in-flight messages get acknowledged. Be
+sure to configure Kafka’s <code>batch.size</code> and <code>linger.ms</code> accordingly.</p>
+<p>You can also remove the limit of inflight messages by setting
+<code>max-inflight-messages</code> to <code>0</code>. However, note that the Kafka Producer
+may block if the number of requests reaches
+<code>max.in.flight.requests.per.connection</code>.</p>
+<h2 id="handling-serialization-failures">Handling serialization failures</h2>
+<p>For Kafka producer client serialization failures are not recoverable,
+thus the message dispatch is not retried. However, using schema
+registries, serialization may intermittently fail to contact the
+registry. In these cases you may need to apply a failure strategy for
+the serializer. To achieve this, create a CDI bean implementing the <a class='docissimo, docissimo-javadoc' href='https://javadoc.io/doc/io.smallrye.reactive/smallrye-reactive-messaging-kafka/4.26.0-RC4/io/smallrye/reactive/messaging/kafka/SerializationFailureHandler.html'>SerializationFailureHandler</a>
+interface:</p>
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-7-1"> 1</a></span>
+<span class="normal"><a href="#__codelineno-7-2"> 2</a></span>
+<span class="normal"><a href="#__codelineno-7-3"> 3</a></span>
+<span class="normal"><a href="#__codelineno-7-4"> 4</a></span>
+<span class="normal"><a href="#__codelineno-7-5"> 5</a></span>
+<span class="normal"><a href="#__codelineno-7-6"> 6</a></span>
+<span class="normal"><a href="#__codelineno-7-7"> 7</a></span>
+<span class="normal"><a href="#__codelineno-7-8"> 8</a></span>
+<span class="normal"><a href="#__codelineno-7-9"> 9</a></span>
+<span class="normal"><a href="#__codelineno-7-10">10</a></span>
+<span class="normal"><a href="#__codelineno-7-11">11</a></span>
+<span class="normal"><a href="#__codelineno-7-12">12</a></span>
+<span class="normal"><a href="#__codelineno-7-13">13</a></span>
+<span class="normal"><a href="#__codelineno-7-14">14</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1"></a><span class="nd">@ApplicationScoped</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2"></a><span class="nd">@Identifier</span><span class="p">(</span><span class="s">&quot;failure-fallback&quot;</span><span class="p">)</span><span class="w"> </span><span class="c1">// Set the name of the failure handler</span>
+<a id="__codelineno-7-3" name="__codelineno-7-3"></a><span class="kd">public</span><span class="w"> </span><span class="kd">class</span> <span class="nc">MySerializationFailureHandler</span>
+<a id="__codelineno-7-4" name="__codelineno-7-4"></a><span class="w">    </span><span class="kd">implements</span><span class="w"> </span><span class="n">SerializationFailureHandler</span><span class="o">&lt;</span><span class="n">JsonObject</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="c1">// Specify the expected type</span>
+<a id="__codelineno-7-5" name="__codelineno-7-5"></a>
+<a id="__codelineno-7-6" name="__codelineno-7-6"></a><span class="w">    </span><span class="nd">@Override</span>
+<a id="__codelineno-7-7" name="__codelineno-7-7"></a><span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="kt">byte</span><span class="o">[]</span><span class="w"> </span><span class="nf">decorateSerialization</span><span class="p">(</span><span class="n">Uni</span><span class="o">&lt;</span><span class="kt">byte</span><span class="o">[]&gt;</span><span class="w"> </span><span class="n">serialization</span><span class="p">,</span><span class="w"> </span><span class="n">String</span><span class="w"> </span><span class="n">topic</span><span class="p">,</span>
+<a id="__codelineno-7-8" name="__codelineno-7-8"></a><span class="w">                </span><span class="kt">boolean</span><span class="w"> </span><span class="n">isKey</span><span class="p">,</span><span class="w"> </span><span class="n">String</span><span class="w"> </span><span class="n">serializer</span><span class="p">,</span>
+<a id="__codelineno-7-9" name="__codelineno-7-9"></a><span class="w">                </span><span class="n">Object</span><span class="w"> </span><span class="n">data</span><span class="p">,</span><span class="w"> </span><span class="n">Headers</span><span class="w"> </span><span class="n">headers</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-7-10" name="__codelineno-7-10"></a><span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">serialization</span>
+<a id="__codelineno-7-11" name="__codelineno-7-11"></a><span class="w">                    </span><span class="p">.</span><span class="na">onFailure</span><span class="p">().</span><span class="na">retry</span><span class="p">().</span><span class="na">atMost</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+<a id="__codelineno-7-12" name="__codelineno-7-12"></a><span class="w">                    </span><span class="p">.</span><span class="na">await</span><span class="p">().</span><span class="na">atMost</span><span class="p">(</span><span class="n">Duration</span><span class="p">.</span><span class="na">ofMillis</span><span class="p">(</span><span class="mi">200</span><span class="p">));</span>
+<a id="__codelineno-7-13" name="__codelineno-7-13"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-7-14" name="__codelineno-7-14"></a><span class="p">}</span>
+</code></pre></div></td></tr></table></div>
+<p>The bean must be exposed with the <code>@Identifier</code> qualifier specifying the
+name of the bean. Then, in the connector configuration, specify the
+following attribute:</p>
+<ul>
+<li>
+<p><code>mp.messaging.incoming.$channel.key-serialization-failure-handler</code>:
+    name of the bean handling serialization failures happening for the
+    record’s key</p>
+</li>
+<li>
+<p><code>mp.messaging.incoming.$channel.value-serialization-failure-handler</code>:
+    name of the bean handling serialization failures happening for the
+    record’s value,</p>
+</li>
+</ul>
+<p>The handler is called with the serialization action as a <code>Uni</code>, the
+record’s topic, a boolean indicating whether the failure happened on a
+key, the class name of the deserializer that throws the exception, the
+corrupted data, the exception, and the records headers. Failure
+strategies like retry, providing a fallback value or applying timeout
+can be implemented. Note that the method must await on the result and
+return the serialized byte array. Alternatively, the handler can
+implement <code>decorateSerialization</code> method which can return a fallback
+value.</p>
+<h2 id="sending-cloud-events">Sending Cloud Events</h2>
+<p>The Kafka connector supports <a href="https://cloudevents.io/">Cloud Events</a>.
+The connector sends the outbound record as Cloud Events if:</p>
+<ul>
+<li>
+<p>the message metadata contains an
+    <code>io.smallrye.reactive.messaging.ce.OutgoingCloudEventMetadata</code>
+    instance,</p>
+</li>
+<li>
+<p>the channel configuration defines the <code>cloud-events-type</code> and
+    <code>cloud-events-source</code> attributes.</p>
+</li>
+</ul>
+<p>You can create
+<code>io.smallrye.reactive.messaging.ce.OutgoingCloudEventMetadata</code> instances
+using:</p>
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-8-1"> 1</a></span>
+<span class="normal"><a href="#__codelineno-8-2"> 2</a></span>
+<span class="normal"><a href="#__codelineno-8-3"> 3</a></span>
+<span class="normal"><a href="#__codelineno-8-4"> 4</a></span>
+<span class="normal"><a href="#__codelineno-8-5"> 5</a></span>
+<span class="normal"><a href="#__codelineno-8-6"> 6</a></span>
+<span class="normal"><a href="#__codelineno-8-7"> 7</a></span>
+<span class="normal"><a href="#__codelineno-8-8"> 8</a></span>
+<span class="normal"><a href="#__codelineno-8-9"> 9</a></span>
+<span class="normal"><a href="#__codelineno-8-10">10</a></span>
+<span class="normal"><a href="#__codelineno-8-11">11</a></span>
+<span class="normal"><a href="#__codelineno-8-12">12</a></span>
+<span class="normal"><a href="#__codelineno-8-13">13</a></span>
+<span class="normal"><a href="#__codelineno-8-14">14</a></span>
+<span class="normal"><a href="#__codelineno-8-15">15</a></span>
+<span class="normal"><a href="#__codelineno-8-16">16</a></span>
+<span class="normal"><a href="#__codelineno-8-17">17</a></span>
+<span class="normal"><a href="#__codelineno-8-18">18</a></span>
+<span class="normal"><a href="#__codelineno-8-19">19</a></span>
+<span class="normal"><a href="#__codelineno-8-20">20</a></span>
+<span class="normal"><a href="#__codelineno-8-21">21</a></span>
+<span class="normal"><a href="#__codelineno-8-22">22</a></span>
+<span class="normal"><a href="#__codelineno-8-23">23</a></span>
+<span class="normal"><a href="#__codelineno-8-24">24</a></span>
+<span class="normal"><a href="#__codelineno-8-25">25</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1"></a><span class="kn">package</span><span class="w"> </span><span class="nn">kafka.outbound</span><span class="p">;</span>
+<a id="__codelineno-8-2" name="__codelineno-8-2"></a>
+<a id="__codelineno-8-3" name="__codelineno-8-3"></a><span class="kn">import</span><span class="w"> </span><span class="nn">java.net.URI</span><span class="p">;</span>
+<a id="__codelineno-8-4" name="__codelineno-8-4"></a>
+<a id="__codelineno-8-5" name="__codelineno-8-5"></a><span class="kn">import</span><span class="w"> </span><span class="nn">jakarta.enterprise.context.ApplicationScoped</span><span class="p">;</span>
+<a id="__codelineno-8-6" name="__codelineno-8-6"></a>
+<a id="__codelineno-8-7" name="__codelineno-8-7"></a><span class="kn">import</span><span class="w"> </span><span class="nn">org.eclipse.microprofile.reactive.messaging.Message</span><span class="p">;</span>
+<a id="__codelineno-8-8" name="__codelineno-8-8"></a><span class="kn">import</span><span class="w"> </span><span class="nn">org.eclipse.microprofile.reactive.messaging.Outgoing</span><span class="p">;</span>
+<a id="__codelineno-8-9" name="__codelineno-8-9"></a>
+<a id="__codelineno-8-10" name="__codelineno-8-10"></a><span class="kn">import</span><span class="w"> </span><span class="nn">io.smallrye.reactive.messaging.ce.OutgoingCloudEventMetadata</span><span class="p">;</span>
+<a id="__codelineno-8-11" name="__codelineno-8-11"></a>
+<a id="__codelineno-8-12" name="__codelineno-8-12"></a><span class="nd">@ApplicationScoped</span>
+<a id="__codelineno-8-13" name="__codelineno-8-13"></a><span class="kd">public</span><span class="w"> </span><span class="kd">class</span> <span class="nc">KafkaCloudEventProcessor</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-8-14" name="__codelineno-8-14"></a>
+<a id="__codelineno-8-15" name="__codelineno-8-15"></a><span class="w">    </span><span class="nd">@Outgoing</span><span class="p">(</span><span class="s">&quot;cloud-events&quot;</span><span class="p">)</span>
+<a id="__codelineno-8-16" name="__codelineno-8-16"></a><span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="n">Message</span><span class="o">&lt;</span><span class="n">String</span><span class="o">&gt;</span><span class="w"> </span><span class="nf">toCloudEvents</span><span class="p">(</span><span class="n">Message</span><span class="o">&lt;</span><span class="n">String</span><span class="o">&gt;</span><span class="w"> </span><span class="n">in</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-8-17" name="__codelineno-8-17"></a><span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">in</span><span class="p">.</span><span class="na">addMetadata</span><span class="p">(</span><span class="n">OutgoingCloudEventMetadata</span><span class="p">.</span><span class="na">builder</span><span class="p">()</span>
+<a id="__codelineno-8-18" name="__codelineno-8-18"></a><span class="w">                </span><span class="p">.</span><span class="na">withId</span><span class="p">(</span><span class="s">&quot;id-&quot;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">in</span><span class="p">.</span><span class="na">getPayload</span><span class="p">())</span>
+<a id="__codelineno-8-19" name="__codelineno-8-19"></a><span class="w">                </span><span class="p">.</span><span class="na">withType</span><span class="p">(</span><span class="s">&quot;greetings&quot;</span><span class="p">)</span>
+<a id="__codelineno-8-20" name="__codelineno-8-20"></a><span class="w">                </span><span class="p">.</span><span class="na">withSource</span><span class="p">(</span><span class="n">URI</span><span class="p">.</span><span class="na">create</span><span class="p">(</span><span class="s">&quot;http://example.com&quot;</span><span class="p">))</span>
+<a id="__codelineno-8-21" name="__codelineno-8-21"></a><span class="w">                </span><span class="p">.</span><span class="na">withSubject</span><span class="p">(</span><span class="s">&quot;greeting-message&quot;</span><span class="p">)</span>
+<a id="__codelineno-8-22" name="__codelineno-8-22"></a><span class="w">                </span><span class="p">.</span><span class="na">build</span><span class="p">());</span>
+<a id="__codelineno-8-23" name="__codelineno-8-23"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-8-24" name="__codelineno-8-24"></a>
+<a id="__codelineno-8-25" name="__codelineno-8-25"></a><span class="p">}</span>
+</code></pre></div></td></tr></table></div>
+<p>If the metadata does not contain an id, the connector generates one
+(random UUID). The <code>type</code> and <code>source</code> can be configured per message or
+at the channel level using the <code>cloud-events-type</code> and
+<code>cloud-events-source</code> attributes. Other attributes are also
+configurable.</p>
+<p>The metadata can be contributed by multiple methods, however, you must
+always retrieve the already existing metadata to avoid overriding the
+values:</p>
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-9-1"> 1</a></span>
+<span class="normal"><a href="#__codelineno-9-2"> 2</a></span>
+<span class="normal"><a href="#__codelineno-9-3"> 3</a></span>
+<span class="normal"><a href="#__codelineno-9-4"> 4</a></span>
+<span class="normal"><a href="#__codelineno-9-5"> 5</a></span>
+<span class="normal"><a href="#__codelineno-9-6"> 6</a></span>
+<span class="normal"><a href="#__codelineno-9-7"> 7</a></span>
+<span class="normal"><a href="#__codelineno-9-8"> 8</a></span>
+<span class="normal"><a href="#__codelineno-9-9"> 9</a></span>
+<span class="normal"><a href="#__codelineno-9-10">10</a></span>
+<span class="normal"><a href="#__codelineno-9-11">11</a></span>
+<span class="normal"><a href="#__codelineno-9-12">12</a></span>
+<span class="normal"><a href="#__codelineno-9-13">13</a></span>
+<span class="normal"><a href="#__codelineno-9-14">14</a></span>
+<span class="normal"><a href="#__codelineno-9-15">15</a></span>
+<span class="normal"><a href="#__codelineno-9-16">16</a></span>
+<span class="normal"><a href="#__codelineno-9-17">17</a></span>
+<span class="normal"><a href="#__codelineno-9-18">18</a></span>
+<span class="normal"><a href="#__codelineno-9-19">19</a></span>
+<span class="normal"><a href="#__codelineno-9-20">20</a></span>
+<span class="normal"><a href="#__codelineno-9-21">21</a></span>
+<span class="normal"><a href="#__codelineno-9-22">22</a></span>
+<span class="normal"><a href="#__codelineno-9-23">23</a></span>
+<span class="normal"><a href="#__codelineno-9-24">24</a></span>
+<span class="normal"><a href="#__codelineno-9-25">25</a></span>
+<span class="normal"><a href="#__codelineno-9-26">26</a></span>
+<span class="normal"><a href="#__codelineno-9-27">27</a></span>
+<span class="normal"><a href="#__codelineno-9-28">28</a></span>
+<span class="normal"><a href="#__codelineno-9-29">29</a></span>
+<span class="normal"><a href="#__codelineno-9-30">30</a></span>
+<span class="normal"><a href="#__codelineno-9-31">31</a></span>
+<span class="normal"><a href="#__codelineno-9-32">32</a></span>
+<span class="normal"><a href="#__codelineno-9-33">33</a></span>
+<span class="normal"><a href="#__codelineno-9-34">34</a></span>
+<span class="normal"><a href="#__codelineno-9-35">35</a></span>
+<span class="normal"><a href="#__codelineno-9-36">36</a></span>
+<span class="normal"><a href="#__codelineno-9-37">37</a></span>
+<span class="normal"><a href="#__codelineno-9-38">38</a></span>
+<span class="normal"><a href="#__codelineno-9-39">39</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1"></a><span class="kn">package</span><span class="w"> </span><span class="nn">kafka.outbound</span><span class="p">;</span>
+<a id="__codelineno-9-2" name="__codelineno-9-2"></a>
+<a id="__codelineno-9-3" name="__codelineno-9-3"></a><span class="kn">import</span><span class="w"> </span><span class="nn">java.net.URI</span><span class="p">;</span>
+<a id="__codelineno-9-4" name="__codelineno-9-4"></a>
+<a id="__codelineno-9-5" name="__codelineno-9-5"></a><span class="kn">import</span><span class="w"> </span><span class="nn">jakarta.enterprise.context.ApplicationScoped</span><span class="p">;</span>
+<a id="__codelineno-9-6" name="__codelineno-9-6"></a>
+<a id="__codelineno-9-7" name="__codelineno-9-7"></a><span class="kn">import</span><span class="w"> </span><span class="nn">org.eclipse.microprofile.reactive.messaging.Incoming</span><span class="p">;</span>
+<a id="__codelineno-9-8" name="__codelineno-9-8"></a><span class="kn">import</span><span class="w"> </span><span class="nn">org.eclipse.microprofile.reactive.messaging.Message</span><span class="p">;</span>
+<a id="__codelineno-9-9" name="__codelineno-9-9"></a><span class="kn">import</span><span class="w"> </span><span class="nn">org.eclipse.microprofile.reactive.messaging.Outgoing</span><span class="p">;</span>
+<a id="__codelineno-9-10" name="__codelineno-9-10"></a>
+<a id="__codelineno-9-11" name="__codelineno-9-11"></a><span class="kn">import</span><span class="w"> </span><span class="nn">io.smallrye.reactive.messaging.ce.OutgoingCloudEventMetadata</span><span class="p">;</span>
+<a id="__codelineno-9-12" name="__codelineno-9-12"></a>
+<a id="__codelineno-9-13" name="__codelineno-9-13"></a><span class="nd">@ApplicationScoped</span>
+<a id="__codelineno-9-14" name="__codelineno-9-14"></a><span class="kd">public</span><span class="w"> </span><span class="kd">class</span> <span class="nc">KafkaCloudEventMultipleProcessors</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-9-15" name="__codelineno-9-15"></a>
+<a id="__codelineno-9-16" name="__codelineno-9-16"></a><span class="w">    </span><span class="nd">@Incoming</span><span class="p">(</span><span class="s">&quot;source&quot;</span><span class="p">)</span>
+<a id="__codelineno-9-17" name="__codelineno-9-17"></a><span class="w">    </span><span class="nd">@Outgoing</span><span class="p">(</span><span class="s">&quot;processed&quot;</span><span class="p">)</span>
+<a id="__codelineno-9-18" name="__codelineno-9-18"></a><span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="n">Message</span><span class="o">&lt;</span><span class="n">String</span><span class="o">&gt;</span><span class="w"> </span><span class="nf">process</span><span class="p">(</span><span class="n">Message</span><span class="o">&lt;</span><span class="n">String</span><span class="o">&gt;</span><span class="w"> </span><span class="n">in</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-9-19" name="__codelineno-9-19"></a><span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">in</span><span class="p">.</span><span class="na">addMetadata</span><span class="p">(</span><span class="n">OutgoingCloudEventMetadata</span><span class="p">.</span><span class="na">builder</span><span class="p">()</span>
+<a id="__codelineno-9-20" name="__codelineno-9-20"></a><span class="w">                </span><span class="p">.</span><span class="na">withId</span><span class="p">(</span><span class="s">&quot;id-&quot;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">in</span><span class="p">.</span><span class="na">getPayload</span><span class="p">())</span>
+<a id="__codelineno-9-21" name="__codelineno-9-21"></a><span class="w">                </span><span class="p">.</span><span class="na">withType</span><span class="p">(</span><span class="s">&quot;greeting&quot;</span><span class="p">)</span>
+<a id="__codelineno-9-22" name="__codelineno-9-22"></a><span class="w">                </span><span class="p">.</span><span class="na">build</span><span class="p">());</span>
+<a id="__codelineno-9-23" name="__codelineno-9-23"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-9-24" name="__codelineno-9-24"></a>
+<a id="__codelineno-9-25" name="__codelineno-9-25"></a><span class="w">    </span><span class="nd">@SuppressWarnings</span><span class="p">(</span><span class="s">&quot;unchecked&quot;</span><span class="p">)</span>
+<a id="__codelineno-9-26" name="__codelineno-9-26"></a><span class="w">    </span><span class="nd">@Incoming</span><span class="p">(</span><span class="s">&quot;processed&quot;</span><span class="p">)</span>
+<a id="__codelineno-9-27" name="__codelineno-9-27"></a><span class="w">    </span><span class="nd">@Outgoing</span><span class="p">(</span><span class="s">&quot;cloud-events&quot;</span><span class="p">)</span>
+<a id="__codelineno-9-28" name="__codelineno-9-28"></a><span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="n">Message</span><span class="o">&lt;</span><span class="n">String</span><span class="o">&gt;</span><span class="w"> </span><span class="nf">process2</span><span class="p">(</span><span class="n">Message</span><span class="o">&lt;</span><span class="n">String</span><span class="o">&gt;</span><span class="w"> </span><span class="n">in</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-9-29" name="__codelineno-9-29"></a><span class="w">        </span><span class="n">OutgoingCloudEventMetadata</span><span class="o">&lt;</span><span class="n">String</span><span class="o">&gt;</span><span class="w"> </span><span class="n">metadata</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">in</span>
+<a id="__codelineno-9-30" name="__codelineno-9-30"></a><span class="w">                </span><span class="p">.</span><span class="na">getMetadata</span><span class="p">(</span><span class="n">OutgoingCloudEventMetadata</span><span class="p">.</span><span class="na">class</span><span class="p">)</span>
+<a id="__codelineno-9-31" name="__codelineno-9-31"></a><span class="w">                </span><span class="p">.</span><span class="na">orElseGet</span><span class="p">(()</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="n">OutgoingCloudEventMetadata</span><span class="p">.</span><span class="na">builder</span><span class="p">().</span><span class="na">build</span><span class="p">());</span>
+<a id="__codelineno-9-32" name="__codelineno-9-32"></a>
+<a id="__codelineno-9-33" name="__codelineno-9-33"></a><span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">in</span><span class="p">.</span><span class="na">addMetadata</span><span class="p">(</span><span class="n">OutgoingCloudEventMetadata</span><span class="p">.</span><span class="na">from</span><span class="p">(</span><span class="n">metadata</span><span class="p">)</span>
+<a id="__codelineno-9-34" name="__codelineno-9-34"></a><span class="w">                </span><span class="p">.</span><span class="na">withSource</span><span class="p">(</span><span class="n">URI</span><span class="p">.</span><span class="na">create</span><span class="p">(</span><span class="s">&quot;source://me&quot;</span><span class="p">))</span>
+<a id="__codelineno-9-35" name="__codelineno-9-35"></a><span class="w">                </span><span class="p">.</span><span class="na">withSubject</span><span class="p">(</span><span class="s">&quot;test&quot;</span><span class="p">)</span>
+<a id="__codelineno-9-36" name="__codelineno-9-36"></a><span class="w">                </span><span class="p">.</span><span class="na">build</span><span class="p">());</span>
+<a id="__codelineno-9-37" name="__codelineno-9-37"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-9-38" name="__codelineno-9-38"></a>
+<a id="__codelineno-9-39" name="__codelineno-9-39"></a><span class="p">}</span>
+</code></pre></div></td></tr></table></div>
+<p>By default, the connector sends the Cloud Events using the <em>binary</em>
+format. You can write <em>structured</em> Cloud Events by setting the
+<code>cloud-events-mode</code> to <code>structured</code>. Only JSON is supported, so the
+created records had its <code>content-type</code> header set to
+<code>application/cloudevents+json; charset=UTF-8</code> When using the
+<em>structured</em> mode, the value serializer must be set to
+<code>org.apache.kafka.common.serialization.StringSerializer</code>, otherwise the
+connector reports the error. In addition, in <em>structured</em>, the connector
+maps the message’s payload to JSON, except for <code>String</code> passed directly.</p>
+<p>The record’s key can be set in the channel configuration (<code>key</code>
+attribute), in the <code>OutgoingKafkaRecordMetadata</code> or using the
+<code>partitionkey</code> Cloud Event attribute.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>you can disable the Cloud Event support by setting the <code>cloud-events</code>
+attribute to <code>false</code></p>
+</div>
+<h2 id="using-producerrecord">Using <code>ProducerRecord</code></h2>
+<p>Kafka built-in type
+<a href="https://kafka.apache.org/26/javadoc/index.html?org/apache/kafka/clients/producer/ProducerRecord.html">ProducerRecord\<K,V></a>
+can also be used for producing messages:</p>
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-10-1">1</a></span>
+<span class="normal"><a href="#__codelineno-10-2">2</a></span>
+<span class="normal"><a href="#__codelineno-10-3">3</a></span>
+<span class="normal"><a href="#__codelineno-10-4">4</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1"></a><span class="nd">@Outgoing</span><span class="p">(</span><span class="s">&quot;out&quot;</span><span class="p">)</span>
+<a id="__codelineno-10-2" name="__codelineno-10-2"></a><span class="kd">public</span><span class="w"> </span><span class="n">ProducerRecord</span><span class="o">&lt;</span><span class="n">String</span><span class="p">,</span><span class="w"> </span><span class="n">String</span><span class="o">&gt;</span><span class="w"> </span><span class="nf">generate</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-10-3" name="__codelineno-10-3"></a><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">ProducerRecord</span><span class="o">&lt;&gt;</span><span class="p">(</span><span class="s">&quot;my-topic&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;key&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;value&quot;</span><span class="p">);</span>
+<a id="__codelineno-10-4" name="__codelineno-10-4"></a><span class="p">}</span>
+</code></pre></div></td></tr></table></div>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>This is an advanced feature. The <code>ProducerRecord</code> is sent to Kafka as
+is. Any possible metadata attached through <code>Message&lt;ProducerRecord&lt;K, V&gt;&gt;</code> are ignored and lost.</p>
+</div>
+<h2 id="producer-interceptors">Producer Interceptors</h2>
+<p>Producer interceptors can be configured for Kafka producer clients using the standard <code>interceptor.classes</code> property.
+Configured classes will be instantiated by the Kafka producer on client creation.</p>
+<p>Alternatively, producer clients can be configured with a CDI managed-bean implementing <a class='docissimo, docissimo-javadoc' href='https://javadoc.io/doc/org.apache.kafka/kafka-clients/4.26.0-RC4/org/apache/kafka/clients/producer/ProducerInterceptor.html'>org.apache.kafka.clients.producer.ProducerInterceptor</a> interface:</p>
+<p>To achieve this, the bean must be exposed with the <code>@Identifier</code> qualifier specifying the name of the bean:</p>
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-11-1"> 1</a></span>
+<span class="normal"><a href="#__codelineno-11-2"> 2</a></span>
+<span class="normal"><a href="#__codelineno-11-3"> 3</a></span>
+<span class="normal"><a href="#__codelineno-11-4"> 4</a></span>
+<span class="normal"><a href="#__codelineno-11-5"> 5</a></span>
+<span class="normal"><a href="#__codelineno-11-6"> 6</a></span>
+<span class="normal"><a href="#__codelineno-11-7"> 7</a></span>
+<span class="normal"><a href="#__codelineno-11-8"> 8</a></span>
+<span class="normal"><a href="#__codelineno-11-9"> 9</a></span>
+<span class="normal"><a href="#__codelineno-11-10">10</a></span>
+<span class="normal"><a href="#__codelineno-11-11">11</a></span>
+<span class="normal"><a href="#__codelineno-11-12">12</a></span>
+<span class="normal"><a href="#__codelineno-11-13">13</a></span>
+<span class="normal"><a href="#__codelineno-11-14">14</a></span>
+<span class="normal"><a href="#__codelineno-11-15">15</a></span>
+<span class="normal"><a href="#__codelineno-11-16">16</a></span>
+<span class="normal"><a href="#__codelineno-11-17">17</a></span>
+<span class="normal"><a href="#__codelineno-11-18">18</a></span>
+<span class="normal"><a href="#__codelineno-11-19">19</a></span>
+<span class="normal"><a href="#__codelineno-11-20">20</a></span>
+<span class="normal"><a href="#__codelineno-11-21">21</a></span>
+<span class="normal"><a href="#__codelineno-11-22">22</a></span>
+<span class="normal"><a href="#__codelineno-11-23">23</a></span>
+<span class="normal"><a href="#__codelineno-11-24">24</a></span>
+<span class="normal"><a href="#__codelineno-11-25">25</a></span>
+<span class="normal"><a href="#__codelineno-11-26">26</a></span>
+<span class="normal"><a href="#__codelineno-11-27">27</a></span>
+<span class="normal"><a href="#__codelineno-11-28">28</a></span>
+<span class="normal"><a href="#__codelineno-11-29">29</a></span>
+<span class="normal"><a href="#__codelineno-11-30">30</a></span>
+<span class="normal"><a href="#__codelineno-11-31">31</a></span>
+<span class="normal"><a href="#__codelineno-11-32">32</a></span>
+<span class="normal"><a href="#__codelineno-11-33">33</a></span>
+<span class="normal"><a href="#__codelineno-11-34">34</a></span>
+<span class="normal"><a href="#__codelineno-11-35">35</a></span>
+<span class="normal"><a href="#__codelineno-11-36">36</a></span>
+<span class="normal"><a href="#__codelineno-11-37">37</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1"></a><span class="kn">package</span><span class="w"> </span><span class="nn">kafka.outbound</span><span class="p">;</span>
+<a id="__codelineno-11-2" name="__codelineno-11-2"></a>
+<a id="__codelineno-11-3" name="__codelineno-11-3"></a><span class="kn">import</span><span class="w"> </span><span class="nn">java.util.Map</span><span class="p">;</span>
+<a id="__codelineno-11-4" name="__codelineno-11-4"></a>
+<a id="__codelineno-11-5" name="__codelineno-11-5"></a><span class="kn">import</span><span class="w"> </span><span class="nn">jakarta.enterprise.context.ApplicationScoped</span><span class="p">;</span>
+<a id="__codelineno-11-6" name="__codelineno-11-6"></a>
+<a id="__codelineno-11-7" name="__codelineno-11-7"></a><span class="kn">import</span><span class="w"> </span><span class="nn">org.apache.kafka.clients.producer.ProducerInterceptor</span><span class="p">;</span>
+<a id="__codelineno-11-8" name="__codelineno-11-8"></a><span class="kn">import</span><span class="w"> </span><span class="nn">org.apache.kafka.clients.producer.ProducerRecord</span><span class="p">;</span>
+<a id="__codelineno-11-9" name="__codelineno-11-9"></a><span class="kn">import</span><span class="w"> </span><span class="nn">org.apache.kafka.clients.producer.RecordMetadata</span><span class="p">;</span>
+<a id="__codelineno-11-10" name="__codelineno-11-10"></a>
+<a id="__codelineno-11-11" name="__codelineno-11-11"></a><span class="kn">import</span><span class="w"> </span><span class="nn">io.smallrye.common.annotation.Identifier</span><span class="p">;</span>
+<a id="__codelineno-11-12" name="__codelineno-11-12"></a>
+<a id="__codelineno-11-13" name="__codelineno-11-13"></a><span class="nd">@ApplicationScoped</span>
+<a id="__codelineno-11-14" name="__codelineno-11-14"></a><span class="nd">@Identifier</span><span class="p">(</span><span class="s">&quot;my-producer-interceptor&quot;</span><span class="p">)</span>
+<a id="__codelineno-11-15" name="__codelineno-11-15"></a><span class="kd">public</span><span class="w"> </span><span class="kd">class</span> <span class="nc">ProducerInterceptorBeanExample</span><span class="w"> </span><span class="kd">implements</span><span class="w"> </span><span class="n">ProducerInterceptor</span><span class="o">&lt;</span><span class="n">Integer</span><span class="p">,</span><span class="w"> </span><span class="n">String</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-11-16" name="__codelineno-11-16"></a>
+<a id="__codelineno-11-17" name="__codelineno-11-17"></a><span class="w">    </span><span class="nd">@Override</span>
+<a id="__codelineno-11-18" name="__codelineno-11-18"></a><span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="n">ProducerRecord</span><span class="o">&lt;</span><span class="n">Integer</span><span class="p">,</span><span class="w"> </span><span class="n">String</span><span class="o">&gt;</span><span class="w"> </span><span class="nf">onSend</span><span class="p">(</span><span class="n">ProducerRecord</span><span class="o">&lt;</span><span class="n">Integer</span><span class="p">,</span><span class="w"> </span><span class="n">String</span><span class="o">&gt;</span><span class="w"> </span><span class="n">producerRecord</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-11-19" name="__codelineno-11-19"></a><span class="w">        </span><span class="c1">// called before send</span>
+<a id="__codelineno-11-20" name="__codelineno-11-20"></a><span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">producerRecord</span><span class="p">;</span>
+<a id="__codelineno-11-21" name="__codelineno-11-21"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-11-22" name="__codelineno-11-22"></a>
+<a id="__codelineno-11-23" name="__codelineno-11-23"></a><span class="w">    </span><span class="nd">@Override</span>
+<a id="__codelineno-11-24" name="__codelineno-11-24"></a><span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">onAcknowledgement</span><span class="p">(</span><span class="n">RecordMetadata</span><span class="w"> </span><span class="n">recordMetadata</span><span class="p">,</span><span class="w"> </span><span class="n">Exception</span><span class="w"> </span><span class="n">e</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-11-25" name="__codelineno-11-25"></a><span class="w">        </span><span class="c1">// called on send acknowledgement callback</span>
+<a id="__codelineno-11-26" name="__codelineno-11-26"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-11-27" name="__codelineno-11-27"></a>
+<a id="__codelineno-11-28" name="__codelineno-11-28"></a><span class="w">    </span><span class="nd">@Override</span>
+<a id="__codelineno-11-29" name="__codelineno-11-29"></a><span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">close</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-11-30" name="__codelineno-11-30"></a><span class="w">        </span><span class="c1">// called on client close</span>
+<a id="__codelineno-11-31" name="__codelineno-11-31"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-11-32" name="__codelineno-11-32"></a>
+<a id="__codelineno-11-33" name="__codelineno-11-33"></a><span class="w">    </span><span class="nd">@Override</span>
+<a id="__codelineno-11-34" name="__codelineno-11-34"></a><span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">configure</span><span class="p">(</span><span class="n">Map</span><span class="o">&lt;</span><span class="n">String</span><span class="p">,</span><span class="w"> </span><span class="o">?&gt;</span><span class="w"> </span><span class="n">map</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-11-35" name="__codelineno-11-35"></a><span class="w">        </span><span class="c1">// called on client configuration</span>
+<a id="__codelineno-11-36" name="__codelineno-11-36"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-11-37" name="__codelineno-11-37"></a><span class="p">}</span>
+</code></pre></div></td></tr></table></div>
+<p>Then, in the channel configuration, specify the following attribute:
+<code>mp.messaging.incoming.$channel.interceptor-bean=my-producer-interceptor</code>.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>The <code>onSend</code> method will be called on the producer <em>sending thread</em> and <code>onAcknowledgement</code> will be called on the <em>Kafka producer I/O thread</em>.
+In both cases if implementations are not fast, sending of messages could be delayed.</p>
+</div>
+<h2 id="configuration-reference">Configuration Reference</h2>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Attribute (<em>alias</em>)</th>
+<th style="text-align: left;">Description</th>
+<th style="text-align: center;">Type</th>
+<th style="text-align: center;">Mandatory</th>
+<th style="text-align: left;">Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><em>acks</em></td>
+<td style="text-align: left;">The number of acknowledgments the producer requires the leader to have received before considering a request complete. This controls the durability of records that are sent. Accepted values are: 0, 1, all</td>
+<td style="text-align: center;">string</td>
+<td style="text-align: center;">false</td>
+<td style="text-align: left;"><code>1</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>bootstrap.servers</em> <em>(kafka.bootstrap.servers)</em></td>
+<td style="text-align: left;">A comma-separated list of host:port to use for establishing the initial connection to the Kafka cluster.</td>
+<td style="text-align: center;">string</td>
+<td style="text-align: center;">false</td>
+<td style="text-align: left;"><code>localhost:9092</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>buffer.memory</em></td>
+<td style="text-align: left;">The total bytes of memory the producer can use to buffer records waiting to be sent to the server.</td>
+<td style="text-align: center;">long</td>
+<td style="text-align: center;">false</td>
+<td style="text-align: left;"><code>33554432</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>client-id-prefix</em></td>
+<td style="text-align: left;">Prefix for Kafka client <code>client.id</code> attribute. If defined configured or generated <code>client.id</code> will be prefixed with the given value.</td>
+<td style="text-align: center;">string</td>
+<td style="text-align: center;">false</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>close-timeout</em></td>
+<td style="text-align: left;">The amount of milliseconds waiting for a graceful shutdown of the Kafka producer</td>
+<td style="text-align: center;">int</td>
+<td style="text-align: center;">false</td>
+<td style="text-align: left;"><code>10000</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>cloud-events</em></td>
+<td style="text-align: left;">Enables (default) or disables the Cloud Event support. If enabled on an <em>incoming</em> channel, the connector analyzes the incoming records and try to create Cloud Event metadata. If enabled on an <em>outgoing</em>, the connector sends the outgoing messages as Cloud Event if the message includes Cloud Event Metadata.</td>
+<td style="text-align: center;">boolean</td>
+<td style="text-align: center;">false</td>
+<td style="text-align: left;"><code>true</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>cloud-events-data-content-type</em> <em>(cloud-events-default-data-content-type)</em></td>
+<td style="text-align: left;">Configure the default <code>datacontenttype</code> attribute of the outgoing Cloud Event. Requires <code>cloud-events</code> to be set to <code>true</code>. This value is used if the message does not configure the <code>datacontenttype</code> attribute itself</td>
+<td style="text-align: center;">string</td>
+<td style="text-align: center;">false</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>cloud-events-data-schema</em> <em>(cloud-events-default-data-schema)</em></td>
+<td style="text-align: left;">Configure the default <code>dataschema</code> attribute of the outgoing Cloud Event. Requires <code>cloud-events</code> to be set to <code>true</code>. This value is used if the message does not configure the <code>dataschema</code> attribute itself</td>
+<td style="text-align: center;">string</td>
+<td style="text-align: center;">false</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>cloud-events-insert-timestamp</em> <em>(cloud-events-default-timestamp)</em></td>
+<td style="text-align: left;">Whether or not the connector should insert automatically the <code>time</code> attribute into the outgoing Cloud Event. Requires <code>cloud-events</code> to be set to <code>true</code>. This value is used if the message does not configure the <code>time</code> attribute itself</td>
+<td style="text-align: center;">boolean</td>
+<td style="text-align: center;">false</td>
+<td style="text-align: left;"><code>true</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>cloud-events-mode</em></td>
+<td style="text-align: left;">The Cloud Event mode (<code>structured</code> or <code>binary</code> (default)). Indicates how are written the cloud events in the outgoing record</td>
+<td style="text-align: center;">string</td>
+<td style="text-align: center;">false</td>
+<td style="text-align: left;"><code>binary</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>cloud-events-source</em> <em>(cloud-events-default-source)</em></td>
+<td style="text-align: left;">Configure the default <code>source</code> attribute of the outgoing Cloud Event. Requires <code>cloud-events</code> to be set to <code>true</code>. This value is used if the message does not configure the <code>source</code> attribute itself</td>
+<td style="text-align: center;">string</td>
+<td style="text-align: center;">false</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>cloud-events-subject</em> <em>(cloud-events-default-subject)</em></td>
+<td style="text-align: left;">Configure the default <code>subject</code> attribute of the outgoing Cloud Event. Requires <code>cloud-events</code> to be set to <code>true</code>. This value is used if the message does not configure the <code>subject</code> attribute itself</td>
+<td style="text-align: center;">string</td>
+<td style="text-align: center;">false</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>cloud-events-type</em> <em>(cloud-events-default-type)</em></td>
+<td style="text-align: left;">Configure the default <code>type</code> attribute of the outgoing Cloud Event. Requires <code>cloud-events</code> to be set to <code>true</code>. This value is used if the message does not configure the <code>type</code> attribute itself</td>
+<td style="text-align: center;">string</td>
+<td style="text-align: center;">false</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>health-enabled</em></td>
+<td style="text-align: left;">Whether health reporting is enabled (default) or disabled</td>
+<td style="text-align: center;">boolean</td>
+<td style="text-align: center;">false</td>
+<td style="text-align: left;"><code>true</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>health-readiness-enabled</em></td>
+<td style="text-align: left;">Whether readiness health reporting is enabled (default) or disabled</td>
+<td style="text-align: center;">boolean</td>
+<td style="text-align: center;">false</td>
+<td style="text-align: left;"><code>true</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>health-readiness-timeout</em></td>
+<td style="text-align: left;"><em>deprecated</em> - During the readiness health check, the connector connects to the broker and retrieves the list of topics. This attribute specifies the maximum duration (in ms) for the retrieval. If exceeded, the channel is considered not-ready. Deprecated: Use 'health-topic-verification-timeout' instead.</td>
+<td style="text-align: center;">long</td>
+<td style="text-align: center;">false</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>health-readiness-topic-verification</em></td>
+<td style="text-align: left;"><em>deprecated</em> - Whether the readiness check should verify that topics exist on the broker. Default to false. Enabling it requires an admin connection. Deprecated: Use 'health-topic-verification-enabled' instead.</td>
+<td style="text-align: center;">boolean</td>
+<td style="text-align: center;">false</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>health-topic-verification-enabled</em></td>
+<td style="text-align: left;">Whether the startup and readiness check should verify that topics exist on the broker. Default to false. Enabling it requires an admin client connection.</td>
+<td style="text-align: center;">boolean</td>
+<td style="text-align: center;">false</td>
+<td style="text-align: left;"><code>false</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>health-topic-verification-readiness-disabled</em></td>
+<td style="text-align: left;">Whether the topic verification is disabled for the readiness health check.</td>
+<td style="text-align: center;">boolean</td>
+<td style="text-align: center;">false</td>
+<td style="text-align: left;"><code>false</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>health-topic-verification-startup-disabled</em></td>
+<td style="text-align: left;">Whether the topic verification is disabled for the startup health check.</td>
+<td style="text-align: center;">boolean</td>
+<td style="text-align: center;">false</td>
+<td style="text-align: left;"><code>false</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>health-topic-verification-timeout</em></td>
+<td style="text-align: left;">During the startup and readiness health check, the connector connects to the broker and retrieves the list of topics. This attribute specifies the maximum duration (in ms) for the retrieval. If exceeded, the channel is considered not-ready.</td>
+<td style="text-align: center;">long</td>
+<td style="text-align: center;">false</td>
+<td style="text-align: left;"><code>2000</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>interceptor-bean</em></td>
+<td style="text-align: left;">The name set in <code>@Identifier</code> of a bean that implements <code>org.apache.kafka.clients.producer.ProducerInterceptor</code>. If set, the identified bean will be used as the producer interceptor.</td>
+<td style="text-align: center;">string</td>
+<td style="text-align: center;">false</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>kafka-configuration</em></td>
+<td style="text-align: left;">Identifier of a CDI bean that provides the default Kafka consumer/producer configuration for this channel. The channel configuration can still override any attribute. The bean must have a type of Map<String, Object> and must use the @io.smallrye.common.annotation.Identifier qualifier to set the identifier.</td>
+<td style="text-align: center;">string</td>
+<td style="text-align: center;">false</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>key</em></td>
+<td style="text-align: left;">A key to used when writing the record</td>
+<td style="text-align: center;">string</td>
+<td style="text-align: center;">false</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>key-serialization-failure-handler</em></td>
+<td style="text-align: left;">The name set in <code>@Identifier</code> of a bean that implements <code>io.smallrye.reactive.messaging.kafka.SerializationFailureHandler</code>. If set, serialization failure happening when serializing keys are delegated to this handler which may provide a fallback value.</td>
+<td style="text-align: center;">string</td>
+<td style="text-align: center;">false</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>key.serializer</em></td>
+<td style="text-align: left;">The serializer classname used to serialize the record's key</td>
+<td style="text-align: center;">string</td>
+<td style="text-align: center;">false</td>
+<td style="text-align: left;"><code>org.apache.kafka.common.serialization.StringSerializer</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>lazy-client</em></td>
+<td style="text-align: left;">Whether Kafka client is created lazily or eagerly.</td>
+<td style="text-align: center;">boolean</td>
+<td style="text-align: center;">false</td>
+<td style="text-align: left;"><code>false</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>max-inflight-messages</em></td>
+<td style="text-align: left;">The maximum number of messages to be written to Kafka concurrently. It limits the number of messages waiting to be written and acknowledged by the broker. You can set this attribute to <code>0</code> remove the limit</td>
+<td style="text-align: center;">long</td>
+<td style="text-align: center;">false</td>
+<td style="text-align: left;"><code>1024</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>merge</em></td>
+<td style="text-align: left;">Whether the connector should allow multiple upstreams</td>
+<td style="text-align: center;">boolean</td>
+<td style="text-align: center;">false</td>
+<td style="text-align: left;"><code>false</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>partition</em></td>
+<td style="text-align: left;">The target partition id. -1 to let the client determine the partition</td>
+<td style="text-align: center;">int</td>
+<td style="text-align: center;">false</td>
+<td style="text-align: left;"><code>-1</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>propagate-headers</em></td>
+<td style="text-align: left;">A comma-separating list of incoming record headers to be propagated to the outgoing record</td>
+<td style="text-align: center;">string</td>
+<td style="text-align: center;">false</td>
+<td style="text-align: left;">``</td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>propagate-record-key</em></td>
+<td style="text-align: left;">Propagate incoming record key to the outgoing record</td>
+<td style="text-align: center;">boolean</td>
+<td style="text-align: center;">false</td>
+<td style="text-align: left;"><code>false</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>retries</em></td>
+<td style="text-align: left;">If set to a positive number, the connector will try to resend any record that was not delivered successfully (with a potentially transient error) until the number of retries is reached. If set to 0, retries are disabled. If not set, the connector tries to resend any record that failed to be delivered (because of a potentially transient error) during an amount of time configured by <code>delivery.timeout.ms</code>.</td>
+<td style="text-align: center;">long</td>
+<td style="text-align: center;">false</td>
+<td style="text-align: left;"><code>2147483647</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>topic</em></td>
+<td style="text-align: left;">The consumed / populated Kafka topic. If neither this property nor the <code>topics</code> properties are set, the channel name is used</td>
+<td style="text-align: center;">string</td>
+<td style="text-align: center;">false</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>tracing-enabled</em></td>
+<td style="text-align: left;">Whether tracing is enabled (default) or disabled</td>
+<td style="text-align: center;">boolean</td>
+<td style="text-align: center;">false</td>
+<td style="text-align: left;"><code>true</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>value-serialization-failure-handler</em></td>
+<td style="text-align: left;">The name set in <code>@Identifier</code> of a bean that implements <code>io.smallrye.reactive.messaging.kafka.SerializationFailureHandler</code>. If set, serialization failure happening when serializing values are delegated to this handler which may provide a fallback value.</td>
+<td style="text-align: center;">string</td>
+<td style="text-align: center;">false</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>value.serializer</em></td>
+<td style="text-align: left;">The serializer classname used to serialize the payload</td>
+<td style="text-align: center;">string</td>
+<td style="text-align: center;">true</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>waitForWriteCompletion</em></td>
+<td style="text-align: left;">Whether the client waits for Kafka to acknowledge the written record before acknowledging the message</td>
+<td style="text-align: center;">boolean</td>
+<td style="text-align: center;">false</td>
+<td style="text-align: left;"><code>true</code></td>
+</tr>
+</tbody>
+</table>
+<p>You can also pass any property supported by the underlying <a href="https://kafka.apache.org/documentation/#producerconfigs">Kafka
+producer</a>.</p>
+<p>For example, to configure the <code>batch.size</code> property, use:</p>
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-12-1">1</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1"></a><span class="na">mp.messaging.outgoing.[channel].batch.size</span><span class="o">=</span><span class="s">32768</span>
+</code></pre></div></td></tr></table></div>
+<p>Some producer client properties are configured to sensible default
+values:</p>
+<p>If not set, <code>reconnect.backoff.max.ms</code> is set to <code>10000</code> to avoid high
+load on disconnection.</p>
+<p>If not set, <code>key.serializer</code> is set to
+<code>org.apache.kafka.common.serialization.StringSerializer</code>.</p>
+<p>If not set, producer <code>client.id</code> is generated as
+<code>kafka-producer-[channel]</code>.</p>
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Sponsored by <a href="https://www.redhat.com"><img style="vertical-align: middle; height: 2.5em;" alt="Red Hat" src="https://github.com/jbossorg/website/raw/master/docs/img/redhat_reversed.svg"/></a> <br/> <a href="https://creativecommons.org/licenses/by/3.0/">CC by 3.0</a> | <a href="https://www.redhat.com/en/about/privacy-policy">Privacy Policy</a>
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    <script id="__config" type="application/json">{"base": "../..", "features": ["navigation.sections", "navigation.tracking", "navigation.indexes"], "search": "../../assets/javascripts/workers/search.f886a092.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.81fa17fe.min.js"></script>
+      
+        <script src="../../js/print-site.js"></script>
+      
+    
+  </body>
+</html>
