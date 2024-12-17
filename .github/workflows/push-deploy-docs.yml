@@ -3,15 +3,17 @@ run-name: Deploy ${{github.event.inputs.version || github.ref_name}} Docs
 
 on:
     workflow_dispatch:
-    workflow_call:
         inputs:
             version:
                 description: 'Release version'
                 type: string
+    workflow_call:
 
 jobs:
     deploy-docs:
         runs-on: ubuntu-latest
+        env:
+            RELEASE_VERSION: ${{ github.event.inputs.version }}
 
         steps:
             - name: Git checkout
@@ -34,5 +36,8 @@ jobs:
                   cache-dependency-path: documentation/Pipfile.lock
             - name: Install pipenv
               run: pip install pipenv
+            - name: Set Release Version
+              run: |
+                echo "RELEASE_VERSION=${RELEASE_VERSION:-"$(./mvnw help:evaluate -Dexpression=project.version -q -DforceStdout)"}" >> $GITHUB_ENV
             - name: Perform the deploy docs
-              run: just build-ci deploy-docs ${{ github.event.inputs.version }}
+              run: just build-ci deploy-docs ${{ env.RELEASE_VERSION }}
