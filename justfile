@@ -36,7 +36,7 @@ deploy-docs version:
     ./mvnw -B -ntp clean compile -pl documentation
     cd documentation
     pipenv install
-    pipenv run mike deploy --update-aliases --push --remote origin {{version}} "latest"
+    pipenv run mike deploy --update-aliases --push --remote origin {{version}} $(git merge-base --is-ancestor HEAD origin/main && echo '"latest"' || echo '')
 
 # Clear RevAPI justifications
 clear-revapi:
