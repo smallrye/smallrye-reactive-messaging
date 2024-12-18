@@ -17,11 +17,6 @@ jobs:
                 java: [
                     {
                         'name': '',
-                        'version': '11',
-                        'build_opts': '-Drevapi.skip=true'
-                    },
-                    {
-                        'name': '',
                         'version': '17',
                     },
                     {
