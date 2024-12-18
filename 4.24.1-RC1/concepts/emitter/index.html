@@ -1,0 +1,3173 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://smallrye.io/smallrye-reactive-messaging/4.24.1-RC1/concepts/emitter/">
+      
+      
+        <link rel="prev" href="../model/">
+      
+      
+        <link rel="next" href="../connectors/">
+      
+      
+      <link rel="icon" href="../../images/favicon.png">
+      <meta name="generator" content="mkdocs-1.5.3, mkdocs-material-9.4.8">
+    
+    
+      
+        <title>Emitters and Channel - SmallRye Reactive Messaging</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.4b4a2bd9.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.356b1318.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Red+Hat+Text:300,300i,400,400i,700,700i%7CUbuntu+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Red Hat Text";--md-code-font:"Ubuntu Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../css/print-site-enum-headings1.css">
+    
+      <link rel="stylesheet" href="../../css/print-site-enum-headings2.css">
+    
+      <link rel="stylesheet" href="../../css/print-site-enum-headings3.css">
+    
+      <link rel="stylesheet" href="../../css/print-site-enum-headings4.css">
+    
+      <link rel="stylesheet" href="../../css/print-site-enum-headings5.css">
+    
+      <link rel="stylesheet" href="../../css/print-site-enum-headings6.css">
+    
+      <link rel="stylesheet" href="../../css/print-site.css">
+    
+      <link rel="stylesheet" href="../../css/print-site-material.css">
+    
+      <link rel="stylesheet" href="../../css/smallrye.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="blue-grey" data-md-color-accent="blue">
+  
+    
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#emitter-and-channels" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+      </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="SmallRye Reactive Messaging" class="md-header__button md-logo" aria-label="SmallRye Reactive Messaging" data-md-component="logo">
+      
+  <img src="../../images/logo.png" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2Z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            SmallRye Reactive Messaging
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Emitters and Channel
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+    
+    
+    
+      <label class="md-header__button md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+      </label>
+      <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12Z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41Z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/smallrye/smallrye-reactive-messaging" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.4.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="SmallRye Reactive Messaging" class="md-nav__button md-logo" aria-label="SmallRye Reactive Messaging" data-md-component="logo">
+      
+  <img src="../../images/logo.png" alt="logo">
+
+    </a>
+    SmallRye Reactive Messaging
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/smallrye/smallrye-reactive-messaging" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.4.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Home
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    Core
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            Core
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Getting Started
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_2" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_2_2" id="__nav_2_2_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Concepts
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_2_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_2_2">
+            <span class="md-nav__icon md-icon"></span>
+            Concepts
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../concepts/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Introduction
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../model/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Development Model
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    Emitters and Channel
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  <span class="md-ellipsis">
+    Emitters and Channel
+  </span>
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#emitter-and-channel" class="md-nav__link">
+    Emitter and @Channel
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sending-payloads" class="md-nav__link">
+    Sending payloads
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sending-messages" class="md-nav__link">
+    Sending messages
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#overflow-management" class="md-nav__link">
+    Overflow management
+  </a>
+  
+    <nav class="md-nav" aria-label="Overflow management">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#defensive-emission" class="md-nav__link">
+    Defensive emission
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#retrieving-channels" class="md-nav__link">
+    Retrieving channels
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#emitter-and-broadcast" class="md-nav__link">
+    Emitter and @Broadcast
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#mutiny-emitter" class="md-nav__link">
+    Mutiny Emitter
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#custom-emitter-implementations" class="md-nav__link">
+    Custom Emitter Implementations
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../connectors/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Connectors
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../contributing-connectors/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Contributing Connectors
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../acknowledgement/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Acknowledgement
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../blocking/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Blocking Processing
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../signatures/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Method Signatures
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../skipping/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Skipping Messages
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../converters/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Message Converters
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../keyed-multi/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Keyed Streams
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../decorators/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Channel Decorators and Interceptors
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../broadcast/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Broadcast
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../merge/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Merge channels
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../incoming-concurrency/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Incoming Channel Concurrency
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../incomings/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    @Incomings
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../outgoings/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    @Outgoings
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../testing/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Testing
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../logging/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Logging
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../observability/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Observability API
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../advanced-config/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Advanced Configuration
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../message-context/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Message Context
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../incoming-metadata-injection/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Metadata Injection
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../generic-payloads/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Generic Payloads
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pausable-channels/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Pausable Channels
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+      
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    Kafka
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            Kafka
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../kafka/kafka/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Apache Kafka Connector
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../kafka/receiving-kafka-records/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Receiving records
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../kafka/writing-kafka-records/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Writing records
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../kafka/health/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Health Checks
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../kafka/avro-configuration/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Using Avro
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../kafka/protobuf-configuration/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Using Protobuf
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../kafka/consumer-rebalance-listener/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Rebalance Listeners
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../kafka/kerberos/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Kerberos authentication
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../kafka/client-service/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Accessing the client
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../kafka/default-configuration/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Customizing Default Kafka Configuration
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../kafka/test-companion/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Test Companion for Kafka
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../kafka/transactions/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Kafka Transactions and Exactly-Once Processing
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../kafka/request-reply/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Kafka Request/Reply
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+      
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    AMQP 1.0
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            AMQP 1.0
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../amqp/amqp/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    AMQP 1.0 Connector
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../amqp/receiving-amqp-messages/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Receiving messages
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../amqp/sending-amqp-messages/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Sending messages
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../amqp/health/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Health Checks
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../amqp/client-customization/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Client Customization
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../amqp/rabbitmq/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Using RabbitMQ
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+      
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    RabbitMQ
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            RabbitMQ
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../rabbitmq/rabbitmq/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    RabbitMQ Connector
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../rabbitmq/receiving-messages-from-rabbitmq/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Receiving messages
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../rabbitmq/sending-messages-to-rabbitmq/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Sending messages
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../rabbitmq/rabbitmq-health/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Health Checks
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../rabbitmq/rabbitmq-client-customization/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Client Customization
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../rabbitmq/rabbitmq-cloud/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Connecting to managed instances
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+      
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    Pulsar
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            Pulsar
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../pulsar/pulsar/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Apache Pulsar Connector
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../pulsar/receiving-pulsar-messages/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Receiving messages
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../pulsar/sending-messages-to-pulsar/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Sending messages
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../pulsar/schema-configuration/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Configuring the Schema
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../pulsar/client-configuration/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Configuring the Pulsar client
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../pulsar/health/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Health Checks
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../pulsar/client-service/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Accessing the client
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../pulsar/transactions/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Pulsar Transactions and Exactly-Once Processing
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+      
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    Apache Camel
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            Apache Camel
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../camel/camel/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Apache Camel Connector
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../camel/receiving-messages-from-camel/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Receiving messages from Camel
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../camel/sending-messages-to-camel/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Sending messages to Camel
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../camel/camel-processor/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Implementing Camel processor
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../camel/using-existing-routes/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Using existing Camel routes
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+      
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    JMS
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8">
+            <span class="md-nav__icon md-icon"></span>
+            JMS
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../jms/jms/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    The JMS connector
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../jms/receiving-jms-messages/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Receiving JMS messages
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../jms/sending-jms-messages/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Sending JMS messages
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../jms/advanced-jms/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Advanced configuration
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+      
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_9" >
+        
+          
+          <label class="md-nav__link" for="__nav_9" id="__nav_9_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    MQTT
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_9_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_9">
+            <span class="md-nav__icon md-icon"></span>
+            MQTT
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../mqtt/mqtt/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    MQTT Connector
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../mqtt/receiving-mqtt-messages/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Receiving MQTT messages
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../mqtt/sending-messages-to-mqtt/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Sending MQTT messages
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../mqtt/client-customization/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Customizing the MQTT client
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+      
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_10" >
+        
+          
+          <label class="md-nav__link" for="__nav_10" id="__nav_10_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    AWS SQS
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_10_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_10">
+            <span class="md-nav__icon md-icon"></span>
+            AWS SQS
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sqs/sqs/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    AWS SQS Connector
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sqs/receiving-aws-sqs-messages/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Receiving AWS SQS messages
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sqs/sending-aws-sqs-messages/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Sending AWS SQS messages
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#emitter-and-channel" class="md-nav__link">
+    Emitter and @Channel
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sending-payloads" class="md-nav__link">
+    Sending payloads
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sending-messages" class="md-nav__link">
+    Sending messages
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#overflow-management" class="md-nav__link">
+    Overflow management
+  </a>
+  
+    <nav class="md-nav" aria-label="Overflow management">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#defensive-emission" class="md-nav__link">
+    Defensive emission
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#retrieving-channels" class="md-nav__link">
+    Retrieving channels
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#emitter-and-broadcast" class="md-nav__link">
+    Emitter and @Broadcast
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#mutiny-emitter" class="md-nav__link">
+    Mutiny Emitter
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#custom-emitter-implementations" class="md-nav__link">
+    Custom Emitter Implementations
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+  
+  
+
+
+<h1 id="emitter-and-channels">Emitter and Channels</h1>
+<p>It is not rare to combine in a single application imperative parts
+(Jax-RS, regular CDI <em>beans</em>) and reactive parts (<em>beans</em> with
+<code>@Incoming</code> and <code>@Outgoing</code> annotations). In these case, it’s often
+required to send <em>messages</em> from the imperative part to the reactive
+part. In other words, send messages to channels handled by reactive
+messaging and how can you retrieve messages.</p>
+<h2 id="emitter-and-channel">Emitter and @Channel</h2>
+<p>To send <em>things</em> (payload or <code>Message</code>) from imperative code to a
+specific channel you need to use:</p>
+<ol>
+<li>the <a class='docissimo, docissimo-javadoc' href='https://javadoc.io/doc/io.smallrye.reactive/smallrye-reactive-messaging-api/4.24.1-RC1/org/eclipse/microprofile/reactive/messaging/Channel.html'>org.eclipse.microprofile.reactive.messaging.Channel</a> annotations</li>
+<li>the <a class='docissimo, docissimo-javadoc' href='https://javadoc.io/doc/io.smallrye.reactive/smallrye-reactive-messaging-api/4.24.1-RC1/org/eclipse/microprofile/reactive/messaging/Emitter.html'>org.eclipse.microprofile.reactive.messaging.Emitter</a> type</li>
+</ol>
+<p>The <code>@Channel</code> lets you indicate to which channel you are going to send
+your payloads or messages. The <code>Emitter</code> is the object to use to send
+these payloads or messages.</p>
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-1"> 1</a></span>
+<span class="normal"><a href="#__codelineno-0-2"> 2</a></span>
+<span class="normal"><a href="#__codelineno-0-3"> 3</a></span>
+<span class="normal"><a href="#__codelineno-0-4"> 4</a></span>
+<span class="normal"><a href="#__codelineno-0-5"> 5</a></span>
+<span class="normal"><a href="#__codelineno-0-6"> 6</a></span>
+<span class="normal"><a href="#__codelineno-0-7"> 7</a></span>
+<span class="normal"><a href="#__codelineno-0-8"> 8</a></span>
+<span class="normal"><a href="#__codelineno-0-9"> 9</a></span>
+<span class="normal"><a href="#__codelineno-0-10">10</a></span>
+<span class="normal"><a href="#__codelineno-0-11">11</a></span>
+<span class="normal"><a href="#__codelineno-0-12">12</a></span>
+<span class="normal"><a href="#__codelineno-0-13">13</a></span>
+<span class="normal"><a href="#__codelineno-0-14">14</a></span>
+<span class="normal"><a href="#__codelineno-0-15">15</a></span>
+<span class="normal"><a href="#__codelineno-0-16">16</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">org.eclipse.microprofile.reactive.messaging.Channel</span><span class="p">;</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">org.eclipse.microprofile.reactive.messaging.Emitter</span><span class="p">;</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3"></a>
+<a id="__codelineno-0-4" name="__codelineno-0-4"></a><span class="nd">@ApplicationScoped</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5"></a><span class="kd">public</span><span class="w"> </span><span class="kd">class</span> <span class="nc">MyImperativeBean</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6"></a>
+<a id="__codelineno-0-7" name="__codelineno-0-7"></a><span class="w">    </span><span class="nd">@Inject</span>
+<a id="__codelineno-0-8" name="__codelineno-0-8"></a><span class="w">    </span><span class="nd">@Channel</span><span class="p">(</span><span class="s">&quot;prices&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-9" name="__codelineno-0-9"></a><span class="w">    </span><span class="n">Emitter</span><span class="o">&lt;</span><span class="n">Double</span><span class="o">&gt;</span><span class="w"> </span><span class="n">emitter</span><span class="p">;</span>
+<a id="__codelineno-0-10" name="__codelineno-0-10"></a>
+<a id="__codelineno-0-11" name="__codelineno-0-11"></a><span class="w">    </span><span class="c1">// ...</span>
+<a id="__codelineno-0-12" name="__codelineno-0-12"></a>
+<a id="__codelineno-0-13" name="__codelineno-0-13"></a><span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">send</span><span class="p">(</span><span class="kt">double</span><span class="w"> </span><span class="n">d</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-0-14" name="__codelineno-0-14"></a><span class="w">        </span><span class="n">emitter</span><span class="p">.</span><span class="na">send</span><span class="p">(</span><span class="n">d</span><span class="p">);</span>
+<a id="__codelineno-0-15" name="__codelineno-0-15"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-0-16" name="__codelineno-0-16"></a><span class="p">}</span>
+</code></pre></div></td></tr></table></div>
+<p>The <code>Emitter</code> class takes a type parameter. It’s the type of payload.
+Even if you want to send <code>Messages</code>, the type is the payload type.</p>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>You must have a <code>@Incoming("prices")</code> somewhere in your application
+(meaning a method consuming messages transiting on the channel
+<code>prices</code>), or an outbound connector configured to manage the <code>prices</code>
+channel (<code>mp.messaging.outgoing.prices...</code>)</p>
+</div>
+<h2 id="sending-payloads">Sending payloads</h2>
+<p>Sending payloads is done as follows:</p>
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-1-1">1</a></span>
+<span class="normal"><a href="#__codelineno-1-2">2</a></span>
+<span class="normal"><a href="#__codelineno-1-3">3</a></span>
+<span class="normal"><a href="#__codelineno-1-4">4</a></span>
+<span class="normal"><a href="#__codelineno-1-5">5</a></span>
+<span class="normal"><a href="#__codelineno-1-6">6</a></span>
+<span class="normal"><a href="#__codelineno-1-7">7</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1"></a><span class="nd">@Inject</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2"></a><span class="nd">@Channel</span><span class="p">(</span><span class="s">&quot;prices&quot;</span><span class="p">)</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3"></a><span class="n">Emitter</span><span class="o">&lt;</span><span class="n">Double</span><span class="o">&gt;</span><span class="w"> </span><span class="n">emitterForPrices</span><span class="p">;</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4"></a>
+<a id="__codelineno-1-5" name="__codelineno-1-5"></a><span class="kd">public</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">send</span><span class="p">(</span><span class="kt">double</span><span class="w"> </span><span class="n">d</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-1-6" name="__codelineno-1-6"></a><span class="w">    </span><span class="n">emitterForPrices</span><span class="p">.</span><span class="na">send</span><span class="p">(</span><span class="n">d</span><span class="p">);</span>
+<a id="__codelineno-1-7" name="__codelineno-1-7"></a><span class="p">}</span>
+</code></pre></div></td></tr></table></div>
+<p>When sending a payload, the emitter returns a <code>CompletionStage</code>. This
+<code>CompletionStage</code> gets completed once the message created from the
+payload is acknowledged:</p>
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-2-1">1</a></span>
+<span class="normal"><a href="#__codelineno-2-2">2</a></span>
+<span class="normal"><a href="#__codelineno-2-3">3</a></span>
+<span class="normal"><a href="#__codelineno-2-4">4</a></span>
+<span class="normal"><a href="#__codelineno-2-5">5</a></span>
+<span class="normal"><a href="#__codelineno-2-6">6</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1"></a><span class="kd">public</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">sendAndAwaitAcknowledgement</span><span class="p">(</span><span class="kt">double</span><span class="w"> </span><span class="n">d</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2"></a><span class="w">    </span><span class="n">CompletionStage</span><span class="o">&lt;</span><span class="n">Void</span><span class="o">&gt;</span><span class="w"> </span><span class="n">acked</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">emitterForPrices</span><span class="p">.</span><span class="na">send</span><span class="p">(</span><span class="n">d</span><span class="p">);</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3"></a><span class="w">    </span><span class="c1">// sending a payload returns a CompletionStage completed</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4"></a><span class="w">    </span><span class="c1">// when the message is acknowledged</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5"></a><span class="w">    </span><span class="n">acked</span><span class="p">.</span><span class="na">toCompletableFuture</span><span class="p">().</span><span class="na">join</span><span class="p">();</span>
+<a id="__codelineno-2-6" name="__codelineno-2-6"></a><span class="p">}</span>
+</code></pre></div></td></tr></table></div>
+<p>If the processing fails, the <code>CompletionStage</code> gets completed
+exceptionally (with the reason of the nack).</p>
+<h2 id="sending-messages">Sending messages</h2>
+<p>You can also send <code>Messages</code>:</p>
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-3-1">1</a></span>
+<span class="normal"><a href="#__codelineno-3-2">2</a></span>
+<span class="normal"><a href="#__codelineno-3-3">3</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1"></a><span class="kd">public</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">sendAsMessage</span><span class="p">(</span><span class="kt">double</span><span class="w"> </span><span class="n">d</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2"></a><span class="w">    </span><span class="n">emitterForPrices</span><span class="p">.</span><span class="na">send</span><span class="p">(</span><span class="n">Message</span><span class="p">.</span><span class="na">of</span><span class="p">(</span><span class="n">d</span><span class="p">));</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3"></a><span class="p">}</span>
+</code></pre></div></td></tr></table></div>
+<p>When sending a <code>Message</code>, the emitter does not return a
+<code>CompletionStage</code>, but you can pass the ack/nack callback, and be called
+when the message is acked/nacked.</p>
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-4-1"> 1</a></span>
+<span class="normal"><a href="#__codelineno-4-2"> 2</a></span>
+<span class="normal"><a href="#__codelineno-4-3"> 3</a></span>
+<span class="normal"><a href="#__codelineno-4-4"> 4</a></span>
+<span class="normal"><a href="#__codelineno-4-5"> 5</a></span>
+<span class="normal"><a href="#__codelineno-4-6"> 6</a></span>
+<span class="normal"><a href="#__codelineno-4-7"> 7</a></span>
+<span class="normal"><a href="#__codelineno-4-8"> 8</a></span>
+<span class="normal"><a href="#__codelineno-4-9"> 9</a></span>
+<span class="normal"><a href="#__codelineno-4-10">10</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1"></a><span class="kd">public</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">sendAsMessageWithAck</span><span class="p">(</span><span class="kt">double</span><span class="w"> </span><span class="n">d</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2"></a><span class="w">    </span><span class="n">emitterForPrices</span><span class="p">.</span><span class="na">send</span><span class="p">(</span><span class="n">Message</span><span class="p">.</span><span class="na">of</span><span class="p">(</span><span class="n">d</span><span class="p">,</span><span class="w"> </span><span class="p">()</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-4-3" name="__codelineno-4-3"></a><span class="w">        </span><span class="c1">// Called when the message is acknowledged.</span>
+<a id="__codelineno-4-4" name="__codelineno-4-4"></a><span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">CompletableFuture</span><span class="p">.</span><span class="na">completedFuture</span><span class="p">(</span><span class="kc">null</span><span class="p">);</span>
+<a id="__codelineno-4-5" name="__codelineno-4-5"></a><span class="w">    </span><span class="p">},</span>
+<a id="__codelineno-4-6" name="__codelineno-4-6"></a><span class="w">            </span><span class="n">reason</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-4-7" name="__codelineno-4-7"></a><span class="w">                </span><span class="c1">// Called when the message is acknowledged negatively.</span>
+<a id="__codelineno-4-8" name="__codelineno-4-8"></a><span class="w">                </span><span class="k">return</span><span class="w"> </span><span class="n">CompletableFuture</span><span class="p">.</span><span class="na">completedFuture</span><span class="p">(</span><span class="kc">null</span><span class="p">);</span>
+<a id="__codelineno-4-9" name="__codelineno-4-9"></a><span class="w">            </span><span class="p">}));</span>
+<a id="__codelineno-4-10" name="__codelineno-4-10"></a><span class="p">}</span>
+</code></pre></div></td></tr></table></div>
+<p>Sending messages also let you pass metadata.</p>
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-5-1"> 1</a></span>
+<span class="normal"><a href="#__codelineno-5-2"> 2</a></span>
+<span class="normal"><a href="#__codelineno-5-3"> 3</a></span>
+<span class="normal"><a href="#__codelineno-5-4"> 4</a></span>
+<span class="normal"><a href="#__codelineno-5-5"> 5</a></span>
+<span class="normal"><a href="#__codelineno-5-6"> 6</a></span>
+<span class="normal"><a href="#__codelineno-5-7"> 7</a></span>
+<span class="normal"><a href="#__codelineno-5-8"> 8</a></span>
+<span class="normal"><a href="#__codelineno-5-9"> 9</a></span>
+<span class="normal"><a href="#__codelineno-5-10">10</a></span>
+<span class="normal"><a href="#__codelineno-5-11">11</a></span>
+<span class="normal"><a href="#__codelineno-5-12">12</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1"></a><span class="kd">public</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">sendAsMessageWithAckAndMetadata</span><span class="p">(</span><span class="kt">double</span><span class="w"> </span><span class="n">d</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2"></a><span class="w">    </span><span class="n">MyMetadata</span><span class="w"> </span><span class="n">metadata</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">MyMetadata</span><span class="p">();</span>
+<a id="__codelineno-5-3" name="__codelineno-5-3"></a><span class="w">    </span><span class="n">emitterForPrices</span><span class="p">.</span><span class="na">send</span><span class="p">(</span><span class="n">Message</span><span class="p">.</span><span class="na">of</span><span class="p">(</span><span class="n">d</span><span class="p">,</span><span class="w"> </span><span class="n">Metadata</span><span class="p">.</span><span class="na">of</span><span class="p">(</span><span class="n">metadata</span><span class="p">),</span>
+<a id="__codelineno-5-4" name="__codelineno-5-4"></a><span class="w">            </span><span class="p">()</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-5-5" name="__codelineno-5-5"></a><span class="w">                </span><span class="c1">// Called when the message is acknowledged.</span>
+<a id="__codelineno-5-6" name="__codelineno-5-6"></a><span class="w">                </span><span class="k">return</span><span class="w"> </span><span class="n">CompletableFuture</span><span class="p">.</span><span class="na">completedFuture</span><span class="p">(</span><span class="kc">null</span><span class="p">);</span>
+<a id="__codelineno-5-7" name="__codelineno-5-7"></a><span class="w">            </span><span class="p">},</span>
+<a id="__codelineno-5-8" name="__codelineno-5-8"></a><span class="w">            </span><span class="n">reason</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-5-9" name="__codelineno-5-9"></a><span class="w">                </span><span class="c1">// Called when the message is acknowledged negatively.</span>
+<a id="__codelineno-5-10" name="__codelineno-5-10"></a><span class="w">                </span><span class="k">return</span><span class="w"> </span><span class="n">CompletableFuture</span><span class="p">.</span><span class="na">completedFuture</span><span class="p">(</span><span class="kc">null</span><span class="p">);</span>
+<a id="__codelineno-5-11" name="__codelineno-5-11"></a><span class="w">            </span><span class="p">}));</span>
+<a id="__codelineno-5-12" name="__codelineno-5-12"></a><span class="p">}</span>
+</code></pre></div></td></tr></table></div>
+<p>Metadata can be used to propagate some context objects with the message.</p>
+<h2 id="overflow-management">Overflow management</h2>
+<p>When sending messages from imperative code to reactive code, you must be
+aware of back-pressure. Indeed, messages sent using the emitter and
+stored in a <em>queue</em>. If the consumer does not process the messages
+quickly enough, this queue can become a memory hog and you may even run
+out of memory.</p>
+<p>To control what need to happen when the queue becomes out of control,
+use the <a class='docissimo, docissimo-javadoc' href='https://javadoc.io/doc/io.smallrye.reactive/smallrye-reactive-messaging-api/4.24.1-RC1/org/eclipse/microprofile/reactive/messaging/OnOverflow.html'>OnOverflow</a> annotation. <code>@OnOverflow</code> lets you configure:</p>
+<ul>
+<li>the maximum size of the queue (default is 256)</li>
+<li>what needs to happen when this size is reached (fail, drop...)</li>
+</ul>
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-6-1"> 1</a></span>
+<span class="normal"><a href="#__codelineno-6-2"> 2</a></span>
+<span class="normal"><a href="#__codelineno-6-3"> 3</a></span>
+<span class="normal"><a href="#__codelineno-6-4"> 4</a></span>
+<span class="normal"><a href="#__codelineno-6-5"> 5</a></span>
+<span class="normal"><a href="#__codelineno-6-6"> 6</a></span>
+<span class="normal"><a href="#__codelineno-6-7"> 7</a></span>
+<span class="normal"><a href="#__codelineno-6-8"> 8</a></span>
+<span class="normal"><a href="#__codelineno-6-9"> 9</a></span>
+<span class="normal"><a href="#__codelineno-6-10">10</a></span>
+<span class="normal"><a href="#__codelineno-6-11">11</a></span>
+<span class="normal"><a href="#__codelineno-6-12">12</a></span>
+<span class="normal"><a href="#__codelineno-6-13">13</a></span>
+<span class="normal"><a href="#__codelineno-6-14">14</a></span>
+<span class="normal"><a href="#__codelineno-6-15">15</a></span>
+<span class="normal"><a href="#__codelineno-6-16">16</a></span>
+<span class="normal"><a href="#__codelineno-6-17">17</a></span>
+<span class="normal"><a href="#__codelineno-6-18">18</a></span>
+<span class="normal"><a href="#__codelineno-6-19">19</a></span>
+<span class="normal"><a href="#__codelineno-6-20">20</a></span>
+<span class="normal"><a href="#__codelineno-6-21">21</a></span>
+<span class="normal"><a href="#__codelineno-6-22">22</a></span>
+<span class="normal"><a href="#__codelineno-6-23">23</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1"></a><span class="c1">// Set the max size to 10 and fail if reached</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2"></a><span class="nd">@OnOverflow</span><span class="p">(</span><span class="n">value</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">OnOverflow</span><span class="p">.</span><span class="na">Strategy</span><span class="p">.</span><span class="na">BUFFER</span><span class="p">,</span><span class="w"> </span><span class="n">bufferSize</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">10</span><span class="p">)</span>
+<a id="__codelineno-6-3" name="__codelineno-6-3"></a><span class="nd">@Inject</span>
+<a id="__codelineno-6-4" name="__codelineno-6-4"></a><span class="nd">@Channel</span><span class="p">(</span><span class="s">&quot;channel&quot;</span><span class="p">)</span>
+<a id="__codelineno-6-5" name="__codelineno-6-5"></a><span class="n">Emitter</span><span class="o">&lt;</span><span class="n">String</span><span class="o">&gt;</span><span class="w"> </span><span class="n">emitterWithBuffer</span><span class="p">;</span>
+<a id="__codelineno-6-6" name="__codelineno-6-6"></a>
+<a id="__codelineno-6-7" name="__codelineno-6-7"></a><span class="c1">// [DANGER ZONE] no limit</span>
+<a id="__codelineno-6-8" name="__codelineno-6-8"></a><span class="nd">@OnOverflow</span><span class="p">(</span><span class="n">OnOverflow</span><span class="p">.</span><span class="na">Strategy</span><span class="p">.</span><span class="na">UNBOUNDED_BUFFER</span><span class="p">)</span>
+<a id="__codelineno-6-9" name="__codelineno-6-9"></a><span class="nd">@Inject</span>
+<a id="__codelineno-6-10" name="__codelineno-6-10"></a><span class="nd">@Channel</span><span class="p">(</span><span class="s">&quot;channel&quot;</span><span class="p">)</span>
+<a id="__codelineno-6-11" name="__codelineno-6-11"></a><span class="n">Emitter</span><span class="o">&lt;</span><span class="n">String</span><span class="o">&gt;</span><span class="w"> </span><span class="n">danger</span><span class="p">;</span>
+<a id="__codelineno-6-12" name="__codelineno-6-12"></a>
+<a id="__codelineno-6-13" name="__codelineno-6-13"></a><span class="c1">// Drop the new messages if the size is reached</span>
+<a id="__codelineno-6-14" name="__codelineno-6-14"></a><span class="nd">@OnOverflow</span><span class="p">(</span><span class="n">OnOverflow</span><span class="p">.</span><span class="na">Strategy</span><span class="p">.</span><span class="na">DROP</span><span class="p">)</span>
+<a id="__codelineno-6-15" name="__codelineno-6-15"></a><span class="nd">@Inject</span>
+<a id="__codelineno-6-16" name="__codelineno-6-16"></a><span class="nd">@Channel</span><span class="p">(</span><span class="s">&quot;channel&quot;</span><span class="p">)</span>
+<a id="__codelineno-6-17" name="__codelineno-6-17"></a><span class="n">Emitter</span><span class="o">&lt;</span><span class="n">String</span><span class="o">&gt;</span><span class="w"> </span><span class="n">dropping</span><span class="p">;</span>
+<a id="__codelineno-6-18" name="__codelineno-6-18"></a>
+<a id="__codelineno-6-19" name="__codelineno-6-19"></a><span class="c1">// Drop the previously sent messages if the size is reached</span>
+<a id="__codelineno-6-20" name="__codelineno-6-20"></a><span class="nd">@OnOverflow</span><span class="p">(</span><span class="n">OnOverflow</span><span class="p">.</span><span class="na">Strategy</span><span class="p">.</span><span class="na">LATEST</span><span class="p">)</span>
+<a id="__codelineno-6-21" name="__codelineno-6-21"></a><span class="nd">@Inject</span>
+<a id="__codelineno-6-22" name="__codelineno-6-22"></a><span class="nd">@Channel</span><span class="p">(</span><span class="s">&quot;channel&quot;</span><span class="p">)</span>
+<a id="__codelineno-6-23" name="__codelineno-6-23"></a><span class="n">Emitter</span><span class="o">&lt;</span><span class="n">String</span><span class="o">&gt;</span><span class="w"> </span><span class="n">dropOldMessages</span><span class="p">;</span>
+</code></pre></div></td></tr></table></div>
+<p>The supported strategies are:</p>
+<ul>
+<li>
+<p><code>OnOverflow.Strategy.BUFFER</code> - use a buffer to store the elements
+    until they are consumed. If the buffer is full, a failure is
+    propagated (and the thread using the emitted gets an exception)</p>
+</li>
+<li>
+<p><code>OnOverflow.Strategy.UNBOUNDED_BUFFER</code> - use an unbounded buffer to
+    store the elements</p>
+</li>
+<li>
+<p><code>OnOverflow.Strategy.DROP</code> - drops the most recent value if the
+    downstream can’t keep up. It means that new value emitted by the
+    emitter are ignored.</p>
+</li>
+<li>
+<p><code>OnOverflow.Strategy.FAIL</code> - propagates a failure in case the
+    downstream can’t keep up.</p>
+</li>
+<li>
+<p><code>OnOverflow.Strategy.LATEST</code> - keeps only the latest value, dropping
+    any previous value if the downstream can’t keep up.</p>
+</li>
+<li>
+<p><code>OnOverflow.Strategy.NONE</code> - ignore the back-pressure signals
+    letting the downstream consumer to implement a strategy.</p>
+</li>
+</ul>
+<h3 id="defensive-emission">Defensive emission</h3>
+<p>Having an emitter injected into your code does not guarantee that
+someone is ready to consume the message. For example, a subscriber may
+be connecting to a remote broker. If there are no subscribers, using the
+<code>send</code> method will throw an exception.</p>
+<p>The <code>emitter.hasRequests()</code> method indicates that a subscriber
+subscribes to the channel and requested items. So, you can wrap your
+emission with:</p>
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-7-1">1</a></span>
+<span class="normal"><a href="#__codelineno-7-2">2</a></span>
+<span class="normal"><a href="#__codelineno-7-3">3</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1"></a><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">emitter</span><span class="p">.</span><span class="na">hasRequests</span><span class="p">())</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2"></a><span class="w">    </span><span class="n">emitter</span><span class="p">.</span><span class="na">send</span><span class="p">(</span><span class="s">&quot;hello&quot;</span><span class="p">);</span>
+<a id="__codelineno-7-3" name="__codelineno-7-3"></a><span class="p">}</span>
+</code></pre></div></td></tr></table></div>
+<p>If you use the <code>OnOverflow.Strategy.DROP</code>, you can use the <code>send</code> method
+even with no subscribers nor demands. The message will be nacked
+immediately.</p>
+<h2 id="retrieving-channels">Retrieving channels</h2>
+<p>You can use the <code>@Channel</code> annotation to inject in your bean the
+underlying stream. Note that in this case, you will be responsible for
+the subscription:</p>
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-8-1"> 1</a></span>
+<span class="normal"><a href="#__codelineno-8-2"> 2</a></span>
+<span class="normal"><a href="#__codelineno-8-3"> 3</a></span>
+<span class="normal"><a href="#__codelineno-8-4"> 4</a></span>
+<span class="normal"><a href="#__codelineno-8-5"> 5</a></span>
+<span class="normal"><a href="#__codelineno-8-6"> 6</a></span>
+<span class="normal"><a href="#__codelineno-8-7"> 7</a></span>
+<span class="normal"><a href="#__codelineno-8-8"> 8</a></span>
+<span class="normal"><a href="#__codelineno-8-9"> 9</a></span>
+<span class="normal"><a href="#__codelineno-8-10">10</a></span>
+<span class="normal"><a href="#__codelineno-8-11">11</a></span>
+<span class="normal"><a href="#__codelineno-8-12">12</a></span>
+<span class="normal"><a href="#__codelineno-8-13">13</a></span>
+<span class="normal"><a href="#__codelineno-8-14">14</a></span>
+<span class="normal"><a href="#__codelineno-8-15">15</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1"></a><span class="nd">@Inject</span>
+<a id="__codelineno-8-2" name="__codelineno-8-2"></a><span class="nd">@Channel</span><span class="p">(</span><span class="s">&quot;my-channel&quot;</span><span class="p">)</span>
+<a id="__codelineno-8-3" name="__codelineno-8-3"></a><span class="n">Multi</span><span class="o">&lt;</span><span class="n">String</span><span class="o">&gt;</span><span class="w"> </span><span class="n">streamOfPayloads</span><span class="p">;</span>
+<a id="__codelineno-8-4" name="__codelineno-8-4"></a>
+<a id="__codelineno-8-5" name="__codelineno-8-5"></a><span class="nd">@Inject</span>
+<a id="__codelineno-8-6" name="__codelineno-8-6"></a><span class="nd">@Channel</span><span class="p">(</span><span class="s">&quot;my-channel&quot;</span><span class="p">)</span>
+<a id="__codelineno-8-7" name="__codelineno-8-7"></a><span class="n">Multi</span><span class="o">&lt;</span><span class="n">Message</span><span class="o">&lt;</span><span class="n">String</span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="n">streamOfMessages</span><span class="p">;</span>
+<a id="__codelineno-8-8" name="__codelineno-8-8"></a>
+<a id="__codelineno-8-9" name="__codelineno-8-9"></a><span class="nd">@Inject</span>
+<a id="__codelineno-8-10" name="__codelineno-8-10"></a><span class="nd">@Channel</span><span class="p">(</span><span class="s">&quot;my-channel&quot;</span><span class="p">)</span>
+<a id="__codelineno-8-11" name="__codelineno-8-11"></a><span class="n">Publisher</span><span class="o">&lt;</span><span class="n">String</span><span class="o">&gt;</span><span class="w"> </span><span class="n">publisherOfPayloads</span><span class="p">;</span>
+<a id="__codelineno-8-12" name="__codelineno-8-12"></a>
+<a id="__codelineno-8-13" name="__codelineno-8-13"></a><span class="nd">@Inject</span>
+<a id="__codelineno-8-14" name="__codelineno-8-14"></a><span class="nd">@Channel</span><span class="p">(</span><span class="s">&quot;my-channel&quot;</span><span class="p">)</span>
+<a id="__codelineno-8-15" name="__codelineno-8-15"></a><span class="n">Publisher</span><span class="o">&lt;</span><span class="n">Message</span><span class="o">&lt;</span><span class="n">String</span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="n">publisherOfMessages</span><span class="p">;</span>
+</code></pre></div></td></tr></table></div>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>You must have a <code>@Outgoing("my-channel")</code> somewhere in your application
+(meaning a method generating messages transiting on the channel
+<code>my-channel</code>), or an inbound connector configured to manage the <code>prices</code>
+channel (<code>mp.messaging.incoming.prices...</code>)</p>
+</div>
+<p>Injected <em>channels</em> merge all the matching <em>outgoing</em> - so if you have
+multiple <code>@Outgoing("out")</code>, <code>@Inject @Channel("out")</code> gets all the
+messages.</p>
+<p>If your injected <em>channel</em> receives <em>payloads</em> (<code>Multi&lt;T&gt;</code>), it
+acknowledges the message automatically, and support multiple
+subscribers. If you injected <em>channel</em> receives <code>Message</code>
+(<code>Multi&lt;Message&lt;T&gt;&gt;</code>), you will be responsible for the acknowledgement
+and broadcasting.</p>
+<h2 id="emitter-and-broadcast">Emitter and @Broadcast</h2>
+<p>When using an <code>Emitter</code>, you can now <code>@Broadcast</code> what is emitted to all
+subscribers.</p>
+<p>Here is an example of emitting a price with two methods marked
+<code>@Incoming</code> to receive the broadcast:</p>
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-9-1"> 1</a></span>
+<span class="normal"><a href="#__codelineno-9-2"> 2</a></span>
+<span class="normal"><a href="#__codelineno-9-3"> 3</a></span>
+<span class="normal"><a href="#__codelineno-9-4"> 4</a></span>
+<span class="normal"><a href="#__codelineno-9-5"> 5</a></span>
+<span class="normal"><a href="#__codelineno-9-6"> 6</a></span>
+<span class="normal"><a href="#__codelineno-9-7"> 7</a></span>
+<span class="normal"><a href="#__codelineno-9-8"> 8</a></span>
+<span class="normal"><a href="#__codelineno-9-9"> 9</a></span>
+<span class="normal"><a href="#__codelineno-9-10">10</a></span>
+<span class="normal"><a href="#__codelineno-9-11">11</a></span>
+<span class="normal"><a href="#__codelineno-9-12">12</a></span>
+<span class="normal"><a href="#__codelineno-9-13">13</a></span>
+<span class="normal"><a href="#__codelineno-9-14">14</a></span>
+<span class="normal"><a href="#__codelineno-9-15">15</a></span>
+<span class="normal"><a href="#__codelineno-9-16">16</a></span>
+<span class="normal"><a href="#__codelineno-9-17">17</a></span>
+<span class="normal"><a href="#__codelineno-9-18">18</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1"></a><span class="nd">@Inject</span>
+<a id="__codelineno-9-2" name="__codelineno-9-2"></a><span class="nd">@Broadcast</span>
+<a id="__codelineno-9-3" name="__codelineno-9-3"></a><span class="nd">@Channel</span><span class="p">(</span><span class="s">&quot;prices&quot;</span><span class="p">)</span>
+<a id="__codelineno-9-4" name="__codelineno-9-4"></a><span class="n">Emitter</span><span class="o">&lt;</span><span class="n">Double</span><span class="o">&gt;</span><span class="w"> </span><span class="n">emitter</span><span class="p">;</span>
+<a id="__codelineno-9-5" name="__codelineno-9-5"></a>
+<a id="__codelineno-9-6" name="__codelineno-9-6"></a><span class="kd">public</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">emit</span><span class="p">(</span><span class="kt">double</span><span class="w"> </span><span class="n">d</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-9-7" name="__codelineno-9-7"></a><span class="w">    </span><span class="n">emitter</span><span class="p">.</span><span class="na">send</span><span class="p">(</span><span class="n">d</span><span class="p">);</span>
+<a id="__codelineno-9-8" name="__codelineno-9-8"></a><span class="p">}</span>
+<a id="__codelineno-9-9" name="__codelineno-9-9"></a>
+<a id="__codelineno-9-10" name="__codelineno-9-10"></a><span class="nd">@Incoming</span><span class="p">(</span><span class="s">&quot;prices&quot;</span><span class="p">)</span>
+<a id="__codelineno-9-11" name="__codelineno-9-11"></a><span class="kd">public</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">handle</span><span class="p">(</span><span class="kt">double</span><span class="w"> </span><span class="n">d</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-9-12" name="__codelineno-9-12"></a><span class="w">    </span><span class="c1">// Handle the new price</span>
+<a id="__codelineno-9-13" name="__codelineno-9-13"></a><span class="p">}</span>
+<a id="__codelineno-9-14" name="__codelineno-9-14"></a>
+<a id="__codelineno-9-15" name="__codelineno-9-15"></a><span class="nd">@Incoming</span><span class="p">(</span><span class="s">&quot;prices&quot;</span><span class="p">)</span>
+<a id="__codelineno-9-16" name="__codelineno-9-16"></a><span class="kd">public</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">audit</span><span class="p">(</span><span class="kt">double</span><span class="w"> </span><span class="n">d</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-9-17" name="__codelineno-9-17"></a><span class="w">    </span><span class="c1">// Audit the price change</span>
+<a id="__codelineno-9-18" name="__codelineno-9-18"></a><span class="p">}</span>
+</code></pre></div></td></tr></table></div>
+<p>For more details see <a href="../broadcast/">@Broadcast</a>
+documentation.</p>
+<h2 id="mutiny-emitter">Mutiny Emitter</h2>
+<p>If you prefer to utilize <code>Uni</code> in all your code, there is now a
+<code>MutinyEmitter</code> that will return <code>Uni&lt;Void&gt;</code> instead of <code>void</code>.</p>
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-10-1">1</a></span>
+<span class="normal"><a href="#__codelineno-10-2">2</a></span>
+<span class="normal"><a href="#__codelineno-10-3">3</a></span>
+<span class="normal"><a href="#__codelineno-10-4">4</a></span>
+<span class="normal"><a href="#__codelineno-10-5">5</a></span>
+<span class="normal"><a href="#__codelineno-10-6">6</a></span>
+<span class="normal"><a href="#__codelineno-10-7">7</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1"></a><span class="nd">@Inject</span>
+<a id="__codelineno-10-2" name="__codelineno-10-2"></a><span class="nd">@Channel</span><span class="p">(</span><span class="s">&quot;prices&quot;</span><span class="p">)</span>
+<a id="__codelineno-10-3" name="__codelineno-10-3"></a><span class="n">MutinyEmitter</span><span class="o">&lt;</span><span class="n">Double</span><span class="o">&gt;</span><span class="w"> </span><span class="n">emitter</span><span class="p">;</span>
+<a id="__codelineno-10-4" name="__codelineno-10-4"></a>
+<a id="__codelineno-10-5" name="__codelineno-10-5"></a><span class="kd">public</span><span class="w"> </span><span class="n">Uni</span><span class="o">&lt;</span><span class="n">Void</span><span class="o">&gt;</span><span class="w"> </span><span class="nf">send</span><span class="p">(</span><span class="kt">double</span><span class="w"> </span><span class="n">d</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-10-6" name="__codelineno-10-6"></a><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">emitter</span><span class="p">.</span><span class="na">send</span><span class="p">(</span><span class="n">d</span><span class="p">);</span>
+<a id="__codelineno-10-7" name="__codelineno-10-7"></a><span class="p">}</span>
+</code></pre></div></td></tr></table></div>
+<p>There’s also the ability to block on sending the event to the emitter.
+It will only return from the method when the event is acknowledged, or
+nacked, by the receiver:</p>
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-11-1">1</a></span>
+<span class="normal"><a href="#__codelineno-11-2">2</a></span>
+<span class="normal"><a href="#__codelineno-11-3">3</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1"></a><span class="kd">public</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">sendAwait</span><span class="p">(</span><span class="kt">double</span><span class="w"> </span><span class="n">d</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-11-2" name="__codelineno-11-2"></a><span class="w">    </span><span class="n">emitter</span><span class="p">.</span><span class="na">sendAndAwait</span><span class="p">(</span><span class="n">d</span><span class="p">);</span>
+<a id="__codelineno-11-3" name="__codelineno-11-3"></a><span class="p">}</span>
+</code></pre></div></td></tr></table></div>
+<p>And if you don’t need to worry about the success or failure of sending
+an event, you can <code>sendAndForget</code>:</p>
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-12-1">1</a></span>
+<span class="normal"><a href="#__codelineno-12-2">2</a></span>
+<span class="normal"><a href="#__codelineno-12-3">3</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1"></a><span class="kd">public</span><span class="w"> </span><span class="n">Cancellable</span><span class="w"> </span><span class="nf">sendForget</span><span class="p">(</span><span class="kt">double</span><span class="w"> </span><span class="n">d</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-12-2" name="__codelineno-12-2"></a><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">emitter</span><span class="p">.</span><span class="na">sendAndForget</span><span class="p">(</span><span class="n">d</span><span class="p">);</span>
+<a id="__codelineno-12-3" name="__codelineno-12-3"></a><span class="p">}</span>
+</code></pre></div></td></tr></table></div>
+<h2 id="custom-emitter-implementations">Custom Emitter Implementations</h2>
+<div class="admonition warning">
+<p class="admonition-title">Experimental</p>
+<p>Custom emitter implementations is an experimental feature.</p>
+</div>
+<p><code>Emitter</code> and <code>MutinyEmitter</code> are two implementations of the emitter concept,
+where imperative code in your application can send messages to Reactive Messaging channels.</p>
+<p>With <code>EmitterFactory</code> it is possible to provide custom implementations, and application facing emitter interfaces.</p>
+<p>In the following example, the injectable custom emitter interface is <code>CustomEmitter</code>,
+and it is implemented by <code>CustomEmitterImpl</code>:</p>
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-13-1"> 1</a></span>
+<span class="normal"><a href="#__codelineno-13-2"> 2</a></span>
+<span class="normal"><a href="#__codelineno-13-3"> 3</a></span>
+<span class="normal"><a href="#__codelineno-13-4"> 4</a></span>
+<span class="normal"><a href="#__codelineno-13-5"> 5</a></span>
+<span class="normal"><a href="#__codelineno-13-6"> 6</a></span>
+<span class="normal"><a href="#__codelineno-13-7"> 7</a></span>
+<span class="normal"><a href="#__codelineno-13-8"> 8</a></span>
+<span class="normal"><a href="#__codelineno-13-9"> 9</a></span>
+<span class="normal"><a href="#__codelineno-13-10">10</a></span>
+<span class="normal"><a href="#__codelineno-13-11">11</a></span>
+<span class="normal"><a href="#__codelineno-13-12">12</a></span>
+<span class="normal"><a href="#__codelineno-13-13">13</a></span>
+<span class="normal"><a href="#__codelineno-13-14">14</a></span>
+<span class="normal"><a href="#__codelineno-13-15">15</a></span>
+<span class="normal"><a href="#__codelineno-13-16">16</a></span>
+<span class="normal"><a href="#__codelineno-13-17">17</a></span>
+<span class="normal"><a href="#__codelineno-13-18">18</a></span>
+<span class="normal"><a href="#__codelineno-13-19">19</a></span>
+<span class="normal"><a href="#__codelineno-13-20">20</a></span>
+<span class="normal"><a href="#__codelineno-13-21">21</a></span>
+<span class="normal"><a href="#__codelineno-13-22">22</a></span>
+<span class="normal"><a href="#__codelineno-13-23">23</a></span>
+<span class="normal"><a href="#__codelineno-13-24">24</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1"></a><span class="kd">public</span><span class="w"> </span><span class="kd">interface</span> <span class="nc">CustomEmitter</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="w"> </span><span class="kd">extends</span><span class="w"> </span><span class="n">EmitterType</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-13-2" name="__codelineno-13-2"></a>
+<a id="__codelineno-13-3" name="__codelineno-13-3"></a><span class="w">    </span><span class="o">&lt;</span><span class="n">M</span><span class="w"> </span><span class="kd">extends</span><span class="w"> </span><span class="n">Message</span><span class="o">&lt;?</span><span class="w"> </span><span class="kd">extends</span><span class="w"> </span><span class="n">T</span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">sendAndForget</span><span class="p">(</span><span class="n">M</span><span class="w"> </span><span class="n">msg</span><span class="p">);</span>
+<a id="__codelineno-13-4" name="__codelineno-13-4"></a>
+<a id="__codelineno-13-5" name="__codelineno-13-5"></a><span class="p">}</span>
+<a id="__codelineno-13-6" name="__codelineno-13-6"></a>
+<a id="__codelineno-13-7" name="__codelineno-13-7"></a><span class="kd">public</span><span class="w"> </span><span class="kd">static</span><span class="w"> </span><span class="kd">class</span> <span class="nc">CustomEmitterImpl</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="w"> </span><span class="kd">implements</span><span class="w"> </span><span class="n">CustomEmitter</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="p">,</span><span class="w"> </span><span class="n">MessagePublisherProvider</span><span class="o">&lt;</span><span class="n">Object</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-13-8" name="__codelineno-13-8"></a>
+<a id="__codelineno-13-9" name="__codelineno-13-9"></a><span class="w">    </span><span class="n">Publisher</span><span class="o">&lt;</span><span class="n">Message</span><span class="o">&lt;?&gt;&gt;</span><span class="w"> </span><span class="n">publisher</span><span class="p">;</span>
+<a id="__codelineno-13-10" name="__codelineno-13-10"></a>
+<a id="__codelineno-13-11" name="__codelineno-13-11"></a><span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="nf">CustomEmitterImpl</span><span class="p">(</span><span class="n">EmitterConfiguration</span><span class="w"> </span><span class="n">configuration</span><span class="p">,</span><span class="w"> </span><span class="kt">long</span><span class="w"> </span><span class="n">defaultBufferSize</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-13-12" name="__codelineno-13-12"></a><span class="w">        </span><span class="c1">//... initialize emitter with configuration</span>
+<a id="__codelineno-13-13" name="__codelineno-13-13"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-13-14" name="__codelineno-13-14"></a>
+<a id="__codelineno-13-15" name="__codelineno-13-15"></a><span class="w">    </span><span class="nd">@Override</span>
+<a id="__codelineno-13-16" name="__codelineno-13-16"></a><span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="n">Publisher</span><span class="o">&lt;</span><span class="n">Message</span><span class="o">&lt;?&gt;&gt;</span><span class="w"> </span><span class="n">getPublisher</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-13-17" name="__codelineno-13-17"></a><span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">publisher</span><span class="p">;</span>
+<a id="__codelineno-13-18" name="__codelineno-13-18"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-13-19" name="__codelineno-13-19"></a>
+<a id="__codelineno-13-20" name="__codelineno-13-20"></a><span class="w">    </span><span class="nd">@Override</span>
+<a id="__codelineno-13-21" name="__codelineno-13-21"></a><span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="o">&lt;</span><span class="n">M</span><span class="w"> </span><span class="kd">extends</span><span class="w"> </span><span class="n">Message</span><span class="o">&lt;?</span><span class="w"> </span><span class="kd">extends</span><span class="w"> </span><span class="n">T</span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">sendAndForget</span><span class="p">(</span><span class="n">M</span><span class="w"> </span><span class="n">msg</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-13-22" name="__codelineno-13-22"></a><span class="w">        </span><span class="c1">//... send to stream</span>
+<a id="__codelineno-13-23" name="__codelineno-13-23"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-13-24" name="__codelineno-13-24"></a><span class="p">}</span>
+</code></pre></div></td></tr></table></div>
+<p>Note that <code>CustomEmitter</code> interface extends <code>EmitterType</code>, which is a marker interface for discovering custom emitter types.
+Also, <code>CustomEmitterImpl</code> implements the <code>MessagePublisherProvider</code>, which is used by the framework to transform this emitter to a channel.</p>
+<p>Then we need to provide an implementation of the <code>EmitterFactory</code> interface:</p>
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-14-1"> 1</a></span>
+<span class="normal"><a href="#__codelineno-14-2"> 2</a></span>
+<span class="normal"><a href="#__codelineno-14-3"> 3</a></span>
+<span class="normal"><a href="#__codelineno-14-4"> 4</a></span>
+<span class="normal"><a href="#__codelineno-14-5"> 5</a></span>
+<span class="normal"><a href="#__codelineno-14-6"> 6</a></span>
+<span class="normal"><a href="#__codelineno-14-7"> 7</a></span>
+<span class="normal"><a href="#__codelineno-14-8"> 8</a></span>
+<span class="normal"><a href="#__codelineno-14-9"> 9</a></span>
+<span class="normal"><a href="#__codelineno-14-10">10</a></span>
+<span class="normal"><a href="#__codelineno-14-11">11</a></span>
+<span class="normal"><a href="#__codelineno-14-12">12</a></span>
+<span class="normal"><a href="#__codelineno-14-13">13</a></span>
+<span class="normal"><a href="#__codelineno-14-14">14</a></span>
+<span class="normal"><a href="#__codelineno-14-15">15</a></span>
+<span class="normal"><a href="#__codelineno-14-16">16</a></span>
+<span class="normal"><a href="#__codelineno-14-17">17</a></span>
+<span class="normal"><a href="#__codelineno-14-18">18</a></span>
+<span class="normal"><a href="#__codelineno-14-19">19</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1"></a><span class="nd">@EmitterFactoryFor</span><span class="p">(</span><span class="n">CustomEmitter</span><span class="p">.</span><span class="na">class</span><span class="p">)</span>
+<a id="__codelineno-14-2" name="__codelineno-14-2"></a><span class="nd">@ApplicationScoped</span>
+<a id="__codelineno-14-3" name="__codelineno-14-3"></a><span class="kd">public</span><span class="w"> </span><span class="kd">static</span><span class="w"> </span><span class="kd">class</span> <span class="nc">CustomEmitterFactory</span><span class="w"> </span><span class="kd">implements</span><span class="w"> </span><span class="n">EmitterFactory</span><span class="o">&lt;</span><span class="n">CustomEmitterImpl</span><span class="o">&lt;</span><span class="n">Object</span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-14-4" name="__codelineno-14-4"></a>
+<a id="__codelineno-14-5" name="__codelineno-14-5"></a><span class="w">    </span><span class="nd">@Inject</span>
+<a id="__codelineno-14-6" name="__codelineno-14-6"></a><span class="w">    </span><span class="n">ChannelRegistry</span><span class="w"> </span><span class="n">channelRegistry</span><span class="p">;</span>
+<a id="__codelineno-14-7" name="__codelineno-14-7"></a>
+<a id="__codelineno-14-8" name="__codelineno-14-8"></a><span class="w">    </span><span class="nd">@Override</span>
+<a id="__codelineno-14-9" name="__codelineno-14-9"></a><span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="n">CustomEmitterImpl</span><span class="o">&lt;</span><span class="n">Object</span><span class="o">&gt;</span><span class="w"> </span><span class="nf">createEmitter</span><span class="p">(</span><span class="n">EmitterConfiguration</span><span class="w"> </span><span class="n">configuration</span><span class="p">,</span><span class="w"> </span><span class="kt">long</span><span class="w"> </span><span class="n">defaultBufferSize</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-14-10" name="__codelineno-14-10"></a><span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">CustomEmitterImpl</span><span class="o">&lt;&gt;</span><span class="p">(</span><span class="n">configuration</span><span class="p">,</span><span class="w"> </span><span class="n">defaultBufferSize</span><span class="p">);</span>
+<a id="__codelineno-14-11" name="__codelineno-14-11"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-14-12" name="__codelineno-14-12"></a>
+<a id="__codelineno-14-13" name="__codelineno-14-13"></a><span class="w">    </span><span class="nd">@Produces</span>
+<a id="__codelineno-14-14" name="__codelineno-14-14"></a><span class="w">    </span><span class="nd">@Channel</span><span class="p">(</span><span class="s">&quot;&quot;</span><span class="p">)</span><span class="w"> </span><span class="c1">// Stream name is ignored during type-safe resolution</span>
+<a id="__codelineno-14-15" name="__codelineno-14-15"></a><span class="w">    </span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="w"> </span><span class="n">CustomEmitter</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="w"> </span><span class="nf">produce</span><span class="p">(</span><span class="n">InjectionPoint</span><span class="w"> </span><span class="n">injectionPoint</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-14-16" name="__codelineno-14-16"></a><span class="w">        </span><span class="n">String</span><span class="w"> </span><span class="n">channelName</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ChannelProducer</span><span class="p">.</span><span class="na">getChannelName</span><span class="p">(</span><span class="n">injectionPoint</span><span class="p">);</span>
+<a id="__codelineno-14-17" name="__codelineno-14-17"></a><span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">channelRegistry</span><span class="p">.</span><span class="na">getEmitter</span><span class="p">(</span><span class="n">channelName</span><span class="p">,</span><span class="w"> </span><span class="n">CustomEmitter</span><span class="p">.</span><span class="na">class</span><span class="p">);</span>
+<a id="__codelineno-14-18" name="__codelineno-14-18"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-14-19" name="__codelineno-14-19"></a><span class="p">}</span>
+</code></pre></div></td></tr></table></div>
+<p>The <code>CustomEmitterFactory</code> is a CDI managed bean, which implements the <code>EmitterFactory</code>.
+It is qualified with <code>EmitterFactoryFor</code> annotation which is configured with the emitter interface <code>CustomEmitter</code> that this factory provides.</p>
+<p>Smallrye Reactive Messaging discovers the emitter factory during the CDI deployment validation
+and verifies that custom emitters used by the application have corresponding emitter factories.
+It'll use the emitter factory to create the emitter implementation and will register the implementation into the <code>ChannelRegistry</code>.</p>
+<p>Note that the <code>CustomEmitterFactory</code> also uses the <code>ChannelRegistry</code> and provides the custom emitter with <code>@Produces</code>.</p>
+<p>Finally, the application can inject and use the <code>CustomEmitter</code> as a normal emitter channel:</p>
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-15-1"> 1</a></span>
+<span class="normal"><a href="#__codelineno-15-2"> 2</a></span>
+<span class="normal"><a href="#__codelineno-15-3"> 3</a></span>
+<span class="normal"><a href="#__codelineno-15-4"> 4</a></span>
+<span class="normal"><a href="#__codelineno-15-5"> 5</a></span>
+<span class="normal"><a href="#__codelineno-15-6"> 6</a></span>
+<span class="normal"><a href="#__codelineno-15-7"> 7</a></span>
+<span class="normal"><a href="#__codelineno-15-8"> 8</a></span>
+<span class="normal"><a href="#__codelineno-15-9"> 9</a></span>
+<span class="normal"><a href="#__codelineno-15-10">10</a></span>
+<span class="normal"><a href="#__codelineno-15-11">11</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1"></a><span class="nd">@Inject</span>
+<a id="__codelineno-15-2" name="__codelineno-15-2"></a><span class="nd">@Channel</span><span class="p">(</span><span class="s">&quot;custom-emitter-channel&quot;</span><span class="p">)</span>
+<a id="__codelineno-15-3" name="__codelineno-15-3"></a><span class="n">CustomEmitter</span><span class="o">&lt;</span><span class="n">String</span><span class="o">&gt;</span><span class="w"> </span><span class="n">customEmitter</span><span class="p">;</span>
+<a id="__codelineno-15-4" name="__codelineno-15-4"></a>
+<a id="__codelineno-15-5" name="__codelineno-15-5"></a><span class="c1">//...</span>
+<a id="__codelineno-15-6" name="__codelineno-15-6"></a>
+<a id="__codelineno-15-7" name="__codelineno-15-7"></a><span class="kd">public</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">emitMessage</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-15-8" name="__codelineno-15-8"></a><span class="w">    </span><span class="n">customEmitter</span><span class="p">.</span><span class="na">sendAndForget</span><span class="p">(</span><span class="n">Message</span><span class="p">.</span><span class="na">of</span><span class="p">(</span><span class="s">&quot;a&quot;</span><span class="p">));</span>
+<a id="__codelineno-15-9" name="__codelineno-15-9"></a><span class="w">    </span><span class="n">customEmitter</span><span class="p">.</span><span class="na">sendAndForget</span><span class="p">(</span><span class="n">Message</span><span class="p">.</span><span class="na">of</span><span class="p">(</span><span class="s">&quot;b&quot;</span><span class="p">));</span>
+<a id="__codelineno-15-10" name="__codelineno-15-10"></a><span class="w">    </span><span class="n">customEmitter</span><span class="p">.</span><span class="na">sendAndForget</span><span class="p">(</span><span class="n">Message</span><span class="p">.</span><span class="na">of</span><span class="p">(</span><span class="s">&quot;c&quot;</span><span class="p">));</span>
+<a id="__codelineno-15-11" name="__codelineno-15-11"></a><span class="p">}</span>
+</code></pre></div></td></tr></table></div>
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Sponsored by <a href="https://www.redhat.com"><img style="vertical-align: middle; height: 2.5em;" alt="Red Hat" src="https://github.com/jbossorg/website/raw/master/docs/img/redhat_reversed.svg"/></a> <br/> <a href="https://creativecommons.org/licenses/by/3.0/">CC by 3.0</a> | <a href="https://www.redhat.com/en/about/privacy-policy">Privacy Policy</a>
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    <script id="__config" type="application/json">{"base": "../..", "features": ["navigation.sections", "navigation.tracking", "navigation.indexes"], "search": "../../assets/javascripts/workers/search.f886a092.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.81fa17fe.min.js"></script>
+      
+        <script src="../../js/print-site.js"></script>
+      
+    
+  </body>
+</html>
