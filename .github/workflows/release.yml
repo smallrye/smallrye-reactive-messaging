@@ -1,63 +1,35 @@
-name: Release Smallrye Reactive Messaging
+name: Release
+run-name: Perform ${{github.event.inputs.tag || github.ref_name}} Release
 
 on:
+    push:
+        tags:
+            - '*'
     workflow_dispatch:
         inputs:
-            previousVersion:
-                description: 'Previous version'
+            tag:
+                description: 'Tag to release'
                 required: true
-            version:
-                description: 'Release version'
-                required: true
-            deployWebsite:
-                description: 'Shall we deploy the website?'
-                required: true
-                default: 'true'
-            clearRevAPI:
-                description: 'Shall we clear RevAPI justifications?'
-                required: true
-                default: 'true'
+
+permissions:
+    attestations: write
+    id-token: write
+    # Needed for the publish-* workflows
+    contents: write
+
+concurrency:
+    group: ${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: true
 
 jobs:
-    release:
-        runs-on: ubuntu-latest
-        env:
-            GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
-            RELEASE_TOKEN: ${{ secrets.RELEASE_TOKEN }}
-            RELEASE_VERSION: ${{ github.event.inputs.version }}
-            DEPLOY_WEBSITE: ${{ github.event.inputs.deployWebsite }}
-            CLEAR_REVAPI: ${{ github.event.inputs.clearRevAPI }}
-            MAVEN_GPG_PASSPHRASE: ${{ secrets.MAVEN_GPG_PASSPHRASE }}
-            JRELEASER_TAG_NAME: ${{ github.event.inputs.version }}
-            JRELEASER_PREVIOUS_TAG_NAME: ${{ github.event.inputs.previousVersion }}
-            JRELEASER_GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+    perform-release:
+        name: Perform Release
+        uses: smallrye/.github/.github/workflows/perform-release.yml@main
+        secrets: inherit
+        with:
+            version: ${{github.event.inputs.tag || github.ref_name}}
 
-        steps:
-            - name: Git checkout
-              uses: actions/checkout@v4
-              with:
-                  fetch-depth: 0
-                  token: ${{ secrets.RELEASE_TOKEN }}
-            - name: Java setup
-              uses: actions/setup-java@v4
-              with:
-                  java-version: '17'
-                  distribution: 'temurin'
-                  cache: maven
-                  gpg-private-key: ${{ secrets.MAVEN_GPG_PRIVATE_KEY }}
-                  gpg-passphrase: 'MAVEN_GPG_PASSPHRASE'
-            - name: Install just
-              uses: taiki-e/install-action@just
-            - name: Setup Python
-              uses: actions/setup-python@v5
-              with:
-                  python-version: 3.9
-                  cache: 'pipenv'
-                  cache-dependency-path: documentation/Pipfile.lock
-            - name: Install pipenv
-              run: pip install pipenv
-            - name: Perform the release steps
-              run: |
-                curl -s "https://get.sdkman.io?rcupdate=false" | bash
-                source ~/.sdkman/bin/sdkman-init.sh && sdk install jbang
-                just perform-release
+    deploy-site:
+        name: GitHub Pages
+        needs: perform-release
+        uses: ./.github/workflows/push-deploy-docs.yml
