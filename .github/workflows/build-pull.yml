@@ -5,8 +5,8 @@ on:
     pull_request:
         branches:
             - main
-            - 3.x
-            - 3.13.x
+            - 4.x
+            - 4.24.x
 
 jobs:
     build:
