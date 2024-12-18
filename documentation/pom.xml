@@ -7,7 +7,7 @@
   <parent>
     <groupId>io.smallrye.reactive</groupId>
     <artifactId>smallrye-reactive-messaging</artifactId>
-    <version>999-SNAPSHOT</version>
+    <version>4.24.1-SNAPSHOT</version>
   </parent>
 
   <artifactId>documentation</artifactId>
@@ -237,6 +237,13 @@
         <version>1.7.0</version>
         <configuration>
           <skipNexusStagingDeployMojo>true</skipNexusStagingDeployMojo>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-deploy-plugin</artifactId>
+        <configuration>
+          <skip>true</skip>
         </configuration>
       </plugin>
     </plugins>
