@@ -1,0 +1,21 @@
+.md-typeset figcaption {
+    color: var(--md-primary-fg-color);
+    font-style: normal !important;
+    font-variant: all-petite-caps;
+    font-weight: bold;
+    margin-bottom: 0;
+}
+
+figure {
+    /*border: 1px solid var(--md-primary-fg-color);*/
+    /*border-radius: 5px;*/
+    padding: 10px;
+}
+
+.md-typeset a {
+    color: dodgerblue;
+}
+
+.no-hyphens {
+    hyphens: none;
+}
