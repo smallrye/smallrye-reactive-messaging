@@ -56,9 +56,9 @@
 
 
   <properties>
-    <maven.compiler.release>11</maven.compiler.release>
-    <maven.compiler.source>11</maven.compiler.source>
-    <maven.compiler.target>11</maven.compiler.target>
+    <maven.compiler.release>17</maven.compiler.release>
+    <maven.compiler.source>17</maven.compiler.source>
+    <maven.compiler.target>17</maven.compiler.target>
 
     <vertx.version>4.5.11</vertx.version>
     <rxjava.version>2.2.21</rxjava.version>
@@ -145,6 +145,7 @@
     <module>smallrye-reactive-messaging-gcp-pubsub</module>
     <module>smallrye-reactive-messaging-pulsar</module>
     <module>smallrye-reactive-messaging-aws-sqs</module>
+    <module>smallrye-reactive-messaging-camel</module>
 
     <module>smallrye-connector-attribute-processor</module>
     <module>smallrye-reactive-messaging-connector-archetype</module>
@@ -687,16 +688,6 @@
 
   <profiles>
     <profile>
-      <id>with-camel</id>
-      <activation>
-        <jdk>[17,)</jdk>
-      </activation>
-      <modules>
-        <module>smallrye-reactive-messaging-camel</module>
-        <module>documentation</module>
-      </modules>
-    </profile>
-    <profile>
       <id>skipped-from-release</id>
       <activation>
         <property>
@@ -705,7 +696,7 @@
         </property>
       </activation>
       <modules>
-<!--        <module>documentation</module>--> <!-- deploy skipped in module -->
+        <module>documentation</module>
         <module>tck</module>
         <module>examples/quickstart</module>
         <module>examples/kafka-quickstart</module>

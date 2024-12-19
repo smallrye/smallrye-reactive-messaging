@@ -17,11 +17,6 @@ jobs:
                 java: [
                     {
                         'name': '',
-                        'version': '11',
-                        'build_opts': '-Drevapi.skip=true'
-                    },
-                    {
-                        'name': '',
                         'version': '17',
                     },
                     {
@@ -31,12 +26,6 @@ jobs:
                     {
                         'name': '',
                         'version': '23',
-                    },
-                    {
-                        'version': '11',
-                        'build_opts': '-Pslow-flaky-tests -Drevapi.skip=true',
-                        'name': 'Slow and Flaky tests',
-                        'continue-on-error': true
                     }
                 ]
         name: Build with Java ${{ matrix.java.version }} ${{ matrix.java.name }}
