@@ -602,8 +602,7 @@ container type to receive all the data:
 {{ insert('kafka/inbound/KafkaRecordBatchPayloadExample.java', 'code') }}
 ```
 
-The incoming method can also receive `Message<List<Payload>`,
-`KafkaBatchRecords<Payload>` `ConsumerRecords<Key, Payload>` types, They
+The incoming method can also receive `Message<List<Payload>` or `ConsumerRecords<Key, Payload>` types, They
 give access to record details such as offset or timestamp :
 
 ``` java
@@ -617,6 +616,16 @@ The configured commit strategy will be applied for these records only.
 Conversely, if the processing throws an exception, all messages are
 *nacked*, applying the failure strategy for all the records inside the
 batch.
+
+### Accessing metadata of batch records
+
+When receiving records in batch mode, the metadata of each record is accessible through the `IncomingKafkaRecordBatchMetadata` :
+
+``` java
+{{ insert('kafka/inbound/KafkaRecordBatchExample.java', 'batch') }}
+```
+
+Like in this example, this can be useful to propagate the tracing information of each record.
 
 ## Manual topic-partition assignment
 

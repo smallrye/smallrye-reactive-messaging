@@ -39,6 +39,11 @@ public class PulsarTransactionsImpl<T> extends MutinyEmitterImpl<T> implements P
         this.pulsarClient = pulsarClientService.getClient(config.name());
     }
 
+    private static boolean isConflict(Throwable throwable) {
+        return throwable instanceof PulsarClientException.TransactionConflictException
+                || throwable.getCause() instanceof PulsarClientException.TransactionConflictException;
+    }
+
     @Override
     public <R> Uni<R> withTransaction(Function<TransactionalEmitter<T>, Uni<R>> work) {
         return new PulsarTransactionEmitter<R>().execute(work);
@@ -57,17 +62,14 @@ public class PulsarTransactionsImpl<T> extends MutinyEmitterImpl<T> implements P
     @Override
     public <R> Uni<R> withTransaction(Duration txnTimeout, Message<?> message, Function<TransactionalEmitter<T>, Uni<R>> work) {
         return new PulsarTransactionEmitter<R>(txnTimeout,
-                txn -> Uni.createFrom().completionStage(message.ack()),
+                txn -> Uni.createFrom().completionStage(message.ack())
+                        .onFailure(PulsarTransactionsImpl::isConflict).recoverWithUni(throwable -> VOID_UNI),
                 PulsarTransactionsImpl::defaultAfterCommit,
                 (txn, throwable) -> {
-                    if (!(throwable.getCause() instanceof PulsarClientException.TransactionConflictException)) {
-                        // If TransactionConflictException is not thrown,
-                        // you need to redeliver or negativeAcknowledge this message,
-                        // or else this message will not be received again.
-                        return Uni.createFrom().completionStage(() -> message.nack(throwable));
-                    } else {
-                        return VOID_UNI;
-                    }
+                    // If TransactionConflictException is not thrown,
+                    // you need to redeliver or negativeAcknowledge this message,
+                    // or else this message will not be received again.
+                    return isConflict(throwable) ? VOID_UNI : Uni.createFrom().completionStage(message.nack(throwable));
                 },
                 PulsarTransactionsImpl::defaultAfterAbort)
                 .execute(e -> {
@@ -200,7 +202,8 @@ public class PulsarTransactionsImpl<T> extends MutinyEmitterImpl<T> implements P
                     .onCancellation().call(() -> abort(new RuntimeException("Transaction cancelled")))
                     // when there was no exception,
                     // commit or rollback the transaction
-                    .call(() -> abort ? abort(new RuntimeException("Transaction aborted")) : commit())
+                    .call(() -> abort ? abort(new RuntimeException("Transaction aborted"))
+                            : commit().onFailure().call(throwable -> abort(throwable)))
                     .onFailure().recoverWithUni(throwable -> afterAbort.apply(throwable))
                     .onItem().transformToUni(result -> afterCommit.apply(result));
         }

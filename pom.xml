@@ -1,12 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
     <groupId>io.smallrye</groupId>
     <artifactId>smallrye-parent</artifactId>
-    <version>45</version>
+    <version>46</version>
   </parent>
 
   <groupId>io.smallrye.reactive</groupId>
@@ -61,62 +60,63 @@
     <maven.compiler.source>11</maven.compiler.source>
     <maven.compiler.target>11</maven.compiler.target>
 
-    <vertx.version>4.5.8</vertx.version>
+    <vertx.version>4.5.11</vertx.version>
     <rxjava.version>2.2.21</rxjava.version>
     <cloudevent.version>1.1.0</cloudevent.version>
-    <weld.version>5.1.2.Final</weld.version>
-    <camel.version>4.6.0</camel.version>
+    <weld.version>5.1.3.Final</weld.version>
+    <camel.version>4.9.0</camel.version>
 
     <microprofile-reactive-messaging.version>3.0.1</microprofile-reactive-messaging.version>
-    <microprofile-reactive-streams.version>3.0</microprofile-reactive-streams.version>
+    <microprofile-reactive-streams.version>3.0.1</microprofile-reactive-streams.version>
     <microprofile-config.version>3.1</microprofile-config.version>
     <microprofile-metrics-api.version>4.0.1</microprofile-metrics-api.version>
     <microprofile-health-api.version>4.0</microprofile-health-api.version>
 
-    <smallrye-config.version>3.8.3</smallrye-config.version>
+    <smallrye-config.version>3.10.2</smallrye-config.version>
     <smallrye-metrics.version>4.0.0</smallrye-metrics.version>
-    <smallrye-common.version>2.5.0</smallrye-common.version>
+    <smallrye-common.version>2.8.0</smallrye-common.version>
     <smallrye-health.version>4.1.0</smallrye-health.version>
-    <smallrye-testing.version>2.3.0</smallrye-testing.version>
-    <smallrye-fault-tolerance.version>6.3.0</smallrye-fault-tolerance.version>
+    <smallrye-testing.version>2.3.1</smallrye-testing.version>
+    <smallrye-fault-tolerance.version>6.7.1</smallrye-fault-tolerance.version>
 
-    <micrometer.version>1.13.1</micrometer.version>
+    <micrometer.version>1.14.2</micrometer.version>
 
-    <mutiny.version>2.6.1</mutiny.version>
-    <artemis.version>2.35.0</artemis.version>
-    <commons-io.version>2.16.1</commons-io.version>
+    <mutiny.version>2.7.0</mutiny.version>
+    <artemis.version>2.38.0</artemis.version>
+    <commons-io.version>2.18.0</commons-io.version>
 
-    <jboss-log-manager.version>3.0.6.Final</jboss-log-manager.version>
+    <jboss-log-manager.version>3.1.1.Final</jboss-log-manager.version>
 
-    <kafka.version>3.7.1</kafka.version>
+    <kafka.version>3.9.0</kafka.version>
 
     <opentelemetry.instrumentation.version>2.5.0-alpha</opentelemetry.instrumentation.version>
     <opentelemetry-semconv.version>1.25.0-alpha</opentelemetry-semconv.version>
 
-    <smallrye-vertx-mutiny-clients.version>3.13.0</smallrye-vertx-mutiny-clients.version>
+    <smallrye-vertx-mutiny-clients.version>3.17.1</smallrye-vertx-mutiny-clients.version>
     <smallrye-reactive-converters.version>3.0.0</smallrye-reactive-converters.version>
     <mutiny-zero.version>1.1.0</mutiny-zero.version>
 
-    <testcontainers.version>1.19.8</testcontainers.version>
+    <testcontainers.version>1.20.4</testcontainers.version>
 
     <sonar.coverage.jacoco.xmlReportPaths>${project.basedir}/target/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
-    <mockito.version>5.12.0</mockito.version>
-    <junit-pioneer.version>2.2.0</junit-pioneer.version>
+    <mockito.version>5.14.2</mockito.version>
+    <junit-pioneer.version>2.3.0</junit-pioneer.version>
     <junit-platform-commons.version>1.9.3</junit-platform-commons.version>
-    <system-stubs-jupiter.version>2.1.6</system-stubs-jupiter.version>
+    <system-stubs-jupiter.version>2.1.7</system-stubs-jupiter.version>
 
     <jakarta.jms.api.version>3.1.0</jakarta.jms.api.version>
-    <jackson.version>2.17.2</jackson.version>
+    <jackson.version>2.18.2</jackson.version>
     <yasson.version>2.0.3</yasson.version>
 
-    <jandex-maven-plugin.version>3.2.0</jandex-maven-plugin.version>
+    <jandex-maven-plugin.version>3.2.3</jandex-maven-plugin.version>
     <sundr-maven-plugin.version>0.200.0</sundr-maven-plugin.version>
+    <maven-deploy-plugin.version>3.1.3</maven-deploy-plugin.version>
 
-    <nats-embedded.version>2.1.2</nats-embedded.version>
-    <slf4j-log4j12.version>2.0.13</slf4j-log4j12.version>
-    <slf4j-reload4j.version>2.0.13</slf4j-reload4j.version>
+    <nats-embedded.version>2.1.3</nats-embedded.version>
+    <slf4j-log4j12.version>2.0.16</slf4j-log4j12.version>
+    <slf4j-reload4j.version>2.0.16</slf4j-reload4j.version>
     <opencsv.version>5.9</opencsv.version>
-    <strimzi-test-container.version>0.106.0</strimzi-test-container.version>
+    <strimzi-test-container.version>0.109.0</strimzi-test-container.version>
 
     <revapi-maven-plugin.version>0.15.0</revapi-maven-plugin.version>
     <revapi-java.version>0.28.1</revapi-java.version>
@@ -124,7 +124,7 @@
     <revapi-reporter-text.version>0.15.0</revapi-reporter-text.version>
     <revapi.skip>true</revapi.skip>
 
-    <jreleaser-maven-plugin.version>1.13.1</jreleaser-maven-plugin.version>
+    <jreleaser-maven-plugin.version>1.15.0</jreleaser-maven-plugin.version>
   </properties>
 
   <modules>
@@ -145,18 +145,11 @@
     <module>smallrye-reactive-messaging-gcp-pubsub</module>
     <module>smallrye-reactive-messaging-pulsar</module>
     <module>smallrye-reactive-messaging-aws-sqs</module>
-    <module>examples/quickstart</module>
-    <module>examples/kafka-quickstart</module>
-    <module>examples/kafka-quickstart-kotlin</module>
-    <module>examples/mqtt-quickstart</module>
-    <module>examples/amqp-quickstart</module>
-    <module>examples/rabbitmq-quickstart</module>
 
     <module>smallrye-connector-attribute-processor</module>
     <module>smallrye-reactive-messaging-connector-archetype</module>
 
     <module>test-common</module>
-    <module>tck</module>
   </modules>
 
   <dependencyManagement>
@@ -502,7 +495,7 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-dependency-plugin</artifactId>
-          <version>3.7.1</version>
+          <version>3.8.1</version>
         </plugin>
 
         <plugin>
@@ -514,7 +507,7 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-archetype-plugin</artifactId>
-          <version>3.2.1</version>
+          <version>3.3.1</version>
         </plugin>
 
         <plugin>
@@ -607,6 +600,11 @@
 
     <plugins>
       <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-deploy-plugin</artifactId>
+        <version>${maven-deploy-plugin.version}</version>
+      </plugin>
+      <plugin>
         <groupId>io.smallrye</groupId>
         <artifactId>jandex-maven-plugin</artifactId>
       </plugin>
@@ -687,38 +685,34 @@
     </plugins>
   </build>
 
-  <repositories>
-    <repository>
-      <id>sonatype-snapshots</id>
-      <url>https://s01.oss.sonatype.org/content/repositories/snapshots</url>
-      <releases>
-        <enabled>false</enabled>
-      </releases>
-      <snapshots>
-        <enabled>true</enabled>
-      </snapshots>
-    </repository>
-    <repository>
-      <id>microprofile-snapshots</id>
-      <url>https://repo.eclipse.org/content/repositories/microprofile-snapshots</url>
-      <releases>
-        <enabled>false</enabled>
-      </releases>
-      <snapshots>
-        <enabled>true</enabled>
-      </snapshots>
-    </repository>
-  </repositories>
-
   <profiles>
     <profile>
       <id>with-camel</id>
       <activation>
-        <jdk>[17, 20]</jdk>
+        <jdk>[17,)</jdk>
       </activation>
       <modules>
         <module>smallrye-reactive-messaging-camel</module>
         <module>documentation</module>
+      </modules>
+    </profile>
+    <profile>
+      <id>skipped-from-release</id>
+      <activation>
+        <property>
+          <name>performRelease</name>
+          <value>!true</value>
+        </property>
+      </activation>
+      <modules>
+<!--        <module>documentation</module>--> <!-- deploy skipped in module -->
+        <module>tck</module>
+        <module>examples/quickstart</module>
+        <module>examples/kafka-quickstart</module>
+        <module>examples/kafka-quickstart-kotlin</module>
+        <module>examples/mqtt-quickstart</module>
+        <module>examples/amqp-quickstart</module>
+        <module>examples/rabbitmq-quickstart</module>
       </modules>
     </profile>
     <profile>
@@ -812,7 +806,7 @@
         <activeByDefault>false</activeByDefault>
       </activation>
       <properties>
-        <excludedGroups></excludedGroups>
+        <excludedGroups />
         <groups>slow,flaky</groups>
       </properties>
     </profile>
@@ -832,7 +826,7 @@
             <executions>
               <execution>
                 <id>make-index</id>
-                <phase/>
+                <phase />
               </execution>
             </executions>
           </plugin>

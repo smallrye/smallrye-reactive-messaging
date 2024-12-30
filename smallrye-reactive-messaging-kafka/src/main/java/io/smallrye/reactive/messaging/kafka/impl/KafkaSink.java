@@ -34,6 +34,7 @@ import org.eclipse.microprofile.reactive.messaging.Message;
 
 import io.opentelemetry.api.OpenTelemetry;
 import io.smallrye.mutiny.Uni;
+import io.smallrye.reactive.messaging.ClientCustomizer;
 import io.smallrye.reactive.messaging.OutgoingMessageMetadata;
 import io.smallrye.reactive.messaging.ce.OutgoingCloudEventMetadata;
 import io.smallrye.reactive.messaging.health.HealthReport;
@@ -82,6 +83,7 @@ public class KafkaSink {
     public KafkaSink(KafkaConnectorOutgoingConfiguration config,
             KafkaCDIEvents kafkaCDIEvents,
             Instance<OpenTelemetry> openTelemetryInstance,
+            Instance<ClientCustomizer<Map<String, Object>>> configCustomizers,
             Instance<SerializationFailureHandler<?>> serializationFailureHandlers,
             Instance<ProducerInterceptor<?, ?>> producerInterceptors) {
         this.isTracingEnabled = config.getTracingEnabled();
@@ -91,7 +93,8 @@ public class KafkaSink {
         this.key = config.getKey().orElse(null);
         this.channel = config.getChannel();
 
-        this.client = new ReactiveKafkaProducer<>(config, serializationFailureHandlers, producerInterceptors,
+        this.client = new ReactiveKafkaProducer<>(config, configCustomizers, serializationFailureHandlers,
+                producerInterceptors,
                 this::reportFailure,
                 (p, c) -> {
                     log.connectedToKafka(getClientId(c), config.getBootstrapServers(), topic);

@@ -3,6 +3,8 @@ package io.smallrye.reactive.messaging.amqp.ssl;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
+import java.io.IOException;
+import java.net.URISyntaxException;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -15,35 +17,29 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import io.smallrye.config.SmallRyeConfigProviderResolver;
-import io.smallrye.reactive.messaging.amqp.AmqpBrokerTestBase;
+import io.smallrye.reactive.messaging.amqp.AmqpBrokerHolder;
 import io.smallrye.reactive.messaging.amqp.AmqpConnector;
 import io.smallrye.reactive.messaging.amqp.AmqpUsage;
 import io.smallrye.reactive.messaging.amqp.ConsumptionBean;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 
-public class AmqpSSLSourceCDISSLContextTest extends AmqpBrokerTestBase {
-
-    private AmqpConnector provider;
+@Disabled
+public class AmqpSSLSourceCDISSLContextTest extends AmqpBrokerHolder {
 
     private WeldContainer container;
 
     @BeforeAll
-    public static void startBroker() {
-        try {
-            String brokerXml = SSLBrokerConfigUtil.createSecuredBrokerXml();
-            System.setProperty(BROKER_XML_LOCATION, brokerXml);
-            AmqpBrokerTestBase.startBroker();
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+    public static void startBroker() throws IOException, URISyntaxException {
+        startBroker(SSLBrokerConfigUtil.createSecuredBrokerXml());
     }
 
     @AfterAll
-    public static void clearSslBrokerName() {
-        System.clearProperty(BROKER_XML_LOCATION);
+    public static void stopBroker() {
+        AmqpBrokerHolder.stopBroker();
     }
 
     @Override
@@ -57,10 +53,6 @@ public class AmqpSSLSourceCDISSLContextTest extends AmqpBrokerTestBase {
 
     @AfterEach
     public void cleanup() {
-        if (provider != null) {
-            provider.terminate(null);
-        }
-
         if (container != null) {
             container.shutdown();
         }

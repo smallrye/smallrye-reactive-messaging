@@ -62,7 +62,8 @@ public class PauseResumeTest extends WeldTestBase {
                 new KafkaConnectorIncomingConfiguration(config),
                 UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
                 getConsumerRebalanceListeners(),
-                CountKafkaCdiEvents.noCdiEvents, getDeserializationFailureHandlers(), -1);
+                CountKafkaCdiEvents.noCdiEvents,
+                UnsatisfiedInstance.instance(), getDeserializationFailureHandlers(), -1);
         injectMockConsumer(source, consumer);
 
         AssertSubscriber<IncomingKafkaRecord<String, String>> subscriber = source.getStream()
@@ -128,7 +129,8 @@ public class PauseResumeTest extends WeldTestBase {
                 new KafkaConnectorIncomingConfiguration(config),
                 UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
                 getConsumerRebalanceListeners(),
-                CountKafkaCdiEvents.noCdiEvents, getDeserializationFailureHandlers(), -1);
+                CountKafkaCdiEvents.noCdiEvents,
+                UnsatisfiedInstance.instance(), getDeserializationFailureHandlers(), -1);
         injectMockConsumer(source, consumer);
 
         AssertSubscriber<IncomingKafkaRecord<String, String>> subscriber = source.getStream()
@@ -201,7 +203,8 @@ public class PauseResumeTest extends WeldTestBase {
                 new KafkaConnectorIncomingConfiguration(config),
                 UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
                 getConsumerRebalanceListeners(),
-                CountKafkaCdiEvents.noCdiEvents, getDeserializationFailureHandlers(), -1);
+                CountKafkaCdiEvents.noCdiEvents,
+                UnsatisfiedInstance.instance(), getDeserializationFailureHandlers(), -1);
         injectMockConsumer(source, consumer);
 
         AssertSubscriber<IncomingKafkaRecord<String, String>> subscriber = source.getStream()
@@ -266,7 +269,8 @@ public class PauseResumeTest extends WeldTestBase {
                 new KafkaConnectorIncomingConfiguration(config),
                 UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
                 getConsumerRebalanceListeners(),
-                CountKafkaCdiEvents.noCdiEvents, getDeserializationFailureHandlers(), -1);
+                CountKafkaCdiEvents.noCdiEvents,
+                UnsatisfiedInstance.instance(), getDeserializationFailureHandlers(), -1);
         injectMockConsumer(source, consumer);
 
         List<String> items = new ArrayList<>();
@@ -317,7 +321,8 @@ public class PauseResumeTest extends WeldTestBase {
                 new KafkaConnectorIncomingConfiguration(config),
                 UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
                 getConsumerRebalanceListeners(),
-                CountKafkaCdiEvents.noCdiEvents, getDeserializationFailureHandlers(), -1);
+                CountKafkaCdiEvents.noCdiEvents,
+                UnsatisfiedInstance.instance(), getDeserializationFailureHandlers(), -1);
         injectMockConsumer(source, consumer);
 
         List<String> items = new CopyOnWriteArrayList<>();

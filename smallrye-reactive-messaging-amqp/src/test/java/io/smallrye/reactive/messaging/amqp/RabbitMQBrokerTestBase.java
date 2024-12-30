@@ -25,15 +25,7 @@ public class RabbitMQBrokerTestBase {
 
     private static final Logger LOGGER = LoggerFactory.getLogger("RabbitMQ");
 
-    private static final GenericContainer<?> RABBIT = new GenericContainer<>(
-            DockerImageName.parse("rabbitmq:3.11-management"))
-            .withExposedPorts(5672, 15672)
-            .withLogConsumer(of -> LOGGER.info(of.getUtf8String()))
-            .waitingFor(
-                    Wait.forLogMessage(".*Server startup complete; 4 plugins started.*\\n", 1)
-                            .withStartupTimeout(Duration.ofSeconds(30)))
-            .withFileSystemBind("src/test/resources/rabbitmq/enabled_plugins", "/etc/rabbitmq/enabled_plugins",
-                    BindMode.READ_ONLY);
+    private static RabbitMQContainer RABBIT = new RabbitMQContainer();
 
     protected static String host;
     protected static int port;
@@ -46,8 +38,8 @@ public class RabbitMQBrokerTestBase {
     public static void startBroker() {
         RABBIT.start();
 
-        port = RABBIT.getMappedPort(5672);
-        host = RABBIT.getContainerIpAddress();
+        port = RABBIT.getPort();
+        host = RABBIT.getHost();
 
         System.setProperty("amqp-host", host);
         System.setProperty("amqp-port", Integer.toString(port));
@@ -58,6 +50,14 @@ public class RabbitMQBrokerTestBase {
         RABBIT.stop();
         System.clearProperty("amqp-host");
         System.clearProperty("amqp-port");
+    }
+
+    public static void restartBroker() {
+        if (RABBIT.isRunning()) {
+            stopBroker();
+        }
+        RABBIT = new RabbitMQContainer(port);
+        startBroker();
     }
 
     @BeforeEach
@@ -85,6 +85,30 @@ public class RabbitMQBrokerTestBase {
     public boolean isAmqpConnectorAlive(WeldContainer container) {
         HealthCenter health = container.getBeanManager().createInstance().select(HealthCenter.class).get();
         return health.getLiveness().isOk();
+    }
+
+    public static class RabbitMQContainer extends GenericContainer<RabbitMQContainer> {
+
+        public RabbitMQContainer() {
+            super(DockerImageName.parse("rabbitmq:3.11-management"));
+            withExposedPorts(5672, 15672);
+            withReuse(true);
+            //            withLogConsumer(outputFrame -> LOGGER.info(outputFrame.getUtf8String()));
+            waitingFor(Wait.forLogMessage(".*Server startup complete; 4 plugins started.*\\n", 1)
+                    .withStartupTimeout(Duration.ofSeconds(30)));
+            withFileSystemBind("src/test/resources/rabbitmq/enabled_plugins", "/etc/rabbitmq/enabled_plugins",
+                    BindMode.READ_ONLY);
+        }
+
+        public RabbitMQContainer(int port) {
+            this();
+            addFixedExposedPort(port, 5672);
+        }
+
+        public int getPort() {
+            return getMappedPort(5672);
+        }
+
     }
 
 }

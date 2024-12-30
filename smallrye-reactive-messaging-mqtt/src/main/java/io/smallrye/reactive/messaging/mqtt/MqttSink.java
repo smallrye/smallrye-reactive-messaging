@@ -14,11 +14,13 @@ import org.eclipse.microprofile.reactive.messaging.Message;
 import io.netty.handler.codec.mqtt.MqttQoS;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.vertx.AsyncResultUni;
+import io.smallrye.reactive.messaging.ClientCustomizer;
 import io.smallrye.reactive.messaging.OutgoingMessageMetadata;
 import io.smallrye.reactive.messaging.health.HealthReport.HealthReportBuilder;
 import io.smallrye.reactive.messaging.mqtt.internal.MqttHelpers;
 import io.smallrye.reactive.messaging.mqtt.session.MqttClientSession;
 import io.smallrye.reactive.messaging.mqtt.session.MqttClientSessionOptions;
+import io.smallrye.reactive.messaging.providers.helpers.ConfigUtils;
 import io.smallrye.reactive.messaging.providers.helpers.MultiUtils;
 import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonArray;
@@ -41,9 +43,11 @@ public class MqttSink {
     private final AtomicReference<Clients.ClientHolder> reference = new AtomicReference<>();
 
     public MqttSink(Vertx vertx, MqttConnectorOutgoingConfiguration config,
+            Instance<ClientCustomizer<MqttClientSessionOptions>> configCustomizers,
             Instance<MqttClientSessionOptions> instances) {
 
-        MqttClientSessionOptions options = MqttHelpers.createClientOptions(config, instances);
+        MqttClientSessionOptions options = ConfigUtils.customize(config.config(), configCustomizers,
+                MqttHelpers.createClientOptions(config, instances));
 
         channel = config.getChannel();
         topic = config.getTopic().orElse(channel);

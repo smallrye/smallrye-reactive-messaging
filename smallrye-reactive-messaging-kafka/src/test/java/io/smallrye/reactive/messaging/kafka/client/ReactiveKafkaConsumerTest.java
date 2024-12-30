@@ -236,7 +236,8 @@ public class ReactiveKafkaConsumerTest extends ClientTestBase {
 
         source = new KafkaSource<>(vertx, groupId, new KafkaConnectorIncomingConfiguration(config),
                 UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
-                listeners, CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), 0);
+                listeners, CountKafkaCdiEvents.noCdiEvents,
+                UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance(), 0);
 
         AssertSubscriber<IncomingKafkaRecord<Integer, String>> subscriber = source.getStream()
                 .invoke(this::onReceive)
@@ -421,7 +422,8 @@ public class ReactiveKafkaConsumerTest extends ClientTestBase {
                 new KafkaConnectorIncomingConfiguration(config2),
                 UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
                 UnsatisfiedInstance.instance(),
-                CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), 3);
+                CountKafkaCdiEvents.noCdiEvents,
+                UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance(), 3);
         source2.getStream()
                 .invoke(i -> {
                     list2.add(i);
@@ -432,7 +434,7 @@ public class ReactiveKafkaConsumerTest extends ClientTestBase {
         // Verify rebalance
         await().until(() -> Uni.combine().all()
                 .unis(source.getConsumer().getAssignments(), source2.getConsumer().getAssignments())
-                .combinedWith((tp1, tp2) -> tp1.size() + tp2.size()).await().indefinitely() == partitions);
+                .with((tp1, tp2) -> tp1.size() + tp2.size()).await().indefinitely() == partitions);
         Set<TopicPartition> assignedToSource2 = source2.getConsumer().getAssignments().await().indefinitely();
 
         subscriber.request(100);

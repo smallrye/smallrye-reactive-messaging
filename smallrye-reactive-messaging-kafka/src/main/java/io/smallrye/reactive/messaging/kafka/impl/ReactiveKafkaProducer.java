@@ -35,10 +35,12 @@ import org.apache.kafka.common.serialization.Serializer;
 import io.smallrye.common.annotation.CheckReturnValue;
 import io.smallrye.common.annotation.Identifier;
 import io.smallrye.mutiny.Uni;
+import io.smallrye.reactive.messaging.ClientCustomizer;
 import io.smallrye.reactive.messaging.kafka.KafkaConnectorOutgoingConfiguration;
 import io.smallrye.reactive.messaging.kafka.SerializationFailureHandler;
 import io.smallrye.reactive.messaging.kafka.fault.SerializerWrapper;
 import io.smallrye.reactive.messaging.providers.helpers.CDIUtils;
+import io.smallrye.reactive.messaging.providers.helpers.ConfigUtils;
 import io.vertx.core.Context;
 
 public class ReactiveKafkaProducer<K, V> implements io.smallrye.reactive.messaging.kafka.KafkaProducer<K, V> {
@@ -58,11 +60,12 @@ public class ReactiveKafkaProducer<K, V> implements io.smallrye.reactive.messagi
     private Consumer<Throwable> reportFailure;
 
     public ReactiveKafkaProducer(KafkaConnectorOutgoingConfiguration config,
+            Instance<ClientCustomizer<Map<String, Object>>> configCustomizers,
             Instance<SerializationFailureHandler<?>> serializationFailureHandlers,
             Instance<ProducerInterceptor<?, ?>> producerInterceptors,
             Consumer<Throwable> reportFailure,
             BiConsumer<Producer<?, ?>, Map<String, Object>> onProducerCreated) {
-        this(getKafkaProducerConfiguration(config), config.getChannel(), config.getCloseTimeout(),
+        this(getKafkaProducerConfiguration(config, configCustomizers), config.getChannel(), config.getCloseTimeout(),
                 config.getLazyClient(),
                 getProducerInterceptorBean(config, producerInterceptors),
                 createSerializationFailureHandler(config.getChannel(),
@@ -255,7 +258,8 @@ public class ReactiveKafkaProducer<K, V> implements io.smallrye.reactive.messagi
         }
     }
 
-    private static Map<String, Object> getKafkaProducerConfiguration(KafkaConnectorOutgoingConfiguration configuration) {
+    private static Map<String, Object> getKafkaProducerConfiguration(KafkaConnectorOutgoingConfiguration configuration,
+            Instance<ClientCustomizer<Map<String, Object>>> configCustomizers) {
         Map<String, Object> map = new HashMap<>();
         JsonHelper.asJsonObject(configuration.config())
                 .forEach(e -> map.put(e.getKey(), e.getValue().toString()));
@@ -292,7 +296,7 @@ public class ReactiveKafkaProducer<K, V> implements io.smallrye.reactive.messagi
 
         ConfigurationCleaner.cleanupProducerConfiguration(map);
 
-        return map;
+        return ConfigUtils.customize(configuration.config(), configCustomizers, map);
     }
 
     public String get(String attribute) {

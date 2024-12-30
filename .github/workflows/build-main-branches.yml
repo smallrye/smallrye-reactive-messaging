@@ -30,6 +30,10 @@ jobs:
                         'version': '21',
                     },
                     {
+                        'name': '',
+                        'version': '23',
+                    },
+                    {
                         'version': '21',
                         'build_opts': '-Pslow-flaky-tests -Drevapi.skip=true -Dformat.skip=true',
                         'name': 'Slow and Flaky tests',
@@ -77,5 +81,5 @@ jobs:
                         -Dsonar.login=$SONAR_LOGIN \
                         --fail-at-end
             -   name: Codecov
-                uses: codecov/codecov-action@v4.5.0
+                uses: codecov/codecov-action@v5.1.1
                 if: false

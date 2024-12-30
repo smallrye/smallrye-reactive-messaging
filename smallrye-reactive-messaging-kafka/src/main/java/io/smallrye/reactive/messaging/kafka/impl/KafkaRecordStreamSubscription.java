@@ -10,6 +10,8 @@ import java.util.function.BiConsumer;
 import java.util.function.UnaryOperator;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.consumer.ConsumerGroupMetadata;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 
 import io.smallrye.mutiny.Uni;
@@ -87,6 +89,11 @@ public class KafkaRecordStreamSubscription<K, V, T> implements Flow.Subscription
                     }
                     if (log.isTraceEnabled()) {
                         log.tracef("Adding %s messages to the queue", cr.count());
+                    }
+                    // Called on the polling thread
+                    ConsumerGroupMetadata metadata = client.unwrap().groupMetadata();
+                    for (ConsumerRecord<K, V> r : cr) {
+                        KafkaRecordHelper.addGenerationIdToHeaders(r, metadata);
                     }
                     enqueueFunction.accept(cr, queue);
                     return cr;

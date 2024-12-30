@@ -40,7 +40,7 @@ public class MqttSourceTest extends MqttTestBase {
         config.put("port", port);
         config.put("channel-name", topic);
         MqttSource source = new MqttSource(vertx, new MqttConnectorIncomingConfiguration(new MapBasedConfig(config)),
-                null);
+                null, null);
 
         List<MqttMessage<?>> messages = new ArrayList<>();
         Flow.Publisher<? extends MqttMessage<?>> stream = source.getSource();
@@ -67,7 +67,7 @@ public class MqttSourceTest extends MqttTestBase {
         config.put("host", address);
         config.put("port", port);
         MqttSource source = new MqttSource(vertx, new MqttConnectorIncomingConfiguration(new MapBasedConfig(config)),
-                null);
+                null, null);
 
         List<MqttMessage<?>> messages = new ArrayList<>();
         Flow.Publisher<? extends MqttMessage<?>> stream = source.getSource();
@@ -97,7 +97,7 @@ public class MqttSourceTest extends MqttTestBase {
         config.put("broadcast", true);
 
         MqttSource source = new MqttSource(vertx, new MqttConnectorIncomingConfiguration(new MapBasedConfig(config)),
-                null);
+                null, null);
 
         List<MqttMessage<?>> messages1 = new ArrayList<>();
         List<MqttMessage<?>> messages2 = new ArrayList<>();
@@ -139,7 +139,7 @@ public class MqttSourceTest extends MqttTestBase {
         config.put("channel-name", topic);
         config.put("max-message-size", 20 * 1024);
         MqttSource source = new MqttSource(vertx, new MqttConnectorIncomingConfiguration(new MapBasedConfig(config)),
-                null);
+                null, null);
 
         byte[] large = new byte[10 * 1024];
         random.nextBytes(large);

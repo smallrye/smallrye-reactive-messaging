@@ -65,6 +65,7 @@ public class JmsSinkTest extends JmsTestBase {
                 .with("destination", "queue-one")
                 .with("channel-name", "jms");
         JmsSink sink = new JmsSink(getResourceHolder(), new JmsConnectorOutgoingConfiguration(config),
+                UnsatisfiedInstance.instance(),
                 jsonMapping,
                 executor);
         MyJmsClient client = new MyJmsClient(jms.createQueue("queue-one"));
@@ -86,6 +87,7 @@ public class JmsSinkTest extends JmsTestBase {
                 .with("destination-type", "topic")
                 .with("channel-name", "jms");
         JmsSink sink = new JmsSink(getResourceHolder(), new JmsConnectorOutgoingConfiguration(config),
+                UnsatisfiedInstance.instance(),
                 jsonMapping,
                 executor);
         MyJmsClient client1 = new MyJmsClient(jms.createTopic("my-topic"));
@@ -111,6 +113,7 @@ public class JmsSinkTest extends JmsTestBase {
                 .with("delivery-mode", "non_persistent")
                 .with("channel-name", "jms");
         JmsSink sink = new JmsSink(getResourceHolder(), new JmsConnectorOutgoingConfiguration(config),
+                UnsatisfiedInstance.instance(),
                 jsonMapping,
                 executor);
         MyJmsClient client = new MyJmsClient(jms.createQueue("queue-one"));
@@ -137,6 +140,7 @@ public class JmsSinkTest extends JmsTestBase {
                 .with("disable-message-timestamp", true)
                 .with("channel-name", "jms");
         JmsSink sink = new JmsSink(getResourceHolder(), new JmsConnectorOutgoingConfiguration(config),
+                UnsatisfiedInstance.instance(),
                 jsonMapping,
                 executor);
         MyJmsClient client = new MyJmsClient(jms.createQueue("queue-one"));
@@ -163,6 +167,7 @@ public class JmsSinkTest extends JmsTestBase {
                 .with("ttl", 1000L)
                 .with("channel-name", "jms");
         JmsSink sink = new JmsSink(getResourceHolder(), new JmsConnectorOutgoingConfiguration(config),
+                UnsatisfiedInstance.instance(),
                 jsonMapping,
                 executor);
         MyJmsClient client = new MyJmsClient(jms.createQueue("queue-one"));
@@ -187,6 +192,7 @@ public class JmsSinkTest extends JmsTestBase {
                 .with("reply-to", "my-response")
                 .with("channel-name", "jms");
         JmsSink sink = new JmsSink(getResourceHolder(), new JmsConnectorOutgoingConfiguration(config),
+                UnsatisfiedInstance.instance(),
                 jsonMapping,
                 executor);
         MyJmsClient client = new MyJmsClient(jms.createQueue("queue-one"));
@@ -213,6 +219,7 @@ public class JmsSinkTest extends JmsTestBase {
                 .with("reply-to-destination-type", "topic")
                 .with("channel-name", "jms");
         JmsSink sink = new JmsSink(getResourceHolder(), new JmsConnectorOutgoingConfiguration(config),
+                UnsatisfiedInstance.instance(),
                 jsonMapping,
                 executor);
         MyJmsClient client = new MyJmsClient(jms.createQueue("queue-one"));
@@ -238,6 +245,7 @@ public class JmsSinkTest extends JmsTestBase {
                 .with("reply-to-destination-type", "invalid")
                 .with("channel-name", "jms");
         assertThatThrownBy(() -> new JmsSink(getResourceHolder(), new JmsConnectorOutgoingConfiguration(config),
+                UnsatisfiedInstance.instance(),
                 jsonMapping, executor))
                 .isInstanceOf(IllegalArgumentException.class);
     }
@@ -308,6 +316,7 @@ public class JmsSinkTest extends JmsTestBase {
                 .with("channel-name", "jms")
                 .with("ttl", 10000L);
         JmsSink sink = new JmsSink(getResourceHolder(), new JmsConnectorOutgoingConfiguration(config),
+                UnsatisfiedInstance.instance(),
                 jsonMapping,
                 executor);
         MyJmsClient client = new MyJmsClient(jms.createQueue("queue-one"));

@@ -49,6 +49,7 @@ import io.smallrye.common.annotation.Identifier;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.operators.multi.processors.UnicastProcessor;
+import io.smallrye.reactive.messaging.ClientCustomizer;
 import io.smallrye.reactive.messaging.SubscriberDecorator;
 import io.smallrye.reactive.messaging.kafka.DeserializationFailureHandler;
 import io.smallrye.reactive.messaging.kafka.IncomingKafkaRecord;
@@ -97,6 +98,10 @@ public class KafkaDelayedRetryTopic extends ContextHolder implements KafkaFailur
         @Inject
         @Any
         Instance<DeserializationFailureHandler<?>> deserializationFailureHandlers;
+
+        @Inject
+        @Any
+        Instance<ClientCustomizer<Map<String, Object>>> configCustomizers;
 
         @Inject
         @Any
@@ -156,7 +161,7 @@ public class KafkaDelayedRetryTopic extends ContextHolder implements KafkaFailur
 
             UnicastProcessor<Message<?>> processor = UnicastProcessor.create();
             KafkaSink kafkaSink = new KafkaSink(producerConfig, kafkaCDIEvents, openTelemetryInstance,
-                    serializationFailureHandlers, producerInterceptors);
+                    configCustomizers, serializationFailureHandlers, producerInterceptors);
             wireOutgoingConnectorToUpstream(processor, kafkaSink.getSink(), subscriberDecorators,
                     producerConfig.getChannel() + "-" + CHANNEL_DLQ_SUFFIX);
 
@@ -169,6 +174,7 @@ public class KafkaDelayedRetryTopic extends ContextHolder implements KafkaFailur
             KafkaConnectorIncomingConfiguration retryConfig = new KafkaConnectorIncomingConfiguration(retryKafkaConfig);
 
             ReactiveKafkaConsumer<Object, Object> retryConsumer = new ReactiveKafkaConsumer<>(retryConfig,
+                    configCustomizers,
                     deserializationFailureHandlers,
                     retryConsumerConfig.getValue(GROUP_ID_CONFIG, String.class), -1,
                     reportFailure,

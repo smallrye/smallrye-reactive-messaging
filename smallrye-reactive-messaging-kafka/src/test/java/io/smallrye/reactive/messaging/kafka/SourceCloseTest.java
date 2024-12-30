@@ -52,12 +52,14 @@ public class SourceCloseTest extends KafkaCompanionTestBase {
                 new KafkaConnectorIncomingConfiguration(config1),
                 UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
                 UnsatisfiedInstance.instance(),
-                CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), 0);
+                CountKafkaCdiEvents.noCdiEvents,
+                UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance(), 0);
         KafkaSource<String, Integer> source2 = new KafkaSource<>(vertx, groupId,
                 new KafkaConnectorIncomingConfiguration(config2),
                 UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
                 UnsatisfiedInstance.instance(),
-                CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), 0);
+                CountKafkaCdiEvents.noCdiEvents,
+                UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance(), 0);
 
         source1.getStream()
                 .subscribe().with(l -> {

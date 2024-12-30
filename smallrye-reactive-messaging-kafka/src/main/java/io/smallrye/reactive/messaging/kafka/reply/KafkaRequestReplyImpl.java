@@ -33,6 +33,7 @@ import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.helpers.Subscriptions;
 import io.smallrye.mutiny.subscription.MultiSubscriber;
 import io.smallrye.mutiny.subscription.UniEmitter;
+import io.smallrye.reactive.messaging.ClientCustomizer;
 import io.smallrye.reactive.messaging.EmitterConfiguration;
 import io.smallrye.reactive.messaging.OutgoingMessageMetadata;
 import io.smallrye.reactive.messaging.kafka.DeserializationFailureHandler;
@@ -74,6 +75,7 @@ public class KafkaRequestReplyImpl<Req, Rep> extends MutinyEmitterImpl<Req>
     private final KafkaSource<Object, Rep> replySource;
     private final Set<TopicPartition> waitForPartitions;
     private final boolean gracefulShutdown;
+    private final Duration initialAssignmentTimeout;
     private Function<Message<Rep>, Message<Rep>> replyConverter;
 
     public KafkaRequestReplyImpl(EmitterConfiguration config,
@@ -85,6 +87,7 @@ public class KafkaRequestReplyImpl<Req, Rep> extends MutinyEmitterImpl<Req>
             Instance<OpenTelemetry> openTelemetryInstance,
             Instance<KafkaCommitHandler.Factory> commitHandlerFactory,
             Instance<KafkaFailureHandler.Factory> failureHandlerFactories,
+            Instance<ClientCustomizer<Map<String, Object>>> configCustomizers,
             Instance<DeserializationFailureHandler<?>> deserializationFailureHandlers,
             Instance<CorrelationIdHandler> correlationIdHandlers,
             Instance<ReplyFailureHandler> replyFailureHandlers,
@@ -101,6 +104,11 @@ public class KafkaRequestReplyImpl<Req, Rep> extends MutinyEmitterImpl<Req>
         this.replyTopic = consumerConfig.getTopic().orElse(null);
         this.replyPartition = connectorConfig.getOptionalValue(REPLY_PARTITION_KEY, Integer.class).orElse(-1);
         this.replyTimeout = Duration.ofMillis(connectorConfig.getOptionalValue(REPLY_TIMEOUT_KEY, Integer.class).orElse(5000));
+        int initialAssignmentTimeoutMillis = connectorConfig
+                .getOptionalValue(REPLY_INITIAL_ASSIGNMENT_TIMEOUT_KEY, Integer.class)
+                .orElse((int) replyTimeout.toMillis());
+        this.initialAssignmentTimeout = initialAssignmentTimeoutMillis < 0 ? null
+                : Duration.ofMillis(initialAssignmentTimeoutMillis);
 
         this.autoOffsetReset = consumerConfig.getAutoOffsetReset();
         this.replyCorrelationIdHeader = connectorConfig.getOptionalValue(REPLY_CORRELATION_ID_HEADER_KEY, String.class)
@@ -121,7 +129,7 @@ public class KafkaRequestReplyImpl<Req, Rep> extends MutinyEmitterImpl<Req>
         this.gracefulShutdown = consumerConfig.getGracefulShutdown();
         this.replySource = new KafkaSource<>(vertx, consumerGroup, consumerConfig, openTelemetryInstance,
                 commitHandlerFactory, failureHandlerFactories, rebalanceListeners, kafkaCDIEvents,
-                deserializationFailureHandlers, -1);
+                configCustomizers, deserializationFailureHandlers, -1);
 
         if (consumerConfig.getBatch()) {
             replySource.getBatchStream()
@@ -149,8 +157,11 @@ public class KafkaRequestReplyImpl<Req, Rep> extends MutinyEmitterImpl<Req>
     @Override
     public Flow.Publisher<Message<? extends Req>> getPublisher() {
         return this.publisher
-                .plug(m -> "latest".equals(autoOffsetReset)
-                        ? m.onSubscription().call(() -> waitForAssignments().ifNoItem().after(replyTimeout).fail())
+                .plug(m -> initialAssignmentTimeout != null && "latest".equals(autoOffsetReset)
+                        ? m.onSubscription().call(() -> waitForAssignments()
+                                .ifNoItem()
+                                .after(initialAssignmentTimeout)
+                                .fail())
                         : m)
                 .onTermination().invoke(this::complete);
     }

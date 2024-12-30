@@ -15,6 +15,7 @@
  */
 package io.smallrye.reactive.messaging.amqp;
 
+import java.time.Duration;
 import java.util.concurrent.CountDownLatch;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -23,6 +24,7 @@ import org.apache.qpid.proton.amqp.messaging.Section;
 import org.apache.qpid.proton.message.Message;
 import org.jboss.logging.Logger;
 
+import io.smallrye.mutiny.Uni;
 import io.vertx.amqp.AmqpClientOptions;
 import io.vertx.amqp.AmqpReceiverOptions;
 import io.vertx.amqp.impl.AmqpMessageImpl;
@@ -30,6 +32,7 @@ import io.vertx.mutiny.amqp.AmqpClient;
 import io.vertx.mutiny.amqp.AmqpConnection;
 import io.vertx.mutiny.amqp.AmqpMessage;
 import io.vertx.mutiny.amqp.AmqpMessageBuilder;
+import io.vertx.mutiny.amqp.AmqpReceiver;
 import io.vertx.mutiny.core.Vertx;
 import io.vertx.proton.ProtonHelper;
 
@@ -37,9 +40,11 @@ public class AmqpUsage {
 
     private final static Logger LOGGER = Logger.getLogger(AmqpUsage.class);
     private final AmqpClient client;
+    private final Vertx vertx;
 
     public AmqpUsage(Vertx vertx, String host, int port, String user, String pwd) {
-        this.client = AmqpClient.create(new io.vertx.mutiny.core.Vertx(vertx.getDelegate()),
+        this.vertx = vertx;
+        this.client = AmqpClient.create(vertx,
                 new AmqpClientOptions().setHost(host).setPort(port).setUsername(user).setPassword(pwd));
     }
 
@@ -110,34 +115,66 @@ public class AmqpUsage {
      */
     public void consume(String topic,
             Consumer<io.vertx.mutiny.amqp.AmqpMessage> consumerFunction) {
-        client.createReceiver(topic, new AmqpReceiverOptions().setDurable(true))
-                .map(r -> r.handler(msg -> {
-                    LOGGER.infof("Consumer %s: consuming message", topic);
-                    consumerFunction.accept(msg);
-                }))
-                .await().indefinitely();
+        this.consume(topic, new AmqpReceiverOptions().setDurable(true), consumerFunction);
     }
 
+    /**
+     * Use the supplied function to asynchronously consume messages from the cluster.
+     *
+     * @param topic the topic
+     * @param consumer the function to consume the messages; may not be null
+     */
     public void consumeIntegers(String topic, Consumer<Integer> consumer) {
-        AmqpConnection connection = client
-                .connectAndAwait();
-        connection.createReceiver(topic, new AmqpReceiverOptions())
-                .map(r -> r.handler(msg -> {
-                    LOGGER.infof("Consumer %s: consuming message %s", topic, msg.bodyAsInteger());
-                    consumer.accept(msg.bodyAsInteger());
-                }))
+        this.consume(topic, new AmqpReceiverOptions().setDurable(false), msg -> {
+            LOGGER.infof("Consumer %s: consuming message %s", topic, msg.bodyAsInteger());
+            consumer.accept(msg.bodyAsInteger());
+        });
+    }
+
+    /**
+     * Use the supplied function to asynchronously consume messages from the cluster.
+     *
+     * @param topic the topic
+     * @param consumerFunction the function to consume the messages; may not be null
+     */
+    public void consumeStrings(String topic, Consumer<String> consumerFunction) {
+        this.consume(topic, value -> consumerFunction.accept(value.bodyAsString()));
+    }
+
+    /**
+     * Use the supplied function to asynchronously consume messages from the cluster.
+     *
+     * @param topic the topic
+     * @param consumerFunction the function to consume the messages; may not be null
+     */
+    public void consume(String topic, AmqpReceiverOptions options,
+            Consumer<io.vertx.mutiny.amqp.AmqpMessage> consumerFunction) {
+        this.consumeWithConnection(client.connectAndAwait(), topic, options, consumerFunction)
                 .await().indefinitely();
     }
 
-    public void close() {
-        client.closeAndAwait();
+    Uni<? extends AmqpReceiver> consumeWithConnection(AmqpConnection cnx,
+            String topic,
+            AmqpReceiverOptions options,
+            Consumer<io.vertx.mutiny.amqp.AmqpMessage> consumerFunction) {
+        return cnx.exceptionHandler(f -> {
+            LOGGER.infof("Connection failure: %s" + f.getMessage());
+            vertx.setTimer(1000, x -> client.connect()
+                    .onFailure().retry().withBackOff(Duration.ofSeconds(1), Duration.ofSeconds(10))
+                    .indefinitely()
+                    .flatMap(c -> consumeWithConnection(c, topic, options, consumerFunction))
+                    .subscribeAsCompletionStage());
+        }).createReceiver(topic, options).map(r -> r.handler(msg -> {
+            //            LOGGER.infof("Consumer %s: consuming message", topic);
+            consumerFunction.accept(msg);
+        }));
     }
 
     public void produceTenIntegers(String topic, Supplier<Integer> messageSupplier) {
         this.produce(topic, 10, messageSupplier::get);
     }
 
-    public void consumeStrings(String topic, Consumer<String> consumerFunction) {
-        this.consume(topic, value -> consumerFunction.accept(value.bodyAsString()));
+    public void close() {
+        client.closeAndAwait();
     }
 }

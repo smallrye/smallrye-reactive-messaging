@@ -2,6 +2,8 @@ package io.smallrye.reactive.messaging.amqp.ssl;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.io.IOException;
+import java.net.URISyntaxException;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
@@ -15,31 +17,24 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import io.smallrye.config.SmallRyeConfigProviderResolver;
-import io.smallrye.reactive.messaging.amqp.AmqpBrokerTestBase;
+import io.smallrye.reactive.messaging.amqp.AmqpBrokerHolder;
 import io.smallrye.reactive.messaging.amqp.AmqpConnector;
 import io.smallrye.reactive.messaging.amqp.AmqpUsage;
 import io.smallrye.reactive.messaging.amqp.ProducingBean;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 
-public class AmqpSSLSinkCDISSLContextTest extends AmqpBrokerTestBase {
+public class AmqpSSLSinkCDISSLContextTest extends AmqpBrokerHolder {
 
     private WeldContainer container;
-    private AmqpConnector provider;
 
     @BeforeAll
-    public static void startBroker() {
-        try {
-            String brokerXml = SSLBrokerConfigUtil.createSecuredBrokerXml();
-            System.setProperty(BROKER_XML_LOCATION, brokerXml);
-            AmqpBrokerTestBase.startBroker();
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+    public static void startBroker() throws IOException, URISyntaxException {
+        startBroker(SSLBrokerConfigUtil.createSecuredBrokerXml());
     }
 
     @AfterAll
-    public static void clearSslBrokerName() {
-        System.clearProperty(BROKER_XML_LOCATION);
+    public static void stopBroker() {
+        AmqpBrokerHolder.stopBroker();
     }
 
     @Override
@@ -51,12 +46,14 @@ public class AmqpSSLSinkCDISSLContextTest extends AmqpBrokerTestBase {
         usage = new AmqpUsage(executionHolder.vertx(), host, port + 1, username, password);
     }
 
+    @Override
+    @AfterEach
+    public void tearDown() {
+        super.tearDown();
+    }
+
     @AfterEach
     public void cleanup() {
-        if (provider != null) {
-            provider.terminate(null);
-        }
-
         if (container != null) {
             container.shutdown();
         }

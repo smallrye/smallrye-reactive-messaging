@@ -143,4 +143,12 @@ public interface ProviderLogging extends BasicLogger {
     @LogMessage(level = Logger.Level.DEBUG)
     @Message(id = 242, value = "Resuming polling messages for channel %s, queue size %s <= %s")
     void resumingRequestingMessages(String channel, int size, int halfMaxQueueSize);
+
+    @LogMessage(level = Logger.Level.WARN)
+    @Message(id = 243, value = "Processing method '%s' annotated with @Acknowledgement(POST_PROCESSING), but may not be compatible with post-processing acknowledgement management. You may experience duplicate (negative-)acknowledgement of messages.")
+    void postProcessingNotFullySupported(String methodAsString);
+
+    @LogMessage(level = Logger.Level.DEBUG)
+    @Message(id = 244, value = "Trying to get Vertx instance using Identifier qualifier: %s.")
+    void vertxFromCDIQualifier(String cdiQualifier);
 }

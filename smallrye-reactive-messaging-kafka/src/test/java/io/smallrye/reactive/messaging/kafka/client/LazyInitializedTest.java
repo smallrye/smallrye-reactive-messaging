@@ -20,7 +20,6 @@ import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.junit.jupiter.api.Test;
-import org.reactivestreams.Subscriber;
 
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.helpers.test.AssertSubscriber;
@@ -54,7 +53,7 @@ public class LazyInitializedTest extends WeldTestBase {
 
         KafkaSink sink = new KafkaSink(new KafkaConnectorOutgoingConfiguration(config),
                 CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(),
-                UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance());
+                UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance());
 
         KafkaProducer<?, ?> producer = sink.getProducer();
         assertThat(producer).isNotNull();
@@ -94,7 +93,7 @@ public class LazyInitializedTest extends WeldTestBase {
         assertThatThrownBy(() -> {
             KafkaSink sink = new KafkaSink(new KafkaConnectorOutgoingConfiguration(config),
                     CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(),
-                    UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance());
+                    UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance());
         }).hasCauseInstanceOf(KafkaException.class);
 
     }
@@ -119,6 +118,7 @@ public class LazyInitializedTest extends WeldTestBase {
                 failureHandlerFactories,
                 UnsatisfiedInstance.instance(),
                 CountKafkaCdiEvents.noCdiEvents,
+                UnsatisfiedInstance.instance(),
                 UnsatisfiedInstance.instance(),
                 0);
 
@@ -159,6 +159,7 @@ public class LazyInitializedTest extends WeldTestBase {
                     failureHandlerFactories,
                     UnsatisfiedInstance.instance(),
                     CountKafkaCdiEvents.noCdiEvents,
+                    UnsatisfiedInstance.instance(),
                     UnsatisfiedInstance.instance(),
                     0);
         }).hasCauseInstanceOf(KafkaException.class);

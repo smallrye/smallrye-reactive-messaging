@@ -43,7 +43,7 @@ public class MutualTlsMqttSourceTest extends MutualTlsMqttTestBase {
         config.put("ssl.truststore.password", "password");
 
         MqttSource source = new MqttSource(vertx, new MqttConnectorIncomingConfiguration(new MapBasedConfig(config)),
-                null);
+                null, null);
 
         List<MqttMessage<?>> messages = new ArrayList<>();
         Flow.Publisher<? extends MqttMessage<?>> stream = source.getSource();
@@ -89,7 +89,7 @@ public class MutualTlsMqttSourceTest extends MutualTlsMqttTestBase {
             config.put("ssl.truststore.type", "jks");
             config.put("ssl.truststore.location", "mosquitto-tls/client/client.ts");
 
-            new MqttSource(vertx, new MqttConnectorIncomingConfiguration(new MapBasedConfig(config)), null);
+            new MqttSource(vertx, new MqttConnectorIncomingConfiguration(new MapBasedConfig(config)), null, null);
         });
 
     }

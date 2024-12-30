@@ -17,15 +17,16 @@ import io.smallrye.reactive.messaging.MutinyEmitter;
 import io.smallrye.reactive.messaging.providers.extension.HealthCenter;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 
-public class ConsumerBackPressure extends WeldTestBase {
+public class ConsumerBackPressureTest extends WeldTestBase {
 
     private MapBasedConfig getBaseConfig() {
-        return new MapBasedConfig()
+        return commonConfig()
                 .with("mp.messaging.outgoing.to-rabbitmq.connector", RabbitMQConnector.CONNECTOR_NAME)
                 .with("mp.messaging.outgoing.to-rabbitmq.exchange.name", exchangeName)
 
                 .with("mp.messaging.incoming.from-rabbitmq.connector", RabbitMQConnector.CONNECTOR_NAME)
                 .with("mp.messaging.incoming.from-rabbitmq.queue.name", queueName)
+                .with("mp.messaging.incoming.from-rabbitmq.health-lazy-subscription", true)
                 .with("mp.messaging.incoming.from-rabbitmq.queue.durable", true)
 
                 .with("mp.messaging.incoming.from-rabbitmq.exchange.name", exchangeName);
@@ -36,14 +37,14 @@ public class ConsumerBackPressure extends WeldTestBase {
         addBeans(Publisher.class, Subscriber.class);
         runApplication(getBaseConfig());
 
-        Subscriber subscriber = container.getBeanManager().createInstance().select(Subscriber.class).get();
-        Publisher publisher = container.getBeanManager().createInstance().select(Publisher.class).get();
+        Subscriber subscriber = get(Subscriber.class);
+        Publisher publisher = get(Publisher.class);
+        HealthCenter health = get(HealthCenter.class);
 
         AssertSubscriber<Object> consumer = AssertSubscriber.create(0);
         subscriber.getMulti().subscribe().withSubscriber(consumer);
 
-        HealthCenter health = container.getBeanManager().createInstance().select(HealthCenter.class).get();
-        assertThat(health.getLiveness().isOk()).isTrue();
+        await().untilAsserted(() -> assertThat(health.getLiveness().isOk()).isTrue());
 
         publisher.generate();
 

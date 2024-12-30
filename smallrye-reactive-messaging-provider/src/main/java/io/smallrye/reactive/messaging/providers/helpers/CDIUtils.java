@@ -16,7 +16,7 @@ import io.smallrye.reactive.messaging.providers.i18n.ProviderLogging;
 public class CDIUtils {
 
     public static <T extends Prioritized> List<T> getSortedInstances(Instance<T> instances) {
-        if (instances.isUnsatisfied()) {
+        if (instances == null || instances.isUnsatisfied()) {
             return Collections.emptyList();
         }
 

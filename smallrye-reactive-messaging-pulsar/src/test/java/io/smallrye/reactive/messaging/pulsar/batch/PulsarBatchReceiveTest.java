@@ -11,16 +11,24 @@ import java.util.concurrent.CompletionStage;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Produces;
 
+import org.apache.pulsar.client.api.BatchReceivePolicy;
+import org.apache.pulsar.client.api.Message;
+import org.apache.pulsar.client.api.Messages;
 import org.apache.pulsar.client.api.PulsarClientException;
 import org.apache.pulsar.client.api.Schema;
 import org.apache.pulsar.client.api.SubscriptionInitialPosition;
+import org.apache.pulsar.client.impl.conf.ConsumerConfigurationData;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import io.smallrye.common.annotation.Identifier;
 import io.smallrye.reactive.messaging.pulsar.PulsarConnector;
 import io.smallrye.reactive.messaging.pulsar.PulsarIncomingBatchMessage;
+import io.smallrye.reactive.messaging.pulsar.PulsarIncomingBatchMessageMetadata;
+import io.smallrye.reactive.messaging.pulsar.PulsarIncomingMessageMetadata;
 import io.smallrye.reactive.messaging.pulsar.base.WeldTestBase;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 
@@ -45,7 +53,7 @@ public class PulsarBatchReceiveTest extends WeldTestBase {
     }
 
     @Test
-    void testBatchRecieveAppUsingPulsarConnector() {
+    void testBatchReceiveAppUsingPulsarConnector() {
         // Run app
         ConsumingApp app = runApplication(config(), ConsumingApp.class);
         long start = System.currentTimeMillis();
@@ -56,6 +64,49 @@ public class PulsarBatchReceiveTest extends WeldTestBase {
 
         System.out.println("Ack - Estimate: " + (end - start) + " ms");
         assertThat(app.getResults()).containsExactlyElementsOf(expected);
+    }
+
+    @Test
+    void testBatchReceiveAppUsingPayloads() {
+        // Run app
+        MessagesConsumingApp app = runApplication(config(), MessagesConsumingApp.class);
+        long start = System.currentTimeMillis();
+
+        // Check for consumed messages in app
+        await().atMost(Duration.ofSeconds(30)).until(() -> app.getResults().size() == NUMBER_OF_MESSAGES);
+        long end = System.currentTimeMillis();
+
+        System.out.println("Ack - Estimate: " + (end - start) + " ms");
+        assertThat(app.getResults()).containsExactlyElementsOf(expected);
+    }
+
+    @Test
+    void testBatchReceiveAppWithCustomConfig() {
+        addBeans(BatchConfig.class);
+        // Run app
+        ConsumingApp app = runApplication(config()
+                .with("mp.messaging.incoming.data.consumer-configuration", "batch-config"), ConsumingApp.class);
+        long start = System.currentTimeMillis();
+
+        // Check for consumed messages in app
+        await().atMost(Duration.ofSeconds(30)).until(() -> app.getResults().size() == NUMBER_OF_MESSAGES);
+        long end = System.currentTimeMillis();
+
+        System.out.println("Ack - Estimate: " + (end - start) + " ms");
+        assertThat(app.getResults()).containsExactlyElementsOf(expected);
+    }
+
+    @ApplicationScoped
+    public static class BatchConfig {
+        @Produces
+        @Identifier("batch-config")
+        public ConsumerConfigurationData<Object> configureBatchConsumer() {
+            var data = new ConsumerConfigurationData<>();
+            data.setBatchReceivePolicy(BatchReceivePolicy.builder()
+                    .maxNumMessages(10)
+                    .build());
+            return data;
+        }
     }
 
     MapBasedConfig config() {
@@ -77,13 +128,38 @@ public class PulsarBatchReceiveTest extends WeldTestBase {
 
         @Incoming("data")
         public CompletionStage<Void> consume(PulsarIncomingBatchMessage<Integer> message) {
-            //            System.out.println(message.getIncomingMessages().size());
             results.addAll(message.getPayload());
             return message.ack();
         }
 
         public List<Integer> getResults() {
             return results;
+        }
+    }
+
+    @ApplicationScoped
+    public static class MessagesConsumingApp {
+
+        private final List<Integer> results = new CopyOnWriteArrayList<>();
+        private final List<PulsarIncomingMessageMetadata> allMetadata = new CopyOnWriteArrayList<>();
+
+        @Incoming("data")
+        public void consume(Messages<Integer> batch, PulsarIncomingBatchMessageMetadata metadata) {
+            for (Message<Integer> message : batch) {
+                PulsarIncomingMessageMetadata msgMetadata = metadata.getMetadataForMessage(message,
+                        PulsarIncomingMessageMetadata.class);
+                assertThat(msgMetadata).isNotNull();
+                allMetadata.add(msgMetadata);
+                results.add(message.getValue());
+            }
+        }
+
+        public List<Integer> getResults() {
+            return results;
+        }
+
+        public List<PulsarIncomingMessageMetadata> getAllMetadata() {
+            return allMetadata;
         }
     }
 

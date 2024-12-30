@@ -59,6 +59,7 @@ public class KafkaBrokerExtension implements BeforeAllCallback, BeforeEachCallba
         container.withKafkaVersion(kafkaVersion);
         Map<String, String> config = new HashMap<>();
         config.put("log.cleaner.enable", "false");
+        config.put("group.initial.rebalance.delay.ms", "0");
         container.withKafkaConfigurationMap(config);
         return container;
     }

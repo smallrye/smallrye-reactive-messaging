@@ -5,8 +5,8 @@ on:
     pull_request:
         branches:
             - main
-            - 3.x
-            - 3.13.x
+            - 4.x
+            - 4.24.x
 
 jobs:
     build:
@@ -27,6 +27,10 @@ jobs:
                     {
                         'name': '',
                         'version': '21',
+                    },
+                    {
+                        'name': '',
+                        'version': '23',
                     },
                     {
                         'version': '21',
@@ -50,5 +54,5 @@ jobs:
                     mvn -s .build/ci-maven-settings.xml -Dmaven.resolver.transport=wagon \
                        -B clean install -Pcoverage -Dtest-containers=true ${{ matrix.java.build_opts }}
             -   name: Codecov
-                uses: codecov/codecov-action@v4.5.0
+                uses: codecov/codecov-action@v5.1.1
                 if: false

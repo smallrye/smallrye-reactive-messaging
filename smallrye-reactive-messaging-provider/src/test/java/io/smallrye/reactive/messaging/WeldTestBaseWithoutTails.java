@@ -4,10 +4,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.util.Collections;
 import java.util.List;
+import java.util.Properties;
 
 import jakarta.enterprise.inject.se.SeContainer;
 import jakarta.enterprise.inject.se.SeContainerInitializer;
@@ -95,6 +97,25 @@ public class WeldTestBaseWithoutTails {
             }
         } else {
             throw new IllegalArgumentException("File " + file.getAbsolutePath() + " does not exist " + path);
+        }
+    }
+
+    @SuppressWarnings("ResultOfMethodCallIgnored")
+    public static void installConfigFromProperties(Properties properties) {
+        releaseConfig();
+        File out = new File("target/test-classes/META-INF/microprofile-config.properties");
+        if (out.isFile()) {
+            out.delete();
+        }
+        out.getParentFile().mkdirs();
+        try (OutputStream outputStream = Files.newOutputStream(out.toPath())) {
+            properties.store(outputStream, null);
+            System.out.println("Installed configuration:");
+            List<String> list = Files.readAllLines(out.toPath());
+            list.forEach(System.out::println);
+            System.out.println("---------");
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
         }
     }
 

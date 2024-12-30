@@ -1,9 +1,11 @@
 package io.smallrye.reactive.messaging.pulsar;
 
 import static io.smallrye.reactive.messaging.providers.helpers.CDIUtils.getInstanceById;
+import static io.smallrye.reactive.messaging.pulsar.i18n.PulsarLogging.log;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 
 import jakarta.enterprise.context.ApplicationScoped;
@@ -11,6 +13,18 @@ import jakarta.enterprise.inject.Any;
 import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
 
+import org.apache.pulsar.client.api.AuthenticationFactory;
+import org.apache.pulsar.client.api.BatchReceivePolicy;
+import org.apache.pulsar.client.api.ClientBuilder;
+import org.apache.pulsar.client.api.ConsumerBuilder;
+import org.apache.pulsar.client.api.DeadLetterPolicy;
+import org.apache.pulsar.client.api.KeySharedPolicy;
+import org.apache.pulsar.client.api.ProducerBuilder;
+import org.apache.pulsar.client.api.PulsarClientException;
+import org.apache.pulsar.client.api.RedeliveryBackoff;
+import org.apache.pulsar.client.api.SubscriptionType;
+import org.apache.pulsar.client.impl.ClientBuilderImpl;
+import org.apache.pulsar.client.impl.MultiplierRedeliveryBackoff;
 import org.apache.pulsar.client.impl.conf.ClientConfigurationData;
 import org.apache.pulsar.client.impl.conf.ConsumerConfigurationData;
 import org.apache.pulsar.client.impl.conf.ProducerConfigurationData;
@@ -24,16 +38,18 @@ import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.CaseFormat;
 
+import io.smallrye.reactive.messaging.ClientCustomizer;
+import io.smallrye.reactive.messaging.providers.helpers.ConfigUtils;
+import io.smallrye.reactive.messaging.providers.helpers.Validation;
 import io.vertx.core.json.JsonObject;
 
 /**
  * Precedence of config resolution, the least priority to the highest, each step overriding the previous one.
- *
+ * <p>
  * 1. Map&lt;String, Object&gt; config map produced with default config identifier
  * 2. Map&lt;String, Object&gt; config map produced with identifier in the configuration or channel name
  * 3. ConfigurationData object produced with identifier in the configuration or channel name
  * 4. Channel configuration properties named with ConfigurationData field names
- *
  */
 @ApplicationScoped
 public class ConfigResolver {
@@ -53,16 +69,25 @@ public class ConfigResolver {
     private final Instance<ProducerConfigurationData> producerConfigurations;
 
     private final ObjectMapper mapper;
+    private final Instance<ClientCustomizer<ClientBuilder>> clientConfigCustomizers;
+    private final Instance<ClientCustomizer<ConsumerBuilder<?>>> consumerConfigCustomizers;
+    private final Instance<ClientCustomizer<ProducerBuilder<?>>> producerConfigCustomizers;
 
     @Inject
     public ConfigResolver(@Any Instance<Map<String, Object>> configurations,
             @Any Instance<ClientConfigurationData> clientConfigurations,
+            @Any Instance<ClientCustomizer<ClientBuilder>> clientConfigCustomizers,
             @Any Instance<ConsumerConfigurationData<?>> consumerConfigurations,
-            @Any Instance<ProducerConfigurationData> producerConfigurations) {
+            @Any Instance<ClientCustomizer<ConsumerBuilder<?>>> consumerConfigCustomizers,
+            @Any Instance<ProducerConfigurationData> producerConfigurations,
+            @Any Instance<ClientCustomizer<ProducerBuilder<?>>> producerConfigCustomizers) {
         this.configurations = configurations;
         this.clientConfigurations = clientConfigurations;
+        this.clientConfigCustomizers = clientConfigCustomizers;
         this.consumerConfigurations = consumerConfigurations;
+        this.consumerConfigCustomizers = consumerConfigCustomizers;
         this.producerConfigurations = producerConfigurations;
+        this.producerConfigCustomizers = producerConfigCustomizers;
         this.mapper = new ObjectMapper();
         this.mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
         this.mapper.configure(DeserializationFeature.READ_UNKNOWN_ENUM_VALUES_AS_NULL, false);
@@ -89,8 +114,38 @@ public class ConfigResolver {
                 cc.getClientConfiguration().orElse(cc.getChannel()), HashMap::new);
         ClientConfigurationData conf = getInstanceById(clientConfigurations,
                 cc.getClientConfiguration().orElse(cc.getChannel()), ClientConfigurationData::new);
-        Config config = cc.config();
-        return mergeConfig(conf.clone(), mergeMap(defaultConfig, channelConfig), config);
+        return mergeConfig(conf.clone(), mergeMap(defaultConfig, channelConfig), cc.config());
+    }
+
+    public ClientBuilderImpl customize(ClientBuilderImpl builder, PulsarConnectorCommonConfiguration cc) {
+        return (ClientBuilderImpl) ConfigUtils.customize(cc.config(), clientConfigCustomizers, builder);
+    }
+
+    public ClientBuilderImpl configure(PulsarConnectorCommonConfiguration cc, ClientConfigurationData conf)
+            throws PulsarClientException {
+        setAuth(conf);
+        return customize(new ClientBuilderImpl(conf), cc);
+    }
+
+    /**
+     * Sets the authentication object in the given configuration object using
+     * `authPluginClassName` and `authParams`/`authParamMap` attributes
+     * This use to be done by the PulsarClientImpl
+     *
+     * @param conf client configuration
+     * @throws PulsarClientException
+     */
+    private void setAuth(ClientConfigurationData conf) throws PulsarClientException {
+        if (Validation.isBlank(conf.getAuthPluginClassName())
+                || (Validation.isBlank(conf.getAuthParams()) && conf.getAuthParamMap() == null)) {
+            return;
+        }
+
+        if (!Validation.isBlank(conf.getAuthParams())) {
+            conf.setAuthentication(AuthenticationFactory.create(conf.getAuthPluginClassName(), conf.getAuthParams()));
+        } else if (conf.getAuthParamMap() != null) {
+            conf.setAuthentication(AuthenticationFactory.create(conf.getAuthPluginClassName(), conf.getAuthParamMap()));
+        }
     }
 
     /**
@@ -105,8 +160,67 @@ public class ConfigResolver {
                 ic.getConsumerConfiguration().orElse(ic.getChannel()), HashMap::new);
         ConsumerConfigurationData<?> conf = getInstanceById(consumerConfigurations,
                 ic.getConsumerConfiguration().orElse(ic.getChannel()), ConsumerConfigurationData::new);
-        Config incomingConfig = ic.config();
-        return mergeConfig(conf.clone(), mergeMap(defaultConfig, channelConfig), incomingConfig);
+        return mergeConfig(conf.clone(), mergeMap(defaultConfig, channelConfig), ic.config());
+    }
+
+    public <T> ConsumerBuilder<T> customize(ConsumerBuilder<T> builder, PulsarConnectorIncomingConfiguration ic) {
+        return (ConsumerBuilder<T>) ConfigUtils.customize(ic.config(), consumerConfigCustomizers, builder);
+    }
+
+    public <T> ConsumerBuilder<T> configure(ConsumerBuilder<T> builder,
+            PulsarConnectorIncomingConfiguration ic,
+            ConsumerConfigurationData<?> conf) {
+        builder.loadConf(configToMap(conf));
+        ic.getDeadLetterPolicyMaxRedeliverCount().ifPresent(i -> builder.deadLetterPolicy(getDeadLetterPolicy(ic, i)));
+        ic.getNegativeAckRedeliveryBackoff()
+                .ifPresent(s -> builder.negativeAckRedeliveryBackoff(parseBackoff(s, ic.getChannel())));
+        ic.getAckTimeoutRedeliveryBackoff()
+                .ifPresent(s -> builder.ackTimeoutRedeliveryBackoff(parseBackoff(s, ic.getChannel())));
+        if (conf.getConsumerEventListener() != null) {
+            builder.consumerEventListener(conf.getConsumerEventListener());
+        }
+        if (conf.getPayloadProcessor() != null) {
+            builder.messagePayloadProcessor(conf.getPayloadProcessor());
+        }
+        if (conf.getKeySharedPolicy() != null) {
+            builder.keySharedPolicy(conf.getKeySharedPolicy());
+        } else if (conf.getSubscriptionType() == SubscriptionType.Key_Shared) {
+            builder.keySharedPolicy(KeySharedPolicy.autoSplitHashRange());
+        }
+        if (conf.getCryptoKeyReader() != null) {
+            builder.cryptoKeyReader(conf.getCryptoKeyReader());
+        }
+        if (conf.getMessageCrypto() != null) {
+            builder.messageCrypto(conf.getMessageCrypto());
+        }
+        if (ic.getBatchReceive()) {
+            builder.batchReceivePolicy(
+                    Objects.requireNonNullElse(conf.getBatchReceivePolicy(), BatchReceivePolicy.DEFAULT_POLICY));
+        }
+        return customize(builder, ic);
+    }
+
+    private static DeadLetterPolicy getDeadLetterPolicy(PulsarConnectorIncomingConfiguration ic, Integer redeliverCount) {
+        return DeadLetterPolicy.builder()
+                .maxRedeliverCount(redeliverCount)
+                .deadLetterTopic(ic.getDeadLetterPolicyDeadLetterTopic().orElse(null))
+                .retryLetterTopic(ic.getDeadLetterPolicyRetryLetterTopic().orElse(null))
+                .initialSubscriptionName(ic.getDeadLetterPolicyInitialSubscriptionName().orElse(null))
+                .build();
+    }
+
+    private RedeliveryBackoff parseBackoff(String backoffString, String channel) {
+        String[] strings = backoffString.split(",");
+        try {
+            return MultiplierRedeliveryBackoff.builder()
+                    .minDelayMs(Long.parseLong(strings[0]))
+                    .maxDelayMs(Long.parseLong(strings[1]))
+                    .multiplier(Double.parseDouble(strings[2]))
+                    .build();
+        } catch (Exception e) {
+            log.unableToParseRedeliveryBackoff(backoffString, channel);
+            return null;
+        }
     }
 
     /**
@@ -121,8 +235,30 @@ public class ConfigResolver {
                 oc.getProducerConfiguration().orElse(oc.getChannel()), HashMap::new);
         ProducerConfigurationData conf = getInstanceById(producerConfigurations,
                 oc.getProducerConfiguration().orElse(oc.getChannel()), ProducerConfigurationData::new);
-        Config outgoingConfig = oc.config();
-        return mergeConfig(conf.clone(), mergeMap(defaultConfig, channelConfig), outgoingConfig);
+        return mergeConfig(conf.clone(), mergeMap(defaultConfig, channelConfig), oc.config());
+    }
+
+    public <T> ProducerBuilder<T> customize(ProducerBuilder<T> builder, PulsarConnectorOutgoingConfiguration oc) {
+        return (ProducerBuilder<T>) ConfigUtils.customize(oc.config(), producerConfigCustomizers, builder);
+    }
+
+    public <T> ProducerBuilder<T> configure(ProducerBuilder<T> builder,
+            PulsarConnectorOutgoingConfiguration oc,
+            ProducerConfigurationData conf) {
+        builder.loadConf(configToMap(conf));
+        if (conf.getCustomMessageRouter() != null) {
+            builder.messageRouter(conf.getCustomMessageRouter());
+        }
+        if (conf.getBatcherBuilder() != null) {
+            builder.batcherBuilder(conf.getBatcherBuilder());
+        }
+        if (conf.getCryptoKeyReader() != null) {
+            builder.cryptoKeyReader(conf.getCryptoKeyReader());
+        }
+        for (String encryptionKey : conf.getEncryptionKeys()) {
+            builder.addEncryptionKey(encryptionKey);
+        }
+        return customize(builder, oc);
     }
 
     private Map<String, Object> mergeMap(Map<String, Object> defaultConfig, Map<String, Object> channelConfig) {

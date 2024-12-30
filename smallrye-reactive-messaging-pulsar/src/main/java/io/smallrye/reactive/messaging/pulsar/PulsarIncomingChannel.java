@@ -13,7 +13,6 @@ import java.util.stream.Collectors;
 import jakarta.enterprise.inject.Instance;
 
 import org.apache.pulsar.client.api.*;
-import org.apache.pulsar.client.impl.MultiplierRedeliveryBackoff;
 import org.apache.pulsar.client.impl.conf.ConsumerConfigurationData;
 import org.apache.pulsar.client.impl.schema.AvroSchema;
 import org.apache.pulsar.client.impl.schema.generic.GenericAvroSchema;
@@ -62,7 +61,6 @@ public class PulsarIncomingChannel<T> {
         this.channel = ic.getChannel();
         this.healthEnabled = ic.getHealthEnabled();
         this.tracingEnabled = ic.getTracingEnabled();
-        ConsumerBuilder<T> builder = client.newConsumer(schema);
         ConsumerConfigurationData<?> conf = configResolver.getConsumerConf(ic);
         if (conf.getSubscriptionName() == null) {
             String s = UUID.randomUUID().toString();
@@ -75,31 +73,7 @@ public class PulsarIncomingChannel<T> {
         if (conf.getConsumerName() == null) {
             conf.setConsumerName(channel);
         }
-        builder.loadConf(configResolver.configToMap(conf));
-        ic.getDeadLetterPolicyMaxRedeliverCount().ifPresent(i -> builder.deadLetterPolicy(getDeadLetterPolicy(ic, i)));
-        ic.getNegativeAckRedeliveryBackoff().ifPresent(s -> builder.negativeAckRedeliveryBackoff(parseBackoff(s)));
-        ic.getAckTimeoutRedeliveryBackoff().ifPresent(s -> builder.ackTimeoutRedeliveryBackoff(parseBackoff(s)));
-        if (conf.getConsumerEventListener() != null) {
-            builder.consumerEventListener(conf.getConsumerEventListener());
-        }
-        if (conf.getPayloadProcessor() != null) {
-            builder.messagePayloadProcessor(conf.getPayloadProcessor());
-        }
-        if (conf.getKeySharedPolicy() != null) {
-            builder.keySharedPolicy(conf.getKeySharedPolicy());
-        } else if (conf.getSubscriptionType() == SubscriptionType.Key_Shared) {
-            builder.keySharedPolicy(KeySharedPolicy.autoSplitHashRange());
-        }
-        if (conf.getCryptoKeyReader() != null) {
-            builder.cryptoKeyReader(conf.getCryptoKeyReader());
-        }
-        if (conf.getMessageCrypto() != null) {
-            builder.messageCrypto(conf.getMessageCrypto());
-        }
-        if (ic.getBatchReceive() && conf.getBatchReceivePolicy() == null) {
-            builder.batchReceivePolicy(BatchReceivePolicy.DEFAULT_POLICY);
-        }
-
+        ConsumerBuilder<T> builder = configResolver.configure(client.newConsumer(schema), ic, conf);
         this.consumer = builder.subscribe();
         log.createdConsumerWithConfig(channel, SchemaResolver.getSchemaName(schema), conf);
         this.ackHandler = ackHandlerFactory.create(consumer, ic);
@@ -194,29 +168,6 @@ public class PulsarIncomingChannel<T> {
             return true;
         }
         return false;
-    }
-
-    private static DeadLetterPolicy getDeadLetterPolicy(PulsarConnectorIncomingConfiguration ic, Integer redeliverCount) {
-        return DeadLetterPolicy.builder()
-                .maxRedeliverCount(redeliverCount)
-                .deadLetterTopic(ic.getDeadLetterPolicyDeadLetterTopic().orElse(null))
-                .retryLetterTopic(ic.getDeadLetterPolicyRetryLetterTopic().orElse(null))
-                .initialSubscriptionName(ic.getDeadLetterPolicyInitialSubscriptionName().orElse(null))
-                .build();
-    }
-
-    private RedeliveryBackoff parseBackoff(String backoffString) {
-        String[] strings = backoffString.split(",");
-        try {
-            return MultiplierRedeliveryBackoff.builder()
-                    .minDelayMs(Long.parseLong(strings[0]))
-                    .maxDelayMs(Long.parseLong(strings[1]))
-                    .multiplier(Double.parseDouble(strings[2]))
-                    .build();
-        } catch (Exception e) {
-            log.unableToParseRedeliveryBackoff(backoffString, this.channel);
-            return null;
-        }
     }
 
     static boolean hasTopicConfig(ConsumerConfigurationData<?> conf) {

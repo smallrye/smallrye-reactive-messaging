@@ -37,7 +37,7 @@ public class MessageMetadataTest {
 
         TypedMessageBuilderImpl<?> msg = (TypedMessageBuilderImpl<?>) messageBuilder.key(null).value(null);
 
-        assertThat(msg.getMetadataBuilder().hasNullValue()).isTrue();
+        assertThat(msg.getMetadataBuilder().hasNullValue()).isFalse();
         assertThat(msg.getMetadataBuilder().hasNullPartitionKey()).isTrue();
         assertThat(msg.getMetadataBuilder().hasPartitionKey()).isFalse();
         assertThat(msg.hasKey()).isFalse();
@@ -51,7 +51,7 @@ public class MessageMetadataTest {
 
         TypedMessageBuilderImpl<?> msg = (TypedMessageBuilderImpl<?>) messageBuilder.value(null);
 
-        assertThat(msg.getMetadataBuilder().hasNullValue()).isTrue();
+        assertThat(msg.getMetadataBuilder().hasNullValue()).isFalse();
         assertThat(msg.getMetadataBuilder().hasPartitionKey()).isFalse();
         assertThat(msg.hasKey()).isFalse();
 

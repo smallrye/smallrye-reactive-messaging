@@ -132,7 +132,8 @@ public class ClientTestBase extends KafkaCompanionTestBase {
 
         source = new KafkaSource<>(vertx, groupId, new KafkaConnectorIncomingConfiguration(config),
                 UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
-                listeners, CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), 0);
+                listeners, CountKafkaCdiEvents.noCdiEvents,
+                UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance(), 0);
         sources.add(source);
         return source;
     }
@@ -147,7 +148,8 @@ public class ClientTestBase extends KafkaCompanionTestBase {
 
         source = new KafkaSource<>(vertx, groupId, new KafkaConnectorIncomingConfiguration(config),
                 UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
-                listeners, CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), 0);
+                listeners, CountKafkaCdiEvents.noCdiEvents,
+                UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance(), 0);
         sources.add(source);
         return source;
     }
@@ -163,7 +165,8 @@ public class ClientTestBase extends KafkaCompanionTestBase {
 
         source = new KafkaSource<>(vertx, groupId, new KafkaConnectorIncomingConfiguration(config),
                 UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
-                listeners, CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), 0);
+                listeners, CountKafkaCdiEvents.noCdiEvents,
+                UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance(), 0);
         sources.add(source);
         return source;
     }
@@ -178,7 +181,8 @@ public class ClientTestBase extends KafkaCompanionTestBase {
 
         source = new KafkaSource<>(vertx, groupId, new KafkaConnectorIncomingConfiguration(config),
                 UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
-                listeners, CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), 0);
+                listeners, CountKafkaCdiEvents.noCdiEvents,
+                UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance(), 0);
         sources.add(source);
         return source;
     }
@@ -193,7 +197,8 @@ public class ClientTestBase extends KafkaCompanionTestBase {
 
         source = new KafkaSource<>(vertx, groupId, new KafkaConnectorIncomingConfiguration(config),
                 UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
-                listeners, CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), 0);
+                listeners, CountKafkaCdiEvents.noCdiEvents,
+                UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance(), 0);
         sources.add(source);
         return source;
     }
@@ -201,7 +206,8 @@ public class ClientTestBase extends KafkaCompanionTestBase {
     public KafkaSource<Integer, String> createSource(MapBasedConfig config, int index) {
         source = new KafkaSource<>(vertx, "groupId", new KafkaConnectorIncomingConfiguration(config),
                 UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
-                UnsatisfiedInstance.instance(), CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), index);
+                UnsatisfiedInstance.instance(), CountKafkaCdiEvents.noCdiEvents,
+                UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance(), index);
         sources.add(source);
         return source;
     }

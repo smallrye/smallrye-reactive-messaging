@@ -7,9 +7,9 @@ import static org.awaitility.Awaitility.await;
 import java.net.URI;
 import java.time.Duration;
 import java.time.ZonedDateTime;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -65,7 +65,7 @@ public class CloudEventProductionTest extends AmqpBrokerTestBase {
         AmqpSender bean = container.getBeanManager().createInstance().select(AmqpSender.class).get();
         Emitter<JsonObject> emitter = bean.get();
 
-        List<io.vertx.mutiny.amqp.AmqpMessage> list = new ArrayList<>();
+        List<io.vertx.mutiny.amqp.AmqpMessage> list = new CopyOnWriteArrayList<>();
         usage.consume(address, list::add);
 
         Message<JsonObject> msg = Message.of(new JsonObject().put("message", "hello"))
@@ -77,7 +77,7 @@ public class CloudEventProductionTest extends AmqpBrokerTestBase {
 
         emitter.send(msg);
 
-        await().until(() -> list.size() == 1);
+        await().untilAsserted(() -> assertThat(list).hasSize(1));
         AmqpMessage message = list.get(0);
         assertThat(message.address()).isEqualTo(address);
         assertThat(message.contentType()).isEqualTo(AmqpCloudEventHelper.STRUCTURED_CONTENT_TYPE);
@@ -109,7 +109,7 @@ public class CloudEventProductionTest extends AmqpBrokerTestBase {
         AmqpSender bean = container.getBeanManager().createInstance().select(AmqpSender.class).get();
         Emitter<JsonObject> emitter = bean.get();
 
-        List<io.vertx.mutiny.amqp.AmqpMessage> list = new ArrayList<>();
+        List<io.vertx.mutiny.amqp.AmqpMessage> list = new CopyOnWriteArrayList<>();
         usage.consume(address, list::add);
 
         ZonedDateTime time = ZonedDateTime.now();
@@ -125,7 +125,7 @@ public class CloudEventProductionTest extends AmqpBrokerTestBase {
 
         emitter.send(msg);
 
-        await().until(() -> list.size() == 1);
+        await().untilAsserted(() -> assertThat(list).hasSize(1));
         AmqpMessage message = list.get(0);
         assertThat(message.address()).isEqualTo(address);
         assertThat(message.contentType()).isEqualTo(AmqpCloudEventHelper.STRUCTURED_CONTENT_TYPE);
@@ -155,7 +155,7 @@ public class CloudEventProductionTest extends AmqpBrokerTestBase {
                 .with("amqp-password", password)
                 .write();
 
-        List<io.vertx.mutiny.amqp.AmqpMessage> list = new ArrayList<>();
+        List<io.vertx.mutiny.amqp.AmqpMessage> list = new CopyOnWriteArrayList<>();
         usage.consume(address, list::add);
 
         weld.addBeanClass(AmqpSender.class);
@@ -199,7 +199,7 @@ public class CloudEventProductionTest extends AmqpBrokerTestBase {
         AmqpSender bean = container.getBeanManager().createInstance().select(AmqpSender.class).get();
         Emitter<JsonObject> emitter = bean.get();
 
-        List<io.vertx.mutiny.amqp.AmqpMessage> list = new ArrayList<>();
+        List<io.vertx.mutiny.amqp.AmqpMessage> list = new CopyOnWriteArrayList<>();
         usage.consume(address, list::add);
 
         Message<JsonObject> msg = Message.of(new JsonObject().put("message", "hello"))
@@ -209,7 +209,7 @@ public class CloudEventProductionTest extends AmqpBrokerTestBase {
 
         emitter.send(msg);
 
-        await().until(() -> list.size() == 1);
+        await().untilAsserted(() -> assertThat(list).hasSize(1));
         AmqpMessage message = list.get(0);
         assertThat(message.address()).isEqualTo(address);
         assertThat(message.contentType()).isEqualTo(AmqpCloudEventHelper.STRUCTURED_CONTENT_TYPE);
@@ -240,7 +240,7 @@ public class CloudEventProductionTest extends AmqpBrokerTestBase {
         AmqpSender bean = container.getBeanManager().createInstance().select(AmqpSender.class).get();
         Emitter<JsonObject> emitter = bean.get();
 
-        List<io.vertx.mutiny.amqp.AmqpMessage> list = new ArrayList<>();
+        List<io.vertx.mutiny.amqp.AmqpMessage> list = new CopyOnWriteArrayList<>();
         usage.consume(address, list::add);
 
         Message<JsonObject> msg = Message.of(new JsonObject().put("h", "m")).addMetadata(OutgoingCloudEventMetadata.builder()
@@ -253,7 +253,7 @@ public class CloudEventProductionTest extends AmqpBrokerTestBase {
 
         emitter.send(msg);
 
-        await().until(() -> list.size() == 1);
+        await().untilAsserted(() -> assertThat(list).hasSize(1));
         AmqpMessage message = list.get(0);
         assertThat(message.address()).isEqualTo(address);
         assertThat(message.contentType()).isEqualTo(AmqpCloudEventHelper.STRUCTURED_CONTENT_TYPE);
@@ -286,7 +286,7 @@ public class CloudEventProductionTest extends AmqpBrokerTestBase {
         AmqpSender bean = container.getBeanManager().createInstance().select(AmqpSender.class).get();
         Emitter<JsonObject> emitter = bean.get();
 
-        List<io.vertx.mutiny.amqp.AmqpMessage> list = new ArrayList<>();
+        List<io.vertx.mutiny.amqp.AmqpMessage> list = new CopyOnWriteArrayList<>();
         usage.consume(address, list::add);
 
         Message<JsonObject> msg = Message.of(new JsonObject().put("message", "hello"))
@@ -298,7 +298,7 @@ public class CloudEventProductionTest extends AmqpBrokerTestBase {
 
         emitter.send(msg);
 
-        await().until(() -> list.size() == 1);
+        await().untilAsserted(() -> assertThat(list).hasSize(1));
         AmqpMessage message = list.get(0);
         assertThat(message.address()).isEqualTo(address);
         assertThat(message.contentType()).isEqualTo("application/json");
@@ -332,7 +332,7 @@ public class CloudEventProductionTest extends AmqpBrokerTestBase {
         AmqpSender bean = container.getBeanManager().createInstance().select(AmqpSender.class).get();
         Emitter<JsonObject> emitter = bean.get();
 
-        List<io.vertx.mutiny.amqp.AmqpMessage> list = new ArrayList<>();
+        List<io.vertx.mutiny.amqp.AmqpMessage> list = new CopyOnWriteArrayList<>();
         usage.consume(address, list::add);
 
         Message<JsonObject> msg = Message.of(new JsonObject().put("message", "hello"))
@@ -343,7 +343,7 @@ public class CloudEventProductionTest extends AmqpBrokerTestBase {
 
         emitter.send(msg);
 
-        await().until(() -> list.size() == 1);
+        await().untilAsserted(() -> assertThat(list).hasSize(1));
         AmqpMessage message = list.get(0);
         assertThat(message.address()).isEqualTo(address);
         assertThat(message.contentType()).isEqualTo("application/json+neo");
@@ -377,14 +377,14 @@ public class CloudEventProductionTest extends AmqpBrokerTestBase {
         AmqpSender bean = container.getBeanManager().createInstance().select(AmqpSender.class).get();
         Emitter<JsonObject> emitter = bean.get();
 
-        List<io.vertx.mutiny.amqp.AmqpMessage> list = new ArrayList<>();
+        List<io.vertx.mutiny.amqp.AmqpMessage> list = new CopyOnWriteArrayList<>();
         usage.consume(address, list::add);
 
         Message<JsonObject> msg = Message.of(new JsonObject().put("message", "hello"));
 
         emitter.send(msg);
 
-        await().until(() -> list.size() == 1);
+        await().untilAsserted(() -> assertThat(list).hasSize(1));
         AmqpMessage message = list.get(0);
         assertThat(message.address()).isEqualTo(address);
         assertThat(message.contentType()).isEqualTo("application/json");
@@ -412,7 +412,7 @@ public class CloudEventProductionTest extends AmqpBrokerTestBase {
                 .with("amqp-password", password)
                 .write();
 
-        List<io.vertx.mutiny.amqp.AmqpMessage> list = new ArrayList<>();
+        List<io.vertx.mutiny.amqp.AmqpMessage> list = new CopyOnWriteArrayList<>();
         usage.consume(address, list::add);
 
         weld.addBeanClass(AmqpSender.class);
@@ -456,7 +456,7 @@ public class CloudEventProductionTest extends AmqpBrokerTestBase {
         AmqpSender bean = container.getBeanManager().createInstance().select(AmqpSender.class).get();
         Emitter<JsonObject> emitter = bean.get();
 
-        List<io.vertx.mutiny.amqp.AmqpMessage> list = new ArrayList<>();
+        List<io.vertx.mutiny.amqp.AmqpMessage> list = new CopyOnWriteArrayList<>();
         usage.consume(address, list::add);
 
         Message<JsonObject> msg = Message.of(new JsonObject().put("message", "hello"))
@@ -468,7 +468,7 @@ public class CloudEventProductionTest extends AmqpBrokerTestBase {
 
         emitter.send(msg);
 
-        await().until(() -> list.size() == 1);
+        await().untilAsserted(() -> assertThat(list).hasSize(1));
         AmqpMessage message = list.get(0);
         assertThat(message.address()).isEqualTo(address);
         assertThat(message.contentType()).isEqualTo("application/json");
@@ -497,7 +497,7 @@ public class CloudEventProductionTest extends AmqpBrokerTestBase {
         AmqpSender bean = container.getBeanManager().createInstance().select(AmqpSender.class).get();
         Emitter<JsonObject> emitter = bean.get();
 
-        List<io.vertx.mutiny.amqp.AmqpMessage> list = new ArrayList<>();
+        List<io.vertx.mutiny.amqp.AmqpMessage> list = new CopyOnWriteArrayList<>();
         usage.consume(address, list::add);
 
         Message<JsonObject> msg = Message.of(new JsonObject().put("message", "hello"))
@@ -511,7 +511,7 @@ public class CloudEventProductionTest extends AmqpBrokerTestBase {
 
         emitter.send(msg);
 
-        await().until(() -> list.size() == 1);
+        await().untilAsserted(() -> assertThat(list).hasSize(1));
         AmqpMessage message = list.get(0);
         assertThat(message.address()).isEqualTo(address);
         assertThat(message.contentType()).isEqualTo("application/json");
@@ -542,7 +542,7 @@ public class CloudEventProductionTest extends AmqpBrokerTestBase {
                 .with("amqp-password", password)
                 .write();
 
-        List<io.vertx.mutiny.amqp.AmqpMessage> list = new ArrayList<>();
+        List<io.vertx.mutiny.amqp.AmqpMessage> list = new CopyOnWriteArrayList<>();
         usage.consume(address, list::add);
 
         weld.addBeanClasses(Source.class, Processing.class, Sender.class);
@@ -577,7 +577,7 @@ public class CloudEventProductionTest extends AmqpBrokerTestBase {
                 .with("amqp-password", password)
                 .write();
 
-        List<io.vertx.mutiny.amqp.AmqpMessage> list = new ArrayList<>();
+        List<io.vertx.mutiny.amqp.AmqpMessage> list = new CopyOnWriteArrayList<>();
         usage.consume(address, list::add);
 
         weld.addBeanClasses(Source.class, Processing.class, Sender.class);
@@ -615,7 +615,7 @@ public class CloudEventProductionTest extends AmqpBrokerTestBase {
                 .with("amqp-password", password)
                 .write();
 
-        List<io.vertx.mutiny.amqp.AmqpMessage> list = new ArrayList<>();
+        List<io.vertx.mutiny.amqp.AmqpMessage> list = new CopyOnWriteArrayList<>();
         usage.consume(address, list::add);
 
         weld.addBeanClasses(Source.class);
@@ -654,7 +654,7 @@ public class CloudEventProductionTest extends AmqpBrokerTestBase {
                 .with("amqp-password", password)
                 .write();
 
-        List<io.vertx.mutiny.amqp.AmqpMessage> list = new ArrayList<>();
+        List<io.vertx.mutiny.amqp.AmqpMessage> list = new CopyOnWriteArrayList<>();
         usage.consume(address, list::add);
 
         weld.addBeanClasses(Source.class);

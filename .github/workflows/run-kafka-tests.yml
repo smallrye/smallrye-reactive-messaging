@@ -1,0 +1,51 @@
+name: Run Kafka tests
+
+on:
+    workflow_dispatch:
+        inputs:
+            kafkaCLientVersion:
+                description: 'Kafka Client version'
+            kafkaBrokerVersion:
+                description: 'Kafka Broker version'
+
+jobs:
+    tests:
+        runs-on: ubuntu-latest
+        env:
+            KAFKA_VERSION: ${{ inputs.kafkaCLientVersion }}
+            KAFKA_CONTAINER_VERSION: ${{ inputs.kafkaBrokerVersion }}
+        name: Test with Kafka ${{ inputs.kafkaCLientVersion }} and Broker ${{ inputs.kafkaBrokerVersion }}
+        steps:
+            -   uses: actions/checkout@v4
+            -   uses: actions/setup-java@v4
+                with:
+                    java-version: 21
+                    distribution: temurin
+                    cache: maven
+            -   name: Build with Maven
+                run: mvn -s .build/ci-maven-settings.xml clean install -T1C -DskipTests
+            -   name: Run Kafka tests
+                run: |
+                    mvn -s .build/ci-maven-settings.xml -pl :smallrye-reactive-messaging-kafka -B verify \
+                        ${KAFKA_VERSION:+"-Dkafka.version=$KAFKA_VERSION"} \
+                        ${KAFKA_CONTAINER_VERSION:+"-Dkafka-container-version=$KAFKA_CONTAINER_VERSION"}
+    flaky-tests:
+        runs-on: ubuntu-latest
+        env:
+            KAFKA_VERSION: ${{ inputs.kafkaCLientVersion }}
+            KAFKA_CONTAINER_VERSION: ${{ inputs.kafkaBrokerVersion }}
+        name: Flaky Test with Kafka ${{ inputs.kafkaCLientVersion }} and Broker ${{ inputs.kafkaBrokerVersion }}
+        steps:
+            -   uses: actions/checkout@v4
+            -   uses: actions/setup-java@v4
+                with:
+                    java-version: 21
+                    distribution: temurin
+                    cache: maven
+            -   name: Build with Maven
+                run: mvn -s .build/ci-maven-settings.xml clean install -T1C -DskipTests
+            -   name: Run Kafka tests
+                run: |
+                    mvn -s .build/ci-maven-settings.xml -pl :smallrye-reactive-messaging-kafka -B verify -Pslow-flaky-tests \
+                        ${KAFKA_VERSION:+"-Dkafka.version=$KAFKA_VERSION"} \
+                        ${KAFKA_CONTAINER_VERSION:+"-Dkafka-container-version=$KAFKA_CONTAINER_VERSION"}

@@ -18,8 +18,6 @@ import java.util.concurrent.Flow;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
-import javax.net.ssl.SSLContext;
-
 import jakarta.annotation.Priority;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.context.BeforeDestroyed;
@@ -37,6 +35,7 @@ import io.opentelemetry.api.OpenTelemetry;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.operators.multi.processors.BroadcastProcessor;
+import io.smallrye.reactive.messaging.ClientCustomizer;
 import io.smallrye.reactive.messaging.amqp.fault.AmqpAccept;
 import io.smallrye.reactive.messaging.amqp.fault.AmqpFailStop;
 import io.smallrye.reactive.messaging.amqp.fault.AmqpFailureHandler;
@@ -96,15 +95,16 @@ import io.vertx.proton.ProtonSender;
 @ConnectorAttribute(name = "durable", direction = OUTGOING, description = "Whether sent AMQP messages are marked durable", type = "boolean", defaultValue = "false")
 @ConnectorAttribute(name = "ttl", direction = OUTGOING, description = "The time-to-live of the send AMQP messages. 0 to disable the TTL", type = "long", defaultValue = "0")
 @ConnectorAttribute(name = "credit-retrieval-period", direction = OUTGOING, description = "The period (in milliseconds) between two attempts to retrieve the credits granted by the broker. This time is used when the sender run out of credits.", type = "int", defaultValue = "2000")
+@ConnectorAttribute(name = "max-inflight-messages", type = "long", direction = OUTGOING, description = "The maximum number of messages to be written to the broker concurrently. The number of sent messages waiting to be acknowledged by the broker are limited by this value and credits granted by the broker. The default value `0` means only credits apply.", defaultValue = "0")
 @ConnectorAttribute(name = "use-anonymous-sender", direction = OUTGOING, description = "Whether or not the connector should use an anonymous sender. Default value is `true` if the broker supports it, `false` otherwise. If not supported, it is not possible to dynamically change the destination address.", type = "boolean")
 @ConnectorAttribute(name = "merge", direction = OUTGOING, description = "Whether the connector should allow multiple upstreams", type = "boolean", defaultValue = "false")
-@ConnectorAttribute(name = "cloud-events-source", type = "string", direction = ConnectorAttribute.Direction.OUTGOING, description = "Configure the default `source` attribute of the outgoing Cloud Event. Requires `cloud-events` to be set to `true`. This value is used if the message does not configure the `source` attribute itself", alias = "cloud-events-default-source")
-@ConnectorAttribute(name = "cloud-events-type", type = "string", direction = ConnectorAttribute.Direction.OUTGOING, description = "Configure the default `type` attribute of the outgoing Cloud Event. Requires `cloud-events` to be set to `true`. This value is used if the message does not configure the `type` attribute itself", alias = "cloud-events-default-type")
-@ConnectorAttribute(name = "cloud-events-subject", type = "string", direction = ConnectorAttribute.Direction.OUTGOING, description = "Configure the default `subject` attribute of the outgoing Cloud Event. Requires `cloud-events` to be set to `true`. This value is used if the message does not configure the `subject` attribute itself", alias = "cloud-events-default-subject")
-@ConnectorAttribute(name = "cloud-events-data-content-type", type = "string", direction = ConnectorAttribute.Direction.OUTGOING, description = "Configure the default `datacontenttype` attribute of the outgoing Cloud Event. Requires `cloud-events` to be set to `true`. This value is used if the message does not configure the `datacontenttype` attribute itself", alias = "cloud-events-default-data-content-type")
-@ConnectorAttribute(name = "cloud-events-data-schema", type = "string", direction = ConnectorAttribute.Direction.OUTGOING, description = "Configure the default `dataschema` attribute of the outgoing Cloud Event. Requires `cloud-events` to be set to `true`. This value is used if the message does not configure the `dataschema` attribute itself", alias = "cloud-events-default-data-schema")
-@ConnectorAttribute(name = "cloud-events-insert-timestamp", type = "boolean", direction = ConnectorAttribute.Direction.OUTGOING, description = "Whether or not the connector should insert automatically the `time` attribute into the outgoing Cloud Event. Requires `cloud-events` to be set to `true`. This value is used if the message does not configure the `time` attribute itself", alias = "cloud-events-default-timestamp", defaultValue = "true")
-@ConnectorAttribute(name = "cloud-events-mode", type = "string", direction = ConnectorAttribute.Direction.OUTGOING, description = "The Cloud Event mode (`structured` or `binary` (default)). Indicates how are written the cloud events in the outgoing record", defaultValue = "binary")
+@ConnectorAttribute(name = "cloud-events-source", type = "string", direction = OUTGOING, description = "Configure the default `source` attribute of the outgoing Cloud Event. Requires `cloud-events` to be set to `true`. This value is used if the message does not configure the `source` attribute itself", alias = "cloud-events-default-source")
+@ConnectorAttribute(name = "cloud-events-type", type = "string", direction = OUTGOING, description = "Configure the default `type` attribute of the outgoing Cloud Event. Requires `cloud-events` to be set to `true`. This value is used if the message does not configure the `type` attribute itself", alias = "cloud-events-default-type")
+@ConnectorAttribute(name = "cloud-events-subject", type = "string", direction = OUTGOING, description = "Configure the default `subject` attribute of the outgoing Cloud Event. Requires `cloud-events` to be set to `true`. This value is used if the message does not configure the `subject` attribute itself", alias = "cloud-events-default-subject")
+@ConnectorAttribute(name = "cloud-events-data-content-type", type = "string", direction = OUTGOING, description = "Configure the default `datacontenttype` attribute of the outgoing Cloud Event. Requires `cloud-events` to be set to `true`. This value is used if the message does not configure the `datacontenttype` attribute itself", alias = "cloud-events-default-data-content-type")
+@ConnectorAttribute(name = "cloud-events-data-schema", type = "string", direction = OUTGOING, description = "Configure the default `dataschema` attribute of the outgoing Cloud Event. Requires `cloud-events` to be set to `true`. This value is used if the message does not configure the `dataschema` attribute itself", alias = "cloud-events-default-data-schema")
+@ConnectorAttribute(name = "cloud-events-insert-timestamp", type = "boolean", direction = OUTGOING, description = "Whether or not the connector should insert automatically the `time` attribute into the outgoing Cloud Event. Requires `cloud-events` to be set to `true`. This value is used if the message does not configure the `time` attribute itself", alias = "cloud-events-default-timestamp", defaultValue = "true")
+@ConnectorAttribute(name = "cloud-events-mode", type = "string", direction = OUTGOING, description = "The Cloud Event mode (`structured` or `binary` (default)). Indicates how are written the cloud events in the outgoing record", defaultValue = "binary")
 
 public class AmqpConnector implements InboundConnector, OutboundConnector, HealthReporter {
 
@@ -119,7 +119,7 @@ public class AmqpConnector implements InboundConnector, OutboundConnector, Healt
 
     @Inject
     @Any
-    private Instance<SSLContext> clientSslContexts;
+    private Instance<ClientCustomizer<AmqpClientOptions>> configCustomizers;
 
     @Inject
     private Instance<OpenTelemetry> openTelemetryInstance;
@@ -221,7 +221,7 @@ public class AmqpConnector implements InboundConnector, OutboundConnector, Healt
                 .setCapabilities(getClientCapabilities(ic))
                 .setSelector(ic.getSelector().orElse(null));
 
-        AmqpClient client = AmqpClientHelper.createClient(this, ic, clientOptions, clientSslContexts);
+        AmqpClient client = AmqpClientHelper.createClient(this, ic, clientOptions, configCustomizers);
 
         Context root = Context.newInstance(((VertxInternal) getVertx().getDelegate()).createEventLoopContext());
         ConnectionHolder holder = new ConnectionHolder(client, ic, getVertx(), root);
@@ -265,7 +265,7 @@ public class AmqpConnector implements InboundConnector, OutboundConnector, Healt
         opened.put(oc.getChannel(), false);
 
         AtomicReference<AmqpSender> sender = new AtomicReference<>();
-        AmqpClient client = AmqpClientHelper.createClient(this, oc, clientOptions, clientSslContexts);
+        AmqpClient client = AmqpClientHelper.createClient(this, oc, clientOptions, configCustomizers);
         String link = oc.getLinkName().orElseGet(oc::getChannel);
         ConnectionHolder holder = new ConnectionHolder(client, oc, getVertx(), null);
 

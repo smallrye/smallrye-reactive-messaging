@@ -67,7 +67,8 @@ public class CommitStrategiesTest extends WeldTestBase {
                 new KafkaConnectorIncomingConfiguration(config),
                 UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
                 getConsumerRebalanceListeners(),
-                CountKafkaCdiEvents.noCdiEvents, getDeserializationFailureHandlers(), -1);
+                CountKafkaCdiEvents.noCdiEvents,
+                UnsatisfiedInstance.instance(), getDeserializationFailureHandlers(), -1);
         injectMockConsumer(source, consumer);
 
         List<Message<?>> list = new ArrayList<>();
@@ -172,7 +173,8 @@ public class CommitStrategiesTest extends WeldTestBase {
                 new KafkaConnectorIncomingConfiguration(config),
                 UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
                 getConsumerRebalanceListeners(),
-                CountKafkaCdiEvents.noCdiEvents, getDeserializationFailureHandlers(), -1);
+                CountKafkaCdiEvents.noCdiEvents,
+                UnsatisfiedInstance.instance(), getDeserializationFailureHandlers(), -1);
         injectMockConsumer(source, consumer);
 
         List<Message<?>> list = new ArrayList<>();
@@ -240,7 +242,8 @@ public class CommitStrategiesTest extends WeldTestBase {
                 new KafkaConnectorIncomingConfiguration(config),
                 UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
                 getConsumerRebalanceListeners(),
-                CountKafkaCdiEvents.noCdiEvents, getDeserializationFailureHandlers(), -1);
+                CountKafkaCdiEvents.noCdiEvents,
+                UnsatisfiedInstance.instance(), getDeserializationFailureHandlers(), -1);
         injectMockConsumer(source, consumer);
 
         List<Message<?>> list = new ArrayList<>();
@@ -324,7 +327,8 @@ public class CommitStrategiesTest extends WeldTestBase {
                 new KafkaConnectorIncomingConfiguration(config),
                 UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
                 getConsumerRebalanceListeners(),
-                CountKafkaCdiEvents.noCdiEvents, getDeserializationFailureHandlers(), -1);
+                CountKafkaCdiEvents.noCdiEvents,
+                UnsatisfiedInstance.instance(), getDeserializationFailureHandlers(), -1);
         injectMockConsumer(source, consumer);
 
         List<Message<?>> list = new ArrayList<>();
@@ -393,7 +397,8 @@ public class CommitStrategiesTest extends WeldTestBase {
                     new KafkaConnectorIncomingConfiguration(config),
                     UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
                     getConsumerRebalanceListeners(),
-                    CountKafkaCdiEvents.noCdiEvents, getDeserializationFailureHandlers(), -1);
+                    CountKafkaCdiEvents.noCdiEvents,
+                    UnsatisfiedInstance.instance(), getDeserializationFailureHandlers(), -1);
         }).isInstanceOf(UnsatisfiedResolutionException.class);
     }
 
@@ -409,7 +414,8 @@ public class CommitStrategiesTest extends WeldTestBase {
                 new KafkaConnectorIncomingConfiguration(config),
                 UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
                 getConsumerRebalanceListeners(),
-                CountKafkaCdiEvents.noCdiEvents, getDeserializationFailureHandlers(), -1))
+                CountKafkaCdiEvents.noCdiEvents,
+                UnsatisfiedInstance.instance(), getDeserializationFailureHandlers(), -1))
                 .isInstanceOf(AmbiguousResolutionException.class).hasMessageContaining("mine");
     }
 
@@ -426,7 +432,8 @@ public class CommitStrategiesTest extends WeldTestBase {
                 new KafkaConnectorIncomingConfiguration(config),
                 UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
                 getConsumerRebalanceListeners(),
-                CountKafkaCdiEvents.noCdiEvents, getDeserializationFailureHandlers(), -1);
+                CountKafkaCdiEvents.noCdiEvents,
+                UnsatisfiedInstance.instance(), getDeserializationFailureHandlers(), -1);
 
         injectMockConsumer(source, consumer);
 

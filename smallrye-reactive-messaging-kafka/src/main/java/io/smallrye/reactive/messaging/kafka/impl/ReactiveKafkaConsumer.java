@@ -29,11 +29,13 @@ import io.smallrye.common.annotation.CheckReturnValue;
 import io.smallrye.common.annotation.Identifier;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
+import io.smallrye.reactive.messaging.ClientCustomizer;
 import io.smallrye.reactive.messaging.kafka.DeserializationFailureHandler;
 import io.smallrye.reactive.messaging.kafka.KafkaConnectorIncomingConfiguration;
 import io.smallrye.reactive.messaging.kafka.KafkaConsumerRebalanceListener;
 import io.smallrye.reactive.messaging.kafka.commit.KafkaCommitHandler;
 import io.smallrye.reactive.messaging.kafka.fault.DeserializerWrapper;
+import io.smallrye.reactive.messaging.providers.helpers.ConfigUtils;
 import io.smallrye.reactive.messaging.providers.i18n.ProviderLogging;
 import io.vertx.core.Context;
 
@@ -58,14 +60,16 @@ public class ReactiveKafkaConsumer<K, V> implements io.smallrye.reactive.messagi
     private final KafkaRecordStream<K, V> stream;
     private final KafkaRecordBatchStream<K, V> batchStream;
     private final Map<String, Object> kafkaConfiguration;
+    private final AtomicReference<ConsumerGroupMetadata> consumerGroupMetadataRef = new AtomicReference<>();
 
     public ReactiveKafkaConsumer(KafkaConnectorIncomingConfiguration config,
+            Instance<ClientCustomizer<Map<String, Object>>> configCustomizers,
             Instance<DeserializationFailureHandler<?>> deserializationFailureHandlers,
             String consumerGroup, int index,
             BiConsumer<Throwable, Boolean> reportFailure,
             Context context,
             java.util.function.Consumer<Consumer<K, V>> onConsumerCreated) {
-        this(getKafkaConsumerConfiguration(config, consumerGroup, index),
+        this(getKafkaConsumerConfiguration(config, configCustomizers, consumerGroup, index),
                 createDeserializationFailureHandler(true, deserializationFailureHandlers, config),
                 createDeserializationFailureHandler(false, deserializationFailureHandlers, config),
                 RuntimeKafkaSourceConfiguration.buildFromConfiguration(config),
@@ -140,6 +144,13 @@ public class ReactiveKafkaConsumer<K, V> implements io.smallrye.reactive.messagi
         } catch (Exception e) {
             close();
             throw e;
+        }
+    }
+
+    public void setCachedConsumerGroupMetadata() {
+        Consumer<K, V> consumer = consumerRef.get();
+        if (consumer != null) {
+            consumerGroupMetadataRef.set(consumer.groupMetadata());
         }
     }
 
@@ -318,7 +329,8 @@ public class ReactiveKafkaConsumer<K, V> implements io.smallrye.reactive.messagi
     @Override
     @CheckReturnValue
     public Uni<ConsumerGroupMetadata> consumerGroupMetadata() {
-        return runOnPollingThread((Function<Consumer<K, V>, ConsumerGroupMetadata>) Consumer::groupMetadata);
+        return Uni.createFrom().item(consumerGroupMetadataRef::get)
+                .onItem().ifNull().switchTo(() -> runOnPollingThread((Consumer<K, V> c) -> c.groupMetadata()));
     }
 
     @Override
@@ -344,6 +356,7 @@ public class ReactiveKafkaConsumer<K, V> implements io.smallrye.reactive.messagi
     }
 
     private static Map<String, Object> getKafkaConsumerConfiguration(KafkaConnectorIncomingConfiguration configuration,
+            Instance<ClientCustomizer<Map<String, Object>>> configInterceptors,
             String consumerGroup, int index) {
         Map<String, Object> map = new HashMap<>();
         JsonHelper.asJsonObject(configuration.config())
@@ -391,7 +404,7 @@ public class ReactiveKafkaConsumer<K, V> implements io.smallrye.reactive.messagi
 
         ConfigurationCleaner.cleanupConsumerConfiguration(map);
 
-        return map;
+        return ConfigUtils.customize(configuration.config(), configInterceptors, map);
     }
 
     @SuppressWarnings({ "unchecked" })

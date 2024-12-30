@@ -22,20 +22,22 @@ public class IncomingKafkaRecordMetadata<K, T> implements KafkaMessageMetadata<K
     private volatile Headers headers;
     private final String channel;
     private final int index;
+    private final int consumerGroupGenerationId;
 
     /**
      * Constructor
      *
      * @param record the underlying record received from Kafka
      */
-    public IncomingKafkaRecordMetadata(ConsumerRecord<K, T> record, String channel, int index) {
+    public IncomingKafkaRecordMetadata(ConsumerRecord<K, T> record, String channel, int index, int consumerGroupGenerationId) {
         this.record = record;
         this.channel = channel;
         this.index = index;
+        this.consumerGroupGenerationId = consumerGroupGenerationId;
     }
 
     public IncomingKafkaRecordMetadata(ConsumerRecord<K, T> record, String channel) {
-        this(record, channel, -1);
+        this(record, channel, -1, -1);
     }
 
     /**
@@ -124,5 +126,12 @@ public class IncomingKafkaRecordMetadata<K, T> implements KafkaMessageMetadata<K
 
     public int getConsumerIndex() {
         return index;
+    }
+
+    /**
+     * @return the consumer group metadata generation id at the time of polling this record
+     */
+    public int getConsumerGroupGenerationId() {
+        return consumerGroupGenerationId;
     }
 }

@@ -49,10 +49,10 @@ as `String` and the `JMSType` is set to the target class. The
 If the payload is a `byte[]`, it’s passed as `byte[]` in a JMS
 `BytesMessage`.
 
-Otherwise, the payload is encoded using included JSON serializer (JSON-B
-and Jackson provided OOB, for more details see [Serde](serde)). The
-`JMSType` is set to the target class. The `_classname` property is also
-set. The JMS Message is a `TextMessage`.
+Otherwise, the payload is encoded using included JSON serializer (JSON-B and Jackson provided OOB.
+The `JMSType` is set to the target class.
+The `_classname` property is also set.
+The JMS Message is a `TextMessage`.
 
 For example, the following code serialize the produced `Person` using
 JSON-B.

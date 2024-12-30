@@ -18,6 +18,7 @@ import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.spi.Connector;
 
+import io.smallrye.reactive.messaging.ClientCustomizer;
 import io.smallrye.reactive.messaging.annotations.ConnectorAttribute;
 import io.smallrye.reactive.messaging.connector.InboundConnector;
 import io.smallrye.reactive.messaging.connector.OutboundConnector;
@@ -76,6 +77,10 @@ public class MqttConnector implements InboundConnector, OutboundConnector, Healt
     @Any
     Instance<MqttClientSessionOptions> instances;
 
+    @Inject
+    @Any
+    Instance<ClientCustomizer<MqttClientSessionOptions>> configCustomizers;
+
     private Vertx vertx;
     private final List<MqttSource> sources = new CopyOnWriteArrayList<>();
     private final List<MqttSink> sinks = new CopyOnWriteArrayList<>();
@@ -87,14 +92,15 @@ public class MqttConnector implements InboundConnector, OutboundConnector, Healt
 
     @Override
     public Flow.Publisher<? extends Message<?>> getPublisher(Config config) {
-        MqttSource source = new MqttSource(vertx, new MqttConnectorIncomingConfiguration(config), instances);
+        MqttSource source = new MqttSource(vertx, new MqttConnectorIncomingConfiguration(config), configCustomizers,
+                instances);
         sources.add(source);
         return source.getSource();
     }
 
     @Override
     public Flow.Subscriber<? extends Message<?>> getSubscriber(Config config) {
-        MqttSink sink = new MqttSink(vertx, new MqttConnectorOutgoingConfiguration(config), instances);
+        MqttSink sink = new MqttSink(vertx, new MqttConnectorOutgoingConfiguration(config), configCustomizers, instances);
         sinks.add(sink);
         return sink.getSink();
     }

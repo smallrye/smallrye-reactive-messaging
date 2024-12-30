@@ -43,6 +43,41 @@ public class AsynchronousPayloadProcessorAckTest extends WeldTestBaseWithoutTail
     }
 
     @Test
+    public void testThatMessagesAreAckedAfterSuccessfulProcessingOfPayloadReturningCompletionStageOfMessage()
+            throws InterruptedException {
+        addBeanClass(SuccessfulPayloadProcessorCompletionStageOfMessage.class);
+        initialize();
+        Emitter<String> emitter = get(EmitterBean.class).emitter();
+        Sink sink = get(Sink.class);
+
+        Set<String> acked = new ConcurrentHashSet<>();
+        Set<String> nacked = new ConcurrentHashSet<>();
+
+        run(acked, nacked, emitter);
+
+        await().until(() -> sink.list().size() == 10);
+        assertThat(acked).hasSize(10);
+        assertThat(nacked).hasSize(0);
+    }
+
+    @Test
+    public void testThatMessagesAreAckedAfterSuccessfulProcessingOfPayloadReturningUniOfMessage() throws InterruptedException {
+        addBeanClass(SuccessfulPayloadProcessorUniOfMessage.class);
+        initialize();
+        Emitter<String> emitter = get(EmitterBean.class).emitter();
+        Sink sink = get(Sink.class);
+
+        Set<String> acked = new ConcurrentHashSet<>();
+        Set<String> nacked = new ConcurrentHashSet<>();
+
+        run(acked, nacked, emitter);
+
+        await().until(() -> sink.list().size() == 10);
+        assertThat(acked).hasSize(10);
+        assertThat(nacked).hasSize(0);
+    }
+
+    @Test
     public void testThatMessagesAreAckedAfterSuccessfulProcessingOfPayloadUni() throws InterruptedException {
         addBeanClass(SuccessfulPayloadProcessorUni.class);
         initialize();
@@ -157,6 +192,28 @@ public class AsynchronousPayloadProcessorAckTest extends WeldTestBaseWithoutTail
         @Outgoing("out")
         public Uni<String> process(String s) {
             return Uni.createFrom().completionStage(CompletableFuture.supplyAsync(s::toUpperCase));
+        }
+
+    }
+
+    @ApplicationScoped
+    public static class SuccessfulPayloadProcessorCompletionStageOfMessage {
+
+        @Incoming("data")
+        @Outgoing("out")
+        public CompletionStage<Message<String>> process(String s) {
+            return CompletableFuture.supplyAsync(() -> Message.of(s.toUpperCase()));
+        }
+
+    }
+
+    @ApplicationScoped
+    public static class SuccessfulPayloadProcessorUniOfMessage {
+
+        @Incoming("data")
+        @Outgoing("out")
+        public Uni<Message<String>> process(String s) {
+            return Uni.createFrom().completionStage(CompletableFuture.supplyAsync(() -> Message.of(s.toUpperCase())));
         }
 
     }

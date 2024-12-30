@@ -9,6 +9,9 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import jakarta.enterprise.context.ApplicationScoped;
+
+import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.config.ConfigProvider;
 import org.jboss.weld.environment.se.Weld;
 import org.jboss.weld.environment.se.WeldContainer;
@@ -17,8 +20,10 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 import io.smallrye.config.SmallRyeConfigProviderResolver;
+import io.smallrye.reactive.messaging.ClientCustomizer;
 import io.smallrye.reactive.messaging.providers.connectors.ExecutionHolder;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
+import io.vertx.rabbitmq.RabbitMQOptions;
 
 public class RabbitMQSourceCDIConfigTest extends RabbitMQBrokerTestBase {
 
@@ -190,5 +195,46 @@ public class RabbitMQSourceCDIConfigTest extends RabbitMQBrokerTestBase {
 
         assertThatThrownBy(() -> container = weld.initialize())
                 .isInstanceOf(DeploymentException.class);
+    }
+
+    @Test
+    public void testConfigInterceptor() {
+        Weld weld = new Weld();
+
+        weld.addBeanClass(ConsumptionBean.class);
+        weld.addBeanClass(MyClientCustomizer.class);
+        weld.addBeanClass(ClientConfigurationBean.class);
+
+        new MapBasedConfig()
+                .with("mp.messaging.incoming.data.queue.name", "data")
+                .with("mp.messaging.incoming.data.connector", RabbitMQConnector.CONNECTOR_NAME)
+                .with("mp.messaging.incoming.data.tracing-enabled", false)
+                .with("rabbitmq-username", username)
+                .with("rabbitmq-password", password)
+                .with("rabbitmq-client-options-name", "myclientoptions")
+                .write();
+
+        container = weld.initialize();
+        await().until(() -> isRabbitMQConnectorAlive(container));
+        await().until(() -> isRabbitMQConnectorReady(container));
+        List<Integer> list = container.select(ConsumptionBean.class).get().getResults();
+        assertThat(list).isEmpty();
+
+        AtomicInteger counter = new AtomicInteger();
+        usage.produceTenIntegers("data", "data", "", counter::getAndIncrement);
+
+        await().atMost(2, TimeUnit.MINUTES).until(() -> list.size() >= 10);
+        assertThat(list).containsExactly(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
+    }
+
+    @ApplicationScoped
+    public static class MyClientCustomizer implements ClientCustomizer<RabbitMQOptions> {
+
+        @Override
+        public RabbitMQOptions customize(String channel, Config channelConfig, RabbitMQOptions config) {
+            assertThat(config.getHost()).isEqualTo(System.getProperty("rabbitmq-host"));
+            assertThat(config.getPort()).isEqualTo(Integer.parseInt(System.getProperty("rabbitmq-port")));
+            return config;
+        }
     }
 }
