@@ -18,11 +18,6 @@ jobs:
                 java: [
                     {
                         'name': '',
-                        'version': '11',
-                        'build_opts': '-Drevapi.skip=true'
-                    },
-                    {
-                        'name': '',
                         'version': '17',
                     },
                     {
@@ -62,7 +57,7 @@ jobs:
             -   uses: actions/checkout@v4
             -   uses: actions/setup-java@v4
                 with:
-                    java-version: 11
+                    java-version: 17
                     distribution: temurin
                     cache: maven
             -   name: Coverage and Sonar
