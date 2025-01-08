@@ -1,5 +1,6 @@
 package io.smallrye.reactive.messaging.aws.sqs;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -8,9 +9,11 @@ import java.util.Optional;
 import java.util.concurrent.Flow;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import org.eclipse.microprofile.reactive.messaging.Message;
 
+import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.OutgoingMessageMetadata;
 import io.smallrye.reactive.messaging.aws.sqs.i18n.AwsSqsLogging;
@@ -18,8 +21,13 @@ import io.smallrye.reactive.messaging.health.HealthReport;
 import io.smallrye.reactive.messaging.json.JsonMapping;
 import io.smallrye.reactive.messaging.providers.helpers.MultiUtils;
 import software.amazon.awssdk.services.sqs.SqsAsyncClient;
+import software.amazon.awssdk.services.sqs.model.BatchResultErrorEntry;
 import software.amazon.awssdk.services.sqs.model.MessageAttributeValue;
+import software.amazon.awssdk.services.sqs.model.SendMessageBatchRequest;
+import software.amazon.awssdk.services.sqs.model.SendMessageBatchRequestEntry;
+import software.amazon.awssdk.services.sqs.model.SendMessageBatchResultEntry;
 import software.amazon.awssdk.services.sqs.model.SendMessageRequest;
+import software.amazon.awssdk.services.sqs.model.SendMessageResponse;
 
 public class SqsOutboundChannel {
 
@@ -32,17 +40,31 @@ public class SqsOutboundChannel {
     private final List<Throwable> failures = new ArrayList<>();
     private final boolean healthEnabled;
     private final String groupId;
+    private final boolean batch;
+    private final Duration batchDelay;
+    private final int batchSize;
 
     public SqsOutboundChannel(SqsConnectorOutgoingConfiguration conf, SqsManager sqsManager, JsonMapping jsonMapping) {
         this.channel = conf.getChannel();
         this.healthEnabled = conf.getHealthEnabled();
         this.client = sqsManager.getClient(conf);
+        this.batch = conf.getBatch();
+        this.batchSize = conf.getBatchSize();
+        this.batchDelay = Duration.ofMillis(conf.getBatchDelay());
         this.queueUrlUni = sqsManager.getQueueUrl(conf).memoize().indefinitely();
         this.groupId = conf.getGroupId().orElse(null);
         this.jsonMapping = jsonMapping;
         this.subscriber = MultiUtils.via(multi -> multi
                 .onSubscription().call(s -> queueUrlUni)
-                .call(m -> publishMessage(this.client, m))
+                .plug(stream -> {
+                    if (batch) {
+                        return stream.group().intoLists().of(batchSize, batchDelay)
+                                .call(l -> publishMessage(this.client, l))
+                                .onItem().transformToMultiAndConcatenate(l -> Multi.createFrom().iterable(l));
+                    } else {
+                        return stream.call(m -> publishMessage(this.client, m));
+                    }
+                })
                 .onFailure().invoke(f -> {
                     AwsSqsLogging.log.unableToDispatch(channel, f);
                     reportFailure(f);
@@ -71,6 +93,82 @@ public class SqsOutboundChannel {
                         return Uni.createFrom().completionStage(m.nack(t));
                     }
                 });
+    }
+
+    private Uni<Void> publishMessage(SqsAsyncClient client, List<Message<?>> messages) {
+        if (closed.get()) {
+            return Uni.createFrom().voidItem();
+        }
+        if (messages.isEmpty()) {
+            return Uni.createFrom().nullItem();
+        }
+        if (messages.size() == 1) {
+            return publishMessage(client, messages.get(0));
+        }
+        return queueUrlUni.map(queueUrl -> getSendMessageRequest(queueUrl, messages))
+                .chain(request -> Uni.createFrom().completionStage(() -> client.sendMessageBatch(request)))
+                .onItem().transformToUni(response -> {
+                    List<Uni<Void>> results = new ArrayList<>();
+                    for (BatchResultErrorEntry entry : response.failed()) {
+                        int index = Integer.parseInt(entry.id());
+                        if (messages.size() > index) {
+                            Message<?> m = messages.get(index);
+                            results.add(Uni.createFrom().completionStage(m.nack(new BatchResultErrorException(entry))));
+                        }
+                    }
+                    for (SendMessageBatchResultEntry entry : response.successful()) {
+                        int index = Integer.parseInt(entry.id());
+                        if (messages.size() > index) {
+                            Message<?> m = messages.get(index);
+                            SendMessageResponse r = SendMessageResponse.builder()
+                                    .messageId(entry.messageId())
+                                    .sequenceNumber(entry.sequenceNumber())
+                                    .md5OfMessageBody(entry.md5OfMessageBody())
+                                    .md5OfMessageAttributes(entry.md5OfMessageAttributes())
+                                    .md5OfMessageSystemAttributes(entry.md5OfMessageSystemAttributes())
+                                    .build();
+                            AwsSqsLogging.log.messageSentToChannel(channel, r.messageId(), r.sequenceNumber());
+                            OutgoingMessageMetadata.setResultOnMessage(m, r);
+                            results.add(Uni.createFrom().completionStage(m.ack()));
+                        }
+                    }
+                    return Uni.combine().all().unis(results).discardItems();
+                })
+                .onFailure().recoverWithUni(t -> {
+                    List<Uni<Void>> results = new ArrayList<>();
+                    for (Message<?> m : messages) {
+                        results.add(Uni.createFrom().completionStage(m.nack(t)));
+                    }
+                    return Uni.combine().all().unis(results).discardItems();
+                });
+    }
+
+    private SendMessageBatchRequest getSendMessageRequest(String channelQueueUrl, List<Message<?>> messages) {
+        List<SendMessageBatchRequestEntry> entries = getSendMessageBatchEntry(channelQueueUrl, messages);
+        return SendMessageBatchRequest.builder()
+                .entries(entries)
+                .queueUrl(channelQueueUrl)
+                .build();
+    }
+
+    private List<SendMessageBatchRequestEntry> getSendMessageBatchEntry(String channelQueueUrl, List<Message<?>> messages) {
+        // Use message index in the list as the id to identify the message in the batch result.
+        return IntStream.range(0, messages.size())
+                .mapToObj(i -> sendMessageBatchRequestEntry(channelQueueUrl, String.valueOf(i), messages.get(i)))
+                .collect(Collectors.toList());
+    }
+
+    private SendMessageBatchRequestEntry sendMessageBatchRequestEntry(String channelQueueUrl, String id, Message<?> message) {
+        SendMessageRequest request = getSendMessageRequest(channelQueueUrl, message);
+        return SendMessageBatchRequestEntry.builder()
+                .id(id)
+                .delaySeconds(request.delaySeconds())
+                .messageAttributes(request.messageAttributes())
+                .messageGroupId(request.messageGroupId())
+                .messageDeduplicationId(request.messageDeduplicationId())
+                .messageSystemAttributes(request.messageSystemAttributes())
+                .messageBody(request.messageBody())
+                .build();
     }
 
     private SendMessageRequest getSendMessageRequest(String channelQueueUrl, Message<?> m) {
