@@ -49,6 +49,7 @@ import io.vertx.mutiny.core.Vertx;
 @ConnectorAttribute(name = "receive.request.retries", type = "long", direction = ConnectorAttribute.Direction.INCOMING, description = "If set to a positive number, the connector will try to retry the request that was not delivered successfully (with a potentially transient error) until the number of retries is reached. If set to 0, retries are disabled.", defaultValue = "2147483647")
 @ConnectorAttribute(name = "receive.request.pause.resume", type = "boolean", direction = ConnectorAttribute.Direction.INCOMING, description = "Whether the polling must be paused when the application does not request items and resume when it does. This allows implementing back-pressure based on the application capacity. Note that polling is not stopped, but will not retrieve any records when paused.", defaultValue = "true")
 @ConnectorAttribute(name = "ack.delete", type = "boolean", direction = ConnectorAttribute.Direction.INCOMING, description = "Whether the acknowledgement deletes the message from the queue", defaultValue = "true")
+@ConnectorAttribute(name = "nack.visibility-timeout", type = "int", direction = ConnectorAttribute.Direction.INCOMING, description = "The duration in seconds that the nacked messages to set Visibility Timeout", defaultValue = "0")
 public class SqsConnector implements InboundConnector, OutboundConnector, HealthReporter {
 
     @Inject
