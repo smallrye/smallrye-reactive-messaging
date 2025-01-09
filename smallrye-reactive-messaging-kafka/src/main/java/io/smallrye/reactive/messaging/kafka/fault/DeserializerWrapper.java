@@ -15,6 +15,7 @@ import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.kafka.DeserializationFailureHandler;
 import io.smallrye.reactive.messaging.kafka.i18n.KafkaExceptions;
 import io.smallrye.reactive.messaging.kafka.i18n.KafkaLogging;
+import io.smallrye.reactive.messaging.kafka.impl.ce.KafkaCloudEventHelper;
 
 /**
  * Wraps a delegate deserializer to handle config and deserialization failures.
@@ -31,14 +32,16 @@ public class DeserializerWrapper<T> implements Deserializer<T> {
     private final BiConsumer<Throwable, Boolean> reportFailure;
 
     private final boolean failOnDeserializationErrorWithoutHandler;
+    private final boolean cloudEventsEnabled;
 
     public DeserializerWrapper(String className, boolean key, DeserializationFailureHandler<T> failureHandler,
-            BiConsumer<Throwable, Boolean> reportFailure, boolean failByDefault) {
+            BiConsumer<Throwable, Boolean> reportFailure, boolean failByDefault, boolean cloudEventsEnabled) {
         this.delegate = createDelegateDeserializer(className);
         this.handleKeys = key;
         this.deserializationFailureHandler = failureHandler;
         this.reportFailure = reportFailure;
         this.failOnDeserializationErrorWithoutHandler = failByDefault;
+        this.cloudEventsEnabled = cloudEventsEnabled;
     }
 
     /**
@@ -69,12 +72,13 @@ public class DeserializerWrapper<T> implements Deserializer<T> {
 
     @Override
     public T deserialize(String topic, byte[] data) {
-        return wrapDeserialize(() -> this.delegate.deserialize(topic, data), topic, null, data);
+        return wrapDeserialize(() -> handleCloudEvents(this.delegate.deserialize(topic, data), null), topic, null, data);
     }
 
     @Override
     public T deserialize(String topic, Headers headers, byte[] data) {
-        return wrapDeserialize(() -> this.delegate.deserialize(topic, headers, data), topic, headers, data);
+        return wrapDeserialize(() -> handleCloudEvents(this.delegate.deserialize(topic, headers, data), headers), topic,
+                headers, data);
     }
 
     /**
@@ -122,6 +126,22 @@ public class DeserializerWrapper<T> implements Deserializer<T> {
                 return null;
             }
         }
+    }
+
+    private T handleCloudEvents(T payload, Headers headers) {
+        if (cloudEventsEnabled && !handleKeys && headers != null) {
+            KafkaCloudEventHelper.CloudEventMode mode = KafkaCloudEventHelper.getCloudEventMode(headers);
+            switch (mode) {
+                case STRUCTURED:
+                    //noinspection unchecked
+                    return (T) KafkaCloudEventHelper.parseStructuredContent(payload);
+                case BINARY:
+                    return KafkaCloudEventHelper.checkBinaryRecord(payload, headers);
+                case NOT_A_CLOUD_EVENT:
+                    return payload;
+            }
+        }
+        return payload;
     }
 
     @Override
