@@ -31,8 +31,8 @@ import io.smallrye.common.annotation.Experimental;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.helpers.Subscriptions;
+import io.smallrye.mutiny.subscription.MultiEmitter;
 import io.smallrye.mutiny.subscription.MultiSubscriber;
-import io.smallrye.mutiny.subscription.UniEmitter;
 import io.smallrye.reactive.messaging.ClientCustomizer;
 import io.smallrye.reactive.messaging.EmitterConfiguration;
 import io.smallrye.reactive.messaging.OutgoingMessageMetadata;
@@ -181,6 +181,12 @@ public class KafkaRequestReplyImpl<Req, Rep> extends MutinyEmitterImpl<Req>
                         pendingReplies.size(), pendingReplies.keySet());
             }
         }
+        for (CorrelationId correlationId : pendingReplies.keySet()) {
+            PendingReplyImpl<Rep> reply = pendingReplies.remove(correlationId);
+            if (reply != null) {
+                reply.complete();
+            }
+        }
         replySource.closeQuietly();
     }
 
@@ -194,12 +200,22 @@ public class KafkaRequestReplyImpl<Req, Rep> extends MutinyEmitterImpl<Req>
 
     @Override
     public Uni<Rep> request(Req request) {
-        return request(ContextAwareMessage.of(request))
-                .map(Message::getPayload);
+        return requestMulti(request).toUni();
     }
 
     @Override
     public Uni<Message<Rep>> request(Message<Req> request) {
+        return requestMulti(request).toUni();
+    }
+
+    @Override
+    public Multi<Rep> requestMulti(Req request) {
+        return requestMulti(ContextAwareMessage.of(request))
+                .map(Message::getPayload);
+    }
+
+    @Override
+    public Multi<Message<Rep>> requestMulti(Message<Req> request) {
         var builder = request.getMetadata(OutgoingKafkaRecordMetadata.class)
                 .map(metadata -> OutgoingKafkaRecordMetadata.from(metadata))
                 .orElseGet(OutgoingKafkaRecordMetadata::builder);
@@ -213,16 +229,26 @@ public class KafkaRequestReplyImpl<Req, Rep> extends MutinyEmitterImpl<Req>
         OutgoingMessageMetadata<RecordMetadata> outMetadata = new OutgoingMessageMetadata<>();
         return sendMessage(request.addMetadata(builder.build()).addMetadata(outMetadata))
                 .invoke(() -> subscription.get().request(1))
-                .chain(unused -> Uni.createFrom().<Message<Rep>> emitter(emitter -> pendingReplies.put(correlationId,
-                        new PendingReplyImpl<>(outMetadata.getResult(), replyTopic, replyPartition,
-                                (UniEmitter<Message<Rep>>) emitter)))
+                .onItem()
+                .transformToMulti(unused -> Multi.createFrom().<Message<Rep>> emitter(emitter -> {
+                    pendingReplies.put(correlationId,
+                            new PendingReplyImpl<>(outMetadata.getResult(),
+                                    replyTopic,
+                                    replyPartition,
+                                    (MultiEmitter<Message<Rep>>) emitter));
+                })
                         .ifNoItem().after(replyTimeout).fail())
-                .onItemOrFailure().invoke(() -> pendingReplies.remove(correlationId))
-                .plug(uni -> replyFailureHandler != null ? uni.onItem().transformToUni(f -> {
-                    Throwable failure = replyFailureHandler.handleReply((KafkaRecord<?, ?>) f);
-                    return failure != null ? Uni.createFrom().failure(failure) : Uni.createFrom().item(f);
-                }) : uni)
-                .plug(uni -> replyConverter != null ? uni.map(f -> replyConverter.apply(f)) : uni);
+                .onTermination().invoke(() -> pendingReplies.remove(correlationId))
+                .onItem().transformToUniAndMerge(m -> {
+                    if (replyFailureHandler != null) {
+                        Throwable failure = replyFailureHandler.handleReply((KafkaRecord<?, ?>) m);
+                        if (failure != null) {
+                            return Uni.createFrom().failure(failure);
+                        }
+                    }
+                    return Uni.createFrom().item(m);
+                })
+                .plug(multi -> replyConverter != null ? multi.map(f -> replyConverter.apply(f)) : multi);
     }
 
     @Override
@@ -271,10 +297,9 @@ public class KafkaRequestReplyImpl<Req, Rep> extends MutinyEmitterImpl<Req>
         // If reply topic header is NOT null, it is considered a request not a reply
         if (header != null && record.getHeaders().lastHeader(replyTopicHeader) == null) {
             CorrelationId correlationId = correlationIdHandler.parse(header.value());
-            PendingReplyImpl<Rep> reply = pendingReplies.remove(correlationId);
+            PendingReplyImpl<Rep> reply = pendingReplies.get(correlationId);
             if (reply != null) {
-                reply.getEmitter().complete(record);
-                return;
+                reply.getEmitter().emit(record);
             } else {
                 log.requestReplyRecordIgnored(channel, record.getTopic(), correlationId.toString());
             }
@@ -298,10 +323,10 @@ public class KafkaRequestReplyImpl<Req, Rep> extends MutinyEmitterImpl<Req>
         private final RecordMetadata metadata;
         private final String replyTopic;
         private final int replyPartition;
-        private final UniEmitter<Message<Rep>> emitter;
+        private final MultiEmitter<Message<Rep>> emitter;
 
         public PendingReplyImpl(RecordMetadata metadata, String replyTopic, int replyPartition,
-                UniEmitter<Message<Rep>> emitter) {
+                MultiEmitter<Message<Rep>> emitter) {
             this.replyTopic = replyTopic;
             this.replyPartition = replyPartition;
             this.metadata = metadata;
@@ -323,7 +348,17 @@ public class KafkaRequestReplyImpl<Req, Rep> extends MutinyEmitterImpl<Req>
             return metadata;
         }
 
-        public UniEmitter<Message<Rep>> getEmitter() {
+        @Override
+        public void complete() {
+            emitter.complete();
+        }
+
+        @Override
+        public boolean isCancelled() {
+            return emitter.isCancelled();
+        }
+
+        public MultiEmitter<Message<Rep>> getEmitter() {
             return emitter;
         }
 
