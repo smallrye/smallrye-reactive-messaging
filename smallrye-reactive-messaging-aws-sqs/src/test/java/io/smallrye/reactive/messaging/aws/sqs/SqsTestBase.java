@@ -3,6 +3,7 @@ package io.smallrye.reactive.messaging.aws.sqs;
 import java.lang.reflect.Method;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -28,8 +29,11 @@ import software.amazon.awssdk.auth.credentials.SystemPropertyCredentialsProvider
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.sqs.SqsAsyncClient;
 import software.amazon.awssdk.services.sqs.model.CreateQueueRequest;
+import software.amazon.awssdk.services.sqs.model.DeleteMessageBatchRequest;
+import software.amazon.awssdk.services.sqs.model.DeleteMessageBatchRequestEntry;
 import software.amazon.awssdk.services.sqs.model.Message;
 import software.amazon.awssdk.services.sqs.model.ReceiveMessageRequest;
+import software.amazon.awssdk.services.sqs.model.ReceiveMessageResponse;
 import software.amazon.awssdk.services.sqs.model.SendMessageRequest;
 
 @Testcontainers
@@ -102,17 +106,32 @@ public class SqsTestBase extends WeldTestBase {
         return client;
     }
 
-    public List<Message> receiveMessages(String queueUrl,
+    public List<Message> receiveAndDeleteMessages(String queueUrl,
             Consumer<ReceiveMessageRequest.Builder> receiveMessageRequest,
             Predicate<List<Message>> stopCondition) {
         var sqsClient = getSqsClient();
         var received = new CopyOnWriteArrayList<Message>();
         while (!stopCondition.test(received)) {
             try {
-                received.addAll(sqsClient
-                        .receiveMessage(r -> receiveMessageRequest.accept(r.queueUrl(queueUrl).maxNumberOfMessages(10)))
-                        .get()
-                        .messages());
+                ReceiveMessageResponse receiveMessageResponse = sqsClient
+                        .receiveMessage(r -> receiveMessageRequest
+                                .accept(r.queueUrl(queueUrl).waitTimeSeconds(1).maxNumberOfMessages(10)))
+                        .get();
+                if (receiveMessageResponse.hasMessages()) {
+                    List<DeleteMessageBatchRequestEntry> entries = new ArrayList<>();
+                    for (Message message : receiveMessageResponse.messages()) {
+                        entries.add(DeleteMessageBatchRequestEntry.builder()
+                                .id(message.messageId())
+                                .receiptHandle(message.receiptHandle())
+                                .build());
+                    }
+                    sqsClient.deleteMessageBatch(DeleteMessageBatchRequest.builder()
+                            .queueUrl(queueUrl)
+                            .entries(entries)
+                            .build())
+                            .get();
+                    received.addAll(receiveMessageResponse.messages());
+                }
             } catch (ExecutionException | InterruptedException e) {
                 throw new RuntimeException(e);
             }
@@ -121,7 +140,7 @@ public class SqsTestBase extends WeldTestBase {
     }
 
     public List<Message> receiveMessages(String queueUrl, Predicate<List<Message>> stopCondition) {
-        return receiveMessages(queueUrl, r -> {
+        return receiveAndDeleteMessages(queueUrl, r -> {
         }, stopCondition);
     }
 
@@ -133,7 +152,7 @@ public class SqsTestBase extends WeldTestBase {
     public List<Message> receiveMessages(String queueUrl, Consumer<ReceiveMessageRequest.Builder> receiveMessageRequest,
             int numberOfMessages, Duration timeout) {
         Instant timeoutTs = Instant.now().plus(timeout);
-        return receiveMessages(queueUrl, receiveMessageRequest,
+        return receiveAndDeleteMessages(queueUrl, receiveMessageRequest,
                 messages -> messages.size() >= numberOfMessages || Instant.now().isAfter(timeoutTs));
     }
 
