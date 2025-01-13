@@ -3,7 +3,6 @@ package io.smallrye.reactive.messaging.aws.sqs;
 import static io.smallrye.reactive.messaging.providers.locals.ContextAwareMessage.captureContextMetadata;
 
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -118,9 +117,7 @@ public class SqsMessage<T> implements ContextAwareMessage<T>, MetadataInjectable
 
     @Override
     public CompletionStage<Void> nack(Throwable reason, Metadata metadata) {
-        CompletableFuture<Void> nack = new CompletableFuture<>();
-        runOnMessageContext(() -> nack.complete(null));
-        return nack;
+        return ackHandler.handle(this).subscribeAsCompletionStage();
     }
 
     @Override
