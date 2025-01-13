@@ -81,5 +81,5 @@ jobs:
                         -Dsonar.login=$SONAR_LOGIN \
                         --fail-at-end
             -   name: Codecov
-                uses: codecov/codecov-action@v5.1.1
+                uses: codecov/codecov-action@v5.1.2
                 if: false
