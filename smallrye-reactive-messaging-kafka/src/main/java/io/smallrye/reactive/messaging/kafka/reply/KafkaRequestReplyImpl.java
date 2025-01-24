@@ -236,10 +236,9 @@ public class KafkaRequestReplyImpl<Req, Rep> extends MutinyEmitterImpl<Req>
                                     replyTopic,
                                     replyPartition,
                                     (MultiEmitter<Message<Rep>>) emitter));
-                })
-                        .ifNoItem().after(replyTimeout).fail())
-                .onTermination().invoke(() -> pendingReplies.remove(correlationId))
-                .onItem().transformToUniAndMerge(m -> {
+                }))
+                .ifNoItem().after(replyTimeout).failWith(() -> new KafkaRequestReplyTimeoutException(correlationId))
+                .onItem().transformToUniAndConcatenate(m -> {
                     if (replyFailureHandler != null) {
                         Throwable failure = replyFailureHandler.handleReply((KafkaRecord<?, ?>) m);
                         if (failure != null) {
@@ -248,6 +247,7 @@ public class KafkaRequestReplyImpl<Req, Rep> extends MutinyEmitterImpl<Req>
                     }
                     return Uni.createFrom().item(m);
                 })
+                .onTermination().invoke(() -> pendingReplies.remove(correlationId))
                 .plug(multi -> replyConverter != null ? multi.map(f -> replyConverter.apply(f)) : multi);
     }
 
