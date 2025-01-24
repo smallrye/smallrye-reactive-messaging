@@ -303,4 +303,7 @@ public interface ProviderExceptions {
     @Message(id = 1008, value = "Emitter configuration for channel `%s` in %s is different than a previous configuration : %s")
     DefinitionException differentEmitterConfigurationPerInjection(String channel, String injectionPoint, String config);
 
+    @Message(id = 1009, value = "Unable to find a pausable channel with name `%s`")
+    DefinitionException pausableChannelNotFound(String name);
+
 }
