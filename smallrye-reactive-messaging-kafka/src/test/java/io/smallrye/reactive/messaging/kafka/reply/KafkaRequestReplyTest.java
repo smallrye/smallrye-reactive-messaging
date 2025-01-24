@@ -628,7 +628,7 @@ public class KafkaRequestReplyTest extends KafkaCompanionTestBase {
 
         app.requestReply().request(1)
                 .subscribe().withSubscriber(UniAssertSubscriber.create())
-                .awaitFailure().assertFailedWith(TimeoutException.class);
+                .awaitFailure().assertFailedWith(KafkaRequestReplyTimeoutException.class);
     }
 
     @Test
