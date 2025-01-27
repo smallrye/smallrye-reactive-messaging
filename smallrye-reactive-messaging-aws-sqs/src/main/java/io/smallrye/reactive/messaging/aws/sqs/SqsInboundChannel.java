@@ -11,14 +11,16 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
+import jakarta.enterprise.inject.Instance;
+
 import org.eclipse.microprofile.reactive.messaging.Message;
 
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
-import io.smallrye.reactive.messaging.aws.sqs.ack.SqsDeleteAckHandler;
-import io.smallrye.reactive.messaging.aws.sqs.ack.SqsNothingAckHandler;
+import io.smallrye.reactive.messaging.aws.sqs.ack.SqsIgnoreAckHandler;
 import io.smallrye.reactive.messaging.health.HealthReport;
 import io.smallrye.reactive.messaging.json.JsonMapping;
+import io.smallrye.reactive.messaging.providers.helpers.CDIUtils;
 import io.smallrye.reactive.messaging.providers.helpers.PausablePollingStream;
 import io.vertx.core.impl.VertxInternal;
 import io.vertx.mutiny.core.Context;
@@ -47,7 +49,9 @@ public class SqsInboundChannel {
     private final Integer visibilityTimeout;
 
     public SqsInboundChannel(SqsConnectorIncomingConfiguration conf, Vertx vertx, SqsManager sqsManager,
-            SqsReceiveMessageRequestCustomizer customizer, JsonMapping jsonMapper) {
+            SqsReceiveMessageRequestCustomizer customizer, JsonMapping jsonMapper,
+            Instance<SqsAckHandler.Factory> ackHandlerFactories,
+            Instance<SqsFailureHandler.Factory> failureHandlerFactories) {
         this.channel = conf.getChannel();
         this.healthEnabled = conf.getHealthEnabled();
         this.retries = conf.getReceiveRequestRetries();
@@ -62,8 +66,8 @@ public class SqsInboundChannel {
         this.messageAttributeNames = getMessageAttributeNames(conf);
         this.customizer = customizer;
 
-        SqsAckHandler ackHandler = conf.getAckDelete() ? new SqsDeleteAckHandler(client, queueUrlUni)
-                : new SqsNothingAckHandler();
+        SqsAckHandler ackHandler = createAckHandler(ackHandlerFactories, conf, vertx, client, queueUrlUni);
+        SqsFailureHandler failureHandler = createFailureHandler(failureHandlerFactories, conf, client, queueUrlUni);
         PausablePollingStream<List<software.amazon.awssdk.services.sqs.model.Message>, software.amazon.awssdk.services.sqs.model.Message> pollingStream = new PausablePollingStream<>(
                 channel, request(null, 0), (messages, processor) -> {
                     if (messages != null) {
@@ -74,12 +78,30 @@ public class SqsInboundChannel {
                 }, requestExecutor, maxNumberOfMessages * 2, conf.getReceiveRequestPauseResume());
         this.stream = Multi.createFrom()
                 .deferred(() -> queueUrlUni.onItem().transformToMulti(queueUrl -> pollingStream.getStream()))
-                .emitOn(r -> context.runOnContext(r))
-                .onItem().transform(message -> new SqsMessage<>(message, jsonMapper, ackHandler))
+                .emitOn(context::runOnContext)
+                .onItem().transform(message -> new SqsMessage<>(message, jsonMapper, ackHandler, failureHandler))
                 .onFailure().invoke(throwable -> {
                     log.errorReceivingMessage(channel, throwable);
                     reportFailure(throwable, false);
                 });
+    }
+
+    private SqsFailureHandler createFailureHandler(Instance<SqsFailureHandler.Factory> failureHandlerFactories,
+            SqsConnectorIncomingConfiguration conf,
+            SqsAsyncClient client, Uni<String> queueUrlUni) {
+        return CDIUtils.getInstanceById(failureHandlerFactories, conf.getFailureStrategy())
+                .get()
+                .create(channel, client, queueUrlUni, this::reportFailure);
+    }
+
+    private SqsAckHandler createAckHandler(Instance<SqsAckHandler.Factory> ackHandlerFactories,
+            SqsConnectorIncomingConfiguration conf, Vertx vertx, SqsAsyncClient client, Uni<String> queueUrlUni) {
+        if (!conf.getAckDelete().orElse(true)) {
+            // nothing to do
+            return new SqsIgnoreAckHandler();
+        }
+        return CDIUtils.getInstanceById(ackHandlerFactories, conf.getAckStrategy()).get()
+                .create(conf, vertx, client, queueUrlUni, this::reportFailure);
     }
 
     private List<String> getMessageAttributeNames(SqsConnectorIncomingConfiguration conf) {

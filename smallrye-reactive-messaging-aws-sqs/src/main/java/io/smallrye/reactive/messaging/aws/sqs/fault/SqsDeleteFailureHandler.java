@@ -1,43 +1,41 @@
-package io.smallrye.reactive.messaging.aws.sqs.ack;
+package io.smallrye.reactive.messaging.aws.sqs.fault;
 
 import java.util.function.BiConsumer;
 
 import jakarta.enterprise.context.ApplicationScoped;
 
+import org.eclipse.microprofile.reactive.messaging.Metadata;
+
 import io.smallrye.common.annotation.Identifier;
 import io.smallrye.mutiny.Uni;
-import io.smallrye.reactive.messaging.aws.sqs.SqsAckHandler;
-import io.smallrye.reactive.messaging.aws.sqs.SqsConnectorIncomingConfiguration;
+import io.smallrye.reactive.messaging.aws.sqs.SqsFailureHandler;
 import io.smallrye.reactive.messaging.aws.sqs.SqsMessage;
-import io.vertx.mutiny.core.Vertx;
 import software.amazon.awssdk.services.sqs.SqsAsyncClient;
 import software.amazon.awssdk.services.sqs.model.DeleteMessageRequest;
 
-public class SqsDeleteAckHandler implements SqsAckHandler {
+public class SqsDeleteFailureHandler implements SqsFailureHandler {
+
+    @ApplicationScoped
+    @Identifier(Strategy.DELETE)
+    public static class Factory implements SqsFailureHandler.Factory {
+
+        @Override
+        public SqsFailureHandler create(String channel, SqsAsyncClient client, Uni<String> queueUrlUni,
+                BiConsumer<Throwable, Boolean> reportFailure) {
+            return new SqsDeleteFailureHandler(client, queueUrlUni);
+        }
+    }
 
     private final SqsAsyncClient client;
     private final Uni<String> queueUrlUni;
 
-    @ApplicationScoped
-    @Identifier(Strategy.DELETE)
-    public static class Factory implements SqsAckHandler.Factory {
-
-        @Override
-        public SqsAckHandler create(SqsConnectorIncomingConfiguration conf, Vertx vertx,
-                SqsAsyncClient client,
-                Uni<String> queueUrlUni,
-                BiConsumer<Throwable, Boolean> reportFailure) {
-            return new SqsDeleteAckHandler(client, queueUrlUni);
-        }
-    }
-
-    public SqsDeleteAckHandler(SqsAsyncClient client, Uni<String> queueUrlUni) {
+    public SqsDeleteFailureHandler(SqsAsyncClient client, Uni<String> queueUrlUni) {
         this.client = client;
         this.queueUrlUni = queueUrlUni;
     }
 
     @Override
-    public Uni<Void> handle(SqsMessage<?> message) {
+    public Uni<Void> handle(SqsMessage<?> message, Metadata metadata, Throwable throwable) {
         return queueUrlUni.map(queueUrl -> DeleteMessageRequest.builder()
                 .queueUrl(queueUrl)
                 .receiptHandle(message.getMessage().receiptHandle())

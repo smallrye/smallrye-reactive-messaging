@@ -3,7 +3,6 @@ package io.smallrye.reactive.messaging.aws.sqs;
 import static io.smallrye.reactive.messaging.providers.locals.ContextAwareMessage.captureContextMetadata;
 
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -28,12 +27,14 @@ public class SqsMessage<T> implements ContextAwareMessage<T>, MetadataInjectable
 
     private final Message message;
     private final SqsAckHandler ackHandler;
+    private final SqsFailureHandler failureHandler;
     private final T payload;
     private Metadata metadata;
 
-    public SqsMessage(Message message, JsonMapping jsonMapper, SqsAckHandler ackHandler) {
+    public SqsMessage(Message message, JsonMapping jsonMapper, SqsAckHandler ackHandler, SqsFailureHandler failureHandler) {
         this.message = message;
         this.ackHandler = ackHandler;
+        this.failureHandler = failureHandler;
         Map<String, MessageAttributeValue> attributes = message.messageAttributes();
         if (attributes.containsKey(SqsConnector.CLASS_NAME_ATTRIBUTE)) {
             String cn = attributes.get(SqsConnector.CLASS_NAME_ATTRIBUTE).stringValue();
@@ -118,9 +119,7 @@ public class SqsMessage<T> implements ContextAwareMessage<T>, MetadataInjectable
 
     @Override
     public CompletionStage<Void> nack(Throwable reason, Metadata metadata) {
-        CompletableFuture<Void> nack = new CompletableFuture<>();
-        runOnMessageContext(() -> nack.complete(null));
-        return nack;
+        return failureHandler.handle(this, metadata, reason).subscribeAsCompletionStage();
     }
 
     @Override
