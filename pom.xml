@@ -125,6 +125,7 @@
     <revapi.skip>true</revapi.skip>
 
     <jreleaser-maven-plugin.version>1.16.0</jreleaser-maven-plugin.version>
+    <auto-service.version>1.1.1</auto-service.version>
   </properties>
 
   <modules>
@@ -161,6 +162,17 @@
         <version>${vertx.version}</version>
         <type>pom</type>
         <scope>import</scope>
+      </dependency>
+
+      <dependency>
+        <groupId>com.google.auto.service</groupId>
+        <artifactId>auto-service-annotations</artifactId>
+        <version>${auto-service.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.google.auto.service</groupId>
+        <artifactId>auto-service</artifactId>
+        <version>${auto-service.version}</version>
       </dependency>
 
       <dependency>

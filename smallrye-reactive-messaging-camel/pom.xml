@@ -14,9 +14,6 @@
 
   <properties>
     <revapi.skip>false</revapi.skip>
-    <maven.compiler.release>17</maven.compiler.release>
-    <maven.compiler.source>17</maven.compiler.source>
-    <maven.compiler.target>17</maven.compiler.target>
   </properties>
 
   <dependencies>
@@ -102,17 +99,30 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
-        <configuration>
-          <generatedSourcesDirectory>${project.build.directory}/generated-sources/</generatedSourcesDirectory>
-          <annotationProcessors>
-            <annotationProcessor>
-              io.smallrye.reactive.messaging.connector.ConnectorAttributeProcessor
-            </annotationProcessor>
-            <annotationProcessor>
-              org.jboss.logging.processor.apt.LoggingToolsProcessor
-            </annotationProcessor>
-          </annotationProcessors>
-        </configuration>
+        <executions>
+          <execution>
+            <id>default-compile</id>
+            <phase>compile</phase>
+            <goals>
+              <goal>compile</goal>
+            </goals>
+            <configuration>
+              <annotationProcessorPathsUseDepMgmt>true</annotationProcessorPathsUseDepMgmt>
+              <annotationProcessorPaths>
+                <path>
+                  <groupId>org.jboss.logging</groupId>
+                  <artifactId>jboss-logging-processor</artifactId>
+                  <version>${version.org.jboss.logging-processor}</version>
+                </path>
+                <path>
+                  <groupId>io.smallrye.reactive</groupId>
+                  <artifactId>smallrye-connector-attribute-processor</artifactId>
+                  <version>${project.version}</version>
+                </path>
+              </annotationProcessorPaths>
+            </configuration>
+          </execution>
+        </executions>
       </plugin>
     </plugins>
   </build>
