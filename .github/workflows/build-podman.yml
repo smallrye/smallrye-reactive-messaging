@@ -7,6 +7,7 @@ on:
             - main
         paths-ignore:
             - '.github/**'
+    workflow_dispatch:
 
 jobs:
     build:
@@ -30,8 +31,6 @@ jobs:
                 ]
         name: Build with Java ${{ matrix.java.version }} ${{ matrix.java.name }}
         steps:
-            -   name: Setup docker host
-                run: echo "DOCKER_HOST=unix:///run/user/$(id -u)/podman/podman.sock" >> "$GITHUB_ENV"
             -   name: Update podman
                 run: |
                     sudo apt-get -y purge podman
@@ -44,9 +43,14 @@ jobs:
                     sudo apt-get update -qq
                     sudo apt-get -qq -y install podman
                     sudo bash -c "echo -e '[engine]\nservice_timeout=0' >> /etc/containers/containers.conf"
-            # Runs a single command using the runners shell
+                    systemctl --user enable podman.socket
+                    systemctl --user start podman.socket
+            -   name: Setup docker host
+                run: echo "DOCKER_HOST=$(podman info --format 'unix://{{.Host.RemoteSocket.Path}}')" >> "$GITHUB_ENV"
             -   name: Check podman
-                run: docker version
+                run: |
+                    podman version
+                    docker version
             -   name: Set up testcontainers for podman
                 run: |
                     echo ryuk.container.privileged=true > ~/.testcontainers.properties
