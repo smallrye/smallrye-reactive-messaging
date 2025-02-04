@@ -9,6 +9,7 @@ public class OutgoingJmsMessageMetadata implements JmsMessageMetadata {
     private final Destination destination;
     private final int deliveryMode;
     private final String type;
+    private final Integer priority;
     private final JmsProperties properties;
 
     public OutgoingJmsMessageMetadata(String correlationId, Destination replyTo, Destination destination,
@@ -18,6 +19,18 @@ public class OutgoingJmsMessageMetadata implements JmsMessageMetadata {
         this.destination = destination;
         this.deliveryMode = deliveryMode;
         this.type = type;
+        this.priority = null;
+        this.properties = properties;
+    }
+
+    public OutgoingJmsMessageMetadata(final String correlationId, final Destination replyTo, final Destination destination,
+            final int deliveryMode, final String type, final Integer priority, final JmsProperties properties) {
+        this.correlationId = correlationId;
+        this.replyTo = replyTo;
+        this.destination = destination;
+        this.deliveryMode = deliveryMode;
+        this.type = type;
+        this.priority = priority;
         this.properties = properties;
     }
 
@@ -46,6 +59,10 @@ public class OutgoingJmsMessageMetadata implements JmsMessageMetadata {
         return type;
     }
 
+    public Integer getPriority() {
+        return priority;
+    }
+
     @Override
     public JmsProperties getProperties() {
         return properties;
@@ -61,6 +78,7 @@ public class OutgoingJmsMessageMetadata implements JmsMessageMetadata {
         private Destination destination;
         private int deliveryMode = -1;
         private String type;
+        private Integer priority;
         private JmsProperties properties;
 
         public OutgoingJmsMessageMetadataBuilder withCorrelationId(String correlationId) {
@@ -88,13 +106,19 @@ public class OutgoingJmsMessageMetadata implements JmsMessageMetadata {
             return this;
         }
 
+        public OutgoingJmsMessageMetadataBuilder withPriority(final Integer priority) {
+            this.priority = priority;
+            return this;
+        }
+
         public OutgoingJmsMessageMetadataBuilder withProperties(JmsProperties properties) {
             this.properties = properties;
             return this;
         }
 
         public OutgoingJmsMessageMetadata build() {
-            return new OutgoingJmsMessageMetadata(correlationId, replyTo, destination, deliveryMode, type, properties);
+            return new OutgoingJmsMessageMetadata(correlationId, replyTo, destination, deliveryMode, type, priority,
+                    properties);
         }
     }
 }

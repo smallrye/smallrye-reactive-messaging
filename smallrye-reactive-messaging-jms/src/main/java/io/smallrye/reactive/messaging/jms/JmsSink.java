@@ -137,6 +137,7 @@ class JmsSink {
                 Destination dest = metadata.getDestination();
                 int deliveryMode = metadata.getDeliveryMode();
                 String type = metadata.getType();
+                final Integer priority = metadata.getPriority();
                 JmsProperties properties = metadata.getProperties();
                 if (correlationId != null) {
                     outgoing.setJMSCorrelationID(correlationId);
@@ -155,6 +156,9 @@ class JmsSink {
                 }
                 if (type != null) {
                     outgoing.setJMSType(type);
+                }
+                if (priority != null) {
+                    resourceHolder.getClient().setPriority(priority);
                 }
 
                 if (properties != null) {
