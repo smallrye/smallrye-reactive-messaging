@@ -108,7 +108,7 @@
     <jackson.version>2.18.2</jackson.version>
     <yasson.version>2.0.3</yasson.version>
 
-    <jandex-maven-plugin.version>3.2.3</jandex-maven-plugin.version>
+    <jandex-maven-plugin.version>3.2.4</jandex-maven-plugin.version>
     <sundr-maven-plugin.version>0.200.0</sundr-maven-plugin.version>
     <maven-deploy-plugin.version>3.1.3</maven-deploy-plugin.version>
 
