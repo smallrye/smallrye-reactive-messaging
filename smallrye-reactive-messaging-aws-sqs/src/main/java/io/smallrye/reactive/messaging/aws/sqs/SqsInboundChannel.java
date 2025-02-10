@@ -78,7 +78,7 @@ public class SqsInboundChannel {
                 }, requestExecutor, maxNumberOfMessages * 2, conf.getReceiveRequestPauseResume());
         this.stream = Multi.createFrom()
                 .deferred(() -> queueUrlUni.onItem().transformToMulti(queueUrl -> pollingStream.getStream()))
-                .emitOn(context::runOnContext)
+                .emitOn(context::runOnContext, conf.getMaxNumberOfMessages())
                 .onItem().transform(message -> new SqsMessage<>(message, jsonMapper, ackHandler, failureHandler))
                 .onFailure().invoke(throwable -> {
                     log.errorReceivingMessage(channel, throwable);
