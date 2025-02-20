@@ -63,7 +63,7 @@
     <vertx.version>4.5.13</vertx.version>
     <rxjava.version>2.2.21</rxjava.version>
     <cloudevent.version>1.1.0</cloudevent.version>
-    <weld.version>6.0.0.Final</weld.version>
+    <weld.version>6.0.1.Final</weld.version>
     <camel.version>4.10.0</camel.version>
 
     <microprofile-reactive-messaging.version>3.0.1</microprofile-reactive-messaging.version>
