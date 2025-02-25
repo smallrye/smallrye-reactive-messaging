@@ -2,11 +2,13 @@ package io.smallrye.reactive.messaging.kafka.companion;
 
 import static io.smallrye.reactive.messaging.kafka.companion.KafkaCompanion.tp;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.time.Duration;
 
 import org.apache.kafka.clients.admin.OffsetSpec;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.errors.UnknownTopicOrPartitionException;
 import org.junit.jupiter.api.Test;
 
 import io.smallrye.reactive.messaging.kafka.companion.test.KafkaCompanionTestBase;
@@ -46,5 +48,13 @@ public class RecordsTest extends KafkaCompanionTestBase {
         companion.consumeIntegers().fromTopics(topic).awaitNoRecords(Duration.ofSeconds(2));
         // Deleting records doesn't clear offsets
         assertThat(companion.offsets().get(tp(topic, 0), OffsetSpec.latest()).offset()).isEqualTo(100L);
+    }
+
+    @Test
+    void testClearTopicThatDoesNotExist() {
+        assertThrows(UnknownTopicOrPartitionException.class, () -> {
+            companion.topics().clear("non-existent-topic");
+        });
+        companion.topics().clearIfExists("non-existent-topic"); // Should not fail
     }
 }
