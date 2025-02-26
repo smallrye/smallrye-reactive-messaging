@@ -1,17 +1,17 @@
 package io.smallrye.reactive.messaging.gcp.pubsub;
 
-import static io.smallrye.reactive.messaging.gcp.pubsub.i18n.PubSubLogging.*;
+import static io.smallrye.reactive.messaging.gcp.pubsub.i18n.PubSubLogging.log;
 
 import java.io.File;
 import java.nio.file.Path;
 import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Flow;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
+
+import jakarta.annotation.PostConstruct;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.context.Destroyed;
+import jakarta.enterprise.event.Observes;
+import jakarta.inject.Inject;
 
 import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
@@ -34,11 +34,6 @@ import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.connector.InboundConnector;
 import io.smallrye.reactive.messaging.connector.OutboundConnector;
 import io.smallrye.reactive.messaging.providers.helpers.MultiUtils;
-import jakarta.annotation.PostConstruct;
-import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.enterprise.context.Destroyed;
-import jakarta.enterprise.event.Observes;
-import jakarta.inject.Inject;
 
 @ApplicationScoped
 @Connector(PubSubConnector.CONNECTOR_NAME)

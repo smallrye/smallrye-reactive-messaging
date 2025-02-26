@@ -1,6 +1,6 @@
 package io.smallrye.reactive.messaging.gcp.pubsub;
 
-import static io.smallrye.reactive.messaging.gcp.pubsub.i18n.PubSubMessages.*;
+import static io.smallrye.reactive.messaging.gcp.pubsub.i18n.PubSubMessages.msg;
 
 import java.nio.file.Path;
 import java.util.Objects;
