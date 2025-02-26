@@ -17,7 +17,7 @@
       <dependency>
         <groupId>com.google.cloud</groupId>
         <artifactId>libraries-bom</artifactId>
-        <version>16.3.0</version>
+        <version>26.55.0</version>
         <scope>import</scope>
         <type>pom</type>
       </dependency>
@@ -27,6 +27,11 @@
     <dependency>
       <groupId>com.google.cloud</groupId>
       <artifactId>google-cloud-pubsub</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.smallrye.reactive</groupId>
+      <artifactId>smallrye-reactive-messaging-otel</artifactId>
+      <version>${project.version}</version>
     </dependency>
     <dependency>
       <groupId>io.smallrye.reactive</groupId>
