@@ -1,6 +1,6 @@
 package io.smallrye.reactive.messaging.gcp.pubsub;
 
-import static io.smallrye.reactive.messaging.gcp.pubsub.i18n.PubSubExceptions.ex;
+import static io.smallrye.reactive.messaging.gcp.pubsub.i18n.PubSubExceptions.*;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -11,9 +11,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-
-import jakarta.annotation.PreDestroy;
-import jakarta.enterprise.context.ApplicationScoped;
 
 import org.eclipse.microprofile.reactive.messaging.Message;
 
@@ -36,17 +33,29 @@ import com.google.pubsub.v1.ProjectTopicName;
 
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
+import io.opentelemetry.api.OpenTelemetry;
 import io.smallrye.mutiny.subscription.MultiEmitter;
+import io.smallrye.reactive.messaging.tracing.TracingUtils;
+import jakarta.annotation.PreDestroy;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Instance;
+import jakarta.inject.Inject;
 
 @ApplicationScoped
 public class PubSubManager {
 
     private final Map<PubSubConfig, Publisher> publishers = new ConcurrentHashMap<>();
+
     private final Map<PubSubConfig, TopicAdminClient> topicAdminClients = new ConcurrentHashMap<>();
+
     private final Map<PubSubConfig, SubscriptionAdminClient> subscriptionAdminClients = new ConcurrentHashMap<>();
 
     private final List<MultiEmitter<? super Message<?>>> emitters = new CopyOnWriteArrayList<>();
+
     private final List<ManagedChannel> channels = new CopyOnWriteArrayList<>();
+
+    @Inject
+    private Instance<OpenTelemetry> openTelemetryInstance;
 
     public Publisher publisher(final PubSubConfig config) {
         return publishers.computeIfAbsent(config, this::buildPublisher);
@@ -139,6 +148,10 @@ public class PubSubManager {
         try {
             final Publisher.Builder publisherBuilder = Publisher.newBuilder(topicName);
 
+            final var openTelemetry = TracingUtils.getOpenTelemetry(openTelemetryInstance);
+            publisherBuilder.setOpenTelemetry(openTelemetry);
+            publisherBuilder.setEnableOpenTelemetryTracing(config.isOtelEnabled());
+
             buildCredentialsProvider(config).ifPresent(publisherBuilder::setCredentialsProvider);
             buildTransportChannelProvider(config).ifPresent(publisherBuilder::setChannelProvider);
 
@@ -149,13 +162,16 @@ public class PubSubManager {
     }
 
     private Subscriber buildSubscriber(final PubSubConfig config, final PubSubMessageReceiver messageReceiver) {
-        final ProjectSubscriptionName subscriptionName = ProjectSubscriptionName.of(config.getProjectId(),
-                config.getSubscription());
+        final ProjectSubscriptionName subscriptionName = ProjectSubscriptionName.of(config.getProjectId(), config.getSubscription());
 
         final Subscriber.Builder subscriberBuilder = Subscriber.newBuilder(subscriptionName, messageReceiver);
 
         buildCredentialsProvider(config).ifPresent(subscriberBuilder::setCredentialsProvider);
         buildTransportChannelProvider(config).ifPresent(subscriberBuilder::setChannelProvider);
+
+        final var openTelemetry = TracingUtils.getOpenTelemetry(openTelemetryInstance);
+        subscriberBuilder.setOpenTelemetry(openTelemetry);
+        subscriberBuilder.setEnableOpenTelemetryTracing(config.isOtelEnabled());
 
         return subscriberBuilder.build();
     }
@@ -175,8 +191,7 @@ public class PubSubManager {
 
         if (config.getCredentialPath() != null) {
             try {
-                return Optional.of(FixedCredentialsProvider
-                        .create(ServiceAccountCredentials.fromStream(Files.newInputStream(config.getCredentialPath()))));
+                return Optional.of(FixedCredentialsProvider.create(ServiceAccountCredentials.fromStream(Files.newInputStream(config.getCredentialPath()))));
             } catch (final IOException e) {
                 throw new IllegalStateException(e);
             }
@@ -186,9 +201,7 @@ public class PubSubManager {
     }
 
     private ManagedChannel buildChannel(final PubSubConfig config) {
-        final ManagedChannel channel = ManagedChannelBuilder.forAddress(config.getHost(), config.getPort())
-                .usePlaintext()
-                .build();
+        final ManagedChannel channel = ManagedChannelBuilder.forAddress(config.getHost(), config.getPort()).usePlaintext().build();
         channels.add(channel);
         return channel;
     }

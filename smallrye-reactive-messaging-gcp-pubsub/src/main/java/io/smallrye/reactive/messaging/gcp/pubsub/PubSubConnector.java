@@ -1,17 +1,17 @@
 package io.smallrye.reactive.messaging.gcp.pubsub;
 
-import static io.smallrye.reactive.messaging.gcp.pubsub.i18n.PubSubLogging.log;
+import static io.smallrye.reactive.messaging.gcp.pubsub.i18n.PubSubLogging.*;
 
 import java.io.File;
 import java.nio.file.Path;
 import java.util.Optional;
-import java.util.concurrent.*;
-
-import jakarta.annotation.PostConstruct;
-import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.enterprise.context.Destroyed;
-import jakarta.enterprise.event.Observes;
-import jakarta.inject.Inject;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Flow;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
@@ -34,6 +34,11 @@ import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.connector.InboundConnector;
 import io.smallrye.reactive.messaging.connector.OutboundConnector;
 import io.smallrye.reactive.messaging.providers.helpers.MultiUtils;
+import jakarta.annotation.PostConstruct;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.context.Destroyed;
+import jakarta.enterprise.event.Observes;
+import jakarta.inject.Inject;
 
 @ApplicationScoped
 @Connector(PubSubConnector.CONNECTOR_NAME)
@@ -60,6 +65,10 @@ public class PubSubConnector implements InboundConnector, OutboundConnector {
     private Optional<Integer> port;
 
     @Inject
+    @ConfigProperty(name = "gcp-pubsub-otel-enabled", defaultValue = "false")
+    private boolean otelEnabled;
+
+    @Inject
     private PubSubManager pubSubManager;
 
     private ExecutorService executorService;
@@ -81,7 +90,7 @@ public class PubSubConnector implements InboundConnector, OutboundConnector {
     @Override
     public Flow.Publisher<? extends Message<?>> getPublisher(final Config config) {
         final PubSubConfig pubSubConfig = new PubSubConfig(getProjectId(config), getTopic(config), getCredentialPath(config),
-                getSubscription(config), mockPubSubTopics, host.orElse(null), port.orElse(null));
+                getSubscription(config), mockPubSubTopics, host.orElse(null), port.orElse(null), otelEnabled);
 
         return Multi.createFrom().uni(Uni.createFrom().completionStage(CompletableFuture.supplyAsync(() -> {
             if (isUseAdminClient(config)) {
@@ -97,7 +106,7 @@ public class PubSubConnector implements InboundConnector, OutboundConnector {
     @Override
     public Flow.Subscriber<? extends Message<?>> getSubscriber(final Config config) {
         final PubSubConfig pubSubConfig = new PubSubConfig(getProjectId(config), getTopic(config), getCredentialPath(config),
-                mockPubSubTopics, host.orElse(null), port.orElse(null));
+                mockPubSubTopics, host.orElse(null), port.orElse(null), getOtelEnabled(config));
 
         return MultiUtils.via(m -> m.onItem()
                 .transformToUniAndConcatenate(message -> Uni.createFrom().completionStage(CompletableFuture.supplyAsync(() -> {
@@ -112,6 +121,11 @@ public class PubSubConnector implements InboundConnector, OutboundConnector {
     private String getProjectId(Config config) {
         return config.getOptionalValue("project-id", String.class)
                 .orElse(projectId);
+    }
+
+    private boolean getOtelEnabled(Config config) {
+        return config.getOptionalValue("otel-enabled", Boolean.class)
+                .orElse(otelEnabled);
     }
 
     boolean isUseAdminClient(Config config) {
