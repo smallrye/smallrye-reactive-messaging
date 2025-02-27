@@ -89,7 +89,7 @@
 
     <kafka.version>3.9.0</kafka.version>
 
-    <opentelemetry.instrumentation.version>2.5.0-alpha</opentelemetry.instrumentation.version>
+    <opentelemetry.instrumentation.version>2.13.2-alpha</opentelemetry.instrumentation.version>
     <opentelemetry-semconv.version>1.25.0-alpha</opentelemetry-semconv.version>
 
     <smallrye-vertx-mutiny-clients.version>3.17.1</smallrye-vertx-mutiny-clients.version>
