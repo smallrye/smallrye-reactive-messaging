@@ -3,12 +3,7 @@ package io.smallrye.reactive.messaging.kafka.companion;
 import static io.smallrye.reactive.messaging.kafka.companion.KafkaCompanion.toUni;
 
 import java.time.Duration;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import org.apache.kafka.clients.admin.AdminClient;
@@ -158,6 +153,28 @@ public class TopicsCompanion {
                         .collect(Collectors.toMap(t -> t, t -> RecordsToDelete.beforeOffset(-1))))
                 .chain(m -> toUni(() -> adminClient.deleteRecords(m).all()))
                 .await().atMost(kafkaApiTimeout);
+    }
+
+    /**
+     * Same as {@link #clear(String...)} but does not throw an exception if a topic doesn't exist.
+     *
+     * @param topics the topic names to clear
+     */
+    public void clearIfExists(String... topics) {
+        clearIfExists(Set.of(topics));
+    }
+
+    /**
+     * Same as {@link #clear(String...)} but does not throw an exception if a topic doesn't exist.
+     *
+     * @param topics the collection of topic names to clear
+     */
+    public void clearIfExists(Collection<String> topics) {
+        Set<String> toDelete = new HashSet<>(topics);
+        toDelete.retainAll(list());
+        if (!toDelete.isEmpty()) {
+            clear(toDelete.toArray(new String[0]));
+        }
     }
 
     /**
