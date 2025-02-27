@@ -27,7 +27,28 @@
     "criticality" : "highlight",
     "minSeverity" : "POTENTIALLY_BREAKING",
     "minCriticality" : "documented",
-    "differences" : [ ]
+    "differences" : [
+        {
+            "code": "java.method.addedToInterface",
+            "new": "method boolean io.smallrye.reactive.messaging.PausableChannel::clearBuffer()",
+            "justification": "Added clear buffer method to pausable channels"
+        },
+        {
+            "code": "java.method.addedToInterface",
+            "new": "method int io.smallrye.reactive.messaging.PausableChannel::bufferSize()",
+            "justification": "Added buffer size method to pausable channels"
+        },
+        {
+            "code": "java.method.addedToInterface",
+            "new": "method boolean io.smallrye.reactive.messaging.PausableChannelConfiguration::lateSubscription()",
+            "justification": "Added late-subscription configuration to pausable channels"
+        },
+        {
+            "code": "java.method.addedToInterface",
+            "new": "method boolean io.smallrye.reactive.messaging.PausableChannelConfiguration::bufferAlreadyRequested()",
+            "justification": "Added buffer-already-requested configuration to pausable channels"
+        }
+    ]
   }
 }, {
   "extension" : "revapi.reporter.json",
