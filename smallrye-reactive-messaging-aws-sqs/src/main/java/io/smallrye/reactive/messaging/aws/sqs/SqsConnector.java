@@ -2,7 +2,6 @@ package io.smallrye.reactive.messaging.aws.sqs;
 
 import static io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Direction.INCOMING;
 import static io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Direction.INCOMING_AND_OUTGOING;
-import static io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Direction.OUTGOING;
 
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -83,8 +82,8 @@ public class SqsConnector implements InboundConnector, OutboundConnector, Health
 
     Vertx vertx;
 
-    private static final List<SqsInboundChannel> INBOUND_CHANNELS = new CopyOnWriteArrayList<>();
-    private static final List<SqsOutboundChannel> OUTBOUND_CHANNELS = new CopyOnWriteArrayList<>();
+    private final List<SqsInboundChannel> inboundChannels = new CopyOnWriteArrayList<>();
+    private final List<SqsOutboundChannel> outboundChannels = new CopyOnWriteArrayList<>();
 
     public static final String CONNECTOR_NAME = "smallrye-sqs";
     public static final String CLASS_NAME_ATTRIBUTE = "_classname";
@@ -98,8 +97,8 @@ public class SqsConnector implements InboundConnector, OutboundConnector, Health
 
     public void terminate(
             @Observes(notifyObserver = Reception.IF_EXISTS) @Priority(50) @BeforeDestroyed(ApplicationScoped.class) Object event) {
-        INBOUND_CHANNELS.forEach(SqsInboundChannel::close);
-        OUTBOUND_CHANNELS.forEach(SqsOutboundChannel::close);
+        inboundChannels.forEach(SqsInboundChannel::close);
+        outboundChannels.forEach(SqsOutboundChannel::close);
     }
 
     @Override
@@ -109,7 +108,7 @@ public class SqsConnector implements InboundConnector, OutboundConnector, Health
                 () -> null);
         var channel = new SqsInboundChannel(conf, vertx, sqsManager, customizer, jsonMapping, ackHandlerFactories,
                 failureHandlerFactories);
-        INBOUND_CHANNELS.add(channel);
+        inboundChannels.add(channel);
         return channel.getStream();
     }
 
@@ -117,17 +116,17 @@ public class SqsConnector implements InboundConnector, OutboundConnector, Health
     public Subscriber<? extends Message<?>> getSubscriber(Config config) {
         var conf = new SqsConnectorOutgoingConfiguration(config);
         var channel = new SqsOutboundChannel(conf, sqsManager, jsonMapping);
-        OUTBOUND_CHANNELS.add(channel);
+        outboundChannels.add(channel);
         return channel.getSubscriber();
     }
 
     @Override
     public HealthReport getLiveness() {
         HealthReport.HealthReportBuilder builder = HealthReport.builder();
-        for (SqsInboundChannel channel : INBOUND_CHANNELS) {
+        for (SqsInboundChannel channel : inboundChannels) {
             channel.isAlive(builder);
         }
-        for (SqsOutboundChannel channel : OUTBOUND_CHANNELS) {
+        for (SqsOutboundChannel channel : outboundChannels) {
             channel.isAlive(builder);
         }
         return builder.build();
