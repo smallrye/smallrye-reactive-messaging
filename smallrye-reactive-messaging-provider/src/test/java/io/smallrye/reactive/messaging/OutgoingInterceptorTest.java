@@ -3,6 +3,7 @@ package io.smallrye.reactive.messaging;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -11,14 +12,18 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 
+import org.eclipse.microprofile.reactive.messaging.Channel;
 import org.eclipse.microprofile.reactive.messaging.Message;
+import org.eclipse.microprofile.reactive.messaging.Metadata;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import io.smallrye.common.annotation.Identifier;
 import io.smallrye.mutiny.Multi;
+import io.smallrye.mutiny.Uni;
 
 public class OutgoingInterceptorTest extends WeldTestBaseWithoutTails {
 
@@ -56,6 +61,21 @@ public class OutgoingInterceptorTest extends WeldTestBaseWithoutTails {
         await().until(() -> interceptor.nacks() == 10);
     }
 
+    @Test
+    public void testUsingInterceptorDoesNotPreventMetadataPropagation() {
+        // given
+        addBeanClass(DefaultInterceptor.class);
+        addBeanClass(MyMessageProducerWithMetadata.class);
+        initialize();
+        var app = get(MyMessageProducerWithMetadata.class);
+
+        // when
+        var result = app.sendMessage("test").await().atMost(Duration.ofSeconds(5));
+
+        // then
+        assertThat(result).isNotNull();
+    }
+
     @ApplicationScoped
     public static class MyMessageProducer {
 
@@ -71,6 +91,21 @@ public class OutgoingInterceptorTest extends WeldTestBaseWithoutTails {
                         }
                         return future;
                     }));
+        }
+    }
+
+    @ApplicationScoped
+    public static class MyMessageProducerWithMetadata {
+        @Inject
+        @Channel("A")
+        MutinyEmitter<String> emitter;
+
+        public Uni<Object> sendMessage(String payload) {
+            var omd = new OutgoingMessageMetadata<>();
+            var msg = org.eclipse.microprofile.reactive.messaging.Message.of(payload, Metadata.of(omd));
+
+            return emitter.sendMessage(msg)
+                    .onItem().transform(ignore -> omd.getResult());
         }
     }
 

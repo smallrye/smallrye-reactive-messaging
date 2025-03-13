@@ -48,7 +48,14 @@ public class OutgoingInterceptorDecorator implements SubscriberDecorator {
             if (!matching.isEmpty()) {
                 OutgoingInterceptor interceptor = matching.get(0);
                 multi = multi.map(m -> {
-                    Message<?> before = interceptor.beforeMessageSend(m.addMetadata(new OutgoingMessageMetadata<>()));
+                    Message<?> source;
+                    if (m.getMetadata(OutgoingMessageMetadata.class).isEmpty()) {
+                        source = m.addMetadata(new OutgoingMessageMetadata<>());
+                    } else {
+                        source = m;
+                    }
+
+                    Message<?> before = interceptor.beforeMessageSend(source);
                     Message<?> withAck = before.withAckWithMetadata((metadata) -> before.ack(before.getMetadata())
                             .thenAccept(Unchecked.consumer(x -> interceptor.onMessageAck(before))));
                     return withAck.withNackWithMetadata((throwable, metadata) -> withAck.nack(throwable, metadata)
