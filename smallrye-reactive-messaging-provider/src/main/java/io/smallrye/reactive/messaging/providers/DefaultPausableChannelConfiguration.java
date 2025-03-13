@@ -11,10 +11,17 @@ public class DefaultPausableChannelConfiguration implements PausableChannelConfi
 
     private final String name;
     private final boolean initiallyPaused;
+    private final boolean lateSubscription;
+    private final boolean bufferAlreadyRequested;
 
-    public DefaultPausableChannelConfiguration(String name, boolean initiallyPaused) {
+    public DefaultPausableChannelConfiguration(String name,
+            boolean initiallyPaused,
+            boolean lateSubscription,
+            boolean bufferAlreadyRequested) {
         this.name = name;
         this.initiallyPaused = initiallyPaused;
+        this.lateSubscription = lateSubscription;
+        this.bufferAlreadyRequested = bufferAlreadyRequested;
     }
 
     @Override
@@ -28,18 +35,31 @@ public class DefaultPausableChannelConfiguration implements PausableChannelConfi
     }
 
     @Override
+    public boolean lateSubscription() {
+        return lateSubscription;
+    }
+
+    @Override
+    public boolean bufferAlreadyRequested() {
+        return bufferAlreadyRequested;
+    }
+
+    @Override
     public boolean equals(Object o) {
         if (this == o)
             return true;
         if (!(o instanceof DefaultPausableChannelConfiguration))
             return false;
         DefaultPausableChannelConfiguration that = (DefaultPausableChannelConfiguration) o;
-        return initiallyPaused == that.initiallyPaused && Objects.equals(name, that.name);
+        return initiallyPaused == that.initiallyPaused
+                && lateSubscription == that.lateSubscription
+                && bufferAlreadyRequested == that.bufferAlreadyRequested
+                && Objects.equals(name, that.name);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(name, initiallyPaused);
+        return Objects.hash(name, initiallyPaused, lateSubscription, bufferAlreadyRequested);
     }
 
     @Override
@@ -47,6 +67,8 @@ public class DefaultPausableChannelConfiguration implements PausableChannelConfi
         return "DefaultPausableChannelConfiguration{" +
                 "name='" + name + '\'' +
                 ", initialPaused=" + initiallyPaused +
+                ", lateSubscription=" + lateSubscription +
+                ", bufferAlreadyRequested=" + bufferAlreadyRequested +
                 '}';
     }
 }
