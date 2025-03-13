@@ -59,7 +59,26 @@ public class HealthCheckTest extends SqsTestBase {
                 .with("mp.messaging.outgoing.sink.connector", SqsConnector.CONNECTOR_NAME)
                 .with("mp.messaging.outgoing.sink.queue", queue + "unknown"); // invalid configuration
 
-        ProducerApp app = runApplication(config, ProducerApp.class);
+        runApplication(config, ProducerApp.class);
+        await().until(() -> !isAlive());
+    }
+
+    @Test
+    void testErrorSendingMessageBatch() {
+        // given
+        SqsClientProvider.client = getSqsClient();
+        addBeans(SqsClientProvider.class);
+        createQueue(queue);
+        MapBasedConfig config = new MapBasedConfig()
+                .with("mp.messaging.outgoing.sink.connector", SqsConnector.CONNECTOR_NAME)
+                .with("mp.messaging.outgoing.sink.queue", queue)
+                .with("mp.messaging.outgoing.sink.queue.url", "http://localhost:1234/invalid")
+                .with("mp.messaging.outgoing.sink.batch", true);
+
+        // when
+        runApplication(config, ProducerApp.class);
+
+        // then
         await().until(() -> !isAlive());
     }
 

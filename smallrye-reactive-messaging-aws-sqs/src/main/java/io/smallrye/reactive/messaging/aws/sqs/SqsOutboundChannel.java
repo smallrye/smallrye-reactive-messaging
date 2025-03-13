@@ -113,7 +113,9 @@ public class SqsOutboundChannel {
                         int index = Integer.parseInt(entry.id());
                         if (messages.size() > index) {
                             Message<?> m = messages.get(index);
-                            results.add(Uni.createFrom().completionStage(m.nack(new BatchResultErrorException(entry))));
+                            var failure = new BatchResultErrorException(entry);
+                            results.add(Uni.createFrom().completionStage(m.nack(failure)));
+                            AwsSqsLogging.log.unableToDispatch(channel, failure);
                         }
                     }
                     for (SendMessageBatchResultEntry entry : response.successful()) {
@@ -139,6 +141,8 @@ public class SqsOutboundChannel {
                     for (Message<?> m : messages) {
                         results.add(Uni.createFrom().completionStage(m.nack(t)));
                     }
+                    AwsSqsLogging.log.unableToDispatch(channel, t);
+                    reportFailure(t);
                     return Uni.combine().all().unis(results).discardItems();
                 });
     }
