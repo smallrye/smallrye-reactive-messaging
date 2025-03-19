@@ -126,6 +126,9 @@ Messages coming from AMQP contains an instance of {{ javadoc('io.smallrye.reacti
 {{ insert('amqp/inbound/AmqpMetadataExample.java', 'code') }}
 ```
 
+If you need to create `IncomingAmqpMetadata` e.g. for testing purposes, create an `OutgoingAmqpMetadata` using its builder
+and convert it using {{ javadoc('io.smallrye.reactive.messaging.rabbitmq.OutgoingRabbitMQMetadata#toIncomingMetadata(String,boolean)') }}
+
 ## Acknowledgement
 
 When a Reactive Messaging `Message` associated with an AMQP Message is

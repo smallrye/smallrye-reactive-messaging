@@ -10,6 +10,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import com.rabbitmq.client.BasicProperties;
+import com.rabbitmq.client.Envelope;
 import com.rabbitmq.client.LongString;
 
 import io.vertx.codegen.annotations.Nullable;
@@ -20,8 +22,9 @@ import io.vertx.rabbitmq.RabbitMQMessage;
  */
 public class IncomingRabbitMQMetadata {
 
-    private final RabbitMQMessage message;
     private final Map<String, Object> headers;
+    private final BasicProperties properties;
+    private final Envelope envelope;
 
     /**
      * Constructor.
@@ -29,10 +32,15 @@ public class IncomingRabbitMQMetadata {
      * @param message the underlying {@link RabbitMQMessage}
      */
     IncomingRabbitMQMetadata(RabbitMQMessage message) {
-        this.message = message;
+        this(message.properties(), message.envelope());
+    }
+
+    IncomingRabbitMQMetadata(BasicProperties properties, Envelope envelope) {
+        this.properties = properties;
+        this.envelope = envelope;
 
         // Ensure the message headers are cast appropriately
-        final Map<String, Object> incomingHeaders = message.properties().getHeaders();
+        final Map<String, Object> incomingHeaders = properties.getHeaders();
         headers = (incomingHeaders != null) ? incomingHeaders.entrySet().stream()
                 .collect(HashMap::new, (m, e) -> m.put(e.getKey(), mapValue(e.getValue())), HashMap::putAll)
                 : new HashMap<>();
@@ -105,7 +113,7 @@ public class IncomingRabbitMQMetadata {
      * @return an {@link Optional} containing the content-type, which may be empty if no content-type was received
      */
     public Optional<String> getContentType() {
-        return Optional.ofNullable(message.properties().getContentType());
+        return Optional.ofNullable(properties.getContentType());
     }
 
     /**
@@ -119,7 +127,7 @@ public class IncomingRabbitMQMetadata {
      * @return an {@link Optional} containing the content-encoding, which may be empty if no content-encoding was received
      */
     public Optional<String> getContentEncoding() {
-        return Optional.ofNullable(message.properties().getContentEncoding());
+        return Optional.ofNullable(properties.getContentEncoding());
     }
 
     /**
@@ -130,7 +138,7 @@ public class IncomingRabbitMQMetadata {
      * @return an {@link Optional} containing the delivery-mode, which may be empty if no delivery-mode was received
      */
     public Optional<Integer> getDeliveryMode() {
-        return Optional.ofNullable(message.properties().getDeliveryMode());
+        return Optional.ofNullable(properties.getDeliveryMode());
     }
 
     /**
@@ -142,7 +150,7 @@ public class IncomingRabbitMQMetadata {
      * @return an {@link Optional} containing the priority, which may be empty if no priority was received
      */
     public Optional<Integer> getPriority() {
-        return Optional.ofNullable(message.properties().getPriority());
+        return Optional.ofNullable(properties.getPriority());
     }
 
     /**
@@ -153,7 +161,7 @@ public class IncomingRabbitMQMetadata {
      * @return an {@link Optional} containing the correlation-id, which may be empty if no correlation-id was received
      */
     public Optional<String> getCorrelationId() {
-        return Optional.ofNullable(message.properties().getCorrelationId());
+        return Optional.ofNullable(properties.getCorrelationId());
     }
 
     /**
@@ -164,7 +172,7 @@ public class IncomingRabbitMQMetadata {
      * @return an {@link Optional} containing the reply-to address, which may be empty if no reply-to was received
      */
     public Optional<String> getReplyTo() {
-        return Optional.ofNullable(message.properties().getReplyTo());
+        return Optional.ofNullable(properties.getReplyTo());
     }
 
     /**
@@ -175,7 +183,7 @@ public class IncomingRabbitMQMetadata {
      * @return an {@link Optional} containing the expiration, which may be empty if no expiration was received
      */
     public Optional<String> getExpiration() {
-        return Optional.ofNullable(message.properties().getExpiration());
+        return Optional.ofNullable(properties.getExpiration());
     }
 
     /**
@@ -189,7 +197,7 @@ public class IncomingRabbitMQMetadata {
      * @return an {@link Optional} containing the message-id, which may be empty if no message-id was received
      */
     public Optional<String> getMessageId() {
-        return Optional.ofNullable(message.properties().getMessageId());
+        return Optional.ofNullable(properties.getMessageId());
     }
 
     /**
@@ -202,7 +210,7 @@ public class IncomingRabbitMQMetadata {
      * @return an {@link Optional} containing the date and time, which may be empty if no timestamp was received
      */
     public Optional<ZonedDateTime> getTimestamp(final ZoneId zoneId) {
-        final Optional<Date> timestamp = Optional.ofNullable(message.properties().getTimestamp());
+        final Optional<Date> timestamp = Optional.ofNullable(properties.getTimestamp());
         return timestamp.map(t -> ZonedDateTime.ofInstant(t.toInstant(), zoneId));
     }
 
@@ -214,7 +222,7 @@ public class IncomingRabbitMQMetadata {
      * @return an {@link Optional} containing the type, which may be empty if no type was received
      */
     public Optional<String> getType() {
-        return Optional.ofNullable(message.properties().getType());
+        return Optional.ofNullable(properties.getType());
     }
 
     /**
@@ -226,7 +234,7 @@ public class IncomingRabbitMQMetadata {
      * @return an {@link Optional} containing the user-id, which may be empty if no user-id was received
      */
     public Optional<String> getUserId() {
-        return Optional.ofNullable(message.properties().getUserId());
+        return Optional.ofNullable(properties.getUserId());
     }
 
     /**
@@ -238,7 +246,7 @@ public class IncomingRabbitMQMetadata {
      * @return an {@link Optional} containing the app-id, which may be empty if no app-id was received
      */
     public Optional<String> getAppId() {
-        return Optional.ofNullable(message.properties().getAppId());
+        return Optional.ofNullable(properties.getAppId());
     }
 
     /**
@@ -254,7 +262,7 @@ public class IncomingRabbitMQMetadata {
      */
     @Deprecated
     public Optional<ZonedDateTime> getCreationTime(final ZoneId zoneId) {
-        final Optional<Date> timestamp = Optional.ofNullable(message.properties().getTimestamp());
+        final Optional<Date> timestamp = Optional.ofNullable(properties.getTimestamp());
         return timestamp.map(t -> ZonedDateTime.ofInstant(t.toInstant(), zoneId));
     }
 
@@ -272,7 +280,7 @@ public class IncomingRabbitMQMetadata {
      */
     @Deprecated
     public Optional<String> getId() {
-        return Optional.ofNullable(message.properties().getMessageId());
+        return Optional.ofNullable(properties.getMessageId());
     }
 
     /**
@@ -283,7 +291,7 @@ public class IncomingRabbitMQMetadata {
      * @return the name of the message's exchange.
      */
     public String getExchange() {
-        return message.envelope().getExchange();
+        return envelope.getExchange();
     }
 
     /**
@@ -294,7 +302,7 @@ public class IncomingRabbitMQMetadata {
      * @return the message's routing key.
      */
     public String getRoutingKey() {
-        return message.envelope().getRoutingKey();
+        return envelope.getRoutingKey();
     }
 
     /**
@@ -307,6 +315,6 @@ public class IncomingRabbitMQMetadata {
      * @return the message's redelivery flag.
      */
     public boolean isRedeliver() {
-        return message.envelope().isRedeliver();
+        return envelope.isRedeliver();
     }
 }

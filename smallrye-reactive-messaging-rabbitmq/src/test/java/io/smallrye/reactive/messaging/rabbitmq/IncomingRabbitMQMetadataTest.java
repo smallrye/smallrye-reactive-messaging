@@ -8,10 +8,6 @@ import org.junit.Assert;
 import org.junit.jupiter.api.Test;
 
 import com.rabbitmq.client.BasicProperties;
-import com.rabbitmq.client.Envelope;
-
-import io.vertx.core.buffer.Buffer;
-import io.vertx.rabbitmq.RabbitMQMessage;
 
 public class IncomingRabbitMQMetadataTest {
 
@@ -21,47 +17,13 @@ public class IncomingRabbitMQMetadataTest {
         properties.put("header1", "value1");
         properties.put("header2", null);
 
-        DummyRabbitMQMessage message = new DummyRabbitMQMessage(new DummyBasicProperties(properties));
-
-        IncomingRabbitMQMetadata incomingRabbitMQMetadata = new IncomingRabbitMQMetadata(message);
+        IncomingRabbitMQMetadata incomingRabbitMQMetadata = new IncomingRabbitMQMetadata(new DummyBasicProperties(properties),
+                null);
 
         Assert.assertEquals("value1", incomingRabbitMQMetadata.getHeaders().get("header1"));
         Assert.assertTrue(incomingRabbitMQMetadata.getHeaders().containsKey("header2"));
         Assert.assertNull(incomingRabbitMQMetadata.getHeaders().get("header2"));
 
-    }
-
-    class DummyRabbitMQMessage implements RabbitMQMessage {
-        protected BasicProperties properties;
-
-        DummyRabbitMQMessage(BasicProperties properties) {
-            this.properties = properties;
-        }
-
-        @Override
-        public Buffer body() {
-            return Buffer.buffer();
-        }
-
-        @Override
-        public String consumerTag() {
-            return null;
-        }
-
-        @Override
-        public Envelope envelope() {
-            return null;
-        }
-
-        @Override
-        public BasicProperties properties() {
-            return this.properties;
-        }
-
-        @Override
-        public Integer messageCount() {
-            return null;
-        }
     }
 
     class DummyBasicProperties implements BasicProperties {

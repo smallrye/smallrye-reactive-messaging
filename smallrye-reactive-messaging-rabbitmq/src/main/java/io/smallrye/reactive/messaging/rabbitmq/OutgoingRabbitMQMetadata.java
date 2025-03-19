@@ -1,8 +1,13 @@
 package io.smallrye.reactive.messaging.rabbitmq;
 
 import java.time.ZonedDateTime;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+
+import com.rabbitmq.client.AMQP;
+import com.rabbitmq.client.BasicProperties;
+import com.rabbitmq.client.Envelope;
 
 /**
  * Used to represent RabbitMQ metadata in on outgoing message.
@@ -313,4 +318,35 @@ public class OutgoingRabbitMQMetadata {
             return metadata;
         }
     }
+
+    /**
+     * Converts this OutgoingRabbitMQMetadata to an IncomingRabbitMQMetadata.
+     * This is mainly intended for use in unit tests that relies on incoming metadata.
+     *
+     * @param exchange the exchange
+     * @param isRedeliver if it was a redelivery
+     * @return this OutgoingRabbitMQMetadata converted to an IncomingRabbitMQMetadata
+     */
+    public IncomingRabbitMQMetadata toIncomingMetadata(String exchange, boolean isRedeliver) {
+        BasicProperties basicProperties = new AMQP.BasicProperties.Builder()
+                .userId(userId)
+                .appId(appId)
+                .headers(headers)
+                .contentType(contentType)
+                .contentEncoding(contentEncoding)
+                .correlationId(correlationId)
+                .deliveryMode(deliveryMode)
+                .expiration(expiration)
+                .priority(priority)
+                .messageId(messageId)
+                .replyTo(replyTo)
+                .timestamp(Date.from(timestamp.toInstant()))
+                .type(type)
+                .build();
+        // delivery tag is not accessed by IncomingRabbitMQMetadata, so just hardcode it to 0
+        Envelope envelope = new Envelope(0, isRedeliver, exchange, routingKey);
+
+        return new IncomingRabbitMQMetadata(basicProperties, envelope);
+    }
+
 }
