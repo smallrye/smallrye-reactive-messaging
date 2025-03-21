@@ -1,6 +1,13 @@
 package io.smallrye.reactive.messaging.rabbitmq;
 
+import com.rabbitmq.client.AMQP;
+import com.rabbitmq.client.BasicProperties;
+import com.rabbitmq.client.Envelope;
+import io.vertx.core.buffer.Buffer;
+import io.vertx.rabbitmq.RabbitMQMessage;
+
 import java.time.ZonedDateTime;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -313,4 +320,54 @@ public class OutgoingRabbitMQMetadata {
             return metadata;
         }
     }
+
+    // Quick hack to allow converting this into IncomingRabbitMQMetadata, mainly intended for unit testing that relies
+    // on incoming metadata.
+    public IncomingRabbitMQMetadata toIncomingMetadata(String exchange, Integer messageCount) {
+        RabbitMQMessage message = new RabbitMQMessage() {
+            @Override
+            public Buffer body() {
+                // IncomingRabbitMQMetadata does not reference the message body, so just return null
+                return null;
+            }
+
+            @Override
+            public String consumerTag() {
+                // IncomingRabbitMQMetadata does not reference the consumer tag, so just return null
+                return null;
+            }
+
+            @Override
+            // IncomingRabbitMQMetadata does not reference the deliveryTag and the redeliver flag, so hard code them here.
+            public Envelope envelope() {
+                return new Envelope(1, false, exchange, routingKey);
+            }
+
+            @Override
+            public BasicProperties properties() {
+                return new AMQP.BasicProperties.Builder()
+                        .userId(userId)
+                        .appId(appId)
+                        .headers(headers)
+                        .contentType(contentType)
+                        .contentEncoding(contentEncoding)
+                        .correlationId(correlationId)
+                        .deliveryMode(deliveryMode)
+                        .expiration(expiration)
+                        .priority(priority)
+                        .messageId(messageId)
+                        .replyTo(replyTo)
+                        .timestamp(Date.from(timestamp.toInstant()))
+                        .type(type)
+                        .build();
+            }
+
+            @Override
+            public Integer messageCount() {
+                return messageCount;
+            }
+        };
+        return new IncomingRabbitMQMetadata(message);
+    }
+
 }
