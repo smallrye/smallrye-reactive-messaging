@@ -78,6 +78,12 @@
     </dependency>
     <dependency>
       <groupId>org.apache.kafka</groupId>
+      <artifactId>kafka-transaction-coordinator</artifactId>
+      <version>${kafka.version}</version>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.kafka</groupId>
       <artifactId>kafka-storage</artifactId>
       <version>${kafka.version}</version>
       <optional>true</optional>
