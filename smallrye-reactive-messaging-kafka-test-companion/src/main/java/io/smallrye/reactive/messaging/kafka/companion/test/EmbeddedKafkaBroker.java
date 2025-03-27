@@ -1,6 +1,5 @@
 package io.smallrye.reactive.messaging.kafka.companion.test;
 
-import static io.smallrye.reactive.messaging.kafka.companion.test.EmbeddedKafkaBroker.LoggingOutputStream.loggerPrintStream;
 import static org.apache.kafka.common.security.auth.SecurityProtocol.PLAINTEXT;
 
 import java.io.ByteArrayOutputStream;
@@ -25,10 +24,12 @@ import java.util.stream.Collectors;
 
 import org.apache.kafka.common.Endpoint;
 import org.apache.kafka.common.Uuid;
+import org.apache.kafka.common.config.TopicConfig;
 import org.apache.kafka.common.security.auth.SecurityProtocol;
 import org.apache.kafka.common.utils.Time;
 import org.apache.kafka.common.utils.Utils;
 import org.apache.kafka.coordinator.group.GroupCoordinatorConfig;
+import org.apache.kafka.coordinator.transaction.TransactionLogConfig;
 import org.apache.kafka.metadata.storage.Formatter;
 import org.apache.kafka.network.SocketServerConfigs;
 import org.apache.kafka.raft.QuorumConfig;
@@ -348,16 +349,18 @@ public class EmbeddedKafkaBroker implements Closeable {
         props.put(ReplicationConfigs.REPLICA_HIGH_WATERMARK_CHECKPOINT_INTERVAL_MS_CONFIG, String.valueOf(Long.MAX_VALUE));
         props.put(ReplicationConfigs.CONTROLLER_SOCKET_TIMEOUT_MS_CONFIG, "1000");
         props.put(ServerConfigs.CONTROLLED_SHUTDOWN_ENABLE_CONFIG, Boolean.toString(false));
-        props.put(ServerConfigs.CONTROLLED_SHUTDOWN_RETRY_BACKOFF_MS_CONFIG, "100");
         props.put(ServerConfigs.DELETE_TOPIC_ENABLE_CONFIG, Boolean.toString(true));
         props.put(ServerLogConfigs.LOG_DELETE_DELAY_MS_CONFIG, "1000");
         props.put(CleanerConfig.LOG_CLEANER_DEDUPE_BUFFER_SIZE_PROP, "2097152");
-        props.put(ServerLogConfigs.LOG_MESSAGE_TIMESTAMP_DIFFERENCE_MAX_MS_DOC, String.valueOf(Long.MAX_VALUE));
         props.put(GroupCoordinatorConfig.OFFSETS_TOPIC_REPLICATION_FACTOR_CONFIG, "1");
         props.put(GroupCoordinatorConfig.OFFSETS_TOPIC_PARTITIONS_CONFIG, "5");
         props.put(GroupCoordinatorConfig.GROUP_INITIAL_REBALANCE_DELAY_MS_CONFIG, "0");
+        props.putIfAbsent(TopicConfig.MESSAGE_TIMESTAMP_AFTER_MAX_MS_CONFIG, String.valueOf(Long.MAX_VALUE));
+        props.putIfAbsent(TopicConfig.MESSAGE_TIMESTAMP_BEFORE_MAX_MS_CONFIG, String.valueOf(Long.MAX_VALUE));
         props.put(ServerLogConfigs.NUM_PARTITIONS_CONFIG, "1");
         props.put(ReplicationConfigs.DEFAULT_REPLICATION_FACTOR_CONFIG, "1");
+        props.putIfAbsent(TransactionLogConfig.TRANSACTIONS_TOPIC_REPLICATION_FACTOR_CONFIG, "1");
+        props.putIfAbsent(TransactionLogConfig.TRANSACTIONS_TOPIC_MIN_ISR_CONFIG, "1");
 
         return props;
     }
