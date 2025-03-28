@@ -126,6 +126,7 @@ class SerializationFailureHandlerTest extends KafkaCompanionTestBase {
                 .with("health-enabled", false)
                 .with("key.serializer", StringSerializer.class.getName())
                 .with("value.serializer", DoubleSerializer.class.getName())
+                .with("retries", 0)
                 .with("value-serialization-failure-handler", "failing-failure-handler");
 
         addBeans(RecordConverter.class, FailingSerializerFailureHandler.class);

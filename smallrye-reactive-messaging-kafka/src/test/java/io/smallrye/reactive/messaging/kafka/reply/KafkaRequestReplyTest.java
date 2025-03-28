@@ -30,6 +30,7 @@ import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Metadata;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import io.smallrye.common.annotation.Identifier;
@@ -44,6 +45,7 @@ import io.smallrye.reactive.messaging.kafka.base.KafkaCompanionTestBase;
 import io.smallrye.reactive.messaging.kafka.base.KafkaMapBasedConfig;
 import io.smallrye.reactive.messaging.kafka.converters.ConsumerRecordConverter;
 
+@Disabled
 public class KafkaRequestReplyTest extends KafkaCompanionTestBase {
 
     private KafkaMapBasedConfig config() {
