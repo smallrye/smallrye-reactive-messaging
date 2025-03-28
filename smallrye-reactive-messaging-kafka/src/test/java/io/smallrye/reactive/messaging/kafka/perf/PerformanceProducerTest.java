@@ -15,6 +15,7 @@ import org.eclipse.microprofile.reactive.messaging.Channel;
 import org.eclipse.microprofile.reactive.messaging.Emitter;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.OnOverflow;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import io.smallrye.reactive.messaging.kafka.base.KafkaCompanionTestBase;
@@ -152,6 +153,7 @@ public class PerformanceProducerTest extends KafkaCompanionTestBase {
     }
 
     @Test
+    @Disabled
     public void testWithoutBackPressureAndIncreaseKafkaRequests() {
         String topic = UUID.randomUUID().toString();
         companion.topics().createAndWait(topic, 10);

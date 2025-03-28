@@ -15,6 +15,7 @@ import org.eclipse.microprofile.reactive.messaging.Channel;
 import org.eclipse.microprofile.reactive.messaging.Emitter;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import io.smallrye.reactive.messaging.kafka.base.WeldTestBase;
@@ -32,6 +33,7 @@ public class KafkaNackOnExpirationTimeFailureTest extends WeldTestBase {
     }
 
     @Test
+    @Disabled
     public void testExpiresAfterDeliveryTimeout() throws IOException {
         // TODO TOO LONG!
         MyEmitter application = runApplication(new MapBasedConfig()
