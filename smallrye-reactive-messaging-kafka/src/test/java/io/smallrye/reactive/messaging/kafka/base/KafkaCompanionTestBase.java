@@ -5,6 +5,7 @@ import java.util.UUID;
 
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.common.serialization.StringDeserializer;
+import org.jboss.logging.Logger;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -21,6 +22,8 @@ import io.vertx.mutiny.core.Vertx;
 
 @ExtendWith(KafkaBrokerExtension.class)
 public class KafkaCompanionTestBase extends WeldTestBase {
+
+    public static final Logger LOGGER = Logger.getLogger(KafkaCompanionTestBase.class.getName());
 
     public static final int KAFKA_PORT = 9092;
 
@@ -45,6 +48,7 @@ public class KafkaCompanionTestBase extends WeldTestBase {
     public void initTopic(TestInfo testInfo) {
         String cn = testInfo.getTestClass().map(Class::getSimpleName).orElse(UUID.randomUUID().toString());
         String mn = testInfo.getTestMethod().map(Method::getName).orElse(UUID.randomUUID().toString());
+        LOGGER.warn("Running test: " + cn + "." + mn);
         topic = cn + "-" + mn + "-" + UUID.randomUUID().getMostSignificantBits();
     }
 

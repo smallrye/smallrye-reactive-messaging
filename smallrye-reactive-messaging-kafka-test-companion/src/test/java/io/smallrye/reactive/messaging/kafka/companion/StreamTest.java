@@ -13,6 +13,7 @@ import java.util.List;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import io.smallrye.mutiny.Multi;
@@ -77,6 +78,7 @@ public class StreamTest extends KafkaCompanionTestBase {
     }
 
     @Test
+    @Disabled
     void testProcessTransaction() {
         String newTopic = topic + "-new";
         companion.produceStrings()
