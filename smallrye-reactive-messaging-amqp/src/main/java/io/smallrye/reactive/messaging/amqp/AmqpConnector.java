@@ -105,6 +105,8 @@ import io.vertx.proton.ProtonSender;
 @ConnectorAttribute(name = "cloud-events-data-schema", type = "string", direction = OUTGOING, description = "Configure the default `dataschema` attribute of the outgoing Cloud Event. Requires `cloud-events` to be set to `true`. This value is used if the message does not configure the `dataschema` attribute itself", alias = "cloud-events-default-data-schema")
 @ConnectorAttribute(name = "cloud-events-insert-timestamp", type = "boolean", direction = OUTGOING, description = "Whether or not the connector should insert automatically the `time` attribute into the outgoing Cloud Event. Requires `cloud-events` to be set to `true`. This value is used if the message does not configure the `time` attribute itself", alias = "cloud-events-default-timestamp", defaultValue = "true")
 @ConnectorAttribute(name = "cloud-events-mode", type = "string", direction = OUTGOING, description = "The Cloud Event mode (`structured` or `binary` (default)). Indicates how are written the cloud events in the outgoing record", defaultValue = "binary")
+@ConnectorAttribute(name = "retry-on-fail-attempts", direction = OUTGOING, description = "The number of tentative to retry on failure", type = "int", defaultValue = "6")
+@ConnectorAttribute(name = "retry-on-fail-interval", direction = OUTGOING, description = "The interval (in seconds) between two sending attempts", type = "int", defaultValue = "5")
 
 public class AmqpConnector implements InboundConnector, OutboundConnector, HealthReporter {
 
@@ -205,6 +207,7 @@ public class AmqpConnector implements InboundConnector, OutboundConnector, Healt
     @Override
     public Flow.Publisher<? extends Message<?>> getPublisher(Config config) {
         AmqpConnectorIncomingConfiguration ic = new AmqpConnectorIncomingConfiguration(config);
+        AmqpConnectorOutgoingConfiguration oc = new AmqpConnectorOutgoingConfiguration(config);
         String address = ic.getAddress().orElseGet(ic::getChannel);
 
         opened.put(ic.getChannel(), false);
@@ -239,8 +242,8 @@ public class AmqpConnector implements InboundConnector, OutboundConnector, Healt
                 .onItem().transformToMulti(r -> getStreamOfMessages(r, holder, address, channel, onNack,
                         cloudEvents, tracing));
 
-        Integer interval = ic.getReconnectInterval();
-        Integer attempts = ic.getReconnectAttempts();
+        Integer interval = oc.getRetryOnFailInterval();
+        Integer attempts = oc.getRetryOnFailAttempts();
         multi = multi
                 // Retry on failure.
                 .onFailure().invoke(log::retrieveMessagesRetrying)
