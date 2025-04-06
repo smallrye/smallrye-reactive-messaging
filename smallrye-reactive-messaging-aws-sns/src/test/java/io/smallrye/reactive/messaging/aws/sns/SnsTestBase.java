@@ -41,7 +41,7 @@ import software.amazon.awssdk.services.sqs.model.ReceiveMessageResponse;
 @Testcontainers
 public class SnsTestBase extends WeldTestBase {
 
-    private final static DockerImageName localstackImage = DockerImageName.parse("localstack/localstack:4.2.0");
+    private static final DockerImageName localstackImage = DockerImageName.parse("localstack/localstack:4.2.0");
 
     @Container
     public static LocalStackContainer localstack = new LocalStackContainer(localstackImage)
@@ -59,6 +59,10 @@ public class SnsTestBase extends WeldTestBase {
         System.setProperty("aws.secretAccessKey", localstack.getSecretKey());
         final var mn = testInfo.getTestMethod().map(Method::getName).orElse(UUID.randomUUID().toString());
         final var topicName = mn + "-" + UUID.randomUUID().getMostSignificantBits();
+        createTopic(topicName);
+    }
+
+    protected void createTopic(final String topicName) {
         // limit the topic name to max 80 characters. Otherwise, localstack will complain.
         topic = topicName.substring(0, Math.min(80, topicName.length()));
         // For our tests we need to guess the topic arn so that we can set it in the config.
@@ -71,7 +75,7 @@ public class SnsTestBase extends WeldTestBase {
     }
 
     @AfterEach
-    public void stopContainer() {
+    void stopContainer() {
         if (container != null) {
             final var connector = getBeanManager().createInstance()
                     .select(SnsConnector.class, ConnectorLiteral.of(SnsConnector.CONNECTOR_NAME))
@@ -84,7 +88,7 @@ public class SnsTestBase extends WeldTestBase {
     }
 
     @AfterAll
-    public static void stopClient() {
+    static void stopClient() {
         if (snsAsyncClient != null) {
             snsAsyncClient.close();
             snsAsyncClient = null;
