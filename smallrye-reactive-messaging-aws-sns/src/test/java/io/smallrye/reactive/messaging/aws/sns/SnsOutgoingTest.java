@@ -4,10 +4,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.Duration;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Produces;
+import jakarta.inject.Named;
 
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.junit.jupiter.api.DisplayNameGeneration;
@@ -16,10 +16,11 @@ import org.junit.jupiter.api.Test;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import io.smallrye.common.annotation.Identifier;
 import io.smallrye.mutiny.Multi;
-import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.json.jackson.JacksonMapping;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
+import software.amazon.awssdk.services.sns.SnsAsyncClient;
 import software.amazon.awssdk.services.sqs.model.Message;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
@@ -29,6 +30,53 @@ class SnsOutgoingTest extends SnsTestBase {
     void should_use_provided_client_to_send_string_messages() {
         // given
         var config = initClientViaProvider();
+        var subscription = createTopicWithQueueSubscription(topic);
+        var expected = 10;
+
+        // when
+        runApplication(config, ProducerApp.class);
+
+        // then
+        var messages = receiveAndDeleteMessages(subscription.queueUrl(), expected, Duration.ofSeconds(10));
+        assertThat(messages).hasSize(expected);
+    }
+
+    @Test
+    void should_use_provided_client_via_identifier_to_send_string_messages() {
+        // given
+        topic = "topic-identifier";
+        var config = initClientViaIdentifierProvider();
+        var subscription = createTopicWithQueueSubscription(topic);
+        var expected = 10;
+
+        // when
+        runApplication(config, ProducerApp.class);
+
+        // then
+        var messages = receiveAndDeleteMessages(subscription.queueUrl(), expected, Duration.ofSeconds(10));
+        assertThat(messages).hasSize(expected);
+    }
+
+    @Test
+    void should_use_provided_client_via_named_to_send_string_messages() {
+        // given
+        topic = "topic-named";
+        var config = initClientViaNamedProvider();
+        var subscription = createTopicWithQueueSubscription(topic);
+        var expected = 10;
+
+        // when
+        runApplication(config, ProducerApp.class);
+
+        // then
+        var messages = receiveAndDeleteMessages(subscription.queueUrl(), expected, Duration.ofSeconds(10));
+        assertThat(messages).hasSize(expected);
+    }
+
+    @Test
+    void should_create_client_if_provided_clients_are_ambiguous() {
+        // given
+        var config = initAmbiguousClientProvider();
         var subscription = createTopicWithQueueSubscription(topic);
         var expected = 10;
 
@@ -187,5 +235,84 @@ class SnsOutgoingTest extends SnsTestBase {
                 .with("mp.messaging.outgoing.data.connector", SnsConnector.CONNECTOR_NAME)
                 .with("mp.messaging.outgoing.data.topic", topic)
                 .with("mp.messaging.outgoing.data.topic.arn", topicArn);
+    }
+
+    private MapBasedConfig initClientViaIdentifierProvider() {
+        createTopic(topic);
+        SnsTestClientViaIdentifierProvider.client = getSnsClient();
+        addBeans(SnsTestClientViaIdentifierProvider.class);
+        return new MapBasedConfig()
+                .with("mp.messaging.outgoing.data.connector", SnsConnector.CONNECTOR_NAME)
+                .with("mp.messaging.outgoing.data.topic", topic)
+                .with("mp.messaging.outgoing.data.topic.arn", topicArn);
+    }
+
+    private MapBasedConfig initClientViaNamedProvider() {
+        createTopic(topic);
+        SnsTestClientViaNamedProvider.client = getSnsClient();
+        addBeans(SnsTestClientViaNamedProvider.class);
+        return new MapBasedConfig()
+                .with("mp.messaging.outgoing.data.connector", SnsConnector.CONNECTOR_NAME)
+                .with("mp.messaging.outgoing.data.topic", topic)
+                .with("mp.messaging.outgoing.data.topic.arn", topicArn);
+    }
+
+    private MapBasedConfig initAmbiguousClientProvider() {
+        createTopic(topic);
+        addBeans(SnsTestClientViaAmbiguousProvider.class);
+        return new MapBasedConfig()
+                .with("mp.messaging.outgoing.data.connector", SnsConnector.CONNECTOR_NAME)
+                .with("mp.messaging.outgoing.data.topic", topic)
+                .with("mp.messaging.outgoing.data.topic.arn", topicArn)
+                .with("mp.messaging.outgoing.data.region", localstack.getRegion())
+                .with("mp.messaging.outgoing.data.endpoint-override", localstack.getEndpoint().toString());
+    }
+
+    @ApplicationScoped
+    public static class SnsTestClientViaIdentifierProvider {
+
+        public static SnsAsyncClient client;
+
+        @Produces
+        @Identifier("topic-identifier")
+        public SnsAsyncClient createClient() {
+            return client;
+        }
+
+        @Produces
+        public SnsAsyncClient createFailedClient() {
+            throw new IllegalArgumentException("This should not happen");
+        }
+    }
+
+    @ApplicationScoped
+    public static class SnsTestClientViaNamedProvider {
+
+        public static SnsAsyncClient client;
+
+        @Produces
+        @Named("topic-named")
+        public SnsAsyncClient createClient() {
+            return client;
+        }
+
+        @Produces
+        public SnsAsyncClient createFailedClient() {
+            throw new IllegalArgumentException("This should not happen");
+        }
+    }
+
+    @ApplicationScoped
+    public static class SnsTestClientViaAmbiguousProvider {
+
+        @Produces
+        public SnsAsyncClient createClient() {
+            throw new IllegalArgumentException("This should not happen");
+        }
+
+        @Produces
+        public SnsAsyncClient createFailedClient() {
+            throw new IllegalArgumentException("This should not happen");
+        }
     }
 }

@@ -13,6 +13,10 @@ public interface AwsSnsLogging {
 
     AwsSnsLogging log = Logger.getMessageLogger(lookup(), AwsSnsLogging.class, "io.smallrye.reactive.messaging.aws.sns");
 
+    @LogMessage(level = Logger.Level.DEBUG)
+    @Message(id = 19502, value = "Could not find a client for channel '%s', creating a new one")
+    void createClientFromConfig(String channel);
+
     @LogMessage(level = Logger.Level.WARN)
     @Message(id = 19503, value = "Failed to load the AWS credentials provider, using the default credential provider chain %s")
     void failedToLoadAwsCredentialsProvider(String message);
