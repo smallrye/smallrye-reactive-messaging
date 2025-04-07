@@ -102,7 +102,7 @@
     <mockito.version>5.17.0</mockito.version>
     <junit-pioneer.version>2.3.0</junit-pioneer.version>
     <junit-platform-commons.version>1.9.3</junit-platform-commons.version>
-    <system-stubs-jupiter.version>2.1.7</system-stubs-jupiter.version>
+    <system-stubs-jupiter.version>2.1.8</system-stubs-jupiter.version>
 
     <jakarta.jms.api.version>3.1.0</jakarta.jms.api.version>
     <jackson.version>2.18.3</jackson.version>
