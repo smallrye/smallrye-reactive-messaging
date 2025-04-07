@@ -92,10 +92,23 @@ public class ProducerBuilder<K, V> implements Closeable {
      */
     private BiConsumer<KafkaProducer<K, V>, Throwable> onTermination = this::terminate;
 
+    public static final String KAFKA_COMPANION_PRODUCER_CONCURRENCY = "smallrye.messaging.kafka-companion.producer.concurrency";
+
+    public static final int DEFAULT_PRODUCER_CONCURRENCY = getDefaultProducerConcurrency();
+
+    public static int getDefaultProducerConcurrency() {
+        try {
+            return Integer.parseInt(System.getProperty(KAFKA_COMPANION_PRODUCER_CONCURRENCY, "1024"));
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("Invalid value for '" + KAFKA_COMPANION_PRODUCER_CONCURRENCY
+                    + "', must be a number");
+        }
+    }
+
     /**
-     * Concurrency level for producer writes, default is 1. Without concurrency records are sent one after the other.
+     * Concurrency level for producer writes, default is 1024. Without concurrency records are sent one after the other.
      */
-    private int concurrency = 1;
+    private int concurrency = DEFAULT_PRODUCER_CONCURRENCY;
 
     /**
      * Creates a new {@link ProducerBuilder}.
