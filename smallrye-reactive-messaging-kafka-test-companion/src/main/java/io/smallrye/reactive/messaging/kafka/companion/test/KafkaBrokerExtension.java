@@ -29,7 +29,7 @@ import io.strimzi.test.container.StrimziKafkaContainer;
 public class KafkaBrokerExtension implements BeforeAllCallback, BeforeEachCallback, ParameterResolver, CloseableResource {
     public static final Logger LOGGER = Logger.getLogger(KafkaBrokerExtension.class.getName());
 
-    public static final String KAFKA_VERSION = "3.8.1";
+    public static final String KAFKA_VERSION = "3.9.0";
 
     protected StrimziKafkaContainer kafka;
 
