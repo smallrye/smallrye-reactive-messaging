@@ -34,7 +34,6 @@ import org.junit.jupiter.api.Test;
 
 import io.smallrye.common.annotation.Identifier;
 import io.smallrye.mutiny.Multi;
-import io.smallrye.mutiny.TimeoutException;
 import io.smallrye.mutiny.helpers.test.UniAssertSubscriber;
 import io.smallrye.reactive.messaging.annotations.Blocking;
 import io.smallrye.reactive.messaging.kafka.KafkaRecord;
@@ -168,7 +167,8 @@ public class KafkaRequestReplyTest extends KafkaCompanionTestBase {
         assertThat(replies)
                 .containsAll(expected);
 
-        assertThat(companion.consumeStrings().fromTopics(replyTopic, ReplyServerMultipleReplies.REPLIES * sent).awaitCompletion())
+        assertThat(
+                companion.consumeStrings().fromTopics(replyTopic, ReplyServerMultipleReplies.REPLIES * sent).awaitCompletion())
                 .extracting(ConsumerRecord::value)
                 .containsAll(expected);
 
