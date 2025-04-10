@@ -161,7 +161,7 @@ public class PerformanceProducerTest extends KafkaCompanionTestBase {
         KafkaMapBasedConfig config = kafkaConfig("mp.messaging.outgoing.kafka")
                 .put("topic", topic)
                 .put("max-inflight-messages", 0L)
-                .put("max.in.flight.requests.per.connection", 100)
+                .put("max.in.flight.requests.per.connection", 5) // idempotent producer requires max 5
                 .put("value.serializer", IntegerSerializer.class.getName());
 
         GeneratorBean bean = runApplication(config, GeneratorBean.class);
