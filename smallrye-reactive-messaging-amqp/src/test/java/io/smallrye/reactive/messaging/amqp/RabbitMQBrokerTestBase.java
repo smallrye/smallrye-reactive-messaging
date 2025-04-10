@@ -90,7 +90,7 @@ public class RabbitMQBrokerTestBase {
     public static class RabbitMQContainer extends GenericContainer<RabbitMQContainer> {
 
         public RabbitMQContainer() {
-            super(DockerImageName.parse("rabbitmq:3.11-management"));
+            super(DockerImageName.parse("rabbitmq:3.12-management"));
             withExposedPorts(5672, 15672);
             withReuse(true);
             //            withLogConsumer(outputFrame -> LOGGER.info(outputFrame.getUtf8String()));

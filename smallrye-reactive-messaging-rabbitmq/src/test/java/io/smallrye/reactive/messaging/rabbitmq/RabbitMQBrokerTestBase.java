@@ -37,7 +37,7 @@ public class RabbitMQBrokerTestBase {
     private static final Logger LOGGER = LoggerFactory.getLogger("RabbitMQ");
 
     private static final GenericContainer<?> RABBIT = new GenericContainer<>(
-            DockerImageName.parse("rabbitmq:3.11-management"))
+            DockerImageName.parse("rabbitmq:3.12-management"))
             .withExposedPorts(5672, 15672)
             .withNetworkAliases("rabbitmq")
             .withNetwork(Network.SHARED)
