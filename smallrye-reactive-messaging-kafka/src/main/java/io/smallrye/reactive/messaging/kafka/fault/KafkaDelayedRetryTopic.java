@@ -331,7 +331,7 @@ public class KafkaDelayedRetryTopic extends ContextHolder implements KafkaFailur
     }
 
     void addHeader(ProducerRecord<?, ?> record, String key, String value) {
-        record.headers().add(key, value.getBytes(StandardCharsets.UTF_8));
+        replaceHeader(record.headers(), key, value);
     }
 
     private static Instant getTimestampHeader(Headers headers, String key, long timestamp) {
@@ -375,13 +375,13 @@ public class KafkaDelayedRetryTopic extends ContextHolder implements KafkaFailur
 
     private static void incrementRetryHeader(Headers headers) {
         int count = getRetryHeader(headers) + 1;
-        headers.add(DELAYED_RETRY_COUNT, Integer.toString(count).getBytes(StandardCharsets.UTF_8));
+        replaceHeader(headers, DELAYED_RETRY_COUNT, Integer.toString(count));
     }
 
     private static int setAndGetRetryHeader(Headers headers) {
         int count = getRetryHeader(headers);
         if (count == 0) {
-            headers.add(DELAYED_RETRY_COUNT, Integer.toString(count).getBytes(StandardCharsets.UTF_8));
+            replaceHeader(headers, DELAYED_RETRY_COUNT, Integer.toString(count));
         }
         return count;
     }
@@ -404,5 +404,12 @@ public class KafkaDelayedRetryTopic extends ContextHolder implements KafkaFailur
 
     private static String recordToString(IncomingKafkaRecord<?, ?> record) {
         return String.format("%s-%d:%d", record.getTopic(), record.getPartition(), record.getOffset());
+    }
+
+    private static void replaceHeader(Headers headers, String key, String value) {
+        headers.remove(key);
+        if (value != null) {
+            headers.add(key, value.getBytes(StandardCharsets.UTF_8));
+        }
     }
 }
