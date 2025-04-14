@@ -28,6 +28,7 @@ import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
 
 import io.smallrye.mutiny.Uni;
+import io.smallrye.mutiny.infrastructure.Infrastructure;
 import io.smallrye.reactive.messaging.annotations.Blocking;
 import io.smallrye.reactive.messaging.providers.helpers.Validation;
 import io.vertx.core.impl.ContextInternal;
@@ -54,7 +55,11 @@ public class WorkerPoolRegistry {
             @Observes(notifyObserver = Reception.IF_EXISTS) @Priority(100) @BeforeDestroyed(ApplicationScoped.class) Object event) {
         if (!workerExecutors.isEmpty()) {
             for (WorkerExecutor executor : workerExecutors.values()) {
-                executor.close();
+                if (Infrastructure.canCallerThreadBeBlocked()) {
+                    executor.closeAndAwait();
+                } else {
+                    executor.closeAndForget();
+                }
             }
         }
     }
