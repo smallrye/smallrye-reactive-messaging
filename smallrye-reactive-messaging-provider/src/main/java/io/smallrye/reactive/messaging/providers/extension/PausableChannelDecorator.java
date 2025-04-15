@@ -30,7 +30,7 @@ public class PausableChannelDecorator implements PublisherDecorator, SubscriberD
         String channel = channelName.get(0);
         if (isConnector && configurations.containsKey(channel)) {
             PausableChannelConfiguration configuration = configurations.get(channel);
-            PausableMulti<? extends Message<?>> pausable = new PausableMulti<>(publisher, configuration.initiallyPaused());
+            PausableMulti<? extends Message<?>> pausable = new PausableMulti<>(publisher, configuration);
             for (String name : channelName) {
                 registry.register(name, pausable);
             }
