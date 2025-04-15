@@ -28,9 +28,9 @@
         "code": "java.field.constantValueChanged",
         "old": "field io.smallrye.reactive.messaging.kafka.companion.test.KafkaBrokerExtension.KAFKA_VERSION",
         "new": "field io.smallrye.reactive.messaging.kafka.companion.test.KafkaBrokerExtension.KAFKA_VERSION",
-        "justification": "Update default kafka version from 3.3.2 to 3.9.0",
+        "justification": "Update default kafka version from 3.3.2 to 4.0.0",
         "oldValue": "3.3.2",
-        "newValue": "3.9.0"
+        "newValue": "4.0.0"
     }
     ]
   }

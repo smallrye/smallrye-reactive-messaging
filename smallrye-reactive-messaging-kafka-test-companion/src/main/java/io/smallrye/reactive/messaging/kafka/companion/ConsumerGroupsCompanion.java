@@ -15,7 +15,7 @@ import java.util.stream.Collectors;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.ConsumerGroupDescription;
 import org.apache.kafka.clients.admin.ConsumerGroupListing;
-import org.apache.kafka.clients.admin.ListConsumerGroupOffsetsOptions;
+import org.apache.kafka.clients.admin.ListConsumerGroupOffsetsSpec;
 import org.apache.kafka.clients.admin.MemberToRemove;
 import org.apache.kafka.clients.admin.RemoveMembersFromConsumerGroupOptions;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
@@ -91,8 +91,8 @@ public class ConsumerGroupsCompanion {
 
     private Uni<Map<TopicPartition, OffsetAndMetadata>> consumerGroupUni(String groupId,
             List<TopicPartition> topicPartitions) {
-        return toUni(() -> adminClient.listConsumerGroupOffsets(groupId, new ListConsumerGroupOffsetsOptions()
-                .topicPartitions(topicPartitions)).partitionsToOffsetAndMetadata());
+        return toUni(() -> adminClient.listConsumerGroupOffsets(Map.of(groupId, new ListConsumerGroupOffsetsSpec()
+                .topicPartitions(topicPartitions))).partitionsToOffsetAndMetadata());
     }
 
     /**
