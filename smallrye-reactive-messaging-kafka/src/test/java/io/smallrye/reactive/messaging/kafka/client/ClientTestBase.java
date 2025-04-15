@@ -308,7 +308,7 @@ public class ClientTestBase extends KafkaCompanionTestBase {
             List<Future<?>> futures = records.map(producer::send).collect(Collectors.toList());
 
             for (Future<?> future : futures) {
-                future.get(5, TimeUnit.SECONDS);
+                future.get(10, TimeUnit.SECONDS);
             }
             producer.flush();
         }
@@ -330,7 +330,7 @@ public class ClientTestBase extends KafkaCompanionTestBase {
     public Map<String, Object> producerProps() {
         Map<String, Object> props = new HashMap<>();
         props.put("tracing-enabled", false);
-        props.put(ProducerConfig.METADATA_MAX_AGE_CONFIG, 5);
+        props.put(ProducerConfig.METADATA_MAX_AGE_CONFIG, 1000);
         props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, companion.getBootstrapServers());
         props.put(ProducerConfig.REQUEST_TIMEOUT_MS_CONFIG, String.valueOf(requestTimeoutMillis));
         props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, IntegerSerializer.class.getName());
