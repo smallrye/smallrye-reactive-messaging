@@ -126,6 +126,41 @@ public class RabbitMQMetadataTest {
         assertThat(props.getType()).isEqualTo("test-type");
     }
 
+    @Test
+    void testOutgoingToIncomingMetadata() {
+        ZonedDateTime timestamp = ZonedDateTime.now().truncatedTo(MILLIS);
+
+        OutgoingRabbitMQMetadata outgoingMetadata = OutgoingRabbitMQMetadata.builder()
+                .withUserId("test-user")
+                .withAppId("tests")
+                .withContentType("text/plain")
+                .withContentEncoding("utf8")
+                .withCorrelationId("req-123")
+                .withDeliveryMode(11)
+                .withExpiration("1000")
+                .withPriority(100)
+                .withMessageId("12345")
+                .withReplyTo("test-source")
+                .withTimestamp(timestamp)
+                .withType("test-type")
+                .build();
+
+        IncomingRabbitMQMetadata incomingRabbitMQMetadata = outgoingMetadata.toIncomingMetadata("exchange", true);
+
+        assertThat(incomingRabbitMQMetadata.getUserId()).isEqualTo(Optional.of("test-user"));
+        assertThat(incomingRabbitMQMetadata.getAppId()).isEqualTo(Optional.of("tests"));
+        assertThat(incomingRabbitMQMetadata.getContentType()).isEqualTo(Optional.of("text/plain"));
+        assertThat(incomingRabbitMQMetadata.getContentEncoding()).isEqualTo(Optional.of("utf8"));
+        assertThat(incomingRabbitMQMetadata.getCorrelationId()).isEqualTo(Optional.of("req-123"));
+        assertThat(incomingRabbitMQMetadata.getDeliveryMode()).isEqualTo(Optional.of(11));
+        assertThat(incomingRabbitMQMetadata.getExpiration()).isEqualTo(Optional.of("1000"));
+        assertThat(incomingRabbitMQMetadata.getPriority()).isEqualTo(Optional.of(100));
+        assertThat(incomingRabbitMQMetadata.getMessageId()).isEqualTo(Optional.of("12345"));
+        assertThat(incomingRabbitMQMetadata.getReplyTo()).isEqualTo(Optional.of("test-source"));
+        assertThat(incomingRabbitMQMetadata.getTimestamp(timestamp.getZone())).isEqualTo(Optional.of(timestamp));
+        assertThat(incomingRabbitMQMetadata.getType()).isEqualTo(Optional.of("test-type"));
+    }
+
     private static class TestInstrumenter extends RabbitMQOpenTelemetryInstrumenter {
 
         public TestInstrumenter(Instrumenter<RabbitMQTrace, Void> instrumenter) {
