@@ -118,7 +118,7 @@
     <opencsv.version>5.10</opencsv.version>
     <strimzi-test-container.version>0.110.0</strimzi-test-container.version>
 
-    <revapi-maven-plugin.version>0.15.0</revapi-maven-plugin.version>
+    <revapi-maven-plugin.version>0.15.1</revapi-maven-plugin.version>
     <revapi-java.version>0.28.4</revapi-java.version>
     <revapi-reporter-json.version>0.5.1</revapi-reporter-json.version>
     <revapi-reporter-text.version>0.15.0</revapi-reporter-text.version>
