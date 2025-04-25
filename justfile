@@ -29,6 +29,24 @@ update-pulsar-config-docs:
     @echo "📝 Updating Pulsar connector configuration docs"
     jbang .build/PulsarConfigDoc.java -d documentation/src/main/docs/pulsar/config
 
+# Build documentation
+build-docs:
+    #!/usr/bin/env bash
+    echo "📝 Building documentation"
+    ./mvnw -B -ntp clean compile -pl documentation
+    cd documentation
+    pipenv install
+    pipenv run mkdocs build
+
+# Serve documentation
+serve-docs:
+    #!/usr/bin/env bash
+    echo "📝 Building documentation"
+    ./mvnw -B -ntp clean compile -pl documentation
+    cd documentation
+    pipenv install
+    pipenv run mkdocs serve
+
 # Deploy documentation
 deploy-docs version:
     #!/usr/bin/env bash

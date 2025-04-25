@@ -25,7 +25,7 @@ public class EnabledConnectorTest extends WeldTestBase {
         assertThat(registry(container).getPublishers("dummy.source")).isNotEmpty();
         assertThat(registry(container).getSubscribers("dummy-sink")).isNotEmpty();
 
-        MyDummyConnector bean = container.select(MyDummyConnector.class, ConnectorLiteral.of("dummy")).get();
+        MyDummyConnector bean = container.select(MyDummyConnector.class, ConnectorLiteral.of("smallrye-dummy")).get();
         assertThat(bean.list()).containsExactly("8", "10", "12");
         assertThat(bean.gotCompletion()).isTrue();
         assertThat(bean.getConfigs()).hasSize(2).allSatisfy(config -> {
