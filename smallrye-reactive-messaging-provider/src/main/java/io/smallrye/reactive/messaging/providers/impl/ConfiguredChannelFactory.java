@@ -36,6 +36,7 @@ import io.smallrye.reactive.messaging.providers.helpers.MultiUtils;
 @ApplicationScoped
 public class ConfiguredChannelFactory implements ChannelRegistar {
 
+    public static final String SMALLRYE_PREFIX = "smallrye-";
     protected final Config config;
     protected final ChannelRegistry registry;
     private final ConnectorFactories factories;
@@ -202,6 +203,11 @@ public class ConfiguredChannelFactory implements ChannelRegistar {
 
         InboundConnector inboundConnector = factories.getInboundConnectors().get(connector);
         if (inboundConnector == null) {
+            if (!connector.startsWith(SMALLRYE_PREFIX)) {
+                inboundConnector = factories.getInboundConnectors().get(SMALLRYE_PREFIX + connector);
+            }
+        }
+        if (inboundConnector == null) {
             throw ex.illegalArgumentUnknownConnector(name);
         }
 
@@ -219,6 +225,11 @@ public class ConfiguredChannelFactory implements ChannelRegistar {
         String connector = getConnectorAttribute(config);
 
         OutboundConnector outboundConnector = factories.getOutboundConnectors().get(connector);
+        if (outboundConnector == null) {
+            if (!connector.startsWith(SMALLRYE_PREFIX)) {
+                outboundConnector = factories.getOutboundConnectors().get(SMALLRYE_PREFIX + connector);
+            }
+        }
         if (outboundConnector == null) {
             throw ex.illegalArgumentUnknownConnector(name);
         }

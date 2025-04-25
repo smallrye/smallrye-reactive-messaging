@@ -19,7 +19,7 @@ import io.reactivex.Flowable;
 import io.smallrye.reactive.messaging.OutgoingMessageMetadata;
 
 @ApplicationScoped
-@Connector("dummy")
+@Connector("smallrye-dummy")
 public class MyDummyConnector implements IncomingConnectorFactory, OutgoingConnectorFactory {
     private final List<String> list = new CopyOnWriteArrayList<>();
     private final List<Config> configs = new CopyOnWriteArrayList<>();

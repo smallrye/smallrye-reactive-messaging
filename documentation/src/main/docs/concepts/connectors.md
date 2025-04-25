@@ -145,6 +145,17 @@ mp.messaging.outgoing.data.acks=1
     the connector’s name and set the `connector` attribute for each channel
     managed by this connector.
 
+!!!tip "Connector names"
+    Connector managed by the SmallRye Reactive Messaging project are typically
+    prefixed with `smallrye-`. For example, the SmallRye Kafka Connector is
+    named `smallrye-kafka`. When using Smallrye connectors, you can omit the
+    prefix and just use `kafka` as the connector name:
+
+    ``` properties
+    mp.messaging.incoming.my-channel.connector=kafka
+    mp.messaging.connector.kafka.bootstrap.servers=localhost:9092
+    ```
+
 ## Connector attribute table
 
 In the connector documentation, you will find a table listing the
