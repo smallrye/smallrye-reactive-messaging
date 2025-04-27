@@ -4,7 +4,7 @@ The `io.smallrye.reactive.messaging.annotations.Blocking` annotation can
 be used on a method annotated with `@Incoming`, or `@Outgoing` to
 indicate that the method should be executed on a worker pool:
 
-``` java
+```java
 @Outgoing("Y")
 @Incoming("X")
 @Blocking
@@ -16,7 +16,7 @@ public String process(String s) {
 If method execution does not need to be ordered, it can be indicated on
 the `@Blocking` annotation:
 
-``` java
+```java
 @Outgoing("Y")
 @Incoming("X")
 @Blocking(ordered = false)
@@ -32,7 +32,7 @@ the Vert.x worker pool. If it’s desired to execute methods on a custom
 worker pool, with specific concurrency needs, it can be defined on
 `@Blocking`:
 
-``` java
+```java
 @Outgoing("Y")
 @Incoming("X")
 @Blocking("my-custom-pool")
@@ -45,6 +45,20 @@ Specifying the concurrency for the above worker pool requires the
 following configuration property to be defined:
 
     smallrye.messaging.worker.my-custom-pool.max-concurrency=3
+
+## Custom worker pool shutdown timeout
+
+When using a custom worker pool, it is possible to define a shutdown timeout in order to wait for the scheduled tasks to complete before shutting down the pool.
+This can be done by setting the following configuration property:
+
+```properties
+smallrye.messaging.worker.my-custom-pool.max-concurrency=3
+smallrye.messaging.worker.my-custom-pool.shutdown-timeout=10000
+smallrye.messaging.worker.my-custom-pool.shutdown-check-interval=2000
+```
+
+The `shutdown-timeout` property defines the maximum time to wait in milliseconds for the scheduled tasks to complete before shutting down the pool, defaults to 60 seconds.
+The `shutdown-check-interval` property defines the interval in milliseconds at which the pool will check if the tasks have completed, defaults to 5 seconds.
 
 ## Supported signatures
 

@@ -19,6 +19,13 @@ public class IncomingCustomBlockingBean {
     public void consume(String s) {
         threads.add(Thread.currentThread().getName());
         list.add(s);
+        if ("f".equals(s)) {
+            try {
+                Thread.sleep(100000);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+        }
     }
 
     public List<String> list() {
