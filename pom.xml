@@ -477,12 +477,6 @@
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>org.junit.jupiter</groupId>
-      <artifactId>junit-jupiter-params</artifactId>
-      <version>${version.junit5}</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
       <groupId>org.junit-pioneer</groupId>
       <artifactId>junit-pioneer</artifactId>
       <version>${junit-pioneer.version}</version>
@@ -678,7 +672,6 @@
             </goals>
             <configuration>
               <outputDirectory>documentation/target/apidocs</outputDirectory>
-              <reportOutputDirectory>documentation/target/apidocs</reportOutputDirectory>
               <excludePackageNames>*.quickstart:*.example:*.snippets</excludePackageNames>
             </configuration>
           </execution>
@@ -829,7 +822,6 @@
             <executions>
               <execution>
                 <id>make-index</id>
-                <phase />
               </execution>
             </executions>
           </plugin>
