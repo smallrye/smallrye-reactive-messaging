@@ -63,7 +63,6 @@ class ConfigResolverTest {
                 "readCompacted",
                 "receiverQueueSize",
                 "regexSubscriptionMode",
-                "replicateSubscriptionState",
                 "resetIncludeHead",
                 "retryEnable",
                 "startPaused",
