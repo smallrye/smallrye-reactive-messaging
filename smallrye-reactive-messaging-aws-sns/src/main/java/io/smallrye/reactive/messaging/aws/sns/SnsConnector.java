@@ -36,8 +36,6 @@ import io.vertx.mutiny.core.Vertx;
 @ConnectorAttribute(name = "endpoint-override", type = "string", direction = OUTGOING, description = "The endpoint override")
 @ConnectorAttribute(name = "credentials-provider", type = "string", direction = OUTGOING, description = "The credential provider to be used in the client, defaults to AWS default provider chain")
 
-@ConnectorAttribute(name = "use-client-injection", type = "boolean", direction = OUTGOING, description = "Whether an injected client should be used", defaultValue = "false")
-
 @ConnectorAttribute(name = "health-enabled", type = "boolean", direction = OUTGOING, description = "Whether health reporting is enabled (default) or disabled", defaultValue = "true")
 
 @ConnectorAttribute(name = "batch", type = "boolean", direction = OUTGOING, description = "When set, sends messages in batches of maximum 10 messages", defaultValue = "false")
