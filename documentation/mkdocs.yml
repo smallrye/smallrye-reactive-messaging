@@ -101,6 +101,10 @@ nav:
         - 'Receiving AWS SQS messages': sqs/receiving-aws-sqs-messages.md
         - 'Sending AWS SQS messages': sqs/sending-aws-sqs-messages.md
 
+  - AWS SNS:
+        - sns/sns.md
+        - 'Sending AWS SNS messages': sns/sending-aws-sns-messages.md
+
 plugins:
   - search
   - macros:

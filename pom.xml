@@ -145,6 +145,7 @@
     <module>smallrye-reactive-messaging-rabbitmq</module>
     <module>smallrye-reactive-messaging-gcp-pubsub</module>
     <module>smallrye-reactive-messaging-pulsar</module>
+    <module>smallrye-reactive-messaging-aws-sns</module>
     <module>smallrye-reactive-messaging-aws-sqs</module>
     <module>smallrye-reactive-messaging-camel</module>
 
