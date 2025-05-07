@@ -40,6 +40,7 @@ public class KafkaNackOnExpirationTimeFailureTest extends WeldTestBase {
                 .with("mp.messaging.outgoing.out.bootstrap.servers", servers)
                 .with("mp.messaging.outgoing.out.topic", "wrong-topic")
                 .with("mp.messaging.outgoing.out.value.serializer", "org.apache.kafka.common.serialization.StringSerializer")
+                .with("mp.messaging.outgoing.out.linger.ms", 0)
                 .with("mp.messaging.outgoing.out.delivery.timeout.ms", 1)
                 .with("mp.messaging.outgoing.out.request.timeout.ms", 1)
                 .with("mp.messaging.outgoing.out.socket.connection.setup.timeout.ms", 100)
