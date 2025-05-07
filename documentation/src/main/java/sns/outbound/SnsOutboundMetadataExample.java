@@ -8,7 +8,6 @@ import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Metadata;
 
 import io.smallrye.reactive.messaging.aws.sns.SnsOutboundMetadata;
-
 import software.amazon.awssdk.services.sns.model.MessageAttributeValue;
 
 @ApplicationScoped

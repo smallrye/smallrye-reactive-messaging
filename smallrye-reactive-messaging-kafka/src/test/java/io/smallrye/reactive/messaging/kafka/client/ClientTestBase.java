@@ -15,20 +15,16 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.Future;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
-import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
-import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.IntegerDeserializer;
 import org.apache.kafka.common.serialization.IntegerSerializer;
@@ -39,7 +35,6 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 
 import io.smallrye.mutiny.Multi;
-import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.subscription.Cancellable;
 import io.smallrye.reactive.messaging.kafka.CountKafkaCdiEvents;
 import io.smallrye.reactive.messaging.kafka.IncomingKafkaRecord;
@@ -60,7 +55,6 @@ public class ClientTestBase extends KafkaCompanionTestBase {
 
     public static final int DEFAULT_TEST_TIMEOUT = 60_000;
 
-    protected String topic;
     protected final int partitions = 4;
     protected long receiveTimeoutMillis = DEFAULT_TEST_TIMEOUT;
     protected final long requestTimeoutMillis = 3000;
@@ -93,9 +87,7 @@ public class ClientTestBase extends KafkaCompanionTestBase {
         sources = new ConcurrentLinkedQueue<>();
         sinks = new ConcurrentLinkedQueue<>();
 
-        String newTopic = "test-" + UUID.randomUUID();
-        companion.topics().createAndWait(newTopic, partitions);
-        this.topic = newTopic;
+        companion.topics().createAndWait(this.topic, partitions);
         resetMessages();
     }
 
@@ -295,49 +287,29 @@ public class ClientTestBase extends KafkaCompanionTestBase {
                 assignSemaphore.tryAcquire(sessionTimeoutMillis + 1000, TimeUnit.MILLISECONDS), "Partitions not assigned");
     }
 
-    void sendMessages(int startIndex, int count) throws Exception {
+    void sendMessages(int startIndex, int count) {
         sendMessages(IntStream.range(0, count).mapToObj(i -> createProducerRecord(startIndex + i, true)));
     }
 
-    void sendMessages(int startIndex, int count, String broker) throws Exception {
-        sendMessages(IntStream.range(startIndex, startIndex + count).mapToObj(i -> new ProducerRecord<>(topic, 0, i, "Message " + i)),
-                broker);
+    void sendMessages(int startIndex, int count, String broker) {
+        sendMessages(IntStream.range(startIndex, startIndex + count)
+                .mapToObj(i -> new ProducerRecord<>(topic, 0, i, "Message " + i)), broker);
     }
 
-    void sendMessages(Stream<? extends ProducerRecord<Integer, String>> records) throws Exception {
+    void sendMessages(Stream<ProducerRecord<Integer, String>> records) {
         Map<String, Object> configs = producerProps();
         ConfigurationCleaner.cleanupProducerConfiguration(configs);
-        try (KafkaProducer<Integer, String> producer = new KafkaProducer<>(configs)) {
-            Uni.join().all(records.map(record -> sendUni(producer, record)).toList())
-                    .usingConcurrencyOf(10)
-                    .andCollectFailures()
-                    .await().atMost(Duration.ofSeconds(10));
-            producer.flush();
+        try (var producer = companion.produce(Integer.class, String.class).withProps(configs)) {
+            producer.fromRecords(records.toList()).awaitCompletion(Duration.ofSeconds(30));
         }
     }
 
-    static Uni<RecordMetadata> sendUni(KafkaProducer<Integer, String> producer,
-            ProducerRecord<Integer, String> record) {
-        return Uni.createFrom().emitter(e -> producer.send(record,
-                (metadata, exception) -> {
-                    if (exception != null) {
-                        e.fail(exception);
-                    } else {
-                        e.complete(metadata);
-                    }
-                }));
-    }
-
-    void sendMessages(Stream<? extends ProducerRecord<Integer, String>> records, String broker) throws Exception {
+    void sendMessages(Stream<ProducerRecord<Integer, String>> records, String broker) {
         Map<String, Object> configs = producerProps();
         configs.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, broker);
         ConfigurationCleaner.cleanupProducerConfiguration(configs);
-        try (KafkaProducer<Integer, String> producer = new KafkaProducer<>(configs)) {
-            List<Future<?>> futures = records.map(producer::send).collect(Collectors.toList());
-            for (Future<?> future : futures) {
-                future.get(5, TimeUnit.SECONDS);
-            }
-            producer.flush();
+        try (var producer = companion.produce(Integer.class, String.class).withProps(configs)) {
+            producer.fromRecords(records.toList()).awaitCompletion(Duration.ofSeconds(30));
         }
     }
 
