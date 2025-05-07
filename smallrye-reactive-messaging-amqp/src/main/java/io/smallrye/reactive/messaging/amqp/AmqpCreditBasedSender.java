@@ -75,8 +75,8 @@ public class AmqpCreditBasedSender implements Processor<Message<?>, Message<?>>,
         this.writeCloudEvents = configuration.getCloudEvents();
         this.writeAsBinaryCloudEvent = configuration.getCloudEventsMode().equalsIgnoreCase("binary");
 
-        this.retryAttempts = configuration.getReconnectAttempts();
-        this.retryInterval = configuration.getReconnectInterval();
+        this.retryAttempts = configuration.getRetryOnFailAttempts();
+        this.retryInterval = configuration.getRetryOnFailInterval();
         this.maxInflights = configuration.getMaxInflightMessages();
 
         if (tracingEnabled) {

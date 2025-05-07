@@ -37,9 +37,9 @@ mp.messaging.outgoing.prices.connector=smallrye-amqp # <5>
 5.  Instructs the `prices` channel to be managed by the AMQP connector
 
 !!!note
-    You don’t need to set the *address*. By default, it uses the channel
-    name (`prices`). You can configure the `address` attribute to override
-    it.
+You don’t need to set the *address*. By default, it uses the channel
+name (`prices`). You can configure the `address` attribute to override
+it.
 
 Then, your application must send `Message<Double>` to the `prices`
 channel. It can use `double` payloads as in the following snippet:
@@ -96,8 +96,8 @@ message:
 ```
 
 !!!note
-    To be able to set the address per message, the connector is using an
-    *anonymous sender*.
+To be able to set the address per message, the connector is using an
+*anonymous sender*.
 
 ## Acknowledgement
 
@@ -118,7 +118,7 @@ When the amount of credits reaches 0, it waits (in a non-blocking fashion) until
 
 When `max-inflight-messages` is set to 0, only AMQP credits apply to limit the requests.
 
-Note that if an AMQP message send fails, it is retried until `reconnect-attempts` is reached.
+Note that if an AMQP message send fails, it is retried until `retry-on-fail-attempts` is reached.
 If the client reconnects to the broker during the retry, failing messages are sent again but the message order is not preserved.
 
 To preserve the message order in this case you can set `max-inflight-messages` to
@@ -227,6 +227,6 @@ created records had its `content-type` header set to
 `application/cloudevents+json; charset=UTF-8`
 
 !!!note
-    you can disable the Cloud Event support by setting the `cloud-events`
-    attribute to `false`
+you can disable the Cloud Event support by setting the `cloud-events`
+attribute to `false`
 
