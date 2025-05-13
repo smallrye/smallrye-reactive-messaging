@@ -21,4 +21,18 @@ public interface PausableChannel {
      * Resumes the channel.
      */
     void resume();
+
+    /**
+     * Returns items buffered in the channel.
+     *
+     * @return a copy of the buffered items
+     */
+    int bufferSize();
+
+    /**
+     * Clears buffered items.
+     *
+     * @return {@code true} if the items were cleared, {@code false} otherwise
+     */
+    boolean clearBuffer();
 }
