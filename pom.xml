@@ -81,7 +81,7 @@
 
     <micrometer.version>1.15.0</micrometer.version>
 
-    <mutiny.version>2.8.0</mutiny.version>
+    <mutiny.version>2.9.0</mutiny.version>
     <artemis.version>2.41.0</artemis.version>
     <commons-io.version>2.19.0</commons-io.version>
 
@@ -92,7 +92,7 @@
     <opentelemetry.instrumentation.version>2.5.0-alpha</opentelemetry.instrumentation.version>
     <opentelemetry-semconv.version>1.25.0-alpha</opentelemetry-semconv.version>
 
-    <smallrye-vertx-mutiny-clients.version>3.17.1</smallrye-vertx-mutiny-clients.version>
+    <smallrye-vertx-mutiny-clients.version>3.19.0</smallrye-vertx-mutiny-clients.version>
     <smallrye-reactive-converters.version>3.0.0</smallrye-reactive-converters.version>
     <mutiny-zero.version>1.1.0</mutiny-zero.version>
 
