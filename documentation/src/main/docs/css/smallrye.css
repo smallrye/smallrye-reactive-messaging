@@ -12,6 +12,12 @@ figure {
     padding: 10px;
 }
 
+[data-md-color-scheme="slate"] {
+    figure {
+        filter: invert(1) hue-rotate(180deg);
+    }
+}
+
 .md-typeset a {
     color: dodgerblue;
 }

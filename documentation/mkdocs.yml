@@ -126,8 +126,31 @@ theme:
   logo: images/logo.png
   favicon: images/favicon.png
   palette:
-    primary: blue grey
-    accent: blue
+    # Palette toggle for automatic mode
+    - media: "(prefers-color-scheme)"
+      primary: blue grey
+      accent: blue
+      toggle:
+          icon: material/brightness-auto
+          name: Switch to light mode
+
+    # Palette toggle for light mode
+    - media: "(prefers-color-scheme: light)"
+#      scheme: default
+      primary: blue grey
+      accent: blue
+      toggle:
+          icon: material/brightness-7
+          name: Switch to dark mode
+
+    # Palette toggle for dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: blue grey
+      accent: blue
+      toggle:
+          icon: material/brightness-4
+          name: Switch to system preference
   font:
     text: Red Hat Text
     code: Ubuntu Mono
