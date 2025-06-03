@@ -2,11 +2,8 @@ package io.smallrye.reactive.messaging.mqtt;
 
 import static io.smallrye.reactive.messaging.mqtt.i18n.MqttLogging.log;
 
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.security.SecureRandom;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
 import io.smallrye.mutiny.Multi;
@@ -25,50 +22,17 @@ public class Clients {
         // avoid direct instantiation.
     }
 
-    private static String sha512(String password) {
-        if (password == null || password.isEmpty()) {
-            return null;
-        }
-        MessageDigest messageDigest = getMessageDigest("SHA-512");
-        SecureRandom random = new SecureRandom();
-        byte[] salt = new byte[16];
-        random.nextBytes(salt);
-        messageDigest.update(salt);
-        StringBuilder sb = new StringBuilder();
-        toHex(messageDigest.digest(password.getBytes(StandardCharsets.UTF_8)), sb);
-        return sb.toString();
-    }
-
-    private static void toHex(byte[] digest, StringBuilder sb) {
-        for (byte b : digest) {
-            sb.append(Integer.toHexString((b & 0xFF) | 0x100), 1, 3);
-        }
-    }
-
-    private static MessageDigest getMessageDigest(String alg) {
-        try {
-            return MessageDigest.getInstance(alg);
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalArgumentException(e);
-        }
-    }
-
     static ClientHolder getHolder(Vertx vertx, MqttClientSessionOptions options) {
 
         String host = options.getHostname();
         int port = options.getPort();
-        String clientId = options.getClientId();
-        String server = options.getServerName().orElse(null);
+        String clientId = Optional.ofNullable(options.getClientId()).orElse("");
+        String server = options.getServerName().orElse("");
         String username = options.getUsername();
-        String pwdDigest = sha512(options.getPassword());
 
-        String id = username + ":" + pwdDigest + "@"
-                + host + ":"
-                + port
-                + "<" + (server == null ? "" : server)
-                + ">-[" + (clientId != null ? clientId : "") + "]";
+        String id = String.format("%s@%s:%s<%s>-[%s]", username, host, port, server, clientId);
         return clients.computeIfAbsent(id, key -> {
-            log.infof("Create MQTT Client for %s.", id);
+            log.infof("Create MQTT Client for %s", id);
             MqttClientSession client = MqttClientSession.create(vertx.getDelegate(), options);
             return new ClientHolder(client);
         });
