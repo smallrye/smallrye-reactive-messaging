@@ -1,21 +1,24 @@
 package io.smallrye.reactive.messaging.kafka.tracing;
 
-import static io.opentelemetry.semconv.SemanticAttributes.MESSAGING_CLIENT_ID;
-import static io.opentelemetry.semconv.SemanticAttributes.MESSAGING_DESTINATION_NAME;
-import static io.opentelemetry.semconv.SemanticAttributes.MESSAGING_KAFKA_MESSAGE_OFFSET;
-import static io.opentelemetry.semconv.SemanticAttributes.MESSAGING_OPERATION;
-import static io.opentelemetry.semconv.SemanticAttributes.MESSAGING_SYSTEM;
+import static io.opentelemetry.api.common.AttributeKey.stringKey;
+import static io.opentelemetry.semconv.incubating.MessagingIncubatingAttributes.MESSAGING_DESTINATION_NAME;
+import static io.opentelemetry.semconv.incubating.MessagingIncubatingAttributes.MESSAGING_KAFKA_OFFSET;
+import static io.opentelemetry.semconv.incubating.MessagingIncubatingAttributes.MESSAGING_OPERATION;
+import static io.opentelemetry.semconv.incubating.MessagingIncubatingAttributes.MESSAGING_SYSTEM;
 import static io.smallrye.reactive.messaging.kafka.companion.RecordQualifiers.until;
 import static java.util.stream.Collectors.toList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Flow;
@@ -37,6 +40,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import io.opentelemetry.api.GlobalOpenTelemetry;
+import io.opentelemetry.api.common.AttributeKey;
+import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.SpanId;
 import io.opentelemetry.api.trace.SpanKind;
@@ -53,6 +58,7 @@ import io.opentelemetry.sdk.trace.SpanProcessor;
 import io.opentelemetry.sdk.trace.data.SpanData;
 import io.opentelemetry.sdk.trace.export.SimpleSpanProcessor;
 import io.opentelemetry.sdk.trace.samplers.Sampler;
+import io.opentelemetry.semconv.incubating.MessagingIncubatingAttributes;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.ce.OutgoingCloudEventMetadata;
 import io.smallrye.reactive.messaging.kafka.base.KafkaCompanionTestBase;
@@ -117,8 +123,9 @@ public class TracingPropagationTest extends KafkaCompanionTestBase {
             assertEquals("kafka", span.getAttributes().get(MESSAGING_SYSTEM));
             assertEquals("publish", span.getAttributes().get(MESSAGING_OPERATION));
             assertEquals(topic, span.getAttributes().get(MESSAGING_DESTINATION_NAME));
-            assertEquals("kafka-producer-kafka", span.getAttributes().get(MESSAGING_CLIENT_ID));
-            assertEquals(0, span.getAttributes().get(MESSAGING_KAFKA_MESSAGE_OFFSET));
+            checkAttribute(span.getAttributes(), "kafka-producer-kafka",
+                    stringKey("messaging.client_id"), MessagingIncubatingAttributes.MESSAGING_CLIENT_ID);
+            assertEquals(0, span.getAttributes().get(MESSAGING_KAFKA_OFFSET));
 
             assertEquals(topic + " publish", span.getName());
         });
@@ -155,9 +162,9 @@ public class TracingPropagationTest extends KafkaCompanionTestBase {
             assertEquals("kafka", span.getAttributes().get(MESSAGING_SYSTEM));
             assertEquals("publish", span.getAttributes().get(MESSAGING_OPERATION));
             assertEquals(topic, span.getAttributes().get(MESSAGING_DESTINATION_NAME));
-            assertEquals("publish", span.getAttributes().get(MESSAGING_OPERATION));
-            assertEquals("kafka-producer-kafka", span.getAttributes().get(MESSAGING_CLIENT_ID));
-            assertEquals(0, span.getAttributes().get(MESSAGING_KAFKA_MESSAGE_OFFSET));
+            checkAttribute(span.getAttributes(), "kafka-producer-kafka",
+                    stringKey("messaging.client_id"), MessagingIncubatingAttributes.MESSAGING_CLIENT_ID);
+            assertEquals(0, span.getAttributes().get(MESSAGING_KAFKA_OFFSET));
             assertEquals(topic + " publish", span.getName());
         });
     }
@@ -193,9 +200,9 @@ public class TracingPropagationTest extends KafkaCompanionTestBase {
             assertEquals("kafka", span.getAttributes().get(MESSAGING_SYSTEM));
             assertEquals("publish", span.getAttributes().get(MESSAGING_OPERATION));
             assertEquals(topic, span.getAttributes().get(MESSAGING_DESTINATION_NAME));
-            assertEquals("publish", span.getAttributes().get(MESSAGING_OPERATION));
-            assertEquals("kafka-producer-kafka", span.getAttributes().get(MESSAGING_CLIENT_ID));
-            assertEquals(0, span.getAttributes().get(MESSAGING_KAFKA_MESSAGE_OFFSET));
+            checkAttribute(span.getAttributes(), "kafka-producer-kafka",
+                    stringKey("messaging.client_id"), MessagingIncubatingAttributes.MESSAGING_CLIENT_ID);
+            assertEquals(0, span.getAttributes().get(MESSAGING_KAFKA_OFFSET));
             assertEquals(topic + " publish", span.getName());
         });
     }
@@ -240,8 +247,9 @@ public class TracingPropagationTest extends KafkaCompanionTestBase {
             assertEquals("kafka", consumer.getAttributes().get(MESSAGING_SYSTEM));
             assertEquals("receive", consumer.getAttributes().get(MESSAGING_OPERATION));
             assertEquals(parentTopic, consumer.getAttributes().get(MESSAGING_DESTINATION_NAME));
-            assertEquals("kafka-consumer-source", consumer.getAttributes().get(MESSAGING_CLIENT_ID));
-            assertEquals(0, consumer.getAttributes().get(MESSAGING_KAFKA_MESSAGE_OFFSET));
+            checkAttribute(consumer.getAttributes(), "kafka-consumer-source",
+                    stringKey("messaging.client_id"), MessagingIncubatingAttributes.MESSAGING_CLIENT_ID);
+            assertEquals(0, consumer.getAttributes().get(MESSAGING_KAFKA_OFFSET));
             assertEquals(parentTopic + " receive", consumer.getName());
 
             SpanData producer = spans.stream().filter(spanData -> spanData.getParentSpanId().equals(consumer.getSpanId()))
@@ -252,8 +260,9 @@ public class TracingPropagationTest extends KafkaCompanionTestBase {
             assertEquals("publish", producer.getAttributes().get(MESSAGING_OPERATION));
             assertEquals(resultTopic, producer.getAttributes().get(MESSAGING_DESTINATION_NAME));
             assertEquals("publish", producer.getAttributes().get(MESSAGING_OPERATION));
-            assertEquals("kafka-producer-kafka", producer.getAttributes().get(MESSAGING_CLIENT_ID));
-            assertEquals(0, producer.getAttributes().get(MESSAGING_KAFKA_MESSAGE_OFFSET));
+            checkAttribute(producer.getAttributes(), "kafka-producer-kafka",
+                    stringKey("messaging.client_id"), MessagingIncubatingAttributes.MESSAGING_CLIENT_ID);
+            assertEquals(0, producer.getAttributes().get(MESSAGING_KAFKA_OFFSET));
             assertEquals(resultTopic + " publish", producer.getName());
         });
     }
@@ -306,10 +315,25 @@ public class TracingPropagationTest extends KafkaCompanionTestBase {
             assertEquals("kafka", consumer.getAttributes().get(MESSAGING_SYSTEM));
             assertEquals("receive", consumer.getAttributes().get(MESSAGING_OPERATION));
             assertEquals(parentTopic, consumer.getAttributes().get(MESSAGING_DESTINATION_NAME));
-            assertEquals("kafka-consumer-stuff", consumer.getAttributes().get(MESSAGING_CLIENT_ID));
-            assertEquals(0, consumer.getAttributes().get(MESSAGING_KAFKA_MESSAGE_OFFSET));
+            checkAttribute(consumer.getAttributes(), "kafka-consumer-stuff",
+                    stringKey("messaging.client_id"), MessagingIncubatingAttributes.MESSAGING_CLIENT_ID);
+            assertEquals(0, consumer.getAttributes().get(MESSAGING_KAFKA_OFFSET));
             assertEquals(parentTopic + " receive", consumer.getName());
         });
+    }
+
+    /**
+     * Currently, Kafka creates spans using an older version of OpenTelemetry's semantic conventions. This method
+     * allows us to check old and new keys. It loops through the keys, making sure at least one returns the expected
+     * value.
+     *
+     * @param attributes The span attributes to check
+     * @param expected The expected value to be found
+     * @param keys The keys under which <code>expected</code> might be found
+     */
+    private void checkAttribute(Attributes attributes, String expected, AttributeKey<?>... keys) {
+        assertTrue(
+                Arrays.stream(keys).anyMatch(key -> Objects.equals(expected, attributes.get(key))));
     }
 
     @Test
