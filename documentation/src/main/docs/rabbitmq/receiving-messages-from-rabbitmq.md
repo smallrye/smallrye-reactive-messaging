@@ -148,6 +148,10 @@ the header:
 | Number               | `Number`         |
 | List                 | `java.util.List` |
 
+If you need to create `IncomingRabbitMQMetadata` e.g. for testing purposes,
+you can create an `{{ javadoc('io.smallrye.reactive.messaging.rabbitmq.OutgoingRabbitMQMetadata') }}`
+using its builder and convert it using `OutgoingRabbitMQMetadata.toIncomingMetadata(String, boolean)`
+
 ## Acknowledgement
 
 When a Reactive Messaging Message associated with a RabbitMQ Message is
