@@ -321,7 +321,7 @@ public class OutgoingRabbitMQMetadata {
 
     /**
      * Converts this OutgoingRabbitMQMetadata to an IncomingRabbitMQMetadata.
-     * This is mainly intended for use in unit tests that relies on incoming metadata.
+     * This is mainly intended for use in unit tests that rely on incoming metadata.
      *
      * @param exchange the exchange
      * @param isRedeliver if it was a redelivery
