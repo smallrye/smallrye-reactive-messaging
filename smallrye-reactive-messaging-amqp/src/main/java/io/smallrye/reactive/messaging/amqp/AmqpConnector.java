@@ -1,22 +1,16 @@
 package io.smallrye.reactive.messaging.amqp;
 
-import static io.smallrye.reactive.messaging.amqp.i18n.AMQPExceptions.ex;
 import static io.smallrye.reactive.messaging.amqp.i18n.AMQPLogging.log;
 import static io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Direction.INCOMING;
 import static io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Direction.INCOMING_AND_OUTGOING;
 import static io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Direction.OUTGOING;
-import static java.time.Duration.ofSeconds;
 
 import java.time.Duration;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Flow;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.stream.Collectors;
 
 import jakarta.annotation.Priority;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -32,36 +26,16 @@ import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.spi.Connector;
 
 import io.opentelemetry.api.OpenTelemetry;
-import io.smallrye.mutiny.Multi;
-import io.smallrye.mutiny.Uni;
-import io.smallrye.mutiny.operators.multi.processors.BroadcastProcessor;
 import io.smallrye.reactive.messaging.ClientCustomizer;
-import io.smallrye.reactive.messaging.amqp.fault.AmqpAccept;
-import io.smallrye.reactive.messaging.amqp.fault.AmqpFailStop;
-import io.smallrye.reactive.messaging.amqp.fault.AmqpFailureHandler;
-import io.smallrye.reactive.messaging.amqp.fault.AmqpModifiedFailed;
-import io.smallrye.reactive.messaging.amqp.fault.AmqpModifiedFailedAndUndeliverableHere;
-import io.smallrye.reactive.messaging.amqp.fault.AmqpReject;
-import io.smallrye.reactive.messaging.amqp.fault.AmqpRelease;
-import io.smallrye.reactive.messaging.amqp.tracing.AmqpOpenTelemetryInstrumenter;
 import io.smallrye.reactive.messaging.annotations.ConnectorAttribute;
 import io.smallrye.reactive.messaging.connector.InboundConnector;
 import io.smallrye.reactive.messaging.connector.OutboundConnector;
 import io.smallrye.reactive.messaging.health.HealthReport;
 import io.smallrye.reactive.messaging.health.HealthReporter;
 import io.smallrye.reactive.messaging.providers.connectors.ExecutionHolder;
-import io.smallrye.reactive.messaging.providers.helpers.MultiUtils;
-import io.smallrye.reactive.messaging.providers.helpers.VertxContext;
 import io.vertx.amqp.AmqpClientOptions;
-import io.vertx.amqp.AmqpReceiverOptions;
-import io.vertx.amqp.AmqpSenderOptions;
-import io.vertx.core.impl.VertxInternal;
 import io.vertx.mutiny.amqp.AmqpClient;
-import io.vertx.mutiny.amqp.AmqpReceiver;
-import io.vertx.mutiny.amqp.AmqpSender;
-import io.vertx.mutiny.core.Context;
 import io.vertx.mutiny.core.Vertx;
-import io.vertx.proton.ProtonSender;
 
 @ApplicationScoped
 @Connector(AmqpConnector.CONNECTOR_NAME)
@@ -85,6 +59,8 @@ import io.vertx.proton.ProtonSender;
 @ConnectorAttribute(name = "health-timeout", direction = INCOMING_AND_OUTGOING, description = "The max number of seconds to wait to determine if the connection with the broker is still established for the readiness check. After that threshold, the check is considered as failed.", type = "int", defaultValue = "3")
 @ConnectorAttribute(name = "cloud-events", type = "boolean", direction = INCOMING_AND_OUTGOING, description = "Enables (default) or disables the Cloud Event support. If enabled on an _incoming_ channel, the connector analyzes the incoming records and try to create Cloud Event metadata. If enabled on an _outgoing_, the connector sends the outgoing messages as Cloud Event if the message includes Cloud Event Metadata.", defaultValue = "true")
 @ConnectorAttribute(name = "capabilities", type = "string", direction = INCOMING_AND_OUTGOING, description = " A comma-separated list of capabilities proposed by the sender or receiver client.")
+@ConnectorAttribute(name = "retry-on-fail-attempts", direction = INCOMING_AND_OUTGOING, description = "The number of tentative to retry on failure", type = "int", defaultValue = "6")
+@ConnectorAttribute(name = "retry-on-fail-interval", direction = INCOMING_AND_OUTGOING, description = "The interval (in seconds) between two sending attempts", type = "int", defaultValue = "5")
 
 @ConnectorAttribute(name = "broadcast", direction = INCOMING, description = "Whether the received AMQP messages must be dispatched to multiple _subscribers_", type = "boolean", defaultValue = "false")
 @ConnectorAttribute(name = "durable", direction = INCOMING, description = "Whether AMQP subscription is durable", type = "boolean", defaultValue = "false")
@@ -105,8 +81,6 @@ import io.vertx.proton.ProtonSender;
 @ConnectorAttribute(name = "cloud-events-data-schema", type = "string", direction = OUTGOING, description = "Configure the default `dataschema` attribute of the outgoing Cloud Event. Requires `cloud-events` to be set to `true`. This value is used if the message does not configure the `dataschema` attribute itself", alias = "cloud-events-default-data-schema")
 @ConnectorAttribute(name = "cloud-events-insert-timestamp", type = "boolean", direction = OUTGOING, description = "Whether or not the connector should insert automatically the `time` attribute into the outgoing Cloud Event. Requires `cloud-events` to be set to `true`. This value is used if the message does not configure the `time` attribute itself", alias = "cloud-events-default-timestamp", defaultValue = "true")
 @ConnectorAttribute(name = "cloud-events-mode", type = "string", direction = OUTGOING, description = "The Cloud Event mode (`structured` or `binary` (default)). Indicates how are written the cloud events in the outgoing record", defaultValue = "binary")
-@ConnectorAttribute(name = "retry-on-fail-attempts", direction = OUTGOING, description = "The number of tentative to retry on failure", type = "int", defaultValue = "6")
-@ConnectorAttribute(name = "retry-on-fail-interval", direction = OUTGOING, description = "The interval (in seconds) between two sending attempts", type = "int", defaultValue = "5")
 
 public class AmqpConnector implements InboundConnector, OutboundConnector, HealthReporter {
 
@@ -129,31 +103,16 @@ public class AmqpConnector implements InboundConnector, OutboundConnector, Healt
     private final List<AmqpClient> clients = new CopyOnWriteArrayList<>();
 
     /**
-     * Tracks the processor used to send messages to AMQP.
-     * The map is used for cleanup and health checks.
-     */
-    private final Map<String, AmqpCreditBasedSender> processors = new ConcurrentHashMap<>();
-
-    /**
-     * Tracks the state of the AMQP connection.
-     * The boolean is set to {@code true} when the connection with the AMQP broker is established, and set to
-     * {@code false} once the connection is lost and retry attempts have failed.
-     * This map is used for health check:
-     *
-     * <ul>
-     * <li>liveness: failed if opened is set to false for a channel</li>
-     * </li>readiness: failed if opened is set to false for a channel</li>
-     * </ul>
-     */
-    private final Map<String, Boolean> opened = new ConcurrentHashMap<>();
-
-    /**
      * Tracks the consumer connection holder.
      * This map is used for cleanup and health checks.
      */
-    private final Map<String, ConnectionHolder> holders = new ConcurrentHashMap<>();
+    private final Map<String, IncomingAmqpChannel> incomingChannels = new ConcurrentHashMap<>();
 
-    private volatile AmqpOpenTelemetryInstrumenter amqpInstrumenter;
+    /**
+     * Tracks the outgoing channels.
+     * This map is used for cleanup and health checks.
+     */
+    private final Map<String, OutgoingAmqpChannel> outgoingChannels = new ConcurrentHashMap<>();
 
     void setup(ExecutionHolder executionHolder) {
         this.executionHolder = executionHolder;
@@ -163,196 +122,34 @@ public class AmqpConnector implements InboundConnector, OutboundConnector, Healt
         // used for proxies
     }
 
-    @SuppressWarnings({ "rawtypes", "unchecked" })
-    private Multi<? extends Message<?>> getStreamOfMessages(AmqpReceiver receiver,
-            ConnectionHolder holder,
-            String address,
-            String channel,
-            AmqpFailureHandler onNack,
-            boolean cloudEventEnabled,
-            Boolean tracingEnabled) {
-        log.receiverListeningAddress(address);
-
-        // The processor is used to inject AMQP Connection failure in the stream and trigger a retry.
-        BroadcastProcessor processor = BroadcastProcessor.create();
-        receiver.exceptionHandler(t -> {
-            log.receiverError(t);
-            processor.onError(t);
-        });
-        holder.onFailure(processor::onError);
-
-        return Multi.createFrom().deferred(
-                () -> {
-                    Multi<Message<?>> stream = receiver.toMulti()
-                            .emitOn(c -> VertxContext.runOnContext(holder.getContext().getDelegate(), c))
-                            .onItem().transformToUniAndConcatenate(m -> {
-                                try {
-                                    return Uni.createFrom().item(new AmqpMessage<>(m, holder.getContext(), onNack,
-                                            cloudEventEnabled, tracingEnabled));
-                                } catch (Exception e) {
-                                    log.unableToCreateMessage(channel, e);
-                                    return Uni.createFrom().nullItem();
-                                }
-                            });
-
-                    if (tracingEnabled) {
-                        stream = stream.onItem()
-                                .transform(m -> amqpInstrumenter.traceIncoming(m, (AmqpMessage<?>) m));
-                    }
-
-                    return Multi.createBy().merging().streams(stream, processor);
-                });
-    }
-
     @Override
     public Flow.Publisher<? extends Message<?>> getPublisher(Config config) {
         AmqpConnectorIncomingConfiguration ic = new AmqpConnectorIncomingConfiguration(config);
-        AmqpConnectorOutgoingConfiguration oc = new AmqpConnectorOutgoingConfiguration(config);
-        String address = ic.getAddress().orElseGet(ic::getChannel);
+        AmqpClient client = AmqpClientHelper.createClient(executionHolder.vertx(), ic, clientOptions, configCustomizers);
+        addClient(client);
 
-        opened.put(ic.getChannel(), false);
+        IncomingAmqpChannel incoming = new IncomingAmqpChannel(ic, client, executionHolder.vertx(),
+                openTelemetryInstance, this::reportFailure);
+        incomingChannels.put(ic.getChannel(), incoming);
 
-        boolean broadcast = ic.getBroadcast();
-        String channel = ic.getChannel();
-        String link = ic.getLinkName().orElse(channel);
-        boolean cloudEvents = ic.getCloudEvents();
-        boolean tracing = ic.getTracingEnabled();
-        AmqpReceiverOptions options = new AmqpReceiverOptions()
-                .setAutoAcknowledgement(ic.getAutoAcknowledgement())
-                .setDurable(ic.getDurable())
-                .setLinkName(link)
-                .setCapabilities(getClientCapabilities(ic))
-                .setSelector(ic.getSelector().orElse(null));
-
-        AmqpClient client = AmqpClientHelper.createClient(this, ic, clientOptions, configCustomizers);
-
-        Context root = Context.newInstance(((VertxInternal) getVertx().getDelegate()).createEventLoopContext());
-        ConnectionHolder holder = new ConnectionHolder(client, ic, getVertx(), root);
-        holders.put(ic.getChannel(), holder);
-
-        AmqpFailureHandler onNack = createFailureHandler(ic);
-
-        if (tracing && amqpInstrumenter == null) {
-            amqpInstrumenter = AmqpOpenTelemetryInstrumenter.createForConnector(openTelemetryInstance);
-        }
-
-        Multi<? extends Message<?>> multi = holder.getOrEstablishConnection()
-                .onItem().transformToUni(connection -> connection.createReceiver(address, options))
-                .onItem().invoke(r -> opened.put(channel, true))
-                .onItem().transformToMulti(r -> getStreamOfMessages(r, holder, address, channel, onNack,
-                        cloudEvents, tracing));
-
-        Integer interval = oc.getRetryOnFailInterval();
-        Integer attempts = oc.getRetryOnFailAttempts();
-        multi = multi
-                // Retry on failure.
-                .onFailure().invoke(log::retrieveMessagesRetrying)
-                .onFailure().retry().withBackOff(ofSeconds(1), ofSeconds(interval)).atMost(attempts)
-                .onFailure().invoke(t -> {
-                    opened.put(channel, false);
-                    log.retrieveMessagesNoMoreRetrying(t);
-                });
-
-        if (broadcast) {
-            multi = multi.broadcast().toAllSubscribers();
-        }
-
-        return multi;
+        return incoming.getPublisher();
     }
 
     @Override
     public Flow.Subscriber<? extends Message<?>> getSubscriber(Config config) {
         AmqpConnectorOutgoingConfiguration oc = new AmqpConnectorOutgoingConfiguration(config);
-        String configuredAddress = oc.getAddress().orElseGet(oc::getChannel);
-
-        opened.put(oc.getChannel(), false);
-
-        AtomicReference<AmqpSender> sender = new AtomicReference<>();
-        AmqpClient client = AmqpClientHelper.createClient(this, oc, clientOptions, configCustomizers);
-        String link = oc.getLinkName().orElseGet(oc::getChannel);
-        ConnectionHolder holder = new ConnectionHolder(client, oc, getVertx(), null);
-
-        Uni<AmqpSender> getSender = Uni.createFrom().deferred(() -> {
-
-            // If we already have a sender, use it.
-            AmqpSender current = sender.get();
-            if (current != null && !current.connection().isDisconnected()) {
-                if (isLinkOpen(current)) {
-                    return Uni.createFrom().item(current);
-                } else {
-                    // link closed, close the sender, and recreate one.
-                    current.closeAndForget();
-                }
-            }
-
-            return holder.getOrEstablishConnection()
-                    .onItem().transformToUni(connection -> {
-                        boolean anonymous = oc.getUseAnonymousSender()
-                                .orElseGet(() -> ConnectionHolder.supportAnonymousRelay(connection));
-
-                        if (anonymous) {
-                            return connection.createAnonymousSender();
-                        } else {
-                            return connection.createSender(configuredAddress,
-                                    new AmqpSenderOptions()
-                                            .setLinkName(link)
-                                            .setCapabilities(getClientCapabilities(oc)));
-                        }
-                    })
-                    .onItem().invoke(s -> {
-                        AmqpSender orig = sender.getAndSet(s);
-                        if (orig != null) { // Close the previous one if any.
-                            orig.closeAndForget();
-                        }
-                        opened.put(oc.getChannel(), true);
-                    });
-        })
-                // If the downstream cancels or on failure, drop the sender.
-                .onFailure().invoke(t -> {
-                    sender.set(null);
-                    opened.put(oc.getChannel(), false);
-                })
-                .onCancellation().invoke(() -> {
-                    sender.set(null);
-                    opened.put(oc.getChannel(), false);
-                });
-
-        AmqpCreditBasedSender processor = new AmqpCreditBasedSender(
-                this,
-                holder,
-                oc,
-                getSender,
-                openTelemetryInstance);
-        processors.put(oc.getChannel(), processor);
-
-        return MultiUtils.via(processor, m -> m.onFailure().invoke(t -> {
-            log.failureReported(oc.getChannel(), t);
-            opened.put(oc.getChannel(), false);
-        }));
-    }
-
-    private boolean isLinkOpen(AmqpSender current) {
-        ProtonSender sender = current.getDelegate().unwrap();
-        if (sender == null) {
-            return false;
-        }
-        return sender.isOpen();
-    }
-
-    public List<String> getClientCapabilities(AmqpConnectorCommonConfiguration configuration) {
-        if (configuration.getCapabilities().isPresent()) {
-            String capabilities = configuration.getCapabilities().get();
-            return Arrays.stream(capabilities.split(","))
-                    .map(String::trim)
-                    .filter(s -> !s.isEmpty())
-                    .collect(Collectors.toList());
-        }
-        return Collections.emptyList();
+        AmqpClient client = AmqpClientHelper.createClient(executionHolder.vertx(), oc, clientOptions, configCustomizers);
+        addClient(client);
+        OutgoingAmqpChannel outgoing = new OutgoingAmqpChannel(oc, client, executionHolder.vertx(),
+                openTelemetryInstance, this::reportFailure);
+        outgoingChannels.put(oc.getChannel(), outgoing);
+        return outgoing.getSubscriber();
     }
 
     public void terminate(
             @Observes(notifyObserver = Reception.IF_EXISTS) @Priority(50) @BeforeDestroyed(ApplicationScoped.class) Object event) {
-        processors.values().forEach(AmqpCreditBasedSender::cancel);
+        outgoingChannels.values().forEach(OutgoingAmqpChannel::close);
+        incomingChannels.values().forEach(IncomingAmqpChannel::close);
         clients.forEach(c -> {
             // We cannot use andForget as it could report an error is the broker is not available.
             //noinspection ResultOfMethodCallIgnored
@@ -369,28 +166,6 @@ public class AmqpConnector implements InboundConnector, OutboundConnector, Healt
         clients.add(client);
     }
 
-    private AmqpFailureHandler createFailureHandler(AmqpConnectorIncomingConfiguration config) {
-        String strategy = config.getFailureStrategy();
-        AmqpFailureHandler.Strategy actualStrategy = AmqpFailureHandler.Strategy.from(strategy);
-        switch (actualStrategy) {
-            case FAIL:
-                return new AmqpFailStop(this, config.getChannel());
-            case ACCEPT:
-                return new AmqpAccept(config.getChannel());
-            case REJECT:
-                return new AmqpReject(config.getChannel());
-            case RELEASE:
-                return new AmqpRelease(config.getChannel());
-            case MODIFIED_FAILED:
-                return new AmqpModifiedFailed(config.getChannel());
-            case MODIFIED_FAILED_UNDELIVERABLE_HERE:
-                return new AmqpModifiedFailedAndUndeliverableHere(config.getChannel());
-            default:
-                throw ex.illegalArgumentInvalidFailureStrategy(strategy);
-        }
-
-    }
-
     public List<AmqpClient> getClients() {
         return clients;
     }
@@ -405,7 +180,7 @@ public class AmqpConnector implements InboundConnector, OutboundConnector, Healt
     @Override
     public HealthReport getReadiness() {
         HealthReport.HealthReportBuilder builder = HealthReport.builder();
-        for (Map.Entry<String, ConnectionHolder> holder : holders.entrySet()) {
+        for (Map.Entry<String, IncomingAmqpChannel> holder : incomingChannels.entrySet()) {
             try {
                 builder.add(holder.getKey(), holder.getValue().isConnected().await()
                         .atMost(Duration.ofSeconds(holder.getValue().getHealthTimeout())));
@@ -414,7 +189,7 @@ public class AmqpConnector implements InboundConnector, OutboundConnector, Healt
             }
         }
 
-        for (Map.Entry<String, AmqpCreditBasedSender> sender : processors.entrySet()) {
+        for (Map.Entry<String, OutgoingAmqpChannel> sender : outgoingChannels.entrySet()) {
             try {
                 builder.add(sender.getKey(), sender.getValue().isConnected().await()
                         .atMost(Duration.ofSeconds(sender.getValue().getHealthTimeout())));
@@ -435,8 +210,11 @@ public class AmqpConnector implements InboundConnector, OutboundConnector, Healt
     @Override
     public HealthReport getLiveness() {
         HealthReport.HealthReportBuilder builder = HealthReport.builder();
-        for (Map.Entry<String, Boolean> entry : opened.entrySet()) {
-            builder.add(entry.getKey(), entry.getValue());
+        for (Map.Entry<String, IncomingAmqpChannel> entry : incomingChannels.entrySet()) {
+            builder.add(entry.getKey(), entry.getValue().isOpen());
+        }
+        for (Map.Entry<String, OutgoingAmqpChannel> entry : outgoingChannels.entrySet()) {
+            builder.add(entry.getKey(), entry.getValue().isOpen());
         }
         return builder.build();
     }
@@ -448,7 +226,6 @@ public class AmqpConnector implements InboundConnector, OutboundConnector, Healt
 
     public void reportFailure(String channel, Throwable reason) {
         log.failureReported(channel, reason);
-        opened.put(channel, false);
         terminate(null);
     }
 
