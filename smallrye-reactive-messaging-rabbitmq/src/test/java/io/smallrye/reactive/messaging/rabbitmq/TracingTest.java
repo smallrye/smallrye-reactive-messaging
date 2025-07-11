@@ -1,11 +1,11 @@
 package io.smallrye.reactive.messaging.rabbitmq;
 
-import static io.opentelemetry.semconv.SemanticAttributes.MESSAGING_DESTINATION_NAME;
-import static io.opentelemetry.semconv.SemanticAttributes.MESSAGING_OPERATION;
-import static io.opentelemetry.semconv.SemanticAttributes.MESSAGING_PROTOCOL;
-import static io.opentelemetry.semconv.SemanticAttributes.MESSAGING_PROTOCOL_VERSION;
-import static io.opentelemetry.semconv.SemanticAttributes.MESSAGING_RABBITMQ_ROUTING_KEY;
-import static io.opentelemetry.semconv.SemanticAttributes.MESSAGING_SYSTEM;
+import static io.opentelemetry.semconv.NetworkAttributes.NETWORK_PROTOCOL_NAME;
+import static io.opentelemetry.semconv.NetworkAttributes.NETWORK_PROTOCOL_VERSION;
+import static io.opentelemetry.semconv.incubating.MessagingIncubatingAttributes.MESSAGING_DESTINATION_NAME;
+import static io.opentelemetry.semconv.incubating.MessagingIncubatingAttributes.MESSAGING_OPERATION;
+import static io.opentelemetry.semconv.incubating.MessagingIncubatingAttributes.MESSAGING_RABBITMQ_DESTINATION_ROUTING_KEY;
+import static io.opentelemetry.semconv.incubating.MessagingIncubatingAttributes.MESSAGING_SYSTEM;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
@@ -103,10 +103,10 @@ public class TracingTest extends WeldTestBase {
             assertEquals(SpanKind.CONSUMER, consumer.getKind());
             assertEquals("rabbitmq", consumer.getAttributes().get(MESSAGING_SYSTEM));
             assertEquals("receive", consumer.getAttributes().get(MESSAGING_OPERATION));
-            assertEquals("normal", consumer.getAttributes().get(MESSAGING_RABBITMQ_ROUTING_KEY));
+            assertEquals("normal", consumer.getAttributes().get(MESSAGING_RABBITMQ_DESTINATION_ROUTING_KEY));
             assertEquals(queueName, consumer.getAttributes().get(MESSAGING_DESTINATION_NAME));
-            assertNull(consumer.getAttributes().get(MESSAGING_PROTOCOL));
-            assertNull(consumer.getAttributes().get(MESSAGING_PROTOCOL_VERSION));
+            assertNull(consumer.getAttributes().get(NETWORK_PROTOCOL_NAME));
+            assertNull(consumer.getAttributes().get(NETWORK_PROTOCOL_VERSION));
             assertEquals(queueName + " receive", consumer.getName());
         });
     }

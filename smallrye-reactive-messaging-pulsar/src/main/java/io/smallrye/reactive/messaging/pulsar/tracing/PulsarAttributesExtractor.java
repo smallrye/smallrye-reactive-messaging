@@ -1,6 +1,6 @@
 package io.smallrye.reactive.messaging.pulsar.tracing;
 
-import static io.opentelemetry.semconv.SemanticAttributes.MESSAGING_CONSUMER_ID;
+import static io.opentelemetry.semconv.incubating.MessagingIncubatingAttributes.MESSAGING_CLIENT_ID;
 
 import java.util.Collections;
 import java.util.List;
@@ -20,7 +20,7 @@ public class PulsarAttributesExtractor implements AttributesExtractor<PulsarTrac
     @Override
     public void onStart(final AttributesBuilder attributes, final Context parentContext, final PulsarTrace pulsarTrace) {
         String consumerName = pulsarTrace.getConsumerName();
-        attributes.put(MESSAGING_CONSUMER_ID, consumerName);
+        attributes.put(MESSAGING_CLIENT_ID, consumerName);
     }
 
     @Override
