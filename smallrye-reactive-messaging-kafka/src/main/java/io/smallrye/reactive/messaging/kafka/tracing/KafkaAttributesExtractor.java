@@ -1,9 +1,9 @@
 package io.smallrye.reactive.messaging.kafka.tracing;
 
-import static io.opentelemetry.semconv.SemanticAttributes.MESSAGING_CONSUMER_ID;
-import static io.opentelemetry.semconv.SemanticAttributes.MESSAGING_KAFKA_CONSUMER_GROUP;
-import static io.opentelemetry.semconv.SemanticAttributes.MESSAGING_KAFKA_MESSAGE_OFFSET;
-import static io.opentelemetry.semconv.SemanticAttributes.MESSAGING_KAFKA_PARTITION;
+import static io.opentelemetry.semconv.incubating.MessagingIncubatingAttributes.MESSAGING_CLIENT_ID;
+import static io.opentelemetry.semconv.incubating.MessagingIncubatingAttributes.MESSAGING_CONSUMER_GROUP_NAME;
+import static io.opentelemetry.semconv.incubating.MessagingIncubatingAttributes.MESSAGING_DESTINATION_PARTITION_ID;
+import static io.opentelemetry.semconv.incubating.MessagingIncubatingAttributes.MESSAGING_KAFKA_OFFSET;
 
 import java.util.Collections;
 import java.util.List;
@@ -14,6 +14,7 @@ import io.opentelemetry.instrumentation.api.incubator.semconv.messaging.Messagin
 import io.opentelemetry.instrumentation.api.instrumenter.AttributesExtractor;
 
 public class KafkaAttributesExtractor implements AttributesExtractor<KafkaTrace, Void> {
+
     private final MessagingAttributesGetter<KafkaTrace, Void> messagingAttributesGetter;
 
     public KafkaAttributesExtractor() {
@@ -23,10 +24,10 @@ public class KafkaAttributesExtractor implements AttributesExtractor<KafkaTrace,
     @Override
     public void onStart(final AttributesBuilder attributes, final Context parentContext, final KafkaTrace kafkaTrace) {
         if (kafkaTrace.getPartition() != -1) {
-            attributes.put(MESSAGING_KAFKA_PARTITION, kafkaTrace.getPartition());
+            attributes.put(MESSAGING_DESTINATION_PARTITION_ID, Integer.toString(kafkaTrace.getPartition()));
         }
         if (kafkaTrace.getOffset() != -1) {
-            attributes.put(MESSAGING_KAFKA_MESSAGE_OFFSET, kafkaTrace.getOffset());
+            attributes.put(MESSAGING_KAFKA_OFFSET, kafkaTrace.getOffset());
         }
 
         String groupId = kafkaTrace.getGroupId();
@@ -36,10 +37,10 @@ public class KafkaAttributesExtractor implements AttributesExtractor<KafkaTrace,
             if (!clientId.isEmpty()) {
                 consumerId += " - " + clientId;
             }
-            attributes.put(MESSAGING_CONSUMER_ID, consumerId);
+            attributes.put(MESSAGING_CLIENT_ID, consumerId);
         }
         if (groupId != null) {
-            attributes.put(MESSAGING_KAFKA_CONSUMER_GROUP, groupId);
+            attributes.put(MESSAGING_CONSUMER_GROUP_NAME, groupId);
         }
     }
 
