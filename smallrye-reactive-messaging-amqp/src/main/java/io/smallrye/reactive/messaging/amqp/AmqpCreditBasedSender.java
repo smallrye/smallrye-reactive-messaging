@@ -45,6 +45,7 @@ public class AmqpCreditBasedSender implements Processor<Message<?>, Message<?>>,
     private final boolean writeAsBinaryCloudEvent;
     private final int retryAttempts;
     private final int retryInterval;
+    private final boolean lazyClient;
 
     private final AmqpOpenTelemetryInstrumenter amqpInstrumenter;
 
@@ -77,6 +78,7 @@ public class AmqpCreditBasedSender implements Processor<Message<?>, Message<?>>,
         this.retryAttempts = configuration.getRetryOnFailAttempts();
         this.retryInterval = configuration.getRetryOnFailInterval();
         this.maxInflights = configuration.getMaxInflightMessages();
+        this.lazyClient = configuration.getLazyClient();
 
         if (tracingEnabled) {
             amqpInstrumenter = AmqpOpenTelemetryInstrumenter.createForSender(openTelemetryInstance);
@@ -92,6 +94,10 @@ public class AmqpCreditBasedSender implements Processor<Message<?>, Message<?>>,
         } else {
             if (upstream.get() != null) {
                 subscriber.onSubscribe(this);
+                // if eager client, we retrieve the sender and request credits.
+                if (!lazyClient) {
+                    request(1L);
+                }
             }
         }
     }

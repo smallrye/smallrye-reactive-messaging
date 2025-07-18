@@ -87,6 +87,19 @@ public class OutgoingAmqpChannel {
                 getSender,
                 openTelemetryInstance);
 
+        holder.onFailure(t -> {
+            opened.set(false);
+            if (!oc.getLazyClient()) {
+                // eagerly try to reconnect if failed after retry, fail the channel
+                processor.isConnected()
+                        .subscribe().with(opened::set, e -> {
+                            log.failureReported(oc.getChannel(), e);
+                            opened.set(false);
+                            reportFailure.accept(oc.getChannel(), e);
+                        });
+            }
+        });
+
         subscriber = MultiUtils.via(processor, m -> m.onFailure().invoke(t -> {
             log.failureReported(oc.getChannel(), t);
             opened.set(false);
