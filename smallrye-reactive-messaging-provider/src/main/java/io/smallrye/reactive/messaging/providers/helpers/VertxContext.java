@@ -8,6 +8,7 @@ import java.util.function.Consumer;
 
 import io.vertx.core.Context;
 import io.vertx.core.Vertx;
+import io.vertx.core.impl.ContextInternal;
 
 // TODO move to smallrye-common-vertx-context
 public class VertxContext {
@@ -17,6 +18,12 @@ public class VertxContext {
     }
 
     public static Context createNewDuplicatedContext() {
+        var ctx = Vertx.currentContext();
+        if (ctx == null) {
+            return null;
+        } else if (io.smallrye.common.vertx.VertxContext.isDuplicatedContext(ctx)) {
+            return ((ContextInternal) io.smallrye.common.vertx.VertxContext.getRootContext(ctx)).duplicate();
+        }
         return io.smallrye.common.vertx.VertxContext.createNewDuplicatedContext();
     }
 
