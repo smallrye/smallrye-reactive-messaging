@@ -2,10 +2,10 @@ package io.smallrye.reactive.messaging.kafka.transactions;
 
 import java.util.function.Function;
 
+import io.smallrye.common.annotation.TechPreview;
 import org.eclipse.microprofile.reactive.messaging.Message;
 
 import io.smallrye.common.annotation.CheckReturnValue;
-import io.smallrye.common.annotation.Experimental;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.EmitterType;
 
@@ -54,7 +54,7 @@ import io.smallrye.reactive.messaging.EmitterType;
  *
  * @param <T> emitted payload type
  */
-@Experimental("Experimental API")
+@TechPreview("Tech Preview API")
 public interface KafkaTransactions<T> extends EmitterType {
 
     /**
