@@ -15,6 +15,7 @@ import io.smallrye.reactive.messaging.providers.helpers.ConfigUtils;
 import io.smallrye.reactive.messaging.providers.i18n.ProviderLogging;
 import io.vertx.amqp.AmqpClientOptions;
 import io.vertx.mutiny.amqp.AmqpClient;
+import io.vertx.mutiny.core.Vertx;
 
 public class AmqpClientHelper {
 
@@ -36,6 +37,20 @@ public class AmqpClientHelper {
         AmqpClient client = AmqpClient.create(connector.getVertx(), clientOptions);
         connector.addClient(client);
         return client;
+    }
+
+    static AmqpClient createClient(Vertx vertx, AmqpConnectorCommonConfiguration config,
+            Instance<AmqpClientOptions> amqpClientOptions,
+            Instance<ClientCustomizer<AmqpClientOptions>> configCustomizers) {
+        Optional<String> clientOptionsName = config.getClientOptionsName();
+        AmqpClientOptions options;
+        if (clientOptionsName.isPresent()) {
+            options = createClientFromClientOptionsBean(amqpClientOptions, clientOptionsName.get(), config);
+        } else {
+            options = getOptionsFromChannel(config);
+        }
+        AmqpClientOptions clientOptions = ConfigUtils.customize(config.config(), configCustomizers, options);
+        return AmqpClient.create(vertx, clientOptions);
     }
 
     static AmqpClientOptions createClientFromClientOptionsBean(Instance<AmqpClientOptions> instance,

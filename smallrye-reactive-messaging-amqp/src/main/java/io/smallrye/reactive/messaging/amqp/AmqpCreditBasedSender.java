@@ -32,7 +32,6 @@ public class AmqpCreditBasedSender implements Processor<Message<?>, Message<?>>,
     private final ConnectionHolder holder;
     private final Uni<AmqpSender> retrieveSender;
     private final AmqpConnectorOutgoingConfiguration configuration;
-    private final AmqpConnector connector;
 
     private final AtomicReference<Subscription> upstream = new AtomicReference<>();
     private final AtomicReference<Subscriber<? super Message<?>>> downstream = new AtomicReference<>();
@@ -59,10 +58,10 @@ public class AmqpCreditBasedSender implements Processor<Message<?>, Message<?>>,
 
     private final long maxInflights;
 
-    public AmqpCreditBasedSender(AmqpConnector connector, ConnectionHolder holder,
-            AmqpConnectorOutgoingConfiguration configuration, Uni<AmqpSender> retrieveSender,
+    public AmqpCreditBasedSender(ConnectionHolder holder,
+            AmqpConnectorOutgoingConfiguration configuration,
+            Uni<AmqpSender> retrieveSender,
             Instance<OpenTelemetry> openTelemetryInstance) {
-        this.connector = connector;
         this.holder = holder;
         this.retrieveSender = retrieveSender;
         this.configuration = configuration;
@@ -330,7 +329,7 @@ public class AmqpCreditBasedSender implements Processor<Message<?>, Message<?>>,
         }
 
         String actualAddress = getActualAddress(msg, amqp, configuredAddress, isAnonymousSender);
-        if (connector.getClients().isEmpty()) {
+        if (!once.get()) {
             log.messageNoSend(actualAddress);
             return null;
         }
