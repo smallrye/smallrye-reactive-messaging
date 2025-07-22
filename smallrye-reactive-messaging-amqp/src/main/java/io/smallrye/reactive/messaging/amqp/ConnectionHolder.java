@@ -30,7 +30,7 @@ public class ConnectionHolder {
 
     private final Vertx vertx;
     private final Context root;
-    private Consumer<Throwable> callback;
+    private Consumer<Throwable> onFailure;
 
     public ConnectionHolder(AmqpClient client,
             AmqpConnectorCommonConfiguration configuration,
@@ -107,7 +107,7 @@ public class ConnectionHolder {
     }
 
     public synchronized void onFailure(Consumer<Throwable> callback) {
-        this.callback = callback;
+        this.onFailure = callback;
     }
 
     @CheckReturnValue
@@ -146,7 +146,7 @@ public class ConnectionHolder {
                                             // as we are disconnected from the flow.
                                             Consumer<Throwable> c;
                                             synchronized (this) {
-                                                c = callback;
+                                                c = onFailure;
                                             }
                                             if (c != null) {
                                                 c.accept(t);
