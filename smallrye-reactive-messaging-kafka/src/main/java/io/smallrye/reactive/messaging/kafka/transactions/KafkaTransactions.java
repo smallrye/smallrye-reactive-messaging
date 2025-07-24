@@ -2,10 +2,10 @@ package io.smallrye.reactive.messaging.kafka.transactions;
 
 import java.util.function.Function;
 
-import io.smallrye.common.annotation.TechPreview;
 import org.eclipse.microprofile.reactive.messaging.Message;
 
 import io.smallrye.common.annotation.CheckReturnValue;
+import io.smallrye.common.annotation.TechPreview;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.EmitterType;
 
