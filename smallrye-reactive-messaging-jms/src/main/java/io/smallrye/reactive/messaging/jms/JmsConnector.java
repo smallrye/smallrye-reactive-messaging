@@ -6,6 +6,7 @@ import static io.smallrye.reactive.messaging.jms.i18n.JmsLogging.log;
 
 import java.util.Iterator;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -53,6 +54,7 @@ import io.smallrye.reactive.messaging.providers.i18n.ProviderLogging;
 @ConnectorAttribute(name = "durable", description = "Set to `true` to use a durable subscription", direction = Direction.INCOMING, type = "boolean", defaultValue = "false")
 @ConnectorAttribute(name = "destination-type", description = "The type of destination. It can be either `queue` or `topic`", direction = Direction.INCOMING_AND_OUTGOING, type = "string", defaultValue = "queue")
 @ConnectorAttribute(name = "tracing-enabled", type = "boolean", direction = Direction.INCOMING_AND_OUTGOING, description = "Whether tracing is enabled (default) or disabled", defaultValue = "true")
+@ConnectorAttribute(name = "reuse-jms-context", description = "Whether to reuse JMS contexts by creating child contexts from a parent context. When enabled, child contexts will be created using JMSContext.createContext() instead of ConnectionFactory.createContext()", direction = Direction.INCOMING_AND_OUTGOING, type = "boolean", defaultValue = "false")
 
 @ConnectorAttribute(name = "disable-message-id", description = "Omit the message id in the outbound JMS message", direction = Direction.OUTGOING, type = "boolean")
 @ConnectorAttribute(name = "disable-message-timestamp", description = "Omit the message timestamp in the outbound JMS message", direction = Direction.OUTGOING, type = "boolean")
@@ -114,6 +116,9 @@ public class JmsConnector implements InboundConnector, OutboundConnector {
     private final List<JmsSource> sources = new CopyOnWriteArrayList<>();
     private final List<JmsResourceHolder<?>> contexts = new CopyOnWriteArrayList<>();
 
+    // Parent contexts for reuse, keyed by factory + credentials + session-mode combination
+    private final List<ParentContextHolder> parentContexts = new CopyOnWriteArrayList<>();
+
     @PostConstruct
     public void init() {
         this.executor = Executors.newFixedThreadPool(maxPoolSize);
@@ -135,6 +140,9 @@ public class JmsConnector implements InboundConnector, OutboundConnector {
     public void cleanup() {
         sources.forEach(JmsSource::close);
         contexts.forEach(JmsResourceHolder::close);
+        // Clean up parent contexts
+        parentContexts.forEach(ParentContextHolder::close);
+        parentContexts.clear();
         this.executor.shutdown();
     }
 
@@ -148,7 +156,7 @@ public class JmsConnector implements InboundConnector, OutboundConnector {
         return source.getSource();
     }
 
-    private JMSContext createJmsContext(JmsConnectorCommonConfiguration config) {
+    private JMSContext createStandardJmsContext(JmsConnectorCommonConfiguration config) {
         String factoryName = config.getConnectionFactoryName().orElse(null);
         ConnectionFactory factory = pickTheFactory(factoryName);
         JMSContext context = createContext(factory,
@@ -157,6 +165,14 @@ public class JmsConnector implements InboundConnector, OutboundConnector {
                 config.getSessionMode());
         config.getClientId().ifPresent(context::setClientID);
         return context;
+    }
+
+    private JMSContext createJmsContext(JmsConnectorCommonConfiguration config) {
+        if (config.getReuseJmsContext()) {
+            return createReuseableJmsContext(config);
+        } else {
+            return createStandardJmsContext(config);
+        }
     }
 
     @Override
@@ -203,28 +219,151 @@ public class JmsConnector implements InboundConnector, OutboundConnector {
     }
 
     private JMSContext createContext(ConnectionFactory factory, String username, String password, String mode) {
-        int sessionMode;
-        switch (mode.toUpperCase()) {
-            case "AUTO_ACKNOWLEDGE":
-                sessionMode = JMSContext.AUTO_ACKNOWLEDGE;
-                break;
-            case "SESSION_TRANSACTED":
-                sessionMode = JMSContext.SESSION_TRANSACTED;
-                break;
-            case "CLIENT_ACKNOWLEDGE":
-                sessionMode = JMSContext.CLIENT_ACKNOWLEDGE;
-                break;
-            case "DUPS_OK_ACKNOWLEDGE":
-                sessionMode = JMSContext.DUPS_OK_ACKNOWLEDGE;
-                break;
-            default:
-                throw ex.illegalStateUnknowSessionMode(mode);
-        }
+        int sessionMode = parseSessionMode(mode);
 
         if (username != null) {
             return factory.createContext(username, password, sessionMode);
         } else {
             return factory.createContext(sessionMode);
+        }
+    }
+
+    private int parseSessionMode(String mode) {
+        switch (mode.toUpperCase()) {
+            case "AUTO_ACKNOWLEDGE":
+                return JMSContext.AUTO_ACKNOWLEDGE;
+            case "SESSION_TRANSACTED":
+                return JMSContext.SESSION_TRANSACTED;
+            case "CLIENT_ACKNOWLEDGE":
+                return JMSContext.CLIENT_ACKNOWLEDGE;
+            case "DUPS_OK_ACKNOWLEDGE":
+                return JMSContext.DUPS_OK_ACKNOWLEDGE;
+            default:
+                throw ex.illegalStateUnknowSessionMode(mode);
+        }
+    }
+
+    private ParentContextHolder findOrCreateParentContext(JmsConnectorCommonConfiguration config) {
+        String factoryName = config.getConnectionFactoryName().orElse(null);
+        String username = config.getUsername().orElse(null);
+        String password = config.getPassword().orElse(null);
+        String sessionMode = config.getSessionMode();
+        String clientId = config.getClientId().orElse(null);
+
+        // Clean up any closed contexts first
+        cleanupClosedParentContexts();
+
+        // Look for existing parent context with matching configuration
+        for (ParentContextHolder holder : parentContexts) {
+            if (holder.matches(factoryName, username, sessionMode, clientId)) {
+                // Verify the context is still usable
+                if (isContextUsable(holder.getContext())) {
+                    log.debug("Reusing existing parent JMS context for channel configuration");
+                    return holder;
+                } else {
+                    // Context is no longer usable, remove it
+                    holder.close();
+                    parentContexts.remove(holder);
+                    log.debug("Removed unusable parent JMS context");
+                }
+            }
+        }
+
+        // Create new parent context if none found
+        ConnectionFactory factory = pickTheFactory(factoryName);
+        JMSContext parentContext = createContext(factory, username, password, sessionMode);
+        config.getClientId().ifPresent(parentContext::setClientID);
+
+        ParentContextHolder holder = new ParentContextHolder(parentContext, factoryName, username, sessionMode, clientId);
+        parentContexts.add(holder);
+        return holder;
+    }
+
+    private JMSContext createReuseableJmsContext(JmsConnectorCommonConfiguration config) {
+        // Find or create a parent context for reuse
+        ParentContextHolder parentHolder = findOrCreateParentContext(config);
+
+        // Create a child context from the parent
+        int sessionMode = parseSessionMode(config.getSessionMode());
+        return parentHolder.context.createContext(sessionMode);
+    }
+
+    /**
+     * Removes closed parent contexts from the list to prevent memory leaks
+     */
+    private void cleanupClosedParentContexts() {
+        parentContexts.removeIf(holder -> {
+            if (holder.isClosed()) {
+                log.debug("Removing closed parent context from pool");
+                return true;
+            }
+            return false;
+        });
+    }
+
+    /**
+     * Verifies that a JMS context is still usable by attempting a lightweight operation
+     */
+    private boolean isContextUsable(JMSContext context) {
+        try {
+            // Attempt to get the session mode - this is a lightweight operation
+            // that will fail if the context/connection is closed or broken
+            context.getSessionMode();
+            return true;
+        } catch (Exception e) {
+            log.debug("JMS context is no longer usable", e);
+            return false;
+        }
+    }
+
+    private static class ParentContextHolder {
+        private final JMSContext context;
+        private final String factoryName;
+        private final String username;
+        private final String sessionMode;
+        private final String clientId;
+        private volatile boolean closed = false;
+
+        ParentContextHolder(JMSContext context, String factoryName, String username,
+                String sessionMode, String clientId) {
+            this.context = context;
+            this.factoryName = factoryName;
+            this.username = username;
+            this.sessionMode = sessionMode;
+            this.clientId = clientId;
+        }
+
+        JMSContext getContext() {
+            if (closed) {
+                throw new IllegalStateException("Parent context has been closed");
+            }
+            return context;
+        }
+
+        boolean matches(String factoryName, String username, String sessionMode, String clientId) {
+            if (closed) {
+                return false;
+            }
+
+            return Objects.equals(this.factoryName, factoryName) &&
+                    Objects.equals(this.username, username) &&
+                    Objects.equals(this.sessionMode, sessionMode) &&
+                    Objects.equals(this.clientId, clientId);
+        }
+
+        void close() {
+            if (!closed) {
+                closed = true;
+                try {
+                    context.close();
+                } catch (Exception e) {
+                    log.warn("Error closing parent JMS context", e);
+                }
+            }
+        }
+
+        boolean isClosed() {
+            return closed;
         }
     }
 }
