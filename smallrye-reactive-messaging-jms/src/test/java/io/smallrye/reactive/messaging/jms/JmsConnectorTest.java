@@ -145,4 +145,21 @@ public class JmsConnectorTest extends JmsTestBase {
         }).isInstanceOf(DeploymentException.class);
     }
 
+    @Test
+    public void testWithStringReuseConnection() {
+        Map<String, Object> map = new HashMap<>();
+        map.put("mp.messaging.outgoing.queue-one.connector", JmsConnector.CONNECTOR_NAME);
+        map.put("mp.messaging.outgoing.queue-one.reuse-jms-context", Boolean.TRUE.toString());
+        map.put("mp.messaging.incoming.jms.connector", JmsConnector.CONNECTOR_NAME);
+        map.put("mp.messaging.incoming.jms.reuse-jms-context", Boolean.TRUE.toString());
+        map.put("mp.messaging.incoming.jms.destination", "queue-one");
+        MapBasedConfig config = new MapBasedConfig(map);
+        addConfig(config);
+        WeldContainer container = deploy(PayloadConsumerBean.class, ProducerBean.class);
+
+        PayloadConsumerBean bean = container.select(PayloadConsumerBean.class).get();
+        await().until(() -> bean.list().size() > 3);
+        assertThat(bean.list()).hasSizeGreaterThan(3);
+    }
+
 }
