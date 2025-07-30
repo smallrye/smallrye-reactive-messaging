@@ -82,7 +82,7 @@ import org.eclipse.microprofile.reactive.messaging.spi.ConnectorFactory;
  * throwing a {@link jakarta.enterprise.inject.spi.DeploymentException} wrapping the exception.
  * <p>
  *
- * This class is specific to SmallRye and is uses internally instead of
+ * This class is specific to SmallRye and is used internally instead of
  * {@link org.eclipse.microprofile.reactive.messaging.spi.IncomingConnectorFactory}.
  * Instead of a {@link org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder}, it returns a
  * {@link Flow.Publisher}.
