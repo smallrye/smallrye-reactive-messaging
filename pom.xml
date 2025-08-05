@@ -60,7 +60,7 @@
     <maven.compiler.source>17</maven.compiler.source>
     <maven.compiler.target>17</maven.compiler.target>
 
-    <vertx.version>4.5.14</vertx.version>
+    <vertx.version>5.0.2</vertx.version>
     <rxjava.version>2.2.21</rxjava.version>
     <cloudevent.version>1.1.0</cloudevent.version>
     <weld.version>6.0.2.Final</weld.version>
