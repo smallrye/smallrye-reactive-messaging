@@ -16,7 +16,7 @@ jobs:
             KAFKA_CONTAINER_VERSION: ${{ inputs.kafkaBrokerVersion }}
         name: Test with Kafka ${{ inputs.kafkaCLientVersion }} and Broker ${{ inputs.kafkaBrokerVersion }}
         steps:
-            -   uses: actions/checkout@v4
+            -   uses: actions/checkout@v5
             -   uses: actions/setup-java@v4
                 with:
                     java-version: 21
@@ -36,7 +36,7 @@ jobs:
             KAFKA_CONTAINER_VERSION: ${{ inputs.kafkaBrokerVersion }}
         name: Flaky Test with Kafka ${{ inputs.kafkaCLientVersion }} and Broker ${{ inputs.kafkaBrokerVersion }}
         steps:
-            -   uses: actions/checkout@v4
+            -   uses: actions/checkout@v5
             -   uses: actions/setup-java@v4
                 with:
                     java-version: 21
