@@ -32,6 +32,7 @@ public class JmsConnectorTest extends JmsTestBase {
         PayloadConsumerBean bean = container.select(PayloadConsumerBean.class).get();
         await().until(() -> bean.list().size() > 3);
         assertThat(bean.list()).hasSizeGreaterThan(3);
+        assertThat(getServerConnectionCount()).isEqualTo(2);
     }
 
     @Test
@@ -48,6 +49,7 @@ public class JmsConnectorTest extends JmsTestBase {
         PayloadConsumerBean bean = container.select(PayloadConsumerBean.class).get();
         await().until(() -> bean.list().size() > 3);
         assertThat(bean.list()).hasSizeGreaterThan(3);
+        assertThat(getServerConnectionCount()).isEqualTo(2);
     }
 
     @Test
@@ -87,6 +89,7 @@ public class JmsConnectorTest extends JmsTestBase {
             assertThat(metadata.getType()).isNotNull();
             assertThat(metadata.getExpiration()).isEqualTo(0L);
         });
+        assertThat(getServerConnectionCount()).isEqualTo(2);
     }
 
     @Test
@@ -102,6 +105,7 @@ public class JmsConnectorTest extends JmsTestBase {
         PersonConsumerBean bean = container.select(PersonConsumerBean.class).get();
         await().until(() -> bean.list().size() > 1);
         assertThat(bean.list()).isNotEmpty();
+        assertThat(getServerConnectionCount()).isEqualTo(2);
     }
 
     @Test
@@ -160,6 +164,7 @@ public class JmsConnectorTest extends JmsTestBase {
         PayloadConsumerBean bean = container.select(PayloadConsumerBean.class).get();
         await().until(() -> bean.list().size() > 3);
         assertThat(bean.list()).hasSizeGreaterThan(3);
+        assertThat(getServerConnectionCount()).isEqualTo(1L);
     }
 
 }
