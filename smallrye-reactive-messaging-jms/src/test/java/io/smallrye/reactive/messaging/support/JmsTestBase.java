@@ -107,4 +107,8 @@ public class JmsTestBase {
         }
     }
 
+    protected long getServerConnectionCount() {
+        return holder.getConnectionCount();
+    }
+
 }
