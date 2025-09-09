@@ -11,6 +11,7 @@ import java.util.Map;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import io.smallrye.reactive.messaging.MutinyEmitter;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.jms.*;
@@ -22,6 +23,7 @@ import org.eclipse.microprofile.reactive.messaging.Message;
 import org.jboss.weld.environment.se.WeldContainer;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
 
 import io.smallrye.mutiny.helpers.Subscriptions;
@@ -262,7 +264,7 @@ public class JmsSinkTest extends JmsTestBase {
         }
     }
 
-    @Test
+    @RepeatedTest(100)
     public void testWithDisconnection() {
         Map<String, Object> map = new HashMap<>();
         map.put("mp.messaging.outgoing.jms.connector", JmsConnector.CONNECTOR_NAME);
@@ -289,11 +291,13 @@ public class JmsSinkTest extends JmsTestBase {
 
         // send just before stopping
         bean.send("2");
+        await().pollDelay(2, TimeUnit.SECONDS)
+                .untilAsserted(() -> assertThat(received).hasSize(1));
         stopArtemis();
 
         assertThat(received).hasSize(1);
 
-        startArtemis();
+        restartArtemis();
 
         // send after restart
         bean.send("3");
@@ -303,9 +307,12 @@ public class JmsSinkTest extends JmsTestBase {
         consumer = jms.createConsumer(q);
         consumer.setMessageListener(received::add);
 
-        await().untilAsserted(() -> assertThat(received).hasSize(3)
+        await().untilAsserted(() -> assertThat(received).hasSizeGreaterThanOrEqualTo(3)
                 .extracting(m -> m.getBody(String.class))
-                .containsExactly("1", "2", "3"));
+                .contains("1", "2", "3")
+                // Sometimes the client resends the message because it did not receive the ack from the server.
+                // .containsExactly("1", "2", "3")
+        );
     }
 
     @SuppressWarnings("ConstantConditions")

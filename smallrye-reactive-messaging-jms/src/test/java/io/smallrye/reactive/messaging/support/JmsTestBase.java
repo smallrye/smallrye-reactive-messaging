@@ -41,6 +41,10 @@ public class JmsTestBase {
         holder.stop();
     }
 
+    public void restartArtemis() {
+        holder.restart();
+    }
+
     @BeforeEach
     public void initializeWeld() {
         SmallRyeConfigProviderResolver.instance().releaseConfig(ConfigProvider.getConfig());
