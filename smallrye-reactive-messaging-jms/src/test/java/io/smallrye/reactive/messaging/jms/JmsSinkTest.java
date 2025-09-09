@@ -11,7 +11,6 @@ import java.util.Map;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import io.smallrye.reactive.messaging.MutinyEmitter;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.jms.*;
@@ -310,8 +309,8 @@ public class JmsSinkTest extends JmsTestBase {
         await().untilAsserted(() -> assertThat(received).hasSizeGreaterThanOrEqualTo(3)
                 .extracting(m -> m.getBody(String.class))
                 .contains("1", "2", "3")
-                // Sometimes the client resends the message because it did not receive the ack from the server.
-                // .containsExactly("1", "2", "3")
+        // Sometimes the client resends the message because it did not receive the ack from the server.
+        // .containsExactly("1", "2", "3")
         );
     }
 
