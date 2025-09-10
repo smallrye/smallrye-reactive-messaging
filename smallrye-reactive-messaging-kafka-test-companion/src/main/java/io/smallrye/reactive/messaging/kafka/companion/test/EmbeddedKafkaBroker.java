@@ -40,7 +40,6 @@ import org.apache.kafka.server.config.ServerLogConfigs;
 import org.apache.kafka.storage.internals.log.CleanerConfig;
 import org.jboss.logging.Logger;
 
-import kafka.cluster.EndPoint;
 import kafka.server.KafkaConfig;
 import kafka.server.KafkaRaftServer;
 import scala.jdk.javaapi.StreamConverters;
@@ -254,7 +253,7 @@ public class EmbeddedKafkaBroker implements Closeable {
     }
 
     public List<String> getLogDirs() {
-        return getLogDirs(config);
+        return config.logDirs();
     }
 
     public int getNodeId() {
@@ -283,7 +282,7 @@ public class EmbeddedKafkaBroker implements Closeable {
 
     public static Endpoint parseEndpoint(SecurityProtocol protocol, String listenerStr) {
         Endpoint endpoint = parseEndpoint(listenerStr);
-        return new Endpoint(endpoint.listenerName().orElse(protocol.name), protocol, endpoint.host(), endpoint.port());
+        return new Endpoint(listenerName(endpoint), protocol, endpoint.host(), endpoint.port());
     }
 
     public static Endpoint parseEndpoint(String listenerStr) {
@@ -311,7 +310,7 @@ public class EmbeddedKafkaBroker implements Closeable {
 
         // Configure listeners
         Map<String, Endpoint> listeners = advertisedListeners.stream()
-                .map(l -> new Endpoint(l.listenerName().orElse(null), l.securityProtocol(), "", l.port()))
+                .map(l -> new Endpoint(l.listener(), l.securityProtocol(), "", l.port()))
                 .collect(Collectors.toMap(EmbeddedKafkaBroker::listenerName, Function.identity()));
         listeners.put(listenerName(controller), controller);
         listeners.put(listenerName(internalEndpoint), internalEndpoint);
@@ -372,7 +371,7 @@ public class EmbeddedKafkaBroker implements Closeable {
                 .setNodeId(config.nodeId())
                 .setUnstableFeatureVersionsEnabled(config.unstableFeatureVersionsEnabled())
                 .setIgnoreFormatted(ignoreFormatted)
-                .setControllerListenerName(config.controllerListenerNames().head())
+                .setControllerListenerName(config.controllerListenerNames().get(0))
                 .setMetadataLogDirectory(config.metadataLogDir());
         configToLogDirectories(config).forEach(formatter::addDirectory);
         try {
@@ -384,8 +383,7 @@ public class EmbeddedKafkaBroker implements Closeable {
     }
 
     static Set<String> configToLogDirectories(KafkaConfig config) {
-        TreeSet<String> dirs = new TreeSet<>();
-        config.logDirs().foreach(dirs::add);
+        TreeSet<String> dirs = new TreeSet<>(config.logDirs());
         String metadataLogDir = config.metadataLogDir();
         if (metadataLogDir != null) {
             dirs.add(metadataLogDir);
@@ -422,13 +420,8 @@ public class EmbeddedKafkaBroker implements Closeable {
 
     private static String getAdvertisedListeners(KafkaConfig config) {
         return StreamConverters.asJavaParStream(config.effectiveAdvertisedBrokerListeners())
-                .map(EndPoint::connectionString)
+                .map(EmbeddedKafkaBroker::toListenerString)
                 .collect(Collectors.joining(","));
-    }
-
-    private static List<String> getLogDirs(KafkaConfig config) {
-        return StreamConverters.asJavaParStream(config.logDirs())
-                .collect(Collectors.toList());
     }
 
     private static int getUnusedPort(int port) {
@@ -464,7 +457,11 @@ public class EmbeddedKafkaBroker implements Closeable {
     }
 
     private static String listenerName(Endpoint endpoint) {
-        return endpoint.listenerName().orElse(endpoint.securityProtocol().name);
+        String listener = endpoint.listener();
+        if (listener != null && !listener.isBlank()) {
+            return listener;
+        }
+        return endpoint.securityProtocol().name;
     }
 
     public static class LoggingOutputStream extends java.io.OutputStream {
