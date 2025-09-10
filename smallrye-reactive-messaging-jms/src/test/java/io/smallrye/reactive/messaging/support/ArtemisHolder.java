@@ -3,7 +3,6 @@ package io.smallrye.reactive.messaging.support;
 import java.nio.file.Paths;
 
 import org.apache.activemq.artemis.core.server.ActiveMQServer;
-import org.apache.activemq.artemis.core.server.Queue;
 import org.apache.activemq.artemis.core.server.embedded.EmbeddedActiveMQ;
 import org.apache.commons.io.FileUtils;
 
