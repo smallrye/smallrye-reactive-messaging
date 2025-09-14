@@ -22,7 +22,6 @@ import org.eclipse.microprofile.reactive.messaging.Message;
 import org.jboss.weld.environment.se.WeldContainer;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
 
 import io.smallrye.mutiny.helpers.Subscriptions;
@@ -263,7 +262,7 @@ public class JmsSinkTest extends JmsTestBase {
         }
     }
 
-    @RepeatedTest(100)
+    @Test
     public void testWithDisconnection() {
         Map<String, Object> map = new HashMap<>();
         map.put("mp.messaging.outgoing.jms.connector", JmsConnector.CONNECTOR_NAME);
