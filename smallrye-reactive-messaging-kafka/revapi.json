@@ -36,22 +36,7 @@
     "criticality" : "highlight",
     "minSeverity" : "POTENTIALLY_BREAKING",
     "minCriticality" : "documented",
-    "differences": [
-        {
-            "code": "java.annotation.removed",
-            "old": "interface io.smallrye.reactive.messaging.kafka.transactions.KafkaTransactions<T>",
-            "new": "interface io.smallrye.reactive.messaging.kafka.transactions.KafkaTransactions<T>",
-            "annotation": "@io.smallrye.common.annotation.Experimental(\"Experimental API\")",
-            "justification": "Bumped Kafka Transactions to Tech Preview"
-        },
-        {
-            "code": "java.annotation.added",
-            "old": "interface io.smallrye.reactive.messaging.kafka.transactions.KafkaTransactions<T>",
-            "new": "interface io.smallrye.reactive.messaging.kafka.transactions.KafkaTransactions<T>",
-            "annotation": "@io.smallrye.common.annotation.TechPreview(\"Tech Preview API\")",
-            "justification": "Bumped Kafka Transactions to Tech Preview"
-        }
-    ]
+    "differences" : [ ]
   }
 }, {
   "extension" : "revapi.reporter.json",
