@@ -1,6 +1,6 @@
 package io.smallrye.reactive.messaging.rabbitmq.tracing;
 
-import static io.opentelemetry.semconv.SemanticAttributes.MESSAGING_RABBITMQ_ROUTING_KEY;
+import static io.opentelemetry.semconv.incubating.MessagingIncubatingAttributes.MESSAGING_RABBITMQ_DESTINATION_ROUTING_KEY;
 
 import java.util.Collections;
 import java.util.List;
@@ -25,7 +25,7 @@ public class RabbitMQTraceAttributesExtractor implements AttributesExtractor<Rab
     public void onStart(
             final AttributesBuilder attributes,
             final Context parentContext, final RabbitMQTrace rabbitMQTrace) {
-        attributes.put(MESSAGING_RABBITMQ_ROUTING_KEY, rabbitMQTrace.getRoutingKey());
+        attributes.put(MESSAGING_RABBITMQ_DESTINATION_ROUTING_KEY, rabbitMQTrace.getRoutingKey());
     }
 
     @Override
