@@ -45,6 +45,7 @@ public class PulsarNack implements PulsarFailureHandler {
         consumer.negativeAcknowledge(message.getMessageId());
         log.messageFailureNacked(channel, reason.getMessage());
         log.messageFailureFullCause(reason);
+        message.unwrap().release();
         return Uni.createFrom().voidItem()
                 .emitOn(message::runOnMessageContext);
     }
