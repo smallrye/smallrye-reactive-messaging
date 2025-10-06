@@ -75,7 +75,7 @@ public class PulsarIncomingChannel<T> {
         }
         ConsumerBuilder<T> builder = configResolver.configure(client.newConsumer(schema), ic, conf);
         this.consumer = builder.subscribe();
-        log.createdConsumerWithConfig(channel, SchemaResolver.getSchemaName(schema), conf);
+        log.createdConsumerWithConfig(channel, SchemaResolver.getSchemaName(schema), configResolver.getConfig(builder));
         this.ackHandler = ackHandlerFactory.create(consumer, ic);
         this.failureHandler = failureHandlerFactory.create(consumer, ic, this::reportFailure);
         this.context = ((VertxInternal) vertx.getDelegate()).createEventLoopContext();
