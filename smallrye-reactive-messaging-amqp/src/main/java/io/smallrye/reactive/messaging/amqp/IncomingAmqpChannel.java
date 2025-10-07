@@ -39,11 +39,13 @@ public class IncomingAmqpChannel {
     private final AtomicBoolean opened;
     private final BiConsumer<String, Throwable> reportFailure;
     private final ConnectionHolder holder;
+    private final boolean healthEnabled;
 
     public IncomingAmqpChannel(AmqpConnectorIncomingConfiguration ic, AmqpClient client, Vertx vertx,
             Instance<OpenTelemetry> openTelemetryInstance, BiConsumer<String, Throwable> reportFailure) {
         this.reportFailure = reportFailure;
         this.opened = new AtomicBoolean(false);
+        this.healthEnabled = ic.getHealthEnabled();
 
         String channel = ic.getChannel();
         String address = ic.getAddress().orElse(channel);
@@ -158,6 +160,10 @@ public class IncomingAmqpChannel {
 
     public long getHealthTimeout() {
         return holder.getHealthTimeout();
+    }
+
+    public boolean isHealthEnabled() {
+        return healthEnabled;
     }
 
     public void close() {

@@ -26,12 +26,14 @@ public class OutgoingAmqpChannel {
     private final AtomicBoolean opened;
     private final Flow.Subscriber<Message<?>> subscriber;
     private final AmqpCreditBasedSender processor;
+    private final boolean healthEnabled;
 
     public OutgoingAmqpChannel(AmqpConnectorOutgoingConfiguration oc, AmqpClient client, Vertx vertx,
             Instance<OpenTelemetry> openTelemetryInstance, BiConsumer<String, Throwable> reportFailure) {
         String configuredAddress = oc.getAddress().orElseGet(oc::getChannel);
 
         opened = new AtomicBoolean(false);
+        healthEnabled = oc.getHealthEnabled();
 
         AtomicReference<AmqpSender> sender = new AtomicReference<>();
         String link = oc.getLinkName().orElseGet(oc::getChannel);
@@ -129,6 +131,10 @@ public class OutgoingAmqpChannel {
 
     public long getHealthTimeout() {
         return processor.getHealthTimeout();
+    }
+
+    public boolean isHealthEnabled() {
+        return healthEnabled;
     }
 
     public void close() {
