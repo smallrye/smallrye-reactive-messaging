@@ -30,6 +30,7 @@ import org.junit.jupiter.api.Test;
 import io.smallrye.common.annotation.Identifier;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
+import io.smallrye.reactive.messaging.Targeted;
 import io.smallrye.reactive.messaging.health.HealthReport;
 import io.smallrye.reactive.messaging.kafka.api.OutgoingKafkaRecordMetadata;
 import io.smallrye.reactive.messaging.kafka.base.KafkaCompanionTestBase;
@@ -690,6 +691,71 @@ public class KafkaSinkTest extends KafkaCompanionTestBase {
         public Flow.Publisher<Integer> source2() {
             return Multi.createFrom().range(10, 20)
                     .onItem().call(x -> Uni.createFrom().voidItem().onItem().delayIt().by(Duration.ofMillis(20)));
+        }
+
+    }
+
+    @Test
+    public void testTargetedWithTombstoneRecords() {
+        String topic1 = topic + "-1";
+        String topic2 = topic + "-2";
+        companion.topics().createAndWait(topic1, 1);
+        companion.topics().createAndWait(topic2, 1);
+
+        KafkaMapBasedConfig config = kafkaConfig("mp.messaging.outgoing.output1")
+                .with("topic", topic1)
+                .with("key.serializer", IntegerSerializer.class.getName())
+                .with("value.serializer", StringSerializer.class.getName())
+                .withPrefix("mp.messaging.outgoing.output2")
+                .with("topic", topic2)
+                .with("key.serializer", IntegerSerializer.class.getName())
+                .with("value.serializer", StringSerializer.class.getName());
+
+        ConsumerTask<Integer, String> consumed1 = companion.consume(Integer.class, String.class)
+                .fromTopics(topic1, 10);
+        ConsumerTask<Integer, String> consumed2 = companion.consume(Integer.class, String.class)
+                .fromTopics(topic2, 10);
+
+        runApplication(config, BeanProducingTargetedWithTombstones.class);
+
+        await().until(this::isReady);
+        await().until(this::isAlive);
+
+        assertThat(consumed1.awaitCompletion().count()).isEqualTo(10);
+        assertThat(consumed2.awaitCompletion().count()).isEqualTo(10);
+
+        // Verify topic1 receives regular records
+        assertThat(consumed1.getRecords())
+                .extracting(ConsumerRecord::key)
+                .containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
+        assertThat(consumed1.getRecords())
+                .extracting(ConsumerRecord::value)
+                .containsExactly("value-0", "value-1", "value-2", "value-3", "value-4", "value-5", "value-6", "value-7", "value-8", "value-9");
+
+        // Verify topic2 receives tombstone records (null values)
+        assertThat(consumed2.getRecords())
+                .extracting(ConsumerRecord::key)
+                .contains(9);
+        assertThat(consumed2.getRecords())
+                .extracting(ConsumerRecord::value)
+                .containsOnlyNulls();
+    }
+
+    @ApplicationScoped
+    public static class BeanProducingTargetedWithTombstones {
+
+        @Incoming("data")
+        @Outgoing("output1")
+        @Outgoing("output2")
+        public Targeted process(int input) {
+            return Targeted.of(
+                    "output1", Record.of(input, "value-" + input),
+                    "output2", Record.of(input, null)); // Tombstone record
+        }
+
+        @Outgoing("data")
+        public Flow.Publisher<Integer> source() {
+            return Multi.createFrom().range(0, 10);
         }
 
     }
