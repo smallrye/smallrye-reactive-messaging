@@ -24,7 +24,9 @@ import org.apache.pulsar.client.api.PulsarClientException;
 import org.apache.pulsar.client.api.RedeliveryBackoff;
 import org.apache.pulsar.client.api.SubscriptionType;
 import org.apache.pulsar.client.impl.ClientBuilderImpl;
+import org.apache.pulsar.client.impl.ConsumerBuilderImpl;
 import org.apache.pulsar.client.impl.MultiplierRedeliveryBackoff;
+import org.apache.pulsar.client.impl.ProducerBuilderImpl;
 import org.apache.pulsar.client.impl.conf.ClientConfigurationData;
 import org.apache.pulsar.client.impl.conf.ConsumerConfigurationData;
 import org.apache.pulsar.client.impl.conf.ProducerConfigurationData;
@@ -354,6 +356,14 @@ public class ConfigResolver {
 
     private static boolean allCaps(String key) {
         return key.toUpperCase().equals(key);
+    }
+
+    public ConsumerConfigurationData<?> getConfig(ConsumerBuilder<?> consumerBuilder) {
+        return ((ConsumerBuilderImpl<?>) consumerBuilder).getConf();
+    }
+
+    public ProducerConfigurationData getConfig(ProducerBuilder<?> producerBuilder) {
+        return ((ProducerBuilderImpl<?>) producerBuilder).getConf();
     }
 
 }

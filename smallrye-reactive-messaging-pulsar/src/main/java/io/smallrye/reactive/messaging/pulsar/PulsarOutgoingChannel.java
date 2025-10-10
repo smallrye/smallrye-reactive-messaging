@@ -59,7 +59,7 @@ public class PulsarOutgoingChannel<T> {
         }
         ProducerBuilder<T> builder = configResolver.configure(client.newProducer(schema), oc, conf);
         this.producer = builder.create();
-        log.createdProducerWithConfig(channel, SchemaResolver.getSchemaName(schema), conf);
+        log.createdProducerWithConfig(channel, SchemaResolver.getSchemaName(schema), configResolver.getConfig(builder));
         long requests = getRequests(oc, conf);
 
         processor = new SenderProcessor(requests, oc.getWaitForWriteCompletion(), this::sendMessage);
