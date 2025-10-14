@@ -18,7 +18,6 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -129,9 +128,8 @@ public class KafkaDelayedRetryTopic extends ContextHolder implements KafkaFailur
                 Vertx vertx,
                 KafkaConsumer<?, ?> consumer,
                 BiConsumer<Throwable, Boolean> reportFailure) {
-            Map<String, Object> delayedRetryTopicProducerConfig = new HashMap<>(consumer.configuration());
-            String keyDeserializer = (String) delayedRetryTopicProducerConfig.remove(KEY_DESERIALIZER_CLASS_CONFIG);
-            String valueDeserializer = (String) delayedRetryTopicProducerConfig.remove(VALUE_DESERIALIZER_CLASS_CONFIG);
+            String keyDeserializer = (String) consumer.configuration().get(KEY_DESERIALIZER_CLASS_CONFIG);
+            String valueDeserializer = (String) consumer.configuration().get(VALUE_DESERIALIZER_CLASS_CONFIG);
 
             List<String> retryTopics = config.getDelayedRetryTopicTopics()
                     .map(topics -> Arrays.stream(topics.split(",")).collect(Collectors.toList()))
@@ -144,7 +142,7 @@ public class KafkaDelayedRetryTopic extends ContextHolder implements KafkaFailur
             String deadQueueTopic = config.getDeadLetterQueueTopic().orElse(null);
 
             String consumerClientId = (String) consumer.configuration().get(CLIENT_ID_CONFIG);
-            ConnectorConfig connectorConfig = new OverrideConnectorConfig(INCOMING_PREFIX, rootConfig.get(),
+            ConnectorConfig connectorConfig = new OverrideConnectorConfig(INCOMING_PREFIX, config.config(),
                     KafkaConnector.CONNECTOR_NAME, config.getChannel(), CHANNEL_DLQ_SUFFIX,
                     Map.of(KEY_SERIALIZER_CLASS_CONFIG, c -> getMirrorSerializer(keyDeserializer),
                             VALUE_SERIALIZER_CLASS_CONFIG, c -> getMirrorSerializer(valueDeserializer),
@@ -165,7 +163,7 @@ public class KafkaDelayedRetryTopic extends ContextHolder implements KafkaFailur
             wireOutgoingConnectorToUpstream(processor, kafkaSink.getSink(), subscriberDecorators,
                     producerConfig.getChannel() + "-" + CHANNEL_DLQ_SUFFIX);
 
-            ConnectorConfig retryConsumerConfig = new OverrideConnectorConfig(INCOMING_PREFIX, rootConfig.get(),
+            ConnectorConfig retryConsumerConfig = new OverrideConnectorConfig(INCOMING_PREFIX, config.config(),
                     KafkaConnector.CONNECTOR_NAME, config.getChannel(), "delayed-retry-topic.consumer",
                     Map.of("lazy-client", c -> true,
                             CLIENT_ID_CONFIG, c -> "kafka-delayed-retry-topic-" + consumerClientId,

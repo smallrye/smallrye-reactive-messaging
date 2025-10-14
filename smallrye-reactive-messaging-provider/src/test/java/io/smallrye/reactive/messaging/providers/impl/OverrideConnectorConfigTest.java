@@ -186,4 +186,76 @@ class OverrideConnectorConfigTest {
         assertThat(config2.getOptionalValue("bar.qux", String.class)).hasValue("value");
         assertThat(config2.getOptionalValue("bar.other-key", String.class)).hasValue("another-value");
     }
+
+    @Test
+    public void testOverrideWithConcurrencyDelegation() {
+        // Test OverrideConnectorConfig delegating to ConcurrencyConnectorConfig
+        // This simulates the DLQ scenario where we need:
+        // 1. Nested config support (mp.messaging.incoming.foo$0.dlq.topic)
+        // 2. Fallback to base channel config (mp.messaging.incoming.foo.bootstrap.servers)
+
+        Map<String, String> cfg = new HashMap<>();
+        cfg.put("mp.messaging.incoming.foo.connector", "some-connector");
+        cfg.put("mp.messaging.incoming.foo.base-property", "base-value");
+        cfg.put("mp.messaging.incoming.foo$0.indexed-property", "indexed-value");
+        cfg.put("mp.messaging.incoming.foo$0.dlq.nested-property", "nested-value");
+        cfg.put("mp.messaging.incoming.foo.dlq.base-nested-property", "base-nested-value");
+
+        SmallRyeConfigBuilder builder = new SmallRyeConfigBuilder();
+        builder.addDefaultSources();
+        builder.withSources(new ConfigSource() {
+            @Override
+            public Map<String, String> getProperties() {
+                return cfg;
+            }
+
+            @Override
+            public Set<String> getPropertyNames() {
+                return cfg.keySet();
+            }
+
+            @Override
+            public int getOrdinal() {
+                return ConfigSource.DEFAULT_ORDINAL;
+            }
+
+            @Override
+            public String getValue(String s) {
+                return cfg.get(s);
+            }
+
+            @Override
+            public String getName() {
+                return "test-concurrency";
+            }
+        });
+        SmallRyeConfig config = builder.build();
+
+        // Create ConcurrencyConnectorConfig as base
+        ConcurrencyConnectorConfig concurrencyConfig = new ConcurrencyConnectorConfig(
+                "mp.messaging.incoming.", config, "some-connector", "foo", 0);
+
+        // Wrap it in OverrideConnectorConfig with nested channel "dlq"
+        OverrideConnectorConfig overrideConfig = new OverrideConnectorConfig("mp.messaging.incoming.",
+                concurrencyConfig, "some-connector", concurrencyConfig.getValue("channel-name", String.class), "dlq");
+
+        // Verify channel name is the indexed one
+        assertThat(overrideConfig.getValue("channel-name", String.class)).isEqualTo("foo$0");
+
+        // Test 1: Nested property from indexed channel (mp.messaging.incoming.foo$0.dlq.nested-property)
+        assertThat(overrideConfig.getOptionalValue("nested-property", String.class))
+                .hasValue("nested-value");
+
+        // Test 2: Nested property fallback to base channel (mp.messaging.incoming.foo.dlq.base-nested-property)
+        assertThat(overrideConfig.getOptionalValue("base-nested-property", String.class))
+                .hasValue("base-nested-value");
+
+        // Test 3: Non-nested property from indexed channel (mp.messaging.incoming.foo$0.indexed-property)
+        assertThat(overrideConfig.getOptionalValue("indexed-property", String.class))
+                .hasValue("indexed-value");
+
+        // Test 4: Non-nested property fallback to base channel (mp.messaging.incoming.foo.base-property)
+        assertThat(overrideConfig.getOptionalValue("base-property", String.class))
+                .hasValue("base-value");
+    }
 }
