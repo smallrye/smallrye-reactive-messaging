@@ -12,7 +12,6 @@ import static org.apache.kafka.clients.producer.ProducerConfig.VALUE_SERIALIZER_
 import static org.eclipse.microprofile.reactive.messaging.spi.ConnectorFactory.INCOMING_PREFIX;
 
 import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.BiConsumer;
@@ -112,12 +111,12 @@ public class KafkaDeadLetterQueue implements KafkaFailureHandler {
                 Vertx vertx,
                 KafkaConsumer<?, ?> consumer,
                 BiConsumer<Throwable, Boolean> reportFailure) {
-            Map<String, Object> deadQueueProducerConfig = new HashMap<>(consumer.configuration());
-            String keyDeserializer = (String) deadQueueProducerConfig.remove(KEY_DESERIALIZER_CLASS_CONFIG);
-            String valueDeserializer = (String) deadQueueProducerConfig.remove(VALUE_DESERIALIZER_CLASS_CONFIG);
+            // Get deserializers from the consumer configuration
+            String keyDeserializer = (String) consumer.configuration().get(KEY_DESERIALIZER_CLASS_CONFIG);
+            String valueDeserializer = (String) consumer.configuration().get(VALUE_DESERIALIZER_CLASS_CONFIG);
 
             String consumerClientId = (String) consumer.configuration().get(CLIENT_ID_CONFIG);
-            ConnectorConfig connectorConfig = new OverrideConnectorConfig(INCOMING_PREFIX, rootConfig.get(),
+            ConnectorConfig connectorConfig = new OverrideConnectorConfig(INCOMING_PREFIX, config.config(),
                     KafkaConnector.CONNECTOR_NAME, config.getChannel(), CHANNEL_DLQ_SUFFIX,
                     Map.of(KEY_SERIALIZER_CLASS_CONFIG, c -> getMirrorSerializer(keyDeserializer),
                             VALUE_SERIALIZER_CLASS_CONFIG, c -> getMirrorSerializer(valueDeserializer),
