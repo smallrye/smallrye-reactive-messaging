@@ -136,7 +136,6 @@
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter-api</artifactId>
       <scope>compile</scope>
-      <version>${version.junit5}</version>
     </dependency>
 
     <dependency>
