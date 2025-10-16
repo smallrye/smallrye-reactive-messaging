@@ -115,6 +115,11 @@ The Kafka connector supports three strategies:
     there are poison pill messages. This strategy is the default if
     `enable.auto.commit` is not explicitly set to `true`.
 
+    The `throttled` strategy supports concurrent processing with ordering
+    guarantees using the `throttled.ordered` configuration. See
+    [Concurrent Processing with Ordering Guarantees](#concurrent-processing-with-ordering-guarantees)
+    for more details.
+
 -   `checkpoint` allows persisting consumer offsets on a "state store",
     instead of committing them back to the Kafka broker. Using the
     `CheckpointMetadata` API, consumer code can persist a processing
@@ -160,6 +165,67 @@ downstream, we recommend to either:
 -   Use the `throttled` policy
 -   or set `enable.auto.commit` to `true` and annotate the consuming
     method with `@Acknowledgment(Acknowledgment.Strategy.NONE)`
+
+## Concurrent Processing with Ordering Guarantees
+
+!!!warning "Experimental"
+    Ordered concurrent processing is experimental, and APIs and features are subject to change.
+
+The `throttled` commit strategy keeps track of out-of-order message acknowledgements,
+allowing concurrent processing while ensuring correct offset commits.
+You can configure processing order guarantees using the `throttled.ordered` attribute
+to control which messages can be processed concurrently using the `@Blocking` annotation.
+
+### Processing Order Modes
+
+- **`unordered`** (default): Messages are processed without any ordering guarantees,
+  allowing maximum concurrency across all partitions and keys.
+
+- **`key`**: Messages with the same key from the same topic-partition are
+  processed sequentially, while messages with different keys or from different
+  partitions can be processed concurrently. This ensures per-key ordering within
+  each partition.
+
+- **`partition`**: Messages from the same topic-partition are processed
+  sequentially, but messages from different partitions can be processed concurrently.
+  This ensures partition-level ordering while still allowing parallelism across
+  partitions.
+
+### Examples
+
+When using ordered processing modes, configure the `throttled.ordered`
+property and control concurrency with the `@Blocking(ordered = false)` annotation's worker pool:
+
+```properties
+mp.messaging.incoming.orders.connector=smallrye-kafka
+mp.messaging.incoming.orders.topic=orders
+mp.messaging.incoming.orders.commit-strategy=throttled
+mp.messaging.incoming.orders.throttled.ordered=key
+
+# Configure worker pool concurrency for thread pool size
+smallrye.messaging.worker.order-pool.max-concurrency=10
+
+# Configure merge concurrency (how many groups can process concurrently)
+# Should typically match or be less than worker pool max-concurrency
+mp.messaging.incoming.orders.throttled.ordered.max-concurrency=10
+```
+
+```java
+@Incoming("orders")
+@Blocking(ordered = false, value = "order-pool")
+public void processOrder(Order order) {
+    // Orders with the same key are processed sequentially
+    // Orders with different keys can be processed concurrently
+}
+```
+
+In order to allow creating more groups (of keys or partitions) that can be processed concurrently,
+each group buffers ordered messages to process.
+The `max-queue-size-factor` (default: 2) attribute controls the buffer size per group, calculated as
+`max.poll.records * max-queue-size-factor`.
+The `throttled.ordered.max-concurrency` attribute controls how many groups can be processed concurrently.
+If not set, it defaults to `max.poll.records`.
+When buffers of all groups are full, backpressure is applied to pause consumption.
 
 ## Failure Management
 
