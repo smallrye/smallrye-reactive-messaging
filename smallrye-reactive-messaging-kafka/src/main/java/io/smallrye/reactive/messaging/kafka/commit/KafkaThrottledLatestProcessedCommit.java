@@ -7,19 +7,27 @@ import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiConsumer;
+import java.util.function.Function;
 
 import jakarta.enterprise.context.ApplicationScoped;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
 
 import io.smallrye.common.annotation.Identifier;
+import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
+import io.smallrye.mutiny.subscription.DemandPauser;
 import io.smallrye.mutiny.tuples.Tuple2;
 import io.smallrye.reactive.messaging.kafka.IncomingKafkaRecord;
 import io.smallrye.reactive.messaging.kafka.KafkaConnectorIncomingConfiguration;
 import io.smallrye.reactive.messaging.kafka.KafkaConsumer;
+import io.smallrye.reactive.messaging.kafka.ProcessingOrder;
+import io.smallrye.reactive.messaging.kafka.TopicPartitionKey;
+import io.smallrye.reactive.messaging.kafka.api.IncomingKafkaRecordMetadata;
+import io.smallrye.reactive.messaging.kafka.impl.OrderedIncomingKafkaRecord;
 import io.smallrye.reactive.messaging.providers.helpers.VertxContext;
 import io.vertx.core.impl.NoStackTraceThrowable;
 import io.vertx.mutiny.core.Vertx;
@@ -30,6 +38,11 @@ import io.vertx.mutiny.core.Vertx;
  * <p>
  * This strategy mimics the behavior of the kafka consumer when `enable.auto.commit`
  * is `true`.
+ * <p>
+ * This strategy supports concurrent processing with ordering guarantees using the
+ * `throttled.processing-order` configuration. Messages are grouped (by key or partition)
+ * and each group processes messages sequentially, while different groups can process
+ * concurrently. See {@link ProcessingOrder} for available modes.
  * <p>
  * The connector will be marked as unhealthy in the presence of any received record that has gone
  * too long without being processed as defined by `throttled.unprocessed-record-max-age.ms` (default: 60000).
@@ -50,8 +63,11 @@ public class KafkaThrottledLatestProcessedCommit extends ContextHolder implement
     private final BiConsumer<Throwable, Boolean> reportFailure;
     private final int unprocessedRecordMaxAge;
     private final int autoCommitInterval;
+    private final int maxQueueSizeFactor;
+    private final ProcessingOrder processingOrder;
     private volatile long timerId = -1;
     private final Collection<TopicPartition> assignments = Collections.newSetFromMap(new ConcurrentHashMap<>());
+    private final Map<TopicPartitionKey, Flow.Subscription> orderedByGroups = new ConcurrentHashMap<>();
 
     @ApplicationScoped
     @Identifier(Strategy.THROTTLED)
@@ -65,12 +81,14 @@ public class KafkaThrottledLatestProcessedCommit extends ContextHolder implement
                 BiConsumer<Throwable, Boolean> reportFailure) {
             String groupId = (String) consumer.configuration().get(ConsumerConfig.GROUP_ID_CONFIG);
             int unprocessedRecordMaxAge = config.getThrottledUnprocessedRecordMaxAgeMs();
+            ProcessingOrder processingOrder = ProcessingOrder.of(config.getThrottledProcessingOrder());
             int autoCommitInterval = config.config()
                     .getOptionalValue(ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG, Integer.class)
                     .orElse(5000);
             int defaultTimeout = config.config()
                     .getOptionalValue(ConsumerConfig.DEFAULT_API_TIMEOUT_MS_CONFIG, Integer.class)
                     .orElse(60000);
+            int maxQueueSizeFactor = config.getMaxQueueSizeFactor();
             log.settingCommitInterval(groupId, autoCommitInterval);
             if (unprocessedRecordMaxAge <= 0) {
                 log.disableThrottledCommitStrategyHealthCheck(groupId);
@@ -78,7 +96,7 @@ public class KafkaThrottledLatestProcessedCommit extends ContextHolder implement
                 log.setThrottledCommitStrategyReceivedRecordMaxAge(groupId, unprocessedRecordMaxAge);
             }
             return new KafkaThrottledLatestProcessedCommit(groupId, vertx, consumer, reportFailure, unprocessedRecordMaxAge,
-                    autoCommitInterval, defaultTimeout);
+                    autoCommitInterval, defaultTimeout, maxQueueSizeFactor, processingOrder);
         }
     }
 
@@ -89,13 +107,17 @@ public class KafkaThrottledLatestProcessedCommit extends ContextHolder implement
             BiConsumer<Throwable, Boolean> reportFailure,
             int unprocessedRecordMaxAge,
             int autoCommitInterval,
-            int defaultTimeout) {
+            int defaultTimeout,
+            int maxQueueSizeFactor,
+            ProcessingOrder processingOrder) {
         super(vertx, defaultTimeout);
         this.groupId = groupId;
         this.consumer = consumer;
         this.reportFailure = reportFailure;
         this.unprocessedRecordMaxAge = unprocessedRecordMaxAge;
         this.autoCommitInterval = autoCommitInterval;
+        this.maxQueueSizeFactor = maxQueueSizeFactor;
+        this.processingOrder = processingOrder;
     }
 
     /**
@@ -129,6 +151,15 @@ public class KafkaThrottledLatestProcessedCommit extends ContextHolder implement
         Tuple2<Map<TopicPartition, OffsetAndMetadata>, Boolean> result = runOnContextAndAwait(() -> {
             stopFlushAndCheckHealthTimer();
             assignments.removeAll(partitions);
+
+            orderedByGroups.entrySet().removeIf(entry -> {
+                if (partitions.contains(entry.getKey().topicPartition()) && entry.getKey().key() != null) {
+                    entry.getValue().cancel();
+                    return true;
+                }
+                return false;
+            });
+
             // Remove all handled partitions that are not in the given list of partitions
             Map<TopicPartition, OffsetAndMetadata> toCommit = new HashMap<>();
             for (TopicPartition partition : new HashSet<>(offsetStores.keySet())) {
@@ -174,6 +205,48 @@ public class KafkaThrottledLatestProcessedCommit extends ContextHolder implement
      */
     private void startFlushAndCheckHealthTimer() {
         timerId = vertx.setTimer(autoCommitInterval, x -> runOnContext(() -> this.flushAndCheckHealth(x)));
+    }
+
+    @Override
+    public <K, V> Multi<IncomingKafkaRecord<K, V>> decorateStream(Multi<IncomingKafkaRecord<K, V>> consumed) {
+        // preserve order by key if configured
+        return switch (processingOrder) {
+            case UNORDERED -> consumed;
+            case ORDERED_BY_KEY -> groupOrderBy(consumed, TopicPartitionKey::ofKey);
+            case ORDERED_BY_PARTITION -> groupOrderBy(consumed, TopicPartitionKey::ofPartition);
+        };
+    }
+
+    private int getMaxPollRecords() {
+        String maxPollRecords = (String) consumer.configuration().get(ConsumerConfig.MAX_POLL_RECORDS_CONFIG);
+        if (maxPollRecords != null) {
+            try {
+                return Integer.parseInt(maxPollRecords);
+            } catch (NumberFormatException ignored) {
+
+            }
+        }
+        return ConsumerConfig.DEFAULT_MAX_POLL_RECORDS;
+    }
+
+    private <K, V> Multi<IncomingKafkaRecord<K, V>> groupOrderBy(Multi<IncomingKafkaRecord<K, V>> incomingMulti,
+            Function<ConsumerRecord<K, V>, TopicPartitionKey> orderBy) {
+        long prefetch = (long) getMaxPollRecords() * maxQueueSizeFactor;
+        return incomingMulti
+                .group()
+                .by(message -> orderBy.apply(message.getMetadata(IncomingKafkaRecordMetadata.class).get().getRecord()),
+                        prefetch)
+                .onItem().transformToMulti(g -> {
+                    DemandPauser pauser = new DemandPauser();
+                    return g.pauseDemand().using(pauser)
+                            .onItem().transform(rec -> {
+                                pauser.pause();
+                                return (IncomingKafkaRecord<K, V>) new OrderedIncomingKafkaRecord<>(rec, pauser::resume);
+                            })
+                            .onSubscription().invoke(s -> orderedByGroups.put(g.key(), s))
+                            .onTermination().invoke((t, c) -> orderedByGroups.remove(g.key()));
+                })
+                .merge(Integer.MAX_VALUE);
     }
 
     /**
@@ -365,10 +438,7 @@ public class KafkaThrottledLatestProcessedCommit extends ContextHolder implement
         }
 
         void processed(long offset) {
-            final OffsetReceivedAt received = this.receivedOffsets.peek();
-            if (received != null && received.getOffset() <= offset) {
-                processedOffsets.add(offset);
-            }
+            processedOffsets.add(offset);
         }
 
         long clearLesserSequentiallyProcessedOffsetsAndReturnLargestOffset() {
@@ -461,6 +531,8 @@ public class KafkaThrottledLatestProcessedCommit extends ContextHolder implement
 
         commitAllAndAwait();
         runOnContextAndAwait(() -> {
+            orderedByGroups.values().forEach(Flow.Subscription::cancel);
+            orderedByGroups.clear();
             offsetStores.clear();
             stopFlushAndCheckHealthTimer();
             return null;
