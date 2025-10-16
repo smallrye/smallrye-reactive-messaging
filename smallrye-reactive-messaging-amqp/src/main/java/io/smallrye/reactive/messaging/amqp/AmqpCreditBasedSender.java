@@ -161,7 +161,7 @@ public class AmqpCreditBasedSender implements Processor<Message<?>, Message<?>>,
     private long setCreditsAndRequest(AmqpSender sender) {
         long credits = sender.remainingCredits();
         Subscription subscription = upstream.get();
-        if (credits != 0L && subscription != Subscriptions.CANCELLED) {
+        if (credits > 0L && subscription != Subscriptions.CANCELLED) {
             // Request upfront the sender remaining credits or the max inflights
             long request = maxInflights > 0 ? Math.min(credits, maxInflights) : credits;
             log.retrievedCreditsForChannel(configuration.getChannel(), credits);
@@ -221,9 +221,9 @@ public class AmqpCreditBasedSender implements Processor<Message<?>, Message<?>>,
                     return;
                 }
                 long c = setCreditsAndRequest(sender);
-                if (c == 0L) { // still no credits, schedule a periodic retry
+                if (c <= 0L) { // still no credits, schedule a periodic retry
                     holder.getVertx().setPeriodic(configuration.getCreditRetrievalPeriod(), id -> {
-                        if (setCreditsAndRequest(sender) != 0L || isCancelled()) {
+                        if (setCreditsAndRequest(sender) > 0L || isCancelled()) {
                             // Got our new credits or the application has been terminated,
                             // we cancel the periodic task.
                             holder.getVertx().cancelTimer(id);
