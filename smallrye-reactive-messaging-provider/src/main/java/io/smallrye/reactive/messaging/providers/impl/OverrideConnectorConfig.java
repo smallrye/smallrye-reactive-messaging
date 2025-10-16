@@ -57,7 +57,7 @@ public class OverrideConnectorConfig extends ConnectorConfig {
     public <T> T getValue(String propertyName, Class<T> propertyType) {
         if (nestedChannel != null) {
             // First check if the nestedChannel channel configuration contains the desired attribute.
-            Optional<T> maybeResult = super.getOptionalValue(nestedChannelKey(propertyName), propertyType);
+            Optional<T> maybeResult = getOptionalValueFromSuper(nestedChannelKey(propertyName), propertyType);
             if (maybeResult.isPresent()) {
                 return maybeResult.get();
             }
@@ -74,14 +74,14 @@ public class OverrideConnectorConfig extends ConnectorConfig {
                 }
             }
         }
-        return super.getValue(propertyName, propertyType);
+        return getValueFromSuper(propertyName, propertyType);
     }
 
     @Override
     public <T> Optional<T> getOptionalValue(String propertyName, Class<T> propertyType) {
         if (nestedChannel != null) {
             // First check if the nestedChannel channel configuration contains the desired attribute.
-            Optional<T> maybe = super.getOptionalValue(nestedChannelKey(propertyName), propertyType);
+            Optional<T> maybe = getOptionalValueFromSuper(nestedChannelKey(propertyName), propertyType);
             if (maybe.isPresent()) {
                 return maybe;
             }
@@ -99,7 +99,7 @@ public class OverrideConnectorConfig extends ConnectorConfig {
                 return Optional.empty();
             }
         }
-        return super.getOptionalValue(propertyName, propertyType);
+        return getOptionalValueFromSuper(propertyName, propertyType);
     }
 
     /**
@@ -178,12 +178,24 @@ public class OverrideConnectorConfig extends ConnectorConfig {
                 if (nameExists(prefix + computed)) {
                     names.add(computed);
                 }
+            } else if (overall instanceof ConnectorConfig) {
+                names.add(name);
             }
         }
 
         names.add(CHANNEL_NAME_ATTRIBUTE);
         names.addAll(overrides.keySet());
         return names;
+    }
+
+    private <T> Optional<T> getOptionalValueFromSuper(String propertyName, Class<T> propertyType) {
+        return overall instanceof ConnectorConfig ? overall.getOptionalValue(propertyName, propertyType)
+                : super.getOptionalValue(propertyName, propertyType);
+    }
+
+    private <T> T getValueFromSuper(String propertyName, Class<T> propertyType) {
+        return overall instanceof ConnectorConfig ? overall.getValue(propertyName, propertyType)
+                : super.getValue(propertyName, propertyType);
     }
 
 }
