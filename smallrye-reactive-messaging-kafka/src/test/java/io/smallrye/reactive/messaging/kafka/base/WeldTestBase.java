@@ -26,6 +26,7 @@ import io.smallrye.reactive.messaging.kafka.fault.KafkaFailStop;
 import io.smallrye.reactive.messaging.kafka.fault.KafkaFailureHandler;
 import io.smallrye.reactive.messaging.kafka.fault.KafkaIgnoreFailure;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaClientServiceImpl;
+import io.smallrye.reactive.messaging.kafka.impl.KeyBasedOrderingDecorator;
 import io.smallrye.reactive.messaging.kafka.impl.TopicPartitions;
 import io.smallrye.reactive.messaging.kafka.reply.KafkaRequestReplyFactory;
 import io.smallrye.reactive.messaging.kafka.reply.UUIDCorrelationIdHandler;
@@ -114,6 +115,7 @@ public class WeldTestBase {
         weld.addBeanClass(ObservationDecorator.class);
         weld.addBeanClass(OutgoingObservationDecorator.class);
         weld.addBeanClass(PausableChannelDecorator.class);
+        weld.addBeanClass(KeyBasedOrderingDecorator.class);
         weld.disableDiscovery();
     }
 
