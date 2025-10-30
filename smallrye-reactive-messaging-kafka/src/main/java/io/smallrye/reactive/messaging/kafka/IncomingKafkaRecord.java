@@ -2,6 +2,7 @@ package io.smallrye.reactive.messaging.kafka;
 
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -26,6 +27,7 @@ public class IncomingKafkaRecord<K, T> implements KafkaRecord<K, T>, MetadataInj
     private final KafkaCommitHandler commitHandler;
     private final KafkaFailureHandler onNack;
     private final T payload;
+    private Runnable afterProcessing;
 
     public IncomingKafkaRecord(ConsumerRecord<K, T> record,
             String channel,
@@ -125,17 +127,23 @@ public class IncomingKafkaRecord<K, T> implements KafkaRecord<K, T>, MetadataInj
 
     @Override
     public CompletionStage<Void> ack(Metadata metadata) {
-        return commitHandler.handle(this).subscribeAsCompletionStage();
+        CompletableFuture<Void> ack = commitHandler.handle(this).subscribeAsCompletionStage();
+        return afterProcessing == null ? ack : ack.thenRun(afterProcessing);
     }
 
     @Override
     public CompletionStage<Void> nack(Throwable reason, Metadata metadata) {
-        return onNack.handle(this, reason, metadata).subscribeAsCompletionStage();
+        CompletableFuture<Void> nack = onNack.handle(this, reason, metadata).subscribeAsCompletionStage();
+        return afterProcessing == null ? nack : nack.thenRun(afterProcessing);
     }
 
     @Override
     public synchronized void injectMetadata(Object metadata) {
         this.metadata = this.metadata.with(metadata);
+    }
+
+    public void afterProcessing(Runnable runnable) {
+        this.afterProcessing = runnable;
     }
 
 }

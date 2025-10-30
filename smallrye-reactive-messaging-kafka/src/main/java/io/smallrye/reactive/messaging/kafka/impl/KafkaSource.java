@@ -28,6 +28,7 @@ import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.ClientCustomizer;
 import io.smallrye.reactive.messaging.health.HealthReport;
 import io.smallrye.reactive.messaging.kafka.*;
+import io.smallrye.reactive.messaging.kafka.api.IncomingKafkaRecordMetadata;
 import io.smallrye.reactive.messaging.kafka.commit.ContextHolder;
 import io.smallrye.reactive.messaging.kafka.commit.KafkaCommitHandler;
 import io.smallrye.reactive.messaging.kafka.fault.KafkaDeadLetterQueue;
@@ -36,6 +37,7 @@ import io.smallrye.reactive.messaging.kafka.fault.KafkaFailureHandler;
 import io.smallrye.reactive.messaging.kafka.health.KafkaSourceHealth;
 import io.smallrye.reactive.messaging.kafka.tracing.KafkaOpenTelemetryInstrumenter;
 import io.smallrye.reactive.messaging.kafka.tracing.KafkaTrace;
+import io.smallrye.reactive.messaging.providers.helpers.PausableMulti;
 import io.vertx.core.impl.ContextInternal;
 import io.vertx.core.impl.VertxInternal;
 import io.vertx.mutiny.core.Vertx;
@@ -166,14 +168,43 @@ public class KafkaSource<K, V> {
                 log.unableToReadRecord(topics, t);
                 reportFailure(t, false);
             });
+            Multi<IncomingKafkaRecord<K, V>> incomingMulti = multi.onItem()
+                    .transform(rec -> new IncomingKafkaRecord<>(rec, channel, index, commitHandler,
+                            failureHandler, isCloudEventEnabled, isTracingEnabled));
 
-            Multi<IncomingKafkaRecord<K, V>> incomingMulti = multi.onItem().transformToUni(rec -> {
-                IncomingKafkaRecord<K, V> record = new IncomingKafkaRecord<>(rec, channel, index, commitHandler,
-                        failureHandler, isCloudEventEnabled, isTracingEnabled);
+            // preserve order by key if configured
+            ProcessingOrder processingOrder = ProcessingOrder.of(config.getThrottledProcessingOrder());
+            incomingMulti = switch (processingOrder) {
+                case UNORDERED -> incomingMulti;
+                case ORDERED_BY_KEY -> incomingMulti.group()
+                        .by(message -> TopicPartitionKey.ofKey(
+                                message.getMetadata(IncomingKafkaRecordMetadata.class).get().getRecord()))
+                        .onItem().transformToMulti(g -> {
+                            PausableMulti<IncomingKafkaRecord<K, V>> pausable = new PausableMulti<>(g, false);
+                            return pausable.invoke(rec -> {
+                                pausable.pause();
+                                rec.afterProcessing(pausable::resume);
+                            });
+                        })
+                        .merge(128);
+                case ORDERED_BY_PARTITION -> incomingMulti.group()
+                        .by(message -> TopicPartitionKey.ofPartition(
+                                message.getMetadata(IncomingKafkaRecordMetadata.class).get().getRecord()))
+                        .onItem().transformToMulti(g -> {
+                            PausableMulti<IncomingKafkaRecord<K, V>> pausable = new PausableMulti<>(g, false);
+                            return pausable.invoke(rec -> {
+                                pausable.pause();
+                                rec.afterProcessing(pausable::resume);
+                            });
+                        })
+                        .merge(128);
+            };
+
+            incomingMulti = incomingMulti.onItem().transformToUni(record -> {
                 if ((failureHandler instanceof KafkaDeadLetterQueue)
-                        && rec.headers() != null
-                        && rec.headers().lastHeader(DESERIALIZATION_FAILURE_DLQ) != null) {
-                    Header reasonMsgHeader = rec.headers().lastHeader(DESERIALIZATION_FAILURE_REASON);
+                        && record.getHeaders() != null
+                        && record.getHeaders().lastHeader(DESERIALIZATION_FAILURE_DLQ) != null) {
+                    Header reasonMsgHeader = record.getHeaders().lastHeader(DESERIALIZATION_FAILURE_REASON);
                     String message = reasonMsgHeader != null ? new String(reasonMsgHeader.value()) : null;
                     RecordDeserializationException reason = new RecordDeserializationException(
                             TopicPartitions.getTopicPartition(record), record.getOffset(), message, null);

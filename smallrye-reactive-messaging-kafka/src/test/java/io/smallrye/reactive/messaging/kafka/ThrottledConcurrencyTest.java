@@ -10,7 +10,6 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.IntStream;
-import java.util.stream.Stream;
 
 import jakarta.enterprise.context.ApplicationScoped;
 
@@ -26,19 +25,20 @@ import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 
 public class ThrottledConcurrencyTest extends KafkaCompanionTestBase {
 
+    int partitions = 10;
+    int concurrency = 10;
+    int recordsParPartition = 100;
+
     @Test
     public void testUnorderedParallelProcessing() {
         // Create topic and produce messages with different keys
-        companion.topics().createAndWait(topic, 5);
+        companion.topics().createAndWait(topic, partitions);
 
         // Produce messages to different partitions
         companion.produceStrings()
-                .fromRecords(IntStream.range(0, 10).boxed().flatMap(i -> Stream.of(
-                        new ProducerRecord<>(topic, 0, "A", "A-" + i),
-                        new ProducerRecord<>(topic, 1, "B", "B-" + i),
-                        new ProducerRecord<>(topic, 2, "C", "C-" + i),
-                        new ProducerRecord<>(topic, 3, "D", "D-" + i),
-                        new ProducerRecord<>(topic, 4, "E", "E-" + i))).toList())
+                .fromRecords(IntStream.range(0, recordsParPartition).boxed().flatMap(i -> IntStream.range(0, partitions).boxed()
+                        .map(p -> new ProducerRecord<>(topic, p, "key-" + p, "value-" + i)))
+                        .toList())
                 .awaitCompletion();
 
         MapBasedConfig config = kafkaConfig("mp.messaging.incoming.unordered")
@@ -49,18 +49,20 @@ public class ThrottledConcurrencyTest extends KafkaCompanionTestBase {
                 .with("key.deserializer", StringDeserializer.class.getName())
                 .with("commit-strategy", "throttled")
                 .withPrefix("")
-                .with("smallrye.messaging.worker.my-pool.max-concurrency", 5);
+                .with("smallrye.messaging.worker.my-pool.max-concurrency", concurrency);
 
         UnorderedParallelConsumer app = runApplication(config, UnorderedParallelConsumer.class);
         long start = System.currentTimeMillis();
         System.out.println("Started processing messages " + start);
 
         // Wait for all messages to be processed
-        await().atMost(1, TimeUnit.MINUTES).untilAsserted(() -> assertThat(app.received()).hasSize(50));
+        await().atMost(2, TimeUnit.MINUTES)
+                .untilAsserted(() -> assertThat(app.received())
+                        .hasSize(partitions * recordsParPartition));
         long duration = System.currentTimeMillis() - start;
         System.out.println("Processing duration: " + duration + " ms");
 
-        assertThat(app.maxConcurrency()).isEqualTo(5);
+        assertThat(app.maxConcurrency()).isEqualTo(concurrency);
     }
 
     @ApplicationScoped
@@ -93,16 +95,13 @@ public class ThrottledConcurrencyTest extends KafkaCompanionTestBase {
     @Test
     public void testOrderedByKeyProcessing() {
         // Create topic and produce messages with different keys
-        companion.topics().createAndWait(topic, 5);
+        companion.topics().createAndWait(topic, partitions);
 
         // Produce messages to different keys
         companion.produceStrings()
-                .fromRecords(IntStream.range(0, 10).boxed().flatMap(i -> Stream.of(
-                        new ProducerRecord<>(topic, 0, "A", "A-" + i),
-                        new ProducerRecord<>(topic, 1, "B", "B-" + i),
-                        new ProducerRecord<>(topic, 2, "C", "C-" + i),
-                        new ProducerRecord<>(topic, 3, "D", "D-" + i),
-                        new ProducerRecord<>(topic, 4, "E", "E-" + i))).toList())
+                .fromRecords(IntStream.range(0, recordsParPartition).boxed().flatMap(i -> IntStream.range(0, partitions).boxed()
+                        .map(p -> new ProducerRecord<>(topic, p, "key-" + p, "value-" + i)))
+                        .toList())
                 .awaitCompletion();
 
         MapBasedConfig config = kafkaConfig("mp.messaging.incoming.key-ordered")
@@ -112,25 +111,27 @@ public class ThrottledConcurrencyTest extends KafkaCompanionTestBase {
                 .with("value.deserializer", StringDeserializer.class.getName())
                 .with("key.deserializer", StringDeserializer.class.getName())
                 .with("throttled.processing-order", "ordered_by_key")
-                .with("commit-strategy", "throttled");
+                .with("commit-strategy", "throttled")
+                .withPrefix("")
+                .with("smallrye.messaging.worker.my-pool.max-concurrency", concurrency);
 
         OrderedByKeyParallelConsumer app = runApplication(config, OrderedByKeyParallelConsumer.class);
         long start = System.currentTimeMillis();
         System.out.println("Started processing messages " + start);
 
         // Wait for all messages to be processed
-        await().atMost(1, TimeUnit.MINUTES).untilAsserted(() -> assertThat(app.received()).hasSize(50));
+        await().atMost(2, TimeUnit.MINUTES)
+                .untilAsserted(() -> assertThat(app.received())
+                        .hasSize(partitions * recordsParPartition));
         long duration = System.currentTimeMillis() - start;
         System.out.println("Processing duration: " + duration + " ms");
 
         // With ordered-by-key, messages with the same key should be processed sequentially
         // So max concurrent processing per key should be 1
-        assertThat(app.keyMaxCounter("A")).hasValue(1);
-        assertThat(app.keyMaxCounter("B")).hasValue(1);
-        assertThat(app.keyMaxCounter("C")).hasValue(1);
-        assertThat(app.keyMaxCounter("D")).hasValue(1);
-        assertThat(app.keyMaxCounter("E")).hasValue(1);
-        assertThat(app.maxConcurrency()).isEqualTo(5);
+        for (int i = 0; i < partitions; i++) {
+            assertThat(app.keyMaxCounter("key-" + i)).hasValue(1);
+        }
+        assertThat(app.maxConcurrency()).isEqualTo(partitions);
     }
 
     @ApplicationScoped
@@ -177,16 +178,13 @@ public class ThrottledConcurrencyTest extends KafkaCompanionTestBase {
     @Test
     public void testOrderedByPartitionProcessing() {
         // Create topic with 2 partitions
-        companion.topics().createAndWait(topic, 5);
+        companion.topics().createAndWait(topic, partitions);
 
         // Produce messages to different partitions
         companion.produceStrings()
-                .fromRecords(IntStream.range(0, 10).boxed().flatMap(i -> Stream.of(
-                        new ProducerRecord<>(topic, 0, "key-" + i, "p0-" + i),
-                        new ProducerRecord<>(topic, 1, "key-" + i, "p1-" + i),
-                        new ProducerRecord<>(topic, 2, "key-" + i, "p2-" + i),
-                        new ProducerRecord<>(topic, 3, "key-" + i, "p3-" + i),
-                        new ProducerRecord<>(topic, 4, "key-" + i, "p4-" + i))).toList())
+                .fromRecords(IntStream.range(0, recordsParPartition).boxed().flatMap(i -> IntStream.range(0, partitions).boxed()
+                        .map(p -> new ProducerRecord<>(topic, p, "key-" + p, "value-" + i)))
+                        .toList())
                 .awaitCompletion();
 
         MapBasedConfig config = kafkaConfig("mp.messaging.incoming.partition-ordered")
@@ -196,25 +194,27 @@ public class ThrottledConcurrencyTest extends KafkaCompanionTestBase {
                 .with("value.deserializer", StringDeserializer.class.getName())
                 .with("key.deserializer", StringDeserializer.class.getName())
                 .with("throttled.processing-order", "ordered_by_partition")
-                .with("commit-strategy", "throttled");
+                .with("commit-strategy", "throttled")
+                .withPrefix("")
+                .with("smallrye.messaging.worker.my-pool.max-concurrency", concurrency);
 
         OrderedByPartitionParallelConsumer app = runApplication(config, OrderedByPartitionParallelConsumer.class);
         long start = System.currentTimeMillis();
         System.out.println("Started processing messages " + start);
 
         // Wait for all messages to be processed
-        await().atMost(1, TimeUnit.MINUTES).untilAsserted(() -> assertThat(app.received()).hasSize(50));
+        await().atMost(2, TimeUnit.MINUTES)
+                .untilAsserted(() -> assertThat(app.received())
+                        .hasSize(partitions * recordsParPartition));
         long duration = System.currentTimeMillis() - start;
         System.out.println("Processing duration: " + duration + " ms");
 
         // With ordered-by-partition, messages from the same partition should be processed sequentially
         // So max concurrent processing per partition should be 1
-        assertThat(app.partitionMaxCounter(0)).hasValue(1);
-        assertThat(app.partitionMaxCounter(1)).hasValue(1);
-        assertThat(app.partitionMaxCounter(2)).hasValue(1);
-        assertThat(app.partitionMaxCounter(3)).hasValue(1);
-        assertThat(app.partitionMaxCounter(4)).hasValue(1);
-        assertThat(app.maxConcurrency()).isEqualTo(5);
+        for (int i = 0; i < partitions; i++) {
+            assertThat(app.partitionMaxCounter(i)).hasValue(1);
+        }
+        assertThat(app.maxConcurrency()).isEqualTo(partitions);
     }
 
     @ApplicationScoped
