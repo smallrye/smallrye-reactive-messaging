@@ -55,7 +55,7 @@ public class ConnectorConfig implements Config {
         }
     }
 
-    protected ConnectorConfig(String prefix, Config overall, String channel) {
+    public ConnectorConfig(String prefix, Config overall, String channel) {
         this(prefix, overall, getConnectorAttribute(prefix, overall, channel), channel);
     }
 
