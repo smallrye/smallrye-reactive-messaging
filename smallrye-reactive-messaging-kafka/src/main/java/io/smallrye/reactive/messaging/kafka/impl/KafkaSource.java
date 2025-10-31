@@ -186,7 +186,7 @@ public class KafkaSource<K, V> {
                                 rec.afterProcessing(pausable::resume);
                             });
                         })
-                        .merge(128);
+                        .merge();
                 case ORDERED_BY_PARTITION -> incomingMulti.group()
                         .by(message -> TopicPartitionKey.ofPartition(
                                 message.getMetadata(IncomingKafkaRecordMetadata.class).get().getRecord()))
@@ -197,7 +197,7 @@ public class KafkaSource<K, V> {
                                 rec.afterProcessing(pausable::resume);
                             });
                         })
-                        .merge(128);
+                        .merge();
             };
 
             incomingMulti = incomingMulti.onItem().transformToUni(record -> {

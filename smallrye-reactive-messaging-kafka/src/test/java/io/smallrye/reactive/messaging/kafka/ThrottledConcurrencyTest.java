@@ -3,6 +3,7 @@ package io.smallrye.reactive.messaging.kafka;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -13,11 +14,13 @@ import java.util.stream.IntStream;
 
 import jakarta.enterprise.context.ApplicationScoped;
 
+import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.junit.jupiter.api.Test;
 
+import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.annotations.Blocking;
 import io.smallrye.reactive.messaging.kafka.api.IncomingKafkaRecordMetadata;
 import io.smallrye.reactive.messaging.kafka.base.KafkaCompanionTestBase;
@@ -25,9 +28,10 @@ import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 
 public class ThrottledConcurrencyTest extends KafkaCompanionTestBase {
 
-    int partitions = 10;
-    int concurrency = 10;
-    int recordsParPartition = 100;
+    final static int partitions = 10;
+    final static int concurrency = 10;
+    final static int recordsParPartition = 100;
+    final static int processingTimeMs = 100;
 
     @Test
     public void testUnorderedParallelProcessing() {
@@ -44,6 +48,7 @@ public class ThrottledConcurrencyTest extends KafkaCompanionTestBase {
         MapBasedConfig config = kafkaConfig("mp.messaging.incoming.unordered")
                 .with("topic", topic)
                 .with("group.id", "test-throttled-unordered")
+                .with("throttled.unprocessed-record-max-age.ms", 1000)
                 .with("auto.offset.reset", "earliest")
                 .with("value.deserializer", StringDeserializer.class.getName())
                 .with("key.deserializer", StringDeserializer.class.getName())
@@ -63,6 +68,12 @@ public class ThrottledConcurrencyTest extends KafkaCompanionTestBase {
         System.out.println("Processing duration: " + duration + " ms");
 
         assertThat(app.maxConcurrency()).isEqualTo(concurrency);
+
+        await().untilAsserted(() -> {
+            assertThat(companion.consumerGroups().offsets("test-throttled-unordered"))
+                    .values().extracting(OffsetAndMetadata::offset)
+                    .containsOnly(100L);
+        });
     }
 
     @ApplicationScoped
@@ -79,7 +90,7 @@ public class ThrottledConcurrencyTest extends KafkaCompanionTestBase {
             System.out.println(Thread.currentThread() + " Current concurrency: " + conc);
             maxConcurrency.updateAndGet(max -> Math.max(max, conc));
             received.add(payload);
-            Thread.sleep(500);
+            Thread.sleep(processingTimeMs);
             concurrency.decrementAndGet();
         }
 
@@ -107,6 +118,7 @@ public class ThrottledConcurrencyTest extends KafkaCompanionTestBase {
         MapBasedConfig config = kafkaConfig("mp.messaging.incoming.key-ordered")
                 .with("topic", topic)
                 .with("group.id", "test-throttled-ordered-by-key")
+                .with("throttled.unprocessed-record-max-age.ms", 1000)
                 .with("auto.offset.reset", "earliest")
                 .with("value.deserializer", StringDeserializer.class.getName())
                 .with("key.deserializer", StringDeserializer.class.getName())
@@ -131,7 +143,12 @@ public class ThrottledConcurrencyTest extends KafkaCompanionTestBase {
         for (int i = 0; i < partitions; i++) {
             assertThat(app.keyMaxCounter("key-" + i)).hasValue(1);
         }
-        assertThat(app.maxConcurrency()).isEqualTo(partitions);
+
+        await().untilAsserted(() -> {
+            assertThat(companion.consumerGroups().offsets("test-throttled-ordered-by-key"))
+                    .values().extracting(OffsetAndMetadata::offset)
+                    .containsOnly(100L);
+        });
     }
 
     @ApplicationScoped
@@ -145,8 +162,9 @@ public class ThrottledConcurrencyTest extends KafkaCompanionTestBase {
         private final AtomicInteger maxConcurrency = new AtomicInteger(0);
 
         @Incoming("key-ordered")
-        @Blocking(ordered = false)
-        public void consume(String payload, IncomingKafkaRecordMetadata<String, String> metadata) throws InterruptedException {
+        @Blocking(ordered = false, value = "my-pool")
+        public Uni<Void> consume(String payload, IncomingKafkaRecordMetadata<String, String> metadata)
+                throws InterruptedException {
             int conc = concurrency.incrementAndGet();
             maxConcurrency.updateAndGet(max -> Math.max(max, conc));
             received.add(payload);
@@ -157,9 +175,15 @@ public class ThrottledConcurrencyTest extends KafkaCompanionTestBase {
                     + metadata.getOffset() + " current concurrent: " + current);
             keyMaxCounter.computeIfAbsent(metadata.getKey(), x -> new AtomicInteger(0))
                     .updateAndGet(max -> Math.max(max, current));
-            Thread.sleep(500);
-            counter.decrementAndGet();
-            concurrency.decrementAndGet();
+            //            Thread.sleep(500);
+            //            counter.decrementAndGet();
+            //            concurrency.decrementAndGet();
+            return Uni.createFrom().voidItem()
+                    .onItem().delayIt().by(Duration.ofMillis(processingTimeMs))
+                    .invoke(x -> {
+                        counter.decrementAndGet();
+                        concurrency.decrementAndGet();
+                    });
         }
 
         public List<String> received() {
@@ -190,6 +214,7 @@ public class ThrottledConcurrencyTest extends KafkaCompanionTestBase {
         MapBasedConfig config = kafkaConfig("mp.messaging.incoming.partition-ordered")
                 .with("topic", topic)
                 .with("group.id", "test-throttled-ordered-by-partition")
+                .with("throttled.unprocessed-record-max-age.ms", 1000)
                 .with("auto.offset.reset", "earliest")
                 .with("value.deserializer", StringDeserializer.class.getName())
                 .with("key.deserializer", StringDeserializer.class.getName())
@@ -215,6 +240,12 @@ public class ThrottledConcurrencyTest extends KafkaCompanionTestBase {
             assertThat(app.partitionMaxCounter(i)).hasValue(1);
         }
         assertThat(app.maxConcurrency()).isEqualTo(partitions);
+
+        await().untilAsserted(() -> {
+            assertThat(companion.consumerGroups().offsets("test-throttled-ordered-by-partition"))
+                    .values().extracting(OffsetAndMetadata::offset)
+                    .containsOnly(100L);
+        });
     }
 
     @ApplicationScoped
@@ -227,7 +258,7 @@ public class ThrottledConcurrencyTest extends KafkaCompanionTestBase {
         private final AtomicInteger maxConcurrency = new AtomicInteger(0);
 
         @Incoming("partition-ordered")
-        @Blocking(ordered = false)
+        @Blocking(ordered = false, value = "my-pool")
         public void consume(String payload, IncomingKafkaRecordMetadata<String, String> metadata) throws InterruptedException {
             int conc = concurrency.incrementAndGet();
             maxConcurrency.updateAndGet(max -> Math.max(max, conc));
@@ -239,7 +270,7 @@ public class ThrottledConcurrencyTest extends KafkaCompanionTestBase {
             System.out.println(Thread.currentThread() + "Consumed message: " + payload + " from partition: "
                     + metadata.getPartition() + ":"
                     + metadata.getOffset() + " current concurrent: " + current);
-            Thread.sleep(500);
+            Thread.sleep(processingTimeMs);
             counter.decrementAndGet();
             concurrency.decrementAndGet();
         }
