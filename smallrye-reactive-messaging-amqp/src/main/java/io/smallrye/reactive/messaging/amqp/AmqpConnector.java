@@ -56,6 +56,7 @@ import io.vertx.mutiny.core.Vertx;
 @ConnectorAttribute(name = "client-options-name", direction = INCOMING_AND_OUTGOING, description = "The name of the AMQP Client Option bean used to customize the AMQP client configuration", type = "string", alias = "amqp-client-options-name")
 @ConnectorAttribute(name = "client-ssl-context-name", direction = INCOMING_AND_OUTGOING, description = "The name of an SSLContext bean to use for connecting to AMQP when SSL is used", type = "string", alias = "amqp-client-ssl-context-name", hiddenFromDocumentation = true)
 @ConnectorAttribute(name = "tracing-enabled", direction = INCOMING_AND_OUTGOING, description = "Whether tracing is enabled (default) or disabled", type = "boolean", defaultValue = "true")
+@ConnectorAttribute(name = "health-enabled", type = "boolean", direction = INCOMING_AND_OUTGOING, description = "Whether health reporting is enabled (default) or disabled", defaultValue = "true")
 @ConnectorAttribute(name = "health-timeout", direction = INCOMING_AND_OUTGOING, description = "The max number of seconds to wait to determine if the connection with the broker is still established for the readiness check. After that threshold, the check is considered as failed.", type = "int", defaultValue = "3")
 @ConnectorAttribute(name = "cloud-events", type = "boolean", direction = INCOMING_AND_OUTGOING, description = "Enables (default) or disables the Cloud Event support. If enabled on an _incoming_ channel, the connector analyzes the incoming records and try to create Cloud Event metadata. If enabled on an _outgoing_, the connector sends the outgoing messages as Cloud Event if the message includes Cloud Event Metadata.", defaultValue = "true")
 @ConnectorAttribute(name = "capabilities", type = "string", direction = INCOMING_AND_OUTGOING, description = " A comma-separated list of capabilities proposed by the sender or receiver client.")
@@ -182,20 +183,24 @@ public class AmqpConnector implements InboundConnector, OutboundConnector, Healt
     public HealthReport getReadiness() {
         HealthReport.HealthReportBuilder builder = HealthReport.builder();
         for (Map.Entry<String, IncomingAmqpChannel> holder : incomingChannels.entrySet()) {
-            try {
-                builder.add(holder.getKey(), holder.getValue().isConnected().await()
-                        .atMost(Duration.ofSeconds(holder.getValue().getHealthTimeout())));
-            } catch (Exception e) {
-                builder.add(holder.getKey(), false, e.getMessage());
+            if (holder.getValue().isHealthEnabled()) {
+                try {
+                    builder.add(holder.getKey(), holder.getValue().isConnected().await()
+                            .atMost(Duration.ofSeconds(holder.getValue().getHealthTimeout())));
+                } catch (Exception e) {
+                    builder.add(holder.getKey(), false, e.getMessage());
+                }
             }
         }
 
         for (Map.Entry<String, OutgoingAmqpChannel> sender : outgoingChannels.entrySet()) {
-            try {
-                builder.add(sender.getKey(), sender.getValue().isConnected().await()
-                        .atMost(Duration.ofSeconds(sender.getValue().getHealthTimeout())));
-            } catch (Exception e) {
-                builder.add(sender.getKey(), false, e.getMessage());
+            if (sender.getValue().isHealthEnabled()) {
+                try {
+                    builder.add(sender.getKey(), sender.getValue().isConnected().await()
+                            .atMost(Duration.ofSeconds(sender.getValue().getHealthTimeout())));
+                } catch (Exception e) {
+                    builder.add(sender.getKey(), false, e.getMessage());
+                }
             }
         }
 
@@ -212,10 +217,14 @@ public class AmqpConnector implements InboundConnector, OutboundConnector, Healt
     public HealthReport getLiveness() {
         HealthReport.HealthReportBuilder builder = HealthReport.builder();
         for (Map.Entry<String, IncomingAmqpChannel> entry : incomingChannels.entrySet()) {
-            builder.add(entry.getKey(), entry.getValue().isOpen());
+            if (entry.getValue().isHealthEnabled()) {
+                builder.add(entry.getKey(), entry.getValue().isOpen());
+            }
         }
         for (Map.Entry<String, OutgoingAmqpChannel> entry : outgoingChannels.entrySet()) {
-            builder.add(entry.getKey(), entry.getValue().isOpen());
+            if (entry.getValue().isHealthEnabled()) {
+                builder.add(entry.getKey(), entry.getValue().isOpen());
+            }
         }
         return builder.build();
     }
