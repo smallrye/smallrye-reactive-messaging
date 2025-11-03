@@ -2,6 +2,7 @@ package io.smallrye.reactive.messaging.amqp;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -10,6 +11,7 @@ import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Flow;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -22,8 +24,10 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 
 import io.smallrye.mutiny.Multi;
+import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 import io.vertx.core.Vertx;
+import io.vertx.proton.ProtonReceiver;
 
 public class AmqpCreditTest extends AmqpTestBase {
 
@@ -48,10 +52,36 @@ public class AmqpCreditTest extends AmqpTestBase {
         CountDownLatch msgsReceived = new CountDownLatch(msgCount);
         List<Object> payloadsReceived = new ArrayList<>(msgCount);
 
-        server = setupMockServer(msgCount, msgsReceived, payloadsReceived, executionHolder.vertx().getDelegate());
+        server = setupMockServer(msgCount, msgsReceived, payloadsReceived, executionHolder.vertx().getDelegate(),
+                msgCount / 10, r -> {
+                });
 
         Flow.Subscriber<? extends Message<?>> sink = createProviderAndSink(UUID.randomUUID().toString(),
                 server.actualPort());
+        //noinspection unchecked
+        Multi.createFrom().range(0, msgCount)
+                .map(Message::of)
+                .subscribe((Flow.Subscriber<? super Message<Integer>>) sink);
+
+        assertThat(msgsReceived.await(20, TimeUnit.SECONDS))
+                .withFailMessage("Sent %s msgs but %s remain outstanding", msgCount, msgsReceived.getCount()).isTrue();
+        List<Integer> expectedPayloads = IntStream.range(0, msgCount).boxed().collect(Collectors.toList());
+        assertThat(payloadsReceived).containsAll(expectedPayloads);
+    }
+
+    @Test
+    @Timeout(30)
+    public void testNegativeCredit() throws Exception {
+        int msgCount = 10;
+        CountDownLatch msgsReceived = new CountDownLatch(msgCount);
+        List<Object> payloadsReceived = new ArrayList<>(msgCount);
+
+        server = setupMockServer(msgCount, msgsReceived, payloadsReceived, executionHolder.vertx().getDelegate(), -2,
+                this::updateCreditsEveryTwoSeconds);
+
+        Flow.Subscriber<? extends Message<?>> sink = createProviderAndSink(UUID.randomUUID().toString(),
+                server.actualPort());
+
         //noinspection unchecked
         Multi.createFrom().range(0, msgCount)
                 .map(Message::of)
@@ -78,8 +108,18 @@ public class AmqpCreditTest extends AmqpTestBase {
         return provider.getSubscriber(new MapBasedConfig(config));
     }
 
-    private MockServer setupMockServer(int msgCount, CountDownLatch latch, List<Object> payloads, Vertx vertx)
-            throws Exception {
+    private void updateCreditsEveryTwoSeconds(ProtonReceiver serverReceiver) {
+        Multi.createFrom().items(2, 4, 6)
+                .onItem().transformToUniAndMerge(seconds -> {
+                    Duration delay = Duration.ofSeconds(seconds);
+                    return Uni.createFrom().item(seconds)
+                            .onItem().delayIt().by(delay);
+                })
+                .subscribe().with(item -> serverReceiver.flow(1));
+    }
+
+    private MockServer setupMockServer(int msgCount, CountDownLatch latch, List<Object> payloads, Vertx vertx,
+            int initialCredits, Consumer<ProtonReceiver> receiverFunction) throws Exception {
         assertThat(msgCount % 10 == 0).isTrue();
         int creditBatch = msgCount / 10;
 
@@ -114,9 +154,11 @@ public class AmqpCreditTest extends AmqpTestBase {
                     }
                 });
 
+                receiverFunction.accept(serverReceiver);
+
                 serverReceiver.open();
 
-                serverReceiver.flow(creditBatch);
+                serverReceiver.flow(initialCredits);
             });
         });
     }

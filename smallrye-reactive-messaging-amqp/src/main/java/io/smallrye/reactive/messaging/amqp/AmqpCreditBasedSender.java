@@ -161,14 +161,14 @@ public class AmqpCreditBasedSender implements Processor<Message<?>, Message<?>>,
     private long setCreditsAndRequest(AmqpSender sender) {
         long credits = sender.remainingCredits();
         Subscription subscription = upstream.get();
-        if (credits != 0L && subscription != Subscriptions.CANCELLED) {
+        if (credits > 0L && subscription != Subscriptions.CANCELLED) {
             // Request upfront the sender remaining credits or the max inflights
             long request = maxInflights > 0 ? Math.min(credits, maxInflights) : credits;
             log.retrievedCreditsForChannel(configuration.getChannel(), credits);
             subscription.request(request);
             return credits;
         }
-        if (credits == 0L && subscription != Subscriptions.CANCELLED) {
+        if (credits <= 0L && subscription != Subscriptions.CANCELLED) {
             onNoMoreCredit(sender);
         }
         return 0L;
@@ -195,7 +195,7 @@ public class AmqpCreditBasedSender implements Processor<Message<?>, Message<?>>,
                         if (tuple != null) { // No serialization issue
                             subscriber.onNext(tuple.getItem1());
                             long remainingCredits = tuple.getItem3();
-                            if (remainingCredits == 0) { // no more credit, request more
+                            if (remainingCredits <= 0) { // no more credit, request more
                                 onNoMoreCredit(tuple.getItem2());
                             } else { // keep the request one more message
                                 requestUpstream();
