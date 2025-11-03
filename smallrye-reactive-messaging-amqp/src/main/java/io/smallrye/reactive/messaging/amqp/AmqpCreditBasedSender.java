@@ -168,7 +168,7 @@ public class AmqpCreditBasedSender implements Processor<Message<?>, Message<?>>,
             subscription.request(request);
             return credits;
         }
-        if (credits == 0L && subscription != Subscriptions.CANCELLED) {
+        if (credits <= 0L && subscription != Subscriptions.CANCELLED) {
             onNoMoreCredit(sender);
         }
         return 0L;
@@ -195,7 +195,7 @@ public class AmqpCreditBasedSender implements Processor<Message<?>, Message<?>>,
                         if (tuple != null) { // No serialization issue
                             subscriber.onNext(tuple.getItem1());
                             long remainingCredits = tuple.getItem3();
-                            if (remainingCredits == 0) { // no more credit, request more
+                            if (remainingCredits <= 0) { // no more credit, request more
                                 onNoMoreCredit(tuple.getItem2());
                             } else { // keep the request one more message
                                 requestUpstream();
@@ -221,9 +221,9 @@ public class AmqpCreditBasedSender implements Processor<Message<?>, Message<?>>,
                     return;
                 }
                 long c = setCreditsAndRequest(sender);
-                if (c <= 0L) { // still no credits, schedule a periodic retry
+                if (c == 0L) { // still no credits, schedule a periodic retry
                     holder.getVertx().setPeriodic(configuration.getCreditRetrievalPeriod(), id -> {
-                        if (setCreditsAndRequest(sender) > 0L || isCancelled()) {
+                        if (setCreditsAndRequest(sender) != 0L || isCancelled()) {
                             // Got our new credits or the application has been terminated,
                             // we cancel the periodic task.
                             holder.getVertx().cancelTimer(id);
