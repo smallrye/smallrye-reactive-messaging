@@ -49,7 +49,7 @@ public class MqttSource {
         MqttFailureHandler.Strategy strategy = MqttFailureHandler.Strategy.from(config.getFailureStrategy());
         MqttFailureHandler onNack = createFailureHandler(strategy, config.getChannel());
 
-        if (topic.contains("#") || topic.contains("+")) {
+        if (topic.contains("#") || topic.contains("+") || topic.startsWith("$share/")) {
             String replace = MqttTopicHelper.escapeTopicSpecialWord(MqttHelpers.rebuildMatchesWithSharedSubscription(topic))
                     .replace("+", "[^/]+")
                     .replace("#", ".+");
