@@ -4,7 +4,7 @@
   <parent>
     <artifactId>smallrye-reactive-messaging</artifactId>
     <groupId>io.smallrye.reactive</groupId>
-    <version>4.31.0</version>
+    <version>999-SNAPSHOT</version>
   </parent>
   <artifactId>smallrye-reactive-messaging-aws-sns</artifactId>
   <name>SmallRye Reactive Messaging : Connector :: AWS SNS</name>
