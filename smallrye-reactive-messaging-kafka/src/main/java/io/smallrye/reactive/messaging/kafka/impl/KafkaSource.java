@@ -183,13 +183,14 @@ public class KafkaSource<K, V> {
                 return commitHandler.received(record);
             }).concatenate();
 
-            if (config.getTracingEnabled()) {
-                incomingMulti = incomingMulti.onItem().invoke(record -> incomingTrace(record, false));
-            }
             if (failureHandler instanceof KafkaDelayedRetryTopic) {
                 Multi<IncomingKafkaRecord<K, V>> retryStream = (Multi<IncomingKafkaRecord<K, V>>) ((KafkaDelayedRetryTopic) failureHandler)
                         .retryStream();
                 incomingMulti = Multi.createBy().merging().withConcurrency(2).streams(incomingMulti, retryStream);
+            }
+
+            if (config.getTracingEnabled()) {
+                incomingMulti = incomingMulti.onItem().invoke(record -> incomingTrace(record, false));
             }
             this.stream = incomingMulti
                     .onFailure().invoke(t -> reportFailure(t, false));
