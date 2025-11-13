@@ -15,9 +15,12 @@ import jakarta.enterprise.inject.Instance;
 
 import org.eclipse.microprofile.reactive.messaging.Message;
 
+import io.opentelemetry.api.OpenTelemetry;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.aws.sqs.ack.SqsIgnoreAckHandler;
+import io.smallrye.reactive.messaging.aws.sqs.tracing.SqsOpenTelemetryInstrumenter;
+import io.smallrye.reactive.messaging.aws.sqs.tracing.SqsTrace;
 import io.smallrye.reactive.messaging.health.HealthReport;
 import io.smallrye.reactive.messaging.json.JsonMapping;
 import io.smallrye.reactive.messaging.providers.helpers.CDIUtils;
@@ -47,13 +50,18 @@ public class SqsInboundChannel {
     private final boolean healthEnabled;
     private final List<String> messageAttributeNames;
     private final Integer visibilityTimeout;
+    private final boolean tracingEnabled;
+    private final SqsOpenTelemetryInstrumenter sqsInstrumenter;
+    private volatile String queueUrl;
 
     public SqsInboundChannel(SqsConnectorIncomingConfiguration conf, Vertx vertx, SqsManager sqsManager,
             SqsReceiveMessageRequestCustomizer customizer, JsonMapping jsonMapper,
+            Instance<OpenTelemetry> openTelemetryInstance,
             Instance<SqsAckHandler.Factory> ackHandlerFactories,
             Instance<SqsFailureHandler.Factory> failureHandlerFactories) {
         this.channel = conf.getChannel();
         this.healthEnabled = conf.getHealthEnabled();
+        this.tracingEnabled = conf.getTracingEnabled();
         this.retries = conf.getReceiveRequestRetries();
         this.client = sqsManager.getClient(conf);
         this.queueUrlUni = sqsManager.getQueueUrl(conf).memoize().indefinitely();
@@ -65,7 +73,11 @@ public class SqsInboundChannel {
         this.maxNumberOfMessages = conf.getMaxNumberOfMessages();
         this.messageAttributeNames = getMessageAttributeNames(conf);
         this.customizer = customizer;
-
+        if (tracingEnabled) {
+            sqsInstrumenter = SqsOpenTelemetryInstrumenter.createForSource(openTelemetryInstance);
+        } else {
+            sqsInstrumenter = null;
+        }
         SqsAckHandler ackHandler = createAckHandler(ackHandlerFactories, conf, vertx, client, queueUrlUni);
         SqsFailureHandler failureHandler = createFailureHandler(failureHandlerFactories, conf, client, queueUrlUni);
         PausablePollingStream<List<software.amazon.awssdk.services.sqs.model.Message>, software.amazon.awssdk.services.sqs.model.Message> pollingStream = new PausablePollingStream<>(
@@ -77,13 +89,25 @@ public class SqsInboundChannel {
                     }
                 }, requestExecutor, maxNumberOfMessages * 2, conf.getReceiveRequestPauseResume());
         this.stream = Multi.createFrom()
-                .deferred(() -> queueUrlUni.onItem().transformToMulti(queueUrl -> pollingStream.getStream()))
+                .deferred(() -> queueUrlUni.onItem().invoke(this::setQueueUrl)
+                        .onItem().transformToMulti(queueUrl -> pollingStream.getStream()))
                 .emitOn(context::runOnContext, conf.getMaxNumberOfMessages())
                 .onItem().transform(message -> new SqsMessage<>(message, jsonMapper, ackHandler, failureHandler))
+                .onItem().invoke(this::incomingTrace)
                 .onFailure().invoke(throwable -> {
                     log.errorReceivingMessage(channel, throwable);
                     reportFailure(throwable, false);
                 });
+    }
+
+    private void setQueueUrl(String queueUrl) {
+        this.queueUrl = queueUrl;
+    }
+
+    private void incomingTrace(SqsMessage<?> sqsMessage) {
+        if (tracingEnabled) {
+            sqsInstrumenter.traceIncoming(sqsMessage, new SqsTrace(this.queueUrl, sqsMessage.getMessage()));
+        }
     }
 
     private SqsFailureHandler createFailureHandler(Instance<SqsFailureHandler.Factory> failureHandlerFactories,
@@ -107,6 +131,10 @@ public class SqsInboundChannel {
     private List<String> getMessageAttributeNames(SqsConnectorIncomingConfiguration conf) {
         List<String> names = new ArrayList<>();
         names.add(SqsConnector.CLASS_NAME_ATTRIBUTE);
+        if (tracingEnabled) {
+            names.add("traceparent");
+            names.add("tracestate");
+        }
         conf.getReceiveRequestMessageAttributeNames().ifPresent(s -> names.addAll(Arrays.asList(s.split(","))));
         return names;
     }

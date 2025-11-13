@@ -22,6 +22,7 @@ import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.spi.Connector;
 
+import io.opentelemetry.api.OpenTelemetry;
 import io.smallrye.reactive.messaging.annotations.ConnectorAttribute;
 import io.smallrye.reactive.messaging.connector.InboundConnector;
 import io.smallrye.reactive.messaging.connector.OutboundConnector;
@@ -41,6 +42,7 @@ import io.vertx.mutiny.core.Vertx;
 @ConnectorAttribute(name = "endpoint-override", type = "string", direction = INCOMING_AND_OUTGOING, description = "The endpoint override")
 @ConnectorAttribute(name = "credentials-provider", type = "string", direction = INCOMING_AND_OUTGOING, description = "The credential provider to be used in the client")
 @ConnectorAttribute(name = "health-enabled", type = "boolean", direction = INCOMING_AND_OUTGOING, description = "Whether health reporting is enabled (default) or disabled", defaultValue = "true")
+@ConnectorAttribute(name = "tracing-enabled", type = "boolean", direction = INCOMING_AND_OUTGOING, description = "Whether tracing is enabled (default) or disabled", defaultValue = "true")
 
 @ConnectorAttribute(name = "group.id", type = "string", direction = ConnectorAttribute.Direction.OUTGOING, description = "When set, sends messages with the specified group id")
 @ConnectorAttribute(name = "batch", type = "boolean", direction = ConnectorAttribute.Direction.OUTGOING, description = "When set, sends messages in batches of maximum 10 messages", defaultValue = "false")
@@ -80,6 +82,9 @@ public class SqsConnector implements InboundConnector, OutboundConnector, Health
     @Any
     Instance<SqsFailureHandler.Factory> failureHandlerFactories;
 
+    @Inject
+    Instance<OpenTelemetry> openTelemetryInstance;
+
     Vertx vertx;
 
     private final List<SqsInboundChannel> inboundChannels = new CopyOnWriteArrayList<>();
@@ -106,8 +111,8 @@ public class SqsConnector implements InboundConnector, OutboundConnector, Health
         var conf = new SqsConnectorIncomingConfiguration(config);
         var customizer = CDIUtils.getInstanceById(customizers, conf.getReceiveRequestCustomizer().orElse(conf.getChannel()),
                 () -> null);
-        var channel = new SqsInboundChannel(conf, vertx, sqsManager, customizer, jsonMapping, ackHandlerFactories,
-                failureHandlerFactories);
+        var channel = new SqsInboundChannel(conf, vertx, sqsManager, customizer, jsonMapping, openTelemetryInstance,
+                ackHandlerFactories, failureHandlerFactories);
         inboundChannels.add(channel);
         return channel.getStream();
     }
@@ -115,7 +120,7 @@ public class SqsConnector implements InboundConnector, OutboundConnector, Health
     @Override
     public Subscriber<? extends Message<?>> getSubscriber(Config config) {
         var conf = new SqsConnectorOutgoingConfiguration(config);
-        var channel = new SqsOutboundChannel(conf, sqsManager, jsonMapping);
+        var channel = new SqsOutboundChannel(conf, sqsManager, jsonMapping, openTelemetryInstance);
         outboundChannels.add(channel);
         return channel.getSubscriber();
     }
