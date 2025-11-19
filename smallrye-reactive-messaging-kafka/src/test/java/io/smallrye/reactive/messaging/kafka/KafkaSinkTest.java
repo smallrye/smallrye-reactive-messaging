@@ -730,7 +730,8 @@ public class KafkaSinkTest extends KafkaCompanionTestBase {
                 .containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
         assertThat(consumed1.getRecords())
                 .extracting(ConsumerRecord::value)
-                .containsExactly("value-0", "value-1", "value-2", "value-3", "value-4", "value-5", "value-6", "value-7", "value-8", "value-9");
+                .containsExactly("value-0", "value-1", "value-2", "value-3", "value-4", "value-5", "value-6", "value-7",
+                        "value-8", "value-9");
 
         // Verify topic2 receives tombstone records (null values)
         assertThat(consumed2.getRecords())
