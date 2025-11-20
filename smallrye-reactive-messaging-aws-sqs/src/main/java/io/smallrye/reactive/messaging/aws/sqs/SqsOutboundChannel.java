@@ -1,33 +1,28 @@
 package io.smallrye.reactive.messaging.aws.sqs;
 
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.Flow;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import jakarta.enterprise.inject.Instance;
+
 import org.eclipse.microprofile.reactive.messaging.Message;
 
+import io.opentelemetry.api.OpenTelemetry;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.OutgoingMessageMetadata;
 import io.smallrye.reactive.messaging.aws.sqs.i18n.AwsSqsLogging;
+import io.smallrye.reactive.messaging.aws.sqs.tracing.SqsOpenTelemetryInstrumenter;
+import io.smallrye.reactive.messaging.aws.sqs.tracing.SqsTrace;
 import io.smallrye.reactive.messaging.health.HealthReport;
 import io.smallrye.reactive.messaging.json.JsonMapping;
 import io.smallrye.reactive.messaging.providers.helpers.MultiUtils;
 import software.amazon.awssdk.services.sqs.SqsAsyncClient;
-import software.amazon.awssdk.services.sqs.model.BatchResultErrorEntry;
-import software.amazon.awssdk.services.sqs.model.MessageAttributeValue;
-import software.amazon.awssdk.services.sqs.model.SendMessageBatchRequest;
-import software.amazon.awssdk.services.sqs.model.SendMessageBatchRequestEntry;
-import software.amazon.awssdk.services.sqs.model.SendMessageBatchResultEntry;
-import software.amazon.awssdk.services.sqs.model.SendMessageRequest;
-import software.amazon.awssdk.services.sqs.model.SendMessageResponse;
+import software.amazon.awssdk.services.sqs.model.*;
 
 public class SqsOutboundChannel {
 
@@ -43,10 +38,14 @@ public class SqsOutboundChannel {
     private final boolean batch;
     private final Duration batchDelay;
     private final int batchSize;
+    private final boolean tracingEnabled;
+    private final SqsOpenTelemetryInstrumenter sqsInstrumenter;
 
-    public SqsOutboundChannel(SqsConnectorOutgoingConfiguration conf, SqsManager sqsManager, JsonMapping jsonMapping) {
+    public SqsOutboundChannel(SqsConnectorOutgoingConfiguration conf, SqsManager sqsManager, JsonMapping jsonMapping,
+            Instance<OpenTelemetry> openTelemetryInstance) {
         this.channel = conf.getChannel();
         this.healthEnabled = conf.getHealthEnabled();
+        this.tracingEnabled = conf.getTracingEnabled();
         this.client = sqsManager.getClient(conf);
         this.batch = conf.getBatch();
         this.batchSize = conf.getBatchSize();
@@ -69,6 +68,11 @@ public class SqsOutboundChannel {
                     AwsSqsLogging.log.unableToDispatch(channel, f);
                     reportFailure(f);
                 }));
+        if (tracingEnabled) {
+            sqsInstrumenter = SqsOpenTelemetryInstrumenter.createForSink(openTelemetryInstance);
+        } else {
+            sqsInstrumenter = null;
+        }
     }
 
     public Flow.Subscriber<? extends Message<?>> getSubscriber() {
@@ -178,14 +182,28 @@ public class SqsOutboundChannel {
     private SendMessageRequest getSendMessageRequest(String channelQueueUrl, Message<?> m) {
         Object payload = m.getPayload();
         String queueUrl = channelQueueUrl;
-        if (payload instanceof SendMessageRequest) {
-            return (SendMessageRequest) payload;
+        if (payload instanceof SendMessageRequest request) {
+            if (tracingEnabled) {
+                SendMessageRequest.Builder builder = request.toBuilder();
+                Map<String, MessageAttributeValue> mutableAttributes = new HashMap<>(request.messageAttributes());
+                outgoingTrace(m, mutableAttributes);
+                builder.messageAttributes(mutableAttributes);
+                return builder.build();
+            }
+            return request;
         }
-        if (payload instanceof SendMessageRequest.Builder) {
-            SendMessageRequest.Builder builder = ((SendMessageRequest.Builder) payload)
-                    .queueUrl(queueUrl);
+        if (payload instanceof SendMessageRequest.Builder builder) {
+            builder.queueUrl(queueUrl);
             if (groupId != null) {
                 builder.messageGroupId(groupId);
+            }
+            if (tracingEnabled) {
+                SendMessageRequest request = builder.build();
+                Map<String, MessageAttributeValue> mutableAttributes = new HashMap<>(request.messageAttributes());
+                outgoingTrace(m, mutableAttributes);
+                return request.toBuilder()
+                        .messageAttributes(mutableAttributes)
+                        .build();
             }
             return builder.build();
         }
@@ -216,6 +234,7 @@ public class SqsOutboundChannel {
             if (msg.hasAttributes()) {
                 msgAttributes.putAll(msg.messageAttributes());
             }
+            outgoingTrace(m, msgAttributes);
             return builder
                     .queueUrl(queueUrl)
                     .messageGroupId(groupId)
@@ -224,6 +243,7 @@ public class SqsOutboundChannel {
                     .build();
         }
         String messageBody = outgoingPayloadClassName(payload, msgAttributes);
+        outgoingTrace(m, msgAttributes);
         return builder
                 .queueUrl(queueUrl)
                 .messageGroupId(groupId)
@@ -256,6 +276,13 @@ public class SqsOutboundChannel {
                 || c.equals(Short.class)
                 || c.equals(Character.class)
                 || c.equals(Long.class);
+    }
+
+    private void outgoingTrace(Message<?> message, Map<String, MessageAttributeValue> attributes) {
+        if (tracingEnabled) {
+            String indefinitely = queueUrlUni.await().indefinitely(); // memoized
+            sqsInstrumenter.traceOutgoing(message, new SqsTrace(indefinitely, attributes));
+        }
     }
 
     public void close() {
