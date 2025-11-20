@@ -16,6 +16,7 @@ import org.apache.kafka.common.serialization.IntegerDeserializer;
 import org.apache.kafka.common.serialization.IntegerSerializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
+import org.eclipse.microprofile.reactive.messaging.Channel;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
@@ -51,7 +52,7 @@ public class PausableChannelTest extends KafkaCompanionTestBase {
         addBeans(MyMessageProducer.class);
         ConsumerApp application = runApplication(commonConfig()
                 .with("pausable", true)
-                .with("initially-paused", true), ConsumerApp.class);
+                .with("pausable.initially-paused", true), ConsumerApp.class);
         ChannelRegistry pausableChannels = get(ChannelRegistry.class);
         PausableChannel pauser = pausableChannels.getPausable("data");
 
@@ -115,6 +116,24 @@ public class PausableChannelTest extends KafkaCompanionTestBase {
         assertThat(application.getPaused()).isEqualTo(5);
     }
 
+    @Test
+    public void testPausableChannelWithInjection() {
+        addBeans(MyMessageProducer.class);
+        ConsumerAppWithInjection application = runApplication(commonConfig()
+                .with("pausable", true), ConsumerAppWithInjection.class);
+        ChannelRegistry pausableChannels = get(ChannelRegistry.class);
+        PausableChannel pauser = pausableChannels.getPausable("data");
+
+        assertThat(pauser.isPaused()).isFalse();
+        await().untilAsserted(() -> {
+            if (pauser.isPaused()) {
+                pauser.resume();
+            }
+            assertThat(application.getCount()).isEqualTo(COUNT);
+        });
+        assertThat(application.getPaused()).isEqualTo(5);
+    }
+
     @ApplicationScoped
     public static class ConsumerApp {
 
@@ -155,6 +174,41 @@ public class PausableChannelTest extends KafkaCompanionTestBase {
             count.increment();
             if (count.longValue() % 20 == 0) {
                 PausableChannel data = registry.getPausable("data");
+                data.pause();
+                paused.increment();
+            }
+        }
+
+        public List<Integer> get() {
+            return list;
+        }
+
+        public long getCount() {
+            return count.longValue();
+        }
+
+        public long getPaused() {
+            return paused.longValue();
+        }
+    }
+
+    @ApplicationScoped
+    public static class ConsumerAppWithInjection {
+
+        @Inject
+        @Channel("data")
+        PausableChannel data;
+
+        LongAdder count = new LongAdder();
+        LongAdder paused = new LongAdder();
+        List<Integer> list = new CopyOnWriteArrayList<>();
+
+        @Incoming("data")
+        @Blocking
+        public void consume(Integer message) throws InterruptedException {
+            list.add(message);
+            count.increment();
+            if (count.longValue() % 20 == 0) {
                 data.pause();
                 paused.increment();
             }
