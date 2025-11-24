@@ -101,7 +101,9 @@ public class KafkaRecordStreamSubscription<K, V, T> implements Flow.Subscription
                 .plug(m -> {
                     if (config.getRetry()) {
                         int maxWait = config.getRetryMaxWait();
-                        return m.onFailure().retry().withBackOff(Duration.ofSeconds(1), Duration.ofSeconds(maxWait))
+                        return m
+                                .onFailure().invoke(f -> log.pollFailureRetry(clientId, channel, f))
+                                .onFailure().retry().withBackOff(Duration.ofSeconds(1), Duration.ofSeconds(maxWait))
                                 .atMost(retries);
                     }
                     return m;
