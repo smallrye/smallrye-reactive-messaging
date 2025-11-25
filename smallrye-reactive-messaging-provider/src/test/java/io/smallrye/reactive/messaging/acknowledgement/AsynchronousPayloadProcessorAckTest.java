@@ -3,9 +3,11 @@ package io.smallrye.reactive.messaging.acknowledgement;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.*;
+import java.util.stream.Stream;
 
 import jakarta.enterprise.context.ApplicationScoped;
 
@@ -128,6 +130,71 @@ public class AsynchronousPayloadProcessorAckTest extends WeldTestBaseWithoutTail
         assertThat(acked).hasSize(8);
         assertThat(nacked).hasSize(2);
         assertThat(throwables).hasSize(2);
+    }
+
+    @ApplicationScoped
+    public static class StringToStringMultiProcessorWithPostProcessingAck {
+
+        @Incoming("data")
+        @Outgoing("out")
+        @Acknowledgment(Acknowledgment.Strategy.POST_PROCESSING)
+        public Multi<String> process(String incomingData) {
+            return Multi.createFrom().items(getWordsStream(incomingData));
+        }
+
+        private Stream<String> getWordsStream(String sentence) {
+            return Arrays.stream(sentence.split(" "));
+        }
+    }
+
+    @Test
+    public void testAckingMessagesForStringToStringMultiProcessorWithPostProcessingAck() throws InterruptedException {
+        addBeanClass(StringToStringMultiProcessorWithPostProcessingAck.class);
+        initialize();
+        Emitter<String> emitter = get(EmitterBean.class).emitter();
+        Sink sink = get(Sink.class);
+
+        Set<String> acked = new ConcurrentHashSet<>();
+        Set<String> nacked = new ConcurrentHashSet<>();
+
+        run(acked, nacked, emitter);
+
+        await().until(() -> sink.list().size() == 10);
+        assertThat(acked).hasSize(10);
+        assertThat(nacked).hasSize(0);
+    }
+
+    @ApplicationScoped
+    public static class StringToEmptyStringMultiProcessorWithPostProcessingAck {
+
+        @Incoming("data")
+        @Outgoing("out")
+        @Acknowledgment(Acknowledgment.Strategy.POST_PROCESSING)
+        public Multi<String> process(String incomingData) {
+            return Multi.createFrom().items(getWordsStream(incomingData));
+        }
+
+        private Stream<String> getWordsStream(String sentence) {
+            return Stream.empty();
+        }
+    }
+
+    @Test
+    public void testAckingMessagesForStringToEmptyStringMultiProcessorWithPostProcessingAck() throws InterruptedException {
+        addBeanClass(StringToEmptyStringMultiProcessorWithPostProcessingAck.class);
+        initialize();
+        Emitter<String> emitter = get(EmitterBean.class).emitter();
+        Sink sink = get(Sink.class);
+
+        Set<String> acked = new ConcurrentHashSet<>();
+        Set<String> nacked = new ConcurrentHashSet<>();
+
+        run(acked, nacked, emitter);
+
+        // All items are skipped
+        await().pollDelay(2, TimeUnit.SECONDS).untilAsserted(() -> assertThat(sink.list()).isEmpty());
+        assertThat(acked).hasSize(10);
+        assertThat(nacked).hasSize(0);
     }
 
     private List<Throwable> run(Set<String> acked, Set<String> nacked, Emitter<String> emitter)

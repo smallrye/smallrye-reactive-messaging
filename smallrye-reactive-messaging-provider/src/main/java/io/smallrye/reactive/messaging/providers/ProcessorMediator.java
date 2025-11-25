@@ -281,6 +281,25 @@ public class ProcessorMediator extends AbstractMediator {
         };
     }
 
+    private Multi<? extends Message<?>> handleMultiAckCoordination(Message<?> message, Flow.Publisher<?> pubFlow) {
+        // POST_PROCESSING must not be used when returning an infinite stream
+        AcknowledgementCoordinator coordinator = new AcknowledgementCoordinator(message);
+        return MultiUtils.publisher(pubFlow)
+                .onItem()
+                .transform(payload -> coordinator.track(payloadToMessage(payload, message.getMetadata())))
+                .onTermination().call((throwable, cancelled) -> {
+                    if (coordinator.getTrackedCount() == 0) {
+                        // If the publisher terminates without emitting any item, we need to ack the original message.
+                        if (throwable == null && !cancelled) {
+                            return Uni.createFrom().completionStage(message.ack());
+                        }
+                        return Uni.createFrom().completionStage(message.nack(throwable));
+                    } else {
+                        return Uni.createFrom().voidItem();
+                    }
+                });
+    }
+
     /**
      * {@code PublisherBuilder<O> method(I payload)}
      */
@@ -291,11 +310,7 @@ public class ProcessorMediator extends AbstractMediator {
                 if (isPostAck()) {
                     try {
                         PublisherBuilder<?> pb = invoke(getArguments(message));
-                        // POST_PROCESSING must not be used when returning an infinite stream
-                        AcknowledgementCoordinator coordinator = new AcknowledgementCoordinator(message);
-                        return MultiUtils.publisher(AdaptersToFlow.publisher(pb.buildRs()))
-                                .onItem()
-                                .transform(payload -> coordinator.track(payloadToMessage(payload, message.getMetadata())));
+                        return handleMultiAckCoordination(message, AdaptersToFlow.publisher(pb.buildRs()));
                     } catch (Throwable t) {
                         return handlePostInvocation(message, t);
                     }
@@ -318,11 +333,7 @@ public class ProcessorMediator extends AbstractMediator {
                 if (isPostAck()) {
                     try {
                         Publisher<?> pub = invoke(getArguments(message));
-                        // POST_PROCESSING must not be used when returning an infinite stream
-                        AcknowledgementCoordinator coordinator = new AcknowledgementCoordinator(message);
-                        return MultiUtils.publisher(AdaptersToFlow.publisher(pub))
-                                .onItem()
-                                .transform(payload -> coordinator.track(payloadToMessage(payload, message.getMetadata())));
+                        return handleMultiAckCoordination(message, AdaptersToFlow.publisher(pub));
                     } catch (Throwable t) {
                         return handlePostInvocation(message, t);
                     }
@@ -345,12 +356,7 @@ public class ProcessorMediator extends AbstractMediator {
                 if (isPostAck()) {
                     try {
                         Flow.Publisher<?> pub = invoke(getArguments(message));
-                        // POST_PROCESSING must not be used when returning an infinite stream
-                        AcknowledgementCoordinator coordinator = new AcknowledgementCoordinator(message);
-                        return MultiUtils.publisher(pub)
-                                .onItem()
-                                .transform(payload -> coordinator.track(payloadToMessage(payload, message.getMetadata())));
-
+                        return handleMultiAckCoordination(message, pub);
                     } catch (Throwable t) {
                         return handlePostInvocation(message, t);
                     }
