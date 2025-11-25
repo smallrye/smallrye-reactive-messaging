@@ -3,6 +3,7 @@ package io.smallrye.reactive.messaging.providers.helpers;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantLock;
 
 import org.eclipse.microprofile.reactive.messaging.Message;
@@ -21,6 +22,7 @@ public class AcknowledgementCoordinator {
     private final Message<?> input;
 
     private volatile boolean done;
+    private final AtomicInteger trackedCount = new AtomicInteger();
     private final List<Tracker> tracked = new ArrayList<>();
 
     private final ReentrantLock lock = new ReentrantLock();
@@ -33,6 +35,7 @@ public class AcknowledgementCoordinator {
         lock.lock();
         try {
             Tracker tracker = new Tracker();
+            trackedCount.getAndIncrement();
             tracked.add(tracker);
             return msg
                     .withAck(() -> {
@@ -46,6 +49,10 @@ public class AcknowledgementCoordinator {
         } finally {
             lock.unlock();
         }
+    }
+
+    public int getTrackedCount() {
+        return trackedCount.get();
     }
 
     private void onAck(Tracker id) {
