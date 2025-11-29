@@ -82,6 +82,22 @@ public class IncomingRabbitMQMessage<T> implements ContextAwareMessage<T>, Metad
         this.payload = (T) convertPayload(message);
     }
 
+    private IncomingRabbitMQMessage(io.vertx.rabbitmq.RabbitMQMessage message,
+            IncomingRabbitMQMetadata rabbitMQMetadata, ClientHolder holder, Context context,
+            long deliveryTag, String contentTypeOverride, T payload, RabbitMQAckHandler onAck,
+            RabbitMQFailureHandler onNack, Metadata metadata) {
+        this.message = message;
+        this.rabbitMQMetadata = rabbitMQMetadata;
+        this.holder = holder;
+        this.context = context;
+        this.deliveryTag = deliveryTag;
+        this.contentTypeOverride = contentTypeOverride;
+        this.payload = payload;
+        this.onAck = onAck;
+        this.onNack = onNack;
+        this.metadata = metadata;
+    }
+
     @Override
     public Function<Metadata, CompletionStage<Void>> getAckWithMetadata() {
         return this::ack;
@@ -118,6 +134,12 @@ public class IncomingRabbitMQMessage<T> implements ContextAwareMessage<T>, Metad
             onAck = AlreadyAcknowledgedHandler.INSTANCE;
             onNack = AlreadyAcknowledgedHandler.INSTANCE;
         }
+    }
+
+    @Override
+    public <P> Message<P> withPayload(P payload) {
+        return new IncomingRabbitMQMessage<>(message, rabbitMQMetadata, holder, context,
+                deliveryTag, contentTypeOverride, payload, onAck, onNack, metadata);
     }
 
     /**
@@ -174,21 +196,7 @@ public class IncomingRabbitMQMessage<T> implements ContextAwareMessage<T>, Metad
             contentType = contentTypeOverride;
         }
 
-        // If there is a content encoding specified, we don't try to unwrap
-        if (contentEncoding == null) {
-            try {
-                // Do our best with text and json
-                if (HttpHeaderValues.APPLICATION_JSON.toString().equalsIgnoreCase(contentType)) {
-                    // This could be  JsonArray, JsonObject, String etc. depending on buffer contents
-                    return body.toJson();
-                } else if (HttpHeaderValues.TEXT_PLAIN.toString().equalsIgnoreCase(contentType)) {
-                    return body.toString();
-                }
-            } catch (Throwable t) {
-                log.typeConversionFallback();
-            }
-            // Otherwise fall back to raw byte array
-        } else {
+        if (contentEncoding != null) {
             // Just silence the warning if we have a binary message
             if (!HttpHeaderValues.APPLICATION_OCTET_STREAM.toString().equalsIgnoreCase(contentType)) {
                 log.typeConversionFallback();
@@ -203,6 +211,10 @@ public class IncomingRabbitMQMessage<T> implements ContextAwareMessage<T>, Metad
 
     public Optional<String> getContentType() {
         return rabbitMQMetadata.getContentType();
+    }
+
+    public Optional<String> getEffectiveContentType() {
+        return Optional.ofNullable(contentTypeOverride).or(() -> rabbitMQMetadata.getContentType());
     }
 
     public Optional<String> getContentEncoding() {

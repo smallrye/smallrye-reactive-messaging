@@ -1,5 +1,7 @@
 package io.smallrye.reactive.messaging.jms;
 
+import java.lang.reflect.Type;
+
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
@@ -18,6 +20,11 @@ public class TestMapping implements JsonMapping {
 
     @Override
     public <T> T fromJson(String str, Class<T> type) {
+        return jsonb.fromJson(str, type);
+    }
+
+    @Override
+    public <T> T fromJson(String str, Type type) {
         return jsonb.fromJson(str, type);
     }
 }
