@@ -13,6 +13,7 @@ import io.smallrye.reactive.messaging.kafka.KafkaClientService;
 import io.smallrye.reactive.messaging.kafka.KafkaConnector;
 import io.smallrye.reactive.messaging.kafka.KafkaConsumer;
 import io.smallrye.reactive.messaging.kafka.KafkaProducer;
+import io.smallrye.reactive.messaging.kafka.KafkaShareConsumer;
 
 @ApplicationScoped
 public class KafkaClientServiceImpl implements KafkaClientService {
@@ -27,6 +28,11 @@ public class KafkaClientServiceImpl implements KafkaClientService {
     }
 
     @Override
+    public <K, V> List<KafkaShareConsumer<K, V>> getShareConsumers(String channel) {
+        return connector.getShareConsumers(Objects.requireNonNull(channel));
+    }
+
+    @Override
     public <K, V> KafkaProducer<K, V> getProducer(String channel) {
         return connector.getProducer(Objects.requireNonNull(channel));
     }
@@ -34,6 +40,11 @@ public class KafkaClientServiceImpl implements KafkaClientService {
     @Override
     public Set<String> getConsumerChannels() {
         return connector.getConsumerChannels();
+    }
+
+    @Override
+    public Set<String> getShareConsumerChannels() {
+        return connector.getShareConsumerChannels();
     }
 
     @Override

@@ -69,6 +69,11 @@ public interface DeserializationFailureHandler<T> {
      */
     String DESERIALIZATION_FAILURE_DLQ = "deserialization-failure-dlq";
 
+    /**
+     * Header name for the share group batch ack type to use when a deserialization failure happen in a shared consumer.
+     */
+    String DESERIALIZATION_FAILURE_SHARE_ACK_TYPE = "deserialization-failure-share-ack-type";
+
     byte[] TRUE_VALUE = "true".getBytes(StandardCharsets.UTF_8);
 
     /**

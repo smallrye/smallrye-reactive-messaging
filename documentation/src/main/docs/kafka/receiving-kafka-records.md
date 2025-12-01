@@ -806,6 +806,144 @@ The checkpoint commit strategy calls the state store in following events:
 - `close` on channel shutdown.
 
 
+## Receiving Kafka Records Using Kafka Queues (Share Groups)
+
+!!!warning "Experimental"
+    Kafka Queues (Share Groups) support is experimental.
+
+[Kafka Share Groups](https://cwiki.apache.org/confluence/display/KAFKA/KIP-932) provide a new consumption model where records from a topic are cooperatively distributed across consumers without explicit partition assignment.
+Unlike traditional consumer groups, share groups do not require managing offsets or partition rebalancing -- the broker handles record distribution and acquisition locks automatically.
+
+This is useful for **queue-like** workloads where you want records to be processed by exactly one consumer in a group, without worrying about partition count or consumer coordination.
+
+### Enabling Share Groups
+
+To enable share group consumption on a channel, set the `share-group` attribute to `true`:
+
+```properties
+mp.messaging.incoming.queue.connector=smallrye-kafka
+mp.messaging.incoming.queue.topic=prices
+mp.messaging.incoming.queue.value.deserializer=org.apache.kafka.common.serialization.DoubleDeserializer
+mp.messaging.incoming.queue.share-group=true # <1>
+```
+
+1. Enables share group consumption for this channel.
+
+Then consume records as usual:
+
+``` java
+{{ insert('kafka/inbound/KafkaShareGroupConsumer.java') }}
+```
+
+By default, successfully processed records are acknowledged with `ACCEPT`.
+If the processing method throws an exception, the record is released (`RELEASED`) and will be attempted for re-delivery.
+
+### Controlling Acknowledgement
+
+Share groups support four acknowledgement types for each record:
+
+- **`ACCEPT`** Record processed successfully (default on ack).
+- **`RELEASE`** Record could not be processed; release it for re-delivery to another consumer (default on nack).
+- **`REJECT`** Record is permanently rejected and will not be re-delivered.
+- **`RENEW`** Extend the acquisition lock for long-running processing (managed automatically when processing timeout is enabled).
+
+You can control the acknowledgement type using the `ShareGroupAcknowledgement` metadata, which is injected as a parameter in the consuming method:
+
+``` java
+{{ insert('kafka/inbound/KafkaShareGroupAckExample.java', 'code') }}
+```
+
+When the message is acked (or method completes normally), the connector uses the acknowledgement type set on `ShareGroupAcknowledgement`.
+If no type is explicitly set, the default is `ACCEPT`.
+
+When calling `nack()` on the `Message`, you can pass the desired acknowledgement type via metadata:
+
+``` java
+{{ insert('kafka/inbound/KafkaShareGroupNackExample.java', 'code') }}
+```
+
+If no metadata is provided on nack, the default acknowledgement type is `RELEASE`.
+This can be changed using the `share-group.failure-acknowledgement-type` attribute:
+
+```properties
+mp.messaging.incoming.queue.share-group=true
+mp.messaging.incoming.queue.share-group.failure-acknowledgement-type=reject # <1>
+```
+
+1. Nacked records are permanently rejected instead of released for re-delivery.
+
+### Handling Deserialization Failures
+
+When `fail-on-deserialization-failure` is set to `false`, records that fail deserialization are not forwarded to the consumer method.
+They are automatically nacked using the acknowledgement type configured by `share-group.failure-deserialization-acknowledgement-type` (default: `reject`).
+
+```properties
+mp.messaging.incoming.queue.share-group=true
+mp.messaging.incoming.queue.fail-on-deserialization-failure=false # <1>
+mp.messaging.incoming.queue.share-group.failure-deserialization-acknowledgement-type=reject # <2>
+```
+
+1. Deserialization failures do not kill the application.
+2. Records that fail deserialization are permanently rejected (default).
+
+A custom `DeserializationFailureHandler` can override the acknowledgement type per record by setting the `deserialization-failure-share-ack-type` header
+to the set `AcknowledgeType` value (e.g., `RELEASE`, `REJECT`, `ACCEPT`).
+
+### Acquisition Lock Renewal and Processing Timeout
+
+Each record acquired by a share group consumer has a time-limited **acquisition lock** (default 30 seconds, configured on the broker via `group.share.record.lock.duration.ms`).
+If the consumer does not acknowledge the record before the lock expires, the broker automatically releases it for re-delivery.
+
+The connector can periodically send `RENEW` acknowledgements to extend the lock for records still being processed.
+This is controlled by the `share-group.unprocessed-record-max-age.ms` attribute:
+
+- When set to a value greater than `0` (default: `60000`), the connector enables **processing timeout monitoring**:
+    - Records still in progress are periodically renewed to prevent lock expiry.
+    - If a record exceeds the configured timeout, the connector reports a failure and marks the channel as unhealthy.
+- When set to `0`, processing timeout monitoring is disabled. No `RENEW` acknowledgements are sent. If processing exceeds the broker's lock duration, the record will be automatically released and re-delivered.
+
+```properties
+mp.messaging.incoming.queue.share-group=true
+mp.messaging.incoming.queue.share-group.unprocessed-record-max-age.ms=30000 # <1>
+```
+
+1. Records not processed within 30 seconds trigger a failure report.
+
+### Batch Mode
+
+Share groups support batch consumption. Set `batch=true` to receive all records from a single poll as a batch:
+
+```properties
+mp.messaging.incoming.queue.share-group=true
+mp.messaging.incoming.queue.batch=true
+```
+
+When a batch is acknowledged, all individual records in the batch are acknowledged.
+When a batch is nacked, all records are nacked with the specified acknowledgement type.
+
+You can control the acknowledgement type per record within a batch using the `ShareGroupAcknowledgement` metadata accessible through `IncomingKafkaRecordBatchMetadata`:
+
+``` java
+{{ insert('kafka/inbound/KafkaShareGroupBatchAckExample.java', 'code') }}
+```
+
+Each record in the batch has its own `ShareGroupAcknowledgement` instance.
+When the batch is acked, each record is individually acknowledged using its configured type.
+This allows accepting some records while rejecting or releasing others within the same batch.
+
+### Incompatible Configuration
+
+The following configuration attributes are not supported with share groups and will be ignored:
+
+- `pattern` Share groups subscribe to explicit topics only.
+- `assign-seek` Share groups do not support manual partition assignment.
+- `partitions` Share groups handle record distribution automatically; multiple consumer instances are not needed.
+- `commit-strategy` Share groups use their own acknowledgement mechanism.
+- `failure-strategy` Share groups use their own failure handling based on `AcknowledgeType`.
+- `consumer-rebalance-listener.name` Share groups do not have traditional partition rebalancing.
+
+If any of these are configured alongside `share-group=true`, a warning is logged at startup.
+
 ## Configuration Reference
 
 {{ insert('../../../target/connectors/smallrye-kafka-incoming.md') }}

@@ -9,12 +9,14 @@ import jakarta.enterprise.event.NotificationOptions;
 import jakarta.enterprise.util.TypeLiteral;
 
 import org.apache.kafka.clients.consumer.Consumer;
+import org.apache.kafka.clients.consumer.ShareConsumer;
 import org.apache.kafka.clients.producer.Producer;
 
 public class CountKafkaCdiEvents extends KafkaCDIEvents {
     public static final KafkaCDIEvents noCdiEvents = new CountKafkaCdiEvents();
 
     public final LongAdder firedConsumerEvents = new LongAdder();
+    public final LongAdder firedShareConsumerEvents = new LongAdder();
     public final LongAdder firedProducerEvents = new LongAdder();
 
     public CountKafkaCdiEvents() {
@@ -48,6 +50,40 @@ public class CountKafkaCdiEvents extends KafkaCDIEvents {
 
             @Override
             public <U extends Consumer<?, ?>> Event<U> select(TypeLiteral<U> subtype, Annotation... qualifiers) {
+                return null;
+            }
+        };
+
+        this.shareConsumerEvent = new Event<ShareConsumer<?, ?>>() {
+            @Override
+            public void fire(ShareConsumer<?, ?> event) {
+                firedShareConsumerEvents.increment();
+            }
+
+            @Override
+            public <U extends ShareConsumer<?, ?>> CompletionStage<U> fireAsync(U event) {
+                firedShareConsumerEvents.increment();
+                return null;
+            }
+
+            @Override
+            public <U extends ShareConsumer<?, ?>> CompletionStage<U> fireAsync(U event, NotificationOptions options) {
+                firedShareConsumerEvents.increment();
+                return null;
+            }
+
+            @Override
+            public Event<ShareConsumer<?, ?>> select(Annotation... qualifiers) {
+                return null;
+            }
+
+            @Override
+            public <U extends ShareConsumer<?, ?>> Event<U> select(Class<U> subtype, Annotation... qualifiers) {
+                return null;
+            }
+
+            @Override
+            public <U extends ShareConsumer<?, ?>> Event<U> select(TypeLiteral<U> subtype, Annotation... qualifiers) {
                 return null;
             }
         };

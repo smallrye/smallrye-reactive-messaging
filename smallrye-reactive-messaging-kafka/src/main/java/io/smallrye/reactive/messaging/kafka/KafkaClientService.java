@@ -42,6 +42,29 @@ public interface KafkaClientService {
     <K, V> List<KafkaConsumer<K, V>> getConsumers(String channel);
 
     /**
+     * Gets the list of managed Kafka Share Consumer for the given channel.
+     *
+     * @param channel the channel, must not be {@code null}
+     * @param <K> the type of the key
+     * @param <V> the type of the value
+     * @return the list of share consumers, empty list if not found
+     */
+    <K, V> List<KafkaShareConsumer<K, V>> getShareConsumers(String channel);
+
+    /**
+     * Gets the managed Kafka Share Consumer for the given channel.
+     *
+     * @param channel the channel, must not be {@code null}
+     * @param <K> the type of the key
+     * @param <V> the type of the value
+     * @return the share consumer, {@code null} if not found
+     */
+    default <K, V> KafkaShareConsumer<K, V> getShareConsumer(String channel) {
+        List<KafkaShareConsumer<K, V>> consumers = getShareConsumers(channel);
+        return consumers.stream().findFirst().orElse(null);
+    }
+
+    /**
      * Gets the managed Kafka Producer for the given channel.
      * This method returns the reactive producer.
      * <p>
@@ -65,6 +88,13 @@ public interface KafkaClientService {
      * @return the names of the Kafka consumer incoming channels.
      */
     Set<String> getConsumerChannels();
+
+    /**
+     * Get the names of all the Kafka share incoming channels managed by this connector.
+     *
+     * @return the names of the Kafka share consumer incoming channels.
+     */
+    Set<String> getShareConsumerChannels();
 
     /**
      * Get the names of all the Kafka outgoing channels managed by this connector.

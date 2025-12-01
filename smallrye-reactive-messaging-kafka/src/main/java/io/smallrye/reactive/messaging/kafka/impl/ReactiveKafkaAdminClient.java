@@ -7,9 +7,11 @@ import java.util.Set;
 
 import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.clients.admin.AdminClient;
+import org.apache.kafka.clients.admin.ConsumerGroupDescription;
 import org.apache.kafka.clients.admin.DescribeClusterOptions;
 import org.apache.kafka.clients.admin.DescribeTopicsOptions;
 import org.apache.kafka.clients.admin.ListTopicsOptions;
+import org.apache.kafka.clients.admin.ShareGroupDescription;
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.common.Node;
 
@@ -66,6 +68,24 @@ public class ReactiveKafkaAdminClient implements KafkaAdmin {
         return Uni.createFrom().completionStage(
                 adminClient.describeCluster(options)
                         .nodes()
+                        .toCompletionStage());
+    }
+
+    @Override
+    @CheckReturnValue
+    public Uni<Map<String, ConsumerGroupDescription>> describeConsumerGroup(Collection<String> groupIds) {
+        return Uni.createFrom().completionStage(
+                adminClient.describeConsumerGroups(groupIds)
+                        .all()
+                        .toCompletionStage());
+    }
+
+    @Override
+    @CheckReturnValue
+    public Uni<Map<String, ShareGroupDescription>> describeShareGroup(Collection<String> groupIds) {
+        return Uni.createFrom().completionStage(
+                adminClient.describeShareGroups(groupIds)
+                        .all()
                         .toCompletionStage());
     }
 

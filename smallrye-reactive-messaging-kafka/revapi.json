@@ -36,7 +36,35 @@
     "criticality" : "highlight",
     "minSeverity" : "POTENTIALLY_BREAKING",
     "minCriticality" : "documented",
-    "differences" : [ ]
+    "differences" : [
+        {
+            "code": "java.annotation.attributeValueChanged",
+            "old": "class io.smallrye.reactive.messaging.kafka.KafkaConnector",
+            "new": "class io.smallrye.reactive.messaging.kafka.KafkaConnector",
+            "annotationType": "io.smallrye.reactive.messaging.annotations.ConnectorAttributes",
+            "attribute": "value"
+        },
+        {
+            "code": "java.method.addedToInterface",
+            "new": "method java.util.Set<java.lang.String> io.smallrye.reactive.messaging.kafka.KafkaClientService::getShareConsumerChannels()",
+            "justification": "Added for shared consumers support"
+        },
+        {
+            "code": "java.method.addedToInterface",
+            "new": "method <K, V> java.util.List<io.smallrye.reactive.messaging.kafka.KafkaShareConsumer<K, V>> io.smallrye.reactive.messaging.kafka.KafkaClientService::getShareConsumers(java.lang.String)",
+            "justification": "Added for shared consumers support"
+        },
+        {
+            "code": "java.method.addedToInterface",
+            "new": "method io.smallrye.mutiny.Uni<java.util.Map<java.lang.String, org.apache.kafka.clients.admin.ConsumerGroupDescription>> io.smallrye.reactive.messaging.kafka.KafkaAdmin::describeConsumerGroup(java.util.Collection<java.lang.String>)",
+            "justification": "Added describeConsumerGroup method to support shared consumer groups administration"
+        },
+        {
+            "code": "java.method.addedToInterface",
+            "new": "method io.smallrye.mutiny.Uni<java.util.Map<java.lang.String, org.apache.kafka.clients.admin.ShareGroupDescription>> io.smallrye.reactive.messaging.kafka.KafkaAdmin::describeShareGroup(java.util.Collection<java.lang.String>)",
+            "justification": "Added describeShareGroup method to support shared consumer groups administration"
+        }
+    ]
   }
 }, {
   "extension" : "revapi.reporter.json",

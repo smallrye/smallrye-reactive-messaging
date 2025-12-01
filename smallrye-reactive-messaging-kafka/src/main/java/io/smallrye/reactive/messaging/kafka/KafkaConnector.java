@@ -38,6 +38,7 @@ import io.smallrye.reactive.messaging.health.HealthReporter;
 import io.smallrye.reactive.messaging.kafka.commit.KafkaCommitHandler;
 import io.smallrye.reactive.messaging.kafka.fault.KafkaFailureHandler;
 import io.smallrye.reactive.messaging.kafka.impl.ConfigHelper;
+import io.smallrye.reactive.messaging.kafka.impl.KafkaShareGroupSource;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSink;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
 import io.smallrye.reactive.messaging.kafka.impl.TopicPartitions;
@@ -102,6 +103,10 @@ import io.vertx.mutiny.core.Vertx;
 @ConnectorAttribute(name = "pause-if-no-requests", type = "boolean", direction = Direction.INCOMING, description = "Whether the polling must be paused when the application does not request items and resume when it does. This allows implementing back-pressure based on the application capacity. Note that polling is not stopped, but will not retrieve any records when paused.", defaultValue = "true")
 @ConnectorAttribute(name = "batch", type = "boolean", direction = Direction.INCOMING, description = "Whether the Kafka records are consumed in batch. The channel injection point must consume a compatible type, such as `List<Payload>` or `KafkaRecordBatch<Payload>`.", defaultValue = "false")
 @ConnectorAttribute(name = "max-queue-size-factor", type = "int", direction = Direction.INCOMING, description = "Multiplier factor to determine maximum number of records queued for processing, using `max.poll.records` * `max-queue-size-factor`. Defaults to 2. In `batch` mode `max.poll.records` is considered `1`.", defaultValue = "2")
+@ConnectorAttribute(name = "share-group", type = "boolean", direction = Direction.INCOMING, description = "Whether to use Kafka Share Groups for consumption. When enabled, the consumer will use a ShareConsumer which provides cooperative record processing across multiple consumers without explicit partition assignment.", defaultValue = "false")
+@ConnectorAttribute(name = "share-group.unprocessed-record-max-age.ms", type = "int", direction = Direction.INCOMING, description = "While using share groups, specify the max age in milliseconds that an unprocessed record can be before the connector reports a failure. Setting this attribute to 0 disables this monitoring.", defaultValue = "60000")
+@ConnectorAttribute(name = "share-group.failure-acknowledgement-type", type = "string", direction = Direction.INCOMING, description = "Default acknowledgement type to apply to the record, when the message is nacked.", defaultValue = "release")
+@ConnectorAttribute(name = "share-group.failure-deserialization-acknowledgement-type", type = "string", direction = Direction.INCOMING, description = "Default acknowledgement type to apply to the record, when the message is nacked because of failure on deserialization.", defaultValue = "reject")
 
 @ConnectorAttribute(name = "key.serializer", type = "string", direction = Direction.OUTGOING, description = "The serializer classname used to serialize the record's key", defaultValue = "org.apache.kafka.common.serialization.StringSerializer")
 @ConnectorAttribute(name = "value.serializer", type = "string", direction = Direction.OUTGOING, description = "The serializer classname used to serialize the payload", mandatory = true)
@@ -176,6 +181,7 @@ public class KafkaConnector implements InboundConnector, OutboundConnector, Heal
     KafkaCDIEvents kafkaCDIEvents;
 
     private final List<KafkaSource<?, ?>> sources = new CopyOnWriteArrayList<>();
+    private final List<KafkaShareGroupSource<?, ?>> shareGroupSources = new CopyOnWriteArrayList<>();
     private final List<KafkaSink> sinks = new CopyOnWriteArrayList<>();
 
     @Inject
@@ -187,6 +193,7 @@ public class KafkaConnector implements InboundConnector, OutboundConnector, Heal
     public void terminate(
             @Observes(notifyObserver = Reception.IF_EXISTS) @Priority(50) @BeforeDestroyed(ApplicationScoped.class) Object event) {
         sources.forEach(KafkaSource::closeQuietly);
+        shareGroupSources.forEach(KafkaShareGroupSource::closeQuietly);
         sinks.forEach(KafkaSink::closeQuietly);
         TopicPartitions.clearCache();
     }
@@ -218,6 +225,28 @@ public class KafkaConnector implements InboundConnector, OutboundConnector, Heal
             log.noGroupId(s);
             return s;
         });
+
+        if (ic.getShareGroup()) {
+            if (partitions > 1) {
+                log.warn("Share group mode does not support multiple partitions. Using single consumer.");
+            }
+            KafkaShareGroupSource<Object, Object> source = new KafkaShareGroupSource<>(vertx, group, ic,
+                    openTelemetryInstance, kafkaCDIEvents, configCustomizers,
+                    deserializationFailureHandlers);
+            shareGroupSources.add(source);
+            boolean broadcast = ic.getBroadcast();
+            Multi<? extends Message<?>> stream;
+            if (!ic.getBatch()) {
+                stream = source.getStream();
+            } else {
+                stream = source.getBatchStream();
+            }
+            if (broadcast) {
+                return stream.broadcast().toAllSubscribers();
+            } else {
+                return stream;
+            }
+        }
 
         if (partitions == 1) {
             KafkaSource<Object, Object> source = new KafkaSource<>(vertx, group, ic, openTelemetryInstance,
@@ -291,6 +320,9 @@ public class KafkaConnector implements InboundConnector, OutboundConnector, Heal
         for (KafkaSource<?, ?> source : sources) {
             source.isStarted(builder);
         }
+        for (KafkaShareGroupSource<?, ?> source : shareGroupSources) {
+            source.isStarted(builder);
+        }
         for (KafkaSink sink : sinks) {
             sink.isStarted(builder);
         }
@@ -301,6 +333,9 @@ public class KafkaConnector implements InboundConnector, OutboundConnector, Heal
     public HealthReport getReadiness() {
         HealthReport.HealthReportBuilder builder = HealthReport.builder();
         for (KafkaSource<?, ?> source : sources) {
+            source.isReady(builder);
+        }
+        for (KafkaShareGroupSource<?, ?> source : shareGroupSources) {
             source.isReady(builder);
         }
         for (KafkaSink sink : sinks) {
@@ -314,6 +349,9 @@ public class KafkaConnector implements InboundConnector, OutboundConnector, Heal
     public HealthReport getLiveness() {
         HealthReport.HealthReportBuilder builder = HealthReport.builder();
         for (KafkaSource<?, ?> source : sources) {
+            source.isAlive(builder);
+        }
+        for (KafkaShareGroupSource<?, ?> source : shareGroupSources) {
             source.isAlive(builder);
         }
         for (KafkaSink sink : sinks) {
@@ -350,7 +388,19 @@ public class KafkaConnector implements InboundConnector, OutboundConnector, Heal
         return sources.stream().map(KafkaSource::getChannel).collect(Collectors.toSet());
     }
 
+    public Set<String> getShareConsumerChannels() {
+        return shareGroupSources.stream().map(KafkaShareGroupSource::getChannel).collect(Collectors.toSet());
+    }
+
     public Set<String> getProducerChannels() {
         return sinks.stream().map(KafkaSink::getChannel).collect(Collectors.toSet());
+    }
+
+    @SuppressWarnings("unchecked")
+    public <V, K> List<KafkaShareConsumer<K, V>> getShareConsumers(String channel) {
+        return shareGroupSources.stream()
+                .filter(s -> s.getChannel().equals(channel))
+                .map(s -> (KafkaShareConsumer<K, V>) s.getConsumer())
+                .toList();
     }
 }
