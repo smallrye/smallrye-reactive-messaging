@@ -270,6 +270,59 @@ public class KafkaCompanion implements AutoCloseable {
     }
 
     /*
+     * SHARE CONSUMER
+     */
+
+    public Map<String, Object> getShareConsumerProperties() {
+        Map<String, Object> config = new HashMap<>();
+        config.put(BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
+        config.put(GROUP_ID_CONFIG, "companion-share-" + UUID.randomUUID());
+        config.put(CLIENT_ID_CONFIG, "companion-share-" + UUID.randomUUID());
+        config.putAll(getCommonClientConfig());
+        return config;
+    }
+
+    public <K, V> ShareConsumerBuilder<K, V> shareConsumeWithDeserializers(
+            Deserializer<K> keyDeserializer, Deserializer<V> valueDeserializer) {
+        ShareConsumerBuilder<K, V> builder = new ShareConsumerBuilder<>(getShareConsumerProperties(), kafkaApiTimeout,
+                keyDeserializer, valueDeserializer);
+        registerOnClose(builder::close);
+        return builder;
+    }
+
+    public <K, V> ShareConsumerBuilder<K, V> shareConsumeWithDeserializers(
+            String keyDeserializerClassName, String valueDeserializerClassName) {
+        ShareConsumerBuilder<K, V> builder = new ShareConsumerBuilder<>(getShareConsumerProperties(), kafkaApiTimeout,
+                keyDeserializerClassName, valueDeserializerClassName);
+        registerOnClose(builder::close);
+        return builder;
+    }
+
+    public <K, V> ShareConsumerBuilder<K, V> shareConsume(Serde<K> keySerde, Serde<V> valueSerde) {
+        return shareConsumeWithDeserializers(keySerde.deserializer(), valueSerde.deserializer());
+    }
+
+    public <K, V> ShareConsumerBuilder<K, V> shareConsume(Class<K> keyType, Class<V> valueType) {
+        return shareConsume(getSerdeForType(keyType), getSerdeForType(valueType));
+    }
+
+    public <V> ShareConsumerBuilder<String, V> shareConsume(Class<V> valueType) {
+        return shareConsume(Serdes.String(), getSerdeForType(valueType));
+    }
+
+    public ShareConsumerBuilder<String, String> shareConsumeStrings() {
+        return shareConsume(Serdes.String(), Serdes.String());
+    }
+
+    public ShareConsumerBuilder<String, Integer> shareConsumeIntegers() {
+        return shareConsume(Serdes.String(), Serdes.Integer());
+    }
+
+    public ShareConsumerBuilder<String, Double> shareConsumeDoubles() {
+        return shareConsume(Serdes.String(), Serdes.Double());
+    }
+
+    /*
      * PRODUCER
      */
 

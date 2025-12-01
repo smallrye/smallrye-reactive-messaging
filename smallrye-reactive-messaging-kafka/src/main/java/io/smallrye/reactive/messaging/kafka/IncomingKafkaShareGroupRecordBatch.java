@@ -25,19 +25,20 @@ import io.smallrye.reactive.messaging.kafka.api.IncomingKafkaRecordBatchMetadata
 import io.smallrye.reactive.messaging.kafka.commit.KafkaCommitHandler;
 import io.smallrye.reactive.messaging.kafka.fault.KafkaFailureHandler;
 
-public class IncomingKafkaRecordBatch<K, T> implements KafkaRecordBatch<K, T> {
+public class IncomingKafkaShareGroupRecordBatch<K, T> implements KafkaRecordBatch<K, T> {
 
     private final Metadata metadata;
     private final List<KafkaRecord<K, T>> incomingRecords;
     private final Map<TopicPartition, KafkaRecord<K, T>> latestOffsetRecords;
 
-    public IncomingKafkaRecordBatch(ConsumerRecords<K, T> records, String channel, int index, KafkaCommitHandler commitHandler,
-            KafkaFailureHandler onNack, boolean cloudEventEnabled, boolean tracingEnabled) {
+    public IncomingKafkaShareGroupRecordBatch(ConsumerRecords<K, T> records, String channel,
+            KafkaCommitHandler commitHandler,
+            KafkaFailureHandler onNack, boolean cloudEventEnabled) {
         List<IncomingKafkaRecord<K, T>> incomingRecords = new ArrayList<>();
         Map<TopicPartition, IncomingKafkaRecord<K, T>> latestOffsetRecords = new HashMap<>();
         for (TopicPartition partition : records.partitions()) {
             for (ConsumerRecord<K, T> record : records.records(partition)) {
-                IncomingKafkaRecord<K, T> rec = new IncomingKafkaRecord<>(record, channel, index, commitHandler, onNack,
+                IncomingKafkaRecord<K, T> rec = new IncomingKafkaRecord<>(record, channel, -1, commitHandler, onNack,
                         cloudEventEnabled);
                 incomingRecords.add(rec);
                 latestOffsetRecords.put(partition, rec);
@@ -54,7 +55,7 @@ public class IncomingKafkaRecordBatch<K, T> implements KafkaRecordBatch<K, T> {
         // This is safe because the IncomingKafkaRecord is Message
         List<Message<?>> batchedRecords = (List<Message<?>>) (List) this.incomingRecords;
         this.metadata = captureContextMetadata(
-                new IncomingKafkaRecordBatchMetadata<>(records, batchedRecords, channel, index, offsets, generationId));
+                new IncomingKafkaRecordBatchMetadata<>(records, batchedRecords, channel, -1, offsets, generationId));
     }
 
     @Override
@@ -94,8 +95,12 @@ public class IncomingKafkaRecordBatch<K, T> implements KafkaRecordBatch<K, T> {
 
     @Override
     public CompletionStage<Void> ack(Metadata metadata) {
+        // Ack all records individually, not just the latest per partition.
+        // Share groups require each record to be acknowledged individually.
+        // For regular consumers, this is safe as committing all offsets
+        // results in the same effective committed offset.
         return Multi.createBy().concatenating().collectFailures()
-                .streams(this.latestOffsetRecords.values().stream()
+                .streams(this.incomingRecords.stream()
                         .map(record -> Multi.createFrom().completionStage(record.ack(metadata)))
                         .collect(Collectors.toList()))
                 .toUni().subscribeAsCompletionStage();

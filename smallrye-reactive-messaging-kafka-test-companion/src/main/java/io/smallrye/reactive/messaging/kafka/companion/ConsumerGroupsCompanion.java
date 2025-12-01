@@ -1,6 +1,7 @@
 package io.smallrye.reactive.messaging.kafka.companion;
 
 import static io.smallrye.reactive.messaging.kafka.companion.KafkaCompanion.toUni;
+import static io.smallrye.reactive.messaging.kafka.companion.KafkaCompanion.waitFor;
 
 import java.time.Duration;
 import java.util.Arrays;
@@ -10,14 +11,20 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.ConsumerGroupDescription;
 import org.apache.kafka.clients.admin.ConsumerGroupListing;
+import org.apache.kafka.clients.admin.GroupListing;
 import org.apache.kafka.clients.admin.ListConsumerGroupOffsetsSpec;
+import org.apache.kafka.clients.admin.ListShareGroupOffsetsSpec;
+import org.apache.kafka.clients.admin.ListStreamsGroupOffsetsSpec;
 import org.apache.kafka.clients.admin.MemberToRemove;
 import org.apache.kafka.clients.admin.RemoveMembersFromConsumerGroupOptions;
+import org.apache.kafka.clients.admin.ShareGroupDescription;
+import org.apache.kafka.clients.admin.SharePartitionOffsetInfo;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
 
@@ -41,8 +48,17 @@ public class ConsumerGroupsCompanion {
     /**
      * @return the list of consumer groups
      */
+    @Deprecated
     public Collection<ConsumerGroupListing> list() {
         return toUni(() -> adminClient.listConsumerGroups().all())
+                .await().atMost(kafkaApiTimeout);
+    }
+
+    /**
+     * @return the list of consumer groups
+     */
+    public Collection<GroupListing> listGroups() {
+        return toUni(() -> adminClient.listGroups().all())
                 .await().atMost(kafkaApiTimeout);
     }
 
@@ -86,6 +102,68 @@ public class ConsumerGroupsCompanion {
     }
 
     /*
+     * SHARE GROUPS
+     */
+
+    public Uni<ShareGroupDescription> waitForShareGroupAssignment(String groupId) {
+        return waitFor(toUni(() -> adminClient.describeShareGroups(Set.of(groupId)).describedGroups().get(groupId))
+                .onFailure().recoverWithNull(),
+                result -> result != null && !result.members().isEmpty()
+                        && result.members().stream().noneMatch(m -> m.assignment().topicPartitions().isEmpty()),
+                Duration.ofMillis(100));
+    }
+
+    public Uni<ShareGroupDescription> waitForShareGroupAssignment(String groupId, String... memberClientIds) {
+        return waitFor(toUni(() -> adminClient.describeShareGroups(Set.of(groupId)).describedGroups().get(groupId))
+                .onFailure().recoverWithNull(),
+                result -> {
+                    return result != null && !result.members().isEmpty()
+                            && Arrays.stream(memberClientIds)
+                                    .allMatch(c -> result.members().stream()
+                                            .anyMatch(m -> m.clientId().equals(c)
+                                                    && !m.assignment().topicPartitions().isEmpty()));
+                },
+                Duration.ofMillis(100));
+    }
+
+    /**
+     * @param groupId share group id
+     * @return the map of topic partitions to share partition offset info
+     */
+    public Map<TopicPartition, SharePartitionOffsetInfo> shareGroupOffsets(String groupId) {
+        return consumerShareGroupUni(groupId, null).await().atMost(kafkaApiTimeout);
+    }
+
+    /**
+     * @param groupIds share group ids
+     * @return the map of share group descriptions by id
+     */
+    public Map<String, ShareGroupDescription> describeShareGroups(String... groupIds) {
+        return toUni(() -> adminClient.describeShareGroups(Set.of(groupIds)).all())
+                .await().atMost(kafkaApiTimeout);
+    }
+
+    /**
+     * @param groupId share group id
+     * @return the share group description
+     */
+    public ShareGroupDescription describeShareGroup(String groupId) {
+        return toUni(() -> adminClient.describeShareGroups(Set.of(groupId)).all())
+                .onItem().transform(result -> result.get(groupId))
+                .await().atMost(kafkaApiTimeout);
+    }
+
+    /**
+     * @param groupId share group id
+     * @param topicPartitions list of topic partitions
+     * @return the map of topic partitions to share partition offset info
+     */
+    public Map<TopicPartition, SharePartitionOffsetInfo> shareGroupOffsets(String groupId,
+            List<TopicPartition> topicPartitions) {
+        return consumerShareGroupUni(groupId, topicPartitions).await().atMost(kafkaApiTimeout);
+    }
+
+    /*
      * OFFSETS
      */
 
@@ -93,6 +171,18 @@ public class ConsumerGroupsCompanion {
             List<TopicPartition> topicPartitions) {
         return toUni(() -> adminClient.listConsumerGroupOffsets(Map.of(groupId, new ListConsumerGroupOffsetsSpec()
                 .topicPartitions(topicPartitions))).partitionsToOffsetAndMetadata());
+    }
+
+    private Uni<Map<TopicPartition, SharePartitionOffsetInfo>> consumerShareGroupUni(String groupId,
+            List<TopicPartition> topicPartitions) {
+        return toUni(() -> adminClient.listShareGroupOffsets(Map.of(groupId, new ListShareGroupOffsetsSpec()
+                .topicPartitions(topicPartitions))).partitionsToOffsetInfo(groupId));
+    }
+
+    private Uni<Map<TopicPartition, OffsetAndMetadata>> consumerStreamsGroupUni(String groupId,
+            List<TopicPartition> topicPartitions) {
+        return toUni(() -> adminClient.listStreamsGroupOffsets(Map.of(groupId, new ListStreamsGroupOffsetsSpec()
+                .topicPartitions(topicPartitions))).partitionsToOffsetAndMetadata(groupId));
     }
 
     /**
@@ -129,7 +219,7 @@ public class ConsumerGroupsCompanion {
      * @return map of consumer group id to topic partitions offset
      */
     public Map<String, Map<TopicPartition, OffsetAndMetadata>> offsets(List<TopicPartition> topicPartitions) {
-        return toUni(() -> adminClient.listConsumerGroups().all())
+        return toUni(() -> adminClient.listGroups().all())
                 .onItem().transformToMulti(groups -> Multi.createFrom().iterable(groups))
                 .onItem()
                 .transformToUniAndMerge(group -> consumerGroupUni(group.groupId(), topicPartitions)

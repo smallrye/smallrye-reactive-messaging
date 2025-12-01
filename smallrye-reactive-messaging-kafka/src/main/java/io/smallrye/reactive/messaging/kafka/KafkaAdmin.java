@@ -5,9 +5,11 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.kafka.clients.admin.Admin;
+import org.apache.kafka.clients.admin.ConsumerGroupDescription;
 import org.apache.kafka.clients.admin.DescribeClusterOptions;
 import org.apache.kafka.clients.admin.DescribeTopicsOptions;
 import org.apache.kafka.clients.admin.ListTopicsOptions;
+import org.apache.kafka.clients.admin.ShareGroupDescription;
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.common.Node;
 
@@ -30,6 +32,10 @@ public interface KafkaAdmin {
     Uni<Collection<Node>> describeCluster();
 
     Uni<Collection<Node>> describeCluster(DescribeClusterOptions options);
+
+    Uni<Map<String, ConsumerGroupDescription>> describeConsumerGroup(Collection<String> groupIds);
+
+    Uni<Map<String, ShareGroupDescription>> describeShareGroup(Collection<String> groupIds);
 
     Admin unwrap();
 

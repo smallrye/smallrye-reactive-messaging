@@ -81,7 +81,7 @@ public class ConfigurationCleaner {
             "key.serializer",
             "value.serializer");
 
-    private static final List<String> CONSUMER_PREFIX = Arrays.asList("checkpoint");
+    private static final List<String> CONSUMER_PREFIX = Arrays.asList("checkpoint", "share-group");
     private static final List<String> PRODUCER_PREFIX = Arrays.asList("reply");
 
     private ConfigurationCleaner() {

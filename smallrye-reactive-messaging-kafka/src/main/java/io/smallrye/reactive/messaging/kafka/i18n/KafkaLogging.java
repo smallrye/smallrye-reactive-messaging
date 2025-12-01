@@ -360,4 +360,28 @@ public interface KafkaLogging extends BasicLogger {
     @LogMessage(level = Logger.Level.WARN)
     @Message(id = 18285, value = "Failed to poll consumer client `%s` for channel `%s`, it will be re-attempted")
     void pollFailureRetry(String clientId, String channel, @Cause Throwable throwable);
+
+    @LogMessage(level = Logger.Level.DEBUG)
+    @Message(id = 18286, value = "Share group acknowledgement committed for offsets: %s")
+    void shareGroupAcknowledgementCommitted(String offsets);
+
+    @LogMessage(level = Logger.Level.WARN)
+    @Message(id = 18287, value = "Share group acknowledgement commit failed")
+    void shareGroupAcknowledgementCommitFailed(@Cause Throwable throwable);
+
+    @LogMessage(level = Logger.Level.DEBUG)
+    @Message(id = 18288, value = "Pending share group offsets for %s: %s")
+    void shareGroupPendingOffsets(String topicPartition, String pendingSet);
+
+    @LogMessage(level = Logger.Level.WARN)
+    @Message(id = 18289, value = "Share group record from topic-partition '%s' at offset %d has been processing for %d seconds, exceeding the timeout of %d ms. Reporting failure.")
+    void shareGroupProcessingTimeout(String topicPartition, long offset, long elapsedSeconds, long timeoutMs);
+
+    @LogMessage(level = Logger.Level.DEBUG)
+    @Message(id = 18290, value = "Renewed share group acquisition locks for %d in-progress records")
+    void shareGroupRenewingLocks(int count);
+
+    @LogMessage(level = Logger.Level.WARN)
+    @Message(id = 18291, value = "The `%s` configuration is not supported with share groups on channel `%s` and will be ignored")
+    void shareGroupIncompatibleConfiguration(String properties, String channel);
 }
