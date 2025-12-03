@@ -356,4 +356,8 @@ public interface KafkaLogging extends BasicLogger {
     @LogMessage(level = Logger.Level.WARN)
     @Message(id = 18284, value = "Transaction commit failed for channel, aborting the transaction")
     void transactionCommitFailed(@Cause Throwable throwable);
+
+    @LogMessage(level = Logger.Level.WARN)
+    @Message(id = 18285, value = "Failed to poll consumer client `%s` for channel `%s`, it will be re-attempted")
+    void pollFailureRetry(String clientId, String channel, @Cause Throwable throwable);
 }
