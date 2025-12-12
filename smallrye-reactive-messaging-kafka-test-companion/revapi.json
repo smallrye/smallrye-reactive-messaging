@@ -68,6 +68,19 @@
             "old": "method io.strimzi.test.container.StrimziKafkaContainer io.smallrye.reactive.messaging.kafka.companion.test.KafkaBrokerExtension::startKafkaBroker(int)",
             "new": "method org.testcontainers.containers.GenericContainer<?> io.smallrye.reactive.messaging.kafka.companion.test.KafkaBrokerExtension::startKafkaBroker(int)",
             "justification": "Kafka broker container is no longer restricted to StrimziKafkaContainer"
+        },
+        {
+            "code": "java.class.removed",
+            "old": "class io.smallrye.reactive.messaging.kafka.companion.test.ProxiedStrimziKafkaContainer",
+            "justification": "StrimziKafkaContainer is no longer accessible"
+        },
+        {
+            "code": "java.method.visibilityIncreased",
+            "old": "method void io.smallrye.reactive.messaging.kafka.companion.test.KafkaProxy::<init>(eu.rekawek.toxiproxy.Proxy, java.lang.String, int, int)",
+            "new": "method void io.smallrye.reactive.messaging.kafka.companion.test.KafkaProxy::<init>(eu.rekawek.toxiproxy.Proxy, java.lang.String, int, int)",
+            "oldVisibility": "protected",
+            "newVisibility": "public",
+            "justification": "KafkaProxy is now public"
         }
     ]
   }

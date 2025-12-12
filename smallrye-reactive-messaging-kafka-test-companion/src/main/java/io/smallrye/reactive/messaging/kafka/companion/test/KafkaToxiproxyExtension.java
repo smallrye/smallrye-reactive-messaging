@@ -1,13 +1,17 @@
 package io.smallrye.reactive.messaging.kafka.companion.test;
 
 import static org.junit.jupiter.api.extension.ExtensionContext.Namespace.GLOBAL;
-import static org.testcontainers.shaded.org.awaitility.Awaitility.await;
 
 import java.util.logging.Logger;
 
 import org.junit.jupiter.api.extension.*;
 import org.junit.jupiter.api.extension.ExtensionContext.Store.CloseableResource;
-import org.testcontainers.containers.Network;
+import org.testcontainers.toxiproxy.ToxiproxyContainer;
+import org.testcontainers.utility.DockerImageName;
+
+import eu.rekawek.toxiproxy.Proxy;
+import io.strimzi.test.container.StrimziKafkaCluster;
+import io.strimzi.test.container.StrimziKafkaContainer;
 
 /**
  * Junit extension for creating Strimzi Kafka broker behind a Toxiproxy
@@ -16,16 +20,28 @@ public class KafkaToxiproxyExtension extends KafkaBrokerExtension
         implements BeforeAllCallback, BeforeEachCallback, ParameterResolver, CloseableResource {
     public static final Logger LOGGER = Logger.getLogger(KafkaToxiproxyExtension.class.getName());
 
+    public static final String TOXIPROXY_NETWORK_ALIAS = "toxiproxy";
+    public static final String KAFKA_NETWORK_ALIAS = "kafka";
+    public static final String TOXIPROXY_IMAGE_NAME_PROPERTY_KEY = "toxiproxy.image.name";
+    public static final String DEFAULT_TOXIPROXY_IMAGE_NAME = "ghcr.io/shopify/toxiproxy:2.4.0";
+
+    protected StrimziKafkaCluster cluster;
+
     @Override
     public void beforeAll(ExtensionContext context) {
         ExtensionContext.Store globalStore = context.getRoot().getStore(GLOBAL);
         KafkaToxiproxyExtension extension = (KafkaToxiproxyExtension) globalStore.get(KafkaToxiproxyExtension.class);
         if (extension == null) {
             LOGGER.info("Starting Kafka broker proxy");
-            kafka = configureContainer(new ProxiedStrimziKafkaContainer());
-            kafka.setNetwork(Network.newNetwork());
-            kafka.start();
-            await().until(() -> kafka.isRunning());
+            ToxiproxyContainer toxiproxy = new ToxiproxyContainer(DockerImageName.parse(
+                    System.getProperty(TOXIPROXY_IMAGE_NAME_PROPERTY_KEY, DEFAULT_TOXIPROXY_IMAGE_NAME))
+                    .asCompatibleSubstituteFor("shopify/toxiproxy"))
+                    .withNetworkAliases(TOXIPROXY_NETWORK_ALIAS);
+            cluster = configureStrimziCluster()
+                    .withProxyContainer(toxiproxy)
+                    .build();
+            cluster.start();
+            kafka = cluster.getBrokers().stream().findFirst().get();
             globalStore.put(KafkaToxiproxyExtension.class, this);
         }
     }
@@ -54,7 +70,9 @@ public class KafkaToxiproxyExtension extends KafkaBrokerExtension
                     return KafkaBrokerExtension.getBootstrapServers(extension.kafka);
                 }
                 if (parameterContext.getParameter().getType().equals(KafkaProxy.class)) {
-                    return ((ProxiedStrimziKafkaContainer) extension.kafka).getKafkaProxy();
+                    StrimziKafkaContainer strimzi = (StrimziKafkaContainer) kafka;
+                    Proxy proxyForNode = cluster.getProxyForNode(strimzi.getNodeId());
+                    return new KafkaProxy(proxyForNode, kafka.getContainerIpAddress(), kafka.getMappedPort(9092), 0);
                 }
             }
         }
