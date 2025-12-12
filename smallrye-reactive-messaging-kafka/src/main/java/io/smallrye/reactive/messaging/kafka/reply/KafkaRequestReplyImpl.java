@@ -1,7 +1,6 @@
 package io.smallrye.reactive.messaging.kafka.reply;
 
 import static io.smallrye.reactive.messaging.kafka.i18n.KafkaLogging.log;
-import static org.eclipse.microprofile.reactive.messaging.spi.ConnectorFactory.OUTGOING_PREFIX;
 
 import java.time.Duration;
 import java.util.Collection;
@@ -51,8 +50,7 @@ import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
 import io.smallrye.reactive.messaging.kafka.impl.TopicPartitions;
 import io.smallrye.reactive.messaging.providers.extension.MutinyEmitterImpl;
 import io.smallrye.reactive.messaging.providers.helpers.CDIUtils;
-import io.smallrye.reactive.messaging.providers.impl.ConnectorConfig;
-import io.smallrye.reactive.messaging.providers.impl.OverrideConnectorConfig;
+import io.smallrye.reactive.messaging.providers.impl.Configs;
 import io.smallrye.reactive.messaging.providers.locals.ContextAwareMessage;
 import io.vertx.mutiny.core.Vertx;
 
@@ -94,8 +92,8 @@ public class KafkaRequestReplyImpl<Req, Rep> extends MutinyEmitterImpl<Req>
             Instance<KafkaConsumerRebalanceListener> rebalanceListeners) {
         super(config, defaultBufferSize);
         this.channel = config.name();
-        ConnectorConfig connectorConfig = new OverrideConnectorConfig(OUTGOING_PREFIX, channelConfiguration,
-                KafkaConnector.CONNECTOR_NAME, channel, "reply",
+        Config connectorCfg = Configs.outgoing(channelConfiguration, KafkaConnector.CONNECTOR_NAME, channel);
+        Config connectorConfig = Configs.prefixOverride(connectorCfg, "reply",
                 Map.of("topic", c -> c.getOriginalValue("topic", String.class).orElse(channel) + DEFAULT_REPLIES_TOPIC_SUFFIX,
                         "assign-seek",
                         c -> c.getOriginalValue(REPLY_PARTITION_KEY, Integer.class).map(String::valueOf).orElse(null)));
