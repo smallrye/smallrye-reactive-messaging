@@ -96,7 +96,7 @@
     <smallrye-reactive-converters.version>3.0.0</smallrye-reactive-converters.version>
     <mutiny-zero.version>1.1.0</mutiny-zero.version>
 
-    <testcontainers.version>1.21.4</testcontainers.version>
+    <testcontainers.version>2.0.2</testcontainers.version>
 
     <sonar.coverage.jacoco.xmlReportPaths>${project.basedir}/target/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
     <mockito.version>5.22.0</mockito.version>
@@ -117,7 +117,7 @@
     <slf4j-log4j12.version>2.0.17</slf4j-log4j12.version>
     <slf4j-reload4j.version>2.0.17</slf4j-reload4j.version>
     <opencsv.version>5.12.0</opencsv.version>
-    <strimzi-test-container.version>0.113.0</strimzi-test-container.version>
+    <strimzi-test-container.version>0.115.0</strimzi-test-container.version>
 
     <revapi-maven-plugin.version>0.15.1</revapi-maven-plugin.version>
     <revapi-java.version>0.28.4</revapi-java.version>
@@ -314,17 +314,17 @@
       </dependency>
       <dependency>
         <groupId>org.testcontainers</groupId>
-        <artifactId>localstack</artifactId>
+        <artifactId>testcontainers-localstack</artifactId>
         <version>${testcontainers.version}</version>
       </dependency>
       <dependency>
         <groupId>org.testcontainers</groupId>
-        <artifactId>junit-jupiter</artifactId>
+        <artifactId>testcontainers-junit-jupiter</artifactId>
         <version>${testcontainers.version}</version>
       </dependency>
       <dependency>
         <groupId>org.testcontainers</groupId>
-        <artifactId>toxiproxy</artifactId>
+        <artifactId>testcontainers-toxiproxy</artifactId>
         <version>${testcontainers.version}</version>
       </dependency>
       <dependency>

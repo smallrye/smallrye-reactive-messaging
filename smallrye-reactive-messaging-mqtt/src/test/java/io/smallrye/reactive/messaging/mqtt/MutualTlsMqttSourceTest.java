@@ -1,8 +1,8 @@
 package io.smallrye.reactive.messaging.mqtt;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.awaitility.Awaitility.await;
-import static org.junit.Assert.assertThrows;
 
 import java.util.*;
 import java.util.concurrent.Flow;
@@ -74,7 +74,7 @@ public class MutualTlsMqttSourceTest extends MutualTlsMqttTestBase {
 
     @Test
     public void testMutualTLSMissingPassword() {
-        assertThrows(IllegalArgumentException.class, () -> {
+        assertThatThrownBy(() -> {
             String topic = UUID.randomUUID().toString();
             Map<String, Object> config = new HashMap<>();
             config.put("topic", topic);
@@ -90,7 +90,7 @@ public class MutualTlsMqttSourceTest extends MutualTlsMqttTestBase {
             config.put("ssl.truststore.location", "mosquitto-tls/client/client.ts");
 
             new MqttSource(vertx, new MqttConnectorIncomingConfiguration(new MapBasedConfig(config)), null, null);
-        });
+        }).isInstanceOf(IllegalArgumentException.class);
 
     }
 

@@ -22,6 +22,7 @@ import org.junit.jupiter.api.extension.ExtensionContext.Store.CloseableResource;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.shaded.org.awaitility.core.ConditionTimeoutException;
 
+import io.strimzi.test.container.StrimziKafkaCluster;
 import io.strimzi.test.container.StrimziKafkaContainer;
 
 /**
@@ -31,8 +32,9 @@ public class KafkaBrokerExtension implements BeforeAllCallback, BeforeEachCallba
     public static final Logger LOGGER = Logger.getLogger(KafkaBrokerExtension.class.getName());
 
     public static final String KAFKA_IMAGE = "apache/kafka";
+    public static final String STRIMZI_IMAGE = "quay.io/strimzi-test-container/test-container";
     public static final String KAFKA_VERSION = "4.2.0";
-    public static final String STRIMZI_VERSION = "4.1.0";
+    public static final String STRIMZI_VERSION = "4.2.0";
 
     protected GenericContainer<?> kafka;
 
@@ -56,14 +58,25 @@ public class KafkaBrokerExtension implements BeforeAllCallback, BeforeEachCallba
     public static GenericContainer<?> createKafkaContainer() {
         String kafkaImage = System.getProperty("kafka-container-image", KAFKA_IMAGE);
         String kafkaVersion = System.getProperty("kafka-container-version", KAFKA_VERSION);
-        String strimziVersion = System.getProperty("strimzi-container-version", STRIMZI_VERSION);
-        GenericContainer<? extends GenericContainer<?>> kafka;
         if (kafkaImage.contains("strimzi")) {
-            kafka = new StrimziKafkaContainer(kafkaImage + ":latest-kafka-" + strimziVersion);
+            // single node cluster
+            return configureStrimziCluster().build().getBrokers().stream().findFirst().get();
         } else {
-            kafka = new KafkaContainer(kafkaImage + ":" + kafkaVersion);
+            return configureKafkaContainer(new KafkaContainer(kafkaImage + ":" + kafkaVersion));
         }
-        return configureContainer(kafka);
+    }
+
+    public static StrimziKafkaCluster.StrimziKafkaClusterBuilder configureStrimziCluster() {
+        String kafkaImage = System.getProperty("kafka-container-image", STRIMZI_IMAGE);
+        String strimziVersion = System.getProperty("strimzi-container-version", STRIMZI_VERSION);
+        return configureStrimziCluster(kafkaImage, strimziVersion)
+                .withContainerCustomizer(KafkaBrokerExtension::configureStrimziContainer);
+    }
+
+    public static StrimziKafkaCluster.StrimziKafkaClusterBuilder configureStrimziCluster(String image, String strimziVersion) {
+        return new StrimziKafkaCluster.StrimziKafkaClusterBuilder()
+                .withImage(image + ":latest-kafka-" + strimziVersion)
+                .withContainerCustomizer(KafkaBrokerExtension::configureStrimziContainer);
     }
 
     public static <T extends GenericContainer<?>> GenericContainer<?> configureContainer(T container) {
