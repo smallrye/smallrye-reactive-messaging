@@ -89,8 +89,7 @@
 
     <kafka.version>4.1.1</kafka.version>
 
-    <opentelemetry.instrumentation.version>2.21.0</opentelemetry.instrumentation.version>
-    <opentelemetry.version>1.55.0</opentelemetry.version>
+    <opentelemetry.instrumentation.version>2.23.0</opentelemetry.instrumentation.version> <!-- Otel SDK 1.57.0-->
     <opentelemetry-semconv.version>1.37.0</opentelemetry-semconv.version>
 
     <smallrye-vertx-mutiny-clients.version>3.19.1</smallrye-vertx-mutiny-clients.version>
@@ -288,13 +287,6 @@
       </dependency>
 
       <!-- This BOM includes the opentelemetry-bom and the opentelemetry-bom-alpha -->
-      <dependency>
-        <groupId>io.opentelemetry</groupId>
-        <artifactId>opentelemetry-bom</artifactId>
-        <version>${opentelemetry.version}</version>
-        <type>pom</type>
-        <scope>import</scope>
-      </dependency>
       <dependency>
         <groupId>io.opentelemetry.instrumentation</groupId>
         <artifactId>opentelemetry-instrumentation-bom-alpha</artifactId>
