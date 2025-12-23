@@ -4,8 +4,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Set;
 
+import org.assertj.core.api.Assertions;
+import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.config.ConfigValue;
 import org.eclipse.microprofile.config.spi.ConfigSource;
 import org.junit.jupiter.api.BeforeEach;
@@ -23,11 +26,11 @@ import io.smallrye.reactive.messaging.test.common.config.SetEnvironmentVariable;
 @SetEnvironmentVariable(key = "MP_MESSAGING_CONNECTOR_SOME_CONNECTOR_ATTR3", value = "used")
 @SetEnvironmentVariable(key = "mp_messaging_connector_some_connector_attr4", value = "used")
 @SetEnvironmentVariable(key = "mp_messaging_connector_SOME_CONNECTOR_mixedcase", value = "used")
-class OverrideConnectorConfigTest {
+class OverrideConfigTest {
 
     private SmallRyeConfig overallConfig;
-    private OverrideConnectorConfig config;
-    private OverrideConnectorConfig config2;
+    private Config config;
+    private Config config2;
 
     @BeforeEach
     public void createTestConfig() {
@@ -74,11 +77,13 @@ class OverrideConnectorConfigTest {
             }
         });
         overallConfig = builder.build();
-        config = new OverrideConnectorConfig("mp.messaging.incoming.", overallConfig, "some-connector", "foo", "bar");
-        config2 = new OverrideConnectorConfig("mp.messaging.incoming.", overallConfig, "some-connector", "foo", "bar",
+        ConnectorConfig connectorConfig = new ConnectorConfig("mp.messaging.incoming.", overallConfig, "some-connector", "foo");
+        config = new PrefixedConfig(connectorConfig, "bar");
+        config2 = new PrefixedConfig(new OverrideConfig(connectorConfig,
                 Map.of("attr1", c -> "some-other-value",
                         "attr2", c -> c.getOriginalValue("attr2", Integer.class).map(i -> i + 10)
-                                .orElse(10)));
+                                .orElse(10))),
+                "bar");
     }
 
     @Test
@@ -236,8 +241,13 @@ class OverrideConnectorConfigTest {
                 "mp.messaging.incoming.", config, "some-connector", "foo", 0);
 
         // Wrap it in OverrideConnectorConfig with nested channel "dlq"
-        OverrideConnectorConfig overrideConfig = new OverrideConnectorConfig("mp.messaging.incoming.",
-                concurrencyConfig, "some-connector", concurrencyConfig.getValue("channel-name", String.class), "dlq");
+        PrefixedConfig overrideConfig = new PrefixedConfig(concurrencyConfig, "dlq");
+
+        assertThat(overrideConfig.getPropertyNames())
+                .containsExactlyInAnyOrder("indexed-property", "nested-property", "base-nested-property",
+                        "attr4", "ATTR", "AT_TR",
+                        "base-property", "channel-name", "connector", "at.tr",
+                        "ATTR3", "ATTR1", "attr", "SOME_OTHER_KEY", "SOME_KEY");
 
         // Verify channel name is the indexed one
         assertThat(overrideConfig.getValue("channel-name", String.class)).isEqualTo("foo$0");
@@ -257,5 +267,197 @@ class OverrideConnectorConfigTest {
         // Test 4: Non-nested property fallback to base channel (mp.messaging.incoming.foo.base-property)
         assertThat(overrideConfig.getOptionalValue("base-property", String.class))
                 .hasValue("base-value");
+    }
+
+    @Test
+    public void testOverrideFunctionReturningNull() {
+        // When override function returns null, should fall back to base config value
+        ConnectorConfig connectorConfig = new ConnectorConfig("mp.messaging.incoming.", overallConfig, "some-connector",
+                "foo");
+
+        OverrideConfig overrideConfig = new OverrideConfig(connectorConfig,
+                Map.of("attr1", c -> null,
+                        "attr2", c -> null));
+
+        // Should fall back to base config values
+        assertThat(overrideConfig.getValue("attr1", String.class)).isEqualTo("value");
+        assertThat(overrideConfig.getValue("attr2", Integer.class)).isEqualTo(23);
+    }
+
+    @Test
+    public void testOverrideFunctionAccessingNonExistentOriginalValue() {
+        // Override function tries to access non-existent key via getOriginalValue
+        ConnectorConfig connectorConfig = new ConnectorConfig("mp.messaging.incoming.", overallConfig, "some-connector",
+                "foo");
+
+        OverrideConfig overrideConfig = new OverrideConfig(connectorConfig,
+                Map.of("new-property", c -> c.getOriginalValue("non-existent-key", String.class)
+                        .map(v -> v + "-modified")
+                        .orElse("default-value")));
+
+        // Should get the default value from the function
+        assertThat(overrideConfig.getValue("new-property", String.class)).isEqualTo("default-value");
+    }
+
+    @Test
+    public void testOverrideFunctionWithComplexTransformation() {
+        // Test override function that does complex transformations on original value
+        ConnectorConfig connectorConfig = new ConnectorConfig("mp.messaging.incoming.", overallConfig, "some-connector",
+                "foo");
+
+        OverrideConfig overrideConfig = new OverrideConfig(connectorConfig,
+                Map.of(
+                        // Triple the integer value
+                        "attr2", c -> c.getOriginalValue("attr2", Integer.class).map(i -> i * 3).orElse(0),
+                        // Transform string by appending channel name
+                        "attr1", c -> c.getOriginalValue("attr1", String.class).orElse("") + "-"
+                                + c.getOriginalValue("channel-name", String.class).orElse("unknown"),
+                        // Combine multiple values
+                        "combined", c -> c.getOriginalValue("attr1", String.class).orElse("")
+                                + ":" + c.getOriginalValue("attr2", Integer.class).map(String::valueOf).orElse("0")));
+
+        assertThat(overrideConfig.getValue("attr2", Integer.class)).isEqualTo(69); // 23 * 3
+        assertThat(overrideConfig.getValue("attr1", String.class)).isEqualTo("value-foo");
+        assertThat(overrideConfig.getValue("combined", String.class)).isEqualTo("value:23");
+    }
+
+    @Test
+    public void testChainingMultipleOverrideConfigs() {
+        // Test chaining multiple OverrideConfig instances
+        ConnectorConfig connectorConfig = new ConnectorConfig("mp.messaging.incoming.", overallConfig, "some-connector",
+                "foo");
+
+        // First override layer
+        OverrideConfig firstOverride = new OverrideConfig(connectorConfig,
+                Map.of("attr1", c -> "first-override",
+                        "attr2", c -> 100));
+
+        // Second override layer on top of first
+        OverrideConfig secondOverride = new OverrideConfig(firstOverride,
+                Map.of("attr1", c -> c.getOriginalValue("attr1", String.class).orElse("") + "-second",
+                        "attr3", c -> "new-value"));
+
+        // Third override layer
+        OverrideConfig thirdOverride = new OverrideConfig(secondOverride,
+                Map.of("attr2", c -> c.getOriginalValue("attr2", Integer.class).map(i -> i + 50).orElse(0)));
+
+        // attr1 should be modified by second override (first-override-second)
+        assertThat(thirdOverride.getValue("attr1", String.class)).isEqualTo("first-override-second");
+
+        // attr2 should be modified by third override (100 + 50 = 150)
+        assertThat(thirdOverride.getValue("attr2", Integer.class)).isEqualTo(150);
+
+        // attr3 should come from second override
+        assertThat(thirdOverride.getValue("attr3", String.class)).isEqualTo("new-value");
+
+        // Other properties should still be accessible from base
+        assertThat(thirdOverride.getOptionalValue("bar.qux", String.class)).hasValue("value");
+    }
+
+    @Test
+    public void testOverrideConfigWithEmptyOverrides() {
+        // OverrideConfig with empty overrides map should behave like base config
+        ConnectorConfig connectorConfig = new ConnectorConfig("mp.messaging.incoming.", overallConfig, "some-connector",
+                "foo");
+
+        OverrideConfig overrideConfig = new OverrideConfig(connectorConfig, Map.of());
+
+        assertThat(overrideConfig.getValue("attr1", String.class)).isEqualTo("value");
+        assertThat(overrideConfig.getValue("attr2", Integer.class)).isEqualTo(23);
+        assertThat(overrideConfig.getOptionalValue("bar.qux", String.class)).hasValue("value");
+    }
+
+    @Test
+    public void testOverrideFunctionReturningDifferentType() {
+        // Test override function that returns a value requiring type conversion
+        ConnectorConfig connectorConfig = new ConnectorConfig("mp.messaging.incoming.", overallConfig, "some-connector",
+                "foo");
+
+        OverrideConfig overrideConfig = new OverrideConfig(connectorConfig,
+                Map.of(
+                        // Return string that will be converted to Integer
+                        "attr2", c -> "999",
+                        // Return integer that will be converted to String
+                        "attr1", c -> 42));
+
+        // Type conversion should work
+        assertThat(overrideConfig.getValue("attr2", Integer.class)).isEqualTo(999);
+        assertThat(overrideConfig.getValue("attr1", Integer.class)).isEqualTo(42);
+        Assertions.assertThatThrownBy(() -> overrideConfig.getValue("attr1", String.class))
+                .isInstanceOf(NoSuchElementException.class);
+    }
+
+    @Test
+    public void testOverrideConfigPropertyNames() {
+        // Override config should include properties from both overrides and base config
+        ConnectorConfig connectorConfig = new ConnectorConfig("mp.messaging.incoming.", overallConfig, "some-connector",
+                "foo");
+
+        OverrideConfig overrideConfig = new OverrideConfig(connectorConfig,
+                Map.of("new-property", c -> "new-value",
+                        "another-property", c -> "another-value"));
+
+        Iterable<String> propertyNames = overrideConfig.getPropertyNames();
+
+        // Should include original properties
+        assertThat(propertyNames).contains("attr1", "attr2", "bar.qux");
+
+        // Should include new properties from overrides
+        assertThat(propertyNames).contains("new-property", "another-property");
+    }
+
+    @Test
+    public void testOverrideConfigGetConfigValue() {
+        // Test that getConfigValue works correctly with override config
+        ConnectorConfig connectorConfig = new ConnectorConfig("mp.messaging.incoming.", overallConfig, "some-connector",
+                "foo");
+
+        OverrideConfig overrideConfig = new OverrideConfig(connectorConfig,
+                Map.of("attr1", c -> "overridden-value"));
+
+        // Overridden property - ConfigValue should reflect the override
+        ConfigValue attr1 = overrideConfig.getConfigValue("attr1");
+        assertThat(attr1.getValue()).isEqualTo("overridden-value");
+        assertThat(attr1.getName()).isEqualTo("attr1");
+
+        // Non-overridden property - should get original ConfigValue
+        ConfigValue attr2 = overrideConfig.getConfigValue("attr2");
+        assertThat(attr2.getValue()).isEqualTo("23");
+        assertThat(attr2.getName()).isEqualTo("mp.messaging.incoming.foo.attr2");
+    }
+
+    @Test
+    public void testOverrideWithPrefixedConfigCombination() {
+        // Test OverrideConfig combined with PrefixedConfig
+        ConnectorConfig connectorConfig = new ConnectorConfig("mp.messaging.incoming.", overallConfig, "some-connector",
+                "foo");
+
+        // Apply override first, then prefix
+        OverrideConfig overrideConfig = new OverrideConfig(connectorConfig,
+                Map.of("bar.custom-key", c -> "custom-value",
+                        "bar.qux", c -> "overridden-qux"));
+
+        PrefixedConfig prefixedConfig = new PrefixedConfig(overrideConfig, "bar");
+
+        // Should get overridden value through prefix
+        assertThat(prefixedConfig.getValue("custom-key", String.class)).isEqualTo("custom-value");
+        assertThat(prefixedConfig.getValue("qux", String.class)).isEqualTo("overridden-qux");
+
+        // Non-overridden bar properties should still work
+        assertThat(prefixedConfig.getOptionalValue("other-key", String.class)).hasValue("another-value");
+    }
+
+    @Test
+    public void testOverrideFunctionCanAccessNestedPrefixedProperties() {
+        // Test that override function can access properties with nested prefixes
+        ConnectorConfig connectorConfig = new ConnectorConfig("mp.messaging.incoming.", overallConfig, "some-connector",
+                "foo");
+
+        OverrideConfig overrideConfig = new OverrideConfig(connectorConfig,
+                Map.of("computed", c -> c.getOriginalValue("bar.qux", String.class)
+                        .map(v -> "computed-from-" + v)
+                        .orElse("missing")));
+
+        assertThat(overrideConfig.getValue("computed", String.class)).isEqualTo("computed-from-value");
     }
 }

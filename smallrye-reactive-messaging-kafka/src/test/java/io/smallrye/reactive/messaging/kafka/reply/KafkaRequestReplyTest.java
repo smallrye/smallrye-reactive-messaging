@@ -15,8 +15,12 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
 import org.apache.kafka.clients.admin.ConsumerGroupListing;
+import org.apache.kafka.clients.consumer.ConsumerInterceptor;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.clients.consumer.ConsumerRecords;
+import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.common.header.internals.RecordHeader;
@@ -696,6 +700,148 @@ public class KafkaRequestReplyTest extends KafkaCompanionTestBase {
             return requestReply2;
         }
 
+    }
+
+    @Test
+    void testReplyConfigInheritance() {
+        addBeans(ReplyServer.class);
+        topic = companion.topics().createAndWait(topic, 3);
+        String replyTopic = topic + "-replies";
+        companion.topics().createAndWait(replyTopic, 3);
+
+        List<String> replies = new CopyOnWriteArrayList<>();
+
+        // Test config inheritance: set consumer configs on main channel that should be inherited by reply consumer
+        KafkaMapBasedConfig config = config()
+                .withPrefix("mp.messaging.outgoing.request-reply")
+                .with("max.poll.records", "500")
+                .with("session.timeout.ms", "10000")
+                .with("fetch.min.bytes", "1024")
+                .with("reply.interceptor.classes", ReplyConsumerConfigCapturingInterceptor.class.getName());
+
+        RequestReplyProducer app = runApplication(config, RequestReplyProducer.class);
+
+        for (int i = 0; i < 10; i++) {
+            app.requestReply().request(i).subscribe().with(replies::add);
+        }
+        await().untilAsserted(() -> assertThat(replies).hasSize(10));
+        assertThat(replies).containsExactly("0", "1", "2", "3", "4", "5", "6", "7", "8", "9");
+
+        // Verify that reply consumer inherited the configs from main outgoing channel
+        await().untilAsserted(() -> {
+            Map<String, ?> replyConsumerConfig = ReplyConsumerConfigCapturingInterceptor.capturedConfig;
+            assertThat(replyConsumerConfig).isNotNull();
+            assertThat(replyConsumerConfig.get("max.poll.records")).isEqualTo("500");
+            assertThat(replyConsumerConfig.get("session.timeout.ms")).isEqualTo("10000");
+            assertThat(replyConsumerConfig.get("fetch.min.bytes")).isEqualTo("1024");
+        });
+
+        assertThat(app.requestReply().getPendingReplies()).isEmpty();
+    }
+
+    @Test
+    void testReplyConfigInheritanceWithOverride() {
+        addBeans(ReplyServer.class);
+        topic = companion.topics().createAndWait(topic, 3);
+        String replyTopic = topic + "-replies";
+        companion.topics().createAndWait(replyTopic, 3);
+
+        List<String> replies = new CopyOnWriteArrayList<>();
+
+        // Test config inheritance with override: reply-specific config should take precedence over inherited config
+        KafkaMapBasedConfig config = config()
+                .withPrefix("mp.messaging.outgoing.request-reply")
+                // Set consumer configs on main channel
+                .with("max.poll.records", "500")
+                .with("session.timeout.ms", "10000")
+                .with("fetch.min.bytes", "1024")
+                // Override specific configs for reply consumer
+                .with("reply.max.poll.records", "100")
+                .with("reply.session.timeout.ms", "30000")
+                .with("reply.interceptor.classes", ReplyConsumerConfigCapturingInterceptor.class.getName());
+
+        // Reset captured config
+        ReplyConsumerConfigCapturingInterceptor.capturedConfig = null;
+
+        RequestReplyProducer app = runApplication(config, RequestReplyProducer.class);
+
+        for (int i = 0; i < 10; i++) {
+            app.requestReply().request(i).subscribe().with(replies::add);
+        }
+        await().untilAsserted(() -> assertThat(replies).hasSize(10));
+        assertThat(replies).containsExactly("0", "1", "2", "3", "4", "5", "6", "7", "8", "9");
+
+        // Verify that reply-specific config overrides inherited config, but other configs are still inherited
+        await().untilAsserted(() -> {
+            Map<String, ?> replyConsumerConfig = ReplyConsumerConfigCapturingInterceptor.capturedConfig;
+            assertThat(replyConsumerConfig).isNotNull();
+            // Reply-specific override should win
+            assertThat(replyConsumerConfig.get("max.poll.records")).isEqualTo("100");
+            assertThat(replyConsumerConfig.get("session.timeout.ms")).isEqualTo("30000");
+            // Inherited value should be used
+            assertThat(replyConsumerConfig.get("fetch.min.bytes")).isEqualTo("1024");
+        });
+
+        assertThat(app.requestReply().getPendingReplies()).isEmpty();
+    }
+
+    @Test
+    void testReplyPartitionConfig() {
+        addBeans(ReplyServer.class);
+        topic = companion.topics().createAndWait(topic, 3);
+        String replyTopic = topic + "-replies";
+        companion.topics().createAndWait(replyTopic, 3);
+
+        List<ConsumerRecord<String, String>> replies = new CopyOnWriteArrayList<>();
+
+        // Test that reply.partition config is correctly processed through Configs.prefixOverride
+        KafkaMapBasedConfig config = config()
+                .withPrefix("mp.messaging.outgoing.request-reply")
+                .with("reply.partition", 1);
+
+        RequestReplyProducer app = runApplication(config, RequestReplyProducer.class);
+
+        for (int i = 0; i < 5; i++) {
+            app.requestReply().request(KafkaRecord.of(String.valueOf(i), i)).subscribe().with(m -> {
+                IncomingKafkaRecordMetadata metadata = m.getMetadata(IncomingKafkaRecordMetadata.class).get();
+                replies.add(metadata.getRecord());
+            });
+        }
+
+        await().untilAsserted(() -> assertThat(replies).hasSize(5));
+
+        // Verify that all replies came from partition 1 (as configured)
+        assertThat(replies)
+                .allSatisfy(r -> assertThat(r.partition()).isEqualTo(1))
+                .extracting(ConsumerRecord::value)
+                .containsExactlyInAnyOrder("0", "1", "2", "3", "4");
+
+        assertThat(app.requestReply().getPendingReplies()).isEmpty();
+    }
+
+    public static class ReplyConsumerConfigCapturingInterceptor<K, V> implements ConsumerInterceptor<K, V> {
+        public static volatile Map<String, ?> capturedConfig = null;
+
+        @Override
+        public ConsumerRecords<K, V> onConsume(ConsumerRecords<K, V> records) {
+            return records;
+        }
+
+        @Override
+        public void onCommit(
+                Map<TopicPartition, OffsetAndMetadata> offsets) {
+
+        }
+
+        @Override
+        public void close() {
+
+        }
+
+        @Override
+        public void configure(Map<String, ?> configs) {
+            capturedConfig = configs;
+        }
     }
 
     @ApplicationScoped

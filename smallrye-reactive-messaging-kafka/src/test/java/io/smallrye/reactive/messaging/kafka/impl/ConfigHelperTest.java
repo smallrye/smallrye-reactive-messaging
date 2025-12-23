@@ -14,6 +14,7 @@ import org.junit.jupiter.api.Test;
 
 import io.smallrye.config.PropertiesConfigSource;
 import io.smallrye.config.SmallRyeConfigBuilder;
+import io.smallrye.reactive.messaging.providers.impl.Configs;
 
 class ConfigHelperTest {
 
@@ -38,7 +39,7 @@ class ConfigHelperTest {
         SmallRyeConfigBuilder test = new SmallRyeConfigBuilder()
                 .withSources(new PropertiesConfigSource(cfg, "test", 500));
 
-        Config config = ConfigHelper.merge(test.build(), channelSpecific, global);
+        Config config = Configs.fallback(test.build(), channelSpecific, global);
 
         assertThat(config.getValue("test", String.class)).isEqualTo("test");
         Assertions.assertThatThrownBy(() -> config.getValue("test", Double.class))
@@ -80,7 +81,7 @@ class ConfigHelperTest {
                 .withSources(new PropertiesConfigSource(cfg, "test", 500))
                 .build();
 
-        Config config = ConfigHelper.merge(test, Collections.emptyMap(), Collections.emptyMap());
+        Config config = Configs.fallback(test, Collections.emptyMap(), Collections.emptyMap());
         assertThat(config).isEqualTo(test);
         assertThat(config.getValue("test", String.class)).isEqualTo("test");
 

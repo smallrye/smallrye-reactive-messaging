@@ -9,7 +9,6 @@ import static org.apache.kafka.clients.consumer.ConsumerConfig.KEY_DESERIALIZER_
 import static org.apache.kafka.clients.consumer.ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG;
 import static org.apache.kafka.clients.producer.ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG;
 import static org.apache.kafka.clients.producer.ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG;
-import static org.eclipse.microprofile.reactive.messaging.spi.ConnectorFactory.INCOMING_PREFIX;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
@@ -36,7 +35,6 @@ import io.smallrye.reactive.messaging.ClientCustomizer;
 import io.smallrye.reactive.messaging.SubscriberDecorator;
 import io.smallrye.reactive.messaging.kafka.IncomingKafkaRecord;
 import io.smallrye.reactive.messaging.kafka.KafkaCDIEvents;
-import io.smallrye.reactive.messaging.kafka.KafkaConnector;
 import io.smallrye.reactive.messaging.kafka.KafkaConnectorIncomingConfiguration;
 import io.smallrye.reactive.messaging.kafka.KafkaConnectorOutgoingConfiguration;
 import io.smallrye.reactive.messaging.kafka.KafkaConsumer;
@@ -44,8 +42,7 @@ import io.smallrye.reactive.messaging.kafka.SerializationFailureHandler;
 import io.smallrye.reactive.messaging.kafka.api.OutgoingKafkaRecordMetadata;
 import io.smallrye.reactive.messaging.kafka.impl.ConfigHelper;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSink;
-import io.smallrye.reactive.messaging.providers.impl.ConnectorConfig;
-import io.smallrye.reactive.messaging.providers.impl.OverrideConnectorConfig;
+import io.smallrye.reactive.messaging.providers.impl.Configs;
 import io.vertx.mutiny.core.Vertx;
 
 @SuppressWarnings({ "rawtypes", "unchecked" })
@@ -116,8 +113,7 @@ public class KafkaDeadLetterQueue implements KafkaFailureHandler {
             String valueDeserializer = (String) consumer.configuration().get(VALUE_DESERIALIZER_CLASS_CONFIG);
 
             String consumerClientId = (String) consumer.configuration().get(CLIENT_ID_CONFIG);
-            ConnectorConfig connectorConfig = new OverrideConnectorConfig(INCOMING_PREFIX, config.config(),
-                    KafkaConnector.CONNECTOR_NAME, config.getChannel(), CHANNEL_DLQ_SUFFIX,
+            Config connectorConfig = Configs.prefixOverride(config.config(), CHANNEL_DLQ_SUFFIX,
                     Map.of(KEY_SERIALIZER_CLASS_CONFIG, c -> getMirrorSerializer(keyDeserializer),
                             VALUE_SERIALIZER_CLASS_CONFIG, c -> getMirrorSerializer(valueDeserializer),
                             CLIENT_ID_CONFIG, c -> config.getDeadLetterQueueProducerClientId()
