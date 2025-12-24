@@ -22,46 +22,20 @@ public class ClientHolder {
 
     private final AtomicBoolean connected = new AtomicBoolean(false);
     private final AtomicReference<CurrentConnection> connectionHolder = new AtomicReference<>();
-    private final Uni<RabbitMQClient> connection;
+    private final AtomicReference<Context> rootContext;
+    private final AtomicReference<CompletionStage<RabbitMQClient>> connectionStage = new AtomicReference<>();
 
     private final Vertx vertx;
+    private final RabbitMQConnectorCommonConfiguration configuration;
 
     public ClientHolder(RabbitMQClient client,
             RabbitMQConnectorCommonConfiguration configuration,
             Vertx vertx,
             Context root) {
         this.client = client;
+        this.configuration = configuration;
         this.vertx = vertx;
-        this.connection = Uni.createFrom().deferred(() -> client.start()
-                .onSubscription().invoke(() -> {
-                    connected.set(true);
-                    log.connectionEstablished(configuration.getChannel());
-                })
-                .onItem().transform(ignored -> {
-                    connectionHolder
-                            .set(new CurrentConnection(client, root == null ? Vertx.currentContext() : root));
-
-                    // handle the case we are already disconnected.
-                    if (!client.isConnected() || connectionHolder.get() == null) {
-                        // Throwing the exception would trigger a retry.
-                        connectionHolder.set(null);
-                        throw ex.illegalStateConnectionDisconnected();
-                    }
-                    return client;
-                })
-                .onFailure().invoke(log::unableToConnectToBroker)
-                .onFailure().invoke(t -> {
-                    connectionHolder.set(null);
-                    log.unableToRecoverFromConnectionDisruption(t);
-                }))
-                .memoize().until(() -> {
-                    CurrentConnection connection = connectionHolder.get();
-                    if (connection == null) {
-                        return true;
-                    }
-                    return !connection.client.isConnected();
-                });
-
+        this.rootContext = new AtomicReference<>(root);
     }
 
     public static CompletionStage<Void> runOnContext(Context context, IncomingRabbitMQMessage<?> msg,
@@ -89,6 +63,17 @@ public class ClientHolder {
         }
     }
 
+    public void ensureContext(Context context) {
+        if (context == null) {
+            return;
+        }
+        rootContext.compareAndSet(null, context);
+        CurrentConnection connection = connectionHolder.get();
+        if (connection != null && connection.context == null) {
+            connectionHolder.compareAndSet(connection, new CurrentConnection(connection.client, context));
+        }
+    }
+
     public RabbitMQClient client() {
         return client;
     }
@@ -112,7 +97,29 @@ public class ClientHolder {
 
     @CheckReturnValue
     public Uni<RabbitMQClient> getOrEstablishConnection() {
-        return connection;
+        CompletionStage<RabbitMQClient> existing = connectionStage.get();
+        if (existing != null) {
+            if (!existing.toCompletableFuture().isDone() || client.isConnected()) {
+                return Uni.createFrom().completionStage(existing);
+            }
+            connectionStage.compareAndSet(existing, null);
+        }
+
+        for (;;) {
+            CompletionStage<RabbitMQClient> current = connectionStage.get();
+            if (current != null) {
+                return Uni.createFrom().completionStage(current);
+            }
+            CompletionStage<RabbitMQClient> created = createConnectionUni().subscribeAsCompletionStage();
+            if (connectionStage.compareAndSet(null, created)) {
+                created.whenComplete((result, error) -> {
+                    if (error != null) {
+                        connectionStage.compareAndSet(created, null);
+                    }
+                });
+                return Uni.createFrom().completionStage(created);
+            }
+        }
     }
 
     private static class CurrentConnection {
@@ -124,6 +131,34 @@ public class ClientHolder {
             this.client = client;
             this.context = context;
         }
+    }
+
+    private Uni<RabbitMQClient> createConnectionUni() {
+        return Uni.createFrom().deferred(() -> client.start()
+                .onSubscription().invoke(() -> {
+                    connected.set(true);
+                    log.connectionEstablished(configuration.getChannel());
+                })
+                .onItem().transform(ignored -> {
+                    Context context = rootContext.get();
+                    if (context == null) {
+                        context = Vertx.currentContext();
+                    }
+                    connectionHolder.set(new CurrentConnection(client, context));
+
+                    // handle the case we are already disconnected.
+                    if (!client.isConnected() || connectionHolder.get() == null) {
+                        // Throwing the exception would trigger a retry.
+                        connectionHolder.set(null);
+                        throw ex.illegalStateConnectionDisconnected();
+                    }
+                    return client;
+                })
+                .onFailure().invoke(log::unableToConnectToBroker)
+                .onFailure().invoke(t -> {
+                    connectionHolder.set(null);
+                    log.unableToRecoverFromConnectionDisruption(t);
+                }));
     }
 
 }

@@ -43,10 +43,11 @@ public class IncomingRabbitMQChannel {
 
     private final RabbitMQOpenTelemetryInstrumenter instrumenter;
     private final AtomicReference<Flow.Subscription> subscription = new AtomicReference<>();
-    private volatile RabbitMQClient client;
     private final RabbitMQConnectorIncomingConfiguration config;
     private final Multi<? extends Message<?>> stream;
     private final RabbitMQConnector connector;
+    private final Context incomingContext;
+    private volatile RabbitMQClient client;
 
     public IncomingRabbitMQChannel(RabbitMQConnector connector,
             RabbitMQConnectorIncomingConfiguration ic, Instance<OpenTelemetry> openTelemetryInstance) {
@@ -58,14 +59,17 @@ public class IncomingRabbitMQChannel {
         }
         this.config = ic;
         this.connector = connector;
+        this.incomingContext = Context
+                .newInstance(((VertxInternal) connector.vertx().getDelegate()).createEventLoopContext());
 
         final RabbitMQFailureHandler onNack = createFailureHandler(connector.failureHandlerFactories(), ic);
         final RabbitMQAckHandler onAck = createAckHandler(ic);
 
-        Multi<? extends Message<?>> multi = createConsumer(connector, ic)
+        Multi<? extends Message<?>> multi = createConsumer(connector, ic, incomingContext)
                 .invoke(tuple -> client = tuple.getItem1().client())
                 // Translate all consumers into a merged stream of messages
-                .onItem().transformToMulti(tuple -> getStreamOfMessages(tuple.getItem2(), tuple.getItem1(), ic, onNack, onAck));
+                .onItem().transformToMulti(
+                        tuple -> getStreamOfMessages(tuple.getItem2(), tuple.getItem1(), incomingContext, ic, onNack, onAck));
 
         if (ic.getBroadcast()) {
             multi = multi.broadcast().toAllSubscribers();
@@ -110,9 +114,9 @@ public class IncomingRabbitMQChannel {
     }
 
     private Uni<Tuple2<ClientHolder, RabbitMQConsumer>> createConsumer(RabbitMQConnector connector,
-            RabbitMQConnectorIncomingConfiguration ic) {
-        // Create a client
-        final RabbitMQClient client = RabbitMQClientHelper.createClient(connector, ic);
+            RabbitMQConnectorIncomingConfiguration ic, Context root) {
+        ClientHolder holder = connector.getClientHolder(ic, root);
+        final RabbitMQClient client = holder.client();
         client.getDelegate().addConnectionEstablishedCallback(promise -> {
 
             Uni<Void> uni;
@@ -130,8 +134,6 @@ public class IncomingRabbitMQChannel {
                     .subscribe().with(ignored -> promise.complete(), promise::fail);
         });
 
-        Context root = Context.newInstance(((VertxInternal) connector.vertx().getDelegate()).createEventLoopContext());
-        final ClientHolder holder = new ClientHolder(client, ic, connector.vertx(), root);
         return holder.getOrEstablishConnection()
                 .invoke(() -> log.connectionEstablished(ic.getChannel()))
                 .flatMap(connection -> createConsumer(ic, connection).map(consumer -> Tuple2.of(holder, consumer)));
@@ -236,6 +238,7 @@ public class IncomingRabbitMQChannel {
     private Multi<? extends Message<?>> getStreamOfMessages(
             RabbitMQConsumer receiver,
             ClientHolder holder,
+            Context context,
             RabbitMQConnectorIncomingConfiguration ic,
             RabbitMQFailureHandler onNack,
             RabbitMQAckHandler onAck) {
@@ -247,8 +250,8 @@ public class IncomingRabbitMQChannel {
         Multi<IncomingRabbitMQMessage<?>> multi = receiver.toMulti()
                 // close the consumer on stream termination
                 .onTermination().call(receiver::cancel)
-                .emitOn(c -> VertxContext.runOnContext(holder.getContext().getDelegate(), c))
-                .map(m -> new IncomingRabbitMQMessage<>(m, holder, onNack, onAck, contentTypeOverride));
+                .emitOn(c -> VertxContext.runOnContext(context.getDelegate(), c))
+                .map(m -> new IncomingRabbitMQMessage<>(m, holder, context, onNack, onAck, contentTypeOverride));
         if (ic.getTracingEnabled()) {
             return multi.map(msg -> instrumenter.traceIncoming(msg,
                     RabbitMQTrace.traceQueue(queueName, msg.message.envelope().getRoutingKey(), msg.getHeaders())));
