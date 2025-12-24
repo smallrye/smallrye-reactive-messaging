@@ -11,6 +11,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.spi.DeploymentException;
 
+import org.assertj.core.api.Assertions;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
@@ -33,9 +34,10 @@ public class ErroneousConverterTest extends WeldTestBaseWithoutTails {
     @Test
     public void testConverterThrowingExceptionOnConvert() {
         addBeanClass(Source.class, Sink.class, PayloadProcessor.class, BadConverterThrowingExceptionOnConvert.class);
-        assertThatThrownBy(this::initialize)
-                .isInstanceOf(DeploymentException.class)
-                .hasStackTraceContaining("boom");
+        this.initialize();
+        Source source = get(Source.class);
+        Assertions.assertThat(source.acks()).isEqualTo(3);
+        Assertions.assertThat(source.nacks()).isEqualTo(2);
     }
 
     @ApplicationScoped

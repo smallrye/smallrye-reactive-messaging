@@ -7,6 +7,7 @@ import jakarta.enterprise.inject.spi.Prioritized;
 import org.eclipse.microprofile.reactive.messaging.Message;
 
 import io.smallrye.common.annotation.Experimental;
+import io.smallrye.mutiny.Uni;
 
 /**
  * Converter transforming {@code Message<A>} into {@code Message<B>}.
@@ -46,6 +47,29 @@ public interface MessageConverter extends Prioritized {
      * @return the converted message.
      */
     Message<?> convert(Message<?> in, Type target);
+
+    /**
+     * Converts the given message {@code in} into a {@code Message<T>} returning a {@link Uni}.
+     * <p>
+     * This method provides a variant of {@link #convert(Message, Type)} that returns a {@code Uni}
+     * for error handling and non-blocking message conversion.
+     * <p>
+     * The default implementation wraps the synchronous {@code convert}
+     * method and captures any exceptions in the {@code Uni} failure channel.
+     *
+     * @param in the input message
+     * @param target the target type
+     * @return a {@link Uni} emitting the converted message
+     */
+    default Uni<Message<?>> convertUni(Message<?> in, Type target) {
+        return Uni.createFrom().emitter(e -> {
+            try {
+                e.complete(convert(in, target));
+            } catch (Exception ex) {
+                e.fail(ex);
+            }
+        });
+    }
 
     @Override
     default int getPriority() {

@@ -76,7 +76,7 @@ public class KafkaRequestReplyImpl<Req, Rep> extends MutinyEmitterImpl<Req>
     private final Set<TopicPartition> waitForPartitions;
     private final boolean gracefulShutdown;
     private final Duration initialAssignmentTimeout;
-    private Function<Message<Rep>, Message<Rep>> replyConverter;
+    private Function<Message<Rep>, Uni<Message<Rep>>> replyConverter;
 
     public KafkaRequestReplyImpl(EmitterConfiguration config,
             long defaultBufferSize,
@@ -248,7 +248,8 @@ public class KafkaRequestReplyImpl<Req, Rep> extends MutinyEmitterImpl<Req>
                     return Uni.createFrom().item(m);
                 })
                 .onTermination().invoke(() -> pendingReplies.remove(correlationId))
-                .plug(multi -> replyConverter != null ? multi.map(f -> replyConverter.apply(f)) : multi);
+                .plug(multi -> replyConverter != null ? multi
+                        .onItem().transformToUniAndConcatenate(f -> replyConverter.apply(f)) : multi);
     }
 
     @Override
@@ -270,7 +271,7 @@ public class KafkaRequestReplyImpl<Req, Rep> extends MutinyEmitterImpl<Req>
                 .toUni();
     }
 
-    void setReplyConverter(Function<Message<Rep>, Message<Rep>> converterFunction) {
+    void setReplyConverter(Function<Message<Rep>, Uni<Message<Rep>>> converterFunction) {
         this.replyConverter = converterFunction;
     }
 
