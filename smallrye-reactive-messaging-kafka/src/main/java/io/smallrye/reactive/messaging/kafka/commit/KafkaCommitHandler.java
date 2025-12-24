@@ -6,6 +6,7 @@ import java.util.function.BiConsumer;
 import org.apache.kafka.common.TopicPartition;
 
 import io.smallrye.common.annotation.Experimental;
+import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.kafka.IncomingKafkaRecord;
 import io.smallrye.reactive.messaging.kafka.KafkaConnectorIncomingConfiguration;
@@ -37,6 +38,20 @@ public interface KafkaCommitHandler {
         KafkaCommitHandler create(KafkaConnectorIncomingConfiguration config,
                 Vertx vertx, KafkaConsumer<?, ?> consumer, BiConsumer<Throwable, Boolean> reportFailure);
 
+    }
+
+    /**
+     * Decorates the stream of consumed Kafka records.
+     * <p>
+     * This method allows commit handlers to transform the incoming stream of records
+     *
+     * @param consumed the stream of consumed Kafka records
+     * @param <K> type of record key
+     * @param <V> type of record value
+     * @return the decorated stream of Kafka records
+     */
+    default <K, V> Multi<IncomingKafkaRecord<K, V>> decorateStream(Multi<IncomingKafkaRecord<K, V>> consumed) {
+        return consumed;
     }
 
     /**
