@@ -7,6 +7,9 @@ import static io.smallrye.reactive.messaging.rabbitmq.i18n.RabbitMQLogging.log;
 import static io.vertx.core.net.ClientOptionsBase.DEFAULT_METRICS_NAME;
 import static java.time.Duration.ofSeconds;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -29,6 +32,11 @@ import io.smallrye.reactive.messaging.rabbitmq.RabbitMQConnectorCommonConfigurat
 import io.smallrye.reactive.messaging.rabbitmq.RabbitMQConnectorIncomingConfiguration;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.net.JksOptions;
+import io.vertx.core.net.KeyCertOptions;
+import io.vertx.core.net.PemKeyCertOptions;
+import io.vertx.core.net.PemTrustOptions;
+import io.vertx.core.net.PfxOptions;
+import io.vertx.core.net.TrustOptions;
 import io.vertx.mutiny.core.Vertx;
 import io.vertx.mutiny.rabbitmq.RabbitMQClient;
 import io.vertx.rabbitmq.RabbitMQOptions;
@@ -42,27 +50,77 @@ public class RabbitMQClientHelper {
         // avoid direct instantiation.
     }
 
-    static RabbitMQClient createClient(RabbitMQConnector connector, RabbitMQConnectorCommonConfiguration config) {
-        Optional<String> clientOptionsName = config.getClientOptionsName();
-        Vertx vertx = connector.vertx();
-        RabbitMQOptions options;
+    public static RabbitMQClient createClient(RabbitMQConnector connector, RabbitMQConnectorCommonConfiguration config) {
         try {
-            if (clientOptionsName.isPresent()) {
-                options = getClientOptionsFromBean(connector.clientOptions(), clientOptionsName.get());
-            } else {
-                options = getClientOptions(vertx, config, connector.credentialsProviders());
-            }
-            if (DEFAULT_METRICS_NAME.equals(options.getMetricsName())) {
-                options.setMetricsName("rabbitmq|" + config.getChannel());
-            }
-            RabbitMQOptions intercepted = ConfigUtils.customize(config.config(), connector.configCustomizers(), options);
-            RabbitMQClient client = RabbitMQClient.create(vertx, intercepted);
-            connector.registerClient(config.getChannel(), client);
-            return client;
+            RabbitMQOptions options = buildClientOptions(connector, config);
+            return RabbitMQClient.create(connector.vertx(), options);
         } catch (Exception e) {
             log.unableToCreateClient(e);
             throw ex.illegalStateUnableToCreateClient(e);
         }
+    }
+
+    public static RabbitMQOptions buildClientOptions(RabbitMQConnector connector, RabbitMQConnectorCommonConfiguration config) {
+        Optional<String> clientOptionsName = config.getClientOptionsName();
+        Vertx vertx = connector.vertx();
+        RabbitMQOptions options;
+        String connectionLabel = config.getSharedConnectionName().orElse(config.getChannel());
+        if (clientOptionsName.isPresent()) {
+            options = getClientOptionsFromBean(connector.clientOptions(), clientOptionsName.get());
+        } else {
+            options = getClientOptions(vertx, config, connector.credentialsProviders());
+        }
+        if (DEFAULT_METRICS_NAME.equals(options.getMetricsName())) {
+            options.setMetricsName("rabbitmq|" + connectionLabel);
+        }
+        if (options.getConnectionName() == null || options.getConnectionName().isEmpty()) {
+            options.setConnectionName(resolveConnectionName(config));
+        }
+        return ConfigUtils.customize(config.config(), connector.configCustomizers(), options);
+    }
+
+    public static String computeConnectionFingerprint(RabbitMQOptions options) {
+        StringBuilder raw = new StringBuilder();
+        append(raw, "uri", options.getUri());
+
+        List<Address> addresses = options.getAddresses();
+        if (addresses != null && !addresses.isEmpty()) {
+            List<String> normalized = addresses.stream()
+                    .map(address -> address.getHost() + ":" + address.getPort())
+                    .sorted()
+                    .collect(Collectors.toList());
+            append(raw, "addresses", String.join(",", normalized));
+        } else {
+            append(raw, "host", options.getHost());
+            append(raw, "port", Integer.toString(options.getPort()));
+        }
+
+        append(raw, "virtualHost", options.getVirtualHost());
+        append(raw, "user", options.getUser());
+        append(raw, "passwordHash", hashValue(options.getPassword()));
+
+        append(raw, "ssl", Boolean.toString(options.isSsl()));
+        append(raw, "trustAll", Boolean.toString(options.isTrustAll()));
+        append(raw, "hostnameVerificationAlgorithm", options.getHostnameVerificationAlgorithm());
+        append(raw, "keyCertOptions", keyCertFingerprint(options.getKeyCertOptions()));
+        append(raw, "trustOptions", trustFingerprint(options.getTrustOptions()));
+
+        append(raw, "connectionTimeout", Integer.toString(options.getConnectionTimeout()));
+        append(raw, "handshakeTimeout", Integer.toString(options.getHandshakeTimeout()));
+        append(raw, "requestedHeartbeat", Integer.toString(options.getRequestedHeartbeat()));
+        append(raw, "requestedChannelMax", Integer.toString(options.getRequestedChannelMax()));
+        append(raw, "networkRecoveryInterval", Long.toString(options.getNetworkRecoveryInterval()));
+        append(raw, "automaticRecoveryEnabled", Boolean.toString(options.isAutomaticRecoveryEnabled()));
+        append(raw, "automaticRecoveryOnInitialConnection", Boolean.toString(options.isAutomaticRecoveryOnInitialConnection()));
+        append(raw, "useNio", Boolean.toString(options.isNioEnabled()));
+        append(raw, "reconnectAttempts", Integer.toString(options.getReconnectAttempts()));
+        append(raw, "reconnectInterval", Long.toString(options.getReconnectInterval()));
+
+        append(raw, "credentialsProvider", className(options.getCredentialsProvider()));
+        append(raw, "credentialsRefreshService", className(options.getCredentialsRefreshService()));
+        append(raw, "saslConfig", className(options.getSaslConfig()));
+
+        return sha256(raw.toString());
     }
 
     static RabbitMQOptions getClientOptionsFromBean(Instance<RabbitMQOptions> options, String optionsBeanName) {
@@ -83,9 +141,7 @@ public class RabbitMQClientHelper {
 
     static RabbitMQOptions getClientOptions(Vertx vertx, RabbitMQConnectorCommonConfiguration config,
             Instance<CredentialsProvider> credentialsProviders) {
-        String connectionName = String.format("%s (%s)",
-                config.getChannel(),
-                config instanceof RabbitMQConnectorIncomingConfiguration ? "Incoming" : "Outgoing");
+        String connectionName = resolveConnectionName(config);
         List<Address> addresses = config.getAddresses()
                 .map(s -> Arrays.asList(Address.parseAddresses(s)))
                 .orElseGet(() -> Collections.singletonList(new Address(config.getHost(), config.getPort())));
@@ -158,6 +214,84 @@ public class RabbitMQClientHelper {
         }
 
         return options;
+    }
+
+    private static String resolveConnectionName(RabbitMQConnectorCommonConfiguration config) {
+        return config.getSharedConnectionName()
+                .orElseGet(() -> String.format("%s (%s)",
+                        config.getChannel(),
+                        config instanceof RabbitMQConnectorIncomingConfiguration ? "Incoming" : "Outgoing"));
+    }
+
+    private static void append(StringBuilder target, String key, String value) {
+        target.append(key).append('=').append(value == null ? "" : value).append(';');
+    }
+
+    private static String className(Object value) {
+        return value == null ? "" : value.getClass().getName();
+    }
+
+    private static String hashValue(String value) {
+        if (value == null) {
+            return "";
+        }
+        return sha256(value);
+    }
+
+    private static String sha256(String value) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hash = digest.digest(value.getBytes(StandardCharsets.UTF_8));
+            StringBuilder hex = new StringBuilder(hash.length * 2);
+            for (byte b : hash) {
+                hex.append(String.format("%02x", b));
+            }
+            return hex.toString();
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException("Unable to compute SHA-256 hash", e);
+        }
+    }
+
+    private static String keyCertFingerprint(KeyCertOptions options) {
+        if (options == null) {
+            return "";
+        }
+        if (options instanceof JksOptions) {
+            JksOptions jks = (JksOptions) options;
+            return String.join(":", "JKS", nullToEmpty(jks.getPath()), nullToEmpty(jks.getAlias()));
+        }
+        if (options instanceof PfxOptions) {
+            PfxOptions pfx = (PfxOptions) options;
+            return String.join(":", "PFX", nullToEmpty(pfx.getPath()), nullToEmpty(pfx.getAlias()));
+        }
+        if (options instanceof PemKeyCertOptions) {
+            PemKeyCertOptions pem = (PemKeyCertOptions) options;
+            return String.join(":", "PEM", String.join(",", pem.getKeyPaths()), String.join(",", pem.getCertPaths()));
+        }
+        return options.getClass().getName();
+    }
+
+    private static String trustFingerprint(TrustOptions options) {
+        if (options == null) {
+            return "";
+        }
+        if (options instanceof JksOptions) {
+            JksOptions jks = (JksOptions) options;
+            return String.join(":", "JKS", nullToEmpty(jks.getPath()), nullToEmpty(jks.getAlias()));
+        }
+        if (options instanceof PfxOptions) {
+            PfxOptions pfx = (PfxOptions) options;
+            return String.join(":", "PFX", nullToEmpty(pfx.getPath()), nullToEmpty(pfx.getAlias()));
+        }
+        if (options instanceof PemTrustOptions) {
+            PemTrustOptions pem = (PemTrustOptions) options;
+            return String.join(":", "PEM", String.join(",", pem.getCertPaths()));
+        }
+        return options.getClass().getName();
+    }
+
+    private static String nullToEmpty(String value) {
+        return value == null ? "" : value;
     }
 
     public static String serverQueueName(String name) {
