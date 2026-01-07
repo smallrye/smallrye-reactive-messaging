@@ -32,11 +32,6 @@ import io.smallrye.reactive.messaging.rabbitmq.RabbitMQConnectorCommonConfigurat
 import io.smallrye.reactive.messaging.rabbitmq.RabbitMQConnectorIncomingConfiguration;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.net.JksOptions;
-import io.vertx.core.net.KeyCertOptions;
-import io.vertx.core.net.PemKeyCertOptions;
-import io.vertx.core.net.PemTrustOptions;
-import io.vertx.core.net.PfxOptions;
-import io.vertx.core.net.TrustOptions;
 import io.vertx.mutiny.core.Vertx;
 import io.vertx.mutiny.rabbitmq.RabbitMQClient;
 import io.vertx.rabbitmq.RabbitMQOptions;
@@ -80,47 +75,12 @@ public class RabbitMQClientHelper {
     }
 
     public static String computeConnectionFingerprint(RabbitMQOptions options) {
-        StringBuilder raw = new StringBuilder();
-        append(raw, "uri", options.getUri());
-
+        JsonObject json = options.toJson();
         List<Address> addresses = options.getAddresses();
-        if (addresses != null && !addresses.isEmpty()) {
-            List<String> normalized = addresses.stream()
-                    .map(address -> address.getHost() + ":" + address.getPort())
-                    .sorted()
-                    .collect(Collectors.toList());
-            append(raw, "addresses", String.join(",", normalized));
-        } else {
-            append(raw, "host", options.getHost());
-            append(raw, "port", Integer.toString(options.getPort()));
+        if (addresses != null) {
+            json.put("addresses", addresses.stream().map(Address::toString).collect(Collectors.toList()));
         }
-
-        append(raw, "virtualHost", options.getVirtualHost());
-        append(raw, "user", options.getUser());
-        append(raw, "passwordHash", hashValue(options.getPassword()));
-
-        append(raw, "ssl", Boolean.toString(options.isSsl()));
-        append(raw, "trustAll", Boolean.toString(options.isTrustAll()));
-        append(raw, "hostnameVerificationAlgorithm", options.getHostnameVerificationAlgorithm());
-        append(raw, "keyCertOptions", keyCertFingerprint(options.getKeyCertOptions()));
-        append(raw, "trustOptions", trustFingerprint(options.getTrustOptions()));
-
-        append(raw, "connectionTimeout", Integer.toString(options.getConnectionTimeout()));
-        append(raw, "handshakeTimeout", Integer.toString(options.getHandshakeTimeout()));
-        append(raw, "requestedHeartbeat", Integer.toString(options.getRequestedHeartbeat()));
-        append(raw, "requestedChannelMax", Integer.toString(options.getRequestedChannelMax()));
-        append(raw, "networkRecoveryInterval", Long.toString(options.getNetworkRecoveryInterval()));
-        append(raw, "automaticRecoveryEnabled", Boolean.toString(options.isAutomaticRecoveryEnabled()));
-        append(raw, "automaticRecoveryOnInitialConnection", Boolean.toString(options.isAutomaticRecoveryOnInitialConnection()));
-        append(raw, "useNio", Boolean.toString(options.isNioEnabled()));
-        append(raw, "reconnectAttempts", Integer.toString(options.getReconnectAttempts()));
-        append(raw, "reconnectInterval", Long.toString(options.getReconnectInterval()));
-
-        append(raw, "credentialsProvider", className(options.getCredentialsProvider()));
-        append(raw, "credentialsRefreshService", className(options.getCredentialsRefreshService()));
-        append(raw, "saslConfig", className(options.getSaslConfig()));
-
-        return sha256(raw.toString());
+        return sha256(json.encode());
     }
 
     static RabbitMQOptions getClientOptionsFromBean(Instance<RabbitMQOptions> options, String optionsBeanName) {
@@ -223,21 +183,6 @@ public class RabbitMQClientHelper {
                         config instanceof RabbitMQConnectorIncomingConfiguration ? "Incoming" : "Outgoing"));
     }
 
-    private static void append(StringBuilder target, String key, String value) {
-        target.append(key).append('=').append(value == null ? "" : value).append(';');
-    }
-
-    private static String className(Object value) {
-        return value == null ? "" : value.getClass().getName();
-    }
-
-    private static String hashValue(String value) {
-        if (value == null) {
-            return "";
-        }
-        return sha256(value);
-    }
-
     private static String sha256(String value) {
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
@@ -250,48 +195,6 @@ public class RabbitMQClientHelper {
         } catch (NoSuchAlgorithmException e) {
             throw new IllegalStateException("Unable to compute SHA-256 hash", e);
         }
-    }
-
-    private static String keyCertFingerprint(KeyCertOptions options) {
-        if (options == null) {
-            return "";
-        }
-        if (options instanceof JksOptions) {
-            JksOptions jks = (JksOptions) options;
-            return String.join(":", "JKS", nullToEmpty(jks.getPath()), nullToEmpty(jks.getAlias()));
-        }
-        if (options instanceof PfxOptions) {
-            PfxOptions pfx = (PfxOptions) options;
-            return String.join(":", "PFX", nullToEmpty(pfx.getPath()), nullToEmpty(pfx.getAlias()));
-        }
-        if (options instanceof PemKeyCertOptions) {
-            PemKeyCertOptions pem = (PemKeyCertOptions) options;
-            return String.join(":", "PEM", String.join(",", pem.getKeyPaths()), String.join(",", pem.getCertPaths()));
-        }
-        return options.getClass().getName();
-    }
-
-    private static String trustFingerprint(TrustOptions options) {
-        if (options == null) {
-            return "";
-        }
-        if (options instanceof JksOptions) {
-            JksOptions jks = (JksOptions) options;
-            return String.join(":", "JKS", nullToEmpty(jks.getPath()), nullToEmpty(jks.getAlias()));
-        }
-        if (options instanceof PfxOptions) {
-            PfxOptions pfx = (PfxOptions) options;
-            return String.join(":", "PFX", nullToEmpty(pfx.getPath()), nullToEmpty(pfx.getAlias()));
-        }
-        if (options instanceof PemTrustOptions) {
-            PemTrustOptions pem = (PemTrustOptions) options;
-            return String.join(":", "PEM", String.join(",", pem.getCertPaths()));
-        }
-        return options.getClass().getName();
-    }
-
-    private static String nullToEmpty(String value) {
-        return value == null ? "" : value;
     }
 
     public static String serverQueueName(String name) {

@@ -26,6 +26,7 @@ public class OutgoingRabbitMQChannel {
     private final Flow.Subscriber<Message<?>> subscriber;
     private final RabbitMQConnectorOutgoingConfiguration config;
     private final ClientHolder holder;
+    private final RabbitMQMessageSender processor;
     private volatile RabbitMQPublisher publisher;
 
     public OutgoingRabbitMQChannel(RabbitMQConnector connector, RabbitMQConnectorOutgoingConfiguration oc,
@@ -54,10 +55,19 @@ public class OutgoingRabbitMQChannel {
                 .onFailure().recoverWithNull().memoize().indefinitely();
 
         // Set up a sender based on the publisher we established above
-        final RabbitMQMessageSender processor = new RabbitMQMessageSender(oc, getSender, openTelemetryInstance);
+        processor = new RabbitMQMessageSender(oc, getSender, openTelemetryInstance);
 
         // Return a SubscriberBuilder
-        subscriber = MultiUtils.via(processor, m -> m.onFailure().invoke(t -> log.error(oc.getChannel(), t)));
+        subscriber = MultiUtils.via(processor, m -> m.onFailure().invoke(t -> log.error(oc.getChannel(), t))
+                .onTermination().call(() -> {
+                    if (publisher != null) {
+                        return publisher.stop()
+                                .ifNoItem().after(Duration.ofSeconds(oc.getReconnectInterval())).fail()
+                                .onFailure()
+                                .invoke(e -> log.infof(e, "Error terminating outgoing channel %s", config.getChannel()));
+                    }
+                    return Uni.createFrom().voidItem();
+                }));
     }
 
     public Flow.Subscriber<Message<?>> getSubscriber() {
@@ -95,12 +105,6 @@ public class OutgoingRabbitMQChannel {
     }
 
     public void terminate() {
-        if (publisher != null) {
-            try {
-                publisher.stop().await().atMost(Duration.ofMillis(config.getConnectionTimeout()));
-            } catch (Exception e) {
-                log.infof(e, "Error terminating outgoing channel %s", config.getChannel());
-            }
-        }
+        processor.cancel();
     }
 }

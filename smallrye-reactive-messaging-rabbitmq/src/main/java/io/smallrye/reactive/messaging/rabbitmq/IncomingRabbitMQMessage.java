@@ -72,11 +72,6 @@ public class IncomingRabbitMQMessage<T> implements ContextAwareMessage<T>, Metad
         this(delegate.getDelegate(), holder, context, onNack, onAck, contentTypeOverride);
     }
 
-    IncomingRabbitMQMessage(io.vertx.rabbitmq.RabbitMQMessage msg, ClientHolder holder,
-            RabbitMQFailureHandler onNack, RabbitMQAckHandler onAck, String contentTypeOverride) {
-        this(msg, holder, holder.getContext(), onNack, onAck, contentTypeOverride);
-    }
-
     IncomingRabbitMQMessage(io.vertx.rabbitmq.RabbitMQMessage msg, ClientHolder holder, Context context,
             RabbitMQFailureHandler onNack, RabbitMQAckHandler onAck, String contentTypeOverride) {
         this.message = msg;

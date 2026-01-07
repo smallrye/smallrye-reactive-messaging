@@ -55,7 +55,7 @@ public class RabbitMQReconnectionTest extends RabbitMQBrokerTestBase {
         }
     }
 
-    @Test
+    @Test // 15s
     void testSendingMessagesToRabbitMQ_connection_fails() {
         final String routingKey = "normal";
 
@@ -101,7 +101,7 @@ public class RabbitMQReconnectionTest extends RabbitMQBrokerTestBase {
         }
     }
 
-    @Test
+    @Test // 17s
     void testSendingMessagesToRabbitMQ_connection_fails_after_connection() {
         final String routingKey = "normal";
 
@@ -147,10 +147,95 @@ public class RabbitMQReconnectionTest extends RabbitMQBrokerTestBase {
         }
     }
 
+    @Test
+    void testSharedConnectionReconnectionPreservesContext() {
+        final String routingKey = "shared";
+        try (ToxiproxyContainer toxiproxy = new ToxiproxyContainer(DockerImageName.parse("ghcr.io/shopify/toxiproxy:latest")
+                .asCompatibleSubstituteFor("shopify/toxiproxy"))
+                .withNetworkAliases("toxiproxy")) {
+            toxiproxy.withNetwork(Network.SHARED);
+            toxiproxy.start();
+            await().until(toxiproxy::isRunning);
+
+            List<Integer> exposedPorts = toxiproxy.getExposedPorts();
+            int toxiPort = exposedPorts.get(exposedPorts.size() - 1);
+            Proxy proxy = createContainerProxy(toxiproxy, toxiPort);
+            int exposedPort = toxiproxy.getMappedPort(toxiPort);
+
+            weld.addBeanClass(ReconnectingContextBean.class);
+            weld.addBeanClass(OutgoingBean.class);
+
+            new MapBasedConfig()
+                    .put("mp.messaging.incoming.data.exchange.name", exchangeName)
+                    .put("mp.messaging.incoming.data.exchange.declare", true)
+                    .put("mp.messaging.incoming.data.queue.name", queueName)
+                    .put("mp.messaging.incoming.data.queue.declare", true)
+                    .put("mp.messaging.incoming.data.queue.durable", true)
+                    .put("mp.messaging.incoming.data.routing-keys", routingKey)
+                    .put("mp.messaging.incoming.data.shared-connection-name", "shared-connection")
+                    .put("mp.messaging.incoming.data.connector", RabbitMQConnector.CONNECTOR_NAME)
+                    .put("mp.messaging.incoming.data.host", toxiproxy.getHost())
+                    .put("mp.messaging.incoming.data.port", exposedPort)
+                    .put("mp.messaging.incoming.data.tracing.enabled", false)
+                    .put("mp.messaging.outgoing.sink.exchange.name", exchangeName)
+                    .put("mp.messaging.outgoing.sink.exchange.declare", true)
+                    .put("mp.messaging.outgoing.sink.default-routing-key", routingKey)
+                    .put("mp.messaging.outgoing.sink.shared-connection-name", "shared-connection")
+                    .put("mp.messaging.outgoing.sink.connector", RabbitMQConnector.CONNECTOR_NAME)
+                    .put("mp.messaging.outgoing.sink.host", toxiproxy.getHost())
+                    .put("mp.messaging.outgoing.sink.port", exposedPort)
+                    .put("mp.messaging.outgoing.sink.tracing.enabled", false)
+                    .put("rabbitmq-username", username)
+                    .put("rabbitmq-password", password)
+                    .put("rabbitmq-reconnect-interval", 1)
+                    .write();
+
+            container = weld.initialize();
+            await().until(() -> isRabbitMQConnectorAvailable(container));
+
+            ReconnectingContextBean bean = get(container, ReconnectingContextBean.class);
+
+            // Wait for at least one message before disconnect (from OutgoingBean)
+            await().atMost(1, TimeUnit.MINUTES).until(() -> !bean.getContexts().isEmpty());
+
+            // Verify pre-disconnect messages have event loop context
+            assertThat(bean.getEventLoopFlags().get(0)).isTrue();
+
+            int preDisconnectCount = bean.getContexts().size();
+
+            // Disconnect
+            proxy.disable();
+            await().pollDelay(3, SECONDS).until(() -> !isRabbitMQConnectorAvailable(container));
+
+            // Reconnect
+            proxy.enable();
+            await().atMost(1, TimeUnit.MINUTES).until(() -> isRabbitMQConnectorAvailable(container));
+
+            // Send messages after reconnection via the direct RabbitMQ client
+            AtomicInteger counter = new AtomicInteger();
+            usage.produce(exchangeName, queueName, routingKey, 3, counter::getAndIncrement);
+
+            // Wait for at least one more message after reconnection
+            await().atMost(1, TimeUnit.MINUTES).until(() -> bean.getContexts().size() > preDisconnectCount);
+
+            // Verify post-reconnection messages also have event loop context.
+            // This should fail because the reconnection Uni closure captures the original
+            // null root parameter instead of reading rootContext.get(), so after reconnect
+            // the context falls back to Vertx.currentContext() which may not be an event loop.
+            List<Boolean> postReconnectFlags = bean.getEventLoopFlags()
+                    .subList(preDisconnectCount, bean.getEventLoopFlags().size());
+            assertThat(postReconnectFlags)
+                    .as("After reconnection, all messages should still have event loop context")
+                    .doesNotContain(false);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     /**
      * Verifies that messages can be received from RabbitMQ.
      */
-    @Test
+    @Test // 14s
     void testReceivingMessagesFromRabbitMQ_connection_fails() {
         final String routingKey = "xyzzy";
         try (ToxiproxyContainer toxiproxy = new ToxiproxyContainer(DockerImageName.parse("ghcr.io/shopify/toxiproxy:latest")

@@ -24,18 +24,40 @@ public class ClientHolder {
     private final AtomicReference<CurrentConnection> connectionHolder = new AtomicReference<>();
     private final AtomicReference<Context> rootContext;
     private final AtomicReference<CompletionStage<RabbitMQClient>> connectionStage = new AtomicReference<>();
+    private final Uni<RabbitMQClient> connection;
 
     private final Vertx vertx;
-    private final RabbitMQConnectorCommonConfiguration configuration;
 
     public ClientHolder(RabbitMQClient client,
-            RabbitMQConnectorCommonConfiguration configuration,
+            String channel,
             Vertx vertx,
             Context root) {
         this.client = client;
-        this.configuration = configuration;
         this.vertx = vertx;
         this.rootContext = new AtomicReference<>(root);
+        this.connection = Uni.createFrom().deferred(() -> client.start()
+                .onSubscription().invoke(() -> {
+                    connected.set(true);
+                    log.connectionEstablished(channel);
+                })
+                .onItem().transform(ignored -> {
+                    Context ctx = rootContext.get();
+                    connectionHolder
+                            .set(new CurrentConnection(client, ctx == null ? Vertx.currentContext() : ctx));
+
+                    // handle the case we are already disconnected.
+                    if (!client.isConnected() || connectionHolder.get() == null) {
+                        // Throwing the exception would trigger a retry.
+                        connectionHolder.set(null);
+                        throw ex.illegalStateConnectionDisconnected();
+                    }
+                    return client;
+                })
+                .onFailure().invoke(log::unableToConnectToBroker)
+                .onFailure().invoke(t -> {
+                    connectionHolder.set(null);
+                    log.unableToRecoverFromConnectionDisruption(t);
+                }));
     }
 
     public static CompletionStage<Void> runOnContext(Context context, IncomingRabbitMQMessage<?> msg,
@@ -110,7 +132,7 @@ public class ClientHolder {
             if (current != null) {
                 return Uni.createFrom().completionStage(current);
             }
-            CompletionStage<RabbitMQClient> created = createConnectionUni().subscribeAsCompletionStage();
+            CompletionStage<RabbitMQClient> created = connection.subscribeAsCompletionStage();
             if (connectionStage.compareAndSet(null, created)) {
                 created.whenComplete((result, error) -> {
                     if (error != null) {
@@ -131,34 +153,6 @@ public class ClientHolder {
             this.client = client;
             this.context = context;
         }
-    }
-
-    private Uni<RabbitMQClient> createConnectionUni() {
-        return Uni.createFrom().deferred(() -> client.start()
-                .onSubscription().invoke(() -> {
-                    connected.set(true);
-                    log.connectionEstablished(configuration.getChannel());
-                })
-                .onItem().transform(ignored -> {
-                    Context context = rootContext.get();
-                    if (context == null) {
-                        context = Vertx.currentContext();
-                    }
-                    connectionHolder.set(new CurrentConnection(client, context));
-
-                    // handle the case we are already disconnected.
-                    if (!client.isConnected() || connectionHolder.get() == null) {
-                        // Throwing the exception would trigger a retry.
-                        connectionHolder.set(null);
-                        throw ex.illegalStateConnectionDisconnected();
-                    }
-                    return client;
-                })
-                .onFailure().invoke(log::unableToConnectToBroker)
-                .onFailure().invoke(t -> {
-                    connectionHolder.set(null);
-                    log.unableToRecoverFromConnectionDisruption(t);
-                }));
     }
 
 }

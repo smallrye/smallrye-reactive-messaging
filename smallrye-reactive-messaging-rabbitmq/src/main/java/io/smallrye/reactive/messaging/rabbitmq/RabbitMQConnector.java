@@ -329,7 +329,8 @@ public class RabbitMQConnector implements InboundConnector, OutboundConnector, H
 
     private ClientHolder createAndRegisterHolder(RabbitMQConnectorCommonConfiguration config,
             io.vertx.mutiny.core.Context context, String key, boolean shared) {
-        ClientHolder holder = new ClientHolder(RabbitMQClientHelper.createClient(this, config), config, vertx(), context);
+        ClientHolder holder = new ClientHolder(RabbitMQClientHelper.createClient(this, config), config.getChannel(), vertx(),
+                context);
         clientRegistrations.put(config.getChannel(), new ClientRegistration(holder, shared, key));
         return holder;
     }
@@ -351,7 +352,7 @@ public class RabbitMQConnector implements InboundConnector, OutboundConnector, H
             }
             return new SharedClient(name, new ClientHolder(
                     RabbitMQClient.create(vertx(), options),
-                    config,
+                    config.getChannel(),
                     vertx(),
                     context), fingerprint);
         });

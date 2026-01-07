@@ -1,6 +1,7 @@
 package io.smallrye.reactive.messaging.rabbitmq;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.awaitility.Awaitility.await;
 
 import java.util.Comparator;
@@ -382,6 +383,41 @@ class RabbitMQTest extends RabbitMQBrokerTestBase {
         }
 
         return properties.getString("connection_name");
+    }
+
+    @Test
+    void testSharedConnectionConfigMismatchFailsStartup() {
+        final String routingKey = "shared";
+
+        weld.addBeanClass(IncomingBean.class);
+        weld.addBeanClass(OutgoingBean.class);
+
+        new MapBasedConfig()
+                .put("mp.messaging.incoming.data.exchange.name", exchangeName)
+                .put("mp.messaging.incoming.data.exchange.declare", true)
+                .put("mp.messaging.incoming.data.queue.name", queueName)
+                .put("mp.messaging.incoming.data.queue.declare", true)
+                .put("mp.messaging.incoming.data.routing-keys", routingKey)
+                .put("mp.messaging.incoming.data.shared-connection-name", "shared")
+                .put("mp.messaging.incoming.data.connector", RabbitMQConnector.CONNECTOR_NAME)
+                .put("mp.messaging.incoming.data.host", host)
+                .put("mp.messaging.incoming.data.port", port)
+                .put("mp.messaging.incoming.data.tracing.enabled", false)
+                .put("mp.messaging.outgoing.sink.exchange.name", exchangeName)
+                .put("mp.messaging.outgoing.sink.exchange.declare", true)
+                .put("mp.messaging.outgoing.sink.shared-connection-name", "shared")
+                .put("mp.messaging.outgoing.sink.connector", RabbitMQConnector.CONNECTOR_NAME)
+                .put("mp.messaging.outgoing.sink.host", "some-other-host")
+                .put("mp.messaging.outgoing.sink.port", port)
+                .put("mp.messaging.outgoing.sink.tracing.enabled", false)
+                .put("rabbitmq-username", username)
+                .put("rabbitmq-password", password)
+                .put("rabbitmq-reconnect-attempts", 0)
+                .write();
+
+        assertThatThrownBy(() -> container = weld.initialize())
+                .isInstanceOf(Exception.class)
+                .hasStackTraceContaining("mismatched configuration");
     }
 
     /**
@@ -1034,6 +1070,102 @@ class RabbitMQTest extends RabbitMQBrokerTestBase {
                     .getJsonObject("arguments")
                     .getInteger("x-priority")).isEqualTo(10);
         });
+    }
+
+    @Test
+    void testSharedConnectionMultipleIncomingChannelsGetDistinctContexts() throws InterruptedException {
+        final String routingKey1 = "ctx1";
+        final String routingKey2 = "ctx2";
+        final String queueName2 = queueName + "-2";
+
+        weld.addBeanClass(DualIncomingContextBean.class);
+
+        new MapBasedConfig()
+                .put("mp.messaging.incoming.data1.exchange.name", exchangeName)
+                .put("mp.messaging.incoming.data1.exchange.declare", true)
+                .put("mp.messaging.incoming.data1.queue.name", queueName)
+                .put("mp.messaging.incoming.data1.queue.declare", true)
+                .put("mp.messaging.incoming.data1.routing-keys", routingKey1)
+                .put("mp.messaging.incoming.data1.shared-connection-name", "shared-connection")
+                .put("mp.messaging.incoming.data1.connector", RabbitMQConnector.CONNECTOR_NAME)
+                .put("mp.messaging.incoming.data1.host", host)
+                .put("mp.messaging.incoming.data1.port", port)
+                .put("mp.messaging.incoming.data1.tracing.enabled", false)
+                .put("mp.messaging.incoming.data2.exchange.name", exchangeName)
+                .put("mp.messaging.incoming.data2.exchange.declare", true)
+                .put("mp.messaging.incoming.data2.queue.name", queueName2)
+                .put("mp.messaging.incoming.data2.queue.declare", true)
+                .put("mp.messaging.incoming.data2.routing-keys", routingKey2)
+                .put("mp.messaging.incoming.data2.shared-connection-name", "shared-connection")
+                .put("mp.messaging.incoming.data2.connector", RabbitMQConnector.CONNECTOR_NAME)
+                .put("mp.messaging.incoming.data2.host", host)
+                .put("mp.messaging.incoming.data2.port", port)
+                .put("mp.messaging.incoming.data2.tracing.enabled", false)
+                .put("rabbitmq-username", username)
+                .put("rabbitmq-password", password)
+                .put("rabbitmq-reconnect-attempts", 0)
+                .write();
+
+        container = weld.initialize();
+        await().atMost(1, TimeUnit.MINUTES).until(() -> isRabbitMQConnectorAvailable(container));
+
+        DualIncomingContextBean bean = get(container, DualIncomingContextBean.class);
+
+        usage.produce(exchangeName, queueName, routingKey1, 1, () -> 1);
+        usage.produce(exchangeName, queueName2, routingKey2, 1, () -> 2);
+
+        assertThat(bean.awaitMessages(1, TimeUnit.MINUTES)).isTrue();
+
+        assertThat(bean.isEventLoop1()).isTrue();
+        assertThat(bean.isEventLoop2()).isTrue();
+        assertThat(bean.getContext1()).isNotSameAs(bean.getContext2());
+
+        // Verify single shared connection
+        await().atMost(1, TimeUnit.MINUTES).untilAsserted(() -> {
+            JsonArray connections = usage.getConnections();
+            assertThat(connections).isNotNull();
+
+            List<String> sharedConnectionNames = connections.stream()
+                    .map(JsonObject.class::cast)
+                    .map(RabbitMQTest::getConnectionName)
+                    .filter(name -> name != null && name.startsWith("shared-connection"))
+                    .distinct()
+                    .collect(Collectors.toList());
+            assertThat(sharedConnectionNames).hasSize(1);
+        });
+    }
+
+    @Test
+    void testNonSharedIncomingUsesEventLoopContext() throws InterruptedException {
+        final String routingKey = "nonshared";
+
+        weld.addBeanClass(IncomingContextBean.class);
+
+        new MapBasedConfig()
+                .put("mp.messaging.incoming.data.exchange.name", exchangeName)
+                .put("mp.messaging.incoming.data.exchange.declare", true)
+                .put("mp.messaging.incoming.data.queue.name", queueName)
+                .put("mp.messaging.incoming.data.queue.declare", true)
+                .put("mp.messaging.incoming.data.routing-keys", routingKey)
+                .put("mp.messaging.incoming.data.connector", RabbitMQConnector.CONNECTOR_NAME)
+                .put("mp.messaging.incoming.data.host", host)
+                .put("mp.messaging.incoming.data.port", port)
+                .put("mp.messaging.incoming.data.tracing.enabled", false)
+                .put("rabbitmq-username", username)
+                .put("rabbitmq-password", password)
+                .put("rabbitmq-reconnect-attempts", 0)
+                .write();
+
+        container = weld.initialize();
+        await().until(() -> isRabbitMQConnectorAvailable(container));
+
+        IncomingContextBean bean = get(container, IncomingContextBean.class);
+
+        usage.produce(exchangeName, queueName, routingKey, 1, () -> 1);
+
+        assertThat(bean.awaitMessage(1, TimeUnit.MINUTES)).isTrue();
+        assertThat(bean.getMessageContext()).isNotNull();
+        assertThat(bean.isEventLoopContext()).isTrue();
     }
 
 }
