@@ -36,7 +36,15 @@
     "criticality" : "highlight",
     "minSeverity" : "POTENTIALLY_BREAKING",
     "minCriticality" : "documented",
-    "differences" : [ ]
+          "differences" : [
+              {
+                  "code": "java.annotation.attributeValueChanged",
+                  "old": "class io.smallrye.reactive.messaging.kafka.KafkaConnector",
+                  "new": "class io.smallrye.reactive.messaging.kafka.KafkaConnector",
+                  "annotationType": "io.smallrye.reactive.messaging.annotations.ConnectorAttributes",
+                  "attribute": "value"
+              }
+          ]
   }
 }, {
   "extension" : "revapi.reporter.json",
