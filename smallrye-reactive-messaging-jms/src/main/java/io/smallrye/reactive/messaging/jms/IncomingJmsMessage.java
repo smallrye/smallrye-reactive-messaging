@@ -13,6 +13,7 @@ import jakarta.jms.Message;
 import org.eclipse.microprofile.reactive.messaging.Metadata;
 
 import io.smallrye.mutiny.Uni;
+import io.smallrye.reactive.messaging.jms.fault.JmsFailureHandler;
 import io.smallrye.reactive.messaging.json.JsonMapping;
 import io.smallrye.reactive.messaging.providers.MetadataInjectableMessage;
 import io.smallrye.reactive.messaging.providers.locals.ContextAwareMessage;
@@ -20,15 +21,17 @@ import io.smallrye.reactive.messaging.providers.locals.ContextAwareMessage;
 public class IncomingJmsMessage<T> implements ContextAwareMessage<T>, MetadataInjectableMessage<T> {
     private final Message delegate;
     private final Executor executor;
+    private final JmsFailureHandler failureHandler;
     private final Class<T> clazz;
     private final JsonMapping jsonMapping;
     private final IncomingJmsMessageMetadata jmsMetadata;
     private Metadata metadata;
 
-    IncomingJmsMessage(Message message, Executor executor, JsonMapping jsonMapping) {
+    IncomingJmsMessage(Message message, Executor executor, JsonMapping jsonMapping, JmsFailureHandler failureHandler) {
         this.delegate = message;
         this.jsonMapping = jsonMapping;
         this.executor = executor;
+        this.failureHandler = failureHandler;
         String cn = null;
         try {
             cn = message.getStringProperty("_classname");
@@ -129,6 +132,11 @@ public class IncomingJmsMessage<T> implements ContextAwareMessage<T>, MetadataIn
     @Override
     public Metadata getMetadata() {
         return metadata;
+    }
+
+    @Override
+    public CompletionStage<Void> nack(Throwable reason, Metadata metadata) {
+        return failureHandler.handle(this, reason, metadata).subscribeAsCompletionStage();
     }
 
     @SuppressWarnings({ "unchecked" })

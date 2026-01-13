@@ -35,6 +35,7 @@ import io.smallrye.reactive.messaging.annotations.ConnectorAttribute;
 import io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Direction;
 import io.smallrye.reactive.messaging.connector.InboundConnector;
 import io.smallrye.reactive.messaging.connector.OutboundConnector;
+import io.smallrye.reactive.messaging.jms.fault.JmsFailureHandler;
 import io.smallrye.reactive.messaging.json.JsonMapping;
 import io.smallrye.reactive.messaging.providers.connectors.ExecutionHolder;
 import io.smallrye.reactive.messaging.providers.i18n.ProviderLogging;
@@ -71,6 +72,9 @@ import io.smallrye.reactive.messaging.providers.i18n.ProviderLogging;
 @ConnectorAttribute(name = "retry.initial-delay", direction = Direction.INCOMING_AND_OUTGOING, description = "The initial delay for the retry.", type = "string", defaultValue = "PT1S")
 @ConnectorAttribute(name = "retry.max-delay", direction = Direction.INCOMING_AND_OUTGOING, description = "The maximum delay", type = "string", defaultValue = "PT10S")
 @ConnectorAttribute(name = "retry.jitter", direction = Direction.INCOMING_AND_OUTGOING, description = "How much the delay jitters as a multiplier between 0 and 1. The formula is current delay * jitter. For example, with a current delay of 2H, a jitter of 0.5 will result in an actual delay somewhere between 1H and 3H.", type = "double", defaultValue = "0.5")
+@ConnectorAttribute(name = "failure-strategy", type = "string", direction = Direction.INCOMING, description = "Specify the failure strategy to apply when a message produced from a record is acknowledged negatively (nack). Values can be `fail` (default), `ignore`, or `dead-letter-queue`", defaultValue = "fail")
+@ConnectorAttribute(name = "dead-letter-queue.destination", type = "string", direction = Direction.INCOMING, description = "When the `failure-strategy` is set to `dead-letter-queue` indicates on which queue the message is sent. Defaults is `dead-letter-topic-$channel`")
+@ConnectorAttribute(name = "dead-letter-queue.producer-client-id", type = "string", direction = Direction.INCOMING, description = "When the `failure-strategy` is set to `dead-letter-queue` indicates what client id the generated producer should use. Defaults is `jms-dead-letter-topic-producer-$client-id`")
 public class JmsConnector implements InboundConnector, OutboundConnector {
 
     /**
@@ -96,6 +100,10 @@ public class JmsConnector implements InboundConnector, OutboundConnector {
 
     @Inject
     Instance<JsonMapping> jsonMapper;
+
+    @Inject
+    @Any
+    Instance<JmsFailureHandler.Factory> failureHandlerFactories;
 
     @Inject
     ExecutionHolder executionHolders;
@@ -151,7 +159,9 @@ public class JmsConnector implements InboundConnector, OutboundConnector {
         JmsConnectorIncomingConfiguration ic = new JmsConnectorIncomingConfiguration(config);
         JmsResourceHolder<JMSConsumer> holder = new JmsResourceHolder<>(ic.getChannel(), () -> createJmsContext(ic));
         contexts.add(holder);
-        JmsSource source = new JmsSource(executionHolders.vertx(), holder, ic, openTelemetryInstance, jsonMapping, executor);
+        JmsSource source = new JmsSource(this, executionHolders.vertx(), holder, ic, openTelemetryInstance, jsonMapping,
+                executor,
+                failureHandlerFactories);
         sources.add(source);
         return source.getSource();
     }

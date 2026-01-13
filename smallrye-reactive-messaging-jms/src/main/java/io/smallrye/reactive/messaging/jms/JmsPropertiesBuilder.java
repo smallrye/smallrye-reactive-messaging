@@ -82,6 +82,14 @@ public class JmsPropertiesBuilder {
         return this;
     }
 
+    public JmsPropertiesBuilder with(String key, Object value) {
+        validate(key, value);
+        properties.put(key, new Property<>(key,
+                value,
+                JmsTask.wrap(m -> m.setObjectProperty(key, value))));
+        return this;
+    }
+
     public JmsPropertiesBuilder without(String key) {
         properties.remove(key);
         return this;

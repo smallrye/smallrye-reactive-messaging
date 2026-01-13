@@ -1,5 +1,13 @@
 package io.smallrye.reactive.messaging.support;
 
+import java.util.function.Supplier;
+
+import jakarta.enterprise.inject.Instance;
+import jakarta.jms.ConnectionFactory;
+import jakarta.jms.JMSContext;
+import jakarta.jms.JMSProducer;
+import jakarta.jms.Queue;
+
 import org.eclipse.microprofile.config.ConfigProvider;
 import org.jboss.weld.environment.se.Weld;
 import org.jboss.weld.environment.se.WeldContainer;
@@ -12,6 +20,10 @@ import io.smallrye.config.inject.ConfigExtension;
 import io.smallrye.mutiny.infrastructure.Infrastructure;
 import io.smallrye.reactive.messaging.jms.JmsConnector;
 import io.smallrye.reactive.messaging.jms.TestMapping;
+import io.smallrye.reactive.messaging.jms.fault.JmsDlqFailure;
+import io.smallrye.reactive.messaging.jms.fault.JmsFailStop;
+import io.smallrye.reactive.messaging.jms.fault.JmsFailureHandler;
+import io.smallrye.reactive.messaging.jms.fault.JmsIgnoreFailure;
 import io.smallrye.reactive.messaging.providers.MediatorFactory;
 import io.smallrye.reactive.messaging.providers.connectors.ExecutionHolder;
 import io.smallrye.reactive.messaging.providers.connectors.WorkerPoolRegistry;
@@ -33,6 +45,11 @@ public class JmsTestBase {
 
     private static final ArtemisHolder holder = new ArtemisHolder();
     private Weld weld;
+
+    public static Instance<JmsFailureHandler.Factory> failureHandlerFactories = new MultipleInstance<>(
+            new JmsDlqFailure.Factory(),
+            new JmsFailStop.Factory(),
+            new JmsIgnoreFailure.Factory());
 
     @BeforeAll
     public static void setupMutiny() {
@@ -106,6 +123,10 @@ public class JmsTestBase {
         weld.addBeanClass(LegacyEmitterFactoryImpl.class);
 
         weld.addBeanClass(JmsConnector.class);
+        weld.addBeanClass(JmsFailStop.Factory.class);
+        weld.addBeanClass(JmsIgnoreFailure.Factory.class);
+        weld.addBeanClass(JmsDlqFailure.Factory.class);
+
         weld.addBeanClass(TestMapping.class);
         weld.disableDiscovery();
         return weld;
@@ -123,4 +144,14 @@ public class JmsTestBase {
         return holder.getConnectionCount();
     }
 
+    public void produceIntegers(ConnectionFactory cf, String destination, int numberOfMessages,
+            Supplier<Integer> messageSupplier) {
+        try (JMSContext context = cf.createContext()) {
+            JMSProducer producer = context.createProducer();
+            Queue q = context.createQueue(destination);
+            for (int i = 0; i < numberOfMessages; i++) {
+                producer.send(q, messageSupplier.get());
+            }
+        }
+    }
 }
