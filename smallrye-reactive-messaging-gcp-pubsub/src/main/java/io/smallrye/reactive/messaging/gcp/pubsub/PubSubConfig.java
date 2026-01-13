@@ -18,8 +18,10 @@ public class PubSubConfig {
     private final String host;
     private final Integer port;
 
+    private final boolean otelEnabled;
+
     public PubSubConfig(final String projectId, final String topic, final Path credentialPath, final boolean mockPubSubTopics,
-            final String host, final Integer port) {
+            final String host, final Integer port, boolean otelEnabled) {
         this.projectId = Objects.requireNonNull(projectId, msg.mustNotBeNull("projectId"));
         this.topic = Objects.requireNonNull(topic, msg.mustNotBeNull("topic"));
         this.credentialPath = credentialPath;
@@ -27,10 +29,11 @@ public class PubSubConfig {
         this.mockPubSubTopics = mockPubSubTopics;
         this.host = host;
         this.port = port;
+        this.otelEnabled = otelEnabled;
     }
 
     public PubSubConfig(final String projectId, final String topic, final Path credentialPath, final String subscription,
-            final boolean mockPubSubTopics, final String host, final Integer port) {
+            final boolean mockPubSubTopics, final String host, final Integer port, boolean otelEnabled) {
         this.projectId = Objects.requireNonNull(projectId, msg.mustNotBeNull("projectId"));
         this.topic = Objects.requireNonNull(topic, msg.mustNotBeNull("topic"));
         this.credentialPath = credentialPath;
@@ -38,6 +41,7 @@ public class PubSubConfig {
         this.mockPubSubTopics = mockPubSubTopics;
         this.host = host;
         this.port = port;
+        this.otelEnabled = otelEnabled;
     }
 
     public String getProjectId() {
@@ -66,6 +70,10 @@ public class PubSubConfig {
 
     public Integer getPort() {
         return port;
+    }
+
+    public boolean isOtelEnabled() {
+        return otelEnabled;
     }
 
     @Override
