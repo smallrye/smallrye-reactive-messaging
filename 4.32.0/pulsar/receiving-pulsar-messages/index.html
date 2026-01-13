@@ -1,0 +1,3609 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://smallrye.io/smallrye-reactive-messaging/4.32.0/pulsar/receiving-pulsar-messages/">
+      
+      
+        <link rel="prev" href="../pulsar/">
+      
+      
+        <link rel="next" href="../sending-messages-to-pulsar/">
+      
+      
+      <link rel="icon" href="../../images/favicon.png">
+      <meta name="generator" content="mkdocs-1.5.3, mkdocs-material-9.4.8">
+    
+    
+      
+        <title>Receiving messages - SmallRye Reactive Messaging</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.4b4a2bd9.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.356b1318.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Red+Hat+Text:300,300i,400,400i,700,700i%7CUbuntu+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Red Hat Text";--md-code-font:"Ubuntu Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../css/print-site-enum-headings1.css">
+    
+      <link rel="stylesheet" href="../../css/print-site-enum-headings2.css">
+    
+      <link rel="stylesheet" href="../../css/print-site-enum-headings3.css">
+    
+      <link rel="stylesheet" href="../../css/print-site-enum-headings4.css">
+    
+      <link rel="stylesheet" href="../../css/print-site-enum-headings5.css">
+    
+      <link rel="stylesheet" href="../../css/print-site-enum-headings6.css">
+    
+      <link rel="stylesheet" href="../../css/print-site.css">
+    
+      <link rel="stylesheet" href="../../css/print-site-material.css">
+    
+      <link rel="stylesheet" href="../../css/smallrye.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="blue-grey" data-md-color-accent="blue">
+  
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&"object"==typeof palette.color)for(var key of Object.keys(palette.color))document.body.setAttribute("data-md-color-"+key,palette.color[key])</script>
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#receiving-messages-from-pulsar" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+      </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="SmallRye Reactive Messaging" class="md-header__button md-logo" aria-label="SmallRye Reactive Messaging" data-md-component="logo">
+      
+  <img src="../../images/logo.png" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2Z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            SmallRye Reactive Messaging
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Receiving messages
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme)" data-md-color-scheme="default" data-md-color-primary="blue-grey" data-md-color-accent="blue"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_3" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m14.3 16-.7-2h-3.2l-.7 2H7.8L11 7h2l3.2 9h-1.9M20 8.69V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12 20 8.69m-9.15 3.96h2.3L12 9l-1.15 3.65Z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="blue-grey" data-md-color-accent="blue"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_2">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12 20 8.69Z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="blue-grey" data-md-color-accent="blue"  aria-label="Switch to system preference"  type="radio" name="__palette" id="__palette_3">
+    
+      <label class="md-header__button md-icon" title="Switch to system preference" for="__palette_2" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12c0-2.42-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12 20 8.69Z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+    
+      <label class="md-header__button md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+      </label>
+      <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12Z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41Z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/smallrye/smallrye-reactive-messaging" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.4.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="SmallRye Reactive Messaging" class="md-nav__button md-logo" aria-label="SmallRye Reactive Messaging" data-md-component="logo">
+      
+  <img src="../../images/logo.png" alt="logo">
+
+    </a>
+    SmallRye Reactive Messaging
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/smallrye/smallrye-reactive-messaging" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.4.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Home
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+      
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    Core
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            Core
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Getting Started
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_2" id="__nav_2_2_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Concepts
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_2">
+            <span class="md-nav__icon md-icon"></span>
+            Concepts
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/concepts/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Introduction
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/model/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Development Model
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/emitter/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Emitters and Channel
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/connectors/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Connectors
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/contributing-connectors/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Contributing Connectors
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/acknowledgement/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Acknowledgement
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/blocking/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Blocking Processing
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/signatures/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Method Signatures
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/skipping/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Skipping Messages
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/converters/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Message Converters
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/keyed-multi/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Keyed Streams
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/decorators/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Channel Decorators and Interceptors
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/broadcast/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Broadcast
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/merge/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Merge channels
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/incoming-concurrency/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Incoming Channel Concurrency
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/incomings/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    @Incomings
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/outgoings/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    @Outgoings
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/testing/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Testing
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/logging/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Logging
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/observability/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Observability API
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/advanced-config/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Advanced Configuration
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/message-context/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Message Context
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/incoming-metadata-injection/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Metadata Injection
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/generic-payloads/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Generic Payloads
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/pausable-channels/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Pausable Channels
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+      
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    Kafka
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            Kafka
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../kafka/kafka/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Apache Kafka Connector
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../kafka/receiving-kafka-records/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Receiving records
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../kafka/writing-kafka-records/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Writing records
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../kafka/health/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Health Checks
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../kafka/avro-configuration/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Using Avro
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../kafka/protobuf-configuration/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Using Protobuf
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../kafka/consumer-rebalance-listener/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Rebalance Listeners
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../kafka/kerberos/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Kerberos authentication
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../kafka/client-service/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Accessing the client
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../kafka/default-configuration/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Customizing Default Kafka Configuration
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../kafka/test-companion/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Test Companion for Kafka
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../kafka/transactions/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Kafka Transactions and Exactly-Once Processing
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../kafka/request-reply/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Kafka Request/Reply
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+      
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    AMQP 1.0
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            AMQP 1.0
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../amqp/amqp/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    AMQP 1.0 Connector
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../amqp/receiving-amqp-messages/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Receiving messages
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../amqp/sending-amqp-messages/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Sending messages
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../amqp/health/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Health Checks
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../amqp/client-customization/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Client Customization
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../amqp/rabbitmq/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Using RabbitMQ
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+      
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    RabbitMQ
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            RabbitMQ
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../rabbitmq/rabbitmq/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    RabbitMQ Connector
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../rabbitmq/receiving-messages-from-rabbitmq/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Receiving messages
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../rabbitmq/sending-messages-to-rabbitmq/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Sending messages
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../rabbitmq/rabbitmq-health/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Health Checks
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../rabbitmq/rabbitmq-client-customization/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Client Customization
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../rabbitmq/rabbitmq-cloud/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Connecting to managed instances
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    Pulsar
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            Pulsar
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pulsar/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Apache Pulsar Connector
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    Receiving messages
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  <span class="md-ellipsis">
+    Receiving messages
+  </span>
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#example" class="md-nav__link">
+    Example
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#consumer-configuration" class="md-nav__link">
+    Consumer Configuration
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#deserialization-and-pulsar-schema" class="md-nav__link">
+    Deserialization and Pulsar Schema
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#inbound-metadata" class="md-nav__link">
+    Inbound Metadata
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#acknowledgement" class="md-nav__link">
+    Acknowledgement
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#failure-management" class="md-nav__link">
+    Failure Management
+  </a>
+  
+    <nav class="md-nav" aria-label="Failure Management">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#acknowledgement-timeout" class="md-nav__link">
+    Acknowledgement timeout
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dead-letter-topic" class="md-nav__link">
+    Dead-letter topic
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#receiving-pulsar-messages-in-batches" class="md-nav__link">
+    Receiving Pulsar Messages in Batches
+  </a>
+  
+    <nav class="md-nav" aria-label="Receiving Pulsar Messages in Batches">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#accessing-metadata-of-batch-records" class="md-nav__link">
+    Accessing metadata of batch records
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#configuration-reference" class="md-nav__link">
+    Configuration Reference
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../sending-messages-to-pulsar/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Sending messages
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../schema-configuration/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Configuring the Schema
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../client-configuration/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Configuring the Pulsar client
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../health/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Health Checks
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../client-service/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Accessing the client
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../transactions/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Pulsar Transactions and Exactly-Once Processing
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+      
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    Apache Camel
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            Apache Camel
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../camel/camel/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Apache Camel Connector
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../camel/receiving-messages-from-camel/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Receiving messages from Camel
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../camel/sending-messages-to-camel/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Sending messages to Camel
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../camel/camel-processor/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Implementing Camel processor
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../camel/using-existing-routes/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Using existing Camel routes
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+      
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    JMS
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8">
+            <span class="md-nav__icon md-icon"></span>
+            JMS
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../jms/jms/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    The JMS connector
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../jms/receiving-jms-messages/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Receiving JMS messages
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../jms/sending-jms-messages/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Sending JMS messages
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../jms/advanced-jms/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Advanced configuration
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+      
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_9" >
+        
+          
+          <label class="md-nav__link" for="__nav_9" id="__nav_9_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    MQTT
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_9_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_9">
+            <span class="md-nav__icon md-icon"></span>
+            MQTT
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../mqtt/mqtt/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    MQTT Connector
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../mqtt/receiving-mqtt-messages/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Receiving MQTT messages
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../mqtt/sending-messages-to-mqtt/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Sending MQTT messages
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../mqtt/client-customization/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Customizing the MQTT client
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+      
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_10" >
+        
+          
+          <label class="md-nav__link" for="__nav_10" id="__nav_10_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    AWS SQS
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_10_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_10">
+            <span class="md-nav__icon md-icon"></span>
+            AWS SQS
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sqs/sqs/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    AWS SQS Connector
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sqs/receiving-aws-sqs-messages/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Receiving AWS SQS messages
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sqs/sending-aws-sqs-messages/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Sending AWS SQS messages
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+      
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_11" >
+        
+          
+          <label class="md-nav__link" for="__nav_11" id="__nav_11_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    AWS SNS
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_11_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_11">
+            <span class="md-nav__icon md-icon"></span>
+            AWS SNS
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sns/sns/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    AWS SNS Connector
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sns/sending-aws-sns-messages/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Sending AWS SNS messages
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#example" class="md-nav__link">
+    Example
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#consumer-configuration" class="md-nav__link">
+    Consumer Configuration
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#deserialization-and-pulsar-schema" class="md-nav__link">
+    Deserialization and Pulsar Schema
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#inbound-metadata" class="md-nav__link">
+    Inbound Metadata
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#acknowledgement" class="md-nav__link">
+    Acknowledgement
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#failure-management" class="md-nav__link">
+    Failure Management
+  </a>
+  
+    <nav class="md-nav" aria-label="Failure Management">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#acknowledgement-timeout" class="md-nav__link">
+    Acknowledgement timeout
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dead-letter-topic" class="md-nav__link">
+    Dead-letter topic
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#receiving-pulsar-messages-in-batches" class="md-nav__link">
+    Receiving Pulsar Messages in Batches
+  </a>
+  
+    <nav class="md-nav" aria-label="Receiving Pulsar Messages in Batches">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#accessing-metadata-of-batch-records" class="md-nav__link">
+    Accessing metadata of batch records
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#configuration-reference" class="md-nav__link">
+    Configuration Reference
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+  
+  
+
+
+<h1 id="receiving-messages-from-pulsar">Receiving messages from Pulsar</h1>
+<p>The Pulsar Connector connects to a Pulsar broker using a Pulsar client and creates consumers to
+receive messages from Pulsar brokers and it maps each of them into Reactive Messaging <code>Messages</code>.</p>
+<h2 id="example">Example</h2>
+<p>Let’s imagine you have a Pulsar broker running, and accessible
+using the <code>pulsar:6650</code> address (by default it would use
+<code>localhost:6650</code>). Configure your application to receive Pulsar messages
+on the <code>prices</code> channel as follows:</p>
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-1">1</a></span>
+<span class="normal"><a href="#__codelineno-0-2">2</a></span>
+<span class="normal"><a href="#__codelineno-0-3">3</a></span>
+<span class="normal"><a href="#__codelineno-0-4">4</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1"></a><span class="na">mp.messaging.incoming.prices.connector</span><span class="o">=</span><span class="s">smallrye-pulsar # &lt;1&gt;</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2"></a><span class="na">mp.messaging.incoming.prices.serviceUrl</span><span class="o">=</span><span class="s">pulsar://pulsar:6650 # &lt;2&gt;</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3"></a><span class="na">mp.messaging.incoming.prices.schema</span><span class="o">=</span><span class="s">DOUBLE # &lt;3&gt;</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4"></a><span class="na">mp.messaging.incoming.prices.subscriptionInitialPosition</span><span class="o">=</span><span class="s">Earliest # &lt;4&gt;</span>
+</code></pre></div></td></tr></table></div>
+<ol>
+<li>Sets the connector for the <code>prices</code> channel</li>
+<li>Configure the Pulsar broker service url.</li>
+<li>Configure the schema to consume prices as Double.</li>
+<li>Make sure consumer subscription starts receiving messages from the <code>Earliest</code> position.</li>
+</ol>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>You don’t need to set the Pulsar topic, nor the consumer name.
+By default, the connector uses the channel name (<code>prices</code>).
+You can configure the <code>topic</code> and <code>consumerName</code> attributes to override them.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>In Pulsar, consumers need to provide a <code>subscriptionName</code> for topic subscriptions.
+If not provided the connector is generating a unique <strong>subscription name</strong>.</p>
+</div>
+<p>Then, your application can receive the <code>double</code> payload directly:</p>
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-1-1"> 1</a></span>
+<span class="normal"><a href="#__codelineno-1-2"> 2</a></span>
+<span class="normal"><a href="#__codelineno-1-3"> 3</a></span>
+<span class="normal"><a href="#__codelineno-1-4"> 4</a></span>
+<span class="normal"><a href="#__codelineno-1-5"> 5</a></span>
+<span class="normal"><a href="#__codelineno-1-6"> 6</a></span>
+<span class="normal"><a href="#__codelineno-1-7"> 7</a></span>
+<span class="normal"><a href="#__codelineno-1-8"> 8</a></span>
+<span class="normal"><a href="#__codelineno-1-9"> 9</a></span>
+<span class="normal"><a href="#__codelineno-1-10">10</a></span>
+<span class="normal"><a href="#__codelineno-1-11">11</a></span>
+<span class="normal"><a href="#__codelineno-1-12">12</a></span>
+<span class="normal"><a href="#__codelineno-1-13">13</a></span>
+<span class="normal"><a href="#__codelineno-1-14">14</a></span>
+<span class="normal"><a href="#__codelineno-1-15">15</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1"></a><span class="kn">package</span><span class="w"> </span><span class="nn">pulsar.inbound</span><span class="p">;</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2"></a>
+<a id="__codelineno-1-3" name="__codelineno-1-3"></a><span class="kn">import</span><span class="w"> </span><span class="nn">jakarta.enterprise.context.ApplicationScoped</span><span class="p">;</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4"></a>
+<a id="__codelineno-1-5" name="__codelineno-1-5"></a><span class="kn">import</span><span class="w"> </span><span class="nn">org.eclipse.microprofile.reactive.messaging.Incoming</span><span class="p">;</span>
+<a id="__codelineno-1-6" name="__codelineno-1-6"></a>
+<a id="__codelineno-1-7" name="__codelineno-1-7"></a><span class="nd">@ApplicationScoped</span>
+<a id="__codelineno-1-8" name="__codelineno-1-8"></a><span class="kd">public</span><span class="w"> </span><span class="kd">class</span> <span class="nc">PulsarPriceConsumer</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-1-9" name="__codelineno-1-9"></a>
+<a id="__codelineno-1-10" name="__codelineno-1-10"></a><span class="w">    </span><span class="nd">@Incoming</span><span class="p">(</span><span class="s">&quot;prices&quot;</span><span class="p">)</span>
+<a id="__codelineno-1-11" name="__codelineno-1-11"></a><span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">consume</span><span class="p">(</span><span class="kt">double</span><span class="w"> </span><span class="n">price</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-1-12" name="__codelineno-1-12"></a><span class="w">        </span><span class="c1">// process your price.</span>
+<a id="__codelineno-1-13" name="__codelineno-1-13"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-1-14" name="__codelineno-1-14"></a>
+<a id="__codelineno-1-15" name="__codelineno-1-15"></a><span class="p">}</span>
+</code></pre></div></td></tr></table></div>
+<p>Or, you can retrieve the <code>Message&lt;Double&gt;</code>:</p>
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-2-1"> 1</a></span>
+<span class="normal"><a href="#__codelineno-2-2"> 2</a></span>
+<span class="normal"><a href="#__codelineno-2-3"> 3</a></span>
+<span class="normal"><a href="#__codelineno-2-4"> 4</a></span>
+<span class="normal"><a href="#__codelineno-2-5"> 5</a></span>
+<span class="normal"><a href="#__codelineno-2-6"> 6</a></span>
+<span class="normal"><a href="#__codelineno-2-7"> 7</a></span>
+<span class="normal"><a href="#__codelineno-2-8"> 8</a></span>
+<span class="normal"><a href="#__codelineno-2-9"> 9</a></span>
+<span class="normal"><a href="#__codelineno-2-10">10</a></span>
+<span class="normal"><a href="#__codelineno-2-11">11</a></span>
+<span class="normal"><a href="#__codelineno-2-12">12</a></span>
+<span class="normal"><a href="#__codelineno-2-13">13</a></span>
+<span class="normal"><a href="#__codelineno-2-14">14</a></span>
+<span class="normal"><a href="#__codelineno-2-15">15</a></span>
+<span class="normal"><a href="#__codelineno-2-16">16</a></span>
+<span class="normal"><a href="#__codelineno-2-17">17</a></span>
+<span class="normal"><a href="#__codelineno-2-18">18</a></span>
+<span class="normal"><a href="#__codelineno-2-19">19</a></span>
+<span class="normal"><a href="#__codelineno-2-20">20</a></span>
+<span class="normal"><a href="#__codelineno-2-21">21</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1"></a><span class="kn">package</span><span class="w"> </span><span class="nn">pulsar.inbound</span><span class="p">;</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2"></a>
+<a id="__codelineno-2-3" name="__codelineno-2-3"></a><span class="kn">import</span><span class="w"> </span><span class="nn">java.util.concurrent.CompletionStage</span><span class="p">;</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4"></a>
+<a id="__codelineno-2-5" name="__codelineno-2-5"></a><span class="kn">import</span><span class="w"> </span><span class="nn">jakarta.enterprise.context.ApplicationScoped</span><span class="p">;</span>
+<a id="__codelineno-2-6" name="__codelineno-2-6"></a>
+<a id="__codelineno-2-7" name="__codelineno-2-7"></a><span class="kn">import</span><span class="w"> </span><span class="nn">org.eclipse.microprofile.reactive.messaging.Incoming</span><span class="p">;</span>
+<a id="__codelineno-2-8" name="__codelineno-2-8"></a><span class="kn">import</span><span class="w"> </span><span class="nn">org.eclipse.microprofile.reactive.messaging.Message</span><span class="p">;</span>
+<a id="__codelineno-2-9" name="__codelineno-2-9"></a>
+<a id="__codelineno-2-10" name="__codelineno-2-10"></a><span class="nd">@ApplicationScoped</span>
+<a id="__codelineno-2-11" name="__codelineno-2-11"></a><span class="kd">public</span><span class="w"> </span><span class="kd">class</span> <span class="nc">PulsarPriceMessageConsumer</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-2-12" name="__codelineno-2-12"></a>
+<a id="__codelineno-2-13" name="__codelineno-2-13"></a><span class="w">    </span><span class="nd">@Incoming</span><span class="p">(</span><span class="s">&quot;prices&quot;</span><span class="p">)</span>
+<a id="__codelineno-2-14" name="__codelineno-2-14"></a><span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="n">CompletionStage</span><span class="o">&lt;</span><span class="n">Void</span><span class="o">&gt;</span><span class="w"> </span><span class="nf">consume</span><span class="p">(</span><span class="n">Message</span><span class="o">&lt;</span><span class="n">Double</span><span class="o">&gt;</span><span class="w"> </span><span class="n">price</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-2-15" name="__codelineno-2-15"></a><span class="w">        </span><span class="c1">// process your price.</span>
+<a id="__codelineno-2-16" name="__codelineno-2-16"></a>
+<a id="__codelineno-2-17" name="__codelineno-2-17"></a><span class="w">        </span><span class="c1">// Acknowledge the incoming message</span>
+<a id="__codelineno-2-18" name="__codelineno-2-18"></a><span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">price</span><span class="p">.</span><span class="na">ack</span><span class="p">();</span>
+<a id="__codelineno-2-19" name="__codelineno-2-19"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-2-20" name="__codelineno-2-20"></a>
+<a id="__codelineno-2-21" name="__codelineno-2-21"></a><span class="p">}</span>
+</code></pre></div></td></tr></table></div>
+<h2 id="consumer-configuration">Consumer Configuration</h2>
+<p>The Pulsar Connector allows flexibly configuring the underlying Pulsar consumer.
+One of the ways is to set consumer properties directly on the channel configuration.
+The list of available configuration properties are listed in <a href="#configuration-reference">Configuration Reference</a>.</p>
+<p>See the <a href="../client-configuration/">Configuring Pulsar consumers, producers and clients</a> for more information.</p>
+<h2 id="deserialization-and-pulsar-schema">Deserialization and Pulsar Schema</h2>
+<p>The Pulsar Connector allows configuring Schema configuration for the underlying Pulsar consumer.
+See the <a href="../schema-configuration/">Configuring the schema used for Pulsar channels</a> for more information.</p>
+<h2 id="inbound-metadata">Inbound Metadata</h2>
+<p>The incoming Pulsar messages include an instance of <code>PulsarIncomingMessageMetadata</code> in the metadata.
+It provides the key, topic, partitions, headers and so on:</p>
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-3-1"> 1</a></span>
+<span class="normal"><a href="#__codelineno-3-2"> 2</a></span>
+<span class="normal"><a href="#__codelineno-3-3"> 3</a></span>
+<span class="normal"><a href="#__codelineno-3-4"> 4</a></span>
+<span class="normal"><a href="#__codelineno-3-5"> 5</a></span>
+<span class="normal"><a href="#__codelineno-3-6"> 6</a></span>
+<span class="normal"><a href="#__codelineno-3-7"> 7</a></span>
+<span class="normal"><a href="#__codelineno-3-8"> 8</a></span>
+<span class="normal"><a href="#__codelineno-3-9"> 9</a></span>
+<span class="normal"><a href="#__codelineno-3-10">10</a></span>
+<span class="normal"><a href="#__codelineno-3-11">11</a></span>
+<span class="normal"><a href="#__codelineno-3-12">12</a></span>
+<span class="normal"><a href="#__codelineno-3-13">13</a></span>
+<span class="normal"><a href="#__codelineno-3-14">14</a></span>
+<span class="normal"><a href="#__codelineno-3-15">15</a></span>
+<span class="normal"><a href="#__codelineno-3-16">16</a></span>
+<span class="normal"><a href="#__codelineno-3-17">17</a></span>
+<span class="normal"><a href="#__codelineno-3-18">18</a></span>
+<span class="normal"><a href="#__codelineno-3-19">19</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1"></a><span class="n">PulsarIncomingMessageMetadata</span><span class="w"> </span><span class="n">metadata</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">incoming</span><span class="p">.</span><span class="na">getMetadata</span><span class="p">(</span><span class="n">PulsarIncomingMessageMetadata</span><span class="p">.</span><span class="na">class</span><span class="p">).</span><span class="na">orElse</span><span class="p">(</span><span class="kc">null</span><span class="p">);</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2"></a><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">metadata</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">null</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3"></a><span class="w">    </span><span class="c1">// The topic</span>
+<a id="__codelineno-3-4" name="__codelineno-3-4"></a><span class="w">    </span><span class="n">String</span><span class="w"> </span><span class="n">topic</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">metadata</span><span class="p">.</span><span class="na">getTopicName</span><span class="p">();</span>
+<a id="__codelineno-3-5" name="__codelineno-3-5"></a>
+<a id="__codelineno-3-6" name="__codelineno-3-6"></a><span class="w">    </span><span class="c1">// The key</span>
+<a id="__codelineno-3-7" name="__codelineno-3-7"></a><span class="w">    </span><span class="n">String</span><span class="w"> </span><span class="n">key</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">metadata</span><span class="p">.</span><span class="na">getKey</span><span class="p">();</span>
+<a id="__codelineno-3-8" name="__codelineno-3-8"></a>
+<a id="__codelineno-3-9" name="__codelineno-3-9"></a><span class="w">    </span><span class="c1">// The event time</span>
+<a id="__codelineno-3-10" name="__codelineno-3-10"></a><span class="w">    </span><span class="kt">long</span><span class="w"> </span><span class="n">timestamp</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">metadata</span><span class="p">.</span><span class="na">getEventTime</span><span class="p">();</span>
+<a id="__codelineno-3-11" name="__codelineno-3-11"></a>
+<a id="__codelineno-3-12" name="__codelineno-3-12"></a><span class="w">    </span><span class="c1">// The raw data</span>
+<a id="__codelineno-3-13" name="__codelineno-3-13"></a><span class="w">    </span><span class="kt">byte</span><span class="o">[]</span><span class="w"> </span><span class="n">rawData</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">metadata</span><span class="p">.</span><span class="na">getData</span><span class="p">();</span>
+<a id="__codelineno-3-14" name="__codelineno-3-14"></a>
+<a id="__codelineno-3-15" name="__codelineno-3-15"></a><span class="w">    </span><span class="c1">// The underlying message</span>
+<a id="__codelineno-3-16" name="__codelineno-3-16"></a><span class="w">    </span><span class="n">org</span><span class="p">.</span><span class="na">apache</span><span class="p">.</span><span class="na">pulsar</span><span class="p">.</span><span class="na">client</span><span class="p">.</span><span class="na">api</span><span class="p">.</span><span class="na">Message</span><span class="o">&lt;?&gt;</span><span class="w"> </span><span class="n">message</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">metadata</span><span class="p">.</span><span class="na">getMessage</span><span class="p">();</span>
+<a id="__codelineno-3-17" name="__codelineno-3-17"></a>
+<a id="__codelineno-3-18" name="__codelineno-3-18"></a><span class="w">    </span><span class="c1">// ...</span>
+<a id="__codelineno-3-19" name="__codelineno-3-19"></a><span class="p">}</span>
+</code></pre></div></td></tr></table></div>
+<h2 id="acknowledgement">Acknowledgement</h2>
+<p>When a message produced from a Pulsar Message is <em>acknowledged</em>, the connector sends an <a href="https://pulsar.apache.org/docs/3.0.x/concepts-messaging/#acknowledgment">acknowledgement request</a> to the Pulsar broker.
+All Reactive Messaging messages need to be <em>acknowledged</em>, which is handled automatically in most cases.
+Acknowledgement requests can be sent to the Pulsar broker using the following two strategies:</p>
+<ul>
+<li><strong>Individual acknowledgement</strong> is the default strategy, an acknowledgement request is to the broker for each message.</li>
+<li><strong>Cumulative acknowledgement</strong>, configured using <code>ack-strategy=cumulative</code>, the consumer only acknowledges the last message it received.
+All messages in the stream up to (and including) the provided message are not redelivered to that consumer.</li>
+</ul>
+<h2 id="failure-management">Failure Management</h2>
+<p>If a message produced from a Pulsar message is <em>nacked</em>, a failure strategy is applied.
+The Pulsar connector supports 4 strategies:</p>
+<ul>
+<li><code>nack</code> <em>(default)</em> sends <a href="https://pulsar.apache.org/docs/3.0.x/concepts-messaging/#negative-acknowledgment">negative acknowledgment</a> to the broker, triggering the broker to redeliver this message to the consumer.
+The negative acknowledgment can be further configured using <code>negativeAckRedeliveryDelayMicros</code> and <code>negativeAck.redeliveryBackoff</code> properties.</li>
+<li><code>fail</code> fail the application, no more messages will be processed.</li>
+<li><code>ignore</code> the failure is logged, but the acknowledgement strategy will be applied and the processing will continue.</li>
+<li><code>continue</code> the failure is logged, but processing continues without applying acknowledgement or negative acknowledgement. This strategy can be used with <a href="#acknowledgement-timeout">acknowledgement timeout</a> configuration.</li>
+<li><code>reconsume-later</code> sends the message to the <a href="https://pulsar.apache.org/docs/3.0.x/concepts-messaging/#retry-letter-topic">retry letter topic</a> using the <code>reconsumeLater</code> API to be reconsumed with a delay.
+The delay can be configured using the <code>reconsumeLater.delay</code> property and defaults to 3 seconds.
+Custom delay or properties per message can be configured by adding an instance of <a class='docissimo, docissimo-javadoc' href='https://javadoc.io/doc/io.smallrye.reactive/smallrye-reactive-messaging-api/4.32.0/io/smallrye/reactive/messaging/pulsar/PulsarReconsumeLaterMetadata.html'>PulsarReconsumeLaterMetadata</a> to the failure metadata.</li>
+</ul>
+<p>For example the following configuration for the incoming channel <code>data</code> uses <code>reconsumer-later</code> failure strategy with default delays of 60 seconds:</p>
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-4-1">1</a></span>
+<span class="normal"><a href="#__codelineno-4-2">2</a></span>
+<span class="normal"><a href="#__codelineno-4-3">3</a></span>
+<span class="normal"><a href="#__codelineno-4-4">4</a></span>
+<span class="normal"><a href="#__codelineno-4-5">5</a></span>
+<span class="normal"><a href="#__codelineno-4-6">6</a></span>
+<span class="normal"><a href="#__codelineno-4-7">7</a></span>
+<span class="normal"><a href="#__codelineno-4-8">8</a></span>
+<span class="normal"><a href="#__codelineno-4-9">9</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1"></a><span class="na">mp.messaging.incoming.data.connector</span><span class="o">=</span><span class="s">smallrye-pulsar</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2"></a><span class="na">mp.messaging.incoming.data.serviceUrl</span><span class="o">=</span><span class="s">pulsar://localhost:6650</span>
+<a id="__codelineno-4-3" name="__codelineno-4-3"></a><span class="na">mp.messaging.incoming.data.topic</span><span class="o">=</span><span class="s">data</span>
+<a id="__codelineno-4-4" name="__codelineno-4-4"></a><span class="na">mp.messaging.incoming.data.schema</span><span class="o">=</span><span class="s">INT32</span>
+<a id="__codelineno-4-5" name="__codelineno-4-5"></a><span class="na">mp.messaging.incoming.data.failure-strategy</span><span class="o">=</span><span class="s">reconsume-later</span>
+<a id="__codelineno-4-6" name="__codelineno-4-6"></a><span class="na">mp.messaging.incoming.data.retryEnable</span><span class="o">=</span><span class="s">true</span>
+<a id="__codelineno-4-7" name="__codelineno-4-7"></a><span class="na">mp.messaging.incoming.data.reconsumeLater.delay</span><span class="o">=</span><span class="s">60 // in seconds</span>
+<a id="__codelineno-4-8" name="__codelineno-4-8"></a><span class="na">mp.messaging.incoming.data.deadLetterPolicy.retryLetterTopic</span><span class="o">=</span><span class="s">data-retry</span>
+<a id="__codelineno-4-9" name="__codelineno-4-9"></a><span class="na">mp.messaging.incoming.data.deadLetterPolicy.maxRedeliverCount</span><span class="o">=</span><span class="s">2</span>
+</code></pre></div></td></tr></table></div>
+<h3 id="acknowledgement-timeout">Acknowledgement timeout</h3>
+<p>Similar to the negative acknowledgement, with the <a href="https://pulsar.apache.org/docs/3.0.x/concepts-messaging/#acknowledgment-timeout">acknowledgment timeout</a> mechanism, the Pulsar client tracks the unacknowledged messages,
+for the given <em>ackTimeout</em> period and sends <em>redeliver unacknowledged messages request</em> to the broker, thus the broker resends the unacknowledged messages to the consumer.</p>
+<p>To configure the timeout and redelivery backoff mechanism you can set <code>ackTimeoutMillis</code> and <code>ackTimeout.redeliveryBackoff</code> properties.
+The <code>ackTimeout.redeliveryBackoff</code> value accepts comma separated values of min delay in milliseconds, max delay in milliseconds and multiplier respectively:</p>
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-5-1">1</a></span>
+<span class="normal"><a href="#__codelineno-5-2">2</a></span>
+<span class="normal"><a href="#__codelineno-5-3">3</a></span>
+<span class="normal"><a href="#__codelineno-5-4">4</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1"></a><span class="na">mp.messaging.incoming.data.connector</span><span class="o">=</span><span class="s">smallrye-pulsar</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2"></a><span class="na">mp.messaging.incoming.data.failure-strategy</span><span class="o">=</span><span class="s">continue</span>
+<a id="__codelineno-5-3" name="__codelineno-5-3"></a><span class="na">mp.messaging.incoming.data.ackTimeoutMillis</span><span class="o">=</span><span class="s">10000</span>
+<a id="__codelineno-5-4" name="__codelineno-5-4"></a><span class="na">mp.messaging.incoming.data.ackTimeout.redeliveryBackoff</span><span class="o">=</span><span class="s">1000,60000,2</span>
+</code></pre></div></td></tr></table></div>
+<h3 id="dead-letter-topic">Dead-letter topic</h3>
+<p>The <a href="https://pulsar.apache.org/docs/3.0.x/concepts-messaging/#dead-letter-topic">dead letter topic</a> pushes messages that are not consumed successfully to a dead letter topic an continue message consumption.
+Note that dead letter topic can be used in different message redelivery methods, such as acknowledgment timeout, negative acknowledgment or retry letter topic.</p>
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-6-1">1</a></span>
+<span class="normal"><a href="#__codelineno-6-2">2</a></span>
+<span class="normal"><a href="#__codelineno-6-3">3</a></span>
+<span class="normal"><a href="#__codelineno-6-4">4</a></span>
+<span class="normal"><a href="#__codelineno-6-5">5</a></span>
+<span class="normal"><a href="#__codelineno-6-6">6</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1"></a><span class="na">mp.messaging.incoming.data.connector</span><span class="o">=</span><span class="s">smallrye-pulsar</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2"></a><span class="na">mp.messaging.incoming.data.failure-strategy</span><span class="o">=</span><span class="s">nack</span>
+<a id="__codelineno-6-3" name="__codelineno-6-3"></a><span class="na">mp.messaging.incoming.data.deadLetterPolicy.maxRedeliverCount</span><span class="o">=</span><span class="s">2</span>
+<a id="__codelineno-6-4" name="__codelineno-6-4"></a><span class="na">mp.messaging.incoming.data.deadLetterPolicy.deadLetterTopic</span><span class="o">=</span><span class="s">my-dead-letter-topic</span>
+<a id="__codelineno-6-5" name="__codelineno-6-5"></a><span class="na">mp.messaging.incoming.data.deadLetterPolicy.initialSubscriptionName</span><span class="o">=</span><span class="s">my-dlq-subscription</span>
+<a id="__codelineno-6-6" name="__codelineno-6-6"></a><span class="na">mp.messaging.incoming.data.subscriptionType</span><span class="o">=</span><span class="s">Shared</span>
+</code></pre></div></td></tr></table></div>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p><em>Negative acknowledgment</em> or <em>acknowledgment timeout</em> methods for redelivery will redeliver the whole batch of messages containing at least an unprocessed message.
+See <a href="../sending-messages-to-pulsar/#producer-batching">producer batching</a> for more information.</p>
+</div>
+<h2 id="receiving-pulsar-messages-in-batches">Receiving Pulsar Messages in Batches</h2>
+<p>By default, incoming methods receive each Pulsar message individually.
+You can enable batch mode using <code>batchReceive=true</code> property, or setting a <code>batchReceivePolicy</code> in consumer configuration.</p>
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-7-1"> 1</a></span>
+<span class="normal"><a href="#__codelineno-7-2"> 2</a></span>
+<span class="normal"><a href="#__codelineno-7-3"> 3</a></span>
+<span class="normal"><a href="#__codelineno-7-4"> 4</a></span>
+<span class="normal"><a href="#__codelineno-7-5"> 5</a></span>
+<span class="normal"><a href="#__codelineno-7-6"> 6</a></span>
+<span class="normal"><a href="#__codelineno-7-7"> 7</a></span>
+<span class="normal"><a href="#__codelineno-7-8"> 8</a></span>
+<span class="normal"><a href="#__codelineno-7-9"> 9</a></span>
+<span class="normal"><a href="#__codelineno-7-10">10</a></span>
+<span class="normal"><a href="#__codelineno-7-11">11</a></span>
+<span class="normal"><a href="#__codelineno-7-12">12</a></span>
+<span class="normal"><a href="#__codelineno-7-13">13</a></span>
+<span class="normal"><a href="#__codelineno-7-14">14</a></span>
+<span class="normal"><a href="#__codelineno-7-15">15</a></span>
+<span class="normal"><a href="#__codelineno-7-16">16</a></span>
+<span class="normal"><a href="#__codelineno-7-17">17</a></span>
+<span class="normal"><a href="#__codelineno-7-18">18</a></span>
+<span class="normal"><a href="#__codelineno-7-19">19</a></span>
+<span class="normal"><a href="#__codelineno-7-20">20</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1"></a><span class="nd">@Incoming</span><span class="p">(</span><span class="s">&quot;prices&quot;</span><span class="p">)</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2"></a><span class="kd">public</span><span class="w"> </span><span class="n">CompletionStage</span><span class="o">&lt;</span><span class="n">Void</span><span class="o">&gt;</span><span class="w"> </span><span class="nf">consumeMessage</span><span class="p">(</span><span class="n">Message</span><span class="o">&lt;</span><span class="n">List</span><span class="o">&lt;</span><span class="n">Double</span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="n">messages</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-7-3" name="__codelineno-7-3"></a><span class="w">    </span><span class="n">messages</span><span class="p">.</span><span class="na">getMetadata</span><span class="p">(</span><span class="n">PulsarIncomingBatchMessageMetadata</span><span class="p">.</span><span class="na">class</span><span class="p">).</span><span class="na">ifPresent</span><span class="p">(</span><span class="n">metadata</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-7-4" name="__codelineno-7-4"></a><span class="w">        </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="n">org</span><span class="p">.</span><span class="na">apache</span><span class="p">.</span><span class="na">pulsar</span><span class="p">.</span><span class="na">client</span><span class="p">.</span><span class="na">api</span><span class="p">.</span><span class="na">Message</span><span class="o">&lt;</span><span class="n">Object</span><span class="o">&gt;</span><span class="w"> </span><span class="n">message</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">metadata</span><span class="p">.</span><span class="na">getMessages</span><span class="p">())</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-7-5" name="__codelineno-7-5"></a><span class="w">            </span><span class="n">String</span><span class="w"> </span><span class="n">key</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">message</span><span class="p">.</span><span class="na">getKey</span><span class="p">();</span>
+<a id="__codelineno-7-6" name="__codelineno-7-6"></a><span class="w">            </span><span class="n">String</span><span class="w"> </span><span class="n">topic</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">message</span><span class="p">.</span><span class="na">getTopicName</span><span class="p">();</span>
+<a id="__codelineno-7-7" name="__codelineno-7-7"></a><span class="w">            </span><span class="kt">long</span><span class="w"> </span><span class="n">timestamp</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">message</span><span class="p">.</span><span class="na">getEventTime</span><span class="p">();</span>
+<a id="__codelineno-7-8" name="__codelineno-7-8"></a><span class="w">            </span><span class="c1">//... process messages</span>
+<a id="__codelineno-7-9" name="__codelineno-7-9"></a><span class="w">        </span><span class="p">}</span>
+<a id="__codelineno-7-10" name="__codelineno-7-10"></a><span class="w">    </span><span class="p">});</span>
+<a id="__codelineno-7-11" name="__codelineno-7-11"></a><span class="w">    </span><span class="c1">// ack will commit the latest offsets (per partition) of the batch.</span>
+<a id="__codelineno-7-12" name="__codelineno-7-12"></a><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">messages</span><span class="p">.</span><span class="na">ack</span><span class="p">();</span>
+<a id="__codelineno-7-13" name="__codelineno-7-13"></a><span class="p">}</span>
+<a id="__codelineno-7-14" name="__codelineno-7-14"></a>
+<a id="__codelineno-7-15" name="__codelineno-7-15"></a><span class="nd">@Incoming</span><span class="p">(</span><span class="s">&quot;prices&quot;</span><span class="p">)</span>
+<a id="__codelineno-7-16" name="__codelineno-7-16"></a><span class="kd">public</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">consumeMessages</span><span class="p">(</span><span class="n">org</span><span class="p">.</span><span class="na">apache</span><span class="p">.</span><span class="na">pulsar</span><span class="p">.</span><span class="na">client</span><span class="p">.</span><span class="na">api</span><span class="p">.</span><span class="na">Messages</span><span class="o">&lt;</span><span class="n">Double</span><span class="o">&gt;</span><span class="w"> </span><span class="n">messages</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-7-17" name="__codelineno-7-17"></a><span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="n">org</span><span class="p">.</span><span class="na">apache</span><span class="p">.</span><span class="na">pulsar</span><span class="p">.</span><span class="na">client</span><span class="p">.</span><span class="na">api</span><span class="p">.</span><span class="na">Message</span><span class="o">&lt;</span><span class="n">Double</span><span class="o">&gt;</span><span class="w"> </span><span class="n">msg</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">messages</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-7-18" name="__codelineno-7-18"></a><span class="w">        </span><span class="c1">//... process messages</span>
+<a id="__codelineno-7-19" name="__codelineno-7-19"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-7-20" name="__codelineno-7-20"></a><span class="p">}</span>
+</code></pre></div></td></tr></table></div>
+<p>Or you can directly receive the list of payloads to the consume method:</p>
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-8-1">1</a></span>
+<span class="normal"><a href="#__codelineno-8-2">2</a></span>
+<span class="normal"><a href="#__codelineno-8-3">3</a></span>
+<span class="normal"><a href="#__codelineno-8-4">4</a></span>
+<span class="normal"><a href="#__codelineno-8-5">5</a></span>
+<span class="normal"><a href="#__codelineno-8-6">6</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1"></a><span class="nd">@Incoming</span><span class="p">(</span><span class="s">&quot;prices&quot;</span><span class="p">)</span>
+<a id="__codelineno-8-2" name="__codelineno-8-2"></a><span class="kd">public</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">consume</span><span class="p">(</span><span class="n">List</span><span class="o">&lt;</span><span class="n">Double</span><span class="o">&gt;</span><span class="w"> </span><span class="n">prices</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-8-3" name="__codelineno-8-3"></a><span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">double</span><span class="w"> </span><span class="n">price</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">prices</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-8-4" name="__codelineno-8-4"></a><span class="w">        </span><span class="c1">// process price</span>
+<a id="__codelineno-8-5" name="__codelineno-8-5"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-8-6" name="__codelineno-8-6"></a><span class="p">}</span>
+</code></pre></div></td></tr></table></div>
+<h3 id="accessing-metadata-of-batch-records">Accessing metadata of batch records</h3>
+<p>When receiving records in batch mode, the metadata of each record is accessible through the <code>PulsarIncomingBatchMessageMetadata</code> :</p>
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-9-1"> 1</a></span>
+<span class="normal"><a href="#__codelineno-9-2"> 2</a></span>
+<span class="normal"><a href="#__codelineno-9-3"> 3</a></span>
+<span class="normal"><a href="#__codelineno-9-4"> 4</a></span>
+<span class="normal"><a href="#__codelineno-9-5"> 5</a></span>
+<span class="normal"><a href="#__codelineno-9-6"> 6</a></span>
+<span class="normal"><a href="#__codelineno-9-7"> 7</a></span>
+<span class="normal"><a href="#__codelineno-9-8"> 8</a></span>
+<span class="normal"><a href="#__codelineno-9-9"> 9</a></span>
+<span class="normal"><a href="#__codelineno-9-10">10</a></span>
+<span class="normal"><a href="#__codelineno-9-11">11</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1"></a><span class="nd">@Incoming</span><span class="p">(</span><span class="s">&quot;prices&quot;</span><span class="p">)</span>
+<a id="__codelineno-9-2" name="__codelineno-9-2"></a><span class="kd">public</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">consumeMessages</span><span class="p">(</span><span class="n">org</span><span class="p">.</span><span class="na">apache</span><span class="p">.</span><span class="na">pulsar</span><span class="p">.</span><span class="na">client</span><span class="p">.</span><span class="na">api</span><span class="p">.</span><span class="na">Messages</span><span class="o">&lt;</span><span class="n">Double</span><span class="o">&gt;</span><span class="w"> </span><span class="n">messages</span><span class="p">,</span>
+<a id="__codelineno-9-3" name="__codelineno-9-3"></a><span class="w">        </span><span class="n">PulsarIncomingBatchMessageMetadata</span><span class="w"> </span><span class="n">metadata</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-9-4" name="__codelineno-9-4"></a><span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="n">org</span><span class="p">.</span><span class="na">apache</span><span class="p">.</span><span class="na">pulsar</span><span class="p">.</span><span class="na">client</span><span class="p">.</span><span class="na">api</span><span class="p">.</span><span class="na">Message</span><span class="o">&lt;</span><span class="n">Double</span><span class="o">&gt;</span><span class="w"> </span><span class="n">message</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">messages</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-9-5" name="__codelineno-9-5"></a><span class="w">        </span><span class="n">TracingMetadata</span><span class="w"> </span><span class="n">tracing</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">metadata</span><span class="p">.</span><span class="na">getMetadataForMessage</span><span class="p">(</span><span class="n">message</span><span class="p">,</span><span class="w"> </span><span class="n">TracingMetadata</span><span class="p">.</span><span class="na">class</span><span class="p">);</span>
+<a id="__codelineno-9-6" name="__codelineno-9-6"></a><span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">tracing</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">null</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-9-7" name="__codelineno-9-7"></a><span class="w">            </span><span class="n">tracing</span><span class="p">.</span><span class="na">getCurrentContext</span><span class="p">().</span><span class="na">makeCurrent</span><span class="p">();</span>
+<a id="__codelineno-9-8" name="__codelineno-9-8"></a><span class="w">        </span><span class="p">}</span>
+<a id="__codelineno-9-9" name="__codelineno-9-9"></a><span class="w">        </span><span class="c1">//... process messages</span>
+<a id="__codelineno-9-10" name="__codelineno-9-10"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-9-11" name="__codelineno-9-11"></a><span class="p">}</span>
+</code></pre></div></td></tr></table></div>
+<p>Like in this example, this can be useful to propagate the tracing information of each record.</p>
+<h2 id="configuration-reference">Configuration Reference</h2>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Attribute (<em>alias</em>)</th>
+<th style="text-align: left;">Description</th>
+<th style="text-align: center;">Type</th>
+<th style="text-align: center;">Mandatory</th>
+<th style="text-align: left;">Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><em>ack-strategy</em></td>
+<td style="text-align: left;">Specify the commit strategy to apply when a message produced from a record is acknowledged. Values can be <code>ack</code>, <code>cumulative</code>.</td>
+<td style="text-align: center;">string</td>
+<td style="text-align: center;">false</td>
+<td style="text-align: left;"><code>ack</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>ackTimeout.redeliveryBackoff</em></td>
+<td style="text-align: left;">Comma separated values for configuring ack timeout MultiplierRedeliveryBackoff, min delay, max delay, multiplier.</td>
+<td style="text-align: center;">string</td>
+<td style="text-align: center;">false</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>batchReceive</em></td>
+<td style="text-align: left;">Whether batch receive is used to consume messages</td>
+<td style="text-align: center;">boolean</td>
+<td style="text-align: center;">false</td>
+<td style="text-align: left;"><code>false</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>client-configuration</em></td>
+<td style="text-align: left;">Identifier of a CDI bean that provides the default Pulsar client configuration for this channel. The channel configuration can still override any attribute. The bean must have a type of Map<String, Object> and must use the @io.smallrye.common.annotation.Identifier qualifier to set the identifier.</td>
+<td style="text-align: center;">string</td>
+<td style="text-align: center;">false</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>consumer-configuration</em></td>
+<td style="text-align: left;">Identifier of a CDI bean that provides the default Pulsar consumer configuration for this channel. The channel configuration can still override any attribute. The bean must have a type of Map<String, Object> and must use the @io.smallrye.common.annotation.Identifier qualifier to set the identifier.</td>
+<td style="text-align: center;">string</td>
+<td style="text-align: center;">false</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>deadLetterPolicy.deadLetterTopic</em></td>
+<td style="text-align: left;">Name of the dead letter topic where the failing messages will be sent</td>
+<td style="text-align: center;">string</td>
+<td style="text-align: center;">false</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>deadLetterPolicy.initialSubscriptionName</em></td>
+<td style="text-align: left;">Name of the initial subscription name of the dead letter topic</td>
+<td style="text-align: center;">string</td>
+<td style="text-align: center;">false</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>deadLetterPolicy.maxRedeliverCount</em></td>
+<td style="text-align: left;">Maximum number of times that a message will be redelivered before being sent to the dead letter topic</td>
+<td style="text-align: center;">int</td>
+<td style="text-align: center;">false</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>deadLetterPolicy.retryLetterTopic</em></td>
+<td style="text-align: left;">Name of the retry topic where the failing messages will be sent</td>
+<td style="text-align: center;">string</td>
+<td style="text-align: center;">false</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>failure-strategy</em></td>
+<td style="text-align: left;">Specify the failure strategy to apply when a message produced from a record is acknowledged negatively (nack). Values can be <code>nack</code> (default), <code>fail</code>, <code>ignore</code> or <code>reconsume-later | string | false |</code>nack`</td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+<td style="text-align: left;"></td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>health-enabled</em></td>
+<td style="text-align: left;">Whether health reporting is enabled (default) or disabled</td>
+<td style="text-align: center;">boolean</td>
+<td style="text-align: center;">false</td>
+<td style="text-align: left;"><code>true</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>negativeAck.redeliveryBackoff</em></td>
+<td style="text-align: left;">Comma separated values for configuring negative ack MultiplierRedeliveryBackoff, min delay, max delay, multiplier.</td>
+<td style="text-align: center;">string</td>
+<td style="text-align: center;">false</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>reconsumeLater.delay</em></td>
+<td style="text-align: left;">Default delay for reconsume failure-strategy, in seconds</td>
+<td style="text-align: center;">long</td>
+<td style="text-align: center;">false</td>
+<td style="text-align: left;"><code>3</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>schema</em></td>
+<td style="text-align: left;">The Pulsar schema type of this channel. When configured a schema is built with the given SchemaType and used for the channel. When absent, the schema is resolved searching for a CDI bean typed <code>Schema</code> qualified with <code>@Identifier</code> and the channel name. As a fallback AUTO_CONSUME or AUTO_PRODUCE are used.</td>
+<td style="text-align: center;">string</td>
+<td style="text-align: center;">false</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>serviceUrl</em></td>
+<td style="text-align: left;">The service URL for the Pulsar service</td>
+<td style="text-align: center;">string</td>
+<td style="text-align: center;">false</td>
+<td style="text-align: left;"><code>pulsar://localhost:6650</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>topic</em></td>
+<td style="text-align: left;">The consumed / populated Pulsar topic. If not set, the channel name is used</td>
+<td style="text-align: center;">string</td>
+<td style="text-align: center;">false</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>tracing-enabled</em></td>
+<td style="text-align: left;">Whether tracing is enabled (default) or disabled</td>
+<td style="text-align: center;">boolean</td>
+<td style="text-align: center;">false</td>
+<td style="text-align: left;"><code>true</code></td>
+</tr>
+</tbody>
+</table>
+<p>In addition to the configuration properties provided by the connector,
+following Pulsar consumer properties can also be set on the channel:</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Attribute</th>
+<th style="text-align: left;">Description</th>
+<th style="text-align: center;">Type</th>
+<th style="text-align: center;">Config file</th>
+<th style="text-align: left;">Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><em>topicNames</em></td>
+<td style="text-align: left;">Topic name</td>
+<td style="text-align: center;">Set</td>
+<td style="text-align: center;">true</td>
+<td style="text-align: left;">[]</td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>topicsPattern</em></td>
+<td style="text-align: left;">Topic pattern</td>
+<td style="text-align: center;">Pattern</td>
+<td style="text-align: center;">true</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>subscriptionName</em></td>
+<td style="text-align: left;">Subscription name</td>
+<td style="text-align: center;">String</td>
+<td style="text-align: center;">true</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>subscriptionType</em></td>
+<td style="text-align: left;">Subscription type.<br>Four subscription types are available:<br>* Exclusive<br>* Failover<br>* Shared<br>* Key_Shared</td>
+<td style="text-align: center;">SubscriptionType</td>
+<td style="text-align: center;">true</td>
+<td style="text-align: left;">Exclusive</td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>subscriptionProperties</em></td>
+<td style="text-align: left;"></td>
+<td style="text-align: center;">Map</td>
+<td style="text-align: center;">true</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>subscriptionMode</em></td>
+<td style="text-align: left;"></td>
+<td style="text-align: center;">SubscriptionMode</td>
+<td style="text-align: center;">true</td>
+<td style="text-align: left;">Durable</td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>messageListener</em></td>
+<td style="text-align: left;"></td>
+<td style="text-align: center;">MessageListener</td>
+<td style="text-align: center;">false</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>consumerEventListener</em></td>
+<td style="text-align: left;"></td>
+<td style="text-align: center;">ConsumerEventListener</td>
+<td style="text-align: center;">false</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>negativeAckRedeliveryBackoff</em></td>
+<td style="text-align: left;">Interface for custom message is negativeAcked policy. You can specify <code>RedeliveryBackoff</code> for a consumer.</td>
+<td style="text-align: center;">RedeliveryBackoff</td>
+<td style="text-align: center;">false</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>ackTimeoutRedeliveryBackoff</em></td>
+<td style="text-align: left;">Interface for custom message is ackTimeout policy. You can specify <code>RedeliveryBackoff</code> for a consumer.</td>
+<td style="text-align: center;">RedeliveryBackoff</td>
+<td style="text-align: center;">false</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>receiverQueueSize</em></td>
+<td style="text-align: left;">Size of a consumer's receiver queue.<br><br>For example, the number of messages accumulated by a consumer before an application calls <code>Receive</code>.<br><br>A value higher than the default value increases consumer throughput, though at the expense of more memory utilization.</td>
+<td style="text-align: center;">int</td>
+<td style="text-align: center;">true</td>
+<td style="text-align: left;">1000</td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>acknowledgementsGroupTimeMicros</em></td>
+<td style="text-align: left;">Group a consumer acknowledgment for a specified time.<br><br>By default, a consumer uses 100ms grouping time to send out acknowledgments to a broker.<br><br>Setting a group time of 0 sends out acknowledgments immediately.<br><br>A longer ack group time is more efficient at the expense of a slight increase in message re-deliveries after a failure.</td>
+<td style="text-align: center;">long</td>
+<td style="text-align: center;">true</td>
+<td style="text-align: left;">100000</td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>maxAcknowledgmentGroupSize</em></td>
+<td style="text-align: left;">Group a consumer acknowledgment for the number of messages.</td>
+<td style="text-align: center;">int</td>
+<td style="text-align: center;">true</td>
+<td style="text-align: left;">1000</td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>negativeAckRedeliveryDelayMicros</em></td>
+<td style="text-align: left;">Delay to wait before redelivering messages that failed to be processed.<br><br>When an application uses <code>Consumer#negativeAcknowledge(Message)</code>, failed messages are redelivered after a fixed timeout.</td>
+<td style="text-align: center;">long</td>
+<td style="text-align: center;">true</td>
+<td style="text-align: left;">60000000</td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>maxTotalReceiverQueueSizeAcrossPartitions</em></td>
+<td style="text-align: left;">The max total receiver queue size across partitions.<br><br>This setting reduces the receiver queue size for individual partitions if the total receiver queue size exceeds this value.</td>
+<td style="text-align: center;">int</td>
+<td style="text-align: center;">true</td>
+<td style="text-align: left;">50000</td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>consumerName</em></td>
+<td style="text-align: left;">Consumer name</td>
+<td style="text-align: center;">String</td>
+<td style="text-align: center;">true</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>ackTimeoutMillis</em></td>
+<td style="text-align: left;">Timeout of unacked messages</td>
+<td style="text-align: center;">long</td>
+<td style="text-align: center;">true</td>
+<td style="text-align: left;">0</td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>tickDurationMillis</em></td>
+<td style="text-align: left;">Granularity of the ack-timeout redelivery.<br><br>Using an higher <code>tickDurationMillis</code> reduces the memory overhead to track messages when setting ack-timeout to a bigger value (for example, 1 hour).</td>
+<td style="text-align: center;">long</td>
+<td style="text-align: center;">true</td>
+<td style="text-align: left;">1000</td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>priorityLevel</em></td>
+<td style="text-align: left;">Priority level for a consumer to which a broker gives more priority while dispatching messages in Shared subscription type.<br><br>The broker follows descending priorities. For example, 0=max-priority, 1, 2,...<br><br>In Shared subscription type, the broker <strong>first dispatches messages to the max priority level consumers if they have permits</strong>. Otherwise, the broker considers next priority level consumers.<br><br><strong>Example 1</strong><br>If a subscription has consumerA with <code>priorityLevel</code> 0 and consumerB with <code>priorityLevel</code> 1, then the broker <strong>only dispatches messages to consumerA until it runs out permits</strong> and then starts dispatching messages to consumerB.<br><br><strong>Example 2</strong><br>Consumer Priority, Level, Permits<br>C1, 0, 2<br>C2, 0, 1<br>C3, 0, 1<br>C4, 1, 2<br>C5, 1, 1<br><br>Order in which a broker dispatches messages to consumers is: C1, C2, C3, C1, C4, C5, C4.</td>
+<td style="text-align: center;">int</td>
+<td style="text-align: center;">true</td>
+<td style="text-align: left;">0</td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>maxPendingChunkedMessage</em></td>
+<td style="text-align: left;">The maximum size of a queue holding pending chunked messages. When the threshold is reached, the consumer drops pending messages to optimize memory utilization.</td>
+<td style="text-align: center;">int</td>
+<td style="text-align: center;">true</td>
+<td style="text-align: left;">10</td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>autoAckOldestChunkedMessageOnQueueFull</em></td>
+<td style="text-align: left;">Whether to automatically acknowledge pending chunked messages when the threshold of <code>maxPendingChunkedMessage</code> is reached. If set to <code>false</code>, these messages will be redelivered by their broker.</td>
+<td style="text-align: center;">boolean</td>
+<td style="text-align: center;">true</td>
+<td style="text-align: left;">false</td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>expireTimeOfIncompleteChunkedMessageMillis</em></td>
+<td style="text-align: left;">The time interval to expire incomplete chunks if a consumer fails to receive all the chunks in the specified time period. The default value is 1 minute.</td>
+<td style="text-align: center;">long</td>
+<td style="text-align: center;">true</td>
+<td style="text-align: left;">60000</td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>cryptoKeyReader</em></td>
+<td style="text-align: left;"></td>
+<td style="text-align: center;">CryptoKeyReader</td>
+<td style="text-align: center;">false</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>messageCrypto</em></td>
+<td style="text-align: left;"></td>
+<td style="text-align: center;">MessageCrypto</td>
+<td style="text-align: center;">false</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>cryptoFailureAction</em></td>
+<td style="text-align: left;">Consumer should take action when it receives a message that can not be decrypted.<br>* <strong>FAIL</strong>: this is the default option to fail messages until crypto succeeds.<br>* <strong>DISCARD</strong>:silently acknowledge and not deliver message to an application.<br>* <strong>CONSUME</strong>: deliver encrypted messages to applications. It is the application's responsibility to decrypt the message.<br><br>The decompression of message fails.<br><br>If messages contain batch messages, a client is not be able to retrieve individual messages in batch.<br><br>Delivered encrypted message contains <code>EncryptionContext</code> which contains encryption and compression information in it using which application can decrypt consumed message payload.</td>
+<td style="text-align: center;">ConsumerCryptoFailureAction</td>
+<td style="text-align: center;">true</td>
+<td style="text-align: left;">FAIL</td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>properties</em></td>
+<td style="text-align: left;">A name or value property of this consumer.<br><br><code>properties</code> is application defined metadata attached to a consumer.<br><br>When getting a topic stats, associate this metadata with the consumer stats for easier identification.</td>
+<td style="text-align: center;">SortedMap</td>
+<td style="text-align: center;">true</td>
+<td style="text-align: left;">{}</td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>readCompacted</em></td>
+<td style="text-align: left;">If enabling <code>readCompacted</code>, a consumer reads messages from a compacted topic rather than reading a full message backlog of a topic.<br><br>A consumer only sees the latest value for each key in the compacted topic, up until reaching the point in the topic message when compacting backlog. Beyond that point, send messages as normal.<br><br>Only enabling <code>readCompacted</code> on subscriptions to persistent topics, which have a single active consumer (like failure or exclusive subscriptions).<br><br>Attempting to enable it on subscriptions to non-persistent topics or on shared subscriptions leads to a subscription call throwing a <code>PulsarClientException</code>.</td>
+<td style="text-align: center;">boolean</td>
+<td style="text-align: center;">true</td>
+<td style="text-align: left;">false</td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>subscriptionInitialPosition</em></td>
+<td style="text-align: left;">Initial position at which to set cursor when subscribing to a topic at first time.</td>
+<td style="text-align: center;">SubscriptionInitialPosition</td>
+<td style="text-align: center;">true</td>
+<td style="text-align: left;">Latest</td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>patternAutoDiscoveryPeriod</em></td>
+<td style="text-align: left;">Topic auto discovery period when using a pattern for topic's consumer.<br><br>The default and minimum value is 1 minute.</td>
+<td style="text-align: center;">int</td>
+<td style="text-align: center;">true</td>
+<td style="text-align: left;">60</td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>regexSubscriptionMode</em></td>
+<td style="text-align: left;">When subscribing to a topic using a regular expression, you can pick a certain type of topics.<br><br>* <strong>PersistentOnly</strong>: only subscribe to persistent topics.<br>* <strong>NonPersistentOnly</strong>: only subscribe to non-persistent topics.<br>* <strong>AllTopics</strong>: subscribe to both persistent and non-persistent topics.</td>
+<td style="text-align: center;">RegexSubscriptionMode</td>
+<td style="text-align: center;">true</td>
+<td style="text-align: left;">PersistentOnly</td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>deadLetterPolicy</em></td>
+<td style="text-align: left;">Dead letter policy for consumers.<br><br>By default, some messages are probably redelivered many times, even to the extent that it never stops.<br><br>By using the dead letter mechanism, messages have the max redelivery count. <strong>When exceeding the maximum number of redeliveries, messages are sent to the Dead Letter Topic and acknowledged automatically</strong>.<br><br>You can enable the dead letter mechanism by setting <code>deadLetterPolicy</code>.<br><br><strong>Example</strong><br><code><br>client.newConsumer()<br>.deadLetterPolicy(DeadLetterPolicy.builder().maxRedeliverCount(10).build())<br>.subscribe();<br></code><br>Default dead letter topic name is <code>{TopicName}-{Subscription}-DLQ</code>.<br><br>To set a custom dead letter topic name:<br><code><br>client.newConsumer()<br>.deadLetterPolicy(DeadLetterPolicy.builder().maxRedeliverCount(10)<br>.deadLetterTopic("your-topic-name").build())<br>.subscribe();<br></code><br>When specifying the dead letter policy while not specifying <code>ackTimeoutMillis</code>, you can set the ack timeout to 30000 millisecond.</td>
+<td style="text-align: center;">DeadLetterPolicy</td>
+<td style="text-align: center;">true</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>retryEnable</em></td>
+<td style="text-align: left;"></td>
+<td style="text-align: center;">boolean</td>
+<td style="text-align: center;">true</td>
+<td style="text-align: left;">false</td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>batchReceivePolicy</em></td>
+<td style="text-align: left;"></td>
+<td style="text-align: center;">BatchReceivePolicy</td>
+<td style="text-align: center;">false</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>autoUpdatePartitions</em></td>
+<td style="text-align: left;">If <code>autoUpdatePartitions</code> is enabled, a consumer subscribes to partition increasement automatically.<br><br><strong>Note</strong>: this is only for partitioned consumers.</td>
+<td style="text-align: center;">boolean</td>
+<td style="text-align: center;">true</td>
+<td style="text-align: left;">true</td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>autoUpdatePartitionsIntervalSeconds</em></td>
+<td style="text-align: left;"></td>
+<td style="text-align: center;">long</td>
+<td style="text-align: center;">true</td>
+<td style="text-align: left;">60</td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>replicateSubscriptionState</em></td>
+<td style="text-align: left;">If <code>replicateSubscriptionState</code> is enabled, a subscription state is replicated to geo-replicated clusters.</td>
+<td style="text-align: center;">boolean</td>
+<td style="text-align: center;">true</td>
+<td style="text-align: left;">false</td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>resetIncludeHead</em></td>
+<td style="text-align: left;"></td>
+<td style="text-align: center;">boolean</td>
+<td style="text-align: center;">true</td>
+<td style="text-align: left;">false</td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>keySharedPolicy</em></td>
+<td style="text-align: left;"></td>
+<td style="text-align: center;">KeySharedPolicy</td>
+<td style="text-align: center;">false</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>batchIndexAckEnabled</em></td>
+<td style="text-align: left;"></td>
+<td style="text-align: center;">boolean</td>
+<td style="text-align: center;">true</td>
+<td style="text-align: left;">false</td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>ackReceiptEnabled</em></td>
+<td style="text-align: left;"></td>
+<td style="text-align: center;">boolean</td>
+<td style="text-align: center;">true</td>
+<td style="text-align: left;">false</td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>poolMessages</em></td>
+<td style="text-align: left;"></td>
+<td style="text-align: center;">boolean</td>
+<td style="text-align: center;">true</td>
+<td style="text-align: left;">false</td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>payloadProcessor</em></td>
+<td style="text-align: left;"></td>
+<td style="text-align: center;">MessagePayloadProcessor</td>
+<td style="text-align: center;">false</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>startPaused</em></td>
+<td style="text-align: left;"></td>
+<td style="text-align: center;">boolean</td>
+<td style="text-align: center;">true</td>
+<td style="text-align: left;">false</td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>autoScaledReceiverQueueSizeEnabled</em></td>
+<td style="text-align: left;"></td>
+<td style="text-align: center;">boolean</td>
+<td style="text-align: center;">true</td>
+<td style="text-align: left;">false</td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>topicConfigurations</em></td>
+<td style="text-align: left;"></td>
+<td style="text-align: center;">List</td>
+<td style="text-align: center;">true</td>
+<td style="text-align: left;">[]</td>
+</tr>
+</tbody>
+</table>
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Sponsored by <a href="https://www.redhat.com"><img style="vertical-align: middle; height: 2.5em;" alt="Red Hat" src="https://github.com/jbossorg/website/raw/master/docs/img/redhat_reversed.svg"/></a> <br/> <a href="https://creativecommons.org/licenses/by/3.0/">CC by 3.0</a> | <a href="https://www.redhat.com/en/about/privacy-policy">Privacy Policy</a>
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    <script id="__config" type="application/json">{"base": "../..", "features": ["navigation.sections", "navigation.tracking", "navigation.indexes"], "search": "../../assets/javascripts/workers/search.f886a092.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.81fa17fe.min.js"></script>
+      
+        <script src="../../js/print-site.js"></script>
+      
+    
+  </body>
+</html>
