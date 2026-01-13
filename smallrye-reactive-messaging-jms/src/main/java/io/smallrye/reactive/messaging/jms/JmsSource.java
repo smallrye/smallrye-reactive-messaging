@@ -4,10 +4,7 @@ import static io.smallrye.reactive.messaging.jms.i18n.JmsExceptions.ex;
 import static io.smallrye.reactive.messaging.jms.i18n.JmsLogging.log;
 
 import java.time.Duration;
-import java.util.Enumeration;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -26,8 +23,10 @@ import jakarta.jms.Queue;
 import jakarta.jms.Topic;
 
 import io.opentelemetry.api.OpenTelemetry;
+import io.smallrye.common.annotation.Identifier;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.helpers.Subscriptions;
+import io.smallrye.reactive.messaging.jms.fault.JmsFailureHandler;
 import io.smallrye.reactive.messaging.jms.tracing.JmsOpenTelemetryInstrumenter;
 import io.smallrye.reactive.messaging.jms.tracing.JmsTrace;
 import io.smallrye.reactive.messaging.json.JsonMapping;
@@ -44,10 +43,18 @@ class JmsSource {
     private final boolean isTracingEnabled;
     private final JmsOpenTelemetryInstrumenter jmsInstrumenter;
     private final Context context;
+    private final JmsConnector jmsConnector;
 
-    JmsSource(Vertx vertx, JmsResourceHolder<JMSConsumer> resourceHolder, JmsConnectorIncomingConfiguration config,
+    private final Instance<JmsFailureHandler.Factory> failureHandlerFactories;
+    private final JmsConnectorIncomingConfiguration config;
+    private final JmsFailureHandler failureHandler;
+    private final List<Throwable> failures = new ArrayList<>();
+
+    JmsSource(JmsConnector jmsConnector, Vertx vertx, JmsResourceHolder<JMSConsumer> resourceHolder,
+            JmsConnectorIncomingConfiguration config,
             Instance<OpenTelemetry> openTelemetryInstance, JsonMapping jsonMapping,
-            Executor executor) {
+            Executor executor, Instance<JmsFailureHandler.Factory> failureHandlerFactories) {
+        this.jmsConnector = jmsConnector;
         this.isTracingEnabled = config.getTracingEnabled();
         String channel = config.getChannel();
         final String destinationName = config.getDestination().orElseGet(config::getChannel);
@@ -56,6 +63,7 @@ class JmsSource {
         boolean durable = config.getDurable();
         String type = config.getDestinationType();
         boolean retry = config.getRetry();
+        this.config = config;
         this.resourceHolder = resourceHolder.configure(r -> getDestination(r.getContext(), destinationName, type),
                 r -> {
                     if (durable) {
@@ -75,11 +83,13 @@ class JmsSource {
             jmsInstrumenter = null;
         }
 
-        this.publisher = new JmsPublisher(resourceHolder);
+        this.failureHandlerFactories = failureHandlerFactories;
+        this.failureHandler = createFailureHandler();
+        this.publisher = new JmsPublisher(resourceHolder, failureHandler);
         this.context = Context.newInstance(((VertxInternal) vertx.getDelegate()).createEventLoopContext());
         source = Multi.createFrom().publisher(publisher)
                 .emitOn(context::runOnContext)
-                .<IncomingJmsMessage<?>> map(m -> new IncomingJmsMessage<>(m, executor, jsonMapping))
+                .<IncomingJmsMessage<?>> map(m -> new IncomingJmsMessage<>(m, executor, jsonMapping, failureHandler))
                 .onItem().invoke(this::incomingTrace)
                 .onFailure(t -> {
                     log.terminalErrorOnChannel(channel);
@@ -99,6 +109,30 @@ class JmsSource {
                     }
                     return m;
                 });
+    }
+
+    private JmsFailureHandler createFailureHandler() {
+        String strategy = config.getFailureStrategy();
+        Instance<JmsFailureHandler.Factory> failureHandlerFactory = failureHandlerFactories
+                .select(Identifier.Literal.of(strategy));
+        if (failureHandlerFactory.isResolvable()) {
+            return failureHandlerFactory.get().create(jmsConnector, config, this::reportFailure);
+        } else {
+            throw ex.illegalArgumentInvalidFailureStrategy(strategy);
+        }
+    }
+
+    public synchronized void reportFailure(Throwable failure, boolean fatal) {
+        //log.failureReported(topics, failure);
+        // Don't keep all the failures, there are only there for reporting.
+        if (failures.size() == 10) {
+            failures.remove(0);
+        }
+        failures.add(failure);
+
+        if (fatal) {
+            close();
+        }
     }
 
     void close() {
@@ -130,11 +164,13 @@ class JmsSource {
         private final AtomicLong requests = new AtomicLong();
         private final AtomicReference<Flow.Subscriber<? super Message>> downstream = new AtomicReference<>();
         private final JmsResourceHolder<JMSConsumer> consumerHolder;
+        private final JmsFailureHandler failureHandler;
         private final ExecutorService executor;
         private boolean unbounded;
 
-        private JmsPublisher(JmsResourceHolder<JMSConsumer> resourceHolder) {
+        private JmsPublisher(JmsResourceHolder<JMSConsumer> resourceHolder, JmsFailureHandler failureHandler) {
             this.consumerHolder = resourceHolder;
+            this.failureHandler = failureHandler;
             this.executor = Executors.newSingleThreadExecutor();
         }
 
@@ -142,6 +178,9 @@ class JmsSource {
             Flow.Subscriber<? super Message> subscriber = downstream.getAndSet(null);
             if (subscriber != null) {
                 subscriber.onComplete();
+            }
+            if (failureHandler != null) {
+                failureHandler.close();
             }
             executor.shutdown();
         }
