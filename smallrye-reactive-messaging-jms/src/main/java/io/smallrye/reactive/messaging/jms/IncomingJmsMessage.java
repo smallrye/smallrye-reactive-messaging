@@ -5,6 +5,7 @@ import static io.smallrye.reactive.messaging.providers.locals.ContextAwareMessag
 
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 
 import jakarta.jms.JMSException;
@@ -132,6 +133,11 @@ public class IncomingJmsMessage<T> implements ContextAwareMessage<T>, MetadataIn
     @Override
     public Metadata getMetadata() {
         return metadata;
+    }
+
+    @Override
+    public BiFunction<Throwable, Metadata, CompletionStage<Void>> getNackWithMetadata() {
+        return this::nack;
     }
 
     @Override
