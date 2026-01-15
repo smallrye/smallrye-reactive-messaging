@@ -71,8 +71,10 @@ public class JmsResourceHolder<T> implements ExceptionListener {
 
     @Override
     public void onException(JMSException exception) {
+        System.out.println("Got exception: " + exception.getMessage());
         synchronized (this) {
             if (closed) {
+                System.out.println("Already closed, ignoring exception");
                 return;
             }
             log.jmsException(channel, exception);
