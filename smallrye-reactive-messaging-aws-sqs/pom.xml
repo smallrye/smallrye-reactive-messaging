@@ -4,7 +4,7 @@
   <parent>
     <artifactId>smallrye-reactive-messaging</artifactId>
     <groupId>io.smallrye.reactive</groupId>
-    <version>4.32.1</version>
+    <version>999-SNAPSHOT</version>
   </parent>
   <artifactId>smallrye-reactive-messaging-aws-sqs</artifactId>
   <name>SmallRye Reactive Messaging : Connector :: AWS SQS</name>
