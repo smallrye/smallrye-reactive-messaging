@@ -8,15 +8,23 @@ import org.eclipse.microprofile.config.ConfigProvider;
 import org.jboss.weld.environment.se.Weld;
 import org.jboss.weld.environment.se.WeldContainer;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 
 import io.smallrye.config.SmallRyeConfigProviderResolver;
+import io.smallrye.mutiny.infrastructure.Infrastructure;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
+import io.vertx.core.Context;
 
 public class CamelTestBase {
 
     private Weld weld;
     protected WeldContainer container;
+
+    @BeforeAll
+    public static void setupMutiny() {
+        Infrastructure.setCanCallerThreadBeBlockedSupplier(() -> !Context.isOnEventLoopThread());
+    }
 
     @BeforeEach
     public void init() {

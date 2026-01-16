@@ -16,9 +16,11 @@ import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.utility.DockerImageName;
 
 import io.smallrye.config.SmallRyeConfigProviderResolver;
+import io.smallrye.mutiny.infrastructure.Infrastructure;
 import io.smallrye.reactive.messaging.providers.connectors.ExecutionHolder;
 import io.smallrye.reactive.messaging.providers.extension.HealthCenter;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
+import io.vertx.core.Context;
 import io.vertx.mutiny.core.Vertx;
 
 public class RabbitMQBrokerTestBase {
@@ -33,6 +35,11 @@ public class RabbitMQBrokerTestBase {
     final static String password = "guest";
     AmqpUsage usage;
     ExecutionHolder executionHolder;
+
+    @BeforeAll
+    public static void setupMutiny() {
+        Infrastructure.setCanCallerThreadBeBlockedSupplier(() -> !Context.isOnEventLoopThread());
+    }
 
     @BeforeAll
     public static void startBroker() {

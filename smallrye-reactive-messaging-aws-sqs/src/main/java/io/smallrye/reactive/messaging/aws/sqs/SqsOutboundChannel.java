@@ -186,7 +186,7 @@ public class SqsOutboundChannel {
             if (tracingEnabled) {
                 SendMessageRequest.Builder builder = request.toBuilder();
                 Map<String, MessageAttributeValue> mutableAttributes = new HashMap<>(request.messageAttributes());
-                outgoingTrace(m, mutableAttributes);
+                outgoingTrace(m, queueUrl, mutableAttributes);
                 builder.messageAttributes(mutableAttributes);
                 return builder.build();
             }
@@ -200,7 +200,7 @@ public class SqsOutboundChannel {
             if (tracingEnabled) {
                 SendMessageRequest request = builder.build();
                 Map<String, MessageAttributeValue> mutableAttributes = new HashMap<>(request.messageAttributes());
-                outgoingTrace(m, mutableAttributes);
+                outgoingTrace(m, queueUrl, mutableAttributes);
                 return request.toBuilder()
                         .messageAttributes(mutableAttributes)
                         .build();
@@ -234,7 +234,7 @@ public class SqsOutboundChannel {
             if (msg.hasAttributes()) {
                 msgAttributes.putAll(msg.messageAttributes());
             }
-            outgoingTrace(m, msgAttributes);
+            outgoingTrace(m, queueUrl, msgAttributes);
             return builder
                     .queueUrl(queueUrl)
                     .messageGroupId(groupId)
@@ -243,7 +243,7 @@ public class SqsOutboundChannel {
                     .build();
         }
         String messageBody = outgoingPayloadClassName(payload, msgAttributes);
-        outgoingTrace(m, msgAttributes);
+        outgoingTrace(m, queueUrl, msgAttributes);
         return builder
                 .queueUrl(queueUrl)
                 .messageGroupId(groupId)
@@ -278,10 +278,9 @@ public class SqsOutboundChannel {
                 || c.equals(Long.class);
     }
 
-    private void outgoingTrace(Message<?> message, Map<String, MessageAttributeValue> attributes) {
+    private void outgoingTrace(Message<?> message, String channelQueueUrl, Map<String, MessageAttributeValue> attributes) {
         if (tracingEnabled) {
-            String indefinitely = queueUrlUni.await().indefinitely(); // memoized
-            sqsInstrumenter.traceOutgoing(message, new SqsTrace(indefinitely, attributes));
+            sqsInstrumenter.traceOutgoing(message, new SqsTrace(channelQueueUrl, attributes));
         }
     }
 
