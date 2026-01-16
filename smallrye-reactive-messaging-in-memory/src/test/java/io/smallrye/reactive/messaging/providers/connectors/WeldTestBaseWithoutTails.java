@@ -21,6 +21,7 @@ import org.junit.jupiter.api.BeforeEach;
 
 import io.smallrye.config.SmallRyeConfigProviderResolver;
 import io.smallrye.mutiny.Multi;
+import io.smallrye.mutiny.infrastructure.Infrastructure;
 import io.smallrye.reactive.messaging.ChannelRegistry;
 import io.smallrye.reactive.messaging.memory.InMemoryConnector;
 import io.smallrye.reactive.messaging.providers.MediatorFactory;
@@ -40,6 +41,7 @@ import io.smallrye.reactive.messaging.providers.metrics.MetricDecorator;
 import io.smallrye.reactive.messaging.providers.metrics.MicrometerDecorator;
 import io.smallrye.reactive.messaging.providers.wiring.Wiring;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
+import io.vertx.core.Context;
 
 public class WeldTestBaseWithoutTails {
 
@@ -51,6 +53,11 @@ public class WeldTestBaseWithoutTails {
     protected SeContainerInitializer initializer;
 
     protected SeContainer container;
+
+    @BeforeAll
+    public static void setupMutiny() {
+        Infrastructure.setCanCallerThreadBeBlockedSupplier(() -> !Context.isOnEventLoopThread());
+    }
 
     @BeforeAll
     public static void disableLogging() {

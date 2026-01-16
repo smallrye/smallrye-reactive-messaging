@@ -5,7 +5,15 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 
+import io.smallrye.mutiny.infrastructure.Infrastructure;
+import io.vertx.core.Context;
+
 public class AmqpBrokerTestBase extends AmqpBrokerHolder {
+
+    @BeforeAll
+    public static void setupMutiny() {
+        Infrastructure.setCanCallerThreadBeBlockedSupplier(() -> !Context.isOnEventLoopThread());
+    }
 
     @BeforeAll
     public static void startBroker() {

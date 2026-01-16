@@ -18,6 +18,7 @@ import org.testcontainers.containers.wait.strategy.LogMessageWaitStrategy;
 import com.google.pubsub.v1.TopicName;
 
 import io.smallrye.config.inject.ConfigExtension;
+import io.smallrye.mutiny.infrastructure.Infrastructure;
 import io.smallrye.reactive.messaging.providers.MediatorFactory;
 import io.smallrye.reactive.messaging.providers.connectors.ExecutionHolder;
 import io.smallrye.reactive.messaging.providers.connectors.WorkerPoolRegistry;
@@ -29,6 +30,7 @@ import io.smallrye.reactive.messaging.providers.impl.ConfiguredChannelFactory;
 import io.smallrye.reactive.messaging.providers.impl.InternalChannelRegistry;
 import io.smallrye.reactive.messaging.providers.wiring.Wiring;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
+import io.vertx.core.Context;
 
 public class PubSubTestBase {
 
@@ -41,6 +43,11 @@ public class PubSubTestBase {
     static GenericContainer<?> PUBSUB_CONTAINER;
 
     protected PubSubConfig config;
+
+    @BeforeAll
+    public static void setupMutiny() {
+        Infrastructure.setCanCallerThreadBeBlockedSupplier(() -> !Context.isOnEventLoopThread());
+    }
 
     @BeforeAll
     public static void startPubSubContainer() {
