@@ -3,6 +3,7 @@ package io.smallrye.reactive.messaging.kafka.health;
 import static io.smallrye.reactive.messaging.kafka.i18n.KafkaLogging.log;
 
 import java.util.Map;
+import java.util.Optional;
 
 import org.apache.kafka.common.Metric;
 import org.apache.kafka.common.MetricName;
@@ -13,6 +14,7 @@ import io.smallrye.reactive.messaging.kafka.KafkaAdmin;
 public abstract class BaseHealth {
 
     public static final String CONNECTION_COUNT_METRIC_NAME = "connection-count";
+    public static final String CONNECTION_CREATION_TOTAL_METRIC_NAME = "connection-creation-total";
 
     protected final String channel;
 
@@ -20,6 +22,9 @@ public abstract class BaseHealth {
     protected final boolean startupTopicVerificationDisabled;
 
     protected final boolean readinessTopicVerificationDisabled;
+
+    private Metric connectionCountMetric;
+    private Metric connectionCreationTotalMetric;
 
     public BaseHealth(String channel, boolean topicVerificationEnabled,
             boolean startupTopicVerificationDisabled, boolean readinessTopicVerificationDisabled) {
@@ -64,16 +69,32 @@ public abstract class BaseHealth {
         }
     }
 
-    public Metric getMetric(Map<MetricName, ? extends Metric> metrics) {
-        Metric metric = null;
-        for (MetricName metricName : metrics.keySet()) {
-            if (metricName.name().equals(CONNECTION_COUNT_METRIC_NAME)) {
-                metric = metrics.get(metricName);
-                break;
-            }
+    public Metric getConnectionCountMetric() {
+        if (connectionCountMetric == null) {
+            connectionCountMetric = getMetric(CONNECTION_COUNT_METRIC_NAME).orElse(null);
         }
-        return metric;
+        return connectionCountMetric;
     }
+
+    public Metric getConnectionCreationTotalMetric() {
+        if (connectionCreationTotalMetric == null) {
+            connectionCreationTotalMetric = getMetric(CONNECTION_CREATION_TOTAL_METRIC_NAME).orElse(null);
+        }
+        return connectionCreationTotalMetric;
+    }
+
+    private Optional<Metric> getMetric(String name) {
+        return getMetrics().map(metrics -> {
+            for (MetricName metricName : metrics.keySet()) {
+                if (metricName.name().equals(name)) {
+                    return metrics.get(metricName);
+                }
+            }
+            return null;
+        });
+    }
+
+    protected abstract Optional<Map<MetricName, ? extends Metric>> getMetrics();
 
     protected abstract void metricsBasedStartupCheck(HealthReport.HealthReportBuilder builder);
 
