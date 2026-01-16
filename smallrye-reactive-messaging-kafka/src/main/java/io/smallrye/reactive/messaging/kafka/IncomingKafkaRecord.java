@@ -27,6 +27,23 @@ public class IncomingKafkaRecord<K, T> implements KafkaRecord<K, T>, MetadataInj
     private final KafkaFailureHandler onNack;
     private final T payload;
 
+    public IncomingKafkaRecord(IncomingKafkaRecord<K, T> that) {
+        this(that.metadata, that.kafkaMetadata, that.commitHandler, that.onNack, that.payload);
+    }
+
+    private IncomingKafkaRecord(Metadata metadata,
+            IncomingKafkaRecordMetadata<K, T> kafkaMetadata,
+            KafkaCommitHandler commitHandler,
+            KafkaFailureHandler onNack,
+            T payload) {
+        this.metadata = metadata;
+        this.kafkaMetadata = kafkaMetadata;
+        this.commitHandler = commitHandler;
+        this.onNack = onNack;
+        this.payload = payload;
+    }
+
+    @Deprecated(forRemoval = true)
     public IncomingKafkaRecord(ConsumerRecord<K, T> record,
             String channel,
             int index,
@@ -34,6 +51,15 @@ public class IncomingKafkaRecord<K, T> implements KafkaRecord<K, T>, MetadataInj
             KafkaFailureHandler onNack,
             boolean cloudEventEnabled,
             boolean tracingEnabled) {
+        this(record, channel, index, commitHandler, onNack, cloudEventEnabled);
+    }
+
+    public IncomingKafkaRecord(ConsumerRecord<K, T> record,
+            String channel,
+            int index,
+            KafkaCommitHandler commitHandler,
+            KafkaFailureHandler onNack,
+            boolean cloudEventEnabled) {
         this.commitHandler = commitHandler;
         int generationId = KafkaRecordHelper.extractGenerationIdFrom(record);
         this.kafkaMetadata = new IncomingKafkaRecordMetadata<>(record, channel, index, generationId);
