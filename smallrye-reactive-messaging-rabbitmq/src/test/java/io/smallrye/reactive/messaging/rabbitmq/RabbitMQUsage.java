@@ -270,6 +270,26 @@ public class RabbitMQUsage {
         }
     }
 
+    /**
+     * Returns the list of active connections.
+     *
+     * @return a {@link JsonArray} of connection descriptions
+     * @throws IOException if an error occurs
+     */
+    public JsonArray getConnections() throws IOException {
+        final URL url = new URL(String.format("http://%s:%d/api/connections", options.getHost(), managementPort));
+        final HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+        conn.setRequestProperty("Authorization", "Basic " + getBasicAuth());
+        conn.connect();
+
+        if (conn.getResponseCode() == 200) {
+            final String jsonString = getResponseString(conn);
+            return new JsonArray(jsonString);
+        } else {
+            return null;
+        }
+    }
+
     private JsonObject getObjectByTypeAndName(final String objectType, final String objectName) throws IOException {
         final URL url = new URL(String.format("http://%s:%d/api/%s/%%2F/%s", options.getHost(), managementPort,
                 objectType, objectName));
