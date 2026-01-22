@@ -166,14 +166,17 @@ public class KafkaSource<K, V> {
                 log.unableToReadRecord(topics, t);
                 reportFailure(t, false);
             });
+            Multi<IncomingKafkaRecord<K, V>> incomingMulti = multi.onItem()
+                    .transform(rec -> new IncomingKafkaRecord<>(rec, channel, index, commitHandler,
+                            failureHandler, isCloudEventEnabled));
 
-            Multi<IncomingKafkaRecord<K, V>> incomingMulti = multi.onItem().transformToUni(rec -> {
-                IncomingKafkaRecord<K, V> record = new IncomingKafkaRecord<>(rec, channel, index, commitHandler,
-                        failureHandler, isCloudEventEnabled, isTracingEnabled);
+            incomingMulti = commitHandler.decorateStream(incomingMulti);
+
+            incomingMulti = incomingMulti.onItem().transformToUni(record -> {
                 if ((failureHandler instanceof KafkaDeadLetterQueue)
-                        && rec.headers() != null
-                        && rec.headers().lastHeader(DESERIALIZATION_FAILURE_DLQ) != null) {
-                    Header reasonMsgHeader = rec.headers().lastHeader(DESERIALIZATION_FAILURE_REASON);
+                        && record.getHeaders() != null
+                        && record.getHeaders().lastHeader(DESERIALIZATION_FAILURE_DLQ) != null) {
+                    Header reasonMsgHeader = record.getHeaders().lastHeader(DESERIALIZATION_FAILURE_REASON);
                     String message = reasonMsgHeader != null ? new String(reasonMsgHeader.value()) : null;
                     RecordDeserializationException reason = new RecordDeserializationException(
                             TopicPartitions.getTopicPartition(record), record.getOffset(), message, null);
