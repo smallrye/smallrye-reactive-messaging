@@ -64,15 +64,26 @@ public class IncomingRabbitMQMessage<T> implements ContextAwareMessage<T>, Metad
     public IncomingRabbitMQMessage(RabbitMQMessage delegate, ClientHolder holder,
             RabbitMQFailureHandler onNack,
             RabbitMQAckHandler onAck, String contentTypeOverride) {
-        this(delegate.getDelegate(), holder, onNack, onAck, contentTypeOverride);
+        this(delegate.getDelegate(), holder, holder.getContext(), onNack, onAck, contentTypeOverride);
+    }
+
+    public IncomingRabbitMQMessage(RabbitMQMessage delegate, ClientHolder holder, Context context,
+            RabbitMQFailureHandler onNack,
+            RabbitMQAckHandler onAck, String contentTypeOverride) {
+        this(delegate.getDelegate(), holder, context, onNack, onAck, contentTypeOverride);
     }
 
     IncomingRabbitMQMessage(io.vertx.rabbitmq.RabbitMQMessage msg, ClientHolder holder,
             RabbitMQFailureHandler onNack, RabbitMQAckHandler onAck, String contentTypeOverride) {
+        this(msg, holder, holder.getContext(), onNack, onAck, contentTypeOverride);
+    }
+
+    IncomingRabbitMQMessage(io.vertx.rabbitmq.RabbitMQMessage msg, ClientHolder holder, Context context,
+            RabbitMQFailureHandler onNack, RabbitMQAckHandler onAck, String contentTypeOverride) {
         this.message = msg;
         this.deliveryTag = msg.envelope().getDeliveryTag();
         this.holder = holder;
-        this.context = holder.getContext();
+        this.context = context != null ? context : holder.getContext();
         this.contentTypeOverride = contentTypeOverride;
         this.rabbitMQMetadata = new IncomingRabbitMQMetadata(this.message);
         this.onNack = onNack;
