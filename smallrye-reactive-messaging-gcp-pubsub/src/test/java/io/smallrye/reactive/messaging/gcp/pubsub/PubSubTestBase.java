@@ -71,7 +71,7 @@ public class PubSubTestBase {
 
     public void initConfiguration(String topic) {
         config = new PubSubConfig(PROJECT_ID, topic, null, true, "localhost",
-                PUBSUB_CONTAINER.getFirstMappedPort());
+                PUBSUB_CONTAINER.getFirstMappedPort(), false);
     }
 
     protected MapBasedConfig createSourceConfig(final String topic, final String subscription,
