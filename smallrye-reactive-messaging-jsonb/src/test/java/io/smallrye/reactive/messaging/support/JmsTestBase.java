@@ -1,5 +1,8 @@
 package io.smallrye.reactive.messaging.support;
 
+import io.smallrye.reactive.messaging.jms.fault.JmsDlqFailure;
+import io.smallrye.reactive.messaging.jms.fault.JmsFailStop;
+import io.smallrye.reactive.messaging.jms.fault.JmsIgnoreFailure;
 import org.eclipse.microprofile.config.ConfigProvider;
 import org.jboss.weld.environment.se.Weld;
 import org.jboss.weld.environment.se.WeldContainer;
@@ -100,6 +103,9 @@ public class JmsTestBase {
         weld.addBeanClass(JmsConnector.class);
         weld.addBeanClass(JsonBProvider.class);
         weld.addBeanClass(JsonBMapping.class);
+        weld.addBeanClass(JmsFailStop.Factory.class);
+        weld.addBeanClass(JmsIgnoreFailure.Factory.class);
+        weld.addBeanClass(JmsDlqFailure.Factory.class);
         weld.disableDiscovery();
         return weld;
     }
