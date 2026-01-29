@@ -32,12 +32,12 @@ public class MqttTopicHelper {
 
         // Special rule: Topics starting with $ don't match wildcards at the beginning
         if (topicName.startsWith("$")) {
-            if (topicFilter.topicFilter.startsWith("+") || topicFilter.topicFilter.startsWith("#")) {
+            if (topicFilter.topicFilter().startsWith("+") || topicFilter.topicFilter().startsWith("#")) {
                 return false;
             }
         }
 
-        return topicFilter.pattern.matcher(topicName).matches();
+        return topicFilter.pattern().matcher(topicName).matches();
     }
 
     public static boolean matches(String topicFilter, String topicName) {

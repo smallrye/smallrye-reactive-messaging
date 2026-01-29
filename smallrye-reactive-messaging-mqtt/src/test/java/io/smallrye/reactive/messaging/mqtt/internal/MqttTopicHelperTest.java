@@ -212,7 +212,7 @@ class MqttTopicHelperTest {
         @Test
         @DisplayName("Pattern should correctly use regex quantifiers")
         void shouldContainCorrectRegexQuantifiers() {
-            Pattern pattern = MqttTopicHelper.topicFilterToPattern("home/+/temp").pattern;
+            Pattern pattern = MqttTopicHelper.topicFilterToPattern("home/+/temp").pattern();
             String regex = pattern.pattern();
             // Check that it contains the single-level wildcard pattern
             assertTrue(regex.contains("[^/]*"));
@@ -224,7 +224,7 @@ class MqttTopicHelperTest {
         @Test
         @DisplayName("Pattern with # should use .* for multi-level matching")
         void shouldUseCorrectMultiLevelWildcard() {
-            Pattern pattern = MqttTopicHelper.topicFilterToPattern("home/#").pattern;
+            Pattern pattern = MqttTopicHelper.topicFilterToPattern("home/#").pattern();
             String regex = pattern.pattern();
             // Check that it contains the multi-level wildcard pattern
             assertTrue(regex.contains(".*"));
