@@ -108,9 +108,6 @@ public class KafkaDelayedRetryTopic extends ContextHolder implements KafkaFailur
         Instance<ProducerInterceptor<?, ?>> producerInterceptors;
 
         @Inject
-        Instance<Config> rootConfig;
-
-        @Inject
         @Any
         Instance<Map<String, Object>> configurations;
 
@@ -139,6 +136,7 @@ public class KafkaDelayedRetryTopic extends ContextHolder implements KafkaFailur
             String deadQueueTopic = config.getDeadLetterQueueTopic().orElse(null);
 
             String consumerClientId = (String) consumer.configuration().get(CLIENT_ID_CONFIG);
+            String consumerGroupId = (String) consumer.configuration().get(GROUP_ID_CONFIG);
             Config connectorConfig = Configs.prefixOverride(config.config(), CHANNEL_DLQ_SUFFIX,
                     Map.of(KEY_SERIALIZER_CLASS_CONFIG, c -> getMirrorSerializer(keyDeserializer),
                             VALUE_SERIALIZER_CLASS_CONFIG, c -> getMirrorSerializer(valueDeserializer),
@@ -162,7 +160,8 @@ public class KafkaDelayedRetryTopic extends ContextHolder implements KafkaFailur
             Config retryConsumerConfig = Configs.prefixOverride(config.config(), "delayed-retry-topic.consumer",
                     Map.of("lazy-client", c -> true,
                             CLIENT_ID_CONFIG, c -> "kafka-delayed-retry-topic-" + consumerClientId,
-                            GROUP_ID_CONFIG, c -> "kafka-delayed-retry-topic-" + consumerClientId));
+                            GROUP_ID_CONFIG, c -> "kafka-delayed-retry-topic-" + consumerGroupId));
+
             Config retryKafkaConfig = ConfigHelper.retrieveChannelConfiguration(configurations, retryConsumerConfig);
             KafkaConnectorIncomingConfiguration retryConfig = new KafkaConnectorIncomingConfiguration(retryKafkaConfig);
 
@@ -240,11 +239,11 @@ public class KafkaDelayedRetryTopic extends ContextHolder implements KafkaFailur
         return subscribe.onItem().transform(record -> new IncomingKafkaRecord<>(record, channel, -1,
                 latestCommit,
                 this,
-                configuration.getCloudEvents(),
-                configuration.getTracingEnabled())).onItem().transformToUni(record -> {
+                configuration.getCloudEvents()))
+                .onItem().transformToUni(record -> {
                     incrementRetryHeader(record.getHeaders());
                     Duration between = getDelay(record);
-                    if (between.isNegative()) {
+                    if (between.toMillis() < 1L) {
                         return Uni.createFrom().item(record);
                     } else {
                         return Uni.createFrom().item(record).onItem().delayIt().by(between);
