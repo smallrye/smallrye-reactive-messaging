@@ -1,8 +1,5 @@
 package io.smallrye.reactive.messaging.support;
 
-import io.smallrye.reactive.messaging.jms.fault.JmsDlqFailure;
-import io.smallrye.reactive.messaging.jms.fault.JmsFailStop;
-import io.smallrye.reactive.messaging.jms.fault.JmsIgnoreFailure;
 import org.eclipse.microprofile.config.ConfigProvider;
 import org.jboss.weld.environment.se.Weld;
 import org.jboss.weld.environment.se.WeldContainer;
@@ -12,6 +9,9 @@ import org.junit.jupiter.api.BeforeEach;
 import io.smallrye.config.SmallRyeConfigProviderResolver;
 import io.smallrye.config.inject.ConfigExtension;
 import io.smallrye.reactive.messaging.jms.JmsConnector;
+import io.smallrye.reactive.messaging.jms.fault.JmsDlqFailure;
+import io.smallrye.reactive.messaging.jms.fault.JmsFailStop;
+import io.smallrye.reactive.messaging.jms.fault.JmsIgnoreFailure;
 import io.smallrye.reactive.messaging.json.jsonb.JsonBMapping;
 import io.smallrye.reactive.messaging.json.jsonb.JsonBProvider;
 import io.smallrye.reactive.messaging.providers.MediatorFactory;
