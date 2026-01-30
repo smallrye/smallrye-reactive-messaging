@@ -11,7 +11,6 @@ import java.util.concurrent.Flow;
 import java.util.function.BiConsumer;
 
 import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.enterprise.inject.Any;
 import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
 
@@ -30,10 +29,10 @@ import io.smallrye.reactive.messaging.providers.impl.Configs;
 public class JmsDlqFailure implements JmsFailureHandler {
 
     public static final String CHANNEL_DLQ_SUFFIX = "dead-letter-queue";
-    public static final String DEAD_LETTER_EXCEPTION_CLASS_NAME = "dead-letter-exception-class-name";
-    public static final String DEAD_LETTER_CAUSE_CLASS_NAME = "dead-letter-cause-class-name";
-    public static final String DEAD_LETTER_REASON = "dead-letter-reason";
-    public static final String DEAD_LETTER_CAUSE = "dead-letter-cause";
+    public static final String DEAD_LETTER_EXCEPTION_CLASS_NAME = "dead_letter_exception_class_name";
+    public static final String DEAD_LETTER_CAUSE_CLASS_NAME = "dead_letter_cause_class_name";
+    public static final String DEAD_LETTER_REASON = "dead_letter_reason";
+    public static final String DEAD_LETTER_CAUSE = "dead_letter_cause";
 
     private final JmsConnectorIncomingConfiguration config;
     private final String dlqDestination;
@@ -44,11 +43,6 @@ public class JmsDlqFailure implements JmsFailureHandler {
     public static class Factory implements JmsFailureHandler.Factory {
         @Inject
         Instance<SubscriberDecorator> subscriberDecorators;
-        @Inject
-        Instance<Config> rootConfig;
-        @Inject
-        @Any
-        Instance<Map<String, Object>> configurations;
 
         @Override
         public JmsFailureHandler create(JmsConnector connector, JmsConnectorIncomingConfiguration config,
@@ -57,12 +51,8 @@ public class JmsDlqFailure implements JmsFailureHandler {
             Optional<String> deadLetterQueueDestination = config.getDeadLetterQueueDestination();
             Config connectorConfig = Configs.prefixOverride(config.config(), CHANNEL_DLQ_SUFFIX,
                     Map.of("destination", c -> deadLetterQueueDestination.orElse("dead-letter-queue-" + config.getChannel())));
-            //            ConnectorConfig connectorConfig = new OverrideConfig(INCOMING_PREFIX, rootConfig.get(),
-            //                    JmsConnector.CONNECTOR_NAME, config.getChannel(), null,
-            //                    Map.of("destination", c -> deadLetterQueueDestination.orElse("dead-letter-queue-" + config.getChannel())));
 
             JmsConnectorOutgoingConfiguration producerConfig = new JmsConnectorOutgoingConfiguration(connectorConfig);
-            //            String destination = producerConfig.getDestination().get();
 
             String deadQueueDestination = config.getDeadLetterQueueDestination()
                     .orElse("dead-letter-queue-" + config.getChannel());
@@ -87,17 +77,11 @@ public class JmsDlqFailure implements JmsFailureHandler {
     public <T> Uni<Void> handle(IncomingJmsMessage<T> incomingMessage, Throwable reason, Metadata metadata) {
         OutgoingJmsMessageMetadata outgoingJmsMessageMetadata = getOutgoingJmsMessageMetadata(incomingMessage, reason);
 
-        Message<T> dead = Message.of(incomingMessage.getPayload());
-        dead.addMetadata(outgoingJmsMessageMetadata);
-
+        Message<T> dead = Message.of(incomingMessage.getPayload(), Metadata.of(outgoingJmsMessageMetadata));
         log.messageNackedDeadLetter(config.getChannel(), dlqDestination);
-
         CompletableFuture<Void> future = new CompletableFuture<>();
-
         dlqSource.onNext(dead
-                .withAck(() -> {
-                    return dead.ack().thenAccept(__ -> future.complete(null));
-                })
+                .withAck(() -> dead.ack().thenAccept(__ -> future.complete(null)))
                 .withNack(throwable -> {
                     future.completeExceptionally(throwable);
                     return future;
@@ -107,9 +91,8 @@ public class JmsDlqFailure implements JmsFailureHandler {
     }
 
     private <T> OutgoingJmsMessageMetadata getOutgoingJmsMessageMetadata(IncomingJmsMessage<T> message, Throwable reason) {
-        Optional<JmsProperties> optionalJmsProperties = message.getMetadata(IncomingJmsMessageMetadata.class).map(a -> {
-            return a.getProperties();
-        });
+        Optional<JmsProperties> optionalJmsProperties = message.getMetadata(IncomingJmsMessageMetadata.class)
+                .map(JmsMessageMetadata::getProperties);
         JmsProperties jmsProperties = optionalJmsProperties
                 .orElse(new ImmutableJmsProperties(message.unwrap(jakarta.jms.Message.class)));
         Enumeration<String> propertyNames = jmsProperties.getPropertyNames();
@@ -127,10 +110,9 @@ public class JmsDlqFailure implements JmsFailureHandler {
             jmsPropertiesBuilder.with(DEAD_LETTER_CAUSE, getThrowableMessage(reason.getCause()));
         }
 
-        JmsProperties outgoingJmsProperties = jmsPropertiesBuilder.build();
-        OutgoingJmsMessageMetadata outgoingJmsMessageMetadata = new OutgoingJmsMessageMetadata.OutgoingJmsMessageMetadataBuilder()
-                .withProperties(outgoingJmsProperties).build();
-        return outgoingJmsMessageMetadata;
+        return new OutgoingJmsMessageMetadata.OutgoingJmsMessageMetadataBuilder()
+                .withProperties(jmsPropertiesBuilder.build())
+                .build();
     }
 
     @Override

@@ -77,6 +77,24 @@ When the Reactive Messaging `Message` gets acknowledged, the associated
 JMS Message is acknowledged. As JMS acknowledgement is blocking, this
 acknowledgement is delegated to a worker thread.
 
+## Failure Handling
+
+If a message produced from a JMS message is *nacked*, a failure strategy is applied. The JMS connector supports 3 strategies:
+
+- `fail` - (default) fail the application, no more messages will be processed. The failing message is not acknowledged and may be redelivered by the JMS broker. The application is marked as unhealthy (impacting liveness checks).
+
+- `ignore` - the failure is logged, but the processing continues. The failing message is acknowledged and will not be redelivered.
+
+- `dead-letter-queue` - the failing message is acknowledged and sent to a JMS *dead letter queue* destination. The processing continues with the next message.
+
+    The dead letter queue destination can be configured using the `dead-letter-queue.destination` attribute. If not specified, it defaults to `dead-letter-queue-$channel`.
+    Messages sent to the dead letter queue preserve the original message body and properties. In addition, the following properties are added:
+
+    - `dead_letter_exception_class_name` - the fully qualified class name of the exception
+    - `dead_letter_reason` - the exception message
+    - `dead_letter_cause_class_name` - the fully qualified class name of the root cause (if available)
+    - `dead_letter_cause` - the root cause exception message (if available)
+
 ## Configuration Reference
 
 {{ insert('../../../target/connectors/smallrye-jms-incoming.md') }}
