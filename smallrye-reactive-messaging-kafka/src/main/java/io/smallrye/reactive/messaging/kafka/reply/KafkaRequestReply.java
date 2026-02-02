@@ -8,20 +8,20 @@ import java.util.Set;
 import org.apache.kafka.common.TopicPartition;
 import org.eclipse.microprofile.reactive.messaging.Message;
 
-import io.smallrye.common.annotation.Experimental;
+import io.smallrye.common.annotation.TechPreview;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.EmitterType;
 import io.smallrye.reactive.messaging.kafka.KafkaConsumer;
 
 /**
- * KafkaRequestReply is an experimental API that provides functionality for sending requests and receiving
+ * KafkaRequestReply is a tech preview API that provides functionality for sending requests and receiving
  * responses over Kafka.
  *
  * @param <Req> the type of the request value
  * @param <Rep> the type of the response value
  */
-@Experimental("Experimental API")
+@TechPreview("Tech Preview API")
 public interface KafkaRequestReply<Req, Rep> extends EmitterType {
 
     /**

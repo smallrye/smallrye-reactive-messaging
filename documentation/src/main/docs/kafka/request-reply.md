@@ -1,7 +1,7 @@
 # Kafka Request/Reply
 
-!!!warning "Experimental"
-    Kafka Request Reply Emitter is an experimental feature.
+!!!warning "Tech Preview"
+    Kafka Request Reply Emitter is a tech preview feature.
 
 The Kafka [Request-Reply](https://www.enterpriseintegrationpatterns.com/patterns/messaging/RequestReply.html) pattern allows you to publish a message to a Kafka topic and then await for a reply message that responds to the initial request.
 
