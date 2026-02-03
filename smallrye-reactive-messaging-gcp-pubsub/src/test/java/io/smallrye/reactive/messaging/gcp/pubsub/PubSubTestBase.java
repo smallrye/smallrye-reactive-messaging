@@ -1,5 +1,8 @@
 package io.smallrye.reactive.messaging.gcp.pubsub;
 
+import static io.smallrye.reactive.messaging.gcp.pubsub.i18n.PubSubLogging.log;
+import static org.awaitility.Awaitility.await;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -15,6 +18,8 @@ import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.output.Slf4jLogConsumer;
 import org.testcontainers.containers.wait.strategy.LogMessageWaitStrategy;
 
+import com.google.api.gax.rpc.AlreadyExistsException;
+import com.google.api.gax.rpc.NotFoundException;
 import com.google.pubsub.v1.TopicName;
 
 import io.smallrye.config.inject.ConfigExtension;
@@ -27,6 +32,7 @@ import io.smallrye.reactive.messaging.providers.extension.HealthCenter;
 import io.smallrye.reactive.messaging.providers.extension.MediatorManager;
 import io.smallrye.reactive.messaging.providers.extension.ReactiveMessagingExtension;
 import io.smallrye.reactive.messaging.providers.impl.ConfiguredChannelFactory;
+import io.smallrye.reactive.messaging.providers.impl.ConnectorFactories;
 import io.smallrye.reactive.messaging.providers.impl.InternalChannelRegistry;
 import io.smallrye.reactive.messaging.providers.wiring.Wiring;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
@@ -74,9 +80,29 @@ public class PubSubTestBase {
                 PUBSUB_CONTAINER.getFirstMappedPort(), false);
     }
 
+    protected MapBasedConfig createSinkConfig(String channel, String topic, final int containerPort) {
+        final String prefix = "mp.messaging.outgoing." + channel + ".";
+        final Map<String, Object> config = new HashMap<>();
+        config.put(prefix.concat("connector"), PubSubConnector.CONNECTOR_NAME);
+        config.put(prefix.concat("topic"), topic);
+
+        // connector properties
+        config.put("gcp-pubsub-project-id", PROJECT_ID);
+        config.put("mock-pubsub-topics", true);
+        config.put("mock-pubsub-host", "localhost");
+        config.put("mock-pubsub-port", containerPort);
+
+        return new MapBasedConfig(config);
+    }
+
     protected MapBasedConfig createSourceConfig(final String topic, final String subscription,
             final int containerPort) {
-        final String prefix = "mp.messaging.incoming.source.";
+        return createSourceConfig("source", topic, subscription, containerPort);
+    }
+
+    protected MapBasedConfig createSourceConfig(String channel, final String topic, final String subscription,
+            final int containerPort) {
+        final String prefix = "mp.messaging.incoming." + channel + ".";
         final Map<String, Object> config = new HashMap<>();
         config.put(prefix.concat("connector"), PubSubConnector.CONNECTOR_NAME);
         config.put(prefix.concat("topic"), topic);
@@ -100,6 +126,7 @@ public class PubSubTestBase {
         weld.addExtension(new ConfigExtension());
         weld.addBeanClass(MediatorFactory.class);
         weld.addBeanClass(MediatorManager.class);
+        weld.addBeanClass(ConnectorFactories.class);
         weld.addBeanClass(InternalChannelRegistry.class);
         weld.addBeanClass(ConfiguredChannelFactory.class);
         weld.addBeanClass(ChannelProducer.class);
@@ -133,13 +160,40 @@ public class PubSubTestBase {
         }
     }
 
+    public void createTopicIfNotExists(PubSubManager manager, String topic) {
+        final TopicName topicName = TopicName.of(config.getProjectId(), topic);
+        try (var client = manager.topicAdminClient(config)) {
+            try {
+                client.getTopic(topicName);
+            } catch (final NotFoundException nf) {
+                try {
+                    client.createTopic(topicName);
+                } catch (final AlreadyExistsException ae) {
+                    log.topicExistAlready(topicName, ae);
+                }
+            }
+        }
+    }
+
     void deleteTopicIfExists(PubSubManager manager, String topic) {
         System.out.println("Deleting topic " + TopicName.of(PROJECT_ID, topic));
-        try {
-            manager.topicAdminClient(config)
-                    .deleteTopic(TopicName.of(PROJECT_ID, topic));
+        try (var client = manager.topicAdminClient(config)) {
+            client.deleteTopic(TopicName.of(PROJECT_ID, topic));
         } catch (com.google.api.gax.rpc.NotFoundException notFoundException) {
             // The topic didn't exist.
+        }
+    }
+
+    void waitUntilSubscription(PubSubManager manager, String topic, String subscription) {
+        try (var client = manager.topicAdminClient(this.config)) {
+            await().until(() -> {
+                for (String sub : client.listTopicSubscriptions(TopicName.of(PROJECT_ID, topic)).iterateAll()) {
+                    if (sub.endsWith(subscription)) {
+                        return true;
+                    }
+                }
+                return false;
+            });
         }
     }
 
