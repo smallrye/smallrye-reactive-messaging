@@ -4,12 +4,14 @@ import java.time.Duration;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 import org.apache.kafka.clients.admin.DescribeClusterOptions;
 import org.apache.kafka.clients.admin.DescribeTopicsOptions;
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.common.Metric;
+import org.apache.kafka.common.MetricName;
 
 import io.smallrye.reactive.messaging.health.HealthReport;
 import io.smallrye.reactive.messaging.kafka.KafkaAdmin;
@@ -23,7 +25,6 @@ public class KafkaSinkHealth extends BaseHealth {
     private final String topic;
     private final ReactiveKafkaProducer<?, ?> client;
     private final Duration adminClientTimeout;
-    private Metric metric;
 
     public KafkaSinkHealth(KafkaConnectorOutgoingConfiguration config,
             Map<String, ?> kafkaConfiguration, ReactiveKafkaProducer<?, ?> client) {
@@ -45,14 +46,10 @@ public class KafkaSinkHealth extends BaseHealth {
         }
     }
 
-    protected synchronized Metric getMetric() {
-        if (this.metric == null) {
-            Producer<?, ?> producer = this.client.unwrap();
-            if (producer != null) {
-                this.metric = getMetric(producer.metrics());
-            }
-        }
-        return this.metric;
+    @Override
+    protected Optional<Map<MetricName, ? extends Metric>> getMetrics() {
+        return Optional.ofNullable(client.unwrap())
+                .map(Producer::metrics);
     }
 
     @Override
@@ -62,7 +59,7 @@ public class KafkaSinkHealth extends BaseHealth {
 
     @Override
     protected void metricsBasedStartupCheck(HealthReport.HealthReportBuilder builder) {
-        Metric metric = getMetric();
+        Metric metric = getConnectionCountMetric();
         if (metric != null) {
             builder.add(channel, (double) metric.metricValue() >= 1.0);
         } else {
