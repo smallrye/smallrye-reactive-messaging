@@ -16,14 +16,35 @@ To use pausable channels, you need to activate it with the configuration propert
 
 ```properties
 mp.messaging.incoming.my-channel.pausable=true
-# optional, by default the channel is NOT paused initially
-mp.messaging.outgoing.my-channel.initially-paused=true
+```
+
+### Configuration Options
+
+Pausable channels support the following configuration options:
+
+- `pausable.initially-paused` - Whether the channel starts in a paused state (default: `false`)
+- `pausable.late-subscription` - Whether to subscribe to the upstream after pausing (default: `false`)
+- `pausable.buffer-size` - Maximum buffer size for items received while the channel is paused (optional)
+- `pausable.buffer-strategy` - Strategy for handling already requested items that arrive while paused. Possible values are:
+    * `BUFFER` - Buffer items received while paused and deliver them when resumed (default)
+    * `DROP` - Drop already requested items received while paused
+    * `IGNORE` - Let already requested items flow through even while paused
+
+Example configuration:
+
+```properties
+mp.messaging.incoming.my-channel.pausable=true
+mp.messaging.incoming.my-channel.pausable.initially-paused=true
+mp.messaging.incoming.my-channel.pausable.buffer-size=100
+mp.messaging.incoming.my-channel.pausable.buffer-strategy=BUFFER
+mp.messaging.incoming.my-channel.pausable.late-subscription=false
 ```
 
 ## Controlling the flow of messages
 
 If a channel is configured to be pausable,
-you can get the `PausableChannel` by channel name from the `ChannelRegistry` programmatically,
+you can inject the `PausableChannel` qualified with the `@Channel("channel-name")` annotation to control the flow of messages.
+You can also get the `PausableChannel` by channel name from the `ChannelRegistry` programmatically,
 and pause or resume the channel as needed:
 
 ``` java
