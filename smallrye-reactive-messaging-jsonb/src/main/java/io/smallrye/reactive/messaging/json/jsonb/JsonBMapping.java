@@ -1,12 +1,13 @@
 package io.smallrye.reactive.messaging.json.jsonb;
 
+import java.lang.reflect.Type;
+
 import jakarta.annotation.Priority;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.json.bind.Jsonb;
 
 import io.smallrye.reactive.messaging.json.JsonMapping;
-import java.lang.reflect.Type;
 
 @ApplicationScoped
 @Priority(value = JsonMapping.DEFAULT_PRIORITY + 1)

@@ -20,7 +20,6 @@ import io.smallrye.reactive.messaging.providers.MetadataInjectableMessage;
 import io.smallrye.reactive.messaging.providers.locals.ContextAwareMessage;
 import io.smallrye.reactive.messaging.rabbitmq.ack.RabbitMQAckHandler;
 import io.smallrye.reactive.messaging.rabbitmq.fault.RabbitMQFailureHandler;
-import io.vertx.core.buffer.Buffer;
 import io.vertx.mutiny.core.Context;
 import io.vertx.mutiny.rabbitmq.RabbitMQMessage;
 
@@ -74,28 +73,20 @@ public class IncomingRabbitMQMessage<T> implements ContextAwareMessage<T>, Metad
         this.holder = holder;
         this.context = holder.getContext();
         this.contentTypeOverride = contentTypeOverride;
-        this.rabbitMQMetadata = new IncomingRabbitMQMetadata(this.message);
+        this.rabbitMQMetadata = new IncomingRabbitMQMetadata(this.message, contentTypeOverride);
         this.onNack = onNack;
         this.onAck = onAck;
         this.metadata = captureContextMetadata(rabbitMQMetadata);
+        final String contentType = getEffectiveContentType().orElse(null);
+        final String contentEncoding = msg.properties().getContentEncoding();
+        if (contentEncoding != null) {
+            // Just silence the warning if we have a binary message
+            if (!HttpHeaderValues.APPLICATION_OCTET_STREAM.toString().equalsIgnoreCase(contentType)) {
+                log.typeConversionFallback();
+            }
+        }
         //noinspection unchecked
-        this.payload = (T) convertPayload(message);
-    }
-
-    private IncomingRabbitMQMessage(io.vertx.rabbitmq.RabbitMQMessage message,
-            IncomingRabbitMQMetadata rabbitMQMetadata, ClientHolder holder, Context context,
-            long deliveryTag, String contentTypeOverride, T payload, RabbitMQAckHandler onAck,
-            RabbitMQFailureHandler onNack, Metadata metadata) {
-        this.message = message;
-        this.rabbitMQMetadata = rabbitMQMetadata;
-        this.holder = holder;
-        this.context = context;
-        this.deliveryTag = deliveryTag;
-        this.contentTypeOverride = contentTypeOverride;
-        this.payload = payload;
-        this.onAck = onAck;
-        this.onNack = onNack;
-        this.metadata = metadata;
+        this.payload = (T) msg.body();
     }
 
     @Override
@@ -134,12 +125,6 @@ public class IncomingRabbitMQMessage<T> implements ContextAwareMessage<T>, Metad
             onAck = AlreadyAcknowledgedHandler.INSTANCE;
             onNack = AlreadyAcknowledgedHandler.INSTANCE;
         }
-    }
-
-    @Override
-    public <P> Message<P> withPayload(P payload) {
-        return new IncomingRabbitMQMessage<>(message, rabbitMQMetadata, holder, context,
-                deliveryTag, contentTypeOverride, payload, onAck, onNack, metadata);
     }
 
     /**
@@ -186,25 +171,6 @@ public class IncomingRabbitMQMessage<T> implements ContextAwareMessage<T>, Metad
         return metadata;
     }
 
-    private Object convertPayload(io.vertx.rabbitmq.RabbitMQMessage msg) {
-        // Neither of these are guaranteed to be non-null
-        String contentType = msg.properties().getContentType();
-        final String contentEncoding = msg.properties().getContentEncoding();
-        final Buffer body = msg.body();
-
-        if (this.contentTypeOverride != null) {
-            contentType = contentTypeOverride;
-        }
-
-        if (contentEncoding != null) {
-            // Just silence the warning if we have a binary message
-            if (!HttpHeaderValues.APPLICATION_OCTET_STREAM.toString().equalsIgnoreCase(contentType)) {
-                log.typeConversionFallback();
-            }
-        }
-        return body.getBytes();
-    }
-
     public Map<String, Object> getHeaders() {
         return rabbitMQMetadata.getHeaders();
     }
@@ -214,7 +180,7 @@ public class IncomingRabbitMQMessage<T> implements ContextAwareMessage<T>, Metad
     }
 
     public Optional<String> getEffectiveContentType() {
-        return Optional.ofNullable(contentTypeOverride).or(() -> rabbitMQMetadata.getContentType());
+        return Optional.ofNullable(contentTypeOverride).or(rabbitMQMetadata::getContentType);
     }
 
     public Optional<String> getContentEncoding() {

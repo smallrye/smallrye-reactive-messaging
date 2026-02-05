@@ -8,7 +8,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import jakarta.enterprise.context.ApplicationScoped;
@@ -26,10 +25,12 @@ import org.junit.jupiter.api.Test;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.smallrye.config.SmallRyeConfigProviderResolver;
 import io.smallrye.reactive.messaging.json.JsonMapping;
+import io.smallrye.reactive.messaging.rabbitmq.converter.ByteArrayMessageConverter;
 import io.smallrye.reactive.messaging.rabbitmq.converter.JsonValueMessageConverter;
 import io.smallrye.reactive.messaging.rabbitmq.converter.StringMessageConverter;
 import io.smallrye.reactive.messaging.rabbitmq.converter.TypeMessageConverter;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
+import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonObject;
 
 @SuppressWarnings("ConstantConditions")
@@ -68,10 +69,10 @@ class MessageConvertersTest extends RabbitMQBrokerTestBase {
         assertThat(list).isEmpty();
 
         AtomicInteger counter = new AtomicInteger();
-        new Thread(() -> usage.produce(exchangeName, queueName, queueName, 10,
-                () -> JsonObject.of("count", counter.getAndIncrement()).toString(), "application/json")).start();
+        usage.produce(exchangeName, queueName, queueName, 10,
+                () -> JsonObject.of("count", counter.getAndIncrement()).toString(), "application/json");
 
-        await().atMost(2, TimeUnit.MINUTES).until(() -> bean.counts().size() >= 10);
+        await().until(() -> bean.counts().size() >= 10);
         assertThat(bean.counts())
                 .extracting(j -> j.getInteger("count"))
                 .containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
@@ -92,12 +93,12 @@ class MessageConvertersTest extends RabbitMQBrokerTestBase {
         assertThat(bean.counts()).isEmpty();
 
         AtomicInteger counter = new AtomicInteger();
-        new Thread(() -> usage.produce(exchangeName, queueName, queueName, 10,
-                () -> String.valueOf(counter.getAndIncrement()), HttpHeaderValues.TEXT_PLAIN.toString())).start();
+        usage.produce(exchangeName, queueName, queueName, 10,
+                () -> String.valueOf(counter.getAndIncrement()), HttpHeaderValues.TEXT_PLAIN.toString());
 
-        await().atMost(2, TimeUnit.MINUTES).until(() -> bean.counts().size() >= 10);
+        await().until(() -> bean.counts().size() >= 10);
         assertThat(bean.counts())
-                .extracting(s -> Integer.valueOf(s))
+                .extracting(Integer::valueOf)
                 .containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
     }
 
@@ -117,13 +118,37 @@ class MessageConvertersTest extends RabbitMQBrokerTestBase {
         assertThat(bean.counts()).isEmpty();
 
         AtomicInteger counter = new AtomicInteger();
-        new Thread(() -> usage.produce(exchangeName, queueName, queueName, 10,
+        usage.produce(exchangeName, queueName, queueName, 10,
                 () -> JsonObject.of("count", counter.getAndIncrement()).toString(),
-                HttpHeaderValues.APPLICATION_JSON.toString())).start();
+                HttpHeaderValues.APPLICATION_JSON.toString());
 
-        await().atMost(2, TimeUnit.MINUTES).until(() -> bean.counts().size() >= 10);
+        await().until(() -> bean.counts().size() >= 10);
         assertThat(bean.counts())
-                .extracting(j -> j.getCount())
+                .extracting(Count::getCount)
+                .containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
+    }
+
+    @Test
+    public void testByteArrayConverter() {
+        init(weld, getConfig(null));
+        weld.addBeanClass(BytesConsumer.class);
+
+        container = weld.initialize();
+
+        await().until(() -> isRabbitMQConnectorAvailable(container));
+        BytesConsumer bean = get(container, BytesConsumer.class);
+
+        await().until(() -> isRabbitMQConnectorAvailable(container));
+
+        assertThat(bean.counts()).isEmpty();
+
+        AtomicInteger counter = new AtomicInteger();
+        usage.produce(exchangeName, queueName, queueName, 10,
+                () -> Buffer.buffer().appendInt(counter.getAndIncrement()));
+
+        await().until(() -> bean.counts().size() >= 10);
+        assertThat(bean.counts())
+                .extracting(bytes -> Buffer.buffer(bytes).getInt(0))
                 .containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
     }
 
@@ -132,6 +157,7 @@ class MessageConvertersTest extends RabbitMQBrokerTestBase {
         weld.addBeanClass(TypeMessageConverter.class);
         weld.addBeanClass(JsonValueMessageConverter.class);
         weld.addBeanClass(StringMessageConverter.class);
+        weld.addBeanClass(ByteArrayMessageConverter.class);
     }
 
     private MapBasedConfig getConfig(String contentTypeOverride) {
@@ -225,6 +251,21 @@ class MessageConvertersTest extends RabbitMQBrokerTestBase {
         @Override
         public <T> T fromJson(String str, Type type) {
             return jsonb.fromJson(str, type);
+        }
+    }
+
+    @ApplicationScoped
+    public static class BytesConsumer {
+
+        List<byte[]> counts = new CopyOnWriteArrayList<>();
+
+        @Incoming("count")
+        public void processCount(byte[] payload) {
+            counts.add(payload);
+        }
+
+        public List<byte[]> counts() {
+            return counts;
         }
     }
 

@@ -38,6 +38,10 @@ public class JacksonMapping implements JsonMapping {
 
     @Override
     public <T> T fromJson(String str, Type type) {
-        return fromJson(str, objectMapper.constructType(type));
+        try {
+            return objectMapper.readValue(str, objectMapper.constructType(type));
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
     }
 }

@@ -246,8 +246,7 @@ public class KafkaSourceWithCloudEventsTest extends KafkaCompanionTestBase {
                                 new RecordHeader("ce_specversion", CloudEventMetadata.CE_VERSION_1_0.getBytes()),
                                 new RecordHeader("ce_type", "type".getBytes()),
                                 new RecordHeader("ce_source", "test://test".getBytes()),
-                                new RecordHeader("ce_id", "binary-tombstone".getBytes())
-                        )));
+                                new RecordHeader("ce_id", "binary-tombstone".getBytes()))));
 
         await().until(() -> messages.size() >= 3);
 

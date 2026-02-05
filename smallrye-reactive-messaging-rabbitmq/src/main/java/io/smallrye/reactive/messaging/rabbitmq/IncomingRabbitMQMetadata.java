@@ -22,22 +22,35 @@ import io.vertx.rabbitmq.RabbitMQMessage;
  */
 public class IncomingRabbitMQMetadata {
 
+    private final RabbitMQMessage message;
     private final Map<String, Object> headers;
     private final BasicProperties properties;
     private final Envelope envelope;
+    private final String contentTypeOverride;
 
     /**
      * Constructor.
      *
      * @param message the underlying {@link RabbitMQMessage}
      */
-    IncomingRabbitMQMetadata(RabbitMQMessage message) {
-        this(message.properties(), message.envelope());
+    public IncomingRabbitMQMetadata(RabbitMQMessage message) {
+        this(message, null);
     }
 
-    IncomingRabbitMQMetadata(BasicProperties properties, Envelope envelope) {
+    public IncomingRabbitMQMetadata(RabbitMQMessage message, String contentTypeOverride) {
+        this(message, message.properties(), message.envelope(), contentTypeOverride);
+    }
+
+    public IncomingRabbitMQMetadata(BasicProperties properties, Envelope envelope, String contentTypeOverride) {
+        this(null, properties, envelope, contentTypeOverride);
+    }
+
+    public IncomingRabbitMQMetadata(RabbitMQMessage message, BasicProperties properties, Envelope envelope,
+            String contentTypeOverride) {
+        this.message = message;
         this.properties = properties;
         this.envelope = envelope;
+        this.contentTypeOverride = contentTypeOverride;
 
         // Ensure the message headers are cast appropriately
         final Map<String, Object> incomingHeaders = properties.getHeaders();
@@ -85,6 +98,15 @@ public class IncomingRabbitMQMetadata {
         }
         //noinspection unchecked
         return Optional.of((T) value);
+    }
+
+    /**
+     * The underlying {@link RabbitMQMessage} from Vert.x.
+     *
+     * @return the underlying message
+     */
+    public Optional<RabbitMQMessage> getMessage() {
+        return Optional.ofNullable(message);
     }
 
     /**
@@ -316,5 +338,13 @@ public class IncomingRabbitMQMetadata {
      */
     public boolean isRedeliver() {
         return envelope.isRedeliver();
+    }
+
+    public String getContentTypeOverride() {
+        return contentTypeOverride;
+    }
+
+    public Optional<String> getEffectiveContentType() {
+        return Optional.ofNullable(contentTypeOverride).or(this::getContentType);
     }
 }

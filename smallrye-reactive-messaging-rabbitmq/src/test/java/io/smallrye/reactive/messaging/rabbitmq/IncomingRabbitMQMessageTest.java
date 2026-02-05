@@ -8,7 +8,6 @@ import static org.mockito.Mockito.when;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
-import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Metadata;
 import org.junit.jupiter.api.Test;
 
@@ -18,7 +17,6 @@ import com.rabbitmq.client.Envelope;
 import io.smallrye.reactive.messaging.rabbitmq.ack.RabbitMQAckHandler;
 import io.smallrye.reactive.messaging.rabbitmq.fault.RabbitMQFailureHandler;
 import io.vertx.core.buffer.Buffer;
-import io.vertx.core.json.JsonObject;
 import io.vertx.mutiny.core.Context;
 import io.vertx.mutiny.rabbitmq.RabbitMQMessage;
 
@@ -88,10 +86,10 @@ public class IncomingRabbitMQMessageTest {
         when(mockMsg.envelope()).thenReturn(new Envelope(13456, false, "test", "test"));
         RabbitMQMessage msg = RabbitMQMessage.newInstance(mockMsg);
 
-        IncomingRabbitMQMessage<JsonObject> incomingRabbitMQMessage = new IncomingRabbitMQMessage<>(msg,
+        IncomingRabbitMQMessage<Buffer> incomingRabbitMQMessage = new IncomingRabbitMQMessage<>(msg,
                 mock(ClientHolder.class),
                 doNothingNack, doNothingAck, null);
 
-        assertThat(((Message<byte[]>) ((Message) incomingRabbitMQMessage)).getPayload()).isEqualTo(payloadBuffer.getBytes());
+        assertThat(incomingRabbitMQMessage.getPayload()).isEqualTo(payloadBuffer);
     }
 }

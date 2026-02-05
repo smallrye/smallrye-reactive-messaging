@@ -1,8 +1,7 @@
 package io.smallrye.reactive.messaging.rabbitmq.converter;
 
 import java.lang.reflect.Type;
-import java.util.Arrays;
-import java.util.List;
+import java.util.Optional;
 
 import jakarta.enterprise.context.ApplicationScoped;
 
@@ -10,28 +9,36 @@ import org.eclipse.microprofile.reactive.messaging.Message;
 
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.smallrye.reactive.messaging.MessageConverter;
-import io.smallrye.reactive.messaging.rabbitmq.IncomingRabbitMQMessage;
+import io.smallrye.reactive.messaging.rabbitmq.IncomingRabbitMQMetadata;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
-import io.vertx.mutiny.core.buffer.Buffer;
+import io.vertx.rabbitmq.RabbitMQMessage;
 
 @ApplicationScoped
 public class JsonValueMessageConverter implements MessageConverter {
 
-    private final static List<Type> JSON_VALUE_TYPES = Arrays.asList(JsonObject.class, JsonArray.class, String.class);
-
     @Override
     public boolean canConvert(Message<?> in, Type target) {
-        return in instanceof IncomingRabbitMQMessage<?>
-                && ((IncomingRabbitMQMessage<?>) in).getContentEncoding().isEmpty()
-                && ((IncomingRabbitMQMessage<?>) in).getEffectiveContentType()
+        if (!(String.class.equals(target) || JsonObject.class.equals(target) || JsonArray.class.equals(target))) {
+            return false;
+        }
+        Optional<IncomingRabbitMQMetadata> maybe = in.getMetadata(IncomingRabbitMQMetadata.class);
+        if (maybe.isEmpty()) {
+            return false;
+        }
+        IncomingRabbitMQMetadata metadata = maybe.get();
+        return metadata.getContentEncoding().isEmpty()
+                && metadata.getEffectiveContentType()
                         .map(contentType -> HttpHeaderValues.APPLICATION_JSON.toString().equalsIgnoreCase(contentType))
-                        .orElse(false)
-                && JSON_VALUE_TYPES.contains(target);
+                        .orElse(false);
     }
 
     @Override
     public Message<?> convert(Message<?> in, Type target) {
-        return in.withPayload(Buffer.buffer((byte[]) in.getPayload()).toJsonValue());
+        IncomingRabbitMQMetadata metadata = in.getMetadata(IncomingRabbitMQMetadata.class)
+                .orElseThrow(() -> new IllegalStateException("No RabbitMQ metadata"));
+        RabbitMQMessage message = metadata.getMessage()
+                .orElseThrow(() -> new IllegalStateException("No RabbitMQ message"));
+        return in.withPayload(message.body().toJsonValue());
     }
 }
