@@ -32,7 +32,7 @@ import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 
 public class SubscriptionTypeTest extends PulsarBaseTest {
 
-    private static final int NUMBER_OF_MESSAGES = 10;
+    private static final int NUMBER_OF_MESSAGES = 100;
 
     @Test
     void testExclusiveSubscription() throws PulsarClientException {
