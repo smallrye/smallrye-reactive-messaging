@@ -27,21 +27,7 @@
     "criticality" : "highlight",
     "minSeverity" : "POTENTIALLY_BREAKING",
     "minCriticality" : "documented",
-    "differences" : [ {
-        "code": "java.method.addedToInterface",
-        "new": "method java.lang.Integer io.smallrye.reactive.messaging.PausableChannelConfiguration::bufferSize()",
-        "justification": "Pausable channel configuration buffer-size added"
-        },
-        {
-            "code": "java.method.addedToInterface",
-            "new": "method io.smallrye.reactive.messaging.PausableChannelConfiguration.PausableBufferStrategy io.smallrye.reactive.messaging.PausableChannelConfiguration::bufferStrategy()",
-            "justification": "Pausable channel configuration buffer-strategy added"
-        },
-        {
-            "code": "java.method.addedToInterface",
-            "new": "method boolean io.smallrye.reactive.messaging.PausableChannelConfiguration::lateSubscription()",
-            "justification": "Pausable channel configuration late-subscription added"
-        }]
+    "differences" : [ ]
   }
 }, {
   "extension" : "revapi.reporter.json",
