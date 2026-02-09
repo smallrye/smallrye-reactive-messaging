@@ -5,7 +5,7 @@
   <parent>
     <groupId>io.smallrye.reactive</groupId>
     <artifactId>smallrye-reactive-messaging</artifactId>
-    <version>4.33.0</version>
+    <version>999-SNAPSHOT</version>
   </parent>
 
   <artifactId>smallrye-reactive-messaging-pulsar</artifactId>

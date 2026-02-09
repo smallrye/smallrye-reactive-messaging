@@ -10,7 +10,7 @@
 
   <groupId>io.smallrye.reactive</groupId>
   <artifactId>smallrye-reactive-messaging</artifactId>
-  <version>4.33.0</version>
+  <version>999-SNAPSHOT</version>
   <packaging>pom</packaging>
 
   <name>SmallRye Reactive Messaging</name>
@@ -51,7 +51,7 @@
     <connection>scm:git:git@github.com:smallrye/smallrye-reactive-messaging.git</connection>
     <developerConnection>scm:git:git@github.com:smallrye/smallrye-reactive-messaging.git</developerConnection>
     <url>https://github.com/smallrye/smallrye-reactive-messaging</url>
-    <tag>4.33.0</tag>
+    <tag>HEAD</tag>
   </scm>
 
 
