@@ -17,6 +17,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.header.Header;
+import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.common.header.internals.RecordHeader;
 import org.apache.kafka.common.serialization.ByteArrayDeserializer;
 import org.apache.kafka.common.serialization.Serdes;
@@ -27,9 +28,11 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import io.smallrye.common.annotation.Identifier;
 import io.smallrye.reactive.messaging.ce.CloudEventMetadata;
 import io.smallrye.reactive.messaging.kafka.ConsumptionConsumerRebalanceListener;
 import io.smallrye.reactive.messaging.kafka.CountKafkaCdiEvents;
+import io.smallrye.reactive.messaging.kafka.DeserializationFailureHandler;
 import io.smallrye.reactive.messaging.kafka.IncomingKafkaCloudEventMetadata;
 import io.smallrye.reactive.messaging.kafka.KafkaConnectorIncomingConfiguration;
 import io.smallrye.reactive.messaging.kafka.KafkaRecord;
@@ -37,6 +40,7 @@ import io.smallrye.reactive.messaging.kafka.base.BufferSerde;
 import io.smallrye.reactive.messaging.kafka.base.JsonObjectSerde;
 import io.smallrye.reactive.messaging.kafka.base.KafkaCompanionTestBase;
 import io.smallrye.reactive.messaging.kafka.base.KafkaMapBasedConfig;
+import io.smallrye.reactive.messaging.kafka.base.SingletonInstance;
 import io.smallrye.reactive.messaging.kafka.base.UnsatisfiedInstance;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
 import io.vertx.core.json.JsonObject;
@@ -93,6 +97,280 @@ public class KafkaSourceWithCloudEventsTest extends KafkaCompanionTestBase {
         await().atMost(2, TimeUnit.MINUTES).until(() -> messages.size() >= 1);
 
         Message<?> message = messages.get(0);
+        IncomingKafkaCloudEventMetadata<String, JsonObject> metadata = message
+                .getMetadata(IncomingKafkaCloudEventMetadata.class)
+                .orElse(null);
+        assertThat(metadata).isNotNull();
+        assertThat(metadata.getSpecVersion()).isEqualTo(CloudEventMetadata.CE_VERSION_1_0);
+        assertThat(metadata.getType()).isEqualTo("type");
+        assertThat(metadata.getId()).isEqualTo("id");
+        assertThat(metadata.getSource()).isEqualTo(URI.create("test://test"));
+        assertThat(metadata.getSubject()).hasValue("foo");
+        assertThat(metadata.getDataContentType()).hasValue("application/json");
+        assertThat(metadata.getDataSchema()).hasValue(URI.create("http://schema.io"));
+        assertThat(metadata.getTimeStamp()).isNotEmpty();
+        assertThat(metadata.getData().getString("name")).isEqualTo("neo");
+
+        // Extensions
+        assertThat(metadata.getKey()).isNull();
+        // Rule 3.1 - partitionkey attribute
+        assertThat(metadata.<String> getExtension("partitionkey")).isEmpty();
+        assertThat(metadata.getTopic()).isEqualTo(topic);
+
+        assertThat(message.getPayload()).isInstanceOf(JsonObject.class);
+        assertThat(((JsonObject) message.getPayload()).getString("name")).isEqualTo("neo");
+
+    }
+
+    @ApplicationScoped
+    @Identifier("null-fallback")
+    public static class MyDeserializationFailureHandler implements DeserializationFailureHandler<String> {
+
+        @Override
+        public String handleDeserializationFailure(String topic, boolean isKey, String deserializer, byte[] data,
+                Exception exception, Headers headers) {
+            return null;
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    public void testReceivingStructuredCloudEventsWithNonValidJsonFailDeserializationIgnore() {
+        KafkaMapBasedConfig config = newCommonConfig()
+                .with("topic", topic)
+                .with("value.deserializer", StringDeserializer.class.getName())
+                .with("value-deserialization-failure-handler", "null-fallback")
+                .with("failure-strategy", "ignore")
+                .with("fail-on-deserialization-failure", true)
+                .with("channel-name", topic);
+        KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
+        source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic, UnsatisfiedInstance.instance(),
+                commitHandlerFactories, failureHandlerFactories,
+                UnsatisfiedInstance.instance(), CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(),
+                new SingletonInstance<>("null-fallback", new MyDeserializationFailureHandler()), -1);
+
+        List<Message<?>> messages = new ArrayList<>();
+        source.getStream().subscribe().with(messages::add);
+
+        companion.produceStrings().fromRecords(
+                new ProducerRecord<>(topic, null, null, null, "{\"type\":",
+                        Collections.singletonList(
+                                new RecordHeader("content-type",
+                                        "application/cloudevents+json; charset=utf-8".getBytes()))),
+                new ProducerRecord<>(topic, null, null, null, new JsonObject()
+                        .put("specversion", CloudEventMetadata.CE_VERSION_1_0)
+                        .put("type", "type")
+                        .put("id", "id")
+                        .put("source", "test://test")
+                        .put("subject", "foo")
+                        .put("datacontenttype", "application/json")
+                        .put("dataschema", "http://schema.io")
+                        .put("time", "2020-07-23T09:12:34Z")
+                        .put("data", new JsonObject().put("name", "neo")).encode(),
+                        Collections.singletonList(
+                                new RecordHeader("content-type",
+                                        "application/cloudevents+json; charset=utf-8".getBytes()))));
+
+        await().until(() -> messages.size() >= 2);
+
+        Message<?> failedMessage = messages.get(0);
+        assertThat(failedMessage.getMetadata(IncomingKafkaCloudEventMetadata.class)).isEmpty();
+        assertThat(failedMessage.getPayload()).isNull();
+
+        Message<?> message = messages.get(1);
+        IncomingKafkaCloudEventMetadata<String, JsonObject> metadata = message
+                .getMetadata(IncomingKafkaCloudEventMetadata.class)
+                .orElse(null);
+        assertThat(metadata).isNotNull();
+        assertThat(metadata.getSpecVersion()).isEqualTo(CloudEventMetadata.CE_VERSION_1_0);
+        assertThat(metadata.getType()).isEqualTo("type");
+        assertThat(metadata.getId()).isEqualTo("id");
+        assertThat(metadata.getSource()).isEqualTo(URI.create("test://test"));
+        assertThat(metadata.getSubject()).hasValue("foo");
+        assertThat(metadata.getDataContentType()).hasValue("application/json");
+        assertThat(metadata.getDataSchema()).hasValue(URI.create("http://schema.io"));
+        assertThat(metadata.getTimeStamp()).isNotEmpty();
+        assertThat(metadata.getData().getString("name")).isEqualTo("neo");
+
+        // Extensions
+        assertThat(metadata.getKey()).isNull();
+        // Rule 3.1 - partitionkey attribute
+        assertThat(metadata.<String> getExtension("partitionkey")).isEmpty();
+        assertThat(metadata.getTopic()).isEqualTo(topic);
+
+        assertThat(message.getPayload()).isInstanceOf(JsonObject.class);
+        assertThat(((JsonObject) message.getPayload()).getString("name")).isEqualTo("neo");
+
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    public void testReceivingTombstoneRecordWithCloudEventHeaders() {
+        KafkaMapBasedConfig config = newCommonConfig()
+                .with("topic", topic)
+                .with("value.deserializer", StringDeserializer.class.getName())
+                .with("failure-strategy", "ignore")
+                .with("channel-name", topic);
+        KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
+        source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic, UnsatisfiedInstance.instance(),
+                commitHandlerFactories, failureHandlerFactories,
+                UnsatisfiedInstance.instance(), CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(),
+                UnsatisfiedInstance.instance(), -1);
+
+        List<Message<?>> messages = new ArrayList<>();
+        source.getStream().subscribe().with(messages::add);
+
+        companion.produceStrings().fromRecords(
+                // Tombstone with structured cloud event headers
+                new ProducerRecord<>(topic, null, null, null, null,
+                        Collections.singletonList(
+                                new RecordHeader("content-type",
+                                        "application/cloudevents+json; charset=utf-8".getBytes()))),
+                // Valid structured cloud event
+                new ProducerRecord<>(topic, null, null, null, new JsonObject()
+                        .put("specversion", CloudEventMetadata.CE_VERSION_1_0)
+                        .put("type", "type")
+                        .put("id", "id")
+                        .put("source", "test://test")
+                        .put("subject", "foo")
+                        .put("datacontenttype", "application/json")
+                        .put("dataschema", "http://schema.io")
+                        .put("time", "2020-07-23T09:12:34Z")
+                        .put("data", new JsonObject().put("name", "neo")).encode(),
+                        Collections.singletonList(
+                                new RecordHeader("content-type",
+                                        "application/cloudevents+json; charset=utf-8".getBytes()))),
+                // Tombstone with binary cloud event headers
+                new ProducerRecord<>(topic, null, null, null, null,
+                        List.of(
+                                new RecordHeader("ce_specversion", CloudEventMetadata.CE_VERSION_1_0.getBytes()),
+                                new RecordHeader("ce_type", "type".getBytes()),
+                                new RecordHeader("ce_source", "test://test".getBytes()),
+                                new RecordHeader("ce_id", "binary-tombstone".getBytes())
+                        )));
+
+        await().until(() -> messages.size() >= 3);
+
+        // First message: tombstone with structured cloud event headers - should have null payload and no cloud event metadata
+        Message<?> structuredTombstone = messages.get(0);
+        assertThat(structuredTombstone.getMetadata(IncomingKafkaCloudEventMetadata.class)).isEmpty();
+        assertThat(structuredTombstone.getPayload()).isNull();
+
+        // Second message: valid structured cloud event
+        Message<?> structuredMessage = messages.get(1);
+        IncomingKafkaCloudEventMetadata<String, JsonObject> structuredMetadata = structuredMessage
+                .getMetadata(IncomingKafkaCloudEventMetadata.class)
+                .orElse(null);
+        assertThat(structuredMetadata).isNotNull();
+        assertThat(structuredMetadata.getSpecVersion()).isEqualTo(CloudEventMetadata.CE_VERSION_1_0);
+        assertThat(structuredMetadata.getType()).isEqualTo("type");
+        assertThat(structuredMetadata.getId()).isEqualTo("id");
+        assertThat(structuredMetadata.getSource()).isEqualTo(URI.create("test://test"));
+        assertThat(structuredMessage.getPayload()).isInstanceOf(JsonObject.class);
+        assertThat(((JsonObject) structuredMessage.getPayload()).getString("name")).isEqualTo("neo");
+
+        // Third message: tombstone with binary cloud event headers
+        // Binary cloud events with null payload are VALID - metadata is in headers, data is null
+        Message<?> binaryTombstone = messages.get(2);
+        IncomingKafkaCloudEventMetadata<String, String> binaryMetadata = binaryTombstone
+                .getMetadata(IncomingKafkaCloudEventMetadata.class)
+                .orElse(null);
+        assertThat(binaryMetadata).isNotNull();
+        assertThat(binaryMetadata.getSpecVersion()).isEqualTo(CloudEventMetadata.CE_VERSION_1_0);
+        assertThat(binaryMetadata.getType()).isEqualTo("type");
+        assertThat(binaryMetadata.getSource()).isEqualTo(URI.create("test://test"));
+        assertThat(binaryMetadata.getId()).isEqualTo("binary-tombstone");
+        // The data (payload) is null for tombstone
+        assertThat(binaryMetadata.getData()).isNull();
+        assertThat(binaryTombstone.getPayload()).isNull();
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    public void testReceivingStructuredCloudEventsWithNonValidJsonFailDeserializationStop() {
+        KafkaMapBasedConfig config = newCommonConfig();
+        config.put("topic", topic);
+        config.put("value.deserializer", StringDeserializer.class.getName());
+        config.put("failure-strategy", "fail");
+        config.put("fail-on-deserialization-failure", true);
+        config.put("channel-name", topic);
+        KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
+        source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic, UnsatisfiedInstance.instance(),
+                commitHandlerFactories, failureHandlerFactories,
+                UnsatisfiedInstance.instance(), CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(),
+                UnsatisfiedInstance.instance(), -1);
+
+        List<Message<?>> messages = new ArrayList<>();
+        source.getStream().subscribe().with(messages::add);
+
+        companion.produceStrings().fromRecords(
+                new ProducerRecord<>(topic, null, null, null, "{\"type\":",
+                        Collections.singletonList(
+                                new RecordHeader("content-type",
+                                        "application/cloudevents+json; charset=utf-8".getBytes()))),
+                new ProducerRecord<>(topic, null, null, null, new JsonObject()
+                        .put("specversion", CloudEventMetadata.CE_VERSION_1_0)
+                        .put("type", "type")
+                        .put("id", "id")
+                        .put("source", "test://test")
+                        .put("subject", "foo")
+                        .put("datacontenttype", "application/json")
+                        .put("dataschema", "http://schema.io")
+                        .put("time", "2020-07-23T09:12:34Z")
+                        .put("data", new JsonObject().put("name", "neo")).encode(),
+                        Collections.singletonList(
+                                new RecordHeader("content-type",
+                                        "application/cloudevents+json; charset=utf-8".getBytes()))));
+
+        await().pollDelay(2, TimeUnit.SECONDS).until(messages::isEmpty);
+
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    public void testReceivingStructuredCloudEventsWithNonValidJson() {
+        KafkaMapBasedConfig config = newCommonConfig();
+        config.put("topic", topic);
+        config.put("value.deserializer", StringDeserializer.class.getName());
+        config.put("failure-strategy", "ignore");
+        config.put("fail-on-deserialization-failure", false);
+        config.put("channel-name", topic);
+        KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
+        source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic, UnsatisfiedInstance.instance(),
+                commitHandlerFactories, failureHandlerFactories,
+                UnsatisfiedInstance.instance(), CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(),
+                UnsatisfiedInstance.instance(), -1);
+
+        List<Message<?>> messages = new ArrayList<>();
+        source.getStream().subscribe().with(messages::add);
+
+        companion.produceStrings().fromRecords(
+                new ProducerRecord<>(topic, null, null, null, "{\"type\":",
+                        Collections.singletonList(
+                                new RecordHeader("content-type",
+                                        "application/cloudevents+json; charset=utf-8".getBytes()))),
+                new ProducerRecord<>(topic, null, null, null, new JsonObject()
+                        .put("specversion", CloudEventMetadata.CE_VERSION_1_0)
+                        .put("type", "type")
+                        .put("id", "id")
+                        .put("source", "test://test")
+                        .put("subject", "foo")
+                        .put("datacontenttype", "application/json")
+                        .put("dataschema", "http://schema.io")
+                        .put("time", "2020-07-23T09:12:34Z")
+                        .put("data", new JsonObject().put("name", "neo")).encode(),
+                        Collections.singletonList(
+                                new RecordHeader("content-type",
+                                        "application/cloudevents+json; charset=utf-8".getBytes()))));
+
+        await().until(() -> messages.size() >= 2);
+
+        Message<?> failedMessage = messages.get(0);
+        assertThat(failedMessage.getMetadata(IncomingKafkaCloudEventMetadata.class)).isEmpty();
+        // fallback to null payload
+        assertThat(failedMessage.getPayload()).isNull();
+
+        Message<?> message = messages.get(1);
         IncomingKafkaCloudEventMetadata<String, JsonObject> metadata = message
                 .getMetadata(IncomingKafkaCloudEventMetadata.class)
                 .orElse(null);

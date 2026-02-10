@@ -3,6 +3,7 @@ package io.smallrye.reactive.messaging.kafka.health;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Pattern;
 
@@ -11,6 +12,7 @@ import org.apache.kafka.clients.admin.ListTopicsOptions;
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.common.Metric;
+import org.apache.kafka.common.MetricName;
 import org.apache.kafka.common.TopicPartition;
 
 import io.smallrye.reactive.messaging.health.HealthReport;
@@ -28,7 +30,6 @@ public class KafkaSourceHealth extends BaseHealth {
     private final Set<String> topics;
     private final Pattern pattern;
     private final Duration adminClientTimeout;
-    private Metric metric;
 
     public KafkaSourceHealth(KafkaSource<?, ?> source, KafkaConnectorIncomingConfiguration config,
             ReactiveKafkaConsumer<?, ?> client, Set<String> topics, Pattern pattern) {
@@ -51,26 +52,27 @@ public class KafkaSourceHealth extends BaseHealth {
         }
     }
 
-    protected synchronized Metric getMetric() {
-        if (this.metric == null) {
-            Consumer<?, ?> consumer = this.client.unwrap();
-            if (consumer != null) {
-                this.metric = getMetric(consumer.metrics());
-            }
-        }
-        return this.metric;
+    @Override
+    protected Optional<Map<MetricName, ? extends Metric>> getMetrics() {
+        return Optional.ofNullable(this.client.unwrap())
+                .map(Consumer::metrics);
     }
 
     @Override
     protected void metricsBasedStartupCheck(HealthReport.HealthReportBuilder builder) {
-        Metric metric = getMetric();
-        if (metric != null) {
-            boolean connected = (double) metric.metricValue() >= 1.0;
+        Metric connectionCountMetric = getConnectionCountMetric();
+        Metric connectionCreationTotalMetric = getConnectionCreationTotalMetric();
+
+        if (connectionCountMetric != null && connectionCreationTotalMetric != null) {
+            boolean connected = (double) connectionCountMetric.metricValue() >= 1.0;
             boolean hasSubscribers = source.hasSubscribers();
+            boolean connectionAttempted = (double) connectionCreationTotalMetric.metricValue() > 0;
             if (connected) {
                 builder.add(channel, true);
             } else if (!hasSubscribers) {
                 builder.add(channel, true, "no subscription yet, so no connection to the Kafka broker yet");
+            } else if (!connectionAttempted) {
+                builder.add(channel, true, "no connection was ever attempted, the channel was started as paused");
             } else {
                 builder.add(channel, false);
             }

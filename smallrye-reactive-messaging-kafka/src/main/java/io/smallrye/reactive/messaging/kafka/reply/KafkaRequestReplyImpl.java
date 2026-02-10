@@ -26,7 +26,7 @@ import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.reactive.messaging.Message;
 
 import io.opentelemetry.api.OpenTelemetry;
-import io.smallrye.common.annotation.Experimental;
+import io.smallrye.common.annotation.TechPreview;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.helpers.Subscriptions;
@@ -54,7 +54,7 @@ import io.smallrye.reactive.messaging.providers.impl.Configs;
 import io.smallrye.reactive.messaging.providers.locals.ContextAwareMessage;
 import io.vertx.mutiny.core.Vertx;
 
-@Experimental("Experimental API")
+@TechPreview("Tech Preview API")
 public class KafkaRequestReplyImpl<Req, Rep> extends MutinyEmitterImpl<Req>
         implements KafkaRequestReply<Req, Rep>, MultiSubscriber<KafkaRecord<?, Rep>> {
 

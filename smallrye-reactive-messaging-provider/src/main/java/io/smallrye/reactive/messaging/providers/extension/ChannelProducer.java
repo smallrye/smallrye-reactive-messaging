@@ -29,6 +29,7 @@ import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.ChannelRegistry;
 import io.smallrye.reactive.messaging.MessageConverter;
 import io.smallrye.reactive.messaging.MutinyEmitter;
+import io.smallrye.reactive.messaging.PausableChannel;
 import io.smallrye.reactive.messaging.providers.helpers.MultiUtils;
 import io.smallrye.reactive.messaging.providers.helpers.TypeUtils;
 import io.smallrye.reactive.messaging.providers.i18n.ProviderExceptions;
@@ -185,6 +186,23 @@ public class ChannelProducer {
     <T> MutinyEmitter<T> produceMutinyEmitter(InjectionPoint injectionPoint) {
         verify(injectionPoint);
         return getEmitter(injectionPoint);
+    }
+
+    /**
+     * Injects a {@link PausableChannel} matching the channel name.
+     *
+     * @param injectionPoint the injection point
+     * @return the pausable channel
+     */
+    @Produces
+    @Channel("") // Stream name is ignored during type-safe resolution
+    PausableChannel producePausableChannel(InjectionPoint injectionPoint) {
+        String name = getChannelName(injectionPoint);
+        PausableChannel channel = channelRegistry.getPausable(name);
+        if (channel == null) {
+            throw ex.pausableChannelNotFound(name);
+        }
+        return channel;
     }
 
     /**

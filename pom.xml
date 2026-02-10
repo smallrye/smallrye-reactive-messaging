@@ -74,12 +74,12 @@
 
     <smallrye-config.version>3.15.1</smallrye-config.version>
     <smallrye-metrics.version>4.0.0</smallrye-metrics.version>
-    <smallrye-common.version>2.15.0</smallrye-common.version>
+    <smallrye-common.version>2.16.0</smallrye-common.version>
     <smallrye-health.version>4.3.0</smallrye-health.version>
     <smallrye-testing.version>2.4.1</smallrye-testing.version>
     <smallrye-fault-tolerance.version>6.10.0</smallrye-fault-tolerance.version>
 
-    <micrometer.version>1.16.2</micrometer.version>
+    <micrometer.version>1.16.3</micrometer.version>
 
     <mutiny.version>3.1.0</mutiny.version>
     <artemis.version>2.44.0</artemis.version>
@@ -507,7 +507,7 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-dependency-plugin</artifactId>
-          <version>3.9.0</version>
+          <version>3.10.0</version>
         </plugin>
 
         <plugin>

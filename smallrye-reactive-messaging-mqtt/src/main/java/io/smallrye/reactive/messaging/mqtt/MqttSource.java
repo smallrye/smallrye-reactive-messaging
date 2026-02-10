@@ -5,13 +5,13 @@ import static io.smallrye.reactive.messaging.mqtt.i18n.MqttLogging.log;
 
 import java.util.concurrent.Flow;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.regex.Pattern;
 
 import jakarta.enterprise.inject.Instance;
 
 import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.ClientCustomizer;
 import io.smallrye.reactive.messaging.health.HealthReport.HealthReportBuilder;
+import io.smallrye.reactive.messaging.mqtt.internal.ActualTopicFilter;
 import io.smallrye.reactive.messaging.mqtt.internal.MqttHelpers;
 import io.smallrye.reactive.messaging.mqtt.internal.MqttTopicHelper;
 import io.smallrye.reactive.messaging.mqtt.session.MqttClientSessionOptions;
@@ -27,7 +27,6 @@ public class MqttSource {
     private final Flow.Publisher<ReceivingMqttMessage> source;
     private final AtomicBoolean ready = new AtomicBoolean();
     private final String channel;
-    private final Pattern pattern;
     private final boolean healthEnabled;
 
     private final AtomicBoolean started = new AtomicBoolean();
@@ -49,14 +48,9 @@ public class MqttSource {
         MqttFailureHandler.Strategy strategy = MqttFailureHandler.Strategy.from(config.getFailureStrategy());
         MqttFailureHandler onNack = createFailureHandler(strategy, config.getChannel());
 
-        if (topic.contains("#") || topic.contains("+") || topic.startsWith("$share/")) {
-            String replace = MqttTopicHelper.escapeTopicSpecialWord(MqttHelpers.rebuildMatchesWithSharedSubscription(topic))
-                    .replace("+", "[^/]+")
-                    .replace("#", ".+");
-            pattern = Pattern.compile(replace);
-        } else {
-            pattern = null;
-        }
+        MqttTopicHelper.validateTopicFilter(topic);
+        ActualTopicFilter actualTopicFilter = MqttTopicHelper.topicFilterToPattern(topic);
+
         final Context root = Context.newInstance(((VertxInternal) vertx.getDelegate()).createEventLoopContext());
         holder = Clients.getHolder(vertx, options);
         holder.start().onSuccess(ignore -> started.set(true));
@@ -69,7 +63,7 @@ public class MqttSource {
                 });
 
         this.source = holder.stream()
-                .select().where(m -> MqttTopicHelper.matches(topic, pattern, m))
+                .select().where(m -> MqttTopicHelper.matches(actualTopicFilter, m.topicName()))
                 .onOverflow().buffer(config.getBufferSize())
                 .emitOn(c -> VertxContext.runOnContext(root.getDelegate(), c))
                 .onItem().transform(m -> new ReceivingMqttMessage(m, onNack))
