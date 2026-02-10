@@ -4,6 +4,8 @@ import static io.smallrye.reactive.messaging.gcp.pubsub.i18n.PubSubLogging.log;
 
 import java.io.File;
 import java.nio.file.Path;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.*;
 
@@ -11,6 +13,7 @@ import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.context.Destroyed;
 import jakarta.enterprise.event.Observes;
+import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
 
 import org.eclipse.microprofile.config.Config;
@@ -29,10 +32,13 @@ import com.google.pubsub.v1.PubsubMessage;
 import com.google.pubsub.v1.PushConfig;
 import com.google.pubsub.v1.TopicName;
 
+import io.opentelemetry.api.OpenTelemetry;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.connector.InboundConnector;
 import io.smallrye.reactive.messaging.connector.OutboundConnector;
+import io.smallrye.reactive.messaging.gcp.pubsub.tracing.PubSubOpenTelemetryInstrumenter;
+import io.smallrye.reactive.messaging.gcp.pubsub.tracing.PubSubTrace;
 import io.smallrye.reactive.messaging.providers.helpers.MultiUtils;
 
 @ApplicationScoped
@@ -60,6 +66,13 @@ public class PubSubConnector implements InboundConnector, OutboundConnector {
     private Optional<Integer> port;
 
     @Inject
+    @ConfigProperty(name = "gcp-pubsub-otel-enabled", defaultValue = "false")
+    private boolean otelEnabled;
+
+    @Inject
+    private Instance<OpenTelemetry> openTelemetryInstance;
+
+    @Inject
     private PubSubManager pubSubManager;
 
     private ExecutorService executorService;
@@ -81,7 +94,11 @@ public class PubSubConnector implements InboundConnector, OutboundConnector {
     @Override
     public Flow.Publisher<? extends Message<?>> getPublisher(final Config config) {
         final PubSubConfig pubSubConfig = new PubSubConfig(getProjectId(config), getTopic(config), getCredentialPath(config),
-                getSubscription(config), mockPubSubTopics, host.orElse(null), port.orElse(null));
+                getSubscription(config), mockPubSubTopics, host.orElse(null), port.orElse(null), getOtelEnabled(config));
+
+        final PubSubOpenTelemetryInstrumenter incomingInstrumenter = getOtelEnabled(config)
+                ? PubSubOpenTelemetryInstrumenter.createForConnector(openTelemetryInstance)
+                : null;
 
         return Multi.createFrom().uni(Uni.createFrom().completionStage(CompletableFuture.supplyAsync(() -> {
             if (isUseAdminClient(config)) {
@@ -91,13 +108,18 @@ public class PubSubConnector implements InboundConnector, OutboundConnector {
             }
             return pubSubConfig;
         }, executorService))).onItem()
-                .transformToMultiAndConcatenate(cfg -> Multi.createFrom().emitter(new PubSubSource(cfg, pubSubManager)));
+                .transformToMultiAndConcatenate(
+                        cfg -> Multi.createFrom().emitter(new PubSubSource(cfg, pubSubManager, incomingInstrumenter)));
     }
 
     @Override
     public Flow.Subscriber<? extends Message<?>> getSubscriber(final Config config) {
         final PubSubConfig pubSubConfig = new PubSubConfig(getProjectId(config), getTopic(config), getCredentialPath(config),
-                mockPubSubTopics, host.orElse(null), port.orElse(null));
+                mockPubSubTopics, host.orElse(null), port.orElse(null), getOtelEnabled(config));
+
+        final PubSubOpenTelemetryInstrumenter outgoingInstrumenter = getOtelEnabled(config)
+                ? PubSubOpenTelemetryInstrumenter.createForSender(openTelemetryInstance)
+                : null;
 
         return MultiUtils.via(m -> m.onItem()
                 .transformToUniAndConcatenate(message -> Uni.createFrom().completionStage(CompletableFuture.supplyAsync(() -> {
@@ -105,13 +127,25 @@ public class PubSubConnector implements InboundConnector, OutboundConnector {
                         log.adminClientEnabled();
                         createTopic(pubSubConfig);
                     }
-                    return await(pubSubManager.publisher(pubSubConfig).publish(buildMessage(message)));
+                    PubsubMessage pubsubMessage = buildMessage(message);
+                    if (outgoingInstrumenter != null) {
+                        Map<String, String> attributes = new HashMap<>(pubsubMessage.getAttributesMap());
+                        PubSubTrace trace = PubSubTrace.traceTopic(pubSubConfig.getTopic(), attributes);
+                        outgoingInstrumenter.traceOutgoing(message, trace);
+                        pubsubMessage = pubsubMessage.toBuilder().putAllAttributes(attributes).build();
+                    }
+                    return await(pubSubManager.publisher(pubSubConfig).publish(pubsubMessage));
                 }, executorService))));
     }
 
     private String getProjectId(Config config) {
         return config.getOptionalValue("project-id", String.class)
                 .orElse(projectId);
+    }
+
+    private boolean getOtelEnabled(Config config) {
+        return config.getOptionalValue("otel-enabled", Boolean.class)
+                .orElse(otelEnabled);
     }
 
     boolean isUseAdminClient(Config config) {
