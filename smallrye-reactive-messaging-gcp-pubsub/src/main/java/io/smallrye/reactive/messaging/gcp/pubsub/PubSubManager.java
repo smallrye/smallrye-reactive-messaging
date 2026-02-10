@@ -40,6 +40,7 @@ import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import io.opentelemetry.api.OpenTelemetry;
 import io.smallrye.mutiny.subscription.MultiEmitter;
+import io.smallrye.reactive.messaging.gcp.pubsub.tracing.PubSubOpenTelemetryInstrumenter;
 import io.smallrye.reactive.messaging.tracing.TracingUtils;
 
 @ApplicationScoped
@@ -59,8 +60,10 @@ public class PubSubManager {
         return publishers.computeIfAbsent(config, this::buildPublisher);
     }
 
-    public void subscriber(PubSubConfig config, MultiEmitter<? super Message<?>> emitter) {
-        final Subscriber subscriber = buildSubscriber(config, new PubSubMessageReceiver(emitter));
+    public void subscriber(PubSubConfig config, MultiEmitter<? super Message<?>> emitter,
+            PubSubOpenTelemetryInstrumenter incomingInstrumenter) {
+        final Subscriber subscriber = buildSubscriber(config,
+                new PubSubMessageReceiver(emitter, incomingInstrumenter, config));
         emitter.onTermination(() -> {
             subscriber.stopAsync();
             try {

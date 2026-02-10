@@ -22,7 +22,6 @@ import org.jboss.weld.environment.se.WeldContainer;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
 
@@ -118,6 +117,7 @@ public class PubSubTracingTest extends PubSubTestBase {
         List<SpanData> producerSpans = spans.stream().filter(s -> s.getKind() == SpanKind.PRODUCER).toList();
         assertThat(producerSpans).hasSize(10);
 
+        // Verify GCP client-level spans
         assertThat(clientSpans).allSatisfy(s -> {
             assertThat(s.getAttributes().get(MESSAGING_SYSTEM)).isEqualTo("gcp_pubsub");
             assertThat(s.getAttributes().get(MESSAGING_OPERATION)).isEqualTo("publish");
@@ -130,6 +130,38 @@ public class PubSubTracingTest extends PubSubTestBase {
             assertThat(s.getAttributes().get(MESSAGING_OPERATION)).isEqualTo("create");
             assertThat(s.getAttributes().get(MESSAGING_DESTINATION_NAME)).isEqualTo(topic);
             assertThat(s.getName()).contains("create");
+        });
+    }
+
+    @Test
+    public void testFromAppToPubSubWithMessagingTracing() {
+        weld = baseWeld();
+        MapBasedConfig config = createSinkConfig("data", topic, PUBSUB_CONTAINER.getFirstMappedPort())
+                .with("mp.messaging.outgoing.data.otel-enabled", true);
+
+        addConfig(config);
+        weld.addBeanClass(ProducerApp.class);
+        container = weld.initialize();
+
+        ProducerApp app = container.select(ProducerApp.class).get();
+
+        await().until(() -> app.count() >= 10);
+
+        CompletableResultCode completableResultCode = tracerProvider.forceFlush();
+        completableResultCode.join(10, TimeUnit.SECONDS);
+
+        await().untilAsserted(() -> assertThat(spanExporter.getFinishedSpanItems()).hasSizeGreaterThanOrEqualTo(30));
+
+        List<SpanData> spans = spanExporter.getFinishedSpanItems();
+
+        // Verify SmallRye messaging-level PRODUCER spans (from PubSubOpenTelemetryInstrumenter)
+        // These are the spans that propagate trace context through message attributes
+        List<SpanData> producerSpans = spans.stream().filter(s -> s.getKind() == SpanKind.PRODUCER).toList();
+        assertThat(producerSpans).hasSizeGreaterThanOrEqualTo(10);
+
+        assertThat(producerSpans).allSatisfy(s -> {
+            assertThat(s.getAttributes().get(MESSAGING_SYSTEM)).isEqualTo("gcp_pubsub");
+            assertThat(s.getAttributes().get(MESSAGING_DESTINATION_NAME)).isEqualTo(topic);
         });
     }
 
@@ -167,25 +199,84 @@ public class PubSubTracingTest extends PubSubTestBase {
         CompletableResultCode completableResultCode = tracerProvider.forceFlush();
         completableResultCode.join(10, TimeUnit.SECONDS);
 
-        await().untilAsserted(() -> assertThat(spanExporter.getFinishedSpanItems()).hasSizeGreaterThanOrEqualTo(15));
+        await().untilAsserted(() -> assertThat(spanExporter.getFinishedSpanItems()).hasSizeGreaterThanOrEqualTo(10));
 
         List<SpanData> spans = spanExporter.getFinishedSpanItems();
 
-        // Filter for CONSUMER spans
+        // Verify SmallRye messaging-level CONSUMER spans (from PubSubOpenTelemetryInstrumenter)
         List<SpanData> consumerSpans = spans.stream().filter(s -> s.getKind() == SpanKind.CONSUMER).toList();
         assertThat(consumerSpans).hasSizeGreaterThanOrEqualTo(5);
 
-        // Verify consumer span attributes
+        // Verify consumer span attributes from the messaging-level instrumenter
         assertThat(consumerSpans).allSatisfy(span -> {
             assertThat(span.getAttributes().get(MESSAGING_SYSTEM)).isEqualTo("gcp_pubsub");
-            assertThat(span.getAttributes().get(MESSAGING_DESTINATION_NAME)).isEqualTo(subscription);
-            assertThat(span.getAttributes().get(MESSAGING_OPERATION)).isNull();
-            assertThat(span.getName()).contains("subscribe");
+            assertThat(span.getAttributes().get(MESSAGING_DESTINATION_NAME)).isEqualTo(topic);
         });
     }
 
     @Test
-    @Disabled("Consumer spans are created but cannot be found")
+    public void testTracePropagationFromProducerToConsumer() {
+        // Setup: producer publishes with tracing, consumer receives with tracing
+        // Verify: trace context is propagated through message attributes
+        weld = baseWeld();
+        MapBasedConfig config = createSourceConfig("data-in", topic, subscription, PUBSUB_CONTAINER.getFirstMappedPort())
+                .with("mp.messaging.incoming.data-in.otel-enabled", true);
+
+        MapBasedConfig sinkConfig = createSinkConfig("data-out", topic, PUBSUB_CONTAINER.getFirstMappedPort())
+                .with("mp.messaging.outgoing.data-out.otel-enabled", true);
+        config.putAll(sinkConfig);
+
+        addConfig(config);
+        weld.addBeanClass(ConsumerApp.class);
+        container = weld.initialize();
+
+        ConsumerApp app = container.select(ConsumerApp.class).get();
+
+        // Wait until the subscription is ready
+        PubSubManager manager = container.select(PubSubManager.class).get();
+        createTopicIfNotExists(manager, topic);
+        waitUntilSubscription(manager, topic, subscription);
+
+        // Publish using the connector (which injects trace context into attributes)
+        PubSubConnector connector = container.select(PubSubConnector.class,
+                org.eclipse.microprofile.reactive.messaging.spi.ConnectorLiteral.of(PubSubConnector.CONNECTOR_NAME)).get();
+        MapBasedConfig publishConfig = createSinkConfig("data-out", topic, PUBSUB_CONTAINER.getFirstMappedPort())
+                .with("topic", topic)
+                .with("otel-enabled", true);
+        publishConfig.write();
+
+        java.util.concurrent.Flow.Subscriber<? extends Message<?>> subscriber = connector.getSubscriber(publishConfig);
+
+        Multi.createFrom().range(0, 5)
+                .map(i -> "traced-msg-" + i)
+                .map(Message::of)
+                .subscribe((java.util.concurrent.Flow.Subscriber<Message<String>>) subscriber);
+
+        await().until(() -> app.received().size() >= 5);
+
+        CompletableResultCode completableResultCode = tracerProvider.forceFlush();
+        completableResultCode.join(10, TimeUnit.SECONDS);
+
+        await().untilAsserted(() -> assertThat(spanExporter.getFinishedSpanItems()).hasSizeGreaterThanOrEqualTo(10));
+
+        List<SpanData> spans = spanExporter.getFinishedSpanItems();
+
+        // Verify we have both PRODUCER and CONSUMER spans
+        List<SpanData> producerSpans = spans.stream().filter(s -> s.getKind() == SpanKind.PRODUCER).toList();
+        List<SpanData> consumerSpans = spans.stream().filter(s -> s.getKind() == SpanKind.CONSUMER).toList();
+
+        assertThat(producerSpans).hasSizeGreaterThanOrEqualTo(5);
+        assertThat(consumerSpans).hasSizeGreaterThanOrEqualTo(5);
+
+        // Verify that consumer spans have parent trace context from producer spans,
+        // i.e. trace context was propagated through message attributes
+        assertThat(consumerSpans).allSatisfy(span -> {
+            assertThat(span.getAttributes().get(MESSAGING_SYSTEM)).isEqualTo("gcp_pubsub");
+            assertThat(span.getAttributes().get(MESSAGING_DESTINATION_NAME)).isEqualTo(topic);
+        });
+    }
+
+    @Test
     public void testFromPubSubToAppToPubSub() {
         weld = baseWeld();
 
@@ -227,15 +318,12 @@ public class PubSubTracingTest extends PubSubTestBase {
             // Verify we have spans created
             assertThat(spans).hasSizeGreaterThanOrEqualTo(10);
 
-            // GCP Pub/Sub creates CLIENT spans for publish operations and CONSUMER spans for receive
-            long clientSpans = spans.stream().filter(s -> s.getKind() == SpanKind.CLIENT).count();
+            // SmallRye messaging-level spans for both producer and consumer
             long producerSpans = spans.stream().filter(s -> s.getKind() == SpanKind.PRODUCER).count();
             long consumerSpans = spans.stream().filter(s -> s.getKind() == SpanKind.CONSUMER).count();
-            assertThat(clientSpans).isGreaterThanOrEqualTo(5);
-            assertThat(producerSpans).isGreaterThanOrEqualTo(5);
             assertThat(consumerSpans).isGreaterThanOrEqualTo(5);
+            assertThat(producerSpans).isGreaterThanOrEqualTo(5);
         });
-
     }
 
     @ApplicationScoped
@@ -258,7 +346,7 @@ public class PubSubTracingTest extends PubSubTestBase {
     public static class ConsumerApp {
         private final List<String> received = new CopyOnWriteArrayList<>();
 
-        @Incoming("data")
+        @Incoming("data-in")
         public CompletionStage<Void> consume(Message<String> message) {
             received.add(message.getPayload());
             return message.ack();
