@@ -41,4 +41,7 @@ public interface RabbitMQExceptions {
 
     @Message(id = 16009, value = "Unable to create a client, probably a config error")
     IllegalStateException illegalStateUnableToCreateClient(@Cause Throwable t);
+
+    @Message(id = 16010, value = "Shared connection '%s' has mismatched configuration; ensure all channels using the same shared-connection-name have identical connection settings")
+    IllegalStateException illegalStateSharedConnectionConfigMismatch(String sharedConnectionName);
 }
