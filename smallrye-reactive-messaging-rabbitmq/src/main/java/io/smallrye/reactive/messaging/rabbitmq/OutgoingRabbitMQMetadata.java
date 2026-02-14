@@ -346,7 +346,7 @@ public class OutgoingRabbitMQMetadata {
         // delivery tag is not accessed by IncomingRabbitMQMetadata, so just hardcode it to 0
         Envelope envelope = new Envelope(0, isRedeliver, exchange, routingKey);
 
-        return new IncomingRabbitMQMetadata(basicProperties, envelope);
+        return new IncomingRabbitMQMetadata(basicProperties, envelope, null);
     }
 
 }

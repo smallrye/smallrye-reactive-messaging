@@ -18,7 +18,7 @@ public class IncomingRabbitMQMetadataTest {
         properties.put("header2", null);
 
         IncomingRabbitMQMetadata incomingRabbitMQMetadata = new IncomingRabbitMQMetadata(new DummyBasicProperties(properties),
-                null);
+                null, null);
 
         Assert.assertEquals("value1", incomingRabbitMQMetadata.getHeaders().get("header1"));
         Assert.assertTrue(incomingRabbitMQMetadata.getHeaders().containsKey("header2"));

@@ -20,4 +20,9 @@ public class Receiver {
         System.out.println("received jsonobject price: " + price.price);
     }
 
+    @Incoming("from-rabbitmq-type")
+    public void consume(Price price) {
+        System.out.println("received price: " + price.price);
+    }
+
 }

@@ -8,7 +8,6 @@ import static org.mockito.Mockito.when;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
-import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Metadata;
 import org.junit.jupiter.api.Test;
 
@@ -18,7 +17,6 @@ import com.rabbitmq.client.Envelope;
 import io.smallrye.reactive.messaging.rabbitmq.ack.RabbitMQAckHandler;
 import io.smallrye.reactive.messaging.rabbitmq.fault.RabbitMQFailureHandler;
 import io.vertx.core.buffer.Buffer;
-import io.vertx.core.json.JsonObject;
 import io.vertx.mutiny.core.Context;
 import io.vertx.mutiny.rabbitmq.RabbitMQMessage;
 
@@ -80,38 +78,6 @@ public class IncomingRabbitMQMessageTest {
     }
 
     @Test
-    void testConvertPayload() {
-        io.vertx.rabbitmq.RabbitMQMessage mockMsg = mock(io.vertx.rabbitmq.RabbitMQMessage.class);
-        when(mockMsg.body()).thenReturn(Buffer.buffer("payload"));
-        when(mockMsg.properties()).thenReturn(new BasicProperties());
-        when(mockMsg.envelope()).thenReturn(new Envelope(13456, false, "test", "test"));
-        RabbitMQMessage msg = RabbitMQMessage.newInstance(mockMsg);
-
-        IncomingRabbitMQMessage<String> incomingRabbitMQMessage = new IncomingRabbitMQMessage<>(msg,
-                mock(ClientHolder.class),
-                doNothingNack, doNothingAck, "text/plain");
-
-        assertThat(incomingRabbitMQMessage.getPayload()).isEqualTo("payload");
-    }
-
-    @Test
-    void testConvertPayloadJsonObject() {
-        io.vertx.rabbitmq.RabbitMQMessage mockMsg = mock(io.vertx.rabbitmq.RabbitMQMessage.class);
-        JsonObject payload = new JsonObject();
-        payload.putNull("key");
-        when(mockMsg.body()).thenReturn(payload.toBuffer());
-        when(mockMsg.properties()).thenReturn(new BasicProperties.Builder().contentType("application/json").build());
-        when(mockMsg.envelope()).thenReturn(new Envelope(13456, false, "test", "test"));
-        RabbitMQMessage msg = RabbitMQMessage.newInstance(mockMsg);
-
-        IncomingRabbitMQMessage<JsonObject> incomingRabbitMQMessage = new IncomingRabbitMQMessage<>(msg,
-                mock(ClientHolder.class),
-                doNothingNack, doNothingAck, null);
-
-        assertThat(incomingRabbitMQMessage.getPayload()).isEqualTo(payload);
-    }
-
-    @Test
     void testConvertPayloadFallback() {
         io.vertx.rabbitmq.RabbitMQMessage mockMsg = mock(io.vertx.rabbitmq.RabbitMQMessage.class);
         Buffer payloadBuffer = Buffer.buffer("payload");
@@ -120,10 +86,10 @@ public class IncomingRabbitMQMessageTest {
         when(mockMsg.envelope()).thenReturn(new Envelope(13456, false, "test", "test"));
         RabbitMQMessage msg = RabbitMQMessage.newInstance(mockMsg);
 
-        IncomingRabbitMQMessage<JsonObject> incomingRabbitMQMessage = new IncomingRabbitMQMessage<>(msg,
+        IncomingRabbitMQMessage<Buffer> incomingRabbitMQMessage = new IncomingRabbitMQMessage<>(msg,
                 mock(ClientHolder.class),
                 doNothingNack, doNothingAck, null);
 
-        assertThat(((Message<byte[]>) ((Message) incomingRabbitMQMessage)).getPayload()).isEqualTo(payloadBuffer.getBytes());
+        assertThat(incomingRabbitMQMessage.getPayload()).isEqualTo(payloadBuffer);
     }
 }

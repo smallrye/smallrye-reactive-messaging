@@ -1,5 +1,7 @@
 package io.smallrye.reactive.messaging.json.jsonb;
 
+import java.lang.reflect.Type;
+
 import jakarta.annotation.Priority;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -20,6 +22,11 @@ public class JsonBMapping implements JsonMapping {
 
     @Override
     public <T> T fromJson(String str, Class<T> type) {
+        return jsonb.fromJson(str, type);
+    }
+
+    @Override
+    public <T> T fromJson(String str, Type type) {
         return jsonb.fromJson(str, type);
     }
 }

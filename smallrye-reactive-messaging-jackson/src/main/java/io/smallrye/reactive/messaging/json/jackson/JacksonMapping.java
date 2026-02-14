@@ -1,5 +1,7 @@
 package io.smallrye.reactive.messaging.json.jackson;
 
+import java.lang.reflect.Type;
+
 import jakarta.annotation.Priority;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -29,6 +31,15 @@ public class JacksonMapping implements JsonMapping {
     public <T> T fromJson(String str, Class<T> type) {
         try {
             return objectMapper.readValue(str, type);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Override
+    public <T> T fromJson(String str, Type type) {
+        try {
+            return objectMapper.readValue(str, objectMapper.constructType(type));
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }
