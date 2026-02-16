@@ -19,19 +19,22 @@ import org.apache.kafka.common.Node;
 import org.jboss.logging.Logger;
 import org.junit.jupiter.api.extension.*;
 import org.junit.jupiter.api.extension.ExtensionContext.Store.CloseableResource;
+import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.shaded.org.awaitility.core.ConditionTimeoutException;
 
 import io.strimzi.test.container.StrimziKafkaContainer;
 
 /**
- * Junit extension for creating Strimzi Kafka broker
+ * Junit extension for creating Kafka broker
  */
 public class KafkaBrokerExtension implements BeforeAllCallback, BeforeEachCallback, ParameterResolver, CloseableResource {
     public static final Logger LOGGER = Logger.getLogger(KafkaBrokerExtension.class.getName());
 
-    public static final String KAFKA_VERSION = "4.0.0";
+    public static final String KAFKA_IMAGE = "apache/kafka";
+    public static final String KAFKA_VERSION = "4.2.0-rc4";
+    public static final String STRIMZI_VERSION = "4.1.0";
 
-    protected StrimziKafkaContainer kafka;
+    protected GenericContainer<?> kafka;
 
     @Override
     public void beforeAll(ExtensionContext context) {
@@ -50,16 +53,54 @@ public class KafkaBrokerExtension implements BeforeAllCallback, BeforeEachCallba
         stopKafkaBroker();
     }
 
-    public static StrimziKafkaContainer createKafkaContainer() {
-        return configureKafkaContainer(new StrimziKafkaContainer());
+    public static GenericContainer<?> createKafkaContainer() {
+        String kafkaImage = System.getProperty("kafka-container-image", KAFKA_IMAGE);
+        String kafkaVersion = System.getProperty("kafka-container-version", KAFKA_VERSION);
+        String strimziVersion = System.getProperty("strimzi-container-version", STRIMZI_VERSION);
+        GenericContainer<? extends GenericContainer<?>> kafka;
+        if (kafkaImage.contains("strimzi")) {
+            kafka = new StrimziKafkaContainer(kafkaImage + ":latest-kafka-" + strimziVersion);
+        } else {
+            kafka = new KafkaContainer(kafkaImage + ":" + kafkaVersion);
+        }
+        return configureContainer(kafka);
     }
 
-    public static <T extends StrimziKafkaContainer> T configureKafkaContainer(T container) {
-        String kafkaVersion = System.getProperty("kafka-container-version", KAFKA_VERSION);
-        container.withKafkaVersion(kafkaVersion);
+    public static <T extends GenericContainer<?>> GenericContainer<?> configureContainer(T container) {
+        if (container instanceof StrimziKafkaContainer s) {
+            return configureStrimziContainer(s);
+        } else if (container instanceof KafkaContainer k) {
+            return configureKafkaContainer(k);
+        } else {
+            return container;
+        }
+    }
+
+    private static KafkaContainer configureKafkaContainer(KafkaContainer container) {
+        Map<String, String> envVars = Map.of(
+                "KAFKA_LOG_CLEANER_ENABLE", "false",
+                "KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS", "0",
+                "KAFKA_UNSTABLE_API_VERSIONS_ENABLE", "true",
+                "KAFKA_GROUP_COORDINATOR_REBALANCE_PROTOCOLS", "classic,consumer,share",
+                "KAFKA_GROUP_SHARE_ENABLE", "true",
+                //                "KAFKA_SHARE_COORDINATOR_APPEND_LINGER_MS", "-1",
+                // a single node topic needs to have 1 as replication factor
+                "KAFKA_SHARE_COORDINATOR_STATE_TOPIC_REPLICATION_FACTOR", "1");
+        return container.withEnv(envVars);
+    }
+
+    public static StrimziKafkaContainer configureStrimziContainer(StrimziKafkaContainer container) {
+        String strimziVersion = System.getProperty("strimzi-container-version",
+                System.getProperty("kafka-container-version", STRIMZI_VERSION));
+        container.withKafkaVersion(strimziVersion);
         Map<String, String> config = new HashMap<>();
         config.put("log.cleaner.enable", "false");
         config.put("group.initial.rebalance.delay.ms", "0");
+        config.put("unstable.api.versions.enable", "true");
+        config.put("group.coordinator.rebalance.protocols", "classic,consumer,share");
+        config.put("group.share.enable", "true");
+        // a single node topic needs to have 1 as replication factor
+        config.put("share.coordinator.state.topic.replication.factor", "1");
         container.withKafkaConfigurationMap(config);
         return container;
     }
@@ -67,7 +108,7 @@ public class KafkaBrokerExtension implements BeforeAllCallback, BeforeEachCallba
     public void startKafkaBroker() {
         kafka = createKafkaContainer();
         kafka.start();
-        LOGGER.info("Kafka broker started: " + kafka.getBootstrapServers() + " (" + kafka.getMappedPort(9092) + ")");
+        LOGGER.info("Kafka broker started: " + getBootstrapServers(kafka) + " (" + kafka.getMappedPort(9092) + ")");
         await().until(() -> kafka.isRunning());
     }
 
@@ -80,7 +121,7 @@ public class KafkaBrokerExtension implements BeforeAllCallback, BeforeEachCallba
      * @param gracePeriodInSecond number of seconds to wait before restarting
      * @return the new broker
      */
-    public static StrimziKafkaContainer restart(StrimziKafkaContainer kafka, int gracePeriodInSecond) {
+    public static GenericContainer<?> restart(GenericContainer<?> kafka, int gracePeriodInSecond) {
         int port = kafka.getMappedPort(9092);
         try {
             kafka.close();
@@ -93,8 +134,13 @@ public class KafkaBrokerExtension implements BeforeAllCallback, BeforeEachCallba
         return startKafkaBroker(port);
     }
 
-    public static StrimziKafkaContainer startKafkaBroker(int port) {
-        StrimziKafkaContainer kafka = createKafkaContainer().withPort(port);
+    public static GenericContainer<?> startKafkaBroker(int port) {
+        GenericContainer<?> kafka = createKafkaContainer();
+        if (kafka instanceof StrimziKafkaContainer strimzi) {
+            strimzi.withPort(port);
+        } else if (kafka instanceof KafkaContainer k) {
+            k.withPort(port);
+        }
         kafka.start();
         await().until(kafka::isRunning);
         return kafka;
@@ -132,9 +178,7 @@ public class KafkaBrokerExtension implements BeforeAllCallback, BeforeEachCallba
         if (parameterContext.isAnnotated(KafkaBootstrapServers.class)) {
             ExtensionContext.Store globalStore = extensionContext.getRoot().getStore(GLOBAL);
             KafkaBrokerExtension extension = (KafkaBrokerExtension) globalStore.get(KafkaBrokerExtension.class);
-            if (extension.kafka != null) {
-                return extension.kafka.getBootstrapServers();
-            }
+            return getBootstrapServers(extension.kafka);
         }
         return null;
     }
@@ -162,13 +206,24 @@ public class KafkaBrokerExtension implements BeforeAllCallback, BeforeEachCallba
         await().until(() -> kafka.isRunning());
         await().catchUncaughtExceptions().until(() -> {
             Map<String, Object> config = new HashMap<>();
-            config.put(CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG, kafka.getBootstrapServers());
+            config.put(CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG, getBootstrapServers(kafka));
             config.put(CommonClientConfigs.CLIENT_ID_CONFIG, "broker-healthy-admin");
             try (AdminClient admin = AdminClient.create(config)) {
                 Collection<Node> nodes = admin.describeCluster().nodes().get();
                 return nodes.size() == 1 && nodes.iterator().next().id() >= 0;
             }
         });
+    }
+
+    public static String getBootstrapServers(GenericContainer<?> kafka) {
+        if (kafka != null) {
+            if (kafka instanceof StrimziKafkaContainer strimzi) {
+                return strimzi.getBootstrapServers();
+            } else if (kafka instanceof KafkaContainer k) {
+                return k.getBootstrapServers();
+            }
+        }
+        return null;
     }
 
     @Target({ ElementType.FIELD, ElementType.PARAMETER })
