@@ -31,7 +31,7 @@ public class KafkaBrokerExtension implements BeforeAllCallback, BeforeEachCallba
     public static final Logger LOGGER = Logger.getLogger(KafkaBrokerExtension.class.getName());
 
     public static final String KAFKA_IMAGE = "apache/kafka";
-    public static final String KAFKA_VERSION = "4.2.0-rc4";
+    public static final String KAFKA_VERSION = "4.2.0";
     public static final String STRIMZI_VERSION = "4.1.0";
 
     protected GenericContainer<?> kafka;
