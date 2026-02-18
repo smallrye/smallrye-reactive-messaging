@@ -13,6 +13,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.testcontainers.containers.GenericContainer;
 
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.helpers.test.AssertSubscriber;
@@ -22,7 +23,6 @@ import io.smallrye.reactive.messaging.kafka.companion.test.KafkaBrokerExtension;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
 import io.smallrye.reactive.messaging.kafka.impl.ReactiveKafkaConsumer;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
-import io.strimzi.test.container.StrimziKafkaContainer;
 
 @Tag(TestTags.SLOW)
 // TODO should not extend ClientTestBase, it uses KafkaBrokerExtension which creates a broker for tests
@@ -30,7 +30,7 @@ public class BrokerRestartTest extends ClientTestBase {
 
     @Test
     public void testAcknowledgementUsingThrottledStrategyEvenAfterBrokerRestart() throws Exception {
-        try (StrimziKafkaContainer kafka = KafkaBrokerExtension.createKafkaContainer()) {
+        try (GenericContainer<?> kafka = KafkaBrokerExtension.createKafkaContainer()) {
             kafka.start();
             await().until(kafka::isRunning);
 
@@ -44,7 +44,7 @@ public class BrokerRestartTest extends ClientTestBase {
 
             CountDownLatch latch = new CountDownLatch(100);
             subscribe(stream, latch);
-            try (final StrimziKafkaContainer ignored = restart(kafka, 3)) {
+            try (final GenericContainer<?> ignored = restart(kafka, 3)) {
                 sendMessages(0, 100);
                 waitForMessages(latch);
                 checkConsumedMessages(0, 100);
@@ -55,13 +55,13 @@ public class BrokerRestartTest extends ClientTestBase {
 
     @Test
     public void testResumingPausingWhileBrokerIsDown() throws Exception {
-        try (StrimziKafkaContainer kafka = KafkaBrokerExtension.createKafkaContainer()) {
+        try (GenericContainer<?> kafka = KafkaBrokerExtension.createKafkaContainer()) {
             kafka.start();
             await().until(kafka::isRunning);
             String groupId = UUID.randomUUID().toString();
             MapBasedConfig config = createConsumerConfig(groupId)
                     .with("topic", topic)
-                    .with(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, kafka.getBootstrapServers())
+                    .with(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, KafkaBrokerExtension.getBootstrapServers(kafka))
                     .with(ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG, 6000);
             createSource(config, groupId);
             source
@@ -88,15 +88,15 @@ public class BrokerRestartTest extends ClientTestBase {
 
     @Test
     public void testPausingWhileBrokerIsDown() throws Exception {
-        try (StrimziKafkaContainer kafka = KafkaBrokerExtension.createKafkaContainer()) {
+        try (GenericContainer<?> kafka = KafkaBrokerExtension.createKafkaContainer()) {
             kafka.start();
             await().until(kafka::isRunning);
             Integer port = kafka.getMappedPort(KAFKA_PORT);
-            sendMessages(0, 10, kafka.getBootstrapServers());
+            sendMessages(0, 10, KafkaBrokerExtension.getBootstrapServers(kafka));
             String groupId = UUID.randomUUID().toString();
             MapBasedConfig config = createConsumerConfig(groupId)
                     .with("topic", topic)
-                    .with(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, kafka.getBootstrapServers())
+                    .with(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, KafkaBrokerExtension.getBootstrapServers(kafka))
                     .with(ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG, 6000);
             createSource(config, groupId);
             Multi<IncomingKafkaRecord<Integer, String>> stream = source.getStream();
@@ -113,7 +113,7 @@ public class BrokerRestartTest extends ClientTestBase {
             await().until(() -> subscriber.getItems().size() == 1);
             await().until(() -> !source.getConsumer().paused().await().indefinitely().isEmpty());
 
-            sendMessages(0, 10, kafka.getBootstrapServers());
+            sendMessages(0, 10, KafkaBrokerExtension.getBootstrapServers(kafka));
 
             kafka.stop();
             await().until(() -> !kafka.isRunning());
@@ -131,13 +131,13 @@ public class BrokerRestartTest extends ClientTestBase {
                         return last.get() == last.getAndSet(subscriber.getItems().size());
                     });
 
-            try (StrimziKafkaContainer restarted = KafkaBrokerExtension.startKafkaBroker(port)) {
+            try (GenericContainer<?> restarted = KafkaBrokerExtension.startKafkaBroker(port)) {
                 await().until(restarted::isRunning);
 
                 subscriber.request(100);
                 await().until(() -> source.getConsumer().paused().await().indefinitely().isEmpty());
 
-                sendMessages(10, 45, restarted.getBootstrapServers());
+                sendMessages(10, 45, KafkaBrokerExtension.getBootstrapServers(restarted));
                 await().until(() -> subscriber.getItems().size() == 55);
             }
         }
@@ -146,7 +146,7 @@ public class BrokerRestartTest extends ClientTestBase {
     @Test
     public void testWithBrokerRestart() throws Exception {
         int sendBatchSize = 10;
-        try (StrimziKafkaContainer kafka = KafkaBrokerExtension.createKafkaContainer()) {
+        try (GenericContainer<?> kafka = KafkaBrokerExtension.createKafkaContainer()) {
             kafka.start();
             String groupId = UUID.randomUUID().toString();
             MapBasedConfig config = createConsumerConfig(groupId)
@@ -156,7 +156,7 @@ public class BrokerRestartTest extends ClientTestBase {
             CountDownLatch receiveLatch = new CountDownLatch(sendBatchSize * 2);
             subscribe(source.getStream(), receiveLatch);
             sendMessages(0, sendBatchSize);
-            try (StrimziKafkaContainer ignored = restart(kafka, 5)) {
+            try (GenericContainer<?> ignored = restart(kafka, 5)) {
                 sendMessages(sendBatchSize, sendBatchSize);
                 waitForMessages(receiveLatch);
                 checkConsumedMessages();

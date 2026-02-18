@@ -32,6 +32,7 @@ import org.jboss.weld.exceptions.DeploymentException;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.testcontainers.containers.GenericContainer;
 import org.testng.Assert;
 
 import io.smallrye.common.annotation.Identifier;
@@ -51,7 +52,6 @@ import io.smallrye.reactive.messaging.kafka.fault.KafkaFailStop;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
 import io.smallrye.reactive.messaging.providers.connectors.ExecutionHolder;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
-import io.strimzi.test.container.StrimziKafkaContainer;
 
 public class KafkaSourceTest extends KafkaCompanionTestBase {
 
@@ -220,17 +220,17 @@ public class KafkaSourceTest extends KafkaCompanionTestBase {
     @Tag(TestTags.SLOW)
     public void testRetry() {
         // This test need an individual Kafka container
-        try (StrimziKafkaContainer kafka = KafkaBrokerExtension.createKafkaContainer()) {
+        try (GenericContainer<?> kafka = KafkaBrokerExtension.createKafkaContainer()) {
             kafka.start();
             await().until(kafka::isRunning);
             MapBasedConfig config = newCommonConfigForSource()
-                    .with("bootstrap.servers", kafka.getBootstrapServers())
+                    .with("bootstrap.servers", KafkaBrokerExtension.getBootstrapServers(kafka))
                     .with("value.deserializer", IntegerDeserializer.class.getName())
                     .with("retry", true)
                     .with("retry-attempts", 100)
                     .with("retry-max-wait", 30);
 
-            KafkaCompanion kafkaCompanion = new KafkaCompanion(kafka.getBootstrapServers());
+            KafkaCompanion kafkaCompanion = new KafkaCompanion(KafkaBrokerExtension.getBootstrapServers(kafka));
 
             KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
             source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
@@ -246,7 +246,7 @@ public class KafkaSourceTest extends KafkaCompanionTestBase {
             await().atMost(2, TimeUnit.MINUTES).until(() -> messages1.size() >= 10);
 
             try (@SuppressWarnings("unused")
-            StrimziKafkaContainer container = KafkaBrokerExtension.restart(kafka, 2)) {
+            GenericContainer<?> container = KafkaBrokerExtension.restart(kafka, 2)) {
                 kafkaCompanion.produceIntegers().usingGenerator(i -> new ProducerRecord<>(topic, i), 10);
 
                 await().atMost(2, TimeUnit.MINUTES).until(() -> messages1.size() >= 20);

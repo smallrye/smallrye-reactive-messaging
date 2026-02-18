@@ -5,26 +5,26 @@ import static org.awaitility.Awaitility.await;
 
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.junit.jupiter.api.Test;
+import org.testcontainers.containers.GenericContainer;
 
 import io.smallrye.reactive.messaging.kafka.companion.KafkaCompanion;
-import io.strimzi.test.container.StrimziKafkaContainer;
 
 public class KafkaRestartTest {
 
     @Test
     void testRestartedBroker() {
-        try (StrimziKafkaContainer kafkaContainer = KafkaBrokerExtension.createKafkaContainer()) {
+        try (GenericContainer<?> kafkaContainer = KafkaBrokerExtension.createKafkaContainer()) {
             kafkaContainer.start();
             await().until(kafkaContainer::isRunning);
-            String bootstrapServers = kafkaContainer.getBootstrapServers();
+            String bootstrapServers = KafkaBrokerExtension.getBootstrapServers(kafkaContainer);
             try (KafkaCompanion companion = new KafkaCompanion(bootstrapServers)) {
                 companion.produceStrings()
                         .fromRecords(new ProducerRecord<>("topic", "1"))
                         .awaitCompletion();
 
-                StrimziKafkaContainer restarted = KafkaBrokerExtension.restart(kafkaContainer, 2);
+                GenericContainer<?> restarted = KafkaBrokerExtension.restart(kafkaContainer, 2);
 
-                assertThat(restarted.getBootstrapServers()).isEqualTo(bootstrapServers);
+                assertThat(KafkaBrokerExtension.getBootstrapServers(restarted)).isEqualTo(bootstrapServers);
 
                 companion.produceStrings()
                         .fromRecords(new ProducerRecord<>("topic", "1"))
