@@ -927,6 +927,42 @@ public class KafkaFailureHandlerTest extends KafkaCompanionTestBase {
         assertThat(bean.producers()).isEqualTo(1);
     }
 
+    @Test
+    public void testDelayedRetryProcessingDelay() throws InterruptedException {
+        addBeans(KafkaDelayedRetryTopic.Factory.class);
+        int messageCount = 20;
+        int retryDelayMs = 1000;
+        String retryTopic1 = getRetryTopic(topic, 1000);
+        String retryTopic2 = getRetryTopic(topic, 5000);
+        KafkaMapBasedConfig config = kafkaConfig("mp.messaging.incoming.kafka");
+        config.put("topic", topic);
+        config.put("group.id", UUID.randomUUID().toString());
+        config.put("value.deserializer", IntegerDeserializer.class.getName());
+        config.put("enable.auto.commit", "false");
+        config.put("auto.offset.reset", "earliest");
+        config.put("failure-strategy", "delayed-retry-topic");
+        config.put("delayed-retry-topic.topics", String.join(",", retryTopic1, retryTopic2));
+
+        MyDelayMeasuringBean bean = runApplication(config, MyDelayMeasuringBean.class);
+        await().until(this::isReady);
+
+        // Produce a burst of messages — all will be nacked and sent to retry topic
+        companion.produceIntegers().usingGenerator(i -> new ProducerRecord<>(topic, i), 10);
+        Thread.sleep(3000);
+        companion.produceIntegers().usingGenerator(i -> new ProducerRecord<>(topic, i + 10), 10);
+
+        // Wait for all retried messages to be processed
+        await().atMost(30, TimeUnit.SECONDS)
+                .untilAsserted(() -> assertThat(bean.retryDelays()).hasSize(messageCount * 2));
+
+        // With concurrent delay processing all retried messages should be processed close to their scheduled time.
+        assertThat(bean.retryDelays())
+                .allSatisfy(d -> assertThat(d)
+                        .as("Max processing delay across %d retried messages should be bounded. " +
+                                "Delays: %s", messageCount, d)
+                        .isLessThan(retryDelayMs));
+    }
+
     private KafkaMapBasedConfig getFailConfig(String topic) {
         KafkaMapBasedConfig config = kafkaConfig("mp.messaging.incoming.kafka");
         config.put("group.id", UUID.randomUUID().toString());
@@ -1187,6 +1223,55 @@ public class KafkaFailureHandlerTest extends KafkaCompanionTestBase {
             properties.put("request.timeout.ms", "88888");
             properties.put("retries", "99");
             return properties;
+        }
+    }
+
+    @ApplicationScoped
+    public static class MyDelayMeasuringBean {
+        private final List<Integer> received = new CopyOnWriteArrayList<>();
+        private final List<Long> retryProcessingDelays = new CopyOnWriteArrayList<>();
+        private final LongAdder observedConsumerEvents = new LongAdder();
+        private final LongAdder observedProducerEvents = new LongAdder();
+
+        public void afterConsumerCreated(@Observes Consumer<?, ?> consumer) {
+            observedConsumerEvents.increment();
+        }
+
+        public void afterProducerCreated(@Observes Producer<?, ?> producer) {
+            observedProducerEvents.increment();
+        }
+
+        @Incoming("kafka")
+        public CompletionStage<Void> process(KafkaRecord<String, Integer> record) throws InterruptedException {
+            Integer payload = record.getPayload();
+            received.add(payload);
+            if (record.getTopic().contains("_retry_")) {
+                // Measure processing delay for retried messages
+                String topicName = record.getTopic();
+                int scheduledDelayMs = Integer.parseInt(
+                        topicName.substring(topicName.lastIndexOf("_") + 1));
+                long processingDelay = System.currentTimeMillis()
+                        - (record.getTimestamp().toEpochMilli() + scheduledDelayMs);
+                retryProcessingDelays.add(processingDelay);
+            }
+            // Nack all messages on first attempt
+            return record.nack(new IllegalArgumentException("nack all - " + payload));
+        }
+
+        public List<Integer> list() {
+            return received;
+        }
+
+        public List<Long> retryDelays() {
+            return retryProcessingDelays;
+        }
+
+        public long consumers() {
+            return observedConsumerEvents.sum();
+        }
+
+        public long producers() {
+            return observedProducerEvents.sum();
         }
     }
 }
