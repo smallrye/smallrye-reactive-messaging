@@ -11,6 +11,7 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.kafka.clients.admin.TopicDescription;
+import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.errors.UnknownTopicOrPartitionException;
 import org.junit.jupiter.api.Test;
 
@@ -73,5 +74,100 @@ public class TopicsTest extends KafkaCompanionTestBase {
         companion.topics().createAndWait(topic + "-new", 3);
         companion.topics().delete(topic + "-new");
         await().until(() -> !companion.topics().list().contains(topic + "-new"));
+    }
+
+    @Test
+    void testDeleteAndWait() {
+        String topicName = UUID.randomUUID().toString();
+        companion.topics().createAndWait(topicName, 2);
+        assertThat(companion.topics().list()).contains(topicName);
+
+        companion.topics().deleteAndWait(topicName);
+        assertThat(companion.topics().list()).doesNotContain(topicName);
+    }
+
+    @Test
+    void testDeleteAndWaitAndRecreate() {
+        String topicName = UUID.randomUUID().toString();
+        companion.topics().createAndWait(topicName, 1);
+        assertThat(companion.topics().list()).contains(topicName);
+
+        companion.topics().deleteAndWait(topicName);
+        assertThat(companion.topics().list()).doesNotContain(topicName);
+
+        companion.topics().createAndWait(topicName, 3);
+        assertThat(companion.topics().list()).contains(topicName);
+        assertThat(companion.topics().describe(topicName).get(topicName).partitions()).hasSize(3);
+    }
+
+    @Test
+    void testResetTopic() {
+        String topicName = UUID.randomUUID().toString();
+        companion.topics().createAndWait(topicName, 2);
+
+        // Produce some records
+        companion.produceIntegers().usingGenerator(i -> new ProducerRecord<>(topicName, i), 10)
+                .awaitCompletion();
+
+        // Reset the topic
+        companion.topics().reset(topicName);
+
+        // Topic should still exist with the same partition count
+        assertThat(companion.topics().list()).contains(topicName);
+        assertThat(companion.topics().describe(topicName).get(topicName).partitions()).hasSize(2);
+
+        // Records should be gone
+        companion.consumeIntegers().fromTopics(topicName).awaitNoRecords(Duration.ofSeconds(2));
+    }
+
+    @Test
+    void testResetNonExistingTopic() {
+        // resetIfExists should silently skip non-existing topics
+        String nonExistent = UUID.randomUUID().toString();
+        companion.topics().reset(nonExistent);
+        assertThat(companion.topics().list()).doesNotContain(nonExistent);
+    }
+
+    @Test
+    void testResetMixed() {
+        String existing = UUID.randomUUID().toString();
+        String nonExistent = UUID.randomUUID().toString();
+        companion.topics().createAndWait(existing, 2);
+
+        companion.produceIntegers().usingGenerator(i -> new ProducerRecord<>(existing, i), 5)
+                .awaitCompletion();
+
+        // Should reset the existing topic and skip the non-existing one
+        companion.topics().reset(existing, nonExistent);
+
+        assertThat(companion.topics().list()).contains(existing);
+        assertThat(companion.topics().list()).doesNotContain(nonExistent);
+        assertThat(companion.topics().describe(existing).get(existing).partitions()).hasSize(2);
+        companion.consumeIntegers().fromTopics(existing).awaitNoRecords(Duration.ofSeconds(2));
+    }
+
+    @Test
+    void testResetMultipleTopics() {
+        String topic1 = UUID.randomUUID().toString();
+        String topic2 = UUID.randomUUID().toString();
+        companion.topics().createAndWait(topic1, 3);
+        companion.topics().createAndWait(topic2, 1);
+
+        // Produce records to both topics
+        companion.produceIntegers().usingGenerator(i -> new ProducerRecord<>(topic1, i), 5)
+                .awaitCompletion();
+        companion.produceIntegers().usingGenerator(i -> new ProducerRecord<>(topic2, i), 5)
+                .awaitCompletion();
+
+        // Reset both topics
+        companion.topics().reset(topic1, topic2);
+
+        // Both topics should exist with original partition counts
+        assertThat(companion.topics().describe(topic1).get(topic1).partitions()).hasSize(3);
+        assertThat(companion.topics().describe(topic2).get(topic2).partitions()).hasSize(1);
+
+        // Records should be gone
+        companion.consumeIntegers().fromTopics(topic1).awaitNoRecords(Duration.ofSeconds(2));
+        companion.consumeIntegers().fromTopics(topic2).awaitNoRecords(Duration.ofSeconds(2));
     }
 }
