@@ -188,6 +188,7 @@ public class KafkaDelayedRetryTopic extends ContextHolder implements KafkaFailur
     private final List<String> retryTopics;
     private final int maxRetries;
     private final long retryTimeout;
+    private final int maxPollRecords;
 
     public KafkaDelayedRetryTopic(String channel, Vertx vertx, KafkaConnectorIncomingConfiguration configuration,
             List<String> retryTopics,
@@ -209,6 +210,8 @@ public class KafkaDelayedRetryTopic extends ContextHolder implements KafkaFailur
         this.dlqSource = dlqSource;
         this.dlqSink = dlqSink;
         this.consumer = consumer;
+        this.maxPollRecords = configuration.config()
+                .getOptionalValue(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, Integer.class).orElse(500);
     }
 
     public static String getRetryTopic(String topic, int delayMillis) {
@@ -248,7 +251,7 @@ public class KafkaDelayedRetryTopic extends ContextHolder implements KafkaFailur
                     } else {
                         return Uni.createFrom().item(record).onItem().delayIt().by(between);
                     }
-                }).concatenate(false);
+                }).merge(maxPollRecords); // process delays concurrently to avoid head-of-line blocking
     }
 
     @Override
