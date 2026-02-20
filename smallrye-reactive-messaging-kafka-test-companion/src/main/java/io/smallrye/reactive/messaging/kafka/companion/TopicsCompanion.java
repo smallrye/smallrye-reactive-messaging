@@ -96,22 +96,32 @@ public class TopicsCompanion {
                         "Max number of attempts reached, the topic " + topic + " was not created after 10 attempts", e)));
     }
 
-    boolean checkIfTheTopicIsCreated(String topic, Map<String, TopicDescription> description) {
-        if (description == null) {
-            return false;
-        }
-        TopicDescription td = description.get(topic);
-        if (td == null) {
-            return false;
-        }
-        // The topic is created, check that each partition has a leader
-        List<TopicPartitionInfo> partitions = td.partitions();
-        for (TopicPartitionInfo partition : partitions) {
-            if (partition.leader() == null || partition.leader().id() < 0) {
-                return false;
-            }
-        }
-        return true;
+    /**
+     * Wait for topic. Waits at most the duration of the given kafkaApiTimeout, with 10 retries.
+     *
+     * @param topics topic names
+     * @throws IllegalStateException if the topic is not found at the end of the timeout or retries
+     * @return the Uni of the {@link TopicDescription} for the created topic
+     */
+    public Uni<Map<String, TopicDescription>> waitForTopics(String... topics) {
+        return waitForTopics(Arrays.asList(topics));
+    }
+
+    /**
+     * Wait for topic. Waits at most the duration of the given kafkaApiTimeout, with 10 retries.
+     *
+     * @param topics topic names
+     * @throws IllegalStateException if the topic is not found at the end of the timeout or retries
+     * @return the Uni of the map of topic names to their {@link TopicDescription} for the created topics
+     */
+    public Uni<Map<String, TopicDescription>> waitForTopics(Collection<String> topics) {
+        int retries = 10;
+        Duration maxBackOff = kafkaApiTimeout.dividedBy(retries);
+        return toUni(() -> adminClient.describeTopics(topics).allTopicNames())
+                .onFailure().retry().withBackOff(maxBackOff, maxBackOff).atMost(retries)
+                .onFailure().recoverWithUni(e -> Uni.createFrom().failure(new IllegalStateException(
+                        "Max number of attempts reached, topics " + topics + " were not created after 10 attempts",
+                        e)));
     }
 
     /**
@@ -135,10 +145,18 @@ public class TopicsCompanion {
      * @return the map of topic names to topic descriptions
      */
     public Map<String, TopicDescription> describe(String... topics) {
-        if (topics.length == 0) {
+        return describe(Arrays.asList(topics));
+    }
+
+    /**
+     * @param topics topics to describe
+     * @return the map of topic names to topic descriptions
+     */
+    public Map<String, TopicDescription> describe(Collection<String> topics) {
+        if (topics.isEmpty()) {
             return describeAll();
         }
-        return toUni(() -> adminClient.describeTopics(Arrays.asList(topics)).allTopicNames()).await().atMost(kafkaApiTimeout);
+        return toUni(() -> adminClient.describeTopics(topics).allTopicNames()).await().atMost(kafkaApiTimeout);
     }
 
     /**
@@ -191,4 +209,82 @@ public class TopicsCompanion {
     public void delete(String... topics) {
         delete(Arrays.asList(topics));
     }
+
+    /**
+     * Delete topics and wait for deletion
+     *
+     * @param topics the topic names to delete
+     */
+    public void deleteAndWait(String... topics) {
+        deleteAndWait(Arrays.asList(topics));
+    }
+
+    /**
+     * Delete topics and wait for deletion
+     *
+     * @param topics the collection of topic names to delete
+     */
+    public void deleteAndWait(Collection<String> topics) {
+        deleteAndWait(topics, kafkaApiTimeout);
+    }
+
+    /**
+     * Delete topics and wait for deletion
+     *
+     * @param topics the collection of topic names to delete
+     * @param timeout timeout for topics to be deleted
+     */
+    public void deleteAndWait(Collection<String> topics, Duration timeout) {
+        delete(topics);
+        waitForTopicDeletion(topics).await().atMost(timeout);
+    }
+
+    /**
+     * Wait for topic deletion. Waits at most the duration of the given kafkaApiTimeout, with 10 retries.
+     *
+     * @param topics topic names to wait for deletion
+     * @throws IllegalStateException if the topics are still present at the end of the timeout or retries
+     * @return the Uni completing when topics are deleted
+     */
+    public Uni<Set<String>> waitForTopicDeletion(Collection<String> topics) {
+        int retries = 10;
+        Duration maxBackOff = kafkaApiTimeout.dividedBy(retries);
+        return toUni(() -> adminClient.listTopics().names())
+                .onItem().transform(names -> {
+                    names.retainAll(topics);
+                    return names;
+                })
+                .repeat().withDelay(maxBackOff)
+                .whilst(remaining -> !remaining.isEmpty())
+                .select().last().toUni()
+                .onFailure().recoverWithUni(e -> Uni.createFrom().failure(new IllegalStateException(
+                        "Max number of attempts reached, the topics " + topics + " were not deleted", e)));
+    }
+
+    /**
+     * Reset topics: delete and recreate them with the same number of partitions.
+     *
+     * @param topics the topic names to reset
+     */
+    public void reset(String... topics) {
+        reset(Arrays.asList(topics));
+    }
+
+    /**
+     * Reset topics: delete and recreate them with the same number of partitions.
+     *
+     * @param topics the collection of topic names to reset
+     */
+    public void reset(Collection<String> topics) {
+        Set<String> toReset = new HashSet<>(topics);
+        toReset.retainAll(list());
+        if (!toReset.isEmpty()) {
+            Map<String, TopicDescription> existingTopics = describe(toReset);
+            deleteAndWait(toReset);
+            create(existingTopics.entrySet().stream()
+                    .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().partitions().size())));
+            waitForTopics(toReset).await().atMost(kafkaApiTimeout);
+        }
+    }
+
 }
