@@ -30,6 +30,7 @@ import io.smallrye.reactive.messaging.providers.i18n.ProviderLogging;
 import io.smallrye.reactive.messaging.rabbitmq.RabbitMQConnector;
 import io.smallrye.reactive.messaging.rabbitmq.RabbitMQConnectorCommonConfiguration;
 import io.smallrye.reactive.messaging.rabbitmq.RabbitMQConnectorIncomingConfiguration;
+import io.vertx.core.internal.VertxInternal;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.net.JksOptions;
 import io.vertx.mutiny.core.Vertx;
@@ -127,7 +128,7 @@ public class RabbitMQClientHelper {
             JksOptions jks = new JksOptions();
             jks.setPath(trustStorePath.get());
             config.getTrustStorePassword().ifPresent(jks::setPassword);
-            options.setTrustStoreOptions(jks);
+            options.setTrustOptions(jks);
         }
 
         if (config.getCredentialsProviderName().isPresent()) {
@@ -151,7 +152,7 @@ public class RabbitMQClientHelper {
             // To ease configuration, set up a "standard" refresh service
             options.setCredentialsRefreshService(
                     new DefaultCredentialsRefreshService(
-                            vertx.nettyEventLoopGroup(),
+                            ((VertxInternal) vertx.getDelegate()).nettyEventLoopGroup(),
                             ratioRefreshDelayStrategy(CREDENTIALS_PROVIDER_REFRESH_DELAY_RATIO),
                             fixedTimeApproachingExpirationStrategy(CREDENTIALS_PROVIDER_APPROACH_EXPIRE_TIME)));
         } else {

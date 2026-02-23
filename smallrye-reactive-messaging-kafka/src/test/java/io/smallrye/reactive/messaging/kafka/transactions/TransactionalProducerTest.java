@@ -93,14 +93,14 @@ public class TransactionalProducerTest extends KafkaCompanionTestBase {
         int numberOfRecords = 100;
         TransactionalProducerBlocking application = runApplication(config(), TransactionalProducerBlocking.class);
 
-        vertx.executeBlocking(Uni.createFrom().emitter(e -> {
+        vertx.executeBlocking(() -> Uni.createFrom().emitter(e -> {
             application.produceInTransaction(numberOfRecords)
                     .invoke(() -> {
                         assertThat(Vertx.currentContext()).isNotNull();
                         assertThat(Context.isOnWorkerThread()).isTrue();
                     })
                     .subscribe().with(unused -> e.complete(null), e::fail);
-        }))
+        }).await().indefinitely())
                 .await().indefinitely();
 
         companion.consumeIntegers()

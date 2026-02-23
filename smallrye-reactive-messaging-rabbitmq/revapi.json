@@ -21,7 +21,16 @@
     "criticality" : "highlight",
     "minSeverity" : "POTENTIALLY_BREAKING",
     "minCriticality" : "documented",
-    "differences" : [ ]
+    "differences" : [
+    {
+        "ignore": true,
+        "code": "java.annotation.added",
+        "old": "method <T> java.util.Optional<T> io.smallrye.reactive.messaging.rabbitmq.IncomingRabbitMQMetadata::getHeader(java.lang.String, java.lang.Class<T>)",
+        "new": "method <T> java.util.Optional<T> io.smallrye.reactive.messaging.rabbitmq.IncomingRabbitMQMetadata::getHeader(java.lang.String, java.lang.Class<T>)",
+        "annotation": "@io.smallrye.common.constraint.Nullable",
+        "justification": "Switch to the SmallRye Common Nullable annotation instead of abusing the one from Vert.x Codegen"
+    }
+    ]
   }
 }, {
   "extension" : "revapi.reporter.json",

@@ -8,8 +8,8 @@ import org.eclipse.microprofile.reactive.messaging.Message;
 
 import io.smallrye.reactive.messaging.MessageConverter;
 import io.smallrye.reactive.messaging.mqtt.ReceivingMqttMessageMetadata;
+import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonObject;
-import io.vertx.mutiny.core.buffer.Buffer;
 
 @ApplicationScoped
 public class JsonObjectMessageConverter implements MessageConverter {
