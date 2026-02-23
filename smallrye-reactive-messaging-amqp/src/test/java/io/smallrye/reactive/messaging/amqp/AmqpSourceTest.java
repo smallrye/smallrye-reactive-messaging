@@ -119,8 +119,7 @@ public class AmqpSourceTest extends AmqpTestBase {
 
     @NotNull
     private <T, O> Subscriber<T> createSubscriber(List<Message<O>> messages, AtomicBoolean opened) {
-        //noinspection ReactiveStreamsSubscriberImplementation
-        return new Subscriber<T>() {
+        return new Subscriber<>() {
             Flow.Subscription sub;
 
             @Override

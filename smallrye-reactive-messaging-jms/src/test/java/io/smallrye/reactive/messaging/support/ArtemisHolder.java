@@ -22,6 +22,9 @@ class ArtemisHolder {
 
     void restart() {
         try {
+            if (embedded != null) {
+                embedded.stop();
+            }
             embedded = new EmbeddedActiveMQ();
             embedded.start();
         } catch (Exception e) {

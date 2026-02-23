@@ -2,7 +2,7 @@ package io.smallrye.reactive.messaging.kafka.base;
 
 import org.apache.kafka.common.serialization.Deserializer;
 
-import io.vertx.mutiny.core.buffer.Buffer;
+import io.vertx.core.buffer.Buffer;
 
 public class BufferSerde {
 

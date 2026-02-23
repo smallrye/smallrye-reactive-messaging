@@ -18,8 +18,6 @@ package io.smallrye.reactive.messaging.mqtt.session;
 
 import io.netty.handler.codec.mqtt.MqttQoS;
 import io.smallrye.reactive.messaging.mqtt.session.impl.MqttClientSessionImpl;
-import io.vertx.codegen.annotations.Fluent;
-import io.vertx.codegen.annotations.VertxGen;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
@@ -30,7 +28,6 @@ import io.vertx.mqtt.messages.MqttPublishMessage;
 /**
  * An MQTT client session.
  */
-@VertxGen
 public interface MqttClientSession {
 
     /**
@@ -52,7 +49,6 @@ public interface MqttClientSession {
      * @param sessionStateHandler The new handler, will overwrite the old one.
      * @return current MQTT client session instance
      */
-    @Fluent
     MqttClientSession sessionStateHandler(Handler<SessionEvent> sessionStateHandler);
 
     /**
@@ -61,7 +57,6 @@ public interface MqttClientSession {
      * @param subscriptionStateHandler The new handler, will overwrite the old one.
      * @return current MQTT client session instance
      */
-    @Fluent
     MqttClientSession subscriptionStateHandler(Handler<SubscriptionEvent> subscriptionStateHandler);
 
     /**
@@ -71,7 +66,6 @@ public interface MqttClientSession {
      * @return current MQTT client session instance
      * @see MqttClient#publishCompletionHandler(Handler)
      */
-    @Fluent
     MqttClientSession publishCompletionHandler(Handler<Integer> publishCompleteHandler);
 
     /**
@@ -81,7 +75,6 @@ public interface MqttClientSession {
      * @return current MQTT client session instance
      * @see MqttClient#publishCompletionExpirationHandler(Handler)
      */
-    @Fluent
     MqttClientSession publishCompletionExpirationHandler(Handler<Integer> publishCompletionExpirationHandler);
 
     /**
@@ -91,7 +84,6 @@ public interface MqttClientSession {
      * @return current MQTT client session instance
      * @see MqttClient#publishCompletionUnknownPacketIdHandler(Handler)
      */
-    @Fluent
     MqttClientSession publishCompletionUnknownPacketIdHandler(Handler<Integer> publishCompletionUnknownPacketIdHandler);
 
     /**
@@ -151,7 +143,6 @@ public interface MqttClientSession {
      * @param messageHandler handler to call
      * @return current MQTT client session instance
      */
-    @Fluent
     MqttClientSession messageHandler(Handler<MqttPublishMessage> messageHandler);
 
     /**
@@ -160,7 +151,6 @@ public interface MqttClientSession {
      * @param exceptionHandler handler to call
      * @return current MQTT client session instance
      */
-    @Fluent
     MqttClientSession exceptionHandler(Handler<Throwable> exceptionHandler);
 
     /**
