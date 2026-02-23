@@ -7,6 +7,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.*;
+import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.stream.Stream;
 
 import jakarta.enterprise.context.ApplicationScoped;
@@ -18,7 +19,6 @@ import org.junit.jupiter.api.Test;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.WeldTestBaseWithoutTails;
-import io.vertx.core.impl.ConcurrentHashSet;
 
 public class AsynchronousPayloadProcessorAckTest extends WeldTestBaseWithoutTails {
 
@@ -33,9 +33,8 @@ public class AsynchronousPayloadProcessorAckTest extends WeldTestBaseWithoutTail
         initialize();
         Emitter<String> emitter = get(EmitterBean.class).emitter();
         Sink sink = get(Sink.class);
-
-        Set<String> acked = new ConcurrentHashSet<>();
-        Set<String> nacked = new ConcurrentHashSet<>();
+        Set<String> acked = new CopyOnWriteArraySet<>();
+        Set<String> nacked = new CopyOnWriteArraySet<>();
 
         run(acked, nacked, emitter);
 
@@ -52,8 +51,8 @@ public class AsynchronousPayloadProcessorAckTest extends WeldTestBaseWithoutTail
         Emitter<String> emitter = get(EmitterBean.class).emitter();
         Sink sink = get(Sink.class);
 
-        Set<String> acked = new ConcurrentHashSet<>();
-        Set<String> nacked = new ConcurrentHashSet<>();
+        Set<String> acked = new CopyOnWriteArraySet<>();
+        Set<String> nacked = new CopyOnWriteArraySet<>();
 
         run(acked, nacked, emitter);
 
@@ -69,8 +68,8 @@ public class AsynchronousPayloadProcessorAckTest extends WeldTestBaseWithoutTail
         Emitter<String> emitter = get(EmitterBean.class).emitter();
         Sink sink = get(Sink.class);
 
-        Set<String> acked = new ConcurrentHashSet<>();
-        Set<String> nacked = new ConcurrentHashSet<>();
+        Set<String> acked = new CopyOnWriteArraySet<>();
+        Set<String> nacked = new CopyOnWriteArraySet<>();
 
         run(acked, nacked, emitter);
 
@@ -86,8 +85,8 @@ public class AsynchronousPayloadProcessorAckTest extends WeldTestBaseWithoutTail
         Emitter<String> emitter = get(EmitterBean.class).emitter();
         Sink sink = get(Sink.class);
 
-        Set<String> acked = new ConcurrentHashSet<>();
-        Set<String> nacked = new ConcurrentHashSet<>();
+        Set<String> acked = new CopyOnWriteArraySet<>();
+        Set<String> nacked = new CopyOnWriteArraySet<>();
 
         run(acked, nacked, emitter);
 
@@ -103,8 +102,8 @@ public class AsynchronousPayloadProcessorAckTest extends WeldTestBaseWithoutTail
         Emitter<String> emitter = get(EmitterBean.class).emitter();
         Sink sink = get(Sink.class);
 
-        Set<String> acked = new ConcurrentHashSet<>();
-        Set<String> nacked = new ConcurrentHashSet<>();
+        Set<String> acked = new CopyOnWriteArraySet<>();
+        Set<String> nacked = new CopyOnWriteArraySet<>();
 
         List<Throwable> throwables = run(acked, nacked, emitter);
 
@@ -121,8 +120,8 @@ public class AsynchronousPayloadProcessorAckTest extends WeldTestBaseWithoutTail
         Emitter<String> emitter = get(EmitterBean.class).emitter();
         Sink sink = get(Sink.class);
 
-        Set<String> acked = new ConcurrentHashSet<>();
-        Set<String> nacked = new ConcurrentHashSet<>();
+        Set<String> acked = new CopyOnWriteArraySet<>();
+        Set<String> nacked = new CopyOnWriteArraySet<>();
 
         List<Throwable> throwables = run(acked, nacked, emitter);
 
@@ -154,8 +153,8 @@ public class AsynchronousPayloadProcessorAckTest extends WeldTestBaseWithoutTail
         Emitter<String> emitter = get(EmitterBean.class).emitter();
         Sink sink = get(Sink.class);
 
-        Set<String> acked = new ConcurrentHashSet<>();
-        Set<String> nacked = new ConcurrentHashSet<>();
+        Set<String> acked = new CopyOnWriteArraySet<>();
+        Set<String> nacked = new CopyOnWriteArraySet<>();
 
         run(acked, nacked, emitter);
 
@@ -186,8 +185,8 @@ public class AsynchronousPayloadProcessorAckTest extends WeldTestBaseWithoutTail
         Emitter<String> emitter = get(EmitterBean.class).emitter();
         Sink sink = get(Sink.class);
 
-        Set<String> acked = new ConcurrentHashSet<>();
-        Set<String> nacked = new ConcurrentHashSet<>();
+        Set<String> acked = new CopyOnWriteArraySet<>();
+        Set<String> nacked = new CopyOnWriteArraySet<>();
 
         run(acked, nacked, emitter);
 
