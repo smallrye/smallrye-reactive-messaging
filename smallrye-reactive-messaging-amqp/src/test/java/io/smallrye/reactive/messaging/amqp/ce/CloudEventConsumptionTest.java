@@ -26,9 +26,9 @@ import io.smallrye.reactive.messaging.amqp.*;
 import io.smallrye.reactive.messaging.ce.CloudEventMetadata;
 import io.smallrye.reactive.messaging.ce.IncomingCloudEventMetadata;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
+import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonObject;
 import io.vertx.mutiny.amqp.AmqpMessage;
-import io.vertx.mutiny.core.buffer.Buffer;
 
 @SuppressWarnings("unchecked")
 public class CloudEventConsumptionTest extends AmqpBrokerTestBase {

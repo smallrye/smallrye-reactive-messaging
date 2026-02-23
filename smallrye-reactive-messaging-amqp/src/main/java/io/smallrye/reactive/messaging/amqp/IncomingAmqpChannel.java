@@ -26,7 +26,7 @@ import io.smallrye.reactive.messaging.amqp.fault.AmqpRelease;
 import io.smallrye.reactive.messaging.amqp.tracing.AmqpOpenTelemetryInstrumenter;
 import io.smallrye.reactive.messaging.providers.helpers.VertxContext;
 import io.vertx.amqp.AmqpReceiverOptions;
-import io.vertx.core.impl.VertxInternal;
+import io.vertx.core.internal.VertxInternal;
 import io.vertx.mutiny.amqp.AmqpClient;
 import io.vertx.mutiny.amqp.AmqpReceiver;
 import io.vertx.mutiny.core.Context;

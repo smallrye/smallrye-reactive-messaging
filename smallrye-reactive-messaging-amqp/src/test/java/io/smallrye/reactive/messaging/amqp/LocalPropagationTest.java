@@ -10,6 +10,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -38,8 +39,6 @@ import io.smallrye.reactive.messaging.annotations.Broadcast;
 import io.smallrye.reactive.messaging.annotations.Merge;
 import io.smallrye.reactive.messaging.providers.locals.LocalContextMetadata;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
-import io.vertx.core.impl.ConcurrentHashSet;
-import io.vertx.mutiny.core.Vertx;
 
 public class LocalPropagationTest extends AmqpBrokerTestBase {
 
@@ -203,15 +202,16 @@ public class LocalPropagationTest extends AmqpBrokerTestBase {
     public static class LinearPipeline {
 
         private final List<Integer> list = new CopyOnWriteArrayList<>();
-        private final Set<String> uuids = new ConcurrentHashSet<>();
+        private final Set<String> uuids = new CopyOnWriteArraySet<>();
 
         @Incoming("data")
         @Outgoing("process")
         @Acknowledgment(Acknowledgment.Strategy.MANUAL)
         public Message<Integer> process(Message<Integer> input) {
             String value = UUID.randomUUID().toString();
-            Vertx.currentContext().putLocal("uuid", value);
-            Vertx.currentContext().putLocal("input", input.getPayload());
+
+            ContextLocals.put("uuid", value);
+            ContextLocals.put("input", input.getPayload());
 
             return input.withPayload(input.getPayload() + 1);
         }
@@ -219,12 +219,12 @@ public class LocalPropagationTest extends AmqpBrokerTestBase {
         @Incoming("process")
         @Outgoing("after-process")
         public Integer handle(int payload) {
-            String uuid = Vertx.currentContext().getLocal("uuid");
+            String uuid = ContextLocals.get("uuid", null);
             assertThat(uuid).isNotNull();
 
             assertThat(uuids.add(uuid)).isTrue();
 
-            int p = Vertx.currentContext().getLocal("input");
+            int p = ContextLocals.get("input", null);
             assertThat(p + 1).isEqualTo(payload);
             return payload;
         }
@@ -232,20 +232,20 @@ public class LocalPropagationTest extends AmqpBrokerTestBase {
         @Incoming("after-process")
         @Outgoing("sink")
         public Integer afterProcess(int payload) {
-            String uuid = Vertx.currentContext().getLocal("uuid");
+            String uuid = ContextLocals.get("uuid", null);
             assertThat(uuid).isNotNull();
 
-            int p = Vertx.currentContext().getLocal("input");
+            int p = ContextLocals.get("input", null);
             assertThat(p + 1).isEqualTo(payload);
             return payload;
         }
 
         @Incoming("sink")
         public void sink(int val) {
-            String uuid = Vertx.currentContext().getLocal("uuid");
+            String uuid = ContextLocals.get("uuid", null);
             assertThat(uuid).isNotNull();
 
-            int p = Vertx.currentContext().getLocal("input");
+            int p = ContextLocals.get("input", null);
             assertThat(p + 1).isEqualTo(val);
             list.add(val);
         }
@@ -259,7 +259,7 @@ public class LocalPropagationTest extends AmqpBrokerTestBase {
     public static class LinearPipelineWithAckOnCustomThread {
 
         private final List<Integer> list = new CopyOnWriteArrayList<>();
-        private final Set<String> uuids = new ConcurrentHashSet<>();
+        private final Set<String> uuids = new CopyOnWriteArraySet<>();
 
         private final Executor executor = Executors.newFixedThreadPool(4);
 
@@ -269,9 +269,9 @@ public class LocalPropagationTest extends AmqpBrokerTestBase {
         public Message<Integer> process(Message<Integer> input) {
             String value = UUID.randomUUID().toString();
 
-            assertThat((String) Vertx.currentContext().getLocal("uuid")).isNull();
-            Vertx.currentContext().putLocal("uuid", value);
-            Vertx.currentContext().putLocal("input", input.getPayload());
+            assertThat((String) ContextLocals.get("uuid", null)).isNull();
+            ContextLocals.put("uuid", value);
+            ContextLocals.put("input", input.getPayload());
 
             return input.withPayload(input.getPayload() + 1)
                     .withAck(() -> {
@@ -287,12 +287,12 @@ public class LocalPropagationTest extends AmqpBrokerTestBase {
         @Outgoing("after-process")
         public Integer handle(int payload) {
             try {
-                String uuid = Vertx.currentContext().getLocal("uuid");
+                String uuid = ContextLocals.get("uuid", null);
                 assertThat(uuid).isNotNull();
 
                 assertThat(uuids.add(uuid)).isTrue();
 
-                int p = Vertx.currentContext().getLocal("input");
+                int p = ContextLocals.get("input", null);
                 assertThat(p + 1).isEqualTo(payload);
             } catch (Exception e) {
                 e.printStackTrace();
@@ -304,10 +304,10 @@ public class LocalPropagationTest extends AmqpBrokerTestBase {
         @Outgoing("sink")
         public Integer afterProcess(int payload) {
             try {
-                String uuid = Vertx.currentContext().getLocal("uuid");
+                String uuid = ContextLocals.get("uuid", null);
                 assertThat(uuid).isNotNull();
 
-                int p = Vertx.currentContext().getLocal("input");
+                int p = ContextLocals.get("input", null);
                 assertThat(p + 1).isEqualTo(payload);
             } catch (Exception e) {
                 e.printStackTrace();
@@ -317,10 +317,10 @@ public class LocalPropagationTest extends AmqpBrokerTestBase {
 
         @Incoming("sink")
         public void sink(int val) {
-            String uuid = Vertx.currentContext().getLocal("uuid");
+            String uuid = ContextLocals.get("uuid", null);
             assertThat(uuid).isNotNull();
 
-            int p = Vertx.currentContext().getLocal("input");
+            int p = ContextLocals.get("input", null);
             assertThat(p + 1).isEqualTo(val);
             list.add(val);
         }
@@ -334,7 +334,7 @@ public class LocalPropagationTest extends AmqpBrokerTestBase {
     public static class PipelineWithABlockingStage {
 
         private final List<Integer> list = new CopyOnWriteArrayList<>();
-        private final Set<String> uuids = new ConcurrentHashSet<>();
+        private final Set<String> uuids = new CopyOnWriteArraySet<>();
 
         @Incoming("data")
         @Outgoing("process")
@@ -342,9 +342,9 @@ public class LocalPropagationTest extends AmqpBrokerTestBase {
         public Message<Integer> process(Message<Integer> input) {
             String value = UUID.randomUUID().toString();
 
-            assertThat((String) Vertx.currentContext().getLocal("uuid")).isNull();
-            Vertx.currentContext().putLocal("uuid", value);
-            Vertx.currentContext().putLocal("input", input.getPayload());
+            assertThat((String) ContextLocals.get("uuid", null)).isNull();
+            ContextLocals.put("uuid", value);
+            ContextLocals.put("input", input.getPayload());
 
             assertThat(input.getMetadata(LocalContextMetadata.class)).isPresent();
 
@@ -355,12 +355,12 @@ public class LocalPropagationTest extends AmqpBrokerTestBase {
         @Outgoing("after-process")
         @Blocking
         public Integer handle(int payload) {
-            String uuid = Vertx.currentContext().getLocal("uuid");
+            String uuid = ContextLocals.get("uuid", null);
             assertThat(uuid).isNotNull();
 
             assertThat(uuids.add(uuid)).isTrue();
 
-            int p = Vertx.currentContext().getLocal("input");
+            int p = ContextLocals.get("input", null);
             assertThat(p + 1).isEqualTo(payload);
             return payload;
         }
@@ -368,20 +368,20 @@ public class LocalPropagationTest extends AmqpBrokerTestBase {
         @Incoming("after-process")
         @Outgoing("sink")
         public Integer afterProcess(int payload) {
-            String uuid = Vertx.currentContext().getLocal("uuid");
+            String uuid = ContextLocals.get("uuid", null);
             assertThat(uuid).isNotNull();
 
-            int p = Vertx.currentContext().getLocal("input");
+            int p = ContextLocals.get("input", null);
             assertThat(p + 1).isEqualTo(payload);
             return payload;
         }
 
         @Incoming("sink")
         public void sink(int val) {
-            String uuid = Vertx.currentContext().getLocal("uuid");
+            String uuid = ContextLocals.get("uuid", null);
             assertThat(uuid).isNotNull();
 
-            int p = Vertx.currentContext().getLocal("input");
+            int p = ContextLocals.get("input", null);
             assertThat(p + 1).isEqualTo(val);
             list.add(val);
         }
@@ -395,7 +395,7 @@ public class LocalPropagationTest extends AmqpBrokerTestBase {
     public static class PipelineWithAnUnorderedBlockingStage {
 
         private final List<Integer> list = new CopyOnWriteArrayList<>();
-        private final Set<String> uuids = new ConcurrentHashSet<>();
+        private final Set<String> uuids = new CopyOnWriteArraySet<>();
 
         @Incoming("data")
         @Outgoing("process")
@@ -403,9 +403,9 @@ public class LocalPropagationTest extends AmqpBrokerTestBase {
         public Message<Integer> process(Message<Integer> input) {
             String value = UUID.randomUUID().toString();
 
-            assertThat((String) Vertx.currentContext().getLocal("uuid")).isNull();
-            Vertx.currentContext().putLocal("uuid", value);
-            Vertx.currentContext().putLocal("input", input.getPayload());
+            assertThat((String) ContextLocals.get("uuid", null)).isNull();
+            ContextLocals.put("uuid", value);
+            ContextLocals.put("input", input.getPayload());
 
             assertThat(input.getMetadata(LocalContextMetadata.class)).isPresent();
 
@@ -419,11 +419,11 @@ public class LocalPropagationTest extends AmqpBrokerTestBase {
         @Blocking(ordered = false)
         public Integer handle(int payload) throws InterruptedException {
             Thread.sleep(random.nextInt(10));
-            String uuid = Vertx.currentContext().getLocal("uuid");
+            String uuid = ContextLocals.get("uuid", null);
             assertThat(uuid).isNotNull();
             assertThat(uuids.add(uuid)).isTrue();
 
-            int p = Vertx.currentContext().getLocal("input");
+            int p = ContextLocals.get("input", null);
             assertThat(p + 1).isEqualTo(payload);
             return payload;
         }
@@ -431,20 +431,20 @@ public class LocalPropagationTest extends AmqpBrokerTestBase {
         @Incoming("after-process")
         @Outgoing("sink")
         public Integer afterProcess(int payload) {
-            String uuid = Vertx.currentContext().getLocal("uuid");
+            String uuid = ContextLocals.get("uuid", null);
             assertThat(uuid).isNotNull();
 
-            int p = Vertx.currentContext().getLocal("input");
+            int p = ContextLocals.get("input", null);
             assertThat(p + 1).isEqualTo(payload);
             return payload;
         }
 
         @Incoming("sink")
         public void sink(int val) {
-            String uuid = Vertx.currentContext().getLocal("uuid");
+            String uuid = ContextLocals.get("uuid", null);
             assertThat(uuid).isNotNull();
 
-            int p = Vertx.currentContext().getLocal("input");
+            int p = ContextLocals.get("input", null);
             assertThat(p + 1).isEqualTo(val);
             list.add(val);
         }
@@ -458,16 +458,16 @@ public class LocalPropagationTest extends AmqpBrokerTestBase {
     public static class PipelineWithMultipleBlockingStages {
 
         private final List<Integer> list = new CopyOnWriteArrayList<>();
-        private final Set<String> uuids = new ConcurrentHashSet<>();
+        private final Set<String> uuids = new CopyOnWriteArraySet<>();
 
         @Incoming("data")
         @Outgoing("process")
         @Acknowledgment(Acknowledgment.Strategy.MANUAL)
         public Message<Integer> process(Message<Integer> input) {
             String value = UUID.randomUUID().toString();
-            assertThat((String) Vertx.currentContext().getLocal("uuid")).isNull();
-            Vertx.currentContext().putLocal("uuid", value);
-            Vertx.currentContext().putLocal("input", input.getPayload());
+            assertThat((String) ContextLocals.get("uuid", null)).isNull();
+            ContextLocals.put("uuid", value);
+            ContextLocals.put("input", input.getPayload());
 
             assertThat(input.getMetadata(LocalContextMetadata.class)).isPresent();
 
@@ -481,11 +481,11 @@ public class LocalPropagationTest extends AmqpBrokerTestBase {
         @Blocking(ordered = false)
         public Integer handle(int payload) throws InterruptedException {
             Thread.sleep(random.nextInt(10));
-            String uuid = Vertx.currentContext().getLocal("uuid");
+            String uuid = ContextLocals.get("uuid", null);
             assertThat(uuid).isNotNull();
             assertThat(uuids.add(uuid)).isTrue();
 
-            int p = Vertx.currentContext().getLocal("input");
+            int p = ContextLocals.get("input", null);
             assertThat(p + 1).isEqualTo(payload);
             return payload;
         }
@@ -495,10 +495,10 @@ public class LocalPropagationTest extends AmqpBrokerTestBase {
         @Blocking
         public Integer handle2(int payload) throws InterruptedException {
             Thread.sleep(random.nextInt(10));
-            String uuid = Vertx.currentContext().getLocal("uuid");
+            String uuid = ContextLocals.get("uuid", null);
             assertThat(uuid).isNotNull();
 
-            int p = Vertx.currentContext().getLocal("input");
+            int p = ContextLocals.get("input", null);
             assertThat(p + 1).isEqualTo(payload);
             return payload;
         }
@@ -506,20 +506,20 @@ public class LocalPropagationTest extends AmqpBrokerTestBase {
         @Incoming("after-process")
         @Outgoing("sink")
         public Integer afterProcess(int payload) {
-            String uuid = Vertx.currentContext().getLocal("uuid");
+            String uuid = ContextLocals.get("uuid", null);
             assertThat(uuid).isNotNull();
 
-            int p = Vertx.currentContext().getLocal("input");
+            int p = ContextLocals.get("input", null);
             assertThat(p + 1).isEqualTo(payload);
             return payload;
         }
 
         @Incoming("sink")
         public void sink(int val) {
-            String uuid = Vertx.currentContext().getLocal("uuid");
+            String uuid = ContextLocals.get("uuid", null);
             assertThat(uuid).isNotNull();
 
-            int p = Vertx.currentContext().getLocal("input");
+            int p = ContextLocals.get("input", null);
             assertThat(p + 1).isEqualTo(val);
             list.add(val);
         }
@@ -533,8 +533,8 @@ public class LocalPropagationTest extends AmqpBrokerTestBase {
     public static class PipelineWithBroadcastAndMerge {
 
         private final List<Integer> list = new CopyOnWriteArrayList<>();
-        private final Set<String> branch1 = new ConcurrentHashSet<>();
-        private final Set<String> branch2 = new ConcurrentHashSet<>();
+        private final Set<String> branch1 = new CopyOnWriteArraySet<>();
+        private final Set<String> branch2 = new CopyOnWriteArraySet<>();
 
         @Incoming("data")
         @Outgoing("process")
@@ -543,9 +543,9 @@ public class LocalPropagationTest extends AmqpBrokerTestBase {
         public Message<Integer> process(Message<Integer> input) {
             String value = UUID.randomUUID().toString();
 
-            assertThat((String) Vertx.currentContext().getLocal("uuid")).isNull();
-            Vertx.currentContext().putLocal("uuid", value);
-            Vertx.currentContext().putLocal("input", input.getPayload());
+            assertThat((String) ContextLocals.get("uuid", null)).isNull();
+            ContextLocals.put("uuid", value);
+            ContextLocals.put("input", input.getPayload());
 
             assertThat(input.getMetadata(LocalContextMetadata.class)).isPresent();
 
@@ -557,11 +557,11 @@ public class LocalPropagationTest extends AmqpBrokerTestBase {
         @Incoming("process")
         @Outgoing("after-process")
         public Integer branch1(int payload) {
-            String uuid = Vertx.currentContext().getLocal("uuid");
+            String uuid = ContextLocals.get("uuid", null);
             assertThat(uuid).isNotNull();
             assertThat(branch1.add(uuid)).isTrue();
 
-            int p = Vertx.currentContext().getLocal("input");
+            int p = ContextLocals.get("input", null);
             assertThat(p + 1).isEqualTo(payload);
             return payload;
         }
@@ -569,11 +569,11 @@ public class LocalPropagationTest extends AmqpBrokerTestBase {
         @Incoming("process")
         @Outgoing("after-process")
         public Integer branch2(int payload) {
-            String uuid = Vertx.currentContext().getLocal("uuid");
+            String uuid = ContextLocals.get("uuid", null);
             assertThat(uuid).isNotNull();
             assertThat(branch2.add(uuid)).isTrue();
 
-            int p = Vertx.currentContext().getLocal("input");
+            int p = ContextLocals.get("input", null);
             assertThat(p + 1).isEqualTo(payload);
             return payload;
         }
@@ -582,20 +582,20 @@ public class LocalPropagationTest extends AmqpBrokerTestBase {
         @Outgoing("sink")
         @Merge
         public Integer afterProcess(int payload) {
-            String uuid = Vertx.currentContext().getLocal("uuid");
+            String uuid = ContextLocals.get("uuid", null);
             assertThat(uuid).isNotNull();
 
-            int p = Vertx.currentContext().getLocal("input");
+            int p = ContextLocals.get("input", null);
             assertThat(p + 1).isEqualTo(payload);
             return payload;
         }
 
         @Incoming("sink")
         public void sink(int val) {
-            String uuid = Vertx.currentContext().getLocal("uuid");
+            String uuid = ContextLocals.get("uuid", null);
             assertThat(uuid).isNotNull();
 
-            int p = Vertx.currentContext().getLocal("input");
+            int p = ContextLocals.get("input", null);
             assertThat(p + 1).isEqualTo(val);
             list.add(val);
         }
@@ -609,7 +609,7 @@ public class LocalPropagationTest extends AmqpBrokerTestBase {
     public static class PipelineWithAnAsyncStage {
 
         private final List<Integer> list = new CopyOnWriteArrayList<>();
-        private final Set<String> uuids = new ConcurrentHashSet<>();
+        private final Set<String> uuids = new CopyOnWriteArraySet<>();
 
         @Incoming("data")
         @Outgoing("process")
