@@ -22,11 +22,11 @@ import io.smallrye.reactive.messaging.mqtt.session.MqttClientSession;
 import io.smallrye.reactive.messaging.mqtt.session.MqttClientSessionOptions;
 import io.smallrye.reactive.messaging.providers.helpers.ConfigUtils;
 import io.smallrye.reactive.messaging.providers.helpers.MultiUtils;
+import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.mutiny.core.Vertx;
-import io.vertx.mutiny.core.buffer.Buffer;
 
 public class MqttSink {
 
@@ -123,25 +123,25 @@ public class MqttSink {
             return Buffer.buffer();
         }
         if (payload instanceof JsonObject) {
-            return new Buffer(((JsonObject) payload).toBuffer());
+            return Buffer.buffer(((JsonObject) payload).toBuffer());
         }
         if (payload instanceof JsonArray) {
-            return new Buffer(((JsonArray) payload).toBuffer());
+            return Buffer.buffer(((JsonArray) payload).toBuffer());
         }
         if (payload instanceof String || payload.getClass().isPrimitive()) {
-            return new Buffer(io.vertx.core.buffer.Buffer.buffer(payload.toString()));
+            return Buffer.buffer(io.vertx.core.buffer.Buffer.buffer(payload.toString()));
         }
         if (payload instanceof byte[]) {
-            return new Buffer(io.vertx.core.buffer.Buffer.buffer((byte[]) payload));
+            return Buffer.buffer(io.vertx.core.buffer.Buffer.buffer((byte[]) payload));
         }
         if (payload instanceof Buffer) {
             return (Buffer) payload;
         }
         if (payload instanceof io.vertx.core.buffer.Buffer) {
-            return new Buffer((io.vertx.core.buffer.Buffer) payload);
+            return Buffer.buffer((io.vertx.core.buffer.Buffer) payload);
         }
         // Convert to Json
-        return new Buffer(Json.encodeToBuffer(payload));
+        return Buffer.buffer(Json.encodeToBuffer(payload));
     }
 
     public Flow.Subscriber<? extends Message<?>> getSink() {

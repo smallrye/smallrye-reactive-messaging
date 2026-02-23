@@ -120,13 +120,6 @@ public class MqttClientSessionOptions extends MqttClientOptions {
     }
 
     @Override
-    @Deprecated
-    public MqttClientSessionOptions setWillMessage(String willMessage) {
-        super.setWillMessage(willMessage);
-        return this;
-    }
-
-    @Override
     public MqttClientOptions setWillMessageBytes(Buffer willMessage) {
         super.setWillMessageBytes(willMessage);
         return this;
@@ -212,7 +205,7 @@ public class MqttClientSessionOptions extends MqttClientOptions {
 
     @Override
     public MqttClientSessionOptions setTrustStoreOptions(JksOptions options) {
-        super.setTrustStoreOptions(options);
+        super.setTrustOptions(options);
         return this;
     }
 
@@ -229,7 +222,7 @@ public class MqttClientSessionOptions extends MqttClientOptions {
     }
 
     @Override
-    public MqttClientSessionOptions setKeyStoreOptions(JksOptions options) {
+    public MqttClientSessionOptions setKeyOptions(JksOptions options) {
         super.setKeyStoreOptions(options);
         return this;
     }
