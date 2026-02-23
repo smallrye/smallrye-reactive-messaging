@@ -25,8 +25,8 @@ import io.smallrye.mutiny.tuples.Tuple2;
 import io.smallrye.reactive.messaging.kafka.KafkaConnectorIncomingConfiguration;
 import io.smallrye.reactive.messaging.kafka.KafkaConsumer;
 import io.smallrye.reactive.messaging.providers.helpers.CDIUtils;
+import io.vertx.core.buffer.Buffer;
 import io.vertx.mutiny.core.Vertx;
-import io.vertx.mutiny.core.buffer.Buffer;
 
 public class FileCheckpointStateStore implements CheckpointStateStore {
 

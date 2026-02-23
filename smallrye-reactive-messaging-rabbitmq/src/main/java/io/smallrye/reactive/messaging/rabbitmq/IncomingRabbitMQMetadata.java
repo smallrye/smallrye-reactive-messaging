@@ -14,7 +14,7 @@ import com.rabbitmq.client.BasicProperties;
 import com.rabbitmq.client.Envelope;
 import com.rabbitmq.client.LongString;
 
-import io.vertx.codegen.annotations.Nullable;
+import io.smallrye.common.constraint.Nullable;
 import io.vertx.rabbitmq.RabbitMQMessage;
 
 /**
