@@ -5,6 +5,7 @@ import static org.awaitility.Awaitility.await;
 
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.concurrent.CopyOnWriteArraySet;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -32,7 +33,6 @@ import io.smallrye.reactive.messaging.connector.InboundConnector;
 import io.smallrye.reactive.messaging.providers.connectors.ExecutionHolder;
 import io.smallrye.reactive.messaging.providers.locals.ContextAwareMessage;
 import io.smallrye.reactive.messaging.providers.locals.LocalContextMetadata;
-import io.vertx.core.impl.ConcurrentHashSet;
 import io.vertx.mutiny.core.Context;
 
 public class LocalPropagationTest extends WeldTestBaseWithoutTails {
@@ -181,7 +181,7 @@ public class LocalPropagationTest extends WeldTestBaseWithoutTails {
     public static class LinearPipeline {
 
         private final List<Integer> list = new CopyOnWriteArrayList<>();
-        private final Set<String> uuids = new ConcurrentHashSet<>();
+        private final Set<String> uuids = new CopyOnWriteArraySet<>();
 
         @Incoming("data")
         @Outgoing("process")
@@ -237,7 +237,7 @@ public class LocalPropagationTest extends WeldTestBaseWithoutTails {
     public static class LinearPipelineWithAckOnCustomThread {
 
         private final List<Integer> list = new CopyOnWriteArrayList<>();
-        private final Set<String> uuids = new ConcurrentHashSet<>();
+        private final Set<String> uuids = new CopyOnWriteArraySet<>();
 
         private final Executor executor = Executors.newFixedThreadPool(4);
 
@@ -309,7 +309,7 @@ public class LocalPropagationTest extends WeldTestBaseWithoutTails {
     public static class PipelineWithABlockingStage {
 
         private final List<Integer> list = new CopyOnWriteArrayList<>();
-        private final Set<String> uuids = new ConcurrentHashSet<>();
+        private final Set<String> uuids = new CopyOnWriteArraySet<>();
 
         @Incoming("data")
         @Outgoing("process")
@@ -369,7 +369,7 @@ public class LocalPropagationTest extends WeldTestBaseWithoutTails {
     public static class PipelineWithAnAsyncStage {
 
         private final List<Integer> list = new CopyOnWriteArrayList<>();
-        private final Set<String> uuids = new ConcurrentHashSet<>();
+        private final Set<String> uuids = new CopyOnWriteArraySet<>();
 
         @Incoming("data")
         @Outgoing("process")
@@ -429,7 +429,7 @@ public class LocalPropagationTest extends WeldTestBaseWithoutTails {
     public static class PipelineWithAnUnorderedBlockingStage {
 
         private final List<Integer> list = new CopyOnWriteArrayList<>();
-        private final Set<String> uuids = new ConcurrentHashSet<>();
+        private final Set<String> uuids = new CopyOnWriteArraySet<>();
 
         @Incoming("data")
         @Outgoing("process")
@@ -491,7 +491,7 @@ public class LocalPropagationTest extends WeldTestBaseWithoutTails {
     public static class PipelineWithMultipleBlockingStages {
 
         private final List<Integer> list = new CopyOnWriteArrayList<>();
-        private final Set<String> uuids = new ConcurrentHashSet<>();
+        private final Set<String> uuids = new CopyOnWriteArraySet<>();
 
         @Incoming("data")
         @Outgoing("process")
@@ -566,8 +566,8 @@ public class LocalPropagationTest extends WeldTestBaseWithoutTails {
     public static class PipelineWithBroadcastAndMerge {
 
         private final List<Integer> list = new CopyOnWriteArrayList<>();
-        private final Set<String> branch1 = new ConcurrentHashSet<>();
-        private final Set<String> branch2 = new ConcurrentHashSet<>();
+        private final Set<String> branch1 = new CopyOnWriteArraySet<>();
+        private final Set<String> branch2 = new CopyOnWriteArraySet<>();
 
         @Incoming("data")
         @Outgoing("process")
