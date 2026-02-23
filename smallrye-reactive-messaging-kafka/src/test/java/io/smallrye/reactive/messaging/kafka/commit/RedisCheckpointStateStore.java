@@ -1,7 +1,7 @@
 package io.smallrye.reactive.messaging.kafka.commit;
 
 import static io.smallrye.reactive.messaging.kafka.i18n.KafkaLogging.log;
-import static io.vertx.mutiny.redis.client.Request.cmd;
+import static io.vertx.redis.client.Request.cmd;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -29,14 +29,14 @@ import io.smallrye.reactive.messaging.kafka.KafkaConsumer;
 import io.smallrye.reactive.messaging.kafka.impl.JsonHelper;
 import io.smallrye.reactive.messaging.providers.helpers.CDIUtils;
 import io.smallrye.reactive.messaging.providers.helpers.NoStackTraceException;
+import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonObject;
 import io.vertx.mutiny.core.Vertx;
-import io.vertx.mutiny.core.buffer.Buffer;
-import io.vertx.mutiny.redis.client.Command;
 import io.vertx.mutiny.redis.client.Redis;
-import io.vertx.mutiny.redis.client.Request;
-import io.vertx.mutiny.redis.client.Response;
+import io.vertx.redis.client.Command;
 import io.vertx.redis.client.RedisOptions;
+import io.vertx.redis.client.Request;
+import io.vertx.redis.client.Response;
 
 public class RedisCheckpointStateStore implements CheckpointStateStore {
 

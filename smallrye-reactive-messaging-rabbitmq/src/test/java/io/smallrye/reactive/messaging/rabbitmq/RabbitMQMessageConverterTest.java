@@ -24,7 +24,6 @@ import io.smallrye.reactive.messaging.rabbitmq.fault.RabbitMQFailureHandler;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.mutiny.core.Context;
-import io.vertx.mutiny.core.buffer.Buffer;
 
 class RabbitMQMessageConverterTest {
 
@@ -100,18 +99,6 @@ class RabbitMQMessageConverterTest {
         assertThat(result.getBody().toString()).isEqualTo("true");
         assertThat(result.getProperties().getContentType())
                 .isEqualTo(HttpHeaderValues.TEXT_PLAIN.toString());
-    }
-
-    @Test
-    void convertWithMutinyBufferPayload() {
-        Buffer buffer = Buffer.buffer("buffer-content");
-        Message<Buffer> message = Message.of(buffer);
-        RabbitMQMessageConverter.OutgoingRabbitMQMessage result = RabbitMQMessageConverter.convert(
-                null, message, "exchange", "key", Optional.empty(), false);
-
-        assertThat(result.getBody().toString()).isEqualTo("buffer-content");
-        assertThat(result.getProperties().getContentType())
-                .isEqualTo(HttpHeaderValues.APPLICATION_OCTET_STREAM.toString());
     }
 
     @Test
