@@ -93,7 +93,7 @@ public class AmqpCapabilitiesConfigTest extends AmqpBrokerTestBase {
         usage.produceTenIntegers(address, counter::incrementAndGet);
         await().until(() -> bean.getResults().size() == 10);
         ActiveMQServer activeMQServer = broker.getServer().getActiveMQServer();
-        AddressInfo addressInfo = activeMQServer.getAddressInfo(SimpleString.toSimpleString(address));
+        AddressInfo addressInfo = activeMQServer.getAddressInfo(SimpleString.of(address));
         assertThat(addressInfo).isNotNull();
         assertThat(addressInfo.getRoutingType()).isEqualTo(RoutingType.MULTICAST);
     }

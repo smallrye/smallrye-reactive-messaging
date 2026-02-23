@@ -32,7 +32,7 @@ import io.smallrye.reactive.messaging.rabbitmq.ack.RabbitMQAutoAck;
 import io.smallrye.reactive.messaging.rabbitmq.fault.RabbitMQFailureHandler;
 import io.smallrye.reactive.messaging.rabbitmq.tracing.RabbitMQOpenTelemetryInstrumenter;
 import io.smallrye.reactive.messaging.rabbitmq.tracing.RabbitMQTrace;
-import io.vertx.core.impl.VertxInternal;
+import io.vertx.core.internal.VertxInternal;
 import io.vertx.core.json.JsonObject;
 import io.vertx.mutiny.core.Context;
 import io.vertx.mutiny.rabbitmq.RabbitMQClient;
@@ -113,6 +113,7 @@ public class IncomingRabbitMQChannel {
             RabbitMQConnectorIncomingConfiguration ic) {
         // Create a client
         final RabbitMQClient client = RabbitMQClientHelper.createClient(connector, ic);
+
         client.getDelegate().addConnectionEstablishedCallback(promise -> {
 
             Uni<Void> uni;
@@ -229,8 +230,7 @@ public class IncomingRabbitMQChannel {
         ic.getConsumerExclusive().ifPresent(queueOptions::setConsumerExclusive);
         return client.basicConsumer(serverQueueName(RabbitMQClientHelper.getQueueName(ic)), queueOptions
                 .setAutoAck(ic.getAutoAcknowledgement())
-                .setMaxInternalQueueSize(ic.getMaxIncomingInternalQueueSize())
-                .setKeepMostRecent(ic.getKeepMostRecent()));
+                .setMaxInternalQueueSize(ic.getMaxIncomingInternalQueueSize()));
     }
 
     private Multi<? extends Message<?>> getStreamOfMessages(

@@ -1,0 +1,342 @@
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: io.smallrye.reactive.messaging.recipes.MigrateVertxDependencies
+displayName: Migrate Vert.x Dependencies
+description: Updates Maven dependencies for Vert.x 5 compatibility (text-based, works on non-compiling code).
+tags:
+  - vertx
+  - maven
+  - dependencies
+recipeList:
+  # Replace smallrye-common-vertx-context with smallrye-common-vertx5-context (text-based)
+  - org.openrewrite.text.FindAndReplace:
+      find: "<artifactId>smallrye-common-vertx-context</artifactId>"
+      replace: "<artifactId>smallrye-common-vertx5-context</artifactId>"
+
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: io.smallrye.reactive.messaging.recipes.VertxMigration
+displayName: Vert.x 4 to Vert.x 5 Migration
+description: Migrates code from Vert.x 4 to Vert.x 5, including package and API changes.
+tags:
+  - vertx
+  - migration
+recipeList:
+  # Migrate Maven dependencies
+  - io.smallrye.reactive.messaging.recipes.MigrateVertxDependencies
+
+  # Migrate internal package relocations
+  - io.smallrye.reactive.messaging.recipes.MigrateVertxInternalPackages
+
+  # Migrate removed Vert.x classes
+  - io.smallrye.reactive.messaging.recipes.MigrateRemovedVertxClasses
+
+  # Migrate Context API changes
+  - io.smallrye.reactive.messaging.recipes.MigrateVertxContext
+
+  # Migrate WorkerExecutor method renames
+  - io.smallrye.reactive.messaging.recipes.MigrateWorkerExecutorMethods
+
+  # Migrate Mutiny package changes
+  - io.smallrye.reactive.messaging.recipes.MigrateMutinyPackages
+
+  # Migrate Context locals API changes
+  - io.smallrye.reactive.messaging.recipes.MigrateContextLocals
+
+  # Migrate Vertx.executeBlocking API changes
+  - io.smallrye.reactive.messaging.recipes.MigrateExecuteBlocking
+
+  # Migrate setTrustStoreOptions to setTrustOptions
+  - io.smallrye.reactive.messaging.recipes.MigrateTrustStoreOptions
+
+  # Migrate nettyEventLoopGroup with VertxInternal cast
+  - io.smallrye.reactive.messaging.recipes.MigrateNettyEventLoopGroup
+
+  # Migrate async handler methods to Future-based API
+  - io.smallrye.reactive.messaging.recipes.MigrateAsyncHandlerToFuture
+
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: io.smallrye.reactive.messaging.recipes.MigrateVertxContext
+displayName: Migrate Vert.x Context Usage
+description: Updates Vert.x Context API usage for version 5 compatibility.
+tags:
+  - vertx
+  - context
+recipeList:
+  # Migrate ContextInternal from impl to internal package
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: io.vertx.core.impl.ContextInternal
+      newFullyQualifiedTypeName: io.vertx.core.internal.ContextInternal
+
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: io.smallrye.reactive.messaging.recipes.MigrateWorkerExecutorMethods
+displayName: Migrate Vert.x WorkerExecutor Method Renames
+description: Migrates renamed methods on WorkerExecutor for Vert.x 5 compatibility.
+tags:
+  - vertx
+  - workerexecutor
+recipeList:
+  # Migrate getPool() to pool()
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: io.vertx.core.WorkerExecutor getPool()
+      newMethodName: pool
+
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: io.smallrye.reactive.messaging.recipes.MigrateVertxInternalPackages
+displayName: Migrate Vert.x Internal Package Relocations
+description: Migrates Vert.x internal packages from impl to internal (text-based, works on non-compiling code).
+tags:
+  - vertx
+  - internal
+recipeList:
+  # Migrate ContextInternal - import statement
+  - org.openrewrite.text.FindAndReplace:
+      find: "import io.vertx.core.impl.ContextInternal;"
+      replace: "import io.vertx.core.internal.ContextInternal;"
+
+  # Migrate VertxInternal - import statement
+  - org.openrewrite.text.FindAndReplace:
+      find: "import io.vertx.core.impl.VertxInternal;"
+      replace: "import io.vertx.core.internal.VertxInternal;"
+
+  # Migrate WorkerExecutor - import statement
+  - org.openrewrite.text.FindAndReplace:
+      find: "import io.vertx.core.impl.WorkerExecutor;"
+      replace: "import io.vertx.core.internal.WorkerExecutor;"
+
+  # Migrate fully qualified names (less common but possible)
+  - org.openrewrite.text.FindAndReplace:
+      find: "io.vertx.core.impl.ContextInternal"
+      replace: "io.vertx.core.internal.ContextInternal"
+  - org.openrewrite.text.FindAndReplace:
+      find: "io.vertx.core.impl.VertxInternal"
+      replace: "io.vertx.core.internal.VertxInternal"
+  - org.openrewrite.text.FindAndReplace:
+      find: "io.vertx.core.impl.WorkerExecutor"
+      replace: "io.vertx.core.internal.WorkerExecutor"
+
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: io.smallrye.reactive.messaging.recipes.MigrateRemovedVertxClasses
+displayName: Migrate Removed Vert.x Classes
+description: Migrates Vert.x classes that were removed in version 5 to their replacements.
+tags:
+  - vertx
+  - removed
+recipeList:
+  # Migrate import statement
+  - org.openrewrite.text.FindAndReplace:
+      find: "import io.vertx.core.impl.ConcurrentHashSet;"
+      replace: "import java.util.concurrent.CopyOnWriteArraySet;"
+  # Migrate usage in code
+  - org.openrewrite.text.FindAndReplace:
+      find: "ConcurrentHashSet<"
+      replace: "CopyOnWriteArraySet<"
+  - org.openrewrite.text.FindAndReplace:
+      find: "new ConcurrentHashSet<>"
+      replace: "new CopyOnWriteArraySet<>"
+
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: io.smallrye.reactive.messaging.recipes.MigrateMutinyPackages
+displayName: Migrate Mutiny Package Changes
+description: Migrates Mutiny-related package changes for Vert.x 5 compatibility (text-based, works on non-compiling code).
+tags:
+  - vertx
+  - mutiny
+  - packages
+recipeList:
+  # Migrate io.vertx.mutiny.core.buffer.Buffer to io.vertx.core.buffer.Buffer - import statement
+  - org.openrewrite.text.FindAndReplace:
+      find: "import io.vertx.mutiny.core.buffer.Buffer;"
+      replace: "import io.vertx.core.buffer.Buffer;"
+
+  # Migrate fully qualified name (less common but possible)
+  - org.openrewrite.text.FindAndReplace:
+      find: "io.vertx.mutiny.core.buffer.Buffer"
+      replace: "io.vertx.core.buffer.Buffer"
+
+  # Migrate Buffer constructor to static factory method
+  # Buffer is no longer instantiable with new, must use Buffer.buffer(...)
+  - org.openrewrite.text.FindAndReplace:
+      find: "new Buffer("
+      replace: "Buffer.buffer("
+
+  # Migrate Redis client classes from Mutiny to data objects
+  # In Vert.x 5, Command, Request, and Response became data objects and are no longer in the Mutiny package
+  - org.openrewrite.text.FindAndReplace:
+      find: "import io.vertx.mutiny.redis.client.Command;"
+      replace: "import io.vertx.redis.client.Command;"
+  - org.openrewrite.text.FindAndReplace:
+      find: "import io.vertx.mutiny.redis.client.Request;"
+      replace: "import io.vertx.redis.client.Request;"
+  - org.openrewrite.text.FindAndReplace:
+      find: "import io.vertx.mutiny.redis.client.Response;"
+      replace: "import io.vertx.redis.client.Response;"
+
+  # Migrate fully qualified names (less common but possible)
+  - org.openrewrite.text.FindAndReplace:
+      find: "io.vertx.mutiny.redis.client.Command"
+      replace: "io.vertx.redis.client.Command"
+  - org.openrewrite.text.FindAndReplace:
+      find: "io.vertx.mutiny.redis.client.Request"
+      replace: "io.vertx.redis.client.Request"
+  - org.openrewrite.text.FindAndReplace:
+      find: "io.vertx.mutiny.redis.client.Response"
+      replace: "io.vertx.redis.client.Response"
+
+  # Migrate @Nullable annotation from Vert.x codegen to SmallRye common
+  - org.openrewrite.text.FindAndReplace:
+      find: "import io.vertx.codegen.annotations.Nullable;"
+      replace: "import io.smallrye.common.constraint.Nullable;"
+
+  # Migrate fully qualified name (less common but possible)
+  - org.openrewrite.text.FindAndReplace:
+      find: "io.vertx.codegen.annotations.Nullable"
+      replace: "io.smallrye.common.constraint.Nullable"
+
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: io.smallrye.reactive.messaging.recipes.MigrateContextLocals
+displayName: Migrate Context Locals API
+description: Migrates from Vert.x Context.putLocal/getLocal to SmallRye ContextLocals (text-based, works on non-compiling code).
+tags:
+  - vertx
+  - context
+  - locals
+recipeList:
+  # Add ContextLocals import after VertxContext import (alphabetically sorted)
+  - org.openrewrite.text.FindAndReplace:
+      find: "import io.smallrye.common.vertx.VertxContext;"
+      replace: "import io.smallrye.common.vertx.ContextLocals;\nimport io.smallrye.common.vertx.VertxContext;"
+
+  # Migrate Vertx.currentContext().putLocal( to ContextLocals.put(
+  - org.openrewrite.text.FindAndReplace:
+      find: "Vertx.currentContext().putLocal("
+      replace: "ContextLocals.put("
+
+  # Migrate Vertx.currentContext().getLocal( to ContextLocals.get( with null default
+  # We do specific replacements for common patterns
+  - org.openrewrite.text.FindAndReplace:
+      find: "Vertx.currentContext().getLocal(\"uuid\")"
+      replace: "ContextLocals.get(\"uuid\", null)"
+  - org.openrewrite.text.FindAndReplace:
+      find: "Vertx.currentContext().getLocal(\"input\")"
+      replace: "ContextLocals.get(\"input\", null)"
+  # Fallback for any other keys (will need manual fix to add null parameter)
+  - org.openrewrite.text.FindAndReplace:
+      find: "Vertx.currentContext().getLocal("
+      replace: "ContextLocals.get("
+
+  # Fix already-migrated ContextLocals.get calls that are missing the null parameter
+  - org.openrewrite.text.FindAndReplace:
+      find: "ContextLocals.get(\"uuid\")"
+      replace: "ContextLocals.get(\"uuid\", null)"
+  - org.openrewrite.text.FindAndReplace:
+      find: "ContextLocals.get(\"input\")"
+      replace: "ContextLocals.get(\"input\", null)"
+
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: io.smallrye.reactive.messaging.recipes.MigrateExecuteBlocking
+displayName: Migrate Vertx.executeBlocking API Changes
+description: Migrates Vertx.executeBlocking() from accepting Uni directly to accepting a Supplier (text-based, works on non-compiling code).
+tags:
+  - vertx
+  - executeBlocking
+  - mutiny
+recipeList:
+  # Step 1: Wrap Uni argument in a lambda
+  - org.openrewrite.text.FindAndReplace:
+      find: ".executeBlocking(Uni."
+      replace: ".executeBlocking(() -> Uni."
+
+  # Step 2: For the common pattern where })) is followed by .await(), add await before the ))
+  # This handles the multi-line emitter pattern: Uni.createFrom().emitter(e -> { ... }))
+  - org.openrewrite.text.FindAndReplace:
+      find: "}))\n                .await().indefinitely();"
+      replace: "}).await().indefinitely())\n                .await().indefinitely();"
+
+  # Handle variation with different indentation (8 spaces)
+  - org.openrewrite.text.FindAndReplace:
+      find: "}))\n        .await().indefinitely();"
+      replace: "}).await().indefinitely())\n        .await().indefinitely();"
+
+  # Handle single line pattern
+  - org.openrewrite.text.FindAndReplace:
+      find: "})).await().indefinitely();"
+      replace: "}).await().indefinitely()).await().indefinitely();"
+
+  # Step 3: For simple inline calls with comma (executeBlocking with boolean parameter)
+  # Pattern: .executeBlocking(uni, true) -> .executeBlocking(() -> uni.await().indefinitely(), true)
+  # Note: This requires manual intervention to add await() after the uni variable/expression
+
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: io.smallrye.reactive.messaging.recipes.MigrateTrustStoreOptions
+displayName: Migrate setTrustStoreOptions to setTrustOptions
+description: Migrates NetClientOptions.setTrustStoreOptions() to setTrustOptions() for Vert.x 5 compatibility (text-based, works on non-compiling code).
+tags:
+  - vertx
+  - netclient
+  - ssl
+recipeList:
+  # Migrate setTrustStoreOptions to setTrustOptions
+  - org.openrewrite.text.FindAndReplace:
+      find: ".setTrustStoreOptions("
+      replace: ".setTrustOptions("
+
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: io.smallrye.reactive.messaging.recipes.MigrateNettyEventLoopGroup
+displayName: Migrate Vertx.nettyEventLoopGroup() with VertxInternal cast
+description: Casts Vertx to VertxInternal when calling nettyEventLoopGroup() for Vert.x 5 compatibility (text-based, works on non-compiling code).
+tags:
+  - vertx
+  - netty
+  - eventloop
+recipeList:
+  # Add VertxInternal import after Vertx import (alphabetically it comes after)
+  - org.openrewrite.text.FindAndReplace:
+      find: "import io.vertx.mutiny.core.Vertx;"
+      replace: "import io.vertx.mutiny.core.Vertx;\nimport io.vertx.core.internal.VertxInternal;"
+
+  # Cast vertx to VertxInternal when calling nettyEventLoopGroup()
+  - org.openrewrite.text.FindAndReplace:
+      find: "vertx.nettyEventLoopGroup()"
+      replace: "((VertxInternal) vertx.getDelegate()).nettyEventLoopGroup()"
+
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: io.smallrye.reactive.messaging.recipes.MigrateAsyncHandlerToFuture
+displayName: Migrate Handler<AsyncResult<T>> to Future<T>
+description: Migrates method calls from using Handler<AsyncResult<T>> as last parameter to returning Future<T> with onComplete (text-based, works on non-compiling code).
+tags:
+  - vertx
+  - async
+  - handler
+  - future
+recipeList:
+  # Pattern 1: Common handler parameter names at end of method call
+  # Transform: method(..., resultHandler); -> method(...).onComplete(resultHandler);
+  - org.openrewrite.text.FindAndReplace:
+      find: ", resultHandler);"
+      replace: ").onComplete(resultHandler);"
+
+  - org.openrewrite.text.FindAndReplace:
+      find: ", asyncResultHandler);"
+      replace: ").onComplete(asyncResultHandler);"
+
+  # Note: ", handler);" is too generic and causes false positives
+  # Add specific patterns for known method calls instead
+
+  # Pattern 2: Specific known RabbitMQ methods
+  - org.openrewrite.text.FindAndReplace:
+      find: ".queueDeclare(queue, durable, exclusive, autoDelete, config, resultHandler);"
+      replace: ".queueDeclare(queue, durable, exclusive, autoDelete, config).onComplete(resultHandler);"
+
+  # Pattern 3: Inside AsyncResultUni.toUni lambda - need to also consider removing the lambda
+  # For now, just fix the method call, the lambda wrapper can be cleaned up manually or in a second pass

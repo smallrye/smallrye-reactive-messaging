@@ -51,8 +51,8 @@ import io.smallrye.reactive.messaging.kafka.companion.ConsumerTask;
 import io.smallrye.reactive.messaging.kafka.companion.ProducerTask;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
+import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonObject;
-import io.vertx.mutiny.core.buffer.Buffer;
 
 public class FileCheckpointStateStoreTest extends KafkaCompanionTestBase {
 
@@ -386,7 +386,7 @@ public class FileCheckpointStateStoreTest extends KafkaCompanionTestBase {
     @Test
     public void testWithPreviousState(@TempDir File tempDir) {
         vertx.fileSystem().writeFile(tempDir.toPath().resolve(groupId + ":" + topic + ":" + 0).toString(),
-                Buffer.newInstance(JsonObject.of("offset", 500, "state", sum(500)).toBuffer()))
+                Buffer.buffer(JsonObject.of("offset", 500, "state", sum(500)).encode()))
                 .await().indefinitely();
 
         int expected = 1000;
