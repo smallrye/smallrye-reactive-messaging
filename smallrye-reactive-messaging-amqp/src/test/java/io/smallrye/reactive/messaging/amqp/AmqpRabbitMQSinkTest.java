@@ -28,9 +28,9 @@ import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 import io.smallrye.reactive.messaging.test.common.config.SmallRyeConfigTestUtil;
 import io.vertx.amqp.AmqpReceiverOptions;
+import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
-import io.vertx.mutiny.core.buffer.Buffer;
 
 public class AmqpRabbitMQSinkTest extends RabbitMQBrokerTestBase {
 
@@ -377,7 +377,7 @@ public class AmqpRabbitMQSinkTest extends RabbitMQBrokerTestBase {
         Flow.Subscriber<? extends Message<?>> sink = createProviderAndSink(topic);
         //noinspection unchecked
         Multi.createFrom().range(0, 10)
-                .map(i -> new Buffer(new JsonObject().put(ID, HELLO + i).toBuffer()))
+                .map(i -> Buffer.buffer(new JsonObject().put(ID, HELLO + i).encode()))
                 .map(Message::of)
                 .subscribe((Flow.Subscriber<? super Message<?>>) sink);
 
