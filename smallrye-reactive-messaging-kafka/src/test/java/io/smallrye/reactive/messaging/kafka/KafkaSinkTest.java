@@ -35,7 +35,6 @@ import io.smallrye.reactive.messaging.health.HealthReport;
 import io.smallrye.reactive.messaging.kafka.api.OutgoingKafkaRecordMetadata;
 import io.smallrye.reactive.messaging.kafka.base.KafkaCompanionTestBase;
 import io.smallrye.reactive.messaging.kafka.base.KafkaMapBasedConfig;
-import io.smallrye.reactive.messaging.kafka.base.UnsatisfiedInstance;
 import io.smallrye.reactive.messaging.kafka.companion.ConsumerTask;
 import io.smallrye.reactive.messaging.kafka.companion.KafkaCompanion;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSink;
@@ -62,9 +61,7 @@ public class KafkaSinkTest extends KafkaCompanionTestBase {
                 .with("value.serializer", IntegerSerializer.class.getName())
                 .with("partition", 0)
                 .with("channel-name", "testSinkUsingInteger");
-        KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
-        sink = new KafkaSink(oc, CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(),
-                UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance());
+        sink = createSink(config);
 
         Flow.Subscriber<? extends Message<?>> subscriber = sink.getSink();
         Multi.createFrom().range(0, 10)
@@ -83,9 +80,7 @@ public class KafkaSinkTest extends KafkaCompanionTestBase {
                 .with("channel-name", topic)
                 .with("value.serializer", IntegerSerializer.class.getName())
                 .with("partition", 0);
-        KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
-        sink = new KafkaSink(oc, CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(),
-                UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance());
+        sink = createSink(config);
 
         Flow.Subscriber<? extends Message<?>> subscriber = sink.getSink();
         Multi.createFrom().range(0, 10)
@@ -105,9 +100,7 @@ public class KafkaSinkTest extends KafkaCompanionTestBase {
                 .with("value.serializer", StringSerializer.class.getName())
                 .with("partition", 0)
                 .with("channel-name", "testSinkUsingString");
-        KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
-        sink = new KafkaSink(oc, CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(),
-                UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance());
+        sink = createSink(config);
 
         Flow.Subscriber<? extends Message<?>> subscriber = sink.getSink();
         Multi.createFrom().range(0, 10)
@@ -236,10 +229,8 @@ public class KafkaSinkTest extends KafkaCompanionTestBase {
                 .with("max-inflight-messages", 1L)
                 .with("channel-name", "my-channel")
                 .with("retries", 0L); // disable retry.
-        KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
         CountKafkaCdiEvents testCdiEvents = new CountKafkaCdiEvents();
-        sink = new KafkaSink(oc, testCdiEvents, UnsatisfiedInstance.instance(),
-                UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance());
+        sink = createSink(config, testCdiEvents);
 
         await().until(() -> {
             HealthReport.HealthReportBuilder builder = HealthReport.builder();
@@ -287,9 +278,7 @@ public class KafkaSinkTest extends KafkaCompanionTestBase {
                 .with("partition", 0)
                 .with("retries", 0L)
                 .with("channel-name", "testInvalidTypeWithDefaultInflightMessages");
-        KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
-        sink = new KafkaSink(oc, CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(),
-                UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance());
+        sink = createSink(config);
 
         Flow.Subscriber subscriber = sink.getSink();
         Multi.createFrom().range(0, 5)

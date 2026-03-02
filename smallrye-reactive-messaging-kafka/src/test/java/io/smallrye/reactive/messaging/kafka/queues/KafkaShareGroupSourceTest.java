@@ -117,10 +117,7 @@ public class KafkaShareGroupSourceTest extends KafkaCompanionTestBase {
         companion.topics().createAndWait(topic, 1);
         MapBasedConfig config = newCommonConfigForShareGroup()
                 .with("value.deserializer", IntegerDeserializer.class.getName());
-        KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
-        source = new KafkaShareGroupSource<>(vertx, groupId, ic,
-                UnsatisfiedInstance.instance(), CountKafkaCdiEvents.noCdiEvents,
-                UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance());
+        source = createShareGroupSource(groupId, config);
 
         List<Integer> acknowledged = new CopyOnWriteArrayList<>();
         source.getStream().call(record -> {
@@ -143,10 +140,7 @@ public class KafkaShareGroupSourceTest extends KafkaCompanionTestBase {
         companion.topics().createAndWait(topic, 1);
         MapBasedConfig config = newCommonConfigForShareGroup()
                 .with("value.deserializer", IntegerDeserializer.class.getName());
-        KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
-        source = new KafkaShareGroupSource<>(vertx, groupId, ic,
-                UnsatisfiedInstance.instance(), CountKafkaCdiEvents.noCdiEvents,
-                UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance());
+        source = createShareGroupSource(groupId, config);
 
         AtomicInteger processedCount = new AtomicInteger(0);
         List<Integer> processed = new CopyOnWriteArrayList<>();
@@ -188,10 +182,7 @@ public class KafkaShareGroupSourceTest extends KafkaCompanionTestBase {
         MapBasedConfig config = newCommonConfigForShareGroup()
                 .with("value.deserializer", IntegerDeserializer.class.getName())
                 .with("batch", true);
-        KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
-        source = new KafkaShareGroupSource<>(vertx, groupId, ic,
-                UnsatisfiedInstance.instance(), CountKafkaCdiEvents.noCdiEvents,
-                UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance());
+        source = createShareGroupSource(groupId, config);
 
         List<Message<?>> batches = new CopyOnWriteArrayList<>();
         source.getBatchStream().subscribe().with(batches::add);
@@ -277,23 +268,16 @@ public class KafkaShareGroupSourceTest extends KafkaCompanionTestBase {
         Map<TopicPartition, Set<Long>> ackedOffsets = new ConcurrentHashMap<>();
 
         // Create two share group sources with the same group ID
-        KafkaConnectorIncomingConfiguration ic1 = new KafkaConnectorIncomingConfiguration(config
+        KafkaShareGroupSource<String, Integer> source1 = createShareGroupSource(groupId, config
                 .with("client.id", clientId + "$1"));
-        KafkaShareGroupSource<String, Integer> source1 = new KafkaShareGroupSource<>(vertx, groupId, ic1,
-                UnsatisfiedInstance.instance(), CountKafkaCdiEvents.noCdiEvents,
-                UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance());
         source1.getConsumer().runOnPollingThread(c -> {
             c.setAcknowledgementCommitCallback((offsets, exception) -> {
                 offsets.forEach((partition, offset) -> ackedOffsets.put(partition.topicPartition(), offset));
             });
         }).await().indefinitely();
 
-        ;
-        KafkaConnectorIncomingConfiguration ic2 = new KafkaConnectorIncomingConfiguration(config
+        KafkaShareGroupSource<String, Integer> source2 = createShareGroupSource(groupId, config
                 .with("client.id", clientId + "$2"));
-        KafkaShareGroupSource<String, Integer> source2 = new KafkaShareGroupSource<>(vertx, groupId, ic2,
-                UnsatisfiedInstance.instance(), CountKafkaCdiEvents.noCdiEvents,
-                UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance());
         source2.getConsumer().runOnPollingThread(c -> {
             c.setAcknowledgementCommitCallback((offsets, exception) -> {
                 offsets.forEach((partition, offset) -> ackedOffsets.put(partition.topicPartition(), offset));
@@ -356,10 +340,7 @@ public class KafkaShareGroupSourceTest extends KafkaCompanionTestBase {
         MapBasedConfig config = newCommonConfigForShareGroup()
                 .with("value.deserializer", IntegerDeserializer.class.getName())
                 .with("batch", true);
-        KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
-        source = new KafkaShareGroupSource<>(vertx, groupId, ic,
-                UnsatisfiedInstance.instance(), CountKafkaCdiEvents.noCdiEvents,
-                UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance());
+        source = createShareGroupSource(groupId, config);
 
         List<Integer> acknowledged = new CopyOnWriteArrayList<>();
         source.getBatchStream().call(batch -> {
@@ -386,10 +367,7 @@ public class KafkaShareGroupSourceTest extends KafkaCompanionTestBase {
         MapBasedConfig config = newCommonConfigForShareGroup()
                 .with("value.deserializer", IntegerDeserializer.class.getName())
                 .with("batch", true);
-        KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
-        source = new KafkaShareGroupSource<>(vertx, groupId, ic,
-                UnsatisfiedInstance.instance(), CountKafkaCdiEvents.noCdiEvents,
-                UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance());
+        source = createShareGroupSource(groupId, config);
 
         List<Integer> processed = new CopyOnWriteArrayList<>();
         source.getBatchStream().call(batch -> {
@@ -417,10 +395,7 @@ public class KafkaShareGroupSourceTest extends KafkaCompanionTestBase {
         companion.topics().createAndWait(topic, 1);
         MapBasedConfig config = newCommonConfigForShareGroup()
                 .with("value.deserializer", IntegerDeserializer.class.getName());
-        KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
-        source = new KafkaShareGroupSource<>(vertx, groupId, ic,
-                UnsatisfiedInstance.instance(), CountKafkaCdiEvents.noCdiEvents,
-                UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance());
+        source = createShareGroupSource(groupId, config);
 
         // Track how many times each value is seen
         Map<Integer, AtomicInteger> deliveryCounts = new ConcurrentHashMap<>();
@@ -463,11 +438,8 @@ public class KafkaShareGroupSourceTest extends KafkaCompanionTestBase {
     public void testShareGroupSourceNackWithAccept() {
         companion.topics().createAndWait(topic, 1);
 
-        KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(
-                newCommonConfigForShareGroup().with("value.deserializer", IntegerDeserializer.class.getName()));
-        source = new KafkaShareGroupSource<>(vertx, groupId, ic,
-                UnsatisfiedInstance.instance(), CountKafkaCdiEvents.noCdiEvents,
-                UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance());
+        source = createShareGroupSource(groupId, newCommonConfigForShareGroup()
+                .with("value.deserializer", IntegerDeserializer.class.getName()));
 
         List<Integer> processed = new CopyOnWriteArrayList<>();
 
@@ -503,10 +475,7 @@ public class KafkaShareGroupSourceTest extends KafkaCompanionTestBase {
         companion.topics().createAndWait(topic, 1);
         MapBasedConfig config = newCommonConfigForShareGroup()
                 .with("value.deserializer", IntegerDeserializer.class.getName());
-        KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
-        source = new KafkaShareGroupSource<>(vertx, groupId, ic,
-                UnsatisfiedInstance.instance(), CountKafkaCdiEvents.noCdiEvents,
-                UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance());
+        source = createShareGroupSource(groupId, config);
 
         AtomicInteger ackedCount = new AtomicInteger(0);
         List<Integer> processed = new CopyOnWriteArrayList<>();
@@ -544,10 +513,7 @@ public class KafkaShareGroupSourceTest extends KafkaCompanionTestBase {
         MapBasedConfig config = newCommonConfigForShareGroup()
                 .with("value.deserializer", IntegerDeserializer.class.getName())
                 .with("graceful-shutdown", true);
-        KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
-        source = new KafkaShareGroupSource<>(vertx, groupId, ic,
-                UnsatisfiedInstance.instance(), CountKafkaCdiEvents.noCdiEvents,
-                UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance());
+        source = createShareGroupSource(groupId, config);
         ReactiveKafkaShareConsumer<String, Integer> consumer = source.getConsumer();
 
         List<Integer> received = new CopyOnWriteArrayList<>();
@@ -589,10 +555,7 @@ public class KafkaShareGroupSourceTest extends KafkaCompanionTestBase {
                 .with("graceful-shutdown", true)
                 .with("poll-timeout", 500)
                 .with("share-group.unprocessed-record-max-age.ms", 0);
-        KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
-        source = new KafkaShareGroupSource<>(vertx, groupId, ic,
-                UnsatisfiedInstance.instance(), CountKafkaCdiEvents.noCdiEvents,
-                UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance());
+        source = createShareGroupSource(groupId, config);
 
         // Track delivery counts per value to detect re-deliveries
         Map<Integer, AtomicInteger> deliveryCounts = new ConcurrentHashMap<>();
@@ -640,10 +603,7 @@ public class KafkaShareGroupSourceTest extends KafkaCompanionTestBase {
                 .with("value.deserializer", IntegerDeserializer.class.getName())
                 .with("poll-timeout", 500)
                 .with("share-group.unprocessed-record-max-age.ms", 2000);
-        KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
-        source = new KafkaShareGroupSource<>(vertx, groupId, ic,
-                UnsatisfiedInstance.instance(), CountKafkaCdiEvents.noCdiEvents,
-                UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance());
+        source = createShareGroupSource(groupId, config);
 
         List<Integer> processed = new CopyOnWriteArrayList<>();
 

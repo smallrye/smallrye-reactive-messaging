@@ -63,12 +63,7 @@ public class CommitStrategiesTest extends WeldTestBase {
                 .with("commit-strategy", "latest")
                 .with("lazy-client", true)
                 .with("client.id", UUID.randomUUID().toString());
-        source = new KafkaSource<>(vertx, group,
-                new KafkaConnectorIncomingConfiguration(config),
-                UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
-                getConsumerRebalanceListeners(),
-                CountKafkaCdiEvents.noCdiEvents,
-                UnsatisfiedInstance.instance(), getDeserializationFailureHandlers(), -1);
+        source = createSource(group, config);
         injectMockConsumer(source, consumer);
 
         List<Message<?>> list = new ArrayList<>();
@@ -169,12 +164,7 @@ public class CommitStrategiesTest extends WeldTestBase {
                 .with("commit-strategy", "throttled")
                 .with("auto.commit.interval.ms", 100);
         String group = UUID.randomUUID().toString();
-        source = new KafkaSource<>(vertx, group,
-                new KafkaConnectorIncomingConfiguration(config),
-                UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
-                getConsumerRebalanceListeners(),
-                CountKafkaCdiEvents.noCdiEvents,
-                UnsatisfiedInstance.instance(), getDeserializationFailureHandlers(), -1);
+        source = createSource(group, config);
         injectMockConsumer(source, consumer);
 
         List<Message<?>> list = new ArrayList<>();
@@ -238,12 +228,7 @@ public class CommitStrategiesTest extends WeldTestBase {
                 .with("auto.offset.reset", "earliest")
                 .with("auto.commit.interval.ms", 100);
         String group = UUID.randomUUID().toString();
-        source = new KafkaSource<>(vertx, group,
-                new KafkaConnectorIncomingConfiguration(config),
-                UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
-                getConsumerRebalanceListeners(),
-                CountKafkaCdiEvents.noCdiEvents,
-                UnsatisfiedInstance.instance(), getDeserializationFailureHandlers(), -1);
+        source = createSource(group, config);
         injectMockConsumer(source, consumer);
 
         List<Message<?>> list = new ArrayList<>();
@@ -323,12 +308,7 @@ public class CommitStrategiesTest extends WeldTestBase {
                 .with("throttled.unprocessed-record-max-age.ms", 1000)
                 .with("auto.commit.interval.ms", 100);
         String group = UUID.randomUUID().toString();
-        source = new KafkaSource<>(vertx, group,
-                new KafkaConnectorIncomingConfiguration(config),
-                UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
-                getConsumerRebalanceListeners(),
-                CountKafkaCdiEvents.noCdiEvents,
-                UnsatisfiedInstance.instance(), getDeserializationFailureHandlers(), -1);
+        source = createSource(group, config);
         injectMockConsumer(source, consumer);
 
         List<Message<?>> list = new ArrayList<>();
@@ -393,12 +373,7 @@ public class CommitStrategiesTest extends WeldTestBase {
                 .with("consumer-rebalance-listener.name", "my-missing-name");
         String group = UUID.randomUUID().toString();
         assertThatThrownBy(() -> {
-            source = new KafkaSource<>(vertx, group,
-                    new KafkaConnectorIncomingConfiguration(config),
-                    UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
-                    getConsumerRebalanceListeners(),
-                    CountKafkaCdiEvents.noCdiEvents,
-                    UnsatisfiedInstance.instance(), getDeserializationFailureHandlers(), -1);
+            source = createSource(group, config);
         }).isInstanceOf(UnsatisfiedResolutionException.class);
     }
 
@@ -410,12 +385,7 @@ public class CommitStrategiesTest extends WeldTestBase {
                 .with("consumer-rebalance-listener.name", "mine")
                 .with("client.id", UUID.randomUUID().toString());
         String group = UUID.randomUUID().toString();
-        assertThatThrownBy(() -> source = new KafkaSource<>(vertx, group,
-                new KafkaConnectorIncomingConfiguration(config),
-                UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
-                getConsumerRebalanceListeners(),
-                CountKafkaCdiEvents.noCdiEvents,
-                UnsatisfiedInstance.instance(), getDeserializationFailureHandlers(), -1))
+        assertThatThrownBy(() -> source = createSource(group, config))
                 .isInstanceOf(AmbiguousResolutionException.class).hasMessageContaining("mine");
     }
 
@@ -428,12 +398,7 @@ public class CommitStrategiesTest extends WeldTestBase {
                 .with("consumer-rebalance-listener.name", "mine")
                 .with("client.id", UUID.randomUUID().toString());
         String group = UUID.randomUUID().toString();
-        source = new KafkaSource<>(vertx, group,
-                new KafkaConnectorIncomingConfiguration(config),
-                UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
-                getConsumerRebalanceListeners(),
-                CountKafkaCdiEvents.noCdiEvents,
-                UnsatisfiedInstance.instance(), getDeserializationFailureHandlers(), -1);
+        source = createSource(group, config);
 
         injectMockConsumer(source, consumer);
 
@@ -462,6 +427,15 @@ public class CommitStrategiesTest extends WeldTestBase {
 
         await().until(() -> list.size() == 2);
         assertThat(list).hasSize(2);
+    }
+
+    private KafkaSource<String, String> createSource(String group, MapBasedConfig config) {
+        return new KafkaSource<>(vertx, group,
+                new KafkaConnectorIncomingConfiguration(config),
+                UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
+                getConsumerRebalanceListeners(),
+                CountKafkaCdiEvents.noCdiEvents,
+                UnsatisfiedInstance.instance(), getDeserializationFailureHandlers(), -1);
     }
 
     private MapBasedConfig commonConfiguration() {

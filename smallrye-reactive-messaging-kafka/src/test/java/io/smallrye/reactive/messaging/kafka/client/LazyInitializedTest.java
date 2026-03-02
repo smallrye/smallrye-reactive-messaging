@@ -90,11 +90,10 @@ public class LazyInitializedTest extends WeldTestBase {
         props.put("topic", "topic");
         MapBasedConfig config = new MapBasedConfig(props);
 
-        assertThatThrownBy(() -> {
-            KafkaSink sink = new KafkaSink(new KafkaConnectorOutgoingConfiguration(config),
-                    CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(),
-                    UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance());
-        }).hasCauseInstanceOf(KafkaException.class);
+        assertThatThrownBy(() -> new KafkaSink(new KafkaConnectorOutgoingConfiguration(config),
+                CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(),
+                UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance()))
+                .hasCauseInstanceOf(KafkaException.class);
 
     }
 

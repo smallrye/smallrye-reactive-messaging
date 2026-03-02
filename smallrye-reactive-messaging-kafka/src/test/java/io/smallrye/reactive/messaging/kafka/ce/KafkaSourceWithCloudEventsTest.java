@@ -31,17 +31,14 @@ import org.junit.jupiter.api.Test;
 import io.smallrye.common.annotation.Identifier;
 import io.smallrye.reactive.messaging.ce.CloudEventMetadata;
 import io.smallrye.reactive.messaging.kafka.ConsumptionConsumerRebalanceListener;
-import io.smallrye.reactive.messaging.kafka.CountKafkaCdiEvents;
 import io.smallrye.reactive.messaging.kafka.DeserializationFailureHandler;
 import io.smallrye.reactive.messaging.kafka.IncomingKafkaCloudEventMetadata;
-import io.smallrye.reactive.messaging.kafka.KafkaConnectorIncomingConfiguration;
 import io.smallrye.reactive.messaging.kafka.KafkaRecord;
 import io.smallrye.reactive.messaging.kafka.base.BufferSerde;
 import io.smallrye.reactive.messaging.kafka.base.JsonObjectSerde;
 import io.smallrye.reactive.messaging.kafka.base.KafkaCompanionTestBase;
 import io.smallrye.reactive.messaging.kafka.base.KafkaMapBasedConfig;
 import io.smallrye.reactive.messaging.kafka.base.SingletonInstance;
-import io.smallrye.reactive.messaging.kafka.base.UnsatisfiedInstance;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
 import io.vertx.core.json.JsonObject;
 
@@ -70,11 +67,7 @@ public class KafkaSourceWithCloudEventsTest extends KafkaCompanionTestBase {
         config.put("topic", topic);
         config.put("value.deserializer", StringDeserializer.class.getName());
         config.put("channel-name", topic);
-        KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
-        source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
-                UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
-                UnsatisfiedInstance.instance(), CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(),
-                UnsatisfiedInstance.instance(), -1);
+        source = createSource(config);
 
         List<Message<?>> messages = new ArrayList<>();
         source.getStream().subscribe().with(messages::add);
@@ -143,10 +136,7 @@ public class KafkaSourceWithCloudEventsTest extends KafkaCompanionTestBase {
                 .with("failure-strategy", "ignore")
                 .with("fail-on-deserialization-failure", true)
                 .with("channel-name", topic);
-        KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
-        source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic, UnsatisfiedInstance.instance(),
-                commitHandlerFactories, failureHandlerFactories,
-                UnsatisfiedInstance.instance(), CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(),
+        source = createSource(UUID.randomUUID().toString(), config,
                 new SingletonInstance<>("null-fallback", new MyDeserializationFailureHandler()), -1);
 
         List<Message<?>> messages = new ArrayList<>();
@@ -211,11 +201,7 @@ public class KafkaSourceWithCloudEventsTest extends KafkaCompanionTestBase {
                 .with("value.deserializer", StringDeserializer.class.getName())
                 .with("failure-strategy", "ignore")
                 .with("channel-name", topic);
-        KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
-        source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic, UnsatisfiedInstance.instance(),
-                commitHandlerFactories, failureHandlerFactories,
-                UnsatisfiedInstance.instance(), CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(),
-                UnsatisfiedInstance.instance(), -1);
+        source = createSource(config);
 
         List<Message<?>> messages = new ArrayList<>();
         source.getStream().subscribe().with(messages::add);
@@ -293,11 +279,7 @@ public class KafkaSourceWithCloudEventsTest extends KafkaCompanionTestBase {
         config.put("failure-strategy", "fail");
         config.put("fail-on-deserialization-failure", true);
         config.put("channel-name", topic);
-        KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
-        source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic, UnsatisfiedInstance.instance(),
-                commitHandlerFactories, failureHandlerFactories,
-                UnsatisfiedInstance.instance(), CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(),
-                UnsatisfiedInstance.instance(), -1);
+        source = createSource(config);
 
         List<Message<?>> messages = new ArrayList<>();
         source.getStream().subscribe().with(messages::add);
@@ -334,11 +316,7 @@ public class KafkaSourceWithCloudEventsTest extends KafkaCompanionTestBase {
         config.put("failure-strategy", "ignore");
         config.put("fail-on-deserialization-failure", false);
         config.put("channel-name", topic);
-        KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
-        source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic, UnsatisfiedInstance.instance(),
-                commitHandlerFactories, failureHandlerFactories,
-                UnsatisfiedInstance.instance(), CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(),
-                UnsatisfiedInstance.instance(), -1);
+        source = createSource(config);
 
         List<Message<?>> messages = new ArrayList<>();
         source.getStream().subscribe().with(messages::add);
@@ -402,11 +380,7 @@ public class KafkaSourceWithCloudEventsTest extends KafkaCompanionTestBase {
         config.put("topic", topic);
         config.put("value.deserializer", JsonObjectSerde.JsonObjectDeserializer.class.getName());
         config.put("channel-name", topic);
-        KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
-        source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
-                UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
-                UnsatisfiedInstance.instance(), CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(),
-                UnsatisfiedInstance.instance(), -1);
+        source = createSource(config);
 
         List<Message<?>> messages = new ArrayList<>();
         source.getStream().subscribe().with(messages::add);
@@ -457,11 +431,7 @@ public class KafkaSourceWithCloudEventsTest extends KafkaCompanionTestBase {
         config.put("topic", topic);
         config.put("value.deserializer", ByteArrayDeserializer.class.getName());
         config.put("channel-name", topic);
-        KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
-        source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
-                UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
-                UnsatisfiedInstance.instance(), CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(),
-                UnsatisfiedInstance.instance(), -1);
+        source = createSource(config);
 
         List<Message<?>> messages = new ArrayList<>();
         source.getStream().subscribe().with(messages::add);
@@ -509,11 +479,7 @@ public class KafkaSourceWithCloudEventsTest extends KafkaCompanionTestBase {
         // Unsupported on purpose
         config.put("value.deserializer", BufferSerde.BufferDeserializer.class.getName());
         config.put("channel-name", topic);
-        KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
-        source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
-                UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
-                UnsatisfiedInstance.instance(), CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(),
-                UnsatisfiedInstance.instance(), -1);
+        source = createSource(config);
 
         List<Message<?>> messages = new ArrayList<>();
         source.getStream().subscribe().with(messages::add);
@@ -543,11 +509,7 @@ public class KafkaSourceWithCloudEventsTest extends KafkaCompanionTestBase {
         config.put("topic", topic);
         config.put("value.deserializer", JsonObjectSerde.JsonObjectDeserializer.class.getName());
         config.put("channel-name", topic);
-        KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
-        source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
-                UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
-                UnsatisfiedInstance.instance(), CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(),
-                UnsatisfiedInstance.instance(), -1);
+        source = createSource(config);
 
         List<Message<?>> messages = new ArrayList<>();
         source.getStream().subscribe().with(messages::add);
@@ -579,11 +541,7 @@ public class KafkaSourceWithCloudEventsTest extends KafkaCompanionTestBase {
         config.put("topic", topic);
         config.put("value.deserializer", StringDeserializer.class.getName());
         config.put("channel-name", topic);
-        KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
-        source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
-                UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
-                UnsatisfiedInstance.instance(), CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(),
-                UnsatisfiedInstance.instance(), -1);
+        source = createSource(config);
 
         List<Message<?>> messages = new ArrayList<>();
         source.getStream().subscribe().with(messages::add);
@@ -641,11 +599,7 @@ public class KafkaSourceWithCloudEventsTest extends KafkaCompanionTestBase {
         config.put("topic", topic);
         config.put("value.deserializer", StringDeserializer.class.getName());
         config.put("channel-name", topic);
-        KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
-        source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
-                UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
-                UnsatisfiedInstance.instance(), CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(),
-                UnsatisfiedInstance.instance(), -1);
+        source = createSource(config);
 
         List<Message<?>> messages = new ArrayList<>();
         source.getStream().subscribe().with(messages::add);
@@ -703,11 +657,7 @@ public class KafkaSourceWithCloudEventsTest extends KafkaCompanionTestBase {
         config.put("topic", topic);
         config.put("value.deserializer", StringDeserializer.class.getName());
         config.put("channel-name", topic);
-        KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
-        source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
-                UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
-                UnsatisfiedInstance.instance(), CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(),
-                UnsatisfiedInstance.instance(), -1);
+        source = createSource(config);
 
         List<Message<?>> messages = new ArrayList<>();
         source.getStream().subscribe().with(messages::add);
@@ -835,11 +785,7 @@ public class KafkaSourceWithCloudEventsTest extends KafkaCompanionTestBase {
         config.put("value.deserializer", StringDeserializer.class.getName());
         config.put("channel-name", topic);
         config.put("cloud-events", false);
-        KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
-        source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
-                UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
-                UnsatisfiedInstance.instance(), CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(),
-                UnsatisfiedInstance.instance(), -1);
+        source = createSource(config);
 
         List<Message<?>> messages = new ArrayList<>();
         source.getStream().subscribe().with(messages::add);
@@ -876,11 +822,7 @@ public class KafkaSourceWithCloudEventsTest extends KafkaCompanionTestBase {
         config.put("value.deserializer", JsonObjectSerde.JsonObjectDeserializer.class.getName());
         config.put("channel-name", topic);
         config.put("cloud-events", false);
-        KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
-        source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
-                UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
-                UnsatisfiedInstance.instance(), CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(),
-                UnsatisfiedInstance.instance(), -1);
+        source = createSource(config);
 
         List<Message<?>> messages = new ArrayList<>();
         source.getStream().subscribe().with(messages::add);
@@ -920,11 +862,7 @@ public class KafkaSourceWithCloudEventsTest extends KafkaCompanionTestBase {
         config.put("topic", topic);
         config.put("value.deserializer", StringDeserializer.class.getName());
         config.put("channel-name", topic);
-        KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
-        source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
-                UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
-                UnsatisfiedInstance.instance(), CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(),
-                UnsatisfiedInstance.instance(), -1);
+        source = createSource(config);
 
         List<Message<?>> messages = new ArrayList<>();
         source.getStream().subscribe().with(messages::add);

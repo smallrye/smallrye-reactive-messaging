@@ -13,10 +13,7 @@ import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.junit.jupiter.api.Test;
 
-import io.smallrye.reactive.messaging.kafka.CountKafkaCdiEvents;
-import io.smallrye.reactive.messaging.kafka.KafkaConnectorOutgoingConfiguration;
 import io.smallrye.reactive.messaging.kafka.KafkaProducer;
-import io.smallrye.reactive.messaging.kafka.base.UnsatisfiedInstance;
 import io.smallrye.reactive.messaging.kafka.companion.ConsumerTask;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSink;
 import io.smallrye.reactive.messaging.kafka.impl.PooledKafkaProducer;
@@ -467,9 +464,7 @@ public class PooledKafkaProducerTest extends ClientTestBase {
                 .with("pooled-producer.max-pool-size", maxPoolSize)
                 .with("topic", topic);
 
-        KafkaSink sink = new KafkaSink(new KafkaConnectorOutgoingConfiguration(config), CountKafkaCdiEvents.noCdiEvents,
-                UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance(),
-                UnsatisfiedInstance.instance());
+        KafkaSink sink = createSink(config);
         this.sinks.add(sink);
         return sink;
     }
