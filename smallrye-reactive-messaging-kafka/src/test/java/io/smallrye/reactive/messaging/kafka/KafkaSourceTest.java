@@ -143,6 +143,7 @@ public class KafkaSourceTest extends KafkaCompanionTestBase {
         connector.commitHandlerFactories = new SingletonInstance<>("throttled",
                 new KafkaThrottledLatestProcessedCommit.Factory());
         connector.failureHandlerFactories = new SingletonInstance<>("fail", new KafkaFailStop.Factory());
+        connector.adminClientRegistry = getAdminClientRegistry();
         connector.init();
 
         Flow.Publisher<KafkaRecord<?, ?>> builder = (Flow.Publisher<KafkaRecord<?, ?>>) connector.getPublisher(config);
@@ -183,6 +184,7 @@ public class KafkaSourceTest extends KafkaCompanionTestBase {
         connector.commitHandlerFactories = new SingletonInstance<>("throttled",
                 new KafkaThrottledLatestProcessedCommit.Factory());
         connector.failureHandlerFactories = new SingletonInstance<>("fail", new KafkaFailStop.Factory());
+        connector.adminClientRegistry = getAdminClientRegistry();
         connector.init();
 
         Flow.Publisher<KafkaRecord<?, ?>> builder = (Flow.Publisher<KafkaRecord<?, ?>>) connector.getPublisher(config);

@@ -81,6 +81,7 @@ public class KafkaShareGroupSource<K, V> {
             KafkaConnectorIncomingConfiguration config,
             Instance<OpenTelemetry> openTelemetryInstance,
             KafkaCDIEvents kafkaCDIEvents,
+            KafkaAdminClientRegistry adminClientRegistry,
             Instance<ClientCustomizer<Map<String, Object>>> configCustomizers,
             Instance<DeserializationFailureHandler<?>> deserializationFailureHandlers) {
 
@@ -118,7 +119,7 @@ public class KafkaShareGroupSource<K, V> {
 
         failureHandler = createFailureHandler();
         if (config.getHealthEnabled() || config.getHealthReadinessEnabled()) {
-            health = new KafkaShareGroupSourceHealth(this, config, client, topics);
+            health = new KafkaShareGroupSourceHealth(this, config, client, adminClientRegistry, topics);
         } else {
             health = null;
         }

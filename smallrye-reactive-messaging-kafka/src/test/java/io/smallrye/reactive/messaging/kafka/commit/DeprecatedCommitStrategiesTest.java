@@ -184,6 +184,7 @@ public class DeprecatedCommitStrategiesTest extends WeldTestBase {
                 UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
                 getConsumerRebalanceListeners(),
                 CountKafkaCdiEvents.noCdiEvents,
+                getAdminClientRegistry(),
                 UnsatisfiedInstance.instance(), getDeserializationFailureHandlers(), -1);
     }
 
@@ -405,6 +406,7 @@ public class DeprecatedCommitStrategiesTest extends WeldTestBase {
                     UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
                     getConsumerRebalanceListeners(),
                     CountKafkaCdiEvents.noCdiEvents,
+                    getAdminClientRegistry(),
                     UnsatisfiedInstance.instance(), getDeserializationFailureHandlers(), -1);
         }).isInstanceOf(UnsatisfiedResolutionException.class);
     }
@@ -422,6 +424,7 @@ public class DeprecatedCommitStrategiesTest extends WeldTestBase {
                 UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
                 getConsumerRebalanceListeners(),
                 CountKafkaCdiEvents.noCdiEvents,
+                getAdminClientRegistry(),
                 UnsatisfiedInstance.instance(), getDeserializationFailureHandlers(), -1))
                 .isInstanceOf(DeploymentException.class).hasMessageContaining("mine");
     }

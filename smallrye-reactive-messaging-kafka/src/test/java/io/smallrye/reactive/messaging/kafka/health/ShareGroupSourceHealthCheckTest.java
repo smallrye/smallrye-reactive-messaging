@@ -20,11 +20,9 @@ import org.junit.jupiter.api.TestInfo;
 
 import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.health.HealthReport;
-import io.smallrye.reactive.messaging.kafka.CountKafkaCdiEvents;
 import io.smallrye.reactive.messaging.kafka.KafkaConnectorIncomingConfiguration;
 import io.smallrye.reactive.messaging.kafka.base.KafkaCompanionTestBase;
 import io.smallrye.reactive.messaging.kafka.base.KafkaMapBasedConfig;
-import io.smallrye.reactive.messaging.kafka.base.UnsatisfiedInstance;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaShareGroupSource;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 
@@ -154,10 +152,7 @@ public class ShareGroupSourceHealthCheckTest extends KafkaCompanionTestBase {
                 "share-group", true,
                 "channel-name", topic);
         KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
-        KafkaShareGroupSource<String, Integer> source = new KafkaShareGroupSource<>(vertx,
-                UUID.randomUUID().toString(), ic,
-                UnsatisfiedInstance.instance(), CountKafkaCdiEvents.noCdiEvents,
-                UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance());
+        KafkaShareGroupSource<String, Integer> source = createShareGroupSource(UUID.randomUUID().toString(), config);
 
         try {
             // Initially liveness should be OK (no failures)

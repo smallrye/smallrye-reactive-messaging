@@ -27,6 +27,7 @@ import io.smallrye.reactive.messaging.kafka.fault.KafkaDeadLetterSerializationHa
 import io.smallrye.reactive.messaging.kafka.fault.KafkaFailStop;
 import io.smallrye.reactive.messaging.kafka.fault.KafkaFailureHandler;
 import io.smallrye.reactive.messaging.kafka.fault.KafkaIgnoreFailure;
+import io.smallrye.reactive.messaging.kafka.impl.KafkaAdminClientRegistry;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaClientServiceImpl;
 import io.smallrye.reactive.messaging.kafka.impl.TopicPartitions;
 import io.smallrye.reactive.messaging.kafka.reply.KafkaRequestReplyFactory;
@@ -122,6 +123,7 @@ public class WeldTestBase {
         weld.addBeanClass(ObservationDecorator.class);
         weld.addBeanClass(OutgoingObservationDecorator.class);
         weld.addBeanClass(PausableChannelDecorator.class);
+        weld.addBeanClass(KafkaAdminClientRegistry.class);
         weld.disableDiscovery();
     }
 
@@ -182,6 +184,13 @@ public class WeldTestBase {
             throw new IllegalStateException("Application not started");
         }
         return container.getBeanManager().createInstance().select(HealthCenter.class).get();
+    }
+
+    public KafkaAdminClientRegistry getAdminClientRegistry() {
+        if (container == null) {
+            return new KafkaAdminClientRegistry();
+        }
+        return container.getBeanManager().createInstance().select(KafkaAdminClientRegistry.class).get();
     }
 
     public boolean isStarted() {

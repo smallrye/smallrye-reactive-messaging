@@ -81,6 +81,7 @@ public class KafkaSource<K, V> {
             Instance<KafkaFailureHandler.Factory> failureHandlerFactories,
             Instance<KafkaConsumerRebalanceListener> consumerRebalanceListeners,
             KafkaCDIEvents kafkaCDIEvents,
+            KafkaAdminClientRegistry adminClientRegistry,
             Instance<ClientCustomizer<Map<String, Object>>> configCustomizers,
             Instance<DeserializationFailureHandler<?>> deserializationFailureHandlers,
             int index) {
@@ -124,7 +125,7 @@ public class KafkaSource<K, V> {
         commitHandler = createCommitHandler(vertx, commitStrategy);
         failureHandler = createFailureHandler(vertx);
         if (configuration.getHealthEnabled()) {
-            health = new KafkaSourceHealth(this, configuration, client, topics, pattern);
+            health = new KafkaSourceHealth(this, configuration, client, adminClientRegistry, topics, pattern);
         } else {
             health = null;
         }

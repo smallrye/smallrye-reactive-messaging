@@ -133,13 +133,13 @@ public class KafkaCompanionTestBase extends WeldTestBase {
             int index) {
         return new KafkaSource<>(vertx, consumerGroup, new KafkaConnectorIncomingConfiguration(config),
                 UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
-                rebalanceListeners, CountKafkaCdiEvents.noCdiEvents,
+                rebalanceListeners, CountKafkaCdiEvents.noCdiEvents, getAdminClientRegistry(),
                 UnsatisfiedInstance.instance(), deserializationFailureHandlers, index);
     }
 
     public <K, V> KafkaShareGroupSource<K, V> createShareGroupSource(String shareGroup, MapBasedConfig config) {
         return new KafkaShareGroupSource<>(vertx, shareGroup, new KafkaConnectorIncomingConfiguration(config),
-                UnsatisfiedInstance.instance(), CountKafkaCdiEvents.noCdiEvents,
+                UnsatisfiedInstance.instance(), CountKafkaCdiEvents.noCdiEvents, getAdminClientRegistry(),
                 UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance());
     }
 
@@ -148,7 +148,7 @@ public class KafkaCompanionTestBase extends WeldTestBase {
     }
 
     public KafkaSink createSink(MapBasedConfig config, KafkaCDIEvents cdiEvents) {
-        return new KafkaSink(new KafkaConnectorOutgoingConfiguration(config), cdiEvents,
+        return new KafkaSink(new KafkaConnectorOutgoingConfiguration(config), cdiEvents, getAdminClientRegistry(),
                 UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance(),
                 UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance());
     }

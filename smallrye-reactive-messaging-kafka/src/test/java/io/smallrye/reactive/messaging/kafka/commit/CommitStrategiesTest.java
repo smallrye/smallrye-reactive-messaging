@@ -435,6 +435,7 @@ public class CommitStrategiesTest extends WeldTestBase {
                 UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
                 getConsumerRebalanceListeners(),
                 CountKafkaCdiEvents.noCdiEvents,
+                getAdminClientRegistry(),
                 UnsatisfiedInstance.instance(), getDeserializationFailureHandlers(), -1);
     }
 

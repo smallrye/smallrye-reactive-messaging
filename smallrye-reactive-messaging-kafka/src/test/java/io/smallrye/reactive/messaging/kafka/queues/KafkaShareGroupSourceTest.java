@@ -34,13 +34,10 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
 
 import io.smallrye.mutiny.Uni;
-import io.smallrye.reactive.messaging.kafka.CountKafkaCdiEvents;
 import io.smallrye.reactive.messaging.kafka.KafkaConnector;
-import io.smallrye.reactive.messaging.kafka.KafkaConnectorIncomingConfiguration;
 import io.smallrye.reactive.messaging.kafka.KafkaRecord;
 import io.smallrye.reactive.messaging.kafka.KafkaRecordBatch;
 import io.smallrye.reactive.messaging.kafka.base.KafkaCompanionTestBase;
-import io.smallrye.reactive.messaging.kafka.base.UnsatisfiedInstance;
 import io.smallrye.reactive.messaging.kafka.companion.KafkaCompanion;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaShareGroupSource;
 import io.smallrye.reactive.messaging.kafka.impl.ReactiveKafkaShareConsumer;
@@ -93,10 +90,7 @@ public class KafkaShareGroupSourceTest extends KafkaCompanionTestBase {
         companion.topics().createAndWait(topic, 1);
         MapBasedConfig config = newCommonConfigForShareGroup()
                 .with("value.deserializer", IntegerDeserializer.class.getName());
-        KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
-        source = new KafkaShareGroupSource<>(vertx, groupId, ic,
-                UnsatisfiedInstance.instance(), CountKafkaCdiEvents.noCdiEvents,
-                UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance());
+        source = createShareGroupSource(groupId, config);
 
         List<Message<?>> messages = new CopyOnWriteArrayList<>();
         source.getStream().subscribe().with(messages::add);

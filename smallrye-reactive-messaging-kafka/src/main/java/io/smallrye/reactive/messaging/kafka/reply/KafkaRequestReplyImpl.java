@@ -46,6 +46,7 @@ import io.smallrye.reactive.messaging.kafka.api.OutgoingKafkaRecordMetadata;
 import io.smallrye.reactive.messaging.kafka.commit.KafkaCommitHandler;
 import io.smallrye.reactive.messaging.kafka.fault.KafkaFailureHandler;
 import io.smallrye.reactive.messaging.kafka.impl.ConfigHelper;
+import io.smallrye.reactive.messaging.kafka.impl.KafkaAdminClientRegistry;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
 import io.smallrye.reactive.messaging.kafka.impl.TopicPartitions;
 import io.smallrye.reactive.messaging.providers.extension.MutinyEmitterImpl;
@@ -82,6 +83,7 @@ public class KafkaRequestReplyImpl<Req, Rep> extends MutinyEmitterImpl<Req>
             Instance<Map<String, Object>> configurations,
             Vertx vertx,
             KafkaCDIEvents kafkaCDIEvents,
+            KafkaAdminClientRegistry adminClientRegistry,
             Instance<OpenTelemetry> openTelemetryInstance,
             Instance<KafkaCommitHandler.Factory> commitHandlerFactory,
             Instance<KafkaFailureHandler.Factory> failureHandlerFactories,
@@ -126,7 +128,7 @@ public class KafkaRequestReplyImpl<Req, Rep> extends MutinyEmitterImpl<Req>
         this.waitForPartitions = getWaitForPartitions(consumerConfig);
         this.gracefulShutdown = consumerConfig.getGracefulShutdown();
         this.replySource = new KafkaSource<>(vertx, consumerGroup, consumerConfig, openTelemetryInstance,
-                commitHandlerFactory, failureHandlerFactories, rebalanceListeners, kafkaCDIEvents,
+                commitHandlerFactory, failureHandlerFactories, rebalanceListeners, kafkaCDIEvents, adminClientRegistry,
                 configCustomizers, deserializationFailureHandlers, -1);
 
         if (consumerConfig.getBatch()) {

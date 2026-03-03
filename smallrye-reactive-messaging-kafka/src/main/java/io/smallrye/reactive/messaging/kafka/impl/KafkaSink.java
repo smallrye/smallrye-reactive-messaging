@@ -82,6 +82,7 @@ public class KafkaSink {
 
     public KafkaSink(KafkaConnectorOutgoingConfiguration config,
             KafkaCDIEvents kafkaCDIEvents,
+            KafkaAdminClientRegistry adminClientRegistry,
             Instance<OpenTelemetry> openTelemetryInstance,
             Instance<ClientCustomizer<Map<String, Object>>> configCustomizers,
             Instance<SerializationFailureHandler<?>> serializationFailureHandlers,
@@ -133,7 +134,7 @@ public class KafkaSink {
         this.isHealthEnabled = config.getHealthEnabled();
         this.isHealthReadinessEnabled = config.getHealthReadinessEnabled();
         if (isHealthEnabled) {
-            this.health = new KafkaSinkHealth(config, client.configuration(), client);
+            this.health = new KafkaSinkHealth(adminClientRegistry, config, client.configuration(), client);
         } else {
             this.health = null;
         }
