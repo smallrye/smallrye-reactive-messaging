@@ -376,4 +376,8 @@ public class ReactiveKafkaProducer<K, V> implements io.smallrye.reactive.messagi
         }
     }
 
+    public boolean isClosed() {
+        return closed.get();
+    }
+
 }

@@ -109,15 +109,6 @@ public class ReactiveKafkaShareConsumer<K, V> implements KafkaShareConsumer<K, V
         this.pollTimeout = Duration.ofMillis(pollTimeout);
 
         kafkaWorker = Executors.newSingleThreadScheduledExecutor(KafkaPollingThread::new);
-
-        stream = new PausablePollingStream<>(clientId, this.poll(), (records, p) -> {
-            for (ConsumerRecord<K, V> r : records) {
-                p.onNext(r);
-            }
-        }, kafkaWorker, 1, false);
-        batchStream = new PausablePollingStream<>(clientId, this.poll(), (records, p) -> p.onNext(records),
-                kafkaWorker, 1, false);
-
         consumerUni = Uni.createFrom().item(() -> consumerRef.updateAndGet(c -> {
             if (c != null) {
                 return c;
@@ -133,6 +124,25 @@ public class ReactiveKafkaShareConsumer<K, V> implements KafkaShareConsumer<K, V
         if (!lazyClient) {
             consumerUni.await().indefinitely();
         }
+        stream = new PausablePollingStream<>(clientId, Uni.createFrom().deferred(this::poll), (records, p) -> {
+            if (records != null) {
+                for (ConsumerRecord<K, V> r : records) {
+                    p.onNext(r);
+                }
+            }
+            if (isClosed()) {
+                p.cancel();
+            }
+        }, kafkaWorker, 1, false);
+        batchStream = new PausablePollingStream<>(clientId, Uni.createFrom().deferred(this::poll), (records, p) -> {
+            if (records != null) {
+                p.onNext(records);
+            }
+            if (isClosed()) {
+                p.cancel();
+            }
+        },
+                kafkaWorker, 1, false);
         this.context = context;
     }
 
@@ -162,22 +172,24 @@ public class ReactiveKafkaShareConsumer<K, V> implements KafkaShareConsumer<K, V
                 .replaceWithVoid();
     }
 
-    @SuppressWarnings("unchecked")
     Uni<ConsumerRecords<K, V>> poll() {
-        return Uni.createFrom().item(consumerRef::get)
-                .map(c -> c.poll(pollTimeout))
-                .runSubscriptionOn(kafkaWorker)
-                .onFailure(WakeupException.class).recoverWithItem((ConsumerRecords<K, V>) ConsumerRecords.EMPTY)
-                .onFailure(IllegalStateException.class).retry().withBackOff(Duration.ofMillis(100)).indefinitely()
+        return runOnPollingThread(c -> {
+            return c.poll(pollTimeout);
+        })
+                .onFailure(t -> isClosed() || t instanceof WakeupException).recoverWithItem(ConsumerRecords::empty)
+                .onFailure(IllegalStateException.class).retry()
+                .withBackOff(Duration.ofMillis(100)).until(t -> !isClosed())
+                .onItem().transform(cr -> cr.isEmpty() ? null : cr)
                 .plug(e -> {
                     if (configuration.getRetry()) {
                         int maxWait = configuration.getRetryMaxWait();
                         int retryAttempts = configuration.getRetryAttempts() == -1 ? Integer.MAX_VALUE
                                 : configuration.getRetryAttempts();
                         return e
-                                .onFailure().invoke(f -> log.pollFailureRetry(shareGroup, configuration.getChannel(), f))
-                                .onFailure().retry().withBackOff(Duration.ofSeconds(1), Duration.ofSeconds(maxWait))
-                                .atMost(retryAttempts);
+                                .onFailure(t -> !isClosed())
+                                .invoke(f -> log.pollFailureRetry(shareGroup, configuration.getChannel(), f))
+                                .onFailure(t -> !isClosed()).retry()
+                                .withBackOff(Duration.ofSeconds(1), Duration.ofSeconds(maxWait)).atMost(retryAttempts);
                     }
                     return e;
                 });
@@ -331,11 +343,9 @@ public class ReactiveKafkaShareConsumer<K, V> implements KafkaShareConsumer<K, V
     public void close() {
         int timeout = configuration.getCloseTimeout();
         if (closed.compareAndSet(false, true)) {
-            Uni<Void> uni = Uni.createFrom().item(() -> consumerRef.get())
-                    .invoke(c -> c.close(Duration.ofMillis(timeout)))
-                    .runSubscriptionOn(kafkaWorker)
-                    .onItem().invoke(kafkaWorker::shutdown)
-                    .replaceWithVoid();
+            Uni<Void> uni = runOnPollingThread(c -> {
+                c.close(Duration.ofMillis(timeout));
+            }).onItem().invoke(kafkaWorker::shutdown);
 
             // Interrupt polling
             ShareConsumer<K, V> consumer = consumerRef.get();

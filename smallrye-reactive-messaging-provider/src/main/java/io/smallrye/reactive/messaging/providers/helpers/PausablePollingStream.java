@@ -4,7 +4,6 @@ import static io.smallrye.reactive.messaging.providers.i18n.ProviderLogging.log;
 
 import java.time.Duration;
 import java.util.Queue;
-import java.util.concurrent.Flow;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -50,7 +49,7 @@ public class PausablePollingStream<P, T> {
      * @param pauseResumeEnabled whether pause/resume is enabled
      */
     public PausablePollingStream(String channel, Uni<P> pollUni,
-            BiConsumer<P, Flow.Processor<T, T>> emitFunction,
+            BiConsumer<P, UnicastProcessor<T>> emitFunction,
             ScheduledExecutorService pollerExecutor,
             int maxQueueSize,
             boolean pauseResumeEnabled) {
@@ -60,7 +59,7 @@ public class PausablePollingStream<P, T> {
         this.pollerExecutor = pollerExecutor;
         this.pauseResumeEnabled = pauseResumeEnabled;
         this.queue = Queues.createSpscUnboundedArrayQueue(maxQueueSize);
-        this.processor = UnicastProcessor.create(queue, null);
+        this.processor = UnicastProcessor.create(queue, this::cancel);
         this.pollUni = Uni.createFrom().deferred(() -> {
             if (state.get() != STATE_POLLING) {
                 return Uni.createFrom().nullItem();
@@ -72,6 +71,18 @@ public class PausablePollingStream<P, T> {
                 poll();
             }
         });
+    }
+
+    private void cancel() {
+        while (true) {
+            int state = this.state.get();
+            if (state == STATE_CANCELLED) {
+                break;
+            }
+            if (this.state.compareAndSet(state, STATE_CANCELLED)) {
+                break;
+            }
+        }
     }
 
     public Multi<T> getStream() {
@@ -141,4 +152,5 @@ public class PausablePollingStream<P, T> {
             log.resumingRequestingMessages(channel, size, halfMaxQueueSize);
         }
     }
+
 }
