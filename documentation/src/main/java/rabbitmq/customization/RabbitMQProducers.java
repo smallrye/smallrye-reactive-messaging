@@ -1,33 +1,28 @@
 package rabbitmq.customization;
 
+import java.security.KeyManagementException;
+import java.security.NoSuchAlgorithmException;
+
 import jakarta.enterprise.inject.Produces;
 
+import com.rabbitmq.client.ConnectionFactory;
+
 import io.smallrye.common.annotation.Identifier;
-import io.vertx.core.net.PemKeyCertOptions;
-import io.vertx.core.net.PemTrustOptions;
-import io.vertx.rabbitmq.RabbitMQOptions;
 
 public class RabbitMQProducers {
 
     // <named>
     @Produces
     @Identifier("my-named-options")
-    public RabbitMQOptions getNamedOptions() {
-        // You can use the produced options to configure the TLS connection
-        PemKeyCertOptions keycert = new PemKeyCertOptions()
-                .addCertPath("./tls/tls.crt")
-                .addKeyPath("./tls/tls.key");
-        PemTrustOptions trust = new PemTrustOptions().addCertPath("./tlc/ca.crt");
-
-        return (RabbitMQOptions) new RabbitMQOptions()
-                .setUser("admin")
-                .setPassword("test")
-                .setSsl(true)
-                .setKeyCertOptions(keycert)
-                .setTrustOptions(trust)
-                .setHostnameVerificationAlgorithm("HTTPS")
-                .setConnectTimeout(30000)
-                .setReconnectInterval(5000);
+    public ConnectionFactory getNamedOptions() throws NoSuchAlgorithmException, KeyManagementException {
+        // You can use the produced ConnectionFactory to configure the connection
+        ConnectionFactory factory = new ConnectionFactory();
+        factory.setUsername("admin");
+        factory.setPassword("test");
+        factory.useSslProtocol();
+        factory.setConnectionTimeout(30000);
+        factory.setNetworkRecoveryInterval(5000);
+        return factory;
     }
     // </named>
 

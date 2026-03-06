@@ -14,6 +14,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.TestInfo;
 import org.junit.jupiter.api.extension.ExtendWith;
 
+import io.smallrye.common.vertx.VertxContext;
 import io.smallrye.reactive.messaging.providers.connectors.ExecutionHolder;
 import io.smallrye.reactive.messaging.providers.extension.HealthCenter;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
@@ -54,6 +55,8 @@ public class RabbitMQBrokerTestBase {
 
     @BeforeEach
     public void setup() {
+        // just touch VertxContext to force the registration of the context local map
+        VertxContext.isOnDuplicatedContext();
         executionHolder = new ExecutionHolder(Vertx.vertx());
 
         usage = new RabbitMQUsage(executionHolder.vertx(), host, port, managementPort, username, password);

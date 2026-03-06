@@ -4,6 +4,9 @@ import java.util.Map;
 
 import io.opentelemetry.context.propagation.TextMapSetter;
 
+/**
+ * OpenTelemetry text map setter for injecting tracing context into RabbitMQ message headers.
+ */
 public enum RabbitMQTraceTextMapSetter implements TextMapSetter<RabbitMQTrace> {
     INSTANCE;
 

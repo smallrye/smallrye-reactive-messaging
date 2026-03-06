@@ -30,12 +30,14 @@ import io.smallrye.reactive.messaging.providers.locals.ContextDecorator;
 import io.smallrye.reactive.messaging.providers.metrics.MetricDecorator;
 import io.smallrye.reactive.messaging.providers.metrics.MicrometerDecorator;
 import io.smallrye.reactive.messaging.providers.wiring.Wiring;
+import io.smallrye.reactive.messaging.rabbitmq.converter.ByteArrayMessageConverter;
 import io.smallrye.reactive.messaging.rabbitmq.converter.JsonValueMessageConverter;
 import io.smallrye.reactive.messaging.rabbitmq.converter.StringMessageConverter;
 import io.smallrye.reactive.messaging.rabbitmq.converter.TypeMessageConverter;
 import io.smallrye.reactive.messaging.rabbitmq.fault.RabbitMQAccept;
 import io.smallrye.reactive.messaging.rabbitmq.fault.RabbitMQFailStop;
 import io.smallrye.reactive.messaging.rabbitmq.fault.RabbitMQReject;
+import io.smallrye.reactive.messaging.rabbitmq.fault.RabbitMQRequeue;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 import io.smallrye.reactive.messaging.test.common.config.SmallRyeConfigTestUtil;
 import io.vertx.core.Context;
@@ -80,14 +82,15 @@ public class WeldTestBase extends RabbitMQBrokerTestBase {
         weld.addBeanClass(MetricDecorator.class);
         weld.addBeanClass(MicrometerDecorator.class);
         weld.addBeanClass(ContextDecorator.class);
+        weld.addBeanClass(io.smallrye.reactive.messaging.providers.OutgoingInterceptorDecorator.class);
         weld.addBeanClass(RabbitMQAccept.Factory.class);
         weld.addBeanClass(RabbitMQFailStop.Factory.class);
         weld.addBeanClass(RabbitMQReject.Factory.class);
-
+        weld.addBeanClass(RabbitMQRequeue.Factory.class);
+        weld.addBeanClass(ByteArrayMessageConverter.class);
         weld.addBeanClass(StringMessageConverter.class);
         weld.addBeanClass(JsonValueMessageConverter.class);
         weld.addBeanClass(TypeMessageConverter.class);
-
         weld.disableDiscovery();
     }
 
@@ -132,6 +135,20 @@ public class WeldTestBase extends RabbitMQBrokerTestBase {
         container = weld.initialize();
         await().until(() -> isRabbitMQConnectorAlive(container));
         await().until(() -> isRabbitMQConnectorReady(container));
+    }
+
+    @Override
+    public MapBasedConfig commonConfig() {
+        // Use global aliases for common properties (username, password, reconnect-attempts)
+        // These are inherited by all channels
+        return super.commonConfig();
+    }
+
+    public MapBasedConfig commonChannelConfig(String channelName) {
+        // For tests that need channel-specific configuration in addition to global config
+        return commonConfig()
+                .with(String.format("mp.messaging.%s.host", channelName), host)
+                .with(String.format("mp.messaging.%s.port", channelName), port);
     }
 
 }

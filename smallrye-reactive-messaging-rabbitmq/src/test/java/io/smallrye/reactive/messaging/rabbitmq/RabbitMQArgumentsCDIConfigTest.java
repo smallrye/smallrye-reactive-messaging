@@ -9,22 +9,16 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.jboss.weld.environment.se.Weld;
-import org.jboss.weld.environment.se.WeldContainer;
 import org.junit.jupiter.api.Test;
 
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 import io.smallrye.reactive.messaging.test.common.config.SmallRyeConfigTestUtil;
 import io.vertx.core.json.JsonObject;
 
-public class RabbitMQArgumentsCDIConfigTest extends RabbitMQBrokerTestBase {
-
-    private WeldContainer container;
+public class RabbitMQArgumentsCDIConfigTest extends WeldTestBase {
 
     @Test
     public void testConfigByCDIQueueArguments() throws IOException, InterruptedException {
-        Weld weld = new Weld();
-
         weld.addBeanClass(ArgumentsConfigBean.class);
         weld.addBeanClass(ConsumptionBean.class);
 
@@ -37,7 +31,7 @@ public class RabbitMQArgumentsCDIConfigTest extends RabbitMQBrokerTestBase {
                 .with("rabbitmq-username", username)
                 .with("rabbitmq-password", password)
                 .with("mp.messaging.incoming.data.queue.arguments", "my-args")
-                .with("mp.messaging.incoming.data.tracing-enabled", false)
+                .with("mp.messaging.incoming.data.tracing.enabled", false)
                 .write();
 
         SmallRyeConfigTestUtil.installConfig();
@@ -61,8 +55,6 @@ public class RabbitMQArgumentsCDIConfigTest extends RabbitMQBrokerTestBase {
 
     @Test
     public void testConfigByCDIQueueDefaultArguments() throws IOException {
-        Weld weld = new Weld();
-
         weld.addBeanClass(ArgumentsConfigBean.class);
         weld.addBeanClass(ConsumptionBean.class);
 
@@ -74,7 +66,7 @@ public class RabbitMQArgumentsCDIConfigTest extends RabbitMQBrokerTestBase {
                 .with("mp.messaging.incoming.data.port", port)
                 .with("rabbitmq-username", username)
                 .with("rabbitmq-password", password)
-                .with("mp.messaging.incoming.data.tracing-enabled", false)
+                .with("mp.messaging.incoming.data.tracing.enabled", false)
                 .write();
 
         SmallRyeConfigTestUtil.installConfig();
@@ -101,8 +93,6 @@ public class RabbitMQArgumentsCDIConfigTest extends RabbitMQBrokerTestBase {
 
     @Test
     public void testConfigByCDIExchangeArguments() throws IOException {
-        Weld weld = new Weld();
-
         weld.addBeanClass(ArgumentsConfigBean.class);
         weld.addBeanClass(ConsumptionBean.class);
 
@@ -115,7 +105,7 @@ public class RabbitMQArgumentsCDIConfigTest extends RabbitMQBrokerTestBase {
                 .with("rabbitmq-username", username)
                 .with("rabbitmq-password", password)
                 .with("mp.messaging.incoming.data.exchange.arguments", "my-args")
-                .with("mp.messaging.incoming.data.tracing-enabled", false)
+                .with("mp.messaging.incoming.data.tracing.enabled", false)
                 .write();
 
         SmallRyeConfigTestUtil.installConfig();
@@ -138,8 +128,6 @@ public class RabbitMQArgumentsCDIConfigTest extends RabbitMQBrokerTestBase {
 
     @Test
     public void testConfigByCDIDLQArguments() throws IOException {
-        Weld weld = new Weld();
-
         weld.addBeanClass(ArgumentsConfigBean.class);
         weld.addBeanClass(ConsumptionBean.class);
 
@@ -157,7 +145,7 @@ public class RabbitMQArgumentsCDIConfigTest extends RabbitMQBrokerTestBase {
                 .with("mp.messaging.incoming.data.dlx.declare", true)
                 .with("mp.messaging.incoming.data.dead-letter-queue.arguments", "my-args")
                 .with("mp.messaging.incoming.data.dead-letter-exchange.arguments", "my-args")
-                .with("mp.messaging.incoming.data.tracing-enabled", false)
+                .with("mp.messaging.incoming.data.tracing.enabled", false)
                 .write();
 
         SmallRyeConfigTestUtil.installConfig();

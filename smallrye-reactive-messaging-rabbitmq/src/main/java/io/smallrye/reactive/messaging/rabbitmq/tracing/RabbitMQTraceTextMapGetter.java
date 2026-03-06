@@ -5,6 +5,9 @@ import java.util.Map;
 
 import io.opentelemetry.context.propagation.TextMapGetter;
 
+/**
+ * OpenTelemetry text map getter for extracting tracing context from RabbitMQ message headers.
+ */
 public enum RabbitMQTraceTextMapGetter implements TextMapGetter<RabbitMQTrace> {
     INSTANCE;
 

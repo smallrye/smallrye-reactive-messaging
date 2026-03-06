@@ -40,6 +40,8 @@ import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.junit.jupiter.api.Test;
 
 import io.smallrye.common.annotation.Identifier;
+import io.smallrye.common.vertx.ContextLocals;
+import io.smallrye.common.vertx.VertxContext;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.helpers.test.UniAssertSubscriber;
 import io.smallrye.reactive.messaging.annotations.Blocking;
@@ -115,12 +117,13 @@ public class KafkaRequestReplyTest extends KafkaCompanionTestBase {
         CountDownLatch latch = new CountDownLatch(1);
         String expectedValue = "test-context-value";
 
-        vertx.getDelegate().getOrCreateContext().runOnContext(v -> {
-            Vertx.currentContext().putLocal("test-key", expectedValue);
+        io.vertx.core.Context rootCtx = vertx.getDelegate().getOrCreateContext();
+        VertxContext.createNewDuplicatedContext(rootCtx).runOnContext(v -> {
+            ContextLocals.put("test-key", expectedValue);
             app.requestReply().request(42)
                     .subscribe().with(reply -> {
                         replyContext.set(Vertx.currentContext());
-                        replyLocalValue.set(Vertx.currentContext().getLocal("test-key"));
+                        replyLocalValue.set(ContextLocals.get("test-key", null));
                         latch.countDown();
                     });
         });
