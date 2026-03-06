@@ -138,13 +138,14 @@
     <module>smallrye-reactive-messaging-kafka</module>
     <module>smallrye-reactive-messaging-kafka-api</module>
     <module>smallrye-reactive-messaging-kafka-test-companion</module>
-    <module>smallrye-reactive-messaging-mqtt</module>
+<!--    <module>smallrye-reactive-messaging-mqtt</module>-->
     <module>smallrye-reactive-messaging-amqp</module>
     <module>smallrye-reactive-messaging-jms</module>
     <module>smallrye-reactive-messaging-jsonb</module>
     <module>smallrye-reactive-messaging-jackson</module>
     <module>smallrye-reactive-messaging-health</module>
     <module>smallrye-reactive-messaging-rabbitmq</module>
+    <module>smallrye-reactive-messaging-rabbitmq-og</module>
     <module>smallrye-reactive-messaging-gcp-pubsub</module>
     <module>smallrye-reactive-messaging-pulsar</module>
     <module>smallrye-reactive-messaging-aws-sns</module>
