@@ -21,7 +21,23 @@
     "criticality" : "highlight",
     "minSeverity" : "POTENTIALLY_BREAKING",
     "minCriticality" : "documented",
-    "differences" : [ ]
+    "differences" : [ {
+        "code": "java.method.visibilityIncreased",
+        "old": "method void io.smallrye.reactive.messaging.rabbitmq.IncomingRabbitMQMetadata::<init>(io.vertx.rabbitmq.RabbitMQMessage)",
+        "new": "method void io.smallrye.reactive.messaging.rabbitmq.IncomingRabbitMQMetadata::<init>(io.vertx.rabbitmq.RabbitMQMessage)",
+        "oldVisibility": "package",
+        "newVisibility": "public",
+        "justification": "Incoming Metadata constructor visibility increased to public"
+    },
+        {
+            "code": "java.method.visibilityIncreased",
+            "old": "method void io.smallrye.reactive.messaging.rabbitmq.IncomingRabbitMQMetadata::<init>(com.rabbitmq.client.BasicProperties, com.rabbitmq.client.Envelope)",
+            "new": "method void io.smallrye.reactive.messaging.rabbitmq.IncomingRabbitMQMetadata::<init>(io.vertx.rabbitmq.RabbitMQMessage, java.lang.String)",
+            "oldVisibility": "package",
+            "newVisibility": "public",
+            "justification": "Incoming Metadata constructor visibility increased to public"
+
+        }]
   }
 }, {
   "extension" : "revapi.reporter.json",

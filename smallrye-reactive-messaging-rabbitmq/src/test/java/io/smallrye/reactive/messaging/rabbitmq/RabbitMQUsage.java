@@ -108,7 +108,14 @@ public class RabbitMQUsage {
             try {
                 for (int i = 0; i != messageCount; ++i) {
                     Object payload = messageSupplier.get();
-                    Buffer body = Buffer.buffer(payload.toString());
+                    Buffer body;
+                    if (payload instanceof byte[]) {
+                        body = Buffer.buffer((byte[]) payload);
+                    } else if (payload instanceof Buffer) {
+                        body = (Buffer) payload;
+                    } else {
+                        body = Buffer.buffer(payload.toString());
+                    }
                     client.basicPublish(exchange, routingKey, properties, body)
                             .subscribe().with(
                                     v -> {
