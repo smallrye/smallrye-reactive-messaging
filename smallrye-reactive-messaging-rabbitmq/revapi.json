@@ -1,78 +1,83 @@
-[
-    {
-        "extension": "revapi.java",
-        "id": "java",
-        "configuration": {
-            "missing-classes": {
-                "behavior": "report",
-                "ignoreMissingAnnotations": false
-            }
-        }
-    },
-    {
-        "extension": "revapi.filter",
-        "configuration": {
-            "elements": {
-                "include": [
-                    "class io.smallrye.reactive.messaging.rabbitmq.IncomingRabbitMQMessage",
-                    "class io.smallrye.reactive.messaging.rabbitmq.IncomingRabbitMQMetadata",
-                    "class io.smallrye.reactive.messaging.rabbitmq.OutgoingRabbitMQMetadata"
-                ]
-            }
-        }
-    },
-    {
-        "extension": "revapi.differences",
-        "id": "breaking-changes",
-        "configuration": {
-            "criticality": "highlight",
-            "minSeverity": "POTENTIALLY_BREAKING",
-            "minCriticality": "documented",
-            "differences": [
-                {
-                    "ignore": true,
-                    "code": "java.annotation.added",
-                    "old": "method <T> java.util.Optional<T> io.smallrye.reactive.messaging.rabbitmq.IncomingRabbitMQMetadata::getHeader(java.lang.String, java.lang.Class<T>)",
-                    "new": "method <T> java.util.Optional<T> io.smallrye.reactive.messaging.rabbitmq.IncomingRabbitMQMetadata::getHeader(java.lang.String, java.lang.Class<T>)",
-                    "annotation": "@io.smallrye.common.constraint.Nullable",
-                    "justification": "Switch to the SmallRye Common Nullable annotation instead of abusing the one from Vert.x Codegen"
-                },
-                {
-                    "code": "java.method.visibilityIncreased",
-                    "old": "method void io.smallrye.reactive.messaging.rabbitmq.IncomingRabbitMQMetadata::<init>(io.vertx.rabbitmq.RabbitMQMessage)",
-                    "new": "method void io.smallrye.reactive.messaging.rabbitmq.IncomingRabbitMQMetadata::<init>(io.vertx.rabbitmq.RabbitMQMessage)",
-                    "oldVisibility": "package",
-                    "newVisibility": "public",
-                    "justification": "Incoming Metadata constructor visibility increased to public"
-                },
-                {
-                    "code": "java.method.visibilityIncreased",
-                    "old": "method void io.smallrye.reactive.messaging.rabbitmq.IncomingRabbitMQMetadata::<init>(com.rabbitmq.client.BasicProperties, com.rabbitmq.client.Envelope)",
-                    "new": "method void io.smallrye.reactive.messaging.rabbitmq.IncomingRabbitMQMetadata::<init>(io.vertx.rabbitmq.RabbitMQMessage, java.lang.String)",
-                    "oldVisibility": "package",
-                    "newVisibility": "public",
-                    "justification": "Incoming Metadata constructor visibility increased to public"
-                }
-            ]
-        }
-    },
-    {
-        "extension": "revapi.reporter.json",
-        "configuration": {
-            "minSeverity": "POTENTIALLY_BREAKING",
-            "minCriticality": "documented",
-            "output": "target/compatibility.json",
-            "indent": true,
-            "append": false,
-            "keepEmptyFile": true
-        }
-    },
-    {
-        "extension": "revapi.reporter.text",
-        "configuration": {
-            "minSeverity": "POTENTIALLY_BREAKING",
-            "minCriticality": "documented",
-            "output": "out"
-        }
+[ {
+  "extension" : "revapi.java",
+  "id" : "java",
+  "configuration" : {
+    "missing-classes" : {
+      "behavior" : "report",
+      "ignoreMissingAnnotations" : false
     }
-]
+  }
+}, {
+  "extension" : "revapi.filter",
+  "configuration" : {
+    "elements" : {
+      "include" : [ "class io.smallrye.reactive.messaging.rabbitmq.IncomingRabbitMQMessage", "class io.smallrye.reactive.messaging.rabbitmq.IncomingRabbitMQMetadata", "class io.smallrye.reactive.messaging.rabbitmq.OutgoingRabbitMQMetadata" ]
+    }
+  }
+}, {
+  "extension" : "revapi.differences",
+  "id" : "breaking-changes",
+  "configuration" : {
+    "criticality" : "highlight",
+    "minSeverity" : "POTENTIALLY_BREAKING",
+    "minCriticality" : "documented",
+    "differences" : [
+        {
+            "ignore": true,
+            "code": "java.annotation.added",
+            "old": "method <T> java.util.Optional<T> io.smallrye.reactive.messaging.rabbitmq.IncomingRabbitMQMetadata::getHeader(java.lang.String, java.lang.Class<T>)",
+            "new": "method <T> java.util.Optional<T> io.smallrye.reactive.messaging.rabbitmq.IncomingRabbitMQMetadata::getHeader(java.lang.String, java.lang.Class<T>)",
+            "annotation": "@io.smallrye.common.constraint.Nullable",
+            "justification": "Switch to the SmallRye Common Nullable annotation instead of abusing the one from Vert.x Codegen"
+        },
+        {
+            "code": "java.method.visibilityIncreased",
+            "old": "method void io.smallrye.reactive.messaging.rabbitmq.IncomingRabbitMQMetadata::<init>(io.vertx.rabbitmq.RabbitMQMessage)",
+            "new": "method void io.smallrye.reactive.messaging.rabbitmq.IncomingRabbitMQMetadata::<init>(io.vertx.rabbitmq.RabbitMQMessage)",
+            "oldVisibility": "package",
+            "newVisibility": "public",
+            "justification": "Incoming Metadata constructor visibility increased to public"
+        },
+        {
+            "code": "java.method.visibilityIncreased",
+            "old": "method void io.smallrye.reactive.messaging.rabbitmq.IncomingRabbitMQMetadata::<init>(com.rabbitmq.client.BasicProperties, com.rabbitmq.client.Envelope)",
+            "new": "method void io.smallrye.reactive.messaging.rabbitmq.IncomingRabbitMQMetadata::<init>(io.vertx.rabbitmq.RabbitMQMessage, java.lang.String)",
+            "oldVisibility": "package",
+            "newVisibility": "public",
+            "justification": "Incoming Metadata constructor visibility increased to public"
+        }, {
+        "code": "java.method.visibilityIncreased",
+        "old": "method void io.smallrye.reactive.messaging.rabbitmq.IncomingRabbitMQMetadata::<init>(io.vertx.rabbitmq.RabbitMQMessage)",
+        "new": "method void io.smallrye.reactive.messaging.rabbitmq.IncomingRabbitMQMetadata::<init>(io.vertx.rabbitmq.RabbitMQMessage)",
+        "oldVisibility": "package",
+        "newVisibility": "public",
+        "justification": "Incoming Metadata constructor visibility increased to public"
+    },
+        {
+            "code": "java.method.visibilityIncreased",
+            "old": "method void io.smallrye.reactive.messaging.rabbitmq.IncomingRabbitMQMetadata::<init>(com.rabbitmq.client.BasicProperties, com.rabbitmq.client.Envelope)",
+            "new": "method void io.smallrye.reactive.messaging.rabbitmq.IncomingRabbitMQMetadata::<init>(io.vertx.rabbitmq.RabbitMQMessage, java.lang.String)",
+            "oldVisibility": "package",
+            "newVisibility": "public",
+            "justification": "Incoming Metadata constructor visibility increased to public"
+
+        }]
+  }
+}, {
+  "extension" : "revapi.reporter.json",
+  "configuration" : {
+    "minSeverity" : "POTENTIALLY_BREAKING",
+    "minCriticality" : "documented",
+    "output" : "target/compatibility.json",
+    "indent" : true,
+    "append" : false,
+    "keepEmptyFile" : true
+  }
+}, {
+  "extension" : "revapi.reporter.text",
+  "configuration" : {
+    "minSeverity" : "POTENTIALLY_BREAKING",
+    "minCriticality" : "documented",
+    "output" : "out"
+  }
+} ]
