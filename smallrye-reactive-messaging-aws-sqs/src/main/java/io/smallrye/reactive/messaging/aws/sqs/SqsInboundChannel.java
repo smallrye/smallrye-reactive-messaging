@@ -87,6 +87,9 @@ public class SqsInboundChannel {
                             processor.onNext(message);
                         }
                     }
+                    if (isClosed()) {
+                        processor.cancel();
+                    }
                 }, requestExecutor, maxNumberOfMessages * 2, conf.getReceiveRequestPauseResume());
         this.stream = Multi.createFrom()
                 .deferred(() -> queueUrlUni.onItem().invoke(this::setQueueUrl)
@@ -94,10 +97,12 @@ public class SqsInboundChannel {
                 .emitOn(context::runOnContext, conf.getMaxNumberOfMessages())
                 .onItem().transform(message -> new SqsMessage<>(message, jsonMapper, ackHandler, failureHandler))
                 .onItem().invoke(this::incomingTrace)
+                .onFailure(t -> isClosed()).recoverWithCompletion()
                 .onFailure().invoke(throwable -> {
                     log.errorReceivingMessage(channel, throwable);
                     reportFailure(throwable, false);
-                });
+                })
+                .onTermination().invoke(requestExecutor::shutdown);
     }
 
     private void setQueueUrl(String queueUrl) {
@@ -180,23 +185,24 @@ public class SqsInboundChannel {
                         messages.forEach(m -> log.receivedMessage(m.body()));
                     }
                     return messages;
-                }).onFailure(e -> e instanceof SqsException && ((SqsException) e).retryable())
-                .recoverWithUni(e -> {
-                    if (retryCount < retries) {
-                        return request(((SqsException) e).requestId(), retryCount + 1);
-                    } else {
-                        return Uni.createFrom().failure(e);
-                    }
-                });
+                })
+                .onFailure(e -> retryCount < retries
+                        && e instanceof SqsException
+                        && ((SqsException) e).retryable()
+                        && !isClosed())
+                .recoverWithUni(e -> request(((SqsException) e).requestId(), retryCount + 1));
     }
 
     public Flow.Publisher<? extends Message<?>> getStream() {
         return stream;
     }
 
+    public boolean isClosed() {
+        return closed.get();
+    }
+
     public void close() {
         closed.set(true);
-        requestExecutor.shutdown();
     }
 
     public void isAlive(HealthReport.HealthReportBuilder builder) {

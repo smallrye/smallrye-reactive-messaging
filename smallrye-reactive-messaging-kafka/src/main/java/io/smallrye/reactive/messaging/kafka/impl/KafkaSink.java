@@ -270,7 +270,7 @@ public class KafkaSink {
     }
 
     private boolean isRecoverable(Throwable f) {
-        return !NOT_RECOVERABLE.contains(f.getClass());
+        return !NOT_RECOVERABLE.contains(f.getClass()) && !client.isClosed();
     }
 
     @SuppressWarnings("rawtypes")

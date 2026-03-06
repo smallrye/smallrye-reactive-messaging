@@ -96,15 +96,19 @@ public class KafkaRecordStreamSubscription<K, V, T> implements Flow.Subscription
                         KafkaRecordHelper.addGenerationIdToHeaders(r, metadata);
                     }
                     enqueueFunction.accept(cr, queue);
+                    if (client.isClosed()) {
+                        this.cancel();
+                    }
                     return cr;
                 })
                 .plug(m -> {
                     if (config.getRetry()) {
                         int maxWait = config.getRetryMaxWait();
                         return m
-                                .onFailure().invoke(f -> log.pollFailureRetry(clientId, channel, f))
-                                .onFailure().retry().withBackOff(Duration.ofSeconds(1), Duration.ofSeconds(maxWait))
-                                .atMost(retries);
+                                .onFailure(t -> !client.isClosed())
+                                .invoke(f -> log.pollFailureRetry(clientId, channel, f))
+                                .onFailure(t -> !client.isClosed())
+                                .retry().withBackOff(Duration.ofSeconds(1), Duration.ofSeconds(maxWait)).atMost(retries);
                     }
                     return m;
                 });
