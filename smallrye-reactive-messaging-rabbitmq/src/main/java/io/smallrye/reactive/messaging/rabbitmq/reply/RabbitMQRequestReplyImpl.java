@@ -32,8 +32,8 @@ import io.smallrye.reactive.messaging.rabbitmq.OutgoingRabbitMQMetadata;
 import io.smallrye.reactive.messaging.rabbitmq.RabbitMQConnector;
 import io.smallrye.reactive.messaging.rabbitmq.RabbitMQConnectorCommonConfiguration;
 import io.smallrye.reactive.messaging.rabbitmq.internals.RabbitMQClientHelper;
-import io.vertx.mutiny.core.Context;
-import io.vertx.mutiny.core.Vertx;
+import io.vertx.core.Context;
+import io.vertx.core.Vertx;
 
 @Experimental("Experimental API")
 public class RabbitMQRequestReplyImpl<Req, Rep> extends MutinyEmitterImpl<Req>
@@ -137,7 +137,7 @@ public class RabbitMQRequestReplyImpl<Req, Rep> extends MutinyEmitterImpl<Req>
             sendMessage(request.addMetadata(outMetadata))
                     .subscribe().with(unused -> subscription.get().request(1), emitter::fail);
         })
-                .plug(m -> callerCtx != null ? m.emitOn(callerCtx::runOnContext) : m)
+                .plug(m -> callerCtx != null ? m.emitOn(cmd -> callerCtx.runOnContext(v -> cmd.run())) : m)
                 .ifNoItem().after(replyTimeout)
                 .failWith(() -> new RabbitMQRequestReplyTimeoutException(correlationId))
                 .onItem().transformToUniAndConcatenate(m -> {

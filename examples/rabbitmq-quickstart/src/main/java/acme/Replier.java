@@ -18,10 +18,10 @@ public class Replier {
     public Message<String> reply(Message<String> request) {
         IncomingRabbitMQMetadata metadata = request.getMetadata(
                 IncomingRabbitMQMetadata.class).get();
-        System.out.println("received request: " + request.getPayload() + " replyTo: " + metadata.getReplyTo().get());
+        System.out.println("received request: " + request.getPayload() + " replyTo: " + metadata.getReplyTo());
         OutgoingRabbitMQMetadata outgoing = OutgoingRabbitMQMetadata.builder()
-                .withCorrelationId(metadata.getCorrelationId().get())
-                .withRoutingKey(metadata.getReplyTo().get()).build();
+                .withCorrelationId(metadata.getCorrelationId())
+                .withRoutingKey(metadata.getReplyTo()).build();
         return Message.of("Reply to " + request.getPayload(), Metadata.of(outgoing));
     }
 

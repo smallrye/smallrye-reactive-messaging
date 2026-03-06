@@ -4,11 +4,9 @@ import static io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Dire
 import static io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Direction.INCOMING_AND_OUTGOING;
 import static io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Direction.OUTGOING;
 import static io.smallrye.reactive.messaging.rabbitmq.i18n.RabbitMQExceptions.ex;
-import static io.smallrye.reactive.messaging.rabbitmq.i18n.RabbitMQLogging.log;
 
 import java.util.List;
 import java.util.Map;
-import java.util.NoSuchElementException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Flow;
@@ -25,9 +23,8 @@ import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.spi.Connector;
-import org.eclipse.microprofile.reactive.messaging.spi.IncomingConnectorFactory;
-import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 
+import com.rabbitmq.client.ConnectionFactory;
 import com.rabbitmq.client.impl.CredentialsProvider;
 
 import io.opentelemetry.api.OpenTelemetry;
@@ -38,18 +35,15 @@ import io.smallrye.reactive.messaging.connector.OutboundConnector;
 import io.smallrye.reactive.messaging.health.HealthReport;
 import io.smallrye.reactive.messaging.health.HealthReporter;
 import io.smallrye.reactive.messaging.providers.connectors.ExecutionHolder;
-import io.smallrye.reactive.messaging.rabbitmq.fault.RabbitMQFailureHandler;
 import io.smallrye.reactive.messaging.rabbitmq.internals.IncomingRabbitMQChannel;
 import io.smallrye.reactive.messaging.rabbitmq.internals.OutgoingRabbitMQChannel;
 import io.smallrye.reactive.messaging.rabbitmq.internals.RabbitMQClientHelper;
-import io.vertx.mutiny.core.Vertx;
-import io.vertx.mutiny.rabbitmq.RabbitMQClient;
-import io.vertx.rabbitmq.RabbitMQOptions;
+import io.vertx.core.Vertx;
 
 @ApplicationScoped
 @Connector(RabbitMQConnector.CONNECTOR_NAME)
 
-// RabbitMQClient configuration
+// RabbitMQ Client configuration
 @ConnectorAttribute(name = "username", direction = INCOMING_AND_OUTGOING, description = "The username used to authenticate to the broker", type = "string", alias = "rabbitmq-username")
 @ConnectorAttribute(name = "password", direction = INCOMING_AND_OUTGOING, description = "The password used to authenticate to the broker", type = "string", alias = "rabbitmq-password")
 @ConnectorAttribute(name = "host", direction = INCOMING_AND_OUTGOING, description = "The broker hostname", type = "string", alias = "rabbitmq-host", defaultValue = "localhost")
@@ -62,7 +56,7 @@ import io.vertx.rabbitmq.RabbitMQOptions;
 @ConnectorAttribute(name = "trust-store-password", direction = INCOMING_AND_OUTGOING, description = "The password of the JKS trust store", type = "string", alias = "rabbitmq-trust-store-password")
 @ConnectorAttribute(name = "connection-timeout", direction = INCOMING_AND_OUTGOING, description = "The TCP connection timeout (ms); 0 is interpreted as no timeout", type = "int", defaultValue = "60000")
 @ConnectorAttribute(name = "handshake-timeout", direction = INCOMING_AND_OUTGOING, description = "The AMQP 0-9-1 protocol handshake timeout (ms)", type = "int", defaultValue = "10000")
-@ConnectorAttribute(name = "automatic-recovery-enabled", direction = INCOMING_AND_OUTGOING, description = "Whether automatic connection recovery is enabled", type = "boolean", defaultValue = "false")
+@ConnectorAttribute(name = "automatic-recovery-enabled", direction = INCOMING_AND_OUTGOING, description = "Whether automatic connection recovery is enabled", type = "boolean", defaultValue = "true")
 @ConnectorAttribute(name = "automatic-recovery-on-initial-connection", direction = INCOMING_AND_OUTGOING, description = "Whether automatic recovery on initial connections is enabled", type = "boolean", defaultValue = "true")
 @ConnectorAttribute(name = "reconnect-attempts", direction = INCOMING_AND_OUTGOING, description = "The number of reconnection attempts", type = "int", alias = "rabbitmq-reconnect-attempts", defaultValue = "100")
 @ConnectorAttribute(name = "reconnect-interval", direction = INCOMING_AND_OUTGOING, description = "The interval (in seconds) between two reconnection attempts", type = "int", alias = "rabbitmq-reconnect-interval", defaultValue = "10")
@@ -74,16 +68,16 @@ import io.vertx.rabbitmq.RabbitMQOptions;
 @ConnectorAttribute(name = "requested-heartbeat", direction = INCOMING_AND_OUTGOING, description = "The initially requested heartbeat interval (seconds), zero for none", type = "int", defaultValue = "60")
 @ConnectorAttribute(name = "use-nio", direction = INCOMING_AND_OUTGOING, description = "Whether usage of NIO Sockets is enabled", type = "boolean", defaultValue = "false")
 @ConnectorAttribute(name = "virtual-host", direction = INCOMING_AND_OUTGOING, description = "The virtual host to use when connecting to the broker", type = "string", defaultValue = "/", alias = "rabbitmq-virtual-host")
-@ConnectorAttribute(name = "client-options-name", direction = INCOMING_AND_OUTGOING, description = "The name of the RabbitMQ Client Option bean used to customize the RabbitMQ client configuration", type = "string", alias = "rabbitmq-client-options-name")
+@ConnectorAttribute(name = "client-options-name", direction = INCOMING_AND_OUTGOING, description = "The name of the RabbitMQ ConnectionFactory bean used to customize the RabbitMQ client configuration", type = "string", alias = "rabbitmq-client-options-name")
 @ConnectorAttribute(name = "credentials-provider-name", direction = INCOMING_AND_OUTGOING, description = "The name of the RabbitMQ Credentials Provider bean used to provide dynamic credentials to the RabbitMQ client", type = "string", alias = "rabbitmq-credentials-provider-name")
 
 // Client
 @ConnectorAttribute(name = "lazy-client", type = "boolean", direction = INCOMING_AND_OUTGOING, description = "Whether the RabbitMQ client is created lazily or eagerly.", defaultValue = "true")
 
 // Health
-@ConnectorAttribute(name = "health-enabled", type = "boolean", direction = ConnectorAttribute.Direction.INCOMING_AND_OUTGOING, description = "Whether health reporting is enabled (default) or disabled", defaultValue = "true")
-@ConnectorAttribute(name = "health-readiness-enabled", type = "boolean", direction = ConnectorAttribute.Direction.INCOMING_AND_OUTGOING, description = "Whether readiness health reporting is enabled (default) or disabled", defaultValue = "true")
-@ConnectorAttribute(name = "health-lazy-subscription", type = "boolean", direction = ConnectorAttribute.Direction.INCOMING, description = "Whether the liveness and readiness checks should report 'ok' when there is no subscription yet. This is useful when injecting the channel with `@Inject @Channel(\"...\") Multi<...> multi;`", defaultValue = "false")
+@ConnectorAttribute(name = "health-enabled", type = "boolean", direction = INCOMING_AND_OUTGOING, description = "Whether health reporting is enabled (default) or disabled", defaultValue = "true")
+@ConnectorAttribute(name = "health-readiness-enabled", type = "boolean", direction = INCOMING_AND_OUTGOING, description = "Whether readiness health reporting is enabled (default) or disabled", defaultValue = "true")
+@ConnectorAttribute(name = "health-lazy-subscription", type = "boolean", direction = INCOMING, description = "Whether the liveness and readiness checks should report 'ok' when there is no subscription yet. This is useful when injecting the channel with `@Inject @Channel(\"...\") Multi<...> multi;`", defaultValue = "false")
 
 // Exchange
 @ConnectorAttribute(name = "exchange.name", direction = INCOMING_AND_OUTGOING, description = "The exchange that messages are published to or consumed from. If not set, the channel name is used. If set to \"\", the default exchange is used.", type = "string")
@@ -149,6 +143,7 @@ import io.vertx.rabbitmq.RabbitMQOptions;
 @ConnectorAttribute(name = "tracing.attribute-headers", direction = INCOMING_AND_OUTGOING, description = "A comma-separated list of headers that should be recorded as span attributes. Relevant only if tracing.enabled=true", type = "string", defaultValue = "")
 
 public class RabbitMQConnector implements InboundConnector, OutboundConnector, HealthReporter {
+
     public static final String CONNECTOR_NAME = "smallrye-rabbitmq";
 
     @Inject
@@ -156,11 +151,7 @@ public class RabbitMQConnector implements InboundConnector, OutboundConnector, H
 
     @Inject
     @Any
-    Instance<RabbitMQOptions> clientOptions;
-
-    @Inject
-    @Any
-    Instance<ClientCustomizer<RabbitMQOptions>> configCustomizers;
+    Instance<ConnectionFactory> connectionFactories;
 
     @Inject
     @Any
@@ -168,136 +159,154 @@ public class RabbitMQConnector implements InboundConnector, OutboundConnector, H
 
     @Inject
     @Any
-    Instance<RabbitMQFailureHandler.Factory> failureHandlerFactories;
-    private final List<IncomingRabbitMQChannel> incomings = new CopyOnWriteArrayList<>();
-    private final List<OutgoingRabbitMQChannel> outgoings = new CopyOnWriteArrayList<>();
-    private final Map<String, ClientHolder> clients = new ConcurrentHashMap<>();
-    // connection-name to fingerprint map to check against same connection-name but different options
-    private final Map<String, String> connectionFingerprints = new ConcurrentHashMap<>();
-
-    @Inject
-    @Any
     Instance<Map<String, ?>> configMaps;
 
     @Inject
+    @Any
+    Instance<ClientCustomizer<ConnectionFactory>> configCustomizers;
+
+    @Inject
     Instance<OpenTelemetry> openTelemetryInstance;
+
+    private final List<IncomingRabbitMQChannel> incomings = new CopyOnWriteArrayList<>();
+    private final List<OutgoingRabbitMQChannel> outgoings = new CopyOnWriteArrayList<>();
+    private final Map<String, ConnectionHolder> connections = new ConcurrentHashMap<>();
+    private final Map<String, String> connectionFingerprints = new ConcurrentHashMap<>();
 
     RabbitMQConnector() {
         // used for proxies
     }
 
-    /**
-     * Creates a <em>channel</em> for the given configuration. The channel's configuration is associated with a
-     * specific {@code connector}, using the {@link Connector} qualifier's parameter indicating a key to
-     * which {@link IncomingConnectorFactory} to use.
-     *
-     * <p>
-     * Note that the connection to the <em>transport</em> or <em>broker</em> is generally postponed until the
-     * subscription occurs.
-     *
-     * @param config the configuration, must not be {@code null}, must contain the {@link #CHANNEL_NAME_ATTRIBUTE}
-     *        attribute.
-     * @return the created {@link Flow.Publisher}, will not be {@code null}.
-     * @throws IllegalArgumentException if the configuration is invalid.
-     * @throws NoSuchElementException if the configuration does not contain an expected attribute.
-     */
     @Override
-    public Flow.Publisher<? extends Message<?>> getPublisher(final Config config) {
-        final RabbitMQConnectorIncomingConfiguration ic = new RabbitMQConnectorIncomingConfiguration(config);
-        IncomingRabbitMQChannel incoming = new IncomingRabbitMQChannel(this, ic, openTelemetryInstance);
-        this.incomings.add(incoming);
-        return incoming.getStream();
+    public Flow.Publisher<? extends Message<?>> getPublisher(Config config) {
+        RabbitMQConnectorIncomingConfiguration ic = new RabbitMQConnectorIncomingConfiguration(config);
+
+        ConnectionHolder holder = getOrCreateConnectionHolder(ic);
+
+        // Create IncomingRabbitMQChannel
+        IncomingRabbitMQChannel channel = new IncomingRabbitMQChannel(
+                holder, ic, configMaps, openTelemetryInstance);
+
+        incomings.add(channel);
+
+        // Multi already implements Flow.Publisher
+        return channel.getStream();
     }
 
-    /**
-     * Creates a <em>channel</em> for the given configuration. The channel's configuration is associated with a
-     * specific {@code connector}, using the {@link Connector} qualifier's parameter indicating a key to
-     * which {@link org.eclipse.microprofile.reactive.messaging.Outgoing} to use.
-     * <p>
-     * Note that the connection to the <em>transport</em> or <em>broker</em> is generally postponed until the
-     * subscription.
-     *
-     * @param config the configuration, never {@code null}, must contain the {@link #CHANNEL_NAME_ATTRIBUTE}
-     *        attribute.
-     * @return the created {@link SubscriberBuilder}, must not be {@code null}.
-     * @throws IllegalArgumentException if the configuration is invalid.
-     * @throws NoSuchElementException if the configuration does not contain an expected attribute.
-     */
     @Override
-    public Flow.Subscriber<? extends Message<?>> getSubscriber(final Config config) {
-        final RabbitMQConnectorOutgoingConfiguration oc = new RabbitMQConnectorOutgoingConfiguration(config);
-        OutgoingRabbitMQChannel outgoing = new OutgoingRabbitMQChannel(this, oc, openTelemetryInstance);
-        outgoings.add(outgoing);
-        return outgoing.getSubscriber();
+    public Flow.Subscriber<? extends Message<?>> getSubscriber(Config config) {
+        RabbitMQConnectorOutgoingConfiguration oc = new RabbitMQConnectorOutgoingConfiguration(config);
+
+        ConnectionHolder holder = getOrCreateConnectionHolder(oc);
+
+        // Create OutgoingRabbitMQChannel
+        OutgoingRabbitMQChannel channel = new OutgoingRabbitMQChannel(
+                holder, oc, configMaps, openTelemetryInstance);
+
+        outgoings.add(channel);
+
+        return channel.getSink();
     }
 
     @Override
     public HealthReport getReadiness() {
         HealthReport.HealthReportBuilder builder = HealthReport.builder();
+
+        // Aggregate readiness from all incoming channels
         for (IncomingRabbitMQChannel incoming : incomings) {
             builder = incoming.isReady(builder);
         }
 
+        // Aggregate readiness from all outgoing channels
         for (OutgoingRabbitMQChannel outgoing : outgoings) {
             builder = outgoing.isReady(builder);
         }
+
         return builder.build();
     }
 
     @Override
     public HealthReport getLiveness() {
         HealthReport.HealthReportBuilder builder = HealthReport.builder();
+
+        // Aggregate liveness from all incoming channels
         for (IncomingRabbitMQChannel incoming : incomings) {
             builder = incoming.isAlive(builder);
         }
 
+        // Aggregate liveness from all outgoing channels
         for (OutgoingRabbitMQChannel outgoing : outgoings) {
             builder = outgoing.isAlive(builder);
         }
+
         return builder.build();
     }
 
-    /**
-     * Application shutdown tidy up; cancels all subscriptions and stops clients.
-     *
-     * @param ignored the incoming event, ignored
-     */
     public void terminate(
             @SuppressWarnings("unused") @Observes(notifyObserver = Reception.IF_EXISTS) @Priority(50) @BeforeDestroyed(ApplicationScoped.class) Object ignored) {
+        // Clean up all incoming channels
         for (IncomingRabbitMQChannel incoming : incomings) {
-            incoming.terminate();
+            try {
+                incoming.cancel();
+            } catch (Exception e) {
+                // Log but continue cleanup
+                e.printStackTrace();
+            }
         }
+        incomings.clear();
 
+        // Clean up all outgoing channels
         for (OutgoingRabbitMQChannel outgoing : outgoings) {
-            outgoing.terminate();
+            outgoing.closeQuietly();
         }
+        outgoings.clear();
 
-        for (Map.Entry<String, ClientHolder> entry : clients.entrySet()) {
-            stopClient(entry.getValue().client(), true);
+        for (ConnectionHolder holder : connections.values()) {
+            holder.close();
         }
-        clients.clear();
+        connections.clear();
         connectionFingerprints.clear();
     }
 
+    public ConnectionHolder getOrCreateConnectionHolder(RabbitMQConnectorCommonConfiguration config) {
+        String channel = config.getChannel();
+        ConnectionFactory factory = RabbitMQClientHelper
+                .createConnectionFactory(config, connectionFactories, credentialsProviders, configCustomizers);
+        String connectionName = RabbitMQClientHelper.resolveConnectionName(config);
+        String fingerprint = RabbitMQClientHelper.computeConnectionFingerprint(factory);
+        String existing = connectionFingerprints.putIfAbsent(connectionName, fingerprint);
+        if (existing != null && !existing.equals(fingerprint)) {
+            throw ex.illegalStateSharedConnectionConfigMismatch(connectionName);
+        }
+        return connections.compute(fingerprint,
+                (key, current) -> {
+                    if (current == null) {
+                        current = new ConnectionHolder(factory, channel, connectionName,
+                                executionHolder.vertx(), config.getReconnectAttempts(), config.getReconnectInterval());
+                    }
+                    return current.retain(channel);
+                });
+    }
+
+    public void releaseClient(String channel) {
+        for (var e : connections.entrySet()) {
+            ConnectionHolder holder = e.getValue();
+            if (holder.channels().contains(channel)) {
+                if (connections.computeIfPresent(e.getKey(), (k, c) -> c.release(channel) ? null : c) == null) {
+                    connectionFingerprints.values().remove(e.getKey());
+                    holder.close();
+                }
+                return;
+            }
+        }
+    }
+
     public Vertx vertx() {
-        return executionHolder.vertx();
+        return executionHolder.vertx().getDelegate();
     }
 
-    public void reportIncomingFailure(String channel, Throwable reason) {
-        log.failureReported(channel, reason);
-        releaseClient(channel, false);
-    }
-
-    public Instance<RabbitMQFailureHandler.Factory> failureHandlerFactories() {
-        return failureHandlerFactories;
-    }
-
-    public Instance<RabbitMQOptions> clientOptions() {
-        return clientOptions;
-    }
-
-    public Instance<ClientCustomizer<RabbitMQOptions>> configCustomizers() {
-        return configCustomizers;
+    public Instance<ConnectionFactory> connectionFactories() {
+        return connectionFactories;
     }
 
     public Instance<CredentialsProvider> credentialsProviders() {
@@ -308,42 +317,7 @@ public class RabbitMQConnector implements InboundConnector, OutboundConnector, H
         return configMaps;
     }
 
-    public ClientHolder getClientHolder(RabbitMQConnectorCommonConfiguration config) {
-        String channel = config.getChannel();
-        RabbitMQOptions options = RabbitMQClientHelper.buildClientOptions(this, config);
-        String connectionName = options.getConnectionName();
-        String fingerprint = RabbitMQClientHelper.computeConnectionFingerprint(options);
-        String existing = connectionFingerprints.putIfAbsent(connectionName, fingerprint);
-        if (existing != null && !existing.equals(fingerprint)) {
-            throw ex.illegalStateSharedConnectionConfigMismatch(connectionName);
-        }
-        return clients.compute(fingerprint,
-                (key, current) -> (current == null ? new ClientHolder(RabbitMQClient.create(vertx(), options)) : current)
-                        .retain(channel));
+    public Instance<ClientCustomizer<ConnectionFactory>> configCustomizers() {
+        return configCustomizers;
     }
-
-    public void releaseClient(String channel, boolean await) {
-        for (var e : clients.entrySet()) {
-            ClientHolder shared = e.getValue();
-            if (shared.channels().contains(channel)) {
-                if (clients.computeIfPresent(e.getKey(), (k, c) -> c.release(channel) ? null : c) == null) {
-                    connectionFingerprints.values().remove(e.getKey());
-                    stopClient(shared.client(), await);
-                }
-                return;
-            }
-        }
-    }
-
-    private void stopClient(RabbitMQClient client, boolean await) {
-        if (client == null) {
-            return;
-        }
-        if (await) {
-            client.stopAndAwait();
-        } else {
-            client.stopAndForget();
-        }
-    }
-
 }

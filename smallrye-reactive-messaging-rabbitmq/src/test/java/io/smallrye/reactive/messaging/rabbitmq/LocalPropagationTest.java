@@ -38,7 +38,7 @@ public class LocalPropagationTest extends WeldTestBase {
                 .with("mp.messaging.incoming.data.connector", RabbitMQConnector.CONNECTOR_NAME)
                 .with("mp.messaging.incoming.data.queue.name", queueName)
                 .with("mp.messaging.incoming.data.exchange.name", exchangeName)
-                .with("mp.messaging.incoming.data.exchange.routing-keys", routingKeys)
+                .with("mp.messaging.incoming.data.routing-keys", routingKeys)
                 .with("mp.messaging.incoming.data.tracing.enabled", false);
     }
 
@@ -68,7 +68,8 @@ public class LocalPropagationTest extends WeldTestBase {
 
     @Test
     public void testPipelineWithAnUnorderedBlockingStage() {
-        PipelineWithAnUnorderedBlockingStage bean = runApplication(dataconfig(), PipelineWithAnUnorderedBlockingStage.class);
+        PipelineWithAnUnorderedBlockingStage bean = runApplication(dataconfig(),
+                PipelineWithAnUnorderedBlockingStage.class);
         produceIntegers();
 
         await().until(() -> bean.getResults().size() >= 5);
@@ -96,7 +97,8 @@ public class LocalPropagationTest extends WeldTestBase {
 
     @Test
     public void testLinearPipelineWithAckOnCustomThread() {
-        LinearPipelineWithAckOnCustomThread bean = runApplication(dataconfig(), LinearPipelineWithAckOnCustomThread.class);
+        LinearPipelineWithAckOnCustomThread bean = runApplication(dataconfig(),
+                LinearPipelineWithAckOnCustomThread.class);
         produceIntegers();
 
         await().until(() -> bean.getResults().size() >= 5);
@@ -388,7 +390,7 @@ public class LocalPropagationTest extends WeldTestBase {
 
             assertThat(input.getMetadata(LocalContextMetadata.class)).isPresent();
 
-            return Message.of(intPayload + 1, input.getMetadata());
+            return input.withPayload(intPayload + 1);
         }
 
         private final Random random = new Random();
@@ -468,8 +470,6 @@ public class LocalPropagationTest extends WeldTestBase {
 
             return Message.of(intPayload + 1, input.getMetadata());
         }
-
-        private final Random random = new Random();
 
         @Incoming("process")
         @Outgoing("after-process")

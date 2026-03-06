@@ -2,6 +2,10 @@ package io.smallrye.reactive.messaging.rabbitmq.tracing;
 
 import java.util.Map;
 
+/**
+ * Represents tracing context for RabbitMQ messages.
+ * Contains destination information and headers for OpenTelemetry context propagation.
+ */
 public class RabbitMQTrace {
     private final String destinationKind;
     private final String destination;

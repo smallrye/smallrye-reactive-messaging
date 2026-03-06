@@ -29,7 +29,7 @@ public class RabbitMQBrokerExtension implements BeforeAllCallback, ParameterReso
 
     private static final Logger LOGGER = Logger.getLogger(RabbitMQBrokerExtension.class.getName());
 
-    public static final String RABBITMQ_IMAGE_NAME = "rabbitmq:4.2.5-management-alpine";
+    public static final String RABBITMQ_IMAGE_NAME = "rabbitmq:4.2-management";
     public static final String RABBITMQ_IMAGE_NAME_KEY = "rabbitmq.container.image";
 
     private GenericContainer<?> rabbit;

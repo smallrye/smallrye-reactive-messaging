@@ -2,7 +2,6 @@ package io.smallrye.reactive.messaging.rabbitmq.fault;
 
 import static io.smallrye.reactive.messaging.rabbitmq.i18n.RabbitMQLogging.log;
 
-import java.util.Optional;
 import java.util.concurrent.CompletionStage;
 
 import jakarta.enterprise.context.ApplicationScoped;
@@ -10,10 +9,17 @@ import jakarta.enterprise.context.ApplicationScoped;
 import org.eclipse.microprofile.reactive.messaging.Metadata;
 
 import io.smallrye.common.annotation.Identifier;
-import io.smallrye.reactive.messaging.rabbitmq.*;
+import io.smallrye.reactive.messaging.rabbitmq.IncomingRabbitMQMessage;
+import io.smallrye.reactive.messaging.rabbitmq.RabbitMQConnector;
+import io.smallrye.reactive.messaging.rabbitmq.RabbitMQConnectorIncomingConfiguration;
+import io.smallrye.reactive.messaging.rabbitmq.RabbitMQRejectMetadata;
 import io.vertx.mutiny.core.Context;
 
+/**
+ * Failure handler that rejects the message without requeuing.
+ */
 public class RabbitMQReject implements RabbitMQFailureHandler {
+
     private final String channel;
 
     @ApplicationScoped
@@ -38,12 +44,15 @@ public class RabbitMQReject implements RabbitMQFailureHandler {
     @Override
     public <V> CompletionStage<Void> handle(IncomingRabbitMQMessage<V> msg, Metadata metadata, Context context,
             Throwable reason) {
-        // We mark the message as rejected and fail.
+        // We mark the message as rejected without requeue.
         log.nackedIgnoreMessage(channel);
         log.fullIgnoredFailure(reason);
-        boolean requeue = Optional.ofNullable(metadata)
-                .flatMap(md -> md.get(RabbitMQRejectMetadata.class))
-                .map(RabbitMQRejectMetadata::isRequeue).orElse(false);
-        return ClientHolder.runOnContext(context, msg, m -> m.rejectMessage(reason, requeue));
+
+        // Create metadata with requeue=false
+        Metadata nackMetadata = metadata != null
+                ? metadata.with(new RabbitMQRejectMetadata(false))
+                : Metadata.of(new RabbitMQRejectMetadata(false));
+
+        return msg.nack(reason, nackMetadata);
     }
 }

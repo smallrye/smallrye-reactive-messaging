@@ -4,38 +4,39 @@ import static com.rabbitmq.client.impl.DefaultCredentialsRefreshService.fixedTim
 import static com.rabbitmq.client.impl.DefaultCredentialsRefreshService.ratioRefreshDelayStrategy;
 import static io.smallrye.reactive.messaging.rabbitmq.i18n.RabbitMQExceptions.ex;
 import static io.smallrye.reactive.messaging.rabbitmq.i18n.RabbitMQLogging.log;
-import static io.vertx.core.net.ClientOptionsBase.DEFAULT_METRICS_NAME;
 import static java.time.Duration.ofSeconds;
 
+import java.io.FileInputStream;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.security.KeyManagementException;
+import java.security.KeyStore;
+import java.security.KeyStoreException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.security.cert.CertificateException;
 import java.time.Duration;
 import java.util.*;
-import java.util.stream.Collectors;
+
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManagerFactory;
 
 import jakarta.enterprise.inject.Instance;
 import jakarta.enterprise.inject.literal.NamedLiteral;
 
 import com.rabbitmq.client.Address;
+import com.rabbitmq.client.Channel;
+import com.rabbitmq.client.ConnectionFactory;
 import com.rabbitmq.client.impl.CredentialsProvider;
 import com.rabbitmq.client.impl.DefaultCredentialsRefreshService;
 
 import io.smallrye.common.annotation.Identifier;
-import io.smallrye.mutiny.Multi;
-import io.smallrye.mutiny.Uni;
+import io.smallrye.reactive.messaging.ClientCustomizer;
 import io.smallrye.reactive.messaging.providers.helpers.CDIUtils;
 import io.smallrye.reactive.messaging.providers.helpers.ConfigUtils;
 import io.smallrye.reactive.messaging.providers.i18n.ProviderLogging;
-import io.smallrye.reactive.messaging.rabbitmq.RabbitMQConnector;
 import io.smallrye.reactive.messaging.rabbitmq.RabbitMQConnectorCommonConfiguration;
 import io.smallrye.reactive.messaging.rabbitmq.RabbitMQConnectorIncomingConfiguration;
-import io.vertx.core.internal.VertxInternal;
-import io.vertx.core.json.JsonObject;
-import io.vertx.core.net.JksOptions;
-import io.vertx.mutiny.core.Vertx;
-import io.vertx.mutiny.rabbitmq.RabbitMQClient;
-import io.vertx.rabbitmq.RabbitMQOptions;
 
 public class RabbitMQClientHelper {
 
@@ -48,31 +49,152 @@ public class RabbitMQClientHelper {
         // avoid direct instantiation.
     }
 
-    public static RabbitMQOptions buildClientOptions(RabbitMQConnector connector, RabbitMQConnectorCommonConfiguration config) {
+    public static ConnectionFactory createConnectionFactory(
+            RabbitMQConnectorCommonConfiguration config,
+            Instance<ConnectionFactory> connectionFactories,
+            Instance<CredentialsProvider> credentialsProviders,
+            Instance<ClientCustomizer<ConnectionFactory>> configCustomizers) {
+
         Optional<String> clientOptionsName = config.getClientOptionsName();
-        Vertx vertx = connector.vertx();
-        RabbitMQOptions options;
-        if (clientOptionsName.isPresent()) {
-            options = getClientOptionsFromBean(connector.clientOptions(), clientOptionsName.get());
-        } else {
-            options = getClientOptions(vertx, config, connector.credentialsProviders());
+        ConnectionFactory factory;
+
+        try {
+            if (clientOptionsName.isPresent()) {
+                factory = getConnectionFactoryFromBean(connectionFactories, clientOptionsName.get());
+            } else {
+                factory = getConnectionFactory(config, credentialsProviders);
+            }
+            return ConfigUtils.customize(config.config(), configCustomizers, factory);
+        } catch (Exception e) {
+            log.unableToCreateClient(e);
+            throw ex.illegalStateUnableToCreateClient(e);
         }
-        if (options.getConnectionName() == null || options.getConnectionName().isEmpty()) {
-            options.setConnectionName(resolveConnectionName(config));
-        }
-        if (DEFAULT_METRICS_NAME.equals(options.getMetricsName())) {
-            options.setMetricsName("rabbitmq|" + options.getConnectionName());
-        }
-        return ConfigUtils.customize(config.config(), connector.configCustomizers(), options);
     }
 
-    public static String computeConnectionFingerprint(RabbitMQOptions options) {
-        JsonObject json = options.toJson();
-        List<Address> addresses = options.getAddresses();
-        if (addresses != null) {
-            json.put("addresses", addresses.stream().map(Address::toString).collect(Collectors.toList()));
+    static ConnectionFactory getConnectionFactoryFromBean(Instance<ConnectionFactory> factories, String beanName) {
+        Instance<ConnectionFactory> selected = factories.select(Identifier.Literal.of(beanName));
+        if (selected.isUnsatisfied()) {
+            // this `if` block should be removed when support for the `@Named` annotation is removed
+            selected = factories.select(NamedLiteral.of(beanName));
+            if (!selected.isUnsatisfied()) {
+                ProviderLogging.log.deprecatedNamed();
+            }
         }
-        return sha256(json.encode());
+        if (!selected.isResolvable()) {
+            throw ex.illegalStateFindingBean(ConnectionFactory.class.getName(), beanName);
+        }
+        log.createClientFromBean(beanName);
+        return selected.get();
+    }
+
+    static ConnectionFactory getConnectionFactory(
+            RabbitMQConnectorCommonConfiguration config,
+            Instance<CredentialsProvider> credentialsProviders) {
+
+        String connectionName = resolveConnectionName(config);
+
+        Address[] addresses = config.getAddresses()
+                .map(Address::parseAddresses)
+                .orElseGet(() -> new Address[] { new Address(config.getHost(), config.getPort()) });
+
+        log.brokerConfigured(Arrays.toString(addresses), config.getChannel());
+
+        ConnectionFactory factory = new ConnectionFactory();
+
+        factory.setHost(config.getHost());
+        factory.setPort(config.getPort());
+
+        // Connection name
+        factory.setConnectionTimeout(config.getConnectionTimeout());
+        factory.setHandshakeTimeout(config.getHandshakeTimeout());
+        factory.setRequestedChannelMax(config.getRequestedChannelMax());
+        factory.setRequestedHeartbeat(config.getRequestedHeartbeat());
+        factory.setVirtualHost(config.getVirtualHost());
+        factory.setAutomaticRecoveryEnabled(config.getAutomaticRecoveryEnabled());
+        factory.setNetworkRecoveryInterval(config.getNetworkRecoveryInterval());
+        factory.setTopologyRecoveryEnabled(false); // We manage topology ourselves
+
+        // NIO support
+        if (config.getUseNio()) {
+            factory.useNio();
+        }
+
+        // SSL configuration
+        if (config.getSsl()) {
+            try {
+                if (config.getTrustAll()) {
+                    factory.useSslProtocol();
+                } else {
+                    SSLContext sslContext = createSSLContext(config);
+                    factory.useSslProtocol(sslContext);
+                }
+
+                // Hostname verification
+                if (!"NONE".equals(config.getSslHostnameVerificationAlgorithm())) {
+                    factory.enableHostnameVerification();
+                }
+            } catch (Exception e) {
+                throw new RuntimeException("Failed to configure SSL", e);
+            }
+        }
+
+        // Credentials
+        if (config.getCredentialsProviderName().isPresent()) {
+            String credentialsProviderName = config.getCredentialsProviderName().get();
+            Instance<CredentialsProvider> selected = credentialsProviders
+                    .select(Identifier.Literal.of(credentialsProviderName));
+            if (selected.isUnsatisfied()) {
+                selected = credentialsProviders.select(NamedLiteral.of(credentialsProviderName));
+                if (!selected.isUnsatisfied()) {
+                    ProviderLogging.log.deprecatedNamed();
+                }
+            }
+            if (!selected.isResolvable()) {
+                throw ex.illegalStateFindingBean(CredentialsProvider.class.getName(), credentialsProviderName);
+            }
+
+            CredentialsProvider credentialsProvider = selected.get();
+            factory.setCredentialsProvider(credentialsProvider);
+
+            // Set up refresh service
+            factory.setCredentialsRefreshService(
+                    new DefaultCredentialsRefreshService.DefaultCredentialsRefreshServiceBuilder()
+                            .refreshDelayStrategy(ratioRefreshDelayStrategy(CREDENTIALS_PROVIDER_REFRESH_DELAY_RATIO))
+                            .approachingExpirationStrategy(
+                                    fixedTimeApproachingExpirationStrategy(CREDENTIALS_PROVIDER_APPROACH_EXPIRE_TIME))
+                            .build());
+        } else {
+            String username = config.getUsername().orElse(ConnectionFactory.DEFAULT_USER);
+            String password = config.getPassword().orElse(ConnectionFactory.DEFAULT_PASS);
+            factory.setUsername(username);
+            factory.setPassword(password);
+        }
+
+        return factory;
+    }
+
+    private static SSLContext createSSLContext(RabbitMQConnectorCommonConfiguration config)
+            throws NoSuchAlgorithmException, KeyStoreException, CertificateException, IOException, KeyManagementException {
+
+        Optional<String> trustStorePath = config.getTrustStorePath();
+        if (trustStorePath.isPresent()) {
+            KeyStore trustStore = KeyStore.getInstance("JKS");
+            try (FileInputStream fis = new FileInputStream(trustStorePath.get())) {
+                char[] trustStorePassword = config.getTrustStorePassword()
+                        .map(String::toCharArray)
+                        .orElse(null);
+                trustStore.load(fis, trustStorePassword);
+            }
+
+            TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+            tmf.init(trustStore);
+
+            SSLContext sslContext = SSLContext.getInstance("TLS");
+            sslContext.init(null, tmf.getTrustManagers(), null);
+            return sslContext;
+        } else {
+            return SSLContext.getDefault();
+        }
     }
 
     public static String resolveConnectionName(RabbitMQConnectorCommonConfiguration config) {
@@ -82,97 +204,19 @@ public class RabbitMQClientHelper {
                         config instanceof RabbitMQConnectorIncomingConfiguration ? "Incoming" : "Outgoing"));
     }
 
-    static RabbitMQOptions getClientOptionsFromBean(Instance<RabbitMQOptions> options, String optionsBeanName) {
-        options = options.select(Identifier.Literal.of(optionsBeanName));
-        if (options.isUnsatisfied()) {
-            // this `if` block should be removed when support for the `@Named` annotation is removed
-            options = options.select(NamedLiteral.of(optionsBeanName));
-            if (!options.isUnsatisfied()) {
-                ProviderLogging.log.deprecatedNamed();
-            }
-        }
-        if (!options.isResolvable()) {
-            throw ex.illegalStateFindingBean(RabbitMQOptions.class.getName(), optionsBeanName);
-        }
-        log.createClientFromBean(optionsBeanName);
-        return options.get();
-    }
-
-    static RabbitMQOptions getClientOptions(Vertx vertx, RabbitMQConnectorCommonConfiguration config,
-            Instance<CredentialsProvider> credentialsProviders) {
-        String connectionName = resolveConnectionName(config);
-        List<Address> addresses = config.getAddresses()
-                .map(s -> Arrays.asList(Address.parseAddresses(s)))
-                .orElseGet(() -> Collections.singletonList(new Address(config.getHost(), config.getPort())));
-        log.brokerConfigured(addresses.toString(), config.getChannel());
-
-        RabbitMQOptions options = new RabbitMQOptions()
-                .setConnectionName(connectionName)
-                .setAddresses(addresses)
-                .setSsl(config.getSsl())
-                .setTrustAll(config.getTrustAll())
-                .setAutomaticRecoveryEnabled(config.getAutomaticRecoveryEnabled())
-                .setAutomaticRecoveryOnInitialConnection(config.getAutomaticRecoveryOnInitialConnection())
-                .setReconnectAttempts(config.getReconnectAttempts())
-                .setReconnectInterval(ofSeconds(config.getReconnectInterval()).toMillis())
-                .setConnectionTimeout(config.getConnectionTimeout())
-                .setHandshakeTimeout(config.getHandshakeTimeout())
-                .setIncludeProperties(config.getIncludeProperties())
-                .setNetworkRecoveryInterval(config.getNetworkRecoveryInterval())
-                .setRequestedChannelMax(config.getRequestedChannelMax())
-                .setRequestedHeartbeat(config.getRequestedHeartbeat())
-                .setUseNio(config.getUseNio())
-                .setVirtualHost(config.getVirtualHost());
-
-        if ("NONE".equals(config.getSslHostnameVerificationAlgorithm())) {
-            options.setHostnameVerificationAlgorithm("");
-        } else {
-            options.setHostnameVerificationAlgorithm(config.getSslHostnameVerificationAlgorithm());
-        }
-
-        // JKS TrustStore
-        Optional<String> trustStorePath = config.getTrustStorePath();
-        if (trustStorePath.isPresent()) {
-            JksOptions jks = new JksOptions();
-            jks.setPath(trustStorePath.get());
-            config.getTrustStorePassword().ifPresent(jks::setPassword);
-            options.setTrustOptions(jks);
-        }
-
-        if (config.getCredentialsProviderName().isPresent()) {
-
-            String credentialsProviderName = config.getCredentialsProviderName().get();
-            credentialsProviders = credentialsProviders.select(Identifier.Literal.of(credentialsProviderName));
-            if (credentialsProviders.isUnsatisfied()) {
-                // this `if` block should be removed when support for the `@Named` annotation is removed
-                credentialsProviders = credentialsProviders.select(NamedLiteral.of(credentialsProviderName));
-                if (!credentialsProviders.isUnsatisfied()) {
-                    ProviderLogging.log.deprecatedNamed();
-                }
-            }
-            if (!credentialsProviders.isResolvable()) {
-                throw ex.illegalStateFindingBean(CredentialsProvider.class.getName(), credentialsProviderName);
-            }
-
-            CredentialsProvider credentialsProvider = credentialsProviders.get();
-            options.setCredentialsProvider(credentialsProvider);
-
-            // To ease configuration, set up a "standard" refresh service
-            options.setCredentialsRefreshService(
-                    new DefaultCredentialsRefreshService(
-                            ((VertxInternal) vertx.getDelegate()).nettyEventLoopGroup(),
-                            ratioRefreshDelayStrategy(CREDENTIALS_PROVIDER_REFRESH_DELAY_RATIO),
-                            fixedTimeApproachingExpirationStrategy(CREDENTIALS_PROVIDER_APPROACH_EXPIRE_TIME)));
-        } else {
-
-            String username = config.getUsername().orElse(RabbitMQOptions.DEFAULT_USER);
-            String password = config.getPassword().orElse(RabbitMQOptions.DEFAULT_PASSWORD);
-
-            options.setUser(username);
-            options.setPassword(password);
-        }
-
-        return options;
+    public static String computeConnectionFingerprint(ConnectionFactory factory) {
+        String raw = factory.getHost()
+                + ":" + factory.getPort()
+                + ":" + factory.getVirtualHost()
+                + ":" + factory.getUsername()
+                + ":" + factory.isAutomaticRecoveryEnabled()
+                + ":" + factory.getConnectionTimeout()
+                + ":" + factory.getHandshakeTimeout()
+                + ":" + factory.getRequestedChannelMax()
+                + ":" + factory.getRequestedHeartbeat()
+                + ":" + factory.getNetworkRecoveryInterval()
+                + ":" + factory.isSSL();
+        return sha256(raw);
     }
 
     private static String sha256(String value) {
@@ -216,36 +260,39 @@ public class RabbitMQClientHelper {
     }
 
     /**
-     * Uses a {@link RabbitMQClient} to ensure the required exchange is created.
-     *
-     * @param client the RabbitMQ client
-     * @param config the channel configuration
-     * @return a {@link Uni <String>} which yields the exchange name
+     * Declare exchange if needed
      */
-    public static Uni<String> declareExchangeIfNeeded(
-            final RabbitMQClient client,
+    public static void declareExchangeIfNeeded(
+            final Channel channel,
             final RabbitMQConnectorCommonConfiguration config,
-            final Instance<Map<String, ?>> configMaps) {
+            final Instance<Map<String, ?>> configMaps) throws IOException {
+
         final String exchangeName = getExchangeName(config);
 
-        JsonObject queueArgs = new JsonObject();
-        Instance<Map<String, ?>> queueArguments = CDIUtils.getInstanceById(configMaps, config.getExchangeArguments());
-        if (queueArguments.isResolvable()) {
-            Map<String, ?> argsMap = queueArguments.get();
-            argsMap.forEach(queueArgs::put);
+        Map<String, Object> exchangeArgs = new HashMap<>();
+        if (configMaps != null) {
+            Instance<Map<String, ?>> exchangeArguments = CDIUtils.getInstanceById(configMaps, config.getExchangeArguments());
+            if (exchangeArguments.isResolvable()) {
+                Map<String, ?> argsMap = exchangeArguments.get();
+                exchangeArgs.putAll(argsMap);
+            }
         }
 
         // Declare the exchange if we have been asked to do so and only when exchange name is not default ("")
         boolean declareExchange = config.getExchangeDeclare() && !exchangeName.isEmpty();
         if (declareExchange) {
-            return client
-                    .exchangeDeclare(exchangeName, config.getExchangeType(),
-                            config.getExchangeDurable(), config.getExchangeAutoDelete(), queueArgs)
-                    .replaceWith(exchangeName)
-                    .invoke(() -> log.exchangeEstablished(exchangeName))
-                    .onFailure().invoke(ex -> log.unableToEstablishExchange(exchangeName, ex));
-        } else {
-            return Uni.createFrom().item(exchangeName);
+            try {
+                channel.exchangeDeclare(
+                        exchangeName,
+                        config.getExchangeType(),
+                        config.getExchangeDurable(),
+                        config.getExchangeAutoDelete(),
+                        exchangeArgs);
+                log.exchangeEstablished(exchangeName);
+            } catch (IOException ex) {
+                log.unableToEstablishExchange(exchangeName, ex);
+                throw ex;
+            }
         }
     }
 
@@ -254,88 +301,93 @@ public class RabbitMQClientHelper {
     }
 
     /**
-     * Establish a DLQ, possibly establishing a DLX too
-     *
-     * @param client the {@link RabbitMQClient}
-     * @param ic the {@link RabbitMQConnectorIncomingConfiguration}
-     * @return a {@link Uni<String>} containing the DLQ name
+     * Declare queue with all arguments
      */
-    static Uni<?> configureDLQorDLX(final RabbitMQClient client, final RabbitMQConnectorIncomingConfiguration ic,
-            final Instance<Map<String, ?>> configMaps) {
-        final String deadLetterQueueName = ic.getDeadLetterQueueName().orElse(String.format("%s.dlq", getQueueName(ic)));
-        final String deadLetterExchangeName = ic.getDeadLetterExchange();
-        final String deadLetterRoutingKey = ic.getDeadLetterRoutingKey().orElse(getQueueName(ic));
+    private static final String REPLY_TO_PSEUDO_QUEUE = "amq.rabbitmq.reply-to";
 
-        final JsonObject exchangeArgs = new JsonObject();
-        ic.getDeadLetterExchangeArguments().ifPresent(argsId -> {
-            Instance<Map<String, ?>> exchangeArguments = CDIUtils.getInstanceById(configMaps, argsId);
-            if (exchangeArguments.isResolvable()) {
-                Map<String, ?> argsMap = exchangeArguments.get();
-                argsMap.forEach(exchangeArgs::put);
+    public static String declareQueueIfNeeded(
+            final Channel channel,
+            final RabbitMQConnectorIncomingConfiguration ic,
+            final Instance<Map<String, ?>> configMaps) throws IOException {
+
+        final String queueName = getQueueName(ic);
+
+        if (REPLY_TO_PSEUDO_QUEUE.equals(queueName)) {
+            return queueName;
+        }
+
+        if (!ic.getQueueDeclare()) {
+            // Not declaring the queue, just validate it exists
+            try {
+                channel.queueDeclarePassive(queueName);
+                return queueName;
+            } catch (IOException e) {
+                log.unableToEstablishQueue(queueName, e);
+                throw e;
             }
-        });
-        // Declare the exchange if we have been asked to do so
-        final Uni<String> dlxFlow = Uni.createFrom()
-                .item(() -> ic.getAutoBindDlq() && ic.getDlxDeclare() ? null : deadLetterExchangeName)
-                .onItem().ifNull().switchTo(() -> client.exchangeDeclare(deadLetterExchangeName, ic.getDeadLetterExchangeType(),
-                        true, false, exchangeArgs)
-                        .onItem().invoke(() -> log.dlxEstablished(deadLetterExchangeName))
-                        .onFailure().invoke(ex -> log.unableToEstablishDlx(deadLetterExchangeName, ex))
-                        .onItem().transform(v -> deadLetterExchangeName));
+        }
 
-        // Declare the queue (and its binding to the exchange or DLQ type/mode) if we have been asked to do so
-        final JsonObject queueArgs = new JsonObject();
-        ic.getDeadLetterQueueArguments().ifPresent(argsId -> {
-            Instance<Map<String, ?>> queueArguments = CDIUtils.getInstanceById(configMaps, argsId);
+        // Build queue arguments
+        final Map<String, Object> queueArgs = new HashMap<>();
+        if (configMaps != null) {
+            Instance<Map<String, ?>> queueArguments = CDIUtils.getInstanceById(configMaps, ic.getQueueArguments());
             if (queueArguments.isResolvable()) {
                 Map<String, ?> argsMap = queueArguments.get();
-                argsMap.forEach(queueArgs::put);
+                queueArgs.putAll(argsMap);
             }
-        });
-        // x-dead-letter-exchange
-        ic.getDeadLetterDlx().ifPresent(deadLetterDlx -> queueArgs.put("x-dead-letter-exchange", deadLetterDlx));
-        // x-dead-letter-routing-key
-        ic.getDeadLetterDlxRoutingKey().ifPresent(deadLetterDlx -> queueArgs.put("x-dead-letter-routing-key", deadLetterDlx));
-        // x-queue-type
-        ic.getDeadLetterQueueType().ifPresent(queueType -> queueArgs.put("x-queue-type", queueType));
-        // x-queue-mode
-        ic.getDeadLetterQueueMode().ifPresent(queueMode -> queueArgs.put("x-queue-mode", queueMode));
-        // x-message-ttl
-        ic.getDeadLetterTtl().ifPresent(queueTtl -> {
+        }
+
+        if (ic.getAutoBindDlq()) {
+            queueArgs.put("x-dead-letter-exchange", ic.getDeadLetterExchange());
+            queueArgs.put("x-dead-letter-routing-key", ic.getDeadLetterRoutingKey().orElse(queueName));
+        }
+
+        ic.getQueueSingleActiveConsumer().ifPresent(sac -> queueArgs.put("x-single-active-consumer", sac));
+        ic.getQueueXQueueType().ifPresent(queueType -> queueArgs.put("x-queue-type", queueType));
+        ic.getQueueXQueueMode().ifPresent(queueMode -> queueArgs.put("x-queue-mode", queueMode));
+        ic.getQueueTtl().ifPresent(queueTtl -> {
             if (queueTtl >= 0) {
                 queueArgs.put("x-message-ttl", queueTtl);
             } else {
                 throw ex.illegalArgumentInvalidQueueTtl();
             }
         });
-        return dlxFlow
-                .onItem().transform(v -> Boolean.TRUE.equals(ic.getAutoBindDlq()) ? null : deadLetterQueueName)
-                .onItem().ifNull().switchTo(
-                        () -> client
-                                .queueDeclare(deadLetterQueueName, true, false, false, queueArgs)
-                                .onItem().invoke(() -> log.queueEstablished(deadLetterQueueName))
-                                .onFailure().invoke(ex -> log.unableToEstablishQueue(deadLetterQueueName, ex))
-                                .onItem()
-                                .call(v -> client.queueBind(deadLetterQueueName, deadLetterExchangeName, deadLetterRoutingKey))
-                                .onItem()
-                                .invoke(() -> log.deadLetterBindingEstablished(deadLetterQueueName, deadLetterExchangeName,
-                                        deadLetterRoutingKey))
-                                .onFailure()
-                                .invoke(ex -> log.unableToEstablishBinding(deadLetterQueueName, deadLetterExchangeName, ex))
-                                .onItem().transform(v -> deadLetterQueueName));
+        ic.getQueueXMaxPriority().ifPresent(maxPriority -> queueArgs.put("x-max-priority", maxPriority));
+        ic.getQueueXDeliveryLimit().ifPresent(deliveryLimit -> queueArgs.put("x-delivery-limit", deliveryLimit));
+
+        String serverQueueName = serverQueueName(queueName);
+
+        try {
+            String actualQueueName;
+            if (serverQueueName.isEmpty()) {
+                // Server-generated queue name - capture the actual name from the response
+                com.rabbitmq.client.AMQP.Queue.DeclareOk response = channel.queueDeclare(serverQueueName, false, true, true,
+                        null);
+                actualQueueName = response.getQueue();
+            } else {
+                channel.queueDeclare(
+                        serverQueueName,
+                        ic.getQueueDurable(),
+                        ic.getQueueExclusive(),
+                        ic.getQueueAutoDelete(),
+                        queueArgs);
+                actualQueueName = serverQueueName;
+            }
+            log.queueEstablished(actualQueueName);
+            return actualQueueName;
+        } catch (IOException ex) {
+            log.unableToEstablishQueue(queueName, ex);
+            throw ex;
+        }
     }
 
     /**
-     * Returns a stream that will create bindings from the queue to the exchange with each of the
-     * supplied routing keys.
-     *
-     * @param client the {@link RabbitMQClient} to use
-     * @param ic the incoming channel configuration
-     * @return a Uni with the list of routing keys
+     * Establish bindings from queue to exchange
      */
-    static Uni<List<String>> establishBindings(
-            final RabbitMQClient client,
-            final RabbitMQConnectorIncomingConfiguration ic) {
+    public static void establishBindings(
+            final Channel channel,
+            final RabbitMQConnectorIncomingConfiguration ic) throws IOException {
+
         final String exchangeName = getExchangeName(ic);
         final String queueName = getQueueName(ic);
         final List<String> routingKeys;
@@ -352,16 +404,92 @@ public class RabbitMQClientHelper {
         }
         final Map<String, Object> arguments = parseArguments(ic.getArguments());
 
-        // Skip queue bindings if exchange name is default ("")
-        if (exchangeName.isEmpty()) {
-            return Uni.createFrom().item(Collections.emptyList());
+        // Skip queue bindings if exchange name is default ("") or pseudo-queue
+        if (exchangeName.isEmpty() || REPLY_TO_PSEUDO_QUEUE.equals(queueName)) {
+            return;
         }
 
-        return Multi.createFrom().iterable(routingKeys)
-                .call(routingKey -> client.queueBind(serverQueueName(queueName), exchangeName, routingKey, arguments))
-                .invoke(routingKey -> log.bindingEstablished(queueName, exchangeName, routingKey, arguments.toString()))
-                .onFailure().invoke(ex -> log.unableToEstablishBinding(queueName, exchangeName, ex))
-                .collect().asList();
+        for (String routingKey : routingKeys) {
+            try {
+                channel.queueBind(serverQueueName(queueName), exchangeName, routingKey.trim(), arguments);
+                log.bindingEstablished(queueName, exchangeName, routingKey.trim(), arguments.toString());
+            } catch (IOException ex) {
+                log.unableToEstablishBinding(queueName, exchangeName, ex);
+                throw ex;
+            }
+        }
+    }
+
+    /**
+     * Configure DLQ and DLX
+     */
+    public static void configureDLQorDLX(
+            final Channel channel,
+            final RabbitMQConnectorIncomingConfiguration ic,
+            final Instance<Map<String, ?>> configMaps) throws IOException {
+
+        if (!ic.getAutoBindDlq()) {
+            return;
+        }
+
+        final String deadLetterQueueName = ic.getDeadLetterQueueName().orElse(String.format("%s.dlq", getQueueName(ic)));
+        final String deadLetterExchangeName = ic.getDeadLetterExchange();
+        final String deadLetterRoutingKey = ic.getDeadLetterRoutingKey().orElse(getQueueName(ic));
+
+        // Declare DLX if needed
+        if (ic.getDlxDeclare()) {
+            final Map<String, Object> exchangeArgs = new HashMap<>();
+            if (configMaps != null) {
+                ic.getDeadLetterExchangeArguments().ifPresent(argsId -> {
+                    Instance<Map<String, ?>> exchangeArguments = CDIUtils.getInstanceById(configMaps, argsId);
+                    if (exchangeArguments.isResolvable()) {
+                        exchangeArgs.putAll(exchangeArguments.get());
+                    }
+                });
+            }
+
+            try {
+                channel.exchangeDeclare(deadLetterExchangeName, ic.getDeadLetterExchangeType(), true, false, exchangeArgs);
+                log.dlxEstablished(deadLetterExchangeName);
+            } catch (IOException ex) {
+                log.unableToEstablishDlx(deadLetterExchangeName, ex);
+                throw ex;
+            }
+        }
+
+        // Declare DLQ
+        final Map<String, Object> queueArgs = new HashMap<>();
+        if (configMaps != null) {
+            ic.getDeadLetterQueueArguments().ifPresent(argsId -> {
+                Instance<Map<String, ?>> queueArguments = CDIUtils.getInstanceById(configMaps, argsId);
+                if (queueArguments.isResolvable()) {
+                    queueArgs.putAll(queueArguments.get());
+                }
+            });
+        }
+
+        ic.getDeadLetterDlx().ifPresent(deadLetterDlx -> queueArgs.put("x-dead-letter-exchange", deadLetterDlx));
+        ic.getDeadLetterDlxRoutingKey().ifPresent(deadLetterDlx -> queueArgs.put("x-dead-letter-routing-key", deadLetterDlx));
+        ic.getDeadLetterQueueType().ifPresent(queueType -> queueArgs.put("x-queue-type", queueType));
+        ic.getDeadLetterQueueMode().ifPresent(queueMode -> queueArgs.put("x-queue-mode", queueMode));
+        ic.getDeadLetterTtl().ifPresent(queueTtl -> {
+            if (queueTtl >= 0) {
+                queueArgs.put("x-message-ttl", queueTtl);
+            } else {
+                throw ex.illegalArgumentInvalidQueueTtl();
+            }
+        });
+
+        try {
+            channel.queueDeclare(deadLetterQueueName, true, false, false, queueArgs);
+            log.queueEstablished(deadLetterQueueName);
+
+            channel.queueBind(deadLetterQueueName, deadLetterExchangeName, deadLetterRoutingKey);
+            log.deadLetterBindingEstablished(deadLetterQueueName, deadLetterExchangeName, deadLetterRoutingKey);
+        } catch (IOException ex) {
+            log.unableToEstablishQueue(deadLetterQueueName, ex);
+            throw ex;
+        }
     }
 
     public static String getQueueName(final RabbitMQConnectorIncomingConfiguration config) {

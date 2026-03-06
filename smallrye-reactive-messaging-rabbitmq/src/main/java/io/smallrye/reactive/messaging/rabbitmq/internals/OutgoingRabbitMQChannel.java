@@ -1,126 +1,318 @@
 package io.smallrye.reactive.messaging.rabbitmq.internals;
 
 import static io.smallrye.reactive.messaging.rabbitmq.i18n.RabbitMQLogging.log;
-import static java.time.Duration.ofSeconds;
 
+import java.io.IOException;
 import java.time.Duration;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.Flow;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import jakarta.enterprise.inject.Instance;
 
 import org.eclipse.microprofile.reactive.messaging.Message;
 
+import com.rabbitmq.client.AMQP;
+import com.rabbitmq.client.Channel;
+import com.rabbitmq.client.ConfirmListener;
+import com.rabbitmq.client.ShutdownListener;
+import com.rabbitmq.client.ShutdownSignalException;
+
 import io.opentelemetry.api.OpenTelemetry;
 import io.smallrye.mutiny.Uni;
-import io.smallrye.reactive.messaging.health.HealthReport;
+import io.smallrye.mutiny.subscription.UniEmitter;
+import io.smallrye.reactive.messaging.OutgoingMessageMetadata;
+import io.smallrye.reactive.messaging.health.HealthReport.ChannelInfo;
+import io.smallrye.reactive.messaging.health.HealthReport.HealthReportBuilder;
 import io.smallrye.reactive.messaging.providers.helpers.MultiUtils;
-import io.smallrye.reactive.messaging.rabbitmq.ClientHolder;
-import io.smallrye.reactive.messaging.rabbitmq.RabbitMQConnector;
+import io.smallrye.reactive.messaging.providers.helpers.SenderProcessor;
+import io.smallrye.reactive.messaging.rabbitmq.ConnectionHolder;
 import io.smallrye.reactive.messaging.rabbitmq.RabbitMQConnectorOutgoingConfiguration;
-import io.vertx.mutiny.rabbitmq.RabbitMQClient;
-import io.vertx.mutiny.rabbitmq.RabbitMQPublisher;
-import io.vertx.rabbitmq.RabbitMQPublisherOptions;
+import io.smallrye.reactive.messaging.rabbitmq.RabbitMQMessageConverter;
+import io.smallrye.reactive.messaging.rabbitmq.tracing.RabbitMQOpenTelemetryInstrumenter;
+import io.smallrye.reactive.messaging.rabbitmq.tracing.RabbitMQTrace;
+import io.vertx.core.Context;
 
-public class OutgoingRabbitMQChannel {
+/**
+ * Outgoing RabbitMQ channel that publishes messages to an exchange.
+ * Uses {@link SenderProcessor} to manage backpressure and graceful completion.
+ */
+public class OutgoingRabbitMQChannel implements ConfirmListener, ShutdownListener {
 
-    private final Flow.Subscriber<Message<?>> subscriber;
-    private final RabbitMQConnectorOutgoingConfiguration config;
-    private final ClientHolder holder;
-    private final RabbitMQMessageSender processor;
-    private volatile RabbitMQPublisher publisher;
+    private final RabbitMQConnectorOutgoingConfiguration configuration;
+    private final ConnectionHolder connectionHolder;
+    private final Instance<Map<String, ?>> configMaps;
+    private final RabbitMQOpenTelemetryInstrumenter instrumenter;
 
-    public OutgoingRabbitMQChannel(RabbitMQConnector connector, RabbitMQConnectorOutgoingConfiguration oc,
+    private final AtomicBoolean initialized = new AtomicBoolean(false);
+    private final AtomicBoolean completed = new AtomicBoolean(false);
+
+    private final Context outgoingContext;
+    private volatile Channel channel;
+
+    private final boolean publisherConfirms;
+    private final String defaultRoutingKey;
+    private final Long defaultTtl;
+    private final int retryAttempts;
+    private final int retryInterval;
+
+    private final Map<Long, UniEmitter<? super Void>> pendingConfirms = new HashMap<>();
+
+    private final SenderProcessor processor;
+    private final Flow.Subscriber<? extends Message<?>> subscriber;
+
+    public OutgoingRabbitMQChannel(
+            ConnectionHolder connectionHolder,
+            RabbitMQConnectorOutgoingConfiguration configuration,
+            Instance<Map<String, ?>> configMaps,
             Instance<OpenTelemetry> openTelemetryInstance) {
 
-        this.config = oc;
-        holder = connector.getClientHolder(oc);
-        final RabbitMQClient client = holder.client();
-        registerExchangeCallback(client, oc, connector);
+        this.connectionHolder = connectionHolder;
+        this.configuration = configuration;
+        this.configMaps = configMaps;
+        this.outgoingContext = connectionHolder.getOrCreateSharedChannelContext(configuration.getChannel());
 
-        Uni<RabbitMQClient> connectionUni = holder.getOrEstablishConnection();
-        if (oc.getSharedConnectionName().isPresent()) {
-            connectionUni = connectionUni
-                    .call(() -> RabbitMQClientHelper.declareExchangeIfNeeded(client, oc, connector.configMaps()));
+        // Initialize tracing if enabled
+        if (configuration.getTracingEnabled()) {
+            this.instrumenter = RabbitMQOpenTelemetryInstrumenter.createForSender(openTelemetryInstance, configuration);
+        } else {
+            this.instrumenter = null;
         }
 
-        if (!oc.getLazyClient()) {
-            connectionUni.await().atMost(Duration.ofSeconds(config.getConnectionTimeout()));
+        this.publisherConfirms = configuration.getPublishConfirms();
+        this.defaultRoutingKey = configuration.getDefaultRoutingKey();
+        this.defaultTtl = configuration.getDefaultTtl().orElse(null);
+        this.retryAttempts = configuration.getRetryOnFailAttempts();
+        this.retryInterval = configuration.getRetryOnFailInterval();
+
+        long requests = configuration.getMaxInflightMessages();
+        if (requests <= 0) {
+            requests = Long.MAX_VALUE;
         }
-
-        final Uni<RabbitMQPublisher> getSender = connectionUni
-                .onItem()
-                .transformToUni(connection -> Uni.createFrom().item(RabbitMQPublisher.create(connector.vertx(), connection,
-                        new RabbitMQPublisherOptions()
-                                .setReconnectAttempts(oc.getReconnectAttempts())
-                                .setReconnectInterval(ofSeconds(oc.getReconnectInterval()).toMillis())
-                                .setMaxInternalQueueSize(oc.getMaxOutgoingInternalQueueSize().orElse(Integer.MAX_VALUE)))))
-                // Start the publisher
-                .onItem().call(RabbitMQPublisher::start)
-                .invoke(publisher -> this.publisher = publisher)
-                .onFailure().recoverWithNull().memoize().indefinitely();
-
-        // Set up a sender based on the publisher we established above
-        processor = new RabbitMQMessageSender(oc, getSender, openTelemetryInstance);
-
-        // Return a SubscriberBuilder
-        subscriber = MultiUtils.via(processor, m -> m.onFailure().invoke(t -> log.error(oc.getChannel(), t))
-                .onTermination().call(() -> {
-                    RabbitMQPublisher pub = publisher;
-                    publisher = null;
-                    if (pub != null) {
-                        return pub.stop()
-                                .ifNoItem().after(Duration.ofSeconds(oc.getConnectionTimeout())).fail()
-                                .onFailure()
-                                .invoke(e -> log.infof(e, "Error terminating outgoing channel %s", config.getChannel()))
-                                .onFailure().recoverWithNull();
-                    }
-                    return Uni.createFrom().voidItem();
+        this.processor = new SenderProcessor(requests, true,
+                publisherConfirms ? this::writeMessageWithConfirm : this::writeMessage);
+        this.subscriber = MultiUtils.via(processor, m -> m
+                .onSubscription().call(this::initialize)
+                .onFailure().invoke(t -> log.unableToCreatePublisher(configuration.getChannel(), t))
+                .onCompletion().invoke(() -> {
+                    log.publisherComplete(configuration.getChannel());
+                    completed.set(true);
                 }));
+
+        if (!configuration.getLazyClient()) {
+            connectionHolder.connect()
+                    .await().atMost(Duration.ofMillis(configuration.getConnectionTimeout()));
+        }
     }
 
-    public Flow.Subscriber<Message<?>> getSubscriber() {
+    public Flow.Subscriber<? extends Message<?>> getSink() {
         return subscriber;
     }
 
-    public HealthReport.HealthReportBuilder isAlive(HealthReport.HealthReportBuilder builder) {
-        if (!config.getHealthEnabled()) {
-            return builder;
-        }
+    private Uni<Void> initialize() {
+        if (initialized.compareAndSet(false, true)) {
+            return connectionHolder.connect()
+                    .chain(conn -> Uni.createFrom().<Void> item(() -> {
+                        try {
+                            channel = connectionHolder.getOrCreateSharedChannel(configuration.getChannel());
 
-        return computeHealthReport(builder);
+                            // Set up topology
+                            setupTopology();
+
+                            // Enable publisher confirms if configured
+                            if (publisherConfirms) {
+                                channel.confirmSelect();
+                                channel.addConfirmListener(this);
+                                channel.addShutdownListener(this);
+                                log.publisherConfirmsEnabled(configuration.getChannel());
+                            }
+
+                            log.publisherReady(configuration.getChannel());
+                            return null;
+                        } catch (Exception e) {
+                            channel = null;
+                            initialized.set(false);
+                            throw new RuntimeException("Failed to initialize outgoing channel", e);
+                        }
+                    }).runSubscriptionOn(command -> outgoingContext.runOnContext(x -> command.run())));
+        } else {
+            return Uni.createFrom().voidItem();
+        }
     }
 
-    private HealthReport.HealthReportBuilder computeHealthReport(HealthReport.HealthReportBuilder builder) {
-        RabbitMQClient client = holder.client();
-        if (client == null) {
-            return builder.add(new HealthReport.ChannelInfo(config.getChannel(), false));
-        }
-
-        boolean ok = true;
-        if (holder.hasBeenConnected()) {
-            ok = client.isConnected() && client.isOpenChannel();
-        }
-
-        return builder.add(new HealthReport.ChannelInfo(config.getChannel(), ok));
+    private void setupTopology() throws IOException {
+        // Declare exchange if needed
+        RabbitMQClientHelper.declareExchangeIfNeeded(channel, configuration, configMaps);
+        log.topologyEstablished(configuration.getChannel(),
+                RabbitMQClientHelper.getExchangeName(configuration));
     }
 
-    public HealthReport.HealthReportBuilder isReady(HealthReport.HealthReportBuilder builder) {
-        if (!config.getHealthEnabled() || !config.getHealthReadinessEnabled()) {
-            return builder;
-        }
+    @Override
+    public void handleAck(long deliveryTag, boolean multiple) {
+        outgoingContext.runOnContext(v -> handleConfirm(deliveryTag, multiple, true));
 
-        return computeHealthReport(builder);
     }
 
-    private void registerExchangeCallback(RabbitMQClient client,
-            RabbitMQConnectorOutgoingConfiguration oc, RabbitMQConnector connector) {
-        client.getDelegate().addConnectionEstablishedCallback(promise -> {
-            RabbitMQClientHelper.declareExchangeIfNeeded(client, oc, connector.configMaps())
-                    .subscribe().with(ignored -> promise.complete(), promise::fail);
+    @Override
+    public void handleNack(long deliveryTag, boolean multiple) {
+        outgoingContext.runOnContext(v -> handleConfirm(deliveryTag, multiple, false));
+    }
+
+    @Override
+    public void shutdownCompleted(ShutdownSignalException cause) {
+        if (!cause.isInitiatedByApplication()) {
+            outgoingContext.runOnContext(v -> {
+                for (UniEmitter<? super Void> emitter : pendingConfirms.values()) {
+                    emitter.fail(cause);
+                }
+                pendingConfirms.clear();
+            });
+        }
+    }
+
+    private Uni<Void> writeMessageWithConfirm(Message<?> message) {
+        // Capture seqNo, register emitter, and publish atomically on the event loop.
+        Uni<Void> confirmed = Uni.createFrom().emitter(emitter -> {
+            outgoingContext.runOnContext(v -> {
+                long seqNo = channel.getNextPublishSeqNo();
+                try {
+                    pendingConfirms.put(seqNo, emitter);
+                    message.getMetadata(OutgoingMessageMetadata.class).ifPresent(m -> m.setResult(seqNo));
+                    publishMessage(message);
+                } catch (Exception e) {
+                    pendingConfirms.remove(seqNo);
+                    emitter.fail(e);
+                }
+            });
         });
+
+        if (retryAttempts > 0) {
+            confirmed = confirmed.onFailure().retry()
+                    .withBackOff(Duration.ofSeconds(retryInterval))
+                    .atMost(retryAttempts);
+        }
+
+        return confirmed.chain(acked -> Uni.createFrom().completionStage(message.ack()))
+                .onFailure().recoverWithUni(t -> Uni.createFrom()
+                        .completionStage(message.nack(new RuntimeException("Message nacked by broker", t))));
     }
 
-    public void terminate() {
+    private Uni<Void> writeMessage(Message<?> message) {
+        Uni<Void> write = Uni.createFrom().<Void> item(() -> {
+            try {
+                publishMessage(message);
+                return null;
+            } catch (IOException e) {
+                throw new RuntimeException("Failed to publish message", e);
+            }
+        }).runSubscriptionOn(command -> outgoingContext.runOnContext(x -> command.run()));
+
+        if (retryAttempts > 0) {
+            write = write.onFailure().retry()
+                    .withBackOff(Duration.ofSeconds(retryInterval))
+                    .atMost(retryAttempts);
+        }
+
+        return write.chain(() -> Uni.createFrom().completionStage(message.ack()));
+    }
+
+    private void publishMessage(Message<?> message) throws IOException {
+        // Use converter to transform message
+        RabbitMQMessageConverter.OutgoingRabbitMQMessage converted = RabbitMQMessageConverter
+                .convert(message, defaultRoutingKey, Optional.ofNullable(defaultTtl));
+
+        // Get exchange - use from metadata or default
+        String exchange = converted.getExchange()
+                .orElse(RabbitMQClientHelper.getExchangeName(configuration));
+
+        String routingKey = converted.getRoutingKey();
+        byte[] body = converted.getBody();
+        AMQP.BasicProperties properties = converted.getProperties();
+
+        // Apply tracing if enabled - inject trace context into headers
+        if (configuration.getTracingEnabled() && instrumenter != null) {
+            Map<String, Object> headers = new HashMap<>();
+            if (properties.getHeaders() != null) {
+                headers.putAll(properties.getHeaders());
+            }
+            RabbitMQTrace trace = RabbitMQTrace.traceExchange(exchange, routingKey, headers);
+            instrumenter.traceOutgoing(message, trace);
+            // Rebuild properties with tracing headers
+            properties = properties.builder()
+                    .headers(headers)
+                    .build();
+        }
+
+        log.sendingMessageToExchange(exchange, routingKey);
+        channel.basicPublish(exchange, routingKey, properties, body);
+    }
+
+    private void handleConfirm(long sequenceNumber, boolean multiple, boolean ack) {
+        if (multiple) {
+            pendingConfirms.entrySet().removeIf(entry -> {
+                if (entry.getKey() <= sequenceNumber) {
+                    resolveEmitter(entry.getValue(), ack);
+                    return true;
+                }
+                return false;
+            });
+        } else {
+            UniEmitter<? super Void> emitter = pendingConfirms.remove(sequenceNumber);
+            if (emitter != null) {
+                resolveEmitter(emitter, ack);
+            }
+        }
+    }
+
+    private void resolveEmitter(UniEmitter<? super Void> emitter, boolean ack) {
+        if (ack) {
+            emitter.complete(null);
+        } else {
+            emitter.fail(new RuntimeException("Message nacked by broker"));
+        }
+    }
+
+    public boolean isHealthy() {
+        // After the publisher stream completes/errors, report health based on
+        // connection state only (the channel is intentionally closed after completion)
+        if (completed.get()) {
+            return connectionHolder.isConnected();
+        }
+        return connectionHolder.isConnected() && channel != null && channel.isOpen();
+    }
+
+    /**
+     * Health check for liveness.
+     */
+    public HealthReportBuilder isAlive(HealthReportBuilder builder) {
+        if (!configuration.getHealthEnabled()) {
+            return builder;
+        }
+
+        return builder.add(new ChannelInfo(configuration.getChannel(), isHealthy()));
+    }
+
+    /**
+     * Health check for readiness.
+     */
+    public HealthReportBuilder isReady(HealthReportBuilder builder) {
+        if (!configuration.getHealthEnabled() || !configuration.getHealthReadinessEnabled()) {
+            return builder;
+        }
+
+        return builder.add(new ChannelInfo(configuration.getChannel(), isHealthy()));
+    }
+
+    public void closeQuietly() {
         processor.cancel();
+        try {
+            if (channel != null && channel.isOpen()) {
+                channel.close();
+            }
+        } catch (Exception e) {
+            log.unableToCloseChannel(configuration.getChannel(), e);
+        }
     }
 }

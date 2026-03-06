@@ -1,7 +1,6 @@
 package rabbitmq.inbound;
 
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
+import java.util.Date;
 import java.util.Map;
 import java.util.Optional;
 
@@ -15,16 +14,16 @@ public class RabbitMQMetadataExample {
         // <code>
         final Optional<IncomingRabbitMQMetadata> metadata = incomingMessage.getMetadata(IncomingRabbitMQMetadata.class);
         metadata.ifPresent(meta -> {
-            final Optional<String> contentEncoding = meta.getContentEncoding();
-            final Optional<String> contentType = meta.getContentType();
-            final Optional<String> correlationId = meta.getCorrelationId();
-            final Optional<ZonedDateTime> timestamp = meta.getTimestamp(ZoneId.systemDefault());
-            final Optional<Integer> priority = meta.getPriority();
-            final Optional<String> replyTo = meta.getReplyTo();
-            final Optional<String> userId = meta.getUserId();
+            final String contentEncoding = meta.getContentEncoding();
+            final String contentType = meta.getContentType();
+            final String correlationId = meta.getCorrelationId();
+            final Date timestamp = meta.getTimestamp();
+            final Integer priority = meta.getPriority();
+            final String replyTo = meta.getReplyTo();
+            final String userId = meta.getUserId();
 
             // Access a single String-valued header
-            final Optional<String> stringHeader = meta.getHeader("my-header", String.class);
+            final Optional<String> stringHeader = meta.getHeader("my-header");
 
             // Access all headers
             final Map<String, Object> headers = meta.getHeaders();

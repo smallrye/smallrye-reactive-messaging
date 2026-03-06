@@ -27,10 +27,14 @@ import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 import io.smallrye.reactive.messaging.test.common.config.SmallRyeConfigTestUtil;
 
+/**
+ * Tests concurrent message processing with multiple consumers.
+ * Uses the 'concurrency' configuration to spawn multiple parallel consumers.
+ */
 public class ConcurrentProcessorTest extends WeldTestBase {
 
     private MapBasedConfig dataconfig() {
-        return commonConfig()
+        return commonChannelConfig("incoming.data")
                 .with("mp.messaging.incoming.data.connector", RabbitMQConnector.CONNECTOR_NAME)
                 .with("mp.messaging.incoming.data.queue.durable", true)
                 .with("mp.messaging.incoming.data.queue.name", "(server.auto)")
@@ -127,8 +131,9 @@ public class ConcurrentProcessorTest extends WeldTestBase {
         private final Map<Thread, List<Integer>> perThread = new ConcurrentHashMap<>();
 
         @Incoming("data")
-        public Uni<Void> process(String input) {
-            int value = Integer.parseInt(input);
+        public Uni<Void> process(byte[] input) {
+            System.out.println("Received: " + new String(input) + " on thread " + Thread.currentThread().getName());
+            int value = Integer.parseInt(new String(input));
             int next = value + 1;
             perThread.computeIfAbsent(Thread.currentThread(), t -> new CopyOnWriteArrayList<>()).add(next);
             list.add(next);
@@ -153,8 +158,8 @@ public class ConcurrentProcessorTest extends WeldTestBase {
         @Incoming("data")
         @Outgoing("sink")
         @Acknowledgment(Acknowledgment.Strategy.MANUAL)
-        public Uni<Message<Integer>> process(Message<String> input) {
-            int value = Integer.parseInt(input.getPayload());
+        public Uni<Message<Integer>> process(IncomingRabbitMQMessage<byte[]> input) {
+            int value = Integer.parseInt(new String(input.getPayload()));
             int next = value + 1;
             perThread.computeIfAbsent(Thread.currentThread(), t -> new CopyOnWriteArrayList<>()).add(next);
             return Uni.createFrom().item(input.withPayload(next))
@@ -183,10 +188,10 @@ public class ConcurrentProcessorTest extends WeldTestBase {
 
         @Incoming("data")
         @Outgoing("sink")
-        public Multi<Message<Integer>> process(Multi<Message<String>> multi) {
+        public Multi<Message<Integer>> process(Multi<IncomingRabbitMQMessage<byte[]>> multi) {
             return multi.onItem()
                     .transformToUniAndConcatenate(input -> {
-                        int value = Integer.parseInt(input.getPayload());
+                        int value = Integer.parseInt(new String(input.getPayload()));
                         int next = value + 1;
                         perThread.computeIfAbsent(Thread.currentThread(), t -> new CopyOnWriteArrayList<>()).add(next);
                         return Uni.createFrom().item(input.withPayload(next))
@@ -216,12 +221,15 @@ public class ConcurrentProcessorTest extends WeldTestBase {
 
         @Inject
         @Channel("data")
-        Multi<Message<String>> multi;
+        Multi<Message<byte[]>> multi;
 
         public void process() {
-            multi.onItem()
+            multi
+                    .invoke(x -> System.out.println(
+                            "Received: " + new String(x.getPayload()) + " on thread " + Thread.currentThread().getName()))
+                    .onItem()
                     .transformToUniAndConcatenate(input -> {
-                        int value = Integer.parseInt(input.getPayload());
+                        int value = Integer.parseInt(new String(input.getPayload()));
                         int next = value + 1;
                         list.add(next);
                         perThread.computeIfAbsent(Thread.currentThread(), t -> new CopyOnWriteArrayList<>()).add(next);

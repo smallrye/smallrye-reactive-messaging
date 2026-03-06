@@ -4,14 +4,17 @@ import static io.opentelemetry.semconv.incubating.MessagingIncubatingAttributes.
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import io.opentelemetry.api.common.AttributesBuilder;
 import io.opentelemetry.context.Context;
 import io.opentelemetry.instrumentation.api.incubator.semconv.messaging.MessagingAttributesGetter;
 import io.opentelemetry.instrumentation.api.instrumenter.AttributesExtractor;
-import java.util.Map;
-import java.util.Set;
 
+/**
+ * Extracts OpenTelemetry attributes from RabbitMQ trace information.
+ */
 public class RabbitMQTraceAttributesExtractor implements AttributesExtractor<RabbitMQTrace, Void> {
     private final MessagingAttributesGetter<RabbitMQTrace, Void> messagingAttributesGetter;
     private final Set<String> tracingAttributeHeaders;
@@ -57,7 +60,7 @@ public class RabbitMQTraceAttributesExtractor implements AttributesExtractor<Rab
             final RabbitMQTrace rabbitMQTrace, final Void unused, final Throwable error) {
     }
 
-    private final static class RabbitMQMessagingAttributesGetter implements MessagingAttributesGetter<RabbitMQTrace, Void> {
+    private static final class RabbitMQMessagingAttributesGetter implements MessagingAttributesGetter<RabbitMQTrace, Void> {
         @Override
         public String getSystem(final RabbitMQTrace rabbitMQTrace) {
             return "rabbitmq";

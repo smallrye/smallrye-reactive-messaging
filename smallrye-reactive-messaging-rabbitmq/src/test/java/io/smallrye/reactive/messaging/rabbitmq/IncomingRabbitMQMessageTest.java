@@ -3,8 +3,6 @@ package io.smallrye.reactive.messaging.rabbitmq;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 
-import java.time.ZoneId;
-import java.time.ZoneOffset;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -14,25 +12,26 @@ import java.util.concurrent.CompletionStage;
 import org.eclipse.microprofile.reactive.messaging.Metadata;
 import org.junit.jupiter.api.Test;
 
-import com.rabbitmq.client.AMQP.BasicProperties;
+import com.rabbitmq.client.AMQP;
+import com.rabbitmq.client.Envelope;
 
 import io.smallrye.reactive.messaging.rabbitmq.ack.RabbitMQAckHandler;
-import io.smallrye.reactive.messaging.rabbitmq.fault.RabbitMQFailureHandler;
-import io.vertx.core.buffer.Buffer;
-import io.vertx.mutiny.core.Context;
+import io.smallrye.reactive.messaging.rabbitmq.ack.RabbitMQNackHandler;
 
 public class IncomingRabbitMQMessageTest {
 
+    private static final AMQP.BasicProperties EMPTY_PROPS = new AMQP.BasicProperties.Builder().build();
+
     RabbitMQAckHandler doNothingAck = new RabbitMQAckHandler() {
         @Override
-        public <V> CompletionStage<Void> handle(IncomingRabbitMQMessage<V> message, Context context) {
+        public <V> CompletionStage<Void> handle(IncomingRabbitMQMessage<V> message) {
             return CompletableFuture.completedFuture(null);
         }
     };
 
-    RabbitMQFailureHandler doNothingNack = new RabbitMQFailureHandler() {
+    RabbitMQNackHandler doNothingNack = new RabbitMQNackHandler() {
         @Override
-        public <V> CompletionStage<Void> handle(IncomingRabbitMQMessage<V> message, Metadata metadata, Context context,
+        public <V> CompletionStage<Void> handle(IncomingRabbitMQMessage<V> message, Metadata metadata,
                 Throwable reason) {
             return CompletableFuture.completedFuture(null);
         }
@@ -40,16 +39,15 @@ public class IncomingRabbitMQMessageTest {
 
     @Test
     public void testDoubleAckBehavior() {
-        io.vertx.rabbitmq.RabbitMQMessage testMsg = TestRabbitMQMessage.builder()
-                .envelope(13456L, false, "test", "test")
-                .build();
+        Envelope envelope = new Envelope(13456L, false, "test", "test");
 
         Exception nackReason = new Exception("test");
 
-        IncomingRabbitMQMessage<String> ackMsg = new IncomingRabbitMQMessage<>(testMsg, null, null,
-                doNothingNack,
-                doNothingAck,
-                "text/plain");
+        IncomingRabbitMQMessage<String> ackMsg = new IncomingRabbitMQMessage<>(envelope,
+                EMPTY_PROPS, new byte[0],
+                IncomingRabbitMQMessage.STRING_CONVERTER,
+                doNothingAck, doNothingNack,
+                null, "text/plain");
 
         assertDoesNotThrow(() -> ackMsg.ack().toCompletableFuture().get());
         assertDoesNotThrow(() -> ackMsg.ack().toCompletableFuture().get());
@@ -58,147 +56,136 @@ public class IncomingRabbitMQMessageTest {
 
     @Test
     public void testDoubleNackBehavior() {
-        io.vertx.rabbitmq.RabbitMQMessage testMsg = TestRabbitMQMessage.builder()
-                .envelope(13456L, false, "test", "test")
-                .build();
+        Envelope envelope = new Envelope(13456L, false, "test", "test");
 
         Exception nackReason = new Exception("test");
 
-        IncomingRabbitMQMessage<String> nackMsg = new IncomingRabbitMQMessage<>(testMsg, null, null,
-                doNothingNack,
-                doNothingAck,
-                "text/plain");
+        IncomingRabbitMQMessage<String> nackMsg = new IncomingRabbitMQMessage<>(envelope,
+                EMPTY_PROPS, new byte[0],
+                IncomingRabbitMQMessage.STRING_CONVERTER,
+                doNothingAck, doNothingNack,
+                null, "text/plain");
 
         assertDoesNotThrow(() -> nackMsg.nack(nackReason).toCompletableFuture().get());
         assertDoesNotThrow(() -> nackMsg.nack(nackReason).toCompletableFuture().get());
         assertDoesNotThrow(() -> nackMsg.ack().toCompletableFuture().get());
     }
 
-    @Test
-    void testConvertPayloadFallback() {
-        Buffer payloadBuffer = Buffer.buffer("payload");
-        io.vertx.rabbitmq.RabbitMQMessage testMsg = TestRabbitMQMessage.builder()
-                .body(payloadBuffer)
-                .properties(new BasicProperties.Builder().contentType("application/json").build())
-                .envelope(13456L, false, "test", "test")
-                .build();
-
-        IncomingRabbitMQMessage<Buffer> incomingRabbitMQMessage = new IncomingRabbitMQMessage<>(testMsg,
-                null, null,
-                doNothingNack, doNothingAck, null);
-
-        assertThat(incomingRabbitMQMessage.getPayload()).isEqualTo(payloadBuffer);
-    }
-
     // --- getEffectiveContentType tests ---
 
     @Test
     void testEffectiveContentTypeWithOverride() {
-        io.vertx.rabbitmq.RabbitMQMessage testMsg = TestRabbitMQMessage.builder()
-                .properties(new BasicProperties.Builder().contentType("application/json").build())
-                .envelope(1L, false, "test", "test")
-                .build();
+        Envelope envelope = new Envelope(1L, false, "test", "test");
+        AMQP.BasicProperties properties = new AMQP.BasicProperties.Builder()
+                .contentType("application/json").build();
 
-        IncomingRabbitMQMessage<Buffer> incoming = new IncomingRabbitMQMessage<>(testMsg,
-                null, null, doNothingNack, doNothingAck, "text/plain");
+        IncomingRabbitMQMessage<String> incoming = new IncomingRabbitMQMessage<>(envelope,
+                properties, new byte[0],
+                IncomingRabbitMQMessage.STRING_CONVERTER,
+                doNothingAck, doNothingNack,
+                null, "text/plain");
 
         // Override takes precedence over the property
-        assertThat(incoming.getEffectiveContentType()).hasValue("text/plain");
+        assertThat(incoming.getRabbitMQMetadata().getEffectiveContentType()).hasValue("text/plain");
         // getContentType returns the raw property value
-        assertThat(incoming.getContentType()).hasValue("application/json");
+        assertThat(incoming.getRabbitMQMetadata().getContentType()).isEqualTo("application/json");
     }
 
     @Test
     void testEffectiveContentTypeWithNullOverride() {
-        io.vertx.rabbitmq.RabbitMQMessage testMsg = TestRabbitMQMessage.builder()
-                .properties(new BasicProperties.Builder().contentType("application/xml").build())
-                .envelope(1L, false, "test", "test")
-                .build();
+        Envelope envelope = new Envelope(1L, false, "test", "test");
+        AMQP.BasicProperties properties = new AMQP.BasicProperties.Builder()
+                .contentType("application/xml").build();
 
-        IncomingRabbitMQMessage<Buffer> incoming = new IncomingRabbitMQMessage<>(testMsg,
-                null, null, doNothingNack, doNothingAck, null);
+        IncomingRabbitMQMessage<String> incoming = new IncomingRabbitMQMessage<>(envelope,
+                properties, new byte[0],
+                IncomingRabbitMQMessage.STRING_CONVERTER,
+                doNothingAck, doNothingNack,
+                null, null);
 
-        // No override → falls back to property
-        assertThat(incoming.getEffectiveContentType()).hasValue("application/xml");
+        // No override -> falls back to property
+        assertThat(incoming.getRabbitMQMetadata().getEffectiveContentType()).hasValue("application/xml");
     }
 
     @Test
     void testEffectiveContentTypeWithNullOverrideAndNullProperty() {
-        io.vertx.rabbitmq.RabbitMQMessage testMsg = TestRabbitMQMessage.builder()
-                .envelope(1L, false, "test", "test")
-                .build();
+        Envelope envelope = new Envelope(1L, false, "test", "test");
 
-        IncomingRabbitMQMessage<Buffer> incoming = new IncomingRabbitMQMessage<>(testMsg,
-                null, null, doNothingNack, doNothingAck, null);
+        IncomingRabbitMQMessage<String> incoming = new IncomingRabbitMQMessage<>(envelope,
+                EMPTY_PROPS, new byte[0],
+                IncomingRabbitMQMessage.STRING_CONVERTER,
+                doNothingAck, doNothingNack,
+                null, null);
 
-        assertThat(incoming.getEffectiveContentType()).isEmpty();
+        assertThat(incoming.getRabbitMQMetadata().getEffectiveContentType()).isEmpty();
     }
 
     // --- Content encoding warning path ---
 
     @Test
     void testConstructorWithContentEncodingAndNonOctetStreamContentType() {
-        io.vertx.rabbitmq.RabbitMQMessage testMsg = TestRabbitMQMessage.builder()
-                .body("data")
-                .properties(new BasicProperties.Builder()
-                        .contentType("text/plain")
-                        .contentEncoding("UTF-8")
-                        .build())
-                .envelope(1L, false, "test", "test")
+        Envelope envelope = new Envelope(1L, false, "test", "test");
+        AMQP.BasicProperties properties = new AMQP.BasicProperties.Builder()
+                .contentType("text/plain")
+                .contentEncoding("UTF-8")
                 .build();
 
-        // Should not throw — the warning is logged but creation succeeds
-        IncomingRabbitMQMessage<Buffer> incoming = new IncomingRabbitMQMessage<>(testMsg,
-                null, null, doNothingNack, doNothingAck, null);
+        // Should not throw -- the warning is logged but creation succeeds
+        IncomingRabbitMQMessage<String> incoming = new IncomingRabbitMQMessage<>(envelope,
+                properties, "data".getBytes(),
+                IncomingRabbitMQMessage.STRING_CONVERTER,
+                doNothingAck, doNothingNack,
+                null, null);
 
-        assertThat(incoming.getContentEncoding()).hasValue("UTF-8");
-        assertThat(incoming.getContentType()).hasValue("text/plain");
+        assertThat(incoming.getRabbitMQMetadata().getContentEncoding()).isEqualTo("UTF-8");
+        assertThat(incoming.getRabbitMQMetadata().getContentType()).isEqualTo("text/plain");
     }
 
     @Test
     void testConstructorWithContentEncodingAndOctetStreamContentType() {
-        io.vertx.rabbitmq.RabbitMQMessage testMsg = TestRabbitMQMessage.builder()
-                .body(new byte[] { 0x01, 0x02 })
-                .properties(new BasicProperties.Builder()
-                        .contentType("application/octet-stream")
-                        .contentEncoding("binary")
-                        .build())
-                .envelope(1L, false, "test", "test")
+        Envelope envelope = new Envelope(1L, false, "test", "test");
+        AMQP.BasicProperties properties = new AMQP.BasicProperties.Builder()
+                .contentType("application/octet-stream")
+                .contentEncoding("binary")
                 .build();
 
-        // Binary content with encoding — no warning should be logged
-        IncomingRabbitMQMessage<Buffer> incoming = new IncomingRabbitMQMessage<>(testMsg,
-                null, null, doNothingNack, doNothingAck, null);
+        // Binary content with encoding -- no warning should be logged
+        IncomingRabbitMQMessage<byte[]> incoming = new IncomingRabbitMQMessage<>(envelope,
+                properties, new byte[] { 0x01, 0x02 },
+                IncomingRabbitMQMessage.BYTE_ARRAY_CONVERTER,
+                doNothingAck, doNothingNack,
+                null, null);
 
-        assertThat(incoming.getContentEncoding()).hasValue("binary");
+        assertThat(incoming.getRabbitMQMetadata().getContentEncoding()).isEqualTo("binary");
     }
 
     @Test
     void testConstructorWithNullContentEncoding() {
-        io.vertx.rabbitmq.RabbitMQMessage testMsg = TestRabbitMQMessage.builder()
-                .body("data")
-                .properties(new BasicProperties.Builder()
-                        .contentType("text/plain")
-                        .build())
-                .envelope(1L, false, "test", "test")
+        Envelope envelope = new Envelope(1L, false, "test", "test");
+        AMQP.BasicProperties properties = new AMQP.BasicProperties.Builder()
+                .contentType("text/plain")
                 .build();
 
-        IncomingRabbitMQMessage<Buffer> incoming = new IncomingRabbitMQMessage<>(testMsg,
-                null, null, doNothingNack, doNothingAck, null);
+        IncomingRabbitMQMessage<String> incoming = new IncomingRabbitMQMessage<>(envelope,
+                properties, "data".getBytes(),
+                IncomingRabbitMQMessage.STRING_CONVERTER,
+                doNothingAck, doNothingNack,
+                null, null);
 
-        assertThat(incoming.getContentEncoding()).isEmpty();
+        assertThat(incoming.getRabbitMQMetadata().getContentEncoding()).isNull();
     }
 
     // --- injectMetadata ---
 
     @Test
     void testInjectMetadata() {
-        io.vertx.rabbitmq.RabbitMQMessage testMsg = TestRabbitMQMessage.builder()
-                .envelope(1L, false, "test", "test")
-                .build();
+        Envelope envelope = new Envelope(1L, false, "test", "test");
 
-        IncomingRabbitMQMessage<Buffer> incoming = new IncomingRabbitMQMessage<>(testMsg,
-                null, null, doNothingNack, doNothingAck, null);
+        IncomingRabbitMQMessage<String> incoming = new IncomingRabbitMQMessage<>(envelope,
+                EMPTY_PROPS, new byte[0],
+                IncomingRabbitMQMessage.STRING_CONVERTER,
+                doNothingAck, doNothingNack,
+                null, null);
 
         // Metadata should contain IncomingRabbitMQMetadata by default
         assertThat(incoming.getMetadata(IncomingRabbitMQMetadata.class)).isPresent();
@@ -220,97 +207,113 @@ public class IncomingRabbitMQMessageTest {
         headers.put("x-custom", "header-value");
 
         Date timestamp = new Date();
-        io.vertx.rabbitmq.RabbitMQMessage testMsg = TestRabbitMQMessage.builder()
-                .body("body")
-                .properties(new BasicProperties.Builder()
-                        .contentType("text/plain")
-                        .contentEncoding("UTF-8")
-                        .headers(headers)
-                        .deliveryMode(2)
-                        .priority(5)
-                        .correlationId("corr-123")
-                        .replyTo("reply-queue")
-                        .expiration("60000")
-                        .messageId("msg-001")
-                        .timestamp(timestamp)
-                        .type("test-type")
-                        .userId("user1")
-                        .appId("app1")
-                        .build())
-                .envelope(42L, true, "exchange1", "rk1")
+        AMQP.BasicProperties properties = new AMQP.BasicProperties.Builder()
+                .contentType("text/plain")
+                .contentEncoding("UTF-8")
+                .headers(headers)
+                .deliveryMode(2)
+                .priority(5)
+                .correlationId("corr-123")
+                .replyTo("reply-queue")
+                .expiration("60000")
+                .messageId("msg-001")
+                .timestamp(timestamp)
+                .type("test-type")
+                .userId("user1")
+                .appId("app1")
                 .build();
+        Envelope envelope = new Envelope(42L, true, "exchange1", "rk1");
 
-        IncomingRabbitMQMessage<Buffer> incoming = new IncomingRabbitMQMessage<>(testMsg,
-                null, null, doNothingNack, doNothingAck, null);
+        IncomingRabbitMQMessage<String> incoming = new IncomingRabbitMQMessage<>(envelope,
+                properties, "body".getBytes(),
+                IncomingRabbitMQMessage.STRING_CONVERTER,
+                doNothingAck, doNothingNack,
+                null, null);
 
-        assertThat(incoming.getHeaders()).containsEntry("x-custom", "header-value");
-        assertThat(incoming.getContentType()).hasValue("text/plain");
-        assertThat(incoming.getContentEncoding()).hasValue("UTF-8");
-        assertThat(incoming.getDeliveryMode()).hasValue(2);
-        assertThat(incoming.getPriority()).hasValue(5);
-        assertThat(incoming.getCorrelationId()).hasValue("corr-123");
-        assertThat(incoming.getReplyTo()).hasValue("reply-queue");
-        assertThat(incoming.getExpiration()).hasValue("60000");
-        assertThat(incoming.getMessageId()).hasValue("msg-001");
-        assertThat(incoming.getTimestamp(ZoneOffset.UTC)).isPresent();
-        assertThat(incoming.getType()).hasValue("test-type");
-        assertThat(incoming.getUserId()).hasValue("user1");
-        assertThat(incoming.getAppId()).hasValue("app1");
+        IncomingRabbitMQMetadata metadata = incoming.getRabbitMQMetadata();
+        assertThat(metadata.getHeaders()).containsEntry("x-custom", "header-value");
+        assertThat(metadata.getContentType()).isEqualTo("text/plain");
+        assertThat(metadata.getContentEncoding()).isEqualTo("UTF-8");
+        assertThat(metadata.getDeliveryMode()).isEqualTo(2);
+        assertThat(metadata.getPriority()).isEqualTo(5);
+        assertThat(metadata.getCorrelationId()).isEqualTo("corr-123");
+        assertThat(metadata.getReplyTo()).isEqualTo("reply-queue");
+        assertThat(metadata.getExpiration()).isEqualTo("60000");
+        assertThat(metadata.getMessageId()).isEqualTo("msg-001");
+        assertThat(metadata.getTimestamp()).isEqualTo(timestamp);
+        assertThat(metadata.getType()).isEqualTo("test-type");
+        assertThat(metadata.getUserId()).isEqualTo("user1");
+        assertThat(metadata.getAppId()).isEqualTo("app1");
     }
 
     @Test
     void testMetadataDelegationWithEmptyProperties() {
-        io.vertx.rabbitmq.RabbitMQMessage testMsg = TestRabbitMQMessage.builder()
-                .envelope(1L, false, "test", "test")
+        Envelope envelope = new Envelope(1L, false, "test", "test");
+
+        IncomingRabbitMQMessage<String> incoming = new IncomingRabbitMQMessage<>(envelope,
+                EMPTY_PROPS, new byte[0],
+                IncomingRabbitMQMessage.STRING_CONVERTER,
+                doNothingAck, doNothingNack,
+                null, null);
+
+        IncomingRabbitMQMetadata metadata = incoming.getRabbitMQMetadata();
+        assertThat(metadata.getContentType()).isNull();
+        assertThat(metadata.getContentEncoding()).isNull();
+        assertThat(metadata.getDeliveryMode()).isNull();
+        assertThat(metadata.getPriority()).isNull();
+        assertThat(metadata.getCorrelationId()).isNull();
+        assertThat(metadata.getReplyTo()).isNull();
+        assertThat(metadata.getExpiration()).isNull();
+        assertThat(metadata.getMessageId()).isNull();
+        assertThat(metadata.getTimestamp()).isNull();
+        assertThat(metadata.getType()).isNull();
+        assertThat(metadata.getUserId()).isNull();
+        assertThat(metadata.getAppId()).isNull();
+    }
+
+    @Test
+    void testConvertPayloadFallback() {
+        Envelope envelope = new Envelope(13456L, false, "test", "test");
+        AMQP.BasicProperties properties = new AMQP.BasicProperties.Builder()
+                .contentType("application/json")
+                .build();
+        byte[] body = "payload".getBytes();
+
+        IncomingRabbitMQMessage<byte[]> incoming = new IncomingRabbitMQMessage<>(envelope,
+                properties, body,
+                IncomingRabbitMQMessage.BYTE_ARRAY_CONVERTER,
+                doNothingAck, doNothingNack,
+                null, null);
+
+        assertThat(incoming.getPayload()).isEqualTo(body);
+    }
+
+    @Test
+    void testGetCorrelationId() {
+        Envelope envelope = new Envelope(1L, false, "exchange", "routing-key");
+        AMQP.BasicProperties properties = new AMQP.BasicProperties.Builder()
+                .correlationId("my-correlation-id")
                 .build();
 
-        IncomingRabbitMQMessage<Buffer> incoming = new IncomingRabbitMQMessage<>(testMsg,
-                null, null, doNothingNack, doNothingAck, null);
+        IncomingRabbitMQMessage<String> incoming = new IncomingRabbitMQMessage<>(envelope,
+                properties, new byte[0],
+                IncomingRabbitMQMessage.STRING_CONVERTER,
+                doNothingAck, doNothingNack,
+                null, null);
 
-        assertThat(incoming.getContentType()).isEmpty();
-        assertThat(incoming.getContentEncoding()).isEmpty();
-        assertThat(incoming.getDeliveryMode()).isEmpty();
-        assertThat(incoming.getPriority()).isEmpty();
+        assertThat(incoming.getCorrelationId()).hasValue("my-correlation-id");
+    }
+
+    @Test
+    void testGetCorrelationIdWhenNotSet() {
+        Envelope envelope = new Envelope(1L, false, "exchange", "routing-key");
+
+        IncomingRabbitMQMessage<String> incoming = new IncomingRabbitMQMessage<>(envelope,
+                EMPTY_PROPS, new byte[0],
+                IncomingRabbitMQMessage.STRING_CONVERTER,
+                doNothingAck, doNothingNack,
+                null, null);
+
         assertThat(incoming.getCorrelationId()).isEmpty();
-        assertThat(incoming.getReplyTo()).isEmpty();
-        assertThat(incoming.getExpiration()).isEmpty();
-        assertThat(incoming.getMessageId()).isEmpty();
-        assertThat(incoming.getTimestamp(ZoneOffset.UTC)).isEmpty();
-        assertThat(incoming.getType()).isEmpty();
-        assertThat(incoming.getUserId()).isEmpty();
-        assertThat(incoming.getAppId()).isEmpty();
-    }
-
-    @Test
-    void testGetRabbitMQMessage() {
-        io.vertx.rabbitmq.RabbitMQMessage testMsg = TestRabbitMQMessage.builder()
-                .envelope(1L, false, "exchange", "routing-key")
-                .build();
-
-        IncomingRabbitMQMessage<Buffer> incoming = new IncomingRabbitMQMessage<>(testMsg,
-                null, null, doNothingNack, doNothingAck, null);
-
-        io.vertx.mutiny.rabbitmq.RabbitMQMessage retrieved = incoming.getRabbitMQMessage();
-        assertThat(retrieved).isNotNull();
-        assertThat(retrieved.envelope().getRoutingKey()).isEqualTo("routing-key");
-        assertThat(retrieved.envelope().getExchange()).isEqualTo("exchange");
-    }
-
-    @SuppressWarnings("deprecation")
-    @Test
-    void testDeprecatedGetCreationTime() {
-        Date timestamp = new Date();
-        io.vertx.rabbitmq.RabbitMQMessage testMsg = TestRabbitMQMessage.builder()
-                .properties(new BasicProperties.Builder().timestamp(timestamp).build())
-                .envelope(1L, false, "test", "test")
-                .build();
-
-        IncomingRabbitMQMessage<Buffer> incoming = new IncomingRabbitMQMessage<>(testMsg,
-                null, null, doNothingNack, doNothingAck, null);
-
-        // getCreationTime is deprecated and delegates to getTimestamp
-        assertThat(incoming.getCreationTime(ZoneId.of("UTC"))).isPresent();
-        assertThat(incoming.getCreationTime(ZoneId.of("UTC")))
-                .isEqualTo(incoming.getTimestamp(ZoneId.of("UTC")));
     }
 }
