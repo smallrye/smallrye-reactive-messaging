@@ -165,7 +165,7 @@ public class PulsarConnector implements InboundConnector, OutboundConnector, Hea
         try {
             ClientConfigurationData data = configResolver.configure(cc, configuration).getClientConfigurationData();
             log.createdClientWithConfig(data);
-            return new PulsarClientImpl(data, vertx.nettyEventLoopGroup());
+            return new PulsarClientImpl(data);
         } catch (PulsarClientException e) {
             throw ex.illegalStateUnableToBuildClient(e);
         }
