@@ -29,7 +29,7 @@
         </dependency>
         <dependency>
             <groupId>org.openrewrite</groupId>
-            <artifactId>rewrite-java</artifactId>
+            <artifactId>rewrite-java-25</artifactId>
             <version>${rewrite.version}</version>
             <scope>provided</scope>
         </dependency>
