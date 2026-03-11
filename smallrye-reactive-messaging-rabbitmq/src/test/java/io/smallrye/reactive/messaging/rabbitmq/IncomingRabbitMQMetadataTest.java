@@ -1,10 +1,11 @@
 package io.smallrye.reactive.messaging.rabbitmq;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.junit.Assert;
 import org.junit.jupiter.api.Test;
 
 import com.rabbitmq.client.BasicProperties;
@@ -20,10 +21,9 @@ public class IncomingRabbitMQMetadataTest {
         IncomingRabbitMQMetadata incomingRabbitMQMetadata = new IncomingRabbitMQMetadata(new DummyBasicProperties(properties),
                 null, null);
 
-        Assert.assertEquals("value1", incomingRabbitMQMetadata.getHeaders().get("header1"));
-        Assert.assertTrue(incomingRabbitMQMetadata.getHeaders().containsKey("header2"));
-        Assert.assertNull(incomingRabbitMQMetadata.getHeaders().get("header2"));
-
+        assertThat(incomingRabbitMQMetadata.getHeaders().get("header1")).isEqualTo("value1");
+        assertThat(incomingRabbitMQMetadata.getHeaders().containsKey("header2")).isTrue();
+        assertThat(incomingRabbitMQMetadata.getHeaders().get("header2")).isNull();
     }
 
     class DummyBasicProperties implements BasicProperties {
