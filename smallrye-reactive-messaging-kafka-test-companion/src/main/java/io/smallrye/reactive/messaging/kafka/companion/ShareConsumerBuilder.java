@@ -19,6 +19,7 @@ import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaShareConsumer;
+import org.apache.kafka.clients.consumer.internals.AutoOffsetResetStrategy;
 import org.apache.kafka.common.errors.WakeupException;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.jboss.logging.Logger;
@@ -185,6 +186,20 @@ public class ShareConsumerBuilder<K, V> implements Closeable {
      */
     public ShareConsumerBuilder<K, V> withGroupId(String groupId) {
         return withProp(ConsumerConfig.GROUP_ID_CONFIG, groupId);
+    }
+
+    /**
+     * Add configuration property for {@code share.auto.offset.reset}
+     *
+     * @param strategy the offset reset strategy
+     * @return this {@link ConsumerBuilder}
+     */
+    public ShareConsumerBuilder<K, V> withOffsetReset(AutoOffsetResetStrategy strategy) {
+        String offsetResetStrategy = switch (strategy.type()) {
+            case LATEST, EARLIEST, NONE -> strategy.name();
+            case BY_DURATION -> strategy.name() + strategy.duration().map(Duration::toString).orElse("");
+        };
+        return withProp("share.auto.offset.reset", offsetResetStrategy);
     }
 
     /**

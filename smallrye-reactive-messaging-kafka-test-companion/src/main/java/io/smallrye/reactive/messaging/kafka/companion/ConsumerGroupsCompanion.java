@@ -15,6 +15,8 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.kafka.clients.admin.AdminClient;
+import org.apache.kafka.clients.admin.AlterConfigOp;
+import org.apache.kafka.clients.admin.ConfigEntry;
 import org.apache.kafka.clients.admin.ConsumerGroupDescription;
 import org.apache.kafka.clients.admin.ConsumerGroupListing;
 import org.apache.kafka.clients.admin.GroupListing;
@@ -27,6 +29,7 @@ import org.apache.kafka.clients.admin.ShareGroupDescription;
 import org.apache.kafka.clients.admin.SharePartitionOffsetInfo;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.common.config.ConfigResource;
 
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
@@ -161,6 +164,21 @@ public class ConsumerGroupsCompanion {
     public Map<TopicPartition, SharePartitionOffsetInfo> shareGroupOffsets(String groupId,
             List<TopicPartition> topicPartitions) {
         return consumerShareGroupUni(groupId, topicPartitions).await().atMost(kafkaApiTimeout);
+    }
+
+    /**
+     * Set a group-level dynamic configuration for a share group via the admin API.
+     * Can be called before the group exists to pre-configure it.
+     *
+     * @param groupId the share group id
+     * @param key the configuration key (e.g. {@code share.auto.offset.reset})
+     * @param value the configuration value (e.g. {@code earliest})
+     */
+    public void alterShareGroupConfig(String groupId, String key, String value) {
+        ConfigResource resource = new ConfigResource(ConfigResource.Type.GROUP, groupId);
+        AlterConfigOp op = new AlterConfigOp(new ConfigEntry(key, value), AlterConfigOp.OpType.SET);
+        toUni(() -> adminClient.incrementalAlterConfigs(Map.of(resource, List.of(op))).all())
+                .await().atMost(kafkaApiTimeout);
     }
 
     /*
