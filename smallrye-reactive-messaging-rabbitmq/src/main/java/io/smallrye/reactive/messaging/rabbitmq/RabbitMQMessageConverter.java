@@ -16,10 +16,10 @@ import com.rabbitmq.client.BasicProperties;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.smallrye.reactive.messaging.rabbitmq.tracing.RabbitMQOpenTelemetryInstrumenter;
 import io.smallrye.reactive.messaging.rabbitmq.tracing.RabbitMQTrace;
+import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
-import io.vertx.mutiny.core.buffer.Buffer;
 import io.vertx.mutiny.rabbitmq.RabbitMQMessage;
 
 /**
