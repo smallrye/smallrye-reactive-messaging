@@ -53,6 +53,7 @@ public class SharedGroupConsumerTest extends KafkaCompanionTestBase {
         String methodName = testInfo.getTestMethod().get().getName();
         groupId = "group-" + methodName + "-" + UUID.randomUUID();
         clientId = "client-" + methodName + "-" + UUID.randomUUID();
+        companion.consumerGroups().alterShareGroupConfig(groupId, "share.auto.offset.reset", "earliest");
     }
 
     private KafkaMapBasedConfig newCommonConfigForShareGroup() {
@@ -264,6 +265,25 @@ public class SharedGroupConsumerTest extends KafkaCompanionTestBase {
 
         companion.produceIntegers().usingGenerator(i -> new ProducerRecord<>(topic, "hello", i), 10)
                 .awaitCompletion();
+
+        // All records accepted, each delivered exactly once
+        await().atMost(20, SECONDS).until(() -> app.received().size() >= 10);
+        assertThat(app.received()).containsExactly(
+                IntStream.range(0, 10).boxed().toArray(Integer[]::new));
+    }
+
+    @Test
+    public void testShareGroupEarliestAutoOffsetReset() {
+        companion.topics().createAndWait(topic, 1);
+        KafkaMapBasedConfig config = newCommonConfigForShareGroup()
+                .with("value.deserializer", IntegerDeserializer.class.getName());
+
+        companion.produceIntegers().usingGenerator(i -> new ProducerRecord<>(topic, "hello", i), 10)
+                .awaitCompletion();
+
+        ShareGroupConsumerAccepting app = runApplication(config, ShareGroupConsumerAccepting.class);
+
+        // We do not need to wait for assignment
 
         // All records accepted, each delivered exactly once
         await().atMost(20, SECONDS).until(() -> app.received().size() >= 10);
