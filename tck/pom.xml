@@ -13,6 +13,7 @@
   <name>SmallRye Reactive Messaging : TCK</name>
 
   <properties>
+    <revapi.skip>true</revapi.skip>
     <jandex.skip>true</jandex.skip>
   </properties>
 

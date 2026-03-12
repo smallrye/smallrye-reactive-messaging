@@ -12,6 +12,7 @@
   <name>SmallRye Reactive Messaging : Open Telemetry Instrumenter</name>
 
   <properties>
+    <revapi.skip>true</revapi.skip>
     <jandex.skip>true</jandex.skip>
   </properties>
 

@@ -6,12 +6,14 @@
     <groupId>io.smallrye.reactive</groupId>
     <version>999-SNAPSHOT</version>
   </parent>
-  <properties>
-
-  </properties>
   <artifactId>smallrye-reactive-messaging-gcp-pubsub</artifactId>
   <name>SmallRye Reactive Messaging : Connector :: GCP Pub/Sub</name>
   <description>A module for Smallrye reactive messaging integration with GCP Pub/Sub Service</description>
+
+  <properties>
+    <revapi.skip>true</revapi.skip>
+  </properties>
+
   <dependencyManagement>
     <dependencies>
       <dependency>

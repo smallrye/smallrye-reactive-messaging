@@ -11,6 +11,10 @@
 
   <name>SmallRye Reactive Messaging : Connector :: Jackson</name>
 
+  <properties>
+    <revapi.skip>true</revapi.skip>
+  </properties>
+
   <dependencies>
     <dependency>
       <groupId>${project.groupId}</groupId>

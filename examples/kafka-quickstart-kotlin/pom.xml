@@ -21,6 +21,7 @@
 
     <mainClass>acme.Main</mainClass>
 
+    <revapi.skip>true</revapi.skip>
     <sonar.skip>true</sonar.skip>
     <jandex.skip>true</jandex.skip>
   </properties>

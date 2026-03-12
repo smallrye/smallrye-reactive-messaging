@@ -14,7 +14,6 @@
 
   <properties>
     <artemis.version>2.44.0</artemis.version>
-    <revapi.skip>false</revapi.skip>
   </properties>
 
   <dependencies>

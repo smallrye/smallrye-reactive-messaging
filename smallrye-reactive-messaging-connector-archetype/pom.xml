@@ -13,6 +13,7 @@
   <packaging>maven-archetype</packaging>
 
   <properties>
+    <revapi.skip>true</revapi.skip>
     <jandex.skip>true</jandex.skip>
     <archetype.test.skip>${skipTests}</archetype.test.skip>
   </properties>
