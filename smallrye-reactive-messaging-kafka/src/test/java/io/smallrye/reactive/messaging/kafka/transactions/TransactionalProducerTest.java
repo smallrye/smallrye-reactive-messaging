@@ -46,6 +46,10 @@ public class TransactionalProducerTest extends KafkaCompanionTestBase {
                 .put("value.serializer", IntegerSerializer.class.getName());
     }
 
+    private KafkaMapBasedConfig pooledConfig() {
+        return config().put("pooled-producer", true);
+    }
+
     @Test
     void testTransactionInCallerThread() {
         topic = companion.topics().createAndWait(topic, 3);
@@ -53,6 +57,7 @@ public class TransactionalProducerTest extends KafkaCompanionTestBase {
         TransactionalProducer application = runApplication(config(), TransactionalProducer.class);
 
         application.produceInTransaction(numberOfRecords).await().indefinitely();
+        assertThat(application.transaction().isTransactionInProgress()).isFalse();
 
         companion.consumeIntegers()
                 .withProp(ConsumerConfig.ISOLATION_LEVEL_CONFIG, "read_committed")
@@ -104,6 +109,26 @@ public class TransactionalProducerTest extends KafkaCompanionTestBase {
                 .awaitCompletion(Duration.ofMinutes(1));
     }
 
+    @Test
+    void testPooledTransactionConcurrent() {
+        topic = companion.topics().createAndWait(topic, 3);
+        int numberOfRecords = 10;
+        TransactionalProducer application = runApplication(pooledConfig(), TransactionalProducer.class);
+
+        // Run two transactions concurrently — both should succeed with a pooled producer
+        Uni<Void> tx1 = application.produceInTransaction(numberOfRecords);
+        Uni<Void> tx2 = application.produceInTransaction(numberOfRecords);
+
+        Uni.join().all(tx1, tx2).andCollectFailures()
+                .await().atMost(Duration.ofMinutes(1));
+        assertThat(application.transaction().isTransactionInProgress()).isFalse();
+
+        companion.consumeIntegers()
+                .withProp(ConsumerConfig.ISOLATION_LEVEL_CONFIG, "read_committed")
+                .fromTopics(topic, numberOfRecords * 2)
+                .awaitCompletion(Duration.ofMinutes(1));
+    }
+
     @ApplicationScoped
     public static class TransactionalProducer {
 
@@ -119,6 +144,10 @@ public class TransactionalProducerTest extends KafkaCompanionTestBase {
                 assertThat(transaction.isTransactionInProgress()).isTrue();
                 return Uni.createFrom().voidItem();
             });
+        }
+
+        public KafkaTransactions<Integer> transaction() {
+            return transaction;
         }
     }
 
@@ -177,6 +206,7 @@ public class TransactionalProducerTest extends KafkaCompanionTestBase {
             }).runSubscriptionOn(runnable -> vertx.runOnContext(runnable))
                     .await().indefinitely();
         }).isInstanceOf(IllegalStateException.class).hasMessageContaining("transactional-producer");
+        assertThat(application.transaction().isTransactionInProgress()).isFalse();
 
         assertThat(companion.consumeIntegers()
                 .withProp(ConsumerConfig.ISOLATION_LEVEL_CONFIG, "read_committed")
@@ -200,6 +230,10 @@ public class TransactionalProducerTest extends KafkaCompanionTestBase {
                 return transaction.withTransaction(e -> Uni.createFrom().voidItem());
             });
         }
+
+        public KafkaTransactions<Integer> transaction() {
+            return transaction;
+        }
     }
 
     @Test
@@ -213,6 +247,7 @@ public class TransactionalProducerTest extends KafkaCompanionTestBase {
                     (e) -> Uni.createFrom().failure(new IllegalStateException("boom")))
                     .await().indefinitely();
         }).isInstanceOf(IllegalStateException.class);
+        assertThat(application.transaction().isTransactionInProgress()).isFalse();
 
         assertThat(companion.consumeIntegers()
                 .withProp(ConsumerConfig.ISOLATION_LEVEL_CONFIG, "read_committed")
@@ -235,6 +270,7 @@ public class TransactionalProducerTest extends KafkaCompanionTestBase {
                 return Uni.createFrom().voidItem();
             }).await().indefinitely();
         }).isInstanceOf(TransactionAbortedException.class);
+        assertThat(application.transaction().isTransactionInProgress()).isFalse();
 
         assertThat(companion.consumeIntegers()
                 .withProp(ConsumerConfig.ISOLATION_LEVEL_CONFIG, "read_committed")
@@ -258,6 +294,10 @@ public class TransactionalProducerTest extends KafkaCompanionTestBase {
                 }
                 return failingSupplier.apply(emitter);
             });
+        }
+
+        public KafkaTransactions<Integer> transaction() {
+            return transaction;
         }
     }
 
@@ -395,6 +435,42 @@ public class TransactionalProducerTest extends KafkaCompanionTestBase {
     }
 
     @Test
+    void testWithTransactionAndAwait() {
+        topic = companion.topics().createAndWait(topic, 3);
+        int numberOfRecords = 10;
+        TransactionalProducerAndAwait application = runApplication(config(), TransactionalProducerAndAwait.class);
+
+        application.produceInTransactionBlocking(numberOfRecords);
+        assertThat(application.transaction().isTransactionInProgress()).isFalse();
+
+        companion.consumeIntegers()
+                .withProp(ConsumerConfig.ISOLATION_LEVEL_CONFIG, "read_committed")
+                .fromTopics(topic, numberOfRecords)
+                .awaitCompletion(Duration.ofMinutes(1));
+    }
+
+    @ApplicationScoped
+    public static class TransactionalProducerAndAwait {
+
+        @Inject
+        @Channel("transactional-producer")
+        KafkaTransactions<Integer> transaction;
+
+        void produceInTransactionBlocking(final int numberOfRecords) {
+            transaction.withTransactionAndAwait(emitter -> {
+                for (int i = 0; i < numberOfRecords; i++) {
+                    emitter.send(KafkaRecord.of("" + i % 10, i));
+                }
+                return Uni.createFrom().voidItem();
+            });
+        }
+
+        public KafkaTransactions<Integer> transaction() {
+            return transaction;
+        }
+    }
+
+    @Test
     void testFailingSendInTransaction() {
         topic = companion.topics().createAndWait(topic, 3);
         int numberOfRecords = 100;
@@ -405,6 +481,7 @@ public class TransactionalProducerTest extends KafkaCompanionTestBase {
         assertThatThrownBy(() -> application.produceInTransaction(numberOfRecords).await().indefinitely())
                 .isInstanceOf(CompositeException.class)
                 .hasCauseExactlyInstanceOf(RecordTooLargeException.class);
+        assertThat(application.transaction().isTransactionInProgress()).isFalse();
 
         companion.consumeIntegers()
                 .withProp(ConsumerConfig.ISOLATION_LEVEL_CONFIG, "read_committed")
@@ -427,6 +504,10 @@ public class TransactionalProducerTest extends KafkaCompanionTestBase {
                 assertThat(transaction.isTransactionInProgress()).isTrue();
                 return Uni.createFrom().voidItem();
             });
+        }
+
+        public KafkaTransactions<byte[]> transaction() {
+            return transaction;
         }
     }
 }

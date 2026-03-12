@@ -212,6 +212,16 @@ public interface KafkaConsumer<K, V> {
     @CheckReturnValue
     Uni<Void> resetToLastCommittedPositions();
 
+    /**
+     * For the given topic partitions reset to last committed offset or the beginning.
+     * Only the specified partitions are affected; other assigned partitions are left untouched.
+     *
+     * @param partitions the partitions to reset
+     * @return the Uni emitting {@code null} when the reset has been executed.
+     */
+    @CheckReturnValue
+    Uni<Void> resetToLastCommittedPositions(Collection<TopicPartition> partitions);
+
     @CheckReturnValue
     Uni<Map<String, List<PartitionInfo>>> lisTopics();
 

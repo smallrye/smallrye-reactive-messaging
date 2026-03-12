@@ -8,6 +8,8 @@ import io.smallrye.common.annotation.CheckReturnValue;
 import io.smallrye.common.annotation.TechPreview;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.EmitterType;
+import io.smallrye.reactive.messaging.kafka.api.IncomingKafkaRecordBatchMetadata;
+import io.smallrye.reactive.messaging.kafka.api.IncomingKafkaRecordMetadata;
 
 /**
  * Emitter interface for producing records in a Kafka transaction.
@@ -82,6 +84,22 @@ public interface KafkaTransactions<T> extends EmitterType {
     <R> Uni<R> withTransaction(Function<TransactionalEmitter<T>, Uni<R>> work);
 
     /**
+     * Produce records in a Kafka transaction, blocking the calling thread until the transaction completes.
+     * <p>
+     * This is a synchronous variant of {@link #withTransaction(Function)}, intended for use in blocking contexts
+     * such as REST endpoints running on worker threads or {@code @Blocking} annotated methods.
+     * <p>
+     * Must not be called on a Vert.x event loop thread.
+     *
+     * @param work the processing function for producing records.
+     * @param <R> the return type
+     * @return the result of the transaction.
+     * @throws IllegalStateException if a transaction is already in progress.
+     * @see #withTransaction(Function)
+     */
+    <R> R withTransactionAndAwait(Function<TransactionalEmitter<T>, Uni<R>> work);
+
+    /**
      * Produce records in a Kafka transaction, by processing the given message exactly-once.
      * <p>
      * If the processing completes successfully, before committing the transaction,
@@ -100,6 +118,74 @@ public interface KafkaTransactions<T> extends EmitterType {
      */
     @CheckReturnValue
     <R> Uni<R> withTransaction(Message<?> message, Function<TransactionalEmitter<T>, Uni<R>> work);
+
+    /**
+     * Produce records in a Kafka transaction, by processing the given incoming record exactly-once.
+     * <p>
+     * If the processing completes successfully, before committing the transaction,
+     * the topic partition offset of the given record metadata will be committed to the transaction.
+     * If the processing needs to abort, after aborting the transaction,
+     * the consumer's position is reset to the last committed offset, effectively resuming the consumption from that offset.
+     *
+     * @param metadata the incoming Kafka record metadata.
+     * @param work the processing function for producing records.
+     * @return the {@code Uni} representing the result of the transaction.
+     * @throws IllegalStateException if a transaction is already in progress.
+     */
+    @CheckReturnValue
+    <R> Uni<R> withTransaction(IncomingKafkaRecordMetadata<?, ?> metadata,
+            Function<TransactionalEmitter<T>, Uni<R>> work);
+
+    /**
+     * Produce records in a Kafka transaction processing the given incoming record exactly-once,
+     * blocking the calling thread until the transaction completes.
+     * <p>
+     * This is a synchronous variant of {@link #withTransaction(IncomingKafkaRecordMetadata, Function)}.
+     * Must not be called on a Vert.x event loop thread.
+     *
+     * @param metadata the incoming Kafka record metadata.
+     * @param work the processing function for producing records.
+     * @param <R> the return type
+     * @return the result of the transaction.
+     * @throws IllegalStateException if a transaction is already in progress.
+     * @see #withTransaction(IncomingKafkaRecordMetadata, Function)
+     */
+    <R> R withTransactionAndAwait(IncomingKafkaRecordMetadata<?, ?> metadata,
+            Function<TransactionalEmitter<T>, Uni<R>> work);
+
+    /**
+     * Produce records in a Kafka transaction, by processing the given incoming record batch exactly-once.
+     * <p>
+     * If the processing completes successfully, before committing the transaction,
+     * the topic partition offsets of the given batch metadata will be committed to the transaction.
+     * If the processing needs to abort, after aborting the transaction,
+     * the consumer's position is reset to the last committed offset, effectively resuming the consumption from that offset.
+     *
+     * @param metadata the incoming Kafka record batch metadata.
+     * @param work the processing function for producing records.
+     * @return the {@code Uni} representing the result of the transaction.
+     * @throws IllegalStateException if a transaction is already in progress.
+     */
+    @CheckReturnValue
+    <R> Uni<R> withTransaction(IncomingKafkaRecordBatchMetadata<?, ?> metadata,
+            Function<TransactionalEmitter<T>, Uni<R>> work);
+
+    /**
+     * Produce records in a Kafka transaction processing the given incoming record batch exactly-once,
+     * blocking the calling thread until the transaction completes.
+     * <p>
+     * This is a synchronous variant of {@link #withTransaction(IncomingKafkaRecordBatchMetadata, Function)}.
+     * Must not be called on a Vert.x event loop thread.
+     *
+     * @param metadata the incoming Kafka record batch metadata.
+     * @param work the processing function for producing records.
+     * @param <R> the return type
+     * @return the result of the transaction.
+     * @throws IllegalStateException if a transaction is already in progress.
+     * @see #withTransaction(IncomingKafkaRecordBatchMetadata, Function)
+     */
+    <R> R withTransactionAndAwait(IncomingKafkaRecordBatchMetadata<?, ?> metadata,
+            Function<TransactionalEmitter<T>, Uni<R>> work);
 
     /**
      * Produce records in a Kafka transaction, by processing the given batch message exactly-once.

@@ -857,7 +857,7 @@ public class KafkaFailureHandlerTest extends KafkaCompanionTestBase {
         await().atMost(20, TimeUnit.SECONDS)
                 .untilAsserted(() -> assertThat(bean.list())
                         .hasSize(16)
-                        .containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 3, 6, 9, 3, 6, 9));
+                        .containsExactlyInAnyOrder(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 3, 6, 9, 3, 6, 9));
 
         ConsumerTask<String, Integer> records = companion.consumeIntegers().fromTopics(retryTopic);
         await().untilAsserted(() -> assertThat(records.getRecords()).hasSize(6));

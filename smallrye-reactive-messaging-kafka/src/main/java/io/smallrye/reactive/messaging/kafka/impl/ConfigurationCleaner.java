@@ -82,7 +82,7 @@ public class ConfigurationCleaner {
             "value.serializer");
 
     private static final List<String> CONSUMER_PREFIX = Arrays.asList("checkpoint", "share-group");
-    private static final List<String> PRODUCER_PREFIX = Arrays.asList("reply");
+    private static final List<String> PRODUCER_PREFIX = Arrays.asList("reply", "pooled-producer");
 
     private ConfigurationCleaner() {
         // Avoid direct instantiation

@@ -340,21 +340,38 @@ public class ReactiveKafkaConsumer<K, V> implements io.smallrye.reactive.messagi
     public Uni<Void> resetToLastCommittedPositions() {
         return runOnPollingThread(c -> {
             Set<TopicPartition> assignments = c.assignment();
-            c.pause(assignments);
-            Map<TopicPartition, OffsetAndMetadata> committed = c.committed(assignments);
-            for (TopicPartition tp : assignments) {
-                OffsetAndMetadata offsetAndMetadata = committed.get(tp);
-                if (offsetAndMetadata != null) {
-                    // Seek to next offset position
-                    c.seek(tp, offsetAndMetadata.offset());
-                } else {
-                    // Seek to beginning of the topic partition
-                    c.seekToBeginning(Collections.singleton(tp));
-                }
-            }
-            removeFromQueueRecordsFromTopicPartitions(assignments);
-            c.resume(c.assignment());
+            resetPositions(c, assignments);
         });
+    }
+
+    @Override
+    @CheckReturnValue
+    public Uni<Void> resetToLastCommittedPositions(Collection<TopicPartition> partitions) {
+        return runOnPollingThread(c -> {
+            // Only reset the specified partitions that are currently assigned
+            Set<TopicPartition> toReset = new HashSet<>(partitions);
+            toReset.retainAll(c.assignment());
+            if (!toReset.isEmpty()) {
+                resetPositions(c, toReset);
+            }
+        });
+    }
+
+    private void resetPositions(Consumer<K, V> c, Set<TopicPartition> partitions) {
+        c.pause(partitions);
+        Map<TopicPartition, OffsetAndMetadata> committed = c.committed(partitions);
+        for (TopicPartition tp : partitions) {
+            OffsetAndMetadata offsetAndMetadata = committed.get(tp);
+            if (offsetAndMetadata != null) {
+                // Seek to next offset position
+                c.seek(tp, offsetAndMetadata.offset());
+            } else {
+                // Seek to beginning of the topic partition
+                c.seekToBeginning(Collections.singleton(tp));
+            }
+        }
+        removeFromQueueRecordsFromTopicPartitions(partitions);
+        c.resume(partitions);
     }
 
     private static Map<String, Object> getKafkaConsumerConfiguration(KafkaConnectorIncomingConfiguration configuration,

@@ -384,4 +384,12 @@ public interface KafkaLogging extends BasicLogger {
     @LogMessage(level = Logger.Level.WARN)
     @Message(id = 18291, value = "The `%s` configuration is not supported with share groups on channel `%s` and will be ignored")
     void shareGroupIncompatibleConfiguration(String properties, String channel);
+
+    @LogMessage(level = Logger.Level.INFO)
+    @Message(id = 18292, value = "Pooled Kafka producer %d created on channel %s with transactional.id %s")
+    void pooledProducerCreated(int index, String channel, String transactionalId);
+
+    @LogMessage(level = Logger.Level.DEBUG)
+    @Message(id = 18293, value = "Closing %d pooled producers for channel %s")
+    void closingPooledProducers(int count, String channel);
 }
