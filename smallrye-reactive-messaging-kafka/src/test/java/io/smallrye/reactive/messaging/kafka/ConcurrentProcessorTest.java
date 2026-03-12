@@ -170,7 +170,9 @@ public class ConcurrentProcessorTest extends KafkaCompanionTestBase {
         companion.topics().createAndWait(topic, 3);
 
         String dlqTopicDefault = topic + "-dlq";
-        String dlqTopicOverride = topic + "-dlq-override";
+        String dlqTopicOverride1 = topic + "-dlq-override-1";
+        String dlqTopicOverride2 = topic + "-dlq-override-2";
+        String dlqTopicOverride3 = topic + "-dlq-override-3";
 
         // Configure DLQ for base channel and override topic for one concurrent channel via nested config
         MapBasedConfig config = kafkaConfig("mp.messaging.incoming.data")
@@ -183,7 +185,9 @@ public class ConcurrentProcessorTest extends KafkaCompanionTestBase {
                 .with("value.deserializer", IntegerDeserializer.class.getName())
                 .withPrefix("")
                 // Override DLQ topic for first concurrent channel to test nested config
-                .with("mp.messaging.incoming.data$1.dead-letter-queue.topic", dlqTopicOverride);
+                .with("mp.messaging.incoming.data$1.dead-letter-queue.topic", dlqTopicOverride1)
+                .with("mp.messaging.incoming.data$2.dead-letter-queue.topic", dlqTopicOverride2)
+                .with("mp.messaging.incoming.data$3.dead-letter-queue.topic", dlqTopicOverride3);
 
         produceMessages();
         MyConsumerBeanWithFailures bean = runApplication(config, MyConsumerBeanWithFailures.class);
@@ -195,26 +199,15 @@ public class ConcurrentProcessorTest extends KafkaCompanionTestBase {
         });
 
         // Verify messages 3, 6, 9 were sent to DLQ topics
-        // At least one should go to the override topic (proving nested config works)
         await().untilAsserted(() -> {
             var records = companion.consumeIntegers()
-                    .fromTopics(Set.of(dlqTopicDefault, dlqTopicOverride), 3)
+                    .fromTopics(Set.of(dlqTopicOverride1, dlqTopicOverride2, dlqTopicOverride3), 3)
                     .awaitCompletion()
                     .getRecords();
 
             // Verify all 3 messages are in DLQ
-            List<Integer> allDlqMessages = records.stream()
-                    .map(r -> r.value())
-                    .toList();
+            List<Integer> allDlqMessages = records.stream().map(ConsumerRecord::value).toList();
             assertThat(allDlqMessages).containsExactlyInAnyOrder(3, 6, 9);
-
-            // Verify that nested configuration was actually used by checking some messages went to override topic
-            long overrideCount = records.stream()
-                    .filter(r -> dlqTopicOverride.equals(r.topic()))
-                    .count();
-            assertThat(overrideCount)
-                    .as("Override DLQ topic should have received at least one message (proving nested config works)")
-                    .isGreaterThan(0);
         });
     }
 
