@@ -24,7 +24,22 @@
     "criticality" : "highlight",
     "minSeverity" : "POTENTIALLY_BREAKING",
     "minCriticality" : "documented",
-    "differences" : [ ]
+    "differences" : [
+        {
+            "code": "java.method.annotationAdded",
+            "old": "method int io.smallrye.reactive.messaging.kafka.api.IncomingKafkaRecordMetadata<K, T>::getConsumerIndex()",
+            "new": "method int io.smallrye.reactive.messaging.kafka.api.IncomingKafkaRecordMetadata<K, T>::getConsumerIndex()",
+            "annotationType": "java.lang.Deprecated",
+            "justification": "Deprecated in favor of concurrency channel attribute"
+        },
+        {
+            "code": "java.method.annotationAdded",
+            "old": "method int io.smallrye.reactive.messaging.kafka.api.IncomingKafkaRecordBatchMetadata<K, T>::getConsumerIndex()",
+            "new": "method int io.smallrye.reactive.messaging.kafka.api.IncomingKafkaRecordBatchMetadata<K, T>::getConsumerIndex()",
+            "annotationType": "java.lang.Deprecated",
+            "justification": "Deprecated in favor of concurrency channel attribute"
+        }
+    ]
   }
 }, {
   "extension" : "revapi.reporter.json",

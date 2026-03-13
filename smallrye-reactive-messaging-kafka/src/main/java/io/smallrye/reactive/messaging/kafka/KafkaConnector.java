@@ -92,8 +92,8 @@ import io.vertx.mutiny.core.Vertx;
 @ConnectorAttribute(name = "delayed-retry-topic.topics", type = "string", direction = Direction.INCOMING, description = "When the `failure-strategy` is set to `delayed-retry-topic` indicates topics to use. If not set the source channel name is used, with 10, 20 and 50 seconds delayed topics.")
 @ConnectorAttribute(name = "delayed-retry-topic.max-retries", type = "int", direction = Direction.INCOMING, description = "When the `failure-strategy` is set to `delayed-retry-topic` indicates the maximum number of retries. If higher than the number of delayed retry topics, last topic is used.")
 @ConnectorAttribute(name = "delayed-retry-topic.timeout", type = "int", direction = Direction.INCOMING, description = "When the `failure-strategy` is set to `delayed-retry-topic` indicates the global timeout per record.", defaultValue = "120000")
-@ConnectorAttribute(name = "partitions", type = "int", direction = Direction.INCOMING, description = "The number of partitions to be consumed concurrently. The connector creates the specified amount of Kafka consumers. It should match the number of partition of the targeted topic", defaultValue = "1")
-@ConnectorAttribute(name = "requests", type = "int", direction = Direction.INCOMING, description = "When `partitions` is greater than 1, this attribute allows configuring how many records are requested by each consumers every time.", defaultValue = "128")
+@ConnectorAttribute(name = "partitions", type = "int", direction = Direction.INCOMING, description = "The number of partitions to be consumed concurrently. The connector creates the specified amount of Kafka consumers. It should match the number of partition of the targeted topic. Deprecated: Use `concurrency` channel attribute instead.", defaultValue = "1", deprecated = true)
+@ConnectorAttribute(name = "requests", type = "int", direction = Direction.INCOMING, description = "When `partitions` is greater than 1, this attribute allows configuring how many records are requested by each consumers every time. Deprecated: Use `concurrency` channel attribute instead.", defaultValue = "128", deprecated = true)
 @ConnectorAttribute(name = "consumer-rebalance-listener.name", type = "string", direction = Direction.INCOMING, description = "The name set in `@Identifier` of a bean that implements `io.smallrye.reactive.messaging.kafka.KafkaConsumerRebalanceListener`. If set, this rebalance listener is applied to the consumer.")
 @ConnectorAttribute(name = "key-deserialization-failure-handler", type = "string", direction = Direction.INCOMING, description = "The name set in `@Identifier` of a bean that implements `io.smallrye.reactive.messaging.kafka.DeserializationFailureHandler`. If set, deserialization failure happening when deserializing keys are delegated to this handler which may retry or provide a fallback value.")
 @ConnectorAttribute(name = "value-deserialization-failure-handler", type = "string", direction = Direction.INCOMING, description = "The name set in `@Identifier` of a bean that implements `io.smallrye.reactive.messaging.kafka.DeserializationFailureHandler`. If set, deserialization failure happening when deserializing values are delegated to this handler which may retry or provide a fallback value.")
@@ -218,6 +218,9 @@ public class KafkaConnector implements InboundConnector, OutboundConnector, Heal
         int partitions = ic.getPartitions();
         if (partitions <= 0) {
             throw new IllegalArgumentException("`partitions` must be greater than 0");
+        }
+        if (partitions > 1) {
+            log.deprecatedConfig("partitions", "concurrency");
         }
 
         String group = ic.getGroupId().orElseGet(() -> {

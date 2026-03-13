@@ -967,11 +967,14 @@ If not set, `key.deserializer` is set to
 `org.apache.kafka.common.serialization.StringDeserializer`.
 
 The consumer `client.id` is configured according to the number of
-clients to create using `mp.messaging.incoming.[channel].partitions`
-property.
+clients to create.
+
+!!! warning "Deprecated"
+    The `partitions` property (`mp.messaging.incoming.[channel].partitions`) and the associated `requests` property are **deprecated**.
+    Use the `concurrency` channel attribute instead, which creates distinct indexed channels with their own consumer.
 
 -   If a `client.id` is provided, it is used as-is or suffixed with
-    client index if `partitions` property is set.
+    client index if the deprecated `partitions` property is set.
 
 -   If a `client.id` is not provided, it is generated as
     `kafka-consumer-[channel][-index]`.
