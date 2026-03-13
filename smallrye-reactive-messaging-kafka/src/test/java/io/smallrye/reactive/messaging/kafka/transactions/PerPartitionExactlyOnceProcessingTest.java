@@ -284,7 +284,7 @@ public class PerPartitionExactlyOnceProcessingTest extends KafkaCompanionTestBas
         outTopic = companion.topics().createAndWait(topic + "-out", partitions);
         int numberOfRecords = 100;
         MapBasedConfig config = new MapBasedConfig(producerConfig());
-        config.putAll(throttledPartitionOrderedConsumerConfig());
+        config.putAll(orderedPartitionConsumerConfig());
         config.put("smallrye.messaging.worker.tx-pool.max-concurrency", partitions);
         BlockingPartitionOrderedProcessor application = runApplication(config, BlockingPartitionOrderedProcessor.class);
 
@@ -428,12 +428,12 @@ public class PerPartitionExactlyOnceProcessingTest extends KafkaCompanionTestBas
                 .with("value.deserializer", IntegerDeserializer.class.getName());
     }
 
-    private KafkaMapBasedConfig throttledPartitionOrderedConsumerConfig() {
+    private KafkaMapBasedConfig orderedPartitionConsumerConfig() {
         return kafkaConfig("mp.messaging.incoming.exactly-once-consumer")
                 .with("topic", inTopic)
                 .with("group.id", "my-consumer")
-                .with("commit-strategy", "throttled")
-                .with("throttled.ordered", "partition")
+                .with("commit-strategy", "ignore")
+                .with("ordered", "partition")
                 .with("failure-strategy", "ignore")
                 .with("max.poll.records", "100")
                 .with("auto.offset.reset", "earliest")

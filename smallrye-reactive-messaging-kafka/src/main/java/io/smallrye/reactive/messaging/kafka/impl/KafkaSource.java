@@ -2,6 +2,7 @@ package io.smallrye.reactive.messaging.kafka.impl;
 
 import static io.smallrye.reactive.messaging.kafka.DeserializationFailureHandler.DESERIALIZATION_FAILURE_DLQ;
 import static io.smallrye.reactive.messaging.kafka.DeserializationFailureHandler.DESERIALIZATION_FAILURE_REASON;
+import static io.smallrye.reactive.messaging.kafka.ProcessingOrder.UNORDERED;
 import static io.smallrye.reactive.messaging.kafka.i18n.KafkaExceptions.ex;
 import static io.smallrye.reactive.messaging.kafka.i18n.KafkaLogging.log;
 import static io.smallrye.reactive.messaging.kafka.impl.RebalanceListeners.findMatchingListener;
@@ -393,7 +394,25 @@ public class KafkaSource<K, V> {
                 .select(Identifier.Literal.of(strategy));
         if (possibleCommitHandler.isResolvable()) {
             log.commitStrategyForChannel(strategy, configuration.getChannel());
-            return possibleCommitHandler.get().create(configuration, vertx, client, this::reportFailure);
+            KafkaCommitHandler kafkaCommitHandler = possibleCommitHandler.get().create(configuration, vertx, client,
+                    this::reportFailure);
+
+            // Resolve ordering: new "ordered" takes precedence over legacy "throttled.ordered"
+            Optional<String> ordered = configuration.getOrdered();
+            if (ordered.isEmpty()) {
+                ordered = configuration.getThrottledOrdered();
+                if (ordered.isPresent()) {
+                    log.throttledOrderedDeprecated();
+                }
+            }
+
+            if (ordered.isPresent()) {
+                ProcessingOrder processingOrder = ProcessingOrder.of(ordered.get());
+                if (processingOrder != UNORDERED) {
+                    return new OrderedStreamHandler(configuration, vertx, client, kafkaCommitHandler, processingOrder);
+                }
+            }
+            return kafkaCommitHandler;
         } else {
             throw ex.illegalArgumentInvalidCommitStrategy(strategy);
         }
