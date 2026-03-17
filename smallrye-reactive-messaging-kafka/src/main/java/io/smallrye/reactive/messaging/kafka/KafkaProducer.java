@@ -134,4 +134,36 @@ public interface KafkaProducer<K, V> {
      * Close the producer client
      */
     void close();
+
+    /**
+     * Whether this producer is closed.
+     *
+     * @return {@code true} if the producer is closed.
+     */
+    boolean isClosed();
+
+    /**
+     * Whether this producer uses a pool of inner producers for concurrent transactions.
+     *
+     * @return {@code true} if pooled producer
+     */
+    default boolean isPooled() {
+        return false;
+    }
+
+    /**
+     * Creates a new transaction scope for this producer.
+     * For pooled producers, returns a lightweight wrapper that acquires a producer from the pool
+     * for the duration of a transaction. All sends within the scope go through that single producer,
+     * ensuring a single atomic Kafka transaction.
+     * <p>
+     * Multiple scopes can be active concurrently, each using a different pooled producer.
+     * <p>
+     * For regular producers, returns {@code this}.
+     *
+     * @return a transaction-scoped producer
+     */
+    default KafkaProducer<K, V> transactionScope() {
+        return this;
+    }
 }

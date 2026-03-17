@@ -57,8 +57,6 @@ public class ReactiveKafkaProducer<K, V> implements io.smallrye.reactive.messagi
     private final String channel;
     private final int closetimeout;
 
-    private Consumer<Throwable> reportFailure;
-
     public ReactiveKafkaProducer(KafkaConnectorOutgoingConfiguration config,
             Instance<ClientCustomizer<Map<String, Object>>> configCustomizers,
             Instance<SerializationFailureHandler<?>> serializationFailureHandlers,
@@ -74,8 +72,7 @@ public class ReactiveKafkaProducer<K, V> implements io.smallrye.reactive.messagi
                 createSerializationFailureHandler(config.getChannel(),
                         config.getValueSerializationFailureHandler().orElse(null),
                         serializationFailureHandlers),
-                onProducerCreated);
-        this.reportFailure = reportFailure;
+                reportFailure, onProducerCreated);
     }
 
     public String getClientId() {
@@ -87,6 +84,7 @@ public class ReactiveKafkaProducer<K, V> implements io.smallrye.reactive.messagi
             ProducerInterceptor<K, V> interceptor,
             SerializationFailureHandler<K> keySerializationFailureHandler,
             SerializationFailureHandler<V> valueSerializationFailureHandler,
+            Consumer<Throwable> reportFailure,
             BiConsumer<Producer<?, ?>, Map<String, Object>> onProducerCreated) {
         this.kafkaConfiguration = kafkaConfiguration;
         this.channel = channel;
@@ -129,9 +127,7 @@ public class ReactiveKafkaProducer<K, V> implements io.smallrye.reactive.messagi
             }
         })).onFailure().invoke(throwable -> {
             log.unableToInitializeProducer(channel, throwable);
-            if (reportFailure != null) {
-                reportFailure.accept(throwable);
-            }
+            reportFailure.accept(throwable);
         }).memoize().until(closed::get)
                 .runSubscriptionOn(kafkaWorker);
         if (!lazyClient) {
@@ -229,7 +225,7 @@ public class ReactiveKafkaProducer<K, V> implements io.smallrye.reactive.messagi
     }
 
     @SuppressWarnings({ "unchecked" })
-    private static <K, V> ProducerInterceptor<K, V> getProducerInterceptorBean(KafkaConnectorOutgoingConfiguration config,
+    static <K, V> ProducerInterceptor<K, V> getProducerInterceptorBean(KafkaConnectorOutgoingConfiguration config,
             Instance<ProducerInterceptor<?, ?>> producerInterceptors) {
         return (ProducerInterceptor<K, V>) config.getInterceptorBean()
                 .flatMap(identifier -> CDIUtils.getInstanceById(producerInterceptors, identifier).stream().findFirst())
@@ -237,7 +233,7 @@ public class ReactiveKafkaProducer<K, V> implements io.smallrye.reactive.messagi
     }
 
     @SuppressWarnings({ "unchecked" })
-    private static <T> SerializationFailureHandler<T> createSerializationFailureHandler(String channelName,
+    static <T> SerializationFailureHandler<T> createSerializationFailureHandler(String channelName,
             String failureHandlerName, Instance<SerializationFailureHandler<?>> deserializationFailureHandlers) {
         if (failureHandlerName == null) {
             return null;
@@ -258,7 +254,7 @@ public class ReactiveKafkaProducer<K, V> implements io.smallrye.reactive.messagi
         }
     }
 
-    private static Map<String, Object> getKafkaProducerConfiguration(KafkaConnectorOutgoingConfiguration configuration,
+    static Map<String, Object> getKafkaProducerConfiguration(KafkaConnectorOutgoingConfiguration configuration,
             Instance<ClientCustomizer<Map<String, Object>>> configCustomizers) {
         Map<String, Object> map = new HashMap<>();
         JsonHelper.asJsonObject(configuration.config())
@@ -376,6 +372,7 @@ public class ReactiveKafkaProducer<K, V> implements io.smallrye.reactive.messagi
         }
     }
 
+    @Override
     public boolean isClosed() {
         return closed.get();
     }

@@ -56,7 +56,7 @@ import io.smallrye.reactive.messaging.providers.helpers.SenderProcessor;
 @SuppressWarnings("jol")
 public class KafkaSink {
 
-    private final ReactiveKafkaProducer<?, ?> client;
+    private final KafkaProducer<?, ?> client;
     private final int partition;
     private final String topic;
     private final String key;
@@ -93,14 +93,24 @@ public class KafkaSink {
         this.key = config.getKey().orElse(null);
         this.channel = config.getChannel();
 
-        this.client = new ReactiveKafkaProducer<>(config, configCustomizers, serializationFailureHandlers,
-                producerInterceptors,
-                this::reportFailure,
-                (p, c) -> {
-                    log.connectedToKafka(getClientId(c), config.getBootstrapServers(), topic);
-                    // fire producer event (e.g. bind metrics)
-                    kafkaCDIEvents.producer().fire(p);
-                });
+        if (config.getPooledProducer()) {
+            this.client = new PooledKafkaProducer<>(config, configCustomizers, serializationFailureHandlers,
+                    producerInterceptors,
+                    this::reportFailure,
+                    (p, c) -> {
+                        log.connectedToKafka(getClientId(c), config.getBootstrapServers(), topic);
+                        kafkaCDIEvents.producer().fire(p);
+                    });
+        } else {
+            this.client = new ReactiveKafkaProducer<>(config, configCustomizers, serializationFailureHandlers,
+                    producerInterceptors,
+                    this::reportFailure,
+                    (p, c) -> {
+                        log.connectedToKafka(getClientId(c), config.getBootstrapServers(), topic);
+                        // fire producer event (e.g. bind metrics)
+                        kafkaCDIEvents.producer().fire(p);
+                    });
+        }
 
         this.writeCloudEvents = config.getCloudEvents();
         this.writeAsBinaryCloudEvent = config.getCloudEventsMode().equalsIgnoreCase("binary");
@@ -219,8 +229,8 @@ public class KafkaSink {
                             .withPartition(record.partition() != null ? record.partition() : -1)
                             .withTopic(record.topic())
                             .withHeaders(record.headers())
-                            .withGroupId(client.get(ConsumerConfig.GROUP_ID_CONFIG))
-                            .withClientId(client.get(ConsumerConfig.CLIENT_ID_CONFIG))
+                            .withGroupId((String) client.configuration().get(ConsumerConfig.GROUP_ID_CONFIG))
+                            .withClientId((String) client.configuration().get(ConsumerConfig.CLIENT_ID_CONFIG))
                             .build();
                     kafkaInstrumenter.traceOutgoing(message, kafkaTrace);
                 }
@@ -228,8 +238,12 @@ public class KafkaSink {
                 String actualTopic = topic;
                 log.sendingMessageToTopic(message, channel, actualTopic);
 
+                // In pooled transaction mode, route sends through the transaction scope
+                TransactionScopeMetadata scopeMeta = message.getMetadata(TransactionScopeMetadata.class).orElse(null);
                 @SuppressWarnings({ "unchecked", "rawtypes" })
-                Uni<RecordMetadata> sendUni = client.send((ProducerRecord) record);
+                Uni<RecordMetadata> sendUni = scopeMeta != null
+                        ? scopeMeta.getScope().send((ProducerRecord) record)
+                        : client.send((ProducerRecord) record);
 
                 Uni<Void> uni = sendUni.onItem().transformToUni(recordMetadata -> {
                     OutgoingMessageMetadata.setResultOnMessage(message, recordMetadata);

@@ -97,4 +97,16 @@ public interface KafkaExceptions {
     @Message(id = 18025, value = "Partition rebalance during exactly-once processing for channel `%s`: current consumer group metadata: %s, generation id for message: %s")
     IllegalStateException exactlyOnceProcessingRebalance(String channel, String groupMetadata, String generationId);
 
+    @Message(id = 18026, value = "Pooled producer does not support `%s`. Use transactionScope().")
+    UnsupportedOperationException pooledProducerUnsupportedOperation(String operation);
+
+    @Message(id = 18027, value = "Pooled producer pool exhausted (max-pool-size=%d) on channel `%s`. Increase pooled-producer.max-pool-size or reduce concurrent transaction scopes.")
+    IllegalStateException pooledProducerPoolExhausted(int maxPoolSize, String channel);
+
+    @Message(id = 18028, value = "Pooled producer is closed")
+    IllegalStateException pooledProducerClosed();
+
+    @Message(id = 18029, value = "Transaction not started. Call beginTransaction() first.")
+    IllegalStateException transactionNotStarted();
+
 }

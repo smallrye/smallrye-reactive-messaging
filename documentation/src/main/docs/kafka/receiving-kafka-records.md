@@ -171,10 +171,18 @@ downstream, we recommend to either:
 !!!warning "Experimental"
     Ordered concurrent processing is experimental, and APIs and features are subject to change.
 
-The `throttled` commit strategy keeps track of out-of-order message acknowledgements,
-allowing concurrent processing while ensuring correct offset commits.
-You can configure processing order guarantees using the `throttled.ordered` attribute
-to control which messages can be processed concurrently using the `@Blocking` annotation.
+When processing Kafka messages concurrently (using `@Blocking(ordered = false)`),
+you can configure ordering guarantees using the `ordered` attribute.
+
+### Choosing a Commit Strategy
+
+- **`ordered=key`**: Messages from the same partition but with different keys can be acknowledged
+  out of order. Use `commit-strategy=throttled`, which tracks out-of-order acknowledgements and
+  commits offsets correctly.
+
+- **`ordered=partition`**: Messages within a partition are processed sequentially, so
+  acknowledgements are always in order. This works with any commit strategy, including
+  `commit-strategy=ignore` for exactly-once transactional processing.
 
 ### Processing Order Modes
 
@@ -193,21 +201,21 @@ to control which messages can be processed concurrently using the `@Blocking` an
 
 ### Examples
 
-When using ordered processing modes, configure the `throttled.ordered`
-property and control concurrency with the `@Blocking(ordered = false)` annotation's worker pool:
+Configure the `ordered` property and use the `@Blocking(ordered = false)` annotation
+to enable concurrent processing with ordering guarantees:
 
 ```properties
 mp.messaging.incoming.orders.connector=smallrye-kafka
 mp.messaging.incoming.orders.topic=orders
 mp.messaging.incoming.orders.commit-strategy=throttled
-mp.messaging.incoming.orders.throttled.ordered=key
+mp.messaging.incoming.orders.ordered=key
 
 # Configure worker pool concurrency for thread pool size
 smallrye.messaging.worker.order-pool.max-concurrency=10
 
 # Configure merge concurrency (how many groups can process concurrently)
 # Should typically match or be less than worker pool max-concurrency
-mp.messaging.incoming.orders.throttled.ordered.max-concurrency=10
+mp.messaging.incoming.orders.ordered.max-concurrency=10
 ```
 
 ```java
@@ -219,13 +227,27 @@ public void processOrder(Order order) {
 }
 ```
 
+For exactly-once transactional processing, use `ordered=partition` with `commit-strategy=ignore`
+to avoid dual offset commits:
+
+```properties
+mp.messaging.incoming.data.connector=smallrye-kafka
+mp.messaging.incoming.data.topic=data
+mp.messaging.incoming.data.commit-strategy=ignore
+mp.messaging.incoming.data.ordered=partition
+```
+
 In order to allow creating more groups (of keys or partitions) that can be processed concurrently,
 each group buffers ordered messages to process.
 The `max-queue-size-factor` (default: 2) attribute controls the buffer size per group, calculated as
 `max.poll.records * max-queue-size-factor`.
-The `throttled.ordered.max-concurrency` attribute controls how many groups can be processed concurrently.
+The `ordered.max-concurrency` attribute controls how many groups can be processed concurrently.
 If not set, it defaults to `max.poll.records`.
 When buffers of all groups are full, backpressure is applied to pause consumption.
+
+!!!note "Deprecation"
+    The `throttled.ordered` and `throttled.ordered.max-concurrency` attributes are deprecated.
+    Use `ordered` and `ordered.max-concurrency` instead, which work with any commit strategy.
 
 ## Failure Management
 
@@ -967,11 +989,14 @@ If not set, `key.deserializer` is set to
 `org.apache.kafka.common.serialization.StringDeserializer`.
 
 The consumer `client.id` is configured according to the number of
-clients to create using `mp.messaging.incoming.[channel].partitions`
-property.
+clients to create.
+
+!!! warning "Deprecated"
+    The `partitions` property (`mp.messaging.incoming.[channel].partitions`) and the associated `requests` property are **deprecated**.
+    Use the `concurrency` channel attribute instead, which creates distinct indexed channels with their own consumer.
 
 -   If a `client.id` is provided, it is used as-is or suffixed with
-    client index if `partitions` property is set.
+    client index if the deprecated `partitions` property is set.
 
 -   If a `client.id` is not provided, it is generated as
     `kafka-consumer-[channel][-index]`.

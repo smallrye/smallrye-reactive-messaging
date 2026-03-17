@@ -16,18 +16,18 @@ import org.apache.kafka.common.MetricName;
 import io.smallrye.reactive.messaging.health.HealthReport;
 import io.smallrye.reactive.messaging.kafka.KafkaAdmin;
 import io.smallrye.reactive.messaging.kafka.KafkaConnectorOutgoingConfiguration;
+import io.smallrye.reactive.messaging.kafka.KafkaProducer;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaAdminHelper;
-import io.smallrye.reactive.messaging.kafka.impl.ReactiveKafkaProducer;
 
 public class KafkaSinkHealth extends BaseHealth {
 
     private final KafkaAdmin admin;
     private final String topic;
-    private final ReactiveKafkaProducer<?, ?> client;
+    private final KafkaProducer<?, ?> client;
     private final Duration adminClientTimeout;
 
     public KafkaSinkHealth(KafkaConnectorOutgoingConfiguration config,
-            Map<String, ?> kafkaConfiguration, ReactiveKafkaProducer<?, ?> client) {
+            Map<String, ?> kafkaConfiguration, KafkaProducer<?, ?> client) {
         super(config.getChannel(),
                 config.getHealthReadinessTopicVerification().orElse(config.getHealthTopicVerificationEnabled()),
                 config.getHealthTopicVerificationStartupDisabled(),

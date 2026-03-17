@@ -82,6 +82,12 @@ public class IncomingKafkaRecordBatchMetadata<K, T> {
         return offsets;
     }
 
+    /**
+     * @return the consumer index
+     * @deprecated Use {@code concurrency} channel attribute instead of {@code partitions}. This method will be removed in a
+     *             future release.
+     */
+    @Deprecated(forRemoval = true)
     public int getConsumerIndex() {
         return index;
     }
