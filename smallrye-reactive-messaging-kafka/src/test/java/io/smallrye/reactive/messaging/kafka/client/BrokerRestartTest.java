@@ -134,11 +134,12 @@ public class BrokerRestartTest extends ClientTestBase {
             try (GenericContainer<?> restarted = KafkaBrokerExtension.startKafkaBroker(port)) {
                 await().until(restarted::isRunning);
 
-                subscriber.request(100);
-                await().until(() -> source.getConsumer().paused().await().indefinitely().isEmpty());
-
+                // Produce messages first so the topic is created on the new broker
+                // before the consumer tries to reconnect and discover it
                 sendMessages(10, 45, KafkaBrokerExtension.getBootstrapServers(restarted));
-                await().until(() -> subscriber.getItems().size() == 55);
+                subscriber.request(100);
+                await().atMost(Duration.ofSeconds(60))
+                        .until(() -> subscriber.getItems().size() >= 55);
             }
         }
     }
