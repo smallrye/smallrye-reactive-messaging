@@ -35,6 +35,18 @@ On the outbound side (writing records to Kafka) verify that the broker is still 
 !!!note
     If `health-topic-verification-enabled` is enabled, both for startup and readiness checks use this strategy. They can be disabled explicitly using `health-topic-verification-startup-disabled` and `health-topic-verification-readiness-disabled` flags.
 
+#### Admin Client Pooling
+
+By default, the client-based strategy creates a dedicated Kafka Admin Client per channel, using client IDs that include the channel name (e.g. `kafka-admin-incoming-prices`, `kafka-admin-outgoing-orders`).
+This makes it easy to identify each client in monitoring, logs, and ACLs.
+
+If your application has many channels sharing the same Kafka broker configuration, you can opt in to admin client pooling to reduce the number of connections:
+
+```properties
+smallrye.messaging.kafka.admin-client.pooling.enabled=true
+```
+
+When pooling is enabled, channels with identical broker configurations share a single Admin Client instance, using counter-based client IDs (`smallrye-kafka-admin-1`, `smallrye-kafka-admin-2`, ...).
 
 To summarize for startup and readiness health checks:
 
