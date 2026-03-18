@@ -30,6 +30,8 @@ import io.smallrye.reactive.messaging.providers.helpers.MultiUtils;
 class JmsSink {
 
     private final Flow.Subscriber<Message<?>> sink;
+    private final JmsResourceHolder<JMSProducer> resourceHolder;
+
     private final JsonMapping jsonMapping;
     private final Executor executor;
     private final JmsOpenTelemetryInstrumenter jmsInstrumenter;
@@ -47,7 +49,7 @@ class JmsSink {
         Duration retryInitialDelay = Duration.parse(config.getRetryInitialDelay());
         Duration retryMaxDelay = Duration.parse(config.getRetryMaxDelay());
         double retryJitter = config.getRetryJitter();
-        resourceHolder.configure(r -> getDestination(r.getContext(), name, type),
+        this.resourceHolder = resourceHolder.configure(r -> getDestination(r.getContext(), name, type),
                 r -> {
                     JMSContext context = r.getContext();
                     JMSProducer producer = context.createProducer();
@@ -80,8 +82,8 @@ class JmsSink {
                     });
                     return producer;
                 });
-        resourceHolder.getDestination();
-        resourceHolder.getClient();
+        this.resourceHolder.getDestination();
+        this.resourceHolder.getClient();
         this.jsonMapping = jsonMapping;
         this.executor = executor;
 
@@ -91,8 +93,12 @@ class JmsSink {
             jmsInstrumenter = null;
         }
 
-        sink = MultiUtils.via(m -> m.onItem().transformToUniAndConcatenate(message -> send(resourceHolder, message)
-                .onFailure(t -> retry)
+        sink = MultiUtils.via(m -> m.onItem().transformToUniAndConcatenate(message -> send(this.resourceHolder, message)
+                .onFailure(t -> {
+                    log.terminalErrorOnChannel(name);
+                    this.resourceHolder.close();
+                    return retry;
+                })
                 .retry()
                 .withJitter(retryJitter)
                 .withBackOff(retryInitialDelay, retryMaxDelay)
