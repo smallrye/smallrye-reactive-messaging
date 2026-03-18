@@ -14,6 +14,8 @@ import java.util.concurrent.TimeoutException;
 
 import jakarta.annotation.PreDestroy;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Instance;
+import jakarta.inject.Inject;
 
 import org.eclipse.microprofile.reactive.messaging.Message;
 
@@ -36,7 +38,10 @@ import com.google.pubsub.v1.ProjectTopicName;
 
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
+import io.opentelemetry.api.OpenTelemetry;
 import io.smallrye.mutiny.subscription.MultiEmitter;
+import io.smallrye.reactive.messaging.gcp.pubsub.tracing.PubSubOpenTelemetryInstrumenter;
+import io.smallrye.reactive.messaging.tracing.TracingUtils;
 
 @ApplicationScoped
 public class PubSubManager {
@@ -48,12 +53,17 @@ public class PubSubManager {
     private final List<MultiEmitter<? super Message<?>>> emitters = new CopyOnWriteArrayList<>();
     private final List<ManagedChannel> channels = new CopyOnWriteArrayList<>();
 
+    @Inject
+    private Instance<OpenTelemetry> openTelemetryInstance;
+
     public Publisher publisher(final PubSubConfig config) {
         return publishers.computeIfAbsent(config, this::buildPublisher);
     }
 
-    public void subscriber(PubSubConfig config, MultiEmitter<? super Message<?>> emitter) {
-        final Subscriber subscriber = buildSubscriber(config, new PubSubMessageReceiver(emitter));
+    public void subscriber(PubSubConfig config, MultiEmitter<? super Message<?>> emitter,
+            PubSubOpenTelemetryInstrumenter incomingInstrumenter) {
+        final Subscriber subscriber = buildSubscriber(config,
+                new PubSubMessageReceiver(emitter, incomingInstrumenter, config));
         emitter.onTermination(() -> {
             subscriber.stopAsync();
             try {
@@ -142,6 +152,10 @@ public class PubSubManager {
             buildCredentialsProvider(config).ifPresent(publisherBuilder::setCredentialsProvider);
             buildTransportChannelProvider(config).ifPresent(publisherBuilder::setChannelProvider);
 
+            final var openTelemetry = TracingUtils.getOpenTelemetry(openTelemetryInstance);
+            publisherBuilder.setOpenTelemetry(openTelemetry);
+            publisherBuilder.setEnableOpenTelemetryTracing(config.isOtelEnabled());
+
             return publisherBuilder.build();
         } catch (final IOException e) {
             throw ex.illegalStateUnableToBuildPublisher(e);
@@ -156,6 +170,10 @@ public class PubSubManager {
 
         buildCredentialsProvider(config).ifPresent(subscriberBuilder::setCredentialsProvider);
         buildTransportChannelProvider(config).ifPresent(subscriberBuilder::setChannelProvider);
+
+        final var openTelemetry = TracingUtils.getOpenTelemetry(openTelemetryInstance);
+        subscriberBuilder.setOpenTelemetry(openTelemetry);
+        subscriberBuilder.setEnableOpenTelemetryTracing(config.isOtelEnabled());
 
         return subscriberBuilder.build();
     }
