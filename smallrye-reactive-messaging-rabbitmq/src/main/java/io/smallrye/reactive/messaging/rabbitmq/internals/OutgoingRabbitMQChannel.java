@@ -32,15 +32,15 @@ public class OutgoingRabbitMQChannel {
             Instance<OpenTelemetry> openTelemetryInstance) {
 
         this.config = oc;
+        holder = connector.getClientHolder(oc, null);
         // Create a client
-        final RabbitMQClient client = RabbitMQClientHelper.createClient(connector, oc);
+        final RabbitMQClient client = holder.client();
         client.getDelegate().addConnectionEstablishedCallback(promise -> {
             // Ensure we create the exchange to which messages are to be sent
             RabbitMQClientHelper.declareExchangeIfNeeded(client, oc, connector.configMaps())
                     .subscribe().with((ignored) -> promise.complete(), promise::fail);
         });
 
-        holder = new ClientHolder(client, oc, connector.vertx(), null);
         final Uni<RabbitMQPublisher> getSender = holder.getOrEstablishConnection()
                 .onItem()
                 .transformToUni(connection -> Uni.createFrom().item(RabbitMQPublisher.create(connector.vertx(), connection,
