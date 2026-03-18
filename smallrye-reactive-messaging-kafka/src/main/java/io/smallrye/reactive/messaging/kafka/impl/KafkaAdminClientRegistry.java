@@ -12,8 +12,11 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 
 import org.apache.kafka.clients.admin.AdminClientConfig;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 import io.smallrye.reactive.messaging.kafka.KafkaAdmin;
 
@@ -22,6 +25,10 @@ public class KafkaAdminClientRegistry {
 
     private final ConcurrentHashMap<String, SharedAdmin> adminClients = new ConcurrentHashMap<>();
     private final AtomicInteger adminClientCounter = new AtomicInteger();
+
+    @Inject
+    @ConfigProperty(name = "smallrye.messaging.kafka.admin-client.pooling.enabled", defaultValue = "false")
+    boolean poolingEnabled;
 
     static class SharedAdmin {
         final KafkaAdmin admin;
@@ -35,26 +42,33 @@ public class KafkaAdminClientRegistry {
         boolean release() {
             return --refCount <= 0;
         }
+    }
 
-        void close() {
-            try {
-                admin.closeAndAwait();
-            } catch (Throwable e) {
-                log.exceptionOnClose(e);
-            }
+    public KafkaAdmin getOrCreateAdminClient(Map<String, Object> config, String channel, boolean incoming) {
+        Map<String, Object> normalized = normalizeAdminConfig(config);
+        if (poolingEnabled) {
+            SharedAdmin entry = adminClients.compute(computeKey(normalized), (k, existing) -> {
+                if (existing != null) {
+                    existing.refCount++;
+                    return existing;
+                }
+                return new SharedAdmin(
+                        createAdminClient(normalized, "smallrye-kafka-admin-" + adminClientCounter.incrementAndGet()));
+            });
+            return entry.admin;
+        } else {
+            String clientId = adminClientName(config, channel, incoming);
+            return createAdminClient(normalized, clientId);
         }
     }
 
-    public KafkaAdmin getOrCreateAdminClient(Map<String, Object> config) {
-        Map<String, Object> normalized = normalizeAdminConfig(config);
-        SharedAdmin entry = adminClients.compute(computeKey(normalized), (k, existing) -> {
-            if (existing != null) {
-                existing.refCount++;
-                return existing;
-            }
-            return new SharedAdmin(createAdminClient(normalized, adminClientCounter.incrementAndGet()));
-        });
-        return entry.admin;
+    static String adminClientName(Map<String, Object> config, String channel, boolean incoming) {
+        Object id = config.get(ConsumerConfig.CLIENT_ID_CONFIG);
+        if (id != null) {
+            return "kafka-admin-" + id + "-" + channel;
+        } else {
+            return "kafka-admin-" + (incoming ? "incoming-" : "outgoing-") + channel;
+        }
     }
 
     /**
@@ -78,9 +92,9 @@ public class KafkaAdminClientRegistry {
         return normalized;
     }
 
-    private static KafkaAdmin createAdminClient(Map<String, Object> normalizedConfig, int adminClientIndex) {
+    private static KafkaAdmin createAdminClient(Map<String, Object> normalizedConfig, String clientId) {
         Map<String, Object> copy = new HashMap<>(normalizedConfig);
-        copy.put(AdminClientConfig.CLIENT_ID_CONFIG, "smallrye-kafka-admin-" + adminClientIndex);
+        copy.put(AdminClientConfig.CLIENT_ID_CONFIG, clientId);
         return new ReactiveKafkaAdminClient(copy);
     }
 
@@ -106,18 +120,31 @@ public class KafkaAdminClientRegistry {
         if (admin == null) {
             return;
         }
-        for (var e : adminClients.entrySet()) {
-            if (e.getValue().admin == admin) {
-                if (adminClients.computeIfPresent(e.getKey(), (k, entry) -> entry.release() ? null : entry) == null) {
-                    e.getValue().close();
+        if (poolingEnabled) {
+            for (var e : adminClients.entrySet()) {
+                if (e.getValue().admin == admin) {
+                    if (adminClients.computeIfPresent(e.getKey(),
+                            (k, entry) -> entry.release() ? null : entry) == null) {
+                        closeQuietly(admin);
+                    }
+                    return;
                 }
-                return;
             }
+        } else {
+            closeQuietly(admin);
         }
     }
 
     public void close() {
-        adminClients.forEach((key, entry) -> entry.close());
+        adminClients.forEach((key, entry) -> closeQuietly(entry.admin));
         adminClients.clear();
+    }
+
+    private static void closeQuietly(KafkaAdmin admin) {
+        try {
+            admin.closeAndAwait();
+        } catch (Throwable e) {
+            log.exceptionOnClose(e);
+        }
     }
 }

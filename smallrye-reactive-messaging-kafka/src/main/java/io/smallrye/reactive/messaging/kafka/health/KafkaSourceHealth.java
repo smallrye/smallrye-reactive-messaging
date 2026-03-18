@@ -50,7 +50,7 @@ public class KafkaSourceHealth extends BaseHealth {
         if (config.getHealthReadinessTopicVerification().orElse(config.getHealthTopicVerificationEnabled())) {
             // Do not create the client if the readiness health checks are disabled
             Map<String, Object> adminConfiguration = new HashMap<>(client.configuration());
-            this.admin = adminClientRegistry.getOrCreateAdminClient(adminConfiguration);
+            this.admin = adminClientRegistry.getOrCreateAdminClient(adminConfiguration, config.getChannel(), true);
         } else {
             this.admin = null;
         }

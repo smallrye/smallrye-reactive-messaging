@@ -41,7 +41,7 @@ public class KafkaSinkHealth extends BaseHealth {
         if (config.getHealthReadinessTopicVerification().orElse(config.getHealthTopicVerificationEnabled())) {
             // Do not create the client if the readiness health checks are disabled
             Map<String, Object> adminConfiguration = new HashMap<>(kafkaConfiguration);
-            this.admin = adminClientRegistry.getOrCreateAdminClient(adminConfiguration);
+            this.admin = adminClientRegistry.getOrCreateAdminClient(adminConfiguration, config.getChannel(), false);
         } else {
             this.admin = null;
         }
