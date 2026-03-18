@@ -11,6 +11,9 @@
 
   <name>SmallRye Reactive Messaging : Connector :: Json-B</name>
 
+  <properties>
+    <revapi.skip>true</revapi.skip>
+  </properties>
 
   <dependencies>
     <dependency>

@@ -13,7 +13,6 @@
   <name>SmallRye Reactive Messaging : Connector :: Kafka User API</name>
 
   <properties>
-    <revapi.skip>false</revapi.skip>
     <jandex.skip>true</jandex.skip>
   </properties>
 

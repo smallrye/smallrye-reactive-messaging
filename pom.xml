@@ -123,7 +123,7 @@
     <revapi-java.version>0.28.4</revapi-java.version>
     <revapi-reporter-json.version>0.5.1</revapi-reporter-json.version>
     <revapi-reporter-text.version>0.15.1</revapi-reporter-text.version>
-    <revapi.skip>true</revapi.skip>
+    <revapi.skip>false</revapi.skip>
 
     <jreleaser-maven-plugin.version>1.23.0</jreleaser-maven-plugin.version>
     <auto-service.version>1.1.1</auto-service.version>

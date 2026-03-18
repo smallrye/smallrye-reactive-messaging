@@ -18,6 +18,7 @@
     <maven.compiler.target>1.8</maven.compiler.target>
     <attribute.file>attributes.yaml</attribute.file>
 
+    <revapi.skip>true</revapi.skip>
     <sonar.skip>true</sonar.skip>
     <jandex.skip>true</jandex.skip>
   </properties>

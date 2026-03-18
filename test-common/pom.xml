@@ -13,6 +13,7 @@
   <name>SmallRye Reactive Messaging : Test Common</name>
 
   <properties>
+    <revapi.skip>true</revapi.skip>
     <jandex.skip>true</jandex.skip>
   </properties>
 
