@@ -11,7 +11,7 @@ public class KafkaProxy {
     public final int proxyPort;
     public final int originalProxyPort;
 
-    protected KafkaProxy(Proxy toxi, String containerIpAddress, int proxyPort, int originalProxyPort) {
+    public KafkaProxy(Proxy toxi, String containerIpAddress, int proxyPort, int originalProxyPort) {
         this.toxi = toxi;
         this.containerIpAddress = containerIpAddress;
         this.proxyPort = proxyPort;

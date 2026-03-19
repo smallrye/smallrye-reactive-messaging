@@ -5,12 +5,11 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.nio.charset.StandardCharsets;
 
+import org.apache.commons.codec.binary.Base64;
 import org.apache.pulsar.client.api.Schema;
 import org.apache.pulsar.client.impl.TypedMessageBuilderImpl;
 import org.apache.pulsar.common.schema.KeyValue;
 import org.junit.jupiter.api.Test;
-
-import com.github.dockerjava.zerodep.shaded.org.apache.commons.codec.binary.Base64;
 
 public class MessageMetadataTest {
 
