@@ -41,6 +41,7 @@ import io.smallrye.reactive.messaging.kafka.KafkaConsumer;
 import io.smallrye.reactive.messaging.kafka.SerializationFailureHandler;
 import io.smallrye.reactive.messaging.kafka.api.OutgoingKafkaRecordMetadata;
 import io.smallrye.reactive.messaging.kafka.impl.ConfigHelper;
+import io.smallrye.reactive.messaging.kafka.impl.KafkaAdminClientRegistry;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSink;
 import io.smallrye.reactive.messaging.providers.impl.Configs;
 import io.vertx.mutiny.core.Vertx;
@@ -79,6 +80,9 @@ public class KafkaDeadLetterQueue implements KafkaFailureHandler {
         KafkaCDIEvents kafkaCDIEvents;
 
         @Inject
+        KafkaAdminClientRegistry adminClientRegistry;
+
+        @Inject
         @Any
         Instance<SerializationFailureHandler<?>> serializationFailureHandlers;
 
@@ -89,9 +93,6 @@ public class KafkaDeadLetterQueue implements KafkaFailureHandler {
         @Inject
         @Any
         Instance<ProducerInterceptor<?, ?>> producerInterceptors;
-
-        @Inject
-        Instance<Config> rootConfig;
 
         @Inject
         @Any
@@ -131,8 +132,8 @@ public class KafkaDeadLetterQueue implements KafkaFailureHandler {
                     producerConfig.getValueSerializer());
 
             UnicastProcessor<Message<?>> processor = UnicastProcessor.create();
-            KafkaSink kafkaSink = new KafkaSink(producerConfig, kafkaCDIEvents, openTelemetryInstance,
-                    configCustomizers, serializationFailureHandlers, producerInterceptors);
+            KafkaSink kafkaSink = new KafkaSink(producerConfig, kafkaCDIEvents, adminClientRegistry,
+                    openTelemetryInstance, configCustomizers, serializationFailureHandlers, producerInterceptors);
             wireOutgoingConnectorToUpstream(processor, kafkaSink.getSink(), subscriberDecorators,
                     producerConfig.getChannel() + "-" + CHANNEL_DLQ_SUFFIX);
             return new KafkaDeadLetterQueue(config.getChannel(), deadQueueTopic, kafkaSink, processor);

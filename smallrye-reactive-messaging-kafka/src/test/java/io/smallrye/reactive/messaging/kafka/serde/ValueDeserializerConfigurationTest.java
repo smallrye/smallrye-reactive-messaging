@@ -24,15 +24,12 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import io.smallrye.reactive.messaging.health.HealthReport;
-import io.smallrye.reactive.messaging.kafka.CountKafkaCdiEvents;
 import io.smallrye.reactive.messaging.kafka.DeserializationFailureHandler;
-import io.smallrye.reactive.messaging.kafka.KafkaConnectorIncomingConfiguration;
 import io.smallrye.reactive.messaging.kafka.KafkaRecord;
 import io.smallrye.reactive.messaging.kafka.base.DoubleInstance;
 import io.smallrye.reactive.messaging.kafka.base.JsonObjectSerde;
 import io.smallrye.reactive.messaging.kafka.base.KafkaCompanionTestBase;
 import io.smallrye.reactive.messaging.kafka.base.SingletonInstance;
-import io.smallrye.reactive.messaging.kafka.base.UnsatisfiedInstance;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 import io.vertx.core.json.JsonObject;
@@ -59,25 +56,14 @@ public class ValueDeserializerConfigurationTest extends KafkaCompanionTestBase {
     public void testMissingValueDeserializerInConfig() {
         MapBasedConfig config = commonConsumerConfiguration()
                 .without("value.deserializer");
-        String group = UUID.randomUUID().toString();
-        assertThatThrownBy(() -> {
-            source = new KafkaSource<>(vertx, group,
-                    new KafkaConnectorIncomingConfiguration(config),
-                    UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
-                    UnsatisfiedInstance.instance(),
-                    CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance(), -1);
-        }).isInstanceOf(IllegalArgumentException.class).hasMessageContaining("value.deserializer");
+        assertThatThrownBy(() -> createSource(config))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("value.deserializer");
     }
 
     @Test
     public void testValueDeserializationFailureWhenNoDeserializerSet() {
         MapBasedConfig config = commonConsumerConfiguration();
-        String group = UUID.randomUUID().toString();
-        source = new KafkaSource<>(vertx, group,
-                new KafkaConnectorIncomingConfiguration(config),
-                UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
-                UnsatisfiedInstance.instance(),
-                CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance(), -1);
+        source = createSource(config);
 
         List<Message<?>> list = new ArrayList<>();
         source.getStream()
@@ -113,12 +99,7 @@ public class ValueDeserializerConfigurationTest extends KafkaCompanionTestBase {
         MapBasedConfig config = commonConsumerConfiguration()
                 .with("value.deserializer", JsonObjectSerde.JsonObjectDeserializer.class.getName())
                 .with("fail-on-deserialization-failure", false);
-        String group = UUID.randomUUID().toString();
-        source = new KafkaSource<>(vertx, group,
-                new KafkaConnectorIncomingConfiguration(config),
-                UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
-                UnsatisfiedInstance.instance(),
-                CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance(), -1);
+        source = createSource(config);
 
         List<Message<?>> list = new ArrayList<>();
         source.getStream()
@@ -154,12 +135,7 @@ public class ValueDeserializerConfigurationTest extends KafkaCompanionTestBase {
         MapBasedConfig config = commonConsumerConfiguration()
                 .with("value.deserializer", JsonObjectSerde.JsonObjectDeserializer.class.getName())
                 .with("health-enabled", true);
-        String group = UUID.randomUUID().toString();
-        source = new KafkaSource<>(vertx, group,
-                new KafkaConnectorIncomingConfiguration(config),
-                UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
-                UnsatisfiedInstance.instance(),
-                CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance(), -1);
+        source = createSource(config);
 
         List<Message<?>> list = new ArrayList<>();
         source.getStream()
@@ -179,12 +155,7 @@ public class ValueDeserializerConfigurationTest extends KafkaCompanionTestBase {
         MapBasedConfig config = commonConsumerConfiguration()
                 .with("value.deserializer", ConstantDeserializer.class.getName())
                 .with("deserializer.value", "constant");
-        String group = UUID.randomUUID().toString();
-        source = new KafkaSource<>(vertx, group,
-                new KafkaConnectorIncomingConfiguration(config),
-                UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
-                UnsatisfiedInstance.instance(),
-                CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance(), -1);
+        source = createSource(config);
 
         List<Message<?>> list = new ArrayList<>();
         source.getStream()
@@ -223,11 +194,7 @@ public class ValueDeserializerConfigurationTest extends KafkaCompanionTestBase {
 
         JsonObject fallback = new JsonObject().put("fallback", "fallback");
         String group = UUID.randomUUID().toString();
-        source = new KafkaSource<>(vertx, group,
-                new KafkaConnectorIncomingConfiguration(config), UnsatisfiedInstance.instance(),
-                commitHandlerFactories, failureHandlerFactories,
-                UnsatisfiedInstance.instance(),
-                CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(),
+        source = createSource(group, config,
                 new SingletonInstance<>("my-deserialization-handler",
                         new DeserializationFailureHandler<JsonObject>() {
                             @Override
@@ -296,12 +263,7 @@ public class ValueDeserializerConfigurationTest extends KafkaCompanionTestBase {
         JsonObject fallbackForValue = new JsonObject().put("fallback", "fallback");
         JsonObject fallbackForKey = new JsonObject().put("fallback", "key");
         String group = UUID.randomUUID().toString();
-        source = new KafkaSource<>(vertx, group,
-                new KafkaConnectorIncomingConfiguration(config),
-                UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
-                UnsatisfiedInstance.instance(),
-                CountKafkaCdiEvents.noCdiEvents,
-                UnsatisfiedInstance.instance(),
+        source = createSource(group, config,
                 new SingletonInstance<>("my-deserialization-handler",
                         new DeserializationFailureHandler<JsonObject>() {
                             @Override
@@ -365,12 +327,7 @@ public class ValueDeserializerConfigurationTest extends KafkaCompanionTestBase {
                 .with("value-deserialization-failure-handler", "my-deserialization-handler");
 
         String group = UUID.randomUUID().toString();
-        source = new KafkaSource<>(vertx, group,
-                new KafkaConnectorIncomingConfiguration(config),
-                UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
-                UnsatisfiedInstance.instance(),
-                CountKafkaCdiEvents.noCdiEvents,
-                UnsatisfiedInstance.instance(),
+        source = createSource(group, config,
                 new SingletonInstance<>("my-deserialization-handler",
                         new DeserializationFailureHandler<JsonObject>() {
                             @Override
@@ -419,25 +376,19 @@ public class ValueDeserializerConfigurationTest extends KafkaCompanionTestBase {
                 .with("value-deserialization-failure-handler", "my-deserialization-handler");
 
         String group = UUID.randomUUID().toString();
-        assertThatThrownBy(() -> {
-            source = new KafkaSource<>(vertx, group,
-                    new KafkaConnectorIncomingConfiguration(config),
-                    UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
-                    UnsatisfiedInstance.instance(),
-                    CountKafkaCdiEvents.noCdiEvents,
-                    UnsatisfiedInstance.instance(),
-                    new SingletonInstance<>("not-matching",
-                            new DeserializationFailureHandler<JsonObject>() {
-                                @Override
-                                public JsonObject handleDeserializationFailure(String topic, boolean isKey, String deserializer,
-                                        byte[] data,
-                                        Exception exception, Headers headers) {
-                                    fail("Should not be called");
-                                    return null;
-                                }
-                            }),
-                    -1);
-        }).isInstanceOf(UnsatisfiedResolutionException.class).hasMessageContaining("my-deserialization-handler");
+        assertThatThrownBy(() -> createSource(group, config,
+                new SingletonInstance<>("not-matching",
+                        new DeserializationFailureHandler<JsonObject>() {
+                            @Override
+                            public JsonObject handleDeserializationFailure(String topic, boolean isKey, String deserializer,
+                                    byte[] data,
+                                    Exception exception, Headers headers) {
+                                fail("Should not be called");
+                                return null;
+                            }
+                        }),
+                -1))
+                .isInstanceOf(UnsatisfiedResolutionException.class).hasMessageContaining("my-deserialization-handler");
     }
 
     @Test
@@ -467,12 +418,7 @@ public class ValueDeserializerConfigurationTest extends KafkaCompanionTestBase {
         };
         String group = UUID.randomUUID().toString();
         assertThatThrownBy(() -> {
-            source = new KafkaSource<>(vertx, group,
-                    new KafkaConnectorIncomingConfiguration(config),
-                    UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
-                    UnsatisfiedInstance.instance(),
-                    CountKafkaCdiEvents.noCdiEvents,
-                    UnsatisfiedInstance.instance(),
+            source = createSource(group, config,
                     new DoubleInstance<>("my-deserialization-handler", i1, i2),
                     -1);
         }).isInstanceOf(AmbiguousResolutionException.class).hasMessageContaining("my-deserialization-handler");
@@ -482,12 +428,7 @@ public class ValueDeserializerConfigurationTest extends KafkaCompanionTestBase {
     public void testWhenValueDeserializerFailsDuringConfig() {
         MapBasedConfig config = commonConsumerConfiguration()
                 .with("value.deserializer", BrokenDeserializerFailingDuringConfig.class.getName());
-        String group = UUID.randomUUID().toString();
-        assertThatThrownBy(() -> source = new KafkaSource<>(vertx, group,
-                new KafkaConnectorIncomingConfiguration(config),
-                UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
-                UnsatisfiedInstance.instance(), CountKafkaCdiEvents.noCdiEvents,
-                UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance(), -1))
+        assertThatThrownBy(() -> createSource(config))
                 .isInstanceOf(KafkaException.class)
                 .hasCauseInstanceOf(IllegalArgumentException.class)
                 .hasStackTraceContaining("boom");

@@ -30,11 +30,8 @@ import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.ce.OutgoingCloudEventMetadata;
 import io.smallrye.reactive.messaging.health.HealthReport;
 import io.smallrye.reactive.messaging.kafka.ConsumptionConsumerRebalanceListener;
-import io.smallrye.reactive.messaging.kafka.CountKafkaCdiEvents;
-import io.smallrye.reactive.messaging.kafka.KafkaConnectorOutgoingConfiguration;
 import io.smallrye.reactive.messaging.kafka.base.KafkaCompanionTestBase;
 import io.smallrye.reactive.messaging.kafka.base.KafkaMapBasedConfig;
-import io.smallrye.reactive.messaging.kafka.base.UnsatisfiedInstance;
 import io.smallrye.reactive.messaging.kafka.companion.ConsumerTask;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSink;
 import io.vertx.core.json.JsonObject;
@@ -58,9 +55,7 @@ public class KafkaSinkWithCloudEventsTest extends KafkaCompanionTestBase {
         config.put("value.serializer", StringSerializer.class.getName());
         config.put("channel-name", topic);
         config.put("cloud-events-mode", "structured");
-        KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
-        sink = new KafkaSink(oc, CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(),
-                UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance());
+        sink = createSink(config);
 
         try (ConsumerTask<String, String> records = companion.consumeStrings().fromTopics(topic)) {
 
@@ -102,9 +97,7 @@ public class KafkaSinkWithCloudEventsTest extends KafkaCompanionTestBase {
         config.put("value.serializer", StringSerializer.class.getName());
         config.put("channel-name", topic);
         config.put("cloud-events-mode", "structured");
-        KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
-        sink = new KafkaSink(oc, CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(),
-                UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance());
+        sink = createSink(config);
 
         try (ConsumerTask<String, String> records = companion.consumeStrings().fromTopics(topic)) {
 
@@ -145,9 +138,7 @@ public class KafkaSinkWithCloudEventsTest extends KafkaCompanionTestBase {
         config.put("value.serializer", StringSerializer.class.getName());
         config.put("channel-name", topic);
         config.put("cloud-events-mode", "structured");
-        KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
-        sink = new KafkaSink(oc, CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(),
-                UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance());
+        sink = createSink(config);
 
         try (ConsumerTask<String, String> records = companion.consumeStrings().fromTopics(topic)) {
 
@@ -190,9 +181,7 @@ public class KafkaSinkWithCloudEventsTest extends KafkaCompanionTestBase {
         config.put("value.serializer", StringSerializer.class.getName());
         config.put("channel-name", topic);
         config.put("cloud-events-mode", "structured");
-        KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
-        sink = new KafkaSink(oc, CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(),
-                UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance());
+        sink = createSink(config);
 
         Message<?> message = Message.of("hello").addMetadata(OutgoingCloudEventMetadata.builder()
                 .withSource(URI.create("test://test"))
@@ -223,10 +212,8 @@ public class KafkaSinkWithCloudEventsTest extends KafkaCompanionTestBase {
         config.put("value.serializer", DoubleSerializer.class.getName());
         config.put("channel-name", topic);
         config.put("cloud-events-mode", "structured");
-        KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
 
-        assertThatThrownBy(() -> new KafkaSink(oc, CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(),
-                UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance()))
+        assertThatThrownBy(() -> createSink(config))
                 .isInstanceOf(IllegalStateException.class);
     }
 
@@ -238,9 +225,7 @@ public class KafkaSinkWithCloudEventsTest extends KafkaCompanionTestBase {
         config.put("value.serializer", StringSerializer.class.getName());
         config.put("channel-name", topic);
         config.put("cloud-events-mode", "structured");
-        KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
-        sink = new KafkaSink(oc, CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(),
-                UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance());
+        sink = createSink(config);
 
         try (ConsumerTask<String, String> records = companion.consumeStrings().fromTopics(topic)) {
 
@@ -281,9 +266,7 @@ public class KafkaSinkWithCloudEventsTest extends KafkaCompanionTestBase {
         config.put("cloud-events-mode", "structured");
         config.put("cloud-events-type", "my type");
         config.put("cloud-events-source", "http://acme.org");
-        KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
-        sink = new KafkaSink(oc, CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(),
-                UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance());
+        sink = createSink(config);
 
         try (ConsumerTask<String, String> records = companion.consumeStrings().fromTopics(topic)) {
 
@@ -320,9 +303,7 @@ public class KafkaSinkWithCloudEventsTest extends KafkaCompanionTestBase {
         config.put("cloud-events-mode", "structured");
         config.put("cloud-events-type", "my type");
         config.put("cloud-events-source", "http://acme.org");
-        KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
-        sink = new KafkaSink(oc, CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(),
-                UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance());
+        sink = createSink(config);
 
         try (ConsumerTask<String, String> records = companion.consumeStrings().fromTopics(topic)) {
 
@@ -355,9 +336,7 @@ public class KafkaSinkWithCloudEventsTest extends KafkaCompanionTestBase {
         config.put("value.serializer", StringSerializer.class.getName());
         config.put("channel-name", topic);
         config.put("cloud-events-mode", "structured");
-        KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
-        sink = new KafkaSink(oc, CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(),
-                UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance());
+        sink = createSink(config);
 
         try (ConsumerTask<String, String> records = companion.consumeStrings().fromTopics(topic)) {
 
@@ -397,9 +376,7 @@ public class KafkaSinkWithCloudEventsTest extends KafkaCompanionTestBase {
         config.put("topic", topic);
         config.put("value.serializer", StringSerializer.class.getName());
         config.put("channel-name", topic);
-        KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
-        sink = new KafkaSink(oc, CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(),
-                UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance());
+        sink = createSink(config);
 
         try (ConsumerTask<String, String> records = companion.consumeStrings().fromTopics(topic)) {
 
@@ -434,9 +411,7 @@ public class KafkaSinkWithCloudEventsTest extends KafkaCompanionTestBase {
         config.put("topic", topic);
         config.put("value.serializer", StringSerializer.class.getName());
         config.put("channel-name", topic);
-        KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
-        sink = new KafkaSink(oc, CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(),
-                UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance());
+        sink = createSink(config);
 
         try (ConsumerTask<String, String> records = companion.consumeStrings().fromTopics(topic)) {
 
@@ -475,9 +450,7 @@ public class KafkaSinkWithCloudEventsTest extends KafkaCompanionTestBase {
         config.put("topic", topic);
         config.put("value.serializer", StringSerializer.class.getName());
         config.put("channel-name", topic);
-        KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
-        sink = new KafkaSink(oc, CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(),
-                UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance());
+        sink = createSink(config);
 
         try (ConsumerTask<String, String> records = companion.consumeStrings().fromTopics(topic)) {
 
@@ -517,9 +490,7 @@ public class KafkaSinkWithCloudEventsTest extends KafkaCompanionTestBase {
         config.put("key", "my-key");
         config.put("cloud-events-type", "my type");
         config.put("cloud-events-source", "http://acme.org");
-        KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
-        sink = new KafkaSink(oc, CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(),
-                UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance());
+        sink = createSink(config);
 
         try (ConsumerTask<String, String> records = companion.consumeStrings().fromTopics(topic)) {
 
@@ -555,9 +526,7 @@ public class KafkaSinkWithCloudEventsTest extends KafkaCompanionTestBase {
         config.put("key", "my-key");
         config.put("cloud-events-type", "my type");
         config.put("cloud-events-source", "http://acme.org");
-        KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
-        sink = new KafkaSink(oc, CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(),
-                UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance());
+        sink = createSink(config);
 
         try (ConsumerTask<String, String> records = companion.consumeStrings().fromTopics(topic)) {
 
@@ -588,9 +557,7 @@ public class KafkaSinkWithCloudEventsTest extends KafkaCompanionTestBase {
         config.put("topic", topic);
         config.put("value.serializer", StringSerializer.class.getName());
         config.put("channel-name", topic);
-        KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
-        sink = new KafkaSink(oc, CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(),
-                UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance());
+        sink = createSink(config);
 
         Message<?> message = Message.of("hello").addMetadata(OutgoingCloudEventMetadata.builder()
                 .withSource(URI.create("test://test"))
@@ -623,9 +590,7 @@ public class KafkaSinkWithCloudEventsTest extends KafkaCompanionTestBase {
         config.put("channel-name", topic);
         config.put("key", "my-key");
         config.put("cloud-events", false);
-        KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
-        sink = new KafkaSink(oc, CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(),
-                UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance());
+        sink = createSink(config);
 
         try (ConsumerTask<String, String> records = companion.consumeStrings().fromTopics(topic)) {
 
@@ -654,9 +619,7 @@ public class KafkaSinkWithCloudEventsTest extends KafkaCompanionTestBase {
         config.put("topic", topic);
         config.put("value.serializer", StringSerializer.class.getName());
         config.put("channel-name", topic);
-        KafkaConnectorOutgoingConfiguration oc = new KafkaConnectorOutgoingConfiguration(config);
-        sink = new KafkaSink(oc, CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(),
-                UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance());
+        sink = createSink(config);
 
         try (ConsumerTask<String, String> records = companion.consumeStrings().fromTopics(topic)) {
 

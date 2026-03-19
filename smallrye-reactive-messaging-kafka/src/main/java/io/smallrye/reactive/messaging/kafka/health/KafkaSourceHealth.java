@@ -18,7 +18,7 @@ import org.apache.kafka.common.TopicPartition;
 import io.smallrye.reactive.messaging.health.HealthReport;
 import io.smallrye.reactive.messaging.kafka.KafkaAdmin;
 import io.smallrye.reactive.messaging.kafka.KafkaConnectorIncomingConfiguration;
-import io.smallrye.reactive.messaging.kafka.impl.KafkaAdminHelper;
+import io.smallrye.reactive.messaging.kafka.impl.KafkaAdminClientRegistry;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
 import io.smallrye.reactive.messaging.kafka.impl.ReactiveKafkaConsumer;
 
@@ -31,9 +31,13 @@ public class KafkaSourceHealth extends BaseHealth {
     private final Pattern pattern;
     private final Duration adminClientTimeout;
 
-    public KafkaSourceHealth(KafkaSource<?, ?> source, KafkaConnectorIncomingConfiguration config,
-            ReactiveKafkaConsumer<?, ?> client, Set<String> topics, Pattern pattern) {
+    public KafkaSourceHealth(KafkaSource<?, ?> source,
+            KafkaConnectorIncomingConfiguration config,
+            ReactiveKafkaConsumer<?, ?> client,
+            KafkaAdminClientRegistry adminClientRegistry,
+            Set<String> topics, Pattern pattern) {
         super(config.getChannel(),
+                adminClientRegistry,
                 config.getHealthReadinessTopicVerification().orElse(config.getHealthTopicVerificationEnabled()),
                 config.getHealthTopicVerificationStartupDisabled(),
                 config.getHealthTopicVerificationReadinessDisabled());
@@ -46,7 +50,7 @@ public class KafkaSourceHealth extends BaseHealth {
         if (config.getHealthReadinessTopicVerification().orElse(config.getHealthTopicVerificationEnabled())) {
             // Do not create the client if the readiness health checks are disabled
             Map<String, Object> adminConfiguration = new HashMap<>(client.configuration());
-            this.admin = KafkaAdminHelper.createAdminClient(adminConfiguration, config.getChannel(), true);
+            this.admin = adminClientRegistry.getOrCreateAdminClient(adminConfiguration, config.getChannel(), true);
         } else {
             this.admin = null;
         }

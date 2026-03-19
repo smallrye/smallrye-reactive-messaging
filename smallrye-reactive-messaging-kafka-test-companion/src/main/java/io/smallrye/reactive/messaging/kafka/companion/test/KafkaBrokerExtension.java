@@ -12,6 +12,7 @@ import java.time.Duration;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.kafka.clients.CommonClientConfigs;
 import org.apache.kafka.clients.admin.AdminClient;
@@ -37,6 +38,7 @@ public class KafkaBrokerExtension implements BeforeAllCallback, BeforeEachCallba
     public static final String STRIMZI_VERSION = "4.2.0";
 
     protected GenericContainer<?> kafka;
+    protected AdminClient brokerHealthyAdmin;
 
     @Override
     public void beforeAll(ExtensionContext context) {
@@ -45,6 +47,7 @@ public class KafkaBrokerExtension implements BeforeAllCallback, BeforeEachCallba
         if (extension == null) {
             LOGGER.info("Starting Kafka broker");
             startKafkaBroker();
+            startAdminClient();
             globalStore.put(KafkaBrokerExtension.class, this);
         }
     }
@@ -52,6 +55,7 @@ public class KafkaBrokerExtension implements BeforeAllCallback, BeforeEachCallba
     @Override
     public void close() {
         LOGGER.info("Stopping Kafka broker");
+        stopAdminClient();
         stopKafkaBroker();
     }
 
@@ -122,7 +126,14 @@ public class KafkaBrokerExtension implements BeforeAllCallback, BeforeEachCallba
         kafka = createKafkaContainer();
         kafka.start();
         LOGGER.info("Kafka broker started: " + getBootstrapServers(kafka) + " (" + kafka.getMappedPort(9092) + ")");
-        await().until(() -> kafka.isRunning());
+        await().pollDelay(1, TimeUnit.MILLISECONDS).until(() -> kafka.isRunning());
+    }
+
+    private void startAdminClient() {
+        Map<String, Object> config = new HashMap<>();
+        config.put(CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG, getBootstrapServers(kafka));
+        config.put(CommonClientConfigs.CLIENT_ID_CONFIG, "broker-healthy-admin");
+        brokerHealthyAdmin = AdminClient.create(config);
     }
 
     /**
@@ -155,7 +166,7 @@ public class KafkaBrokerExtension implements BeforeAllCallback, BeforeEachCallba
             k.withPort(port);
         }
         kafka.start();
-        await().until(kafka::isRunning);
+        await().pollDelay(1, TimeUnit.MILLISECONDS).until(kafka::isRunning);
         return kafka;
     }
 
@@ -164,6 +175,16 @@ public class KafkaBrokerExtension implements BeforeAllCallback, BeforeEachCallba
             Thread.sleep(duration.toMillis());
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
+        }
+    }
+
+    private void stopAdminClient() {
+        if (brokerHealthyAdmin != null) {
+            try {
+                brokerHealthyAdmin.close();
+            } catch (Exception e) {
+                // Ignore it.
+            }
         }
     }
 
@@ -216,15 +237,10 @@ public class KafkaBrokerExtension implements BeforeAllCallback, BeforeEachCallba
     }
 
     private void isBrokerHealthy() {
-        await().until(() -> kafka.isRunning());
-        await().catchUncaughtExceptions().until(() -> {
-            Map<String, Object> config = new HashMap<>();
-            config.put(CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG, getBootstrapServers(kafka));
-            config.put(CommonClientConfigs.CLIENT_ID_CONFIG, "broker-healthy-admin");
-            try (AdminClient admin = AdminClient.create(config)) {
-                Collection<Node> nodes = admin.describeCluster().nodes().get();
-                return nodes.size() == 1 && nodes.iterator().next().id() >= 0;
-            }
+        await().pollDelay(1, TimeUnit.MILLISECONDS).until(() -> kafka.isRunning());
+        await().pollDelay(1, TimeUnit.MILLISECONDS).catchUncaughtExceptions().until(() -> {
+            Collection<Node> nodes = brokerHealthyAdmin.describeCluster().nodes().get();
+            return nodes.size() == 1 && nodes.iterator().next().id() >= 0;
         });
     }
 

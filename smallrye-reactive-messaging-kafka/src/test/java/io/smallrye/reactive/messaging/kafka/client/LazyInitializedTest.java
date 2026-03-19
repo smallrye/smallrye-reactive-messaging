@@ -52,7 +52,7 @@ public class LazyInitializedTest extends WeldTestBase {
         MapBasedConfig config = new MapBasedConfig(props);
 
         KafkaSink sink = new KafkaSink(new KafkaConnectorOutgoingConfiguration(config),
-                CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(),
+                CountKafkaCdiEvents.noCdiEvents, getAdminClientRegistry(), UnsatisfiedInstance.instance(),
                 UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance());
 
         KafkaProducer<?, ?> producer = sink.getProducer();
@@ -90,11 +90,10 @@ public class LazyInitializedTest extends WeldTestBase {
         props.put("topic", "topic");
         MapBasedConfig config = new MapBasedConfig(props);
 
-        assertThatThrownBy(() -> {
-            KafkaSink sink = new KafkaSink(new KafkaConnectorOutgoingConfiguration(config),
-                    CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(),
-                    UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance());
-        }).hasCauseInstanceOf(KafkaException.class);
+        assertThatThrownBy(() -> new KafkaSink(new KafkaConnectorOutgoingConfiguration(config),
+                CountKafkaCdiEvents.noCdiEvents, getAdminClientRegistry(), UnsatisfiedInstance.instance(),
+                UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance()))
+                .hasCauseInstanceOf(KafkaException.class);
 
     }
 
@@ -118,6 +117,7 @@ public class LazyInitializedTest extends WeldTestBase {
                 failureHandlerFactories,
                 UnsatisfiedInstance.instance(),
                 CountKafkaCdiEvents.noCdiEvents,
+                getAdminClientRegistry(),
                 UnsatisfiedInstance.instance(),
                 UnsatisfiedInstance.instance(),
                 0);
@@ -159,6 +159,7 @@ public class LazyInitializedTest extends WeldTestBase {
                     failureHandlerFactories,
                     UnsatisfiedInstance.instance(),
                     CountKafkaCdiEvents.noCdiEvents,
+                    getAdminClientRegistry(),
                     UnsatisfiedInstance.instance(),
                     UnsatisfiedInstance.instance(),
                     0);

@@ -27,6 +27,7 @@ import io.smallrye.reactive.messaging.kafka.KafkaCDIEvents;
 import io.smallrye.reactive.messaging.kafka.KafkaConsumerRebalanceListener;
 import io.smallrye.reactive.messaging.kafka.commit.KafkaCommitHandler;
 import io.smallrye.reactive.messaging.kafka.fault.KafkaFailureHandler;
+import io.smallrye.reactive.messaging.kafka.impl.KafkaAdminClientRegistry;
 import io.smallrye.reactive.messaging.providers.connectors.ExecutionHolder;
 import io.smallrye.reactive.messaging.providers.extension.ChannelProducer;
 import io.smallrye.reactive.messaging.providers.helpers.ConverterUtils;
@@ -44,6 +45,9 @@ public class KafkaRequestReplyFactory implements EmitterFactory<KafkaRequestRepl
 
     @Inject
     KafkaCDIEvents kafkaCDIEvents;
+
+    @Inject
+    KafkaAdminClientRegistry adminClientRegistry;
 
     @Inject
     // @Any would only be needed if we wanted to allow implementations with qualifiers
@@ -87,7 +91,7 @@ public class KafkaRequestReplyFactory implements EmitterFactory<KafkaRequestRepl
     @Override
     public KafkaRequestReplyImpl<Object, Object> createEmitter(EmitterConfiguration configuration, long defaultBufferSize) {
         return new KafkaRequestReplyImpl<>(configuration, defaultBufferSize, config.get(), configurations, holder.vertx(),
-                kafkaCDIEvents, openTelemetryInstance, commitStrategyFactories, failureStrategyFactories,
+                kafkaCDIEvents, adminClientRegistry, openTelemetryInstance, commitStrategyFactories, failureStrategyFactories,
                 configCustomizers, failureHandlers, correlationIdHandlers, replyFailureHandlers, rebalanceListeners);
     }
 

@@ -18,11 +18,8 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 import io.smallrye.mutiny.Multi;
-import io.smallrye.reactive.messaging.kafka.CountKafkaCdiEvents;
-import io.smallrye.reactive.messaging.kafka.KafkaConnectorOutgoingConfiguration;
 import io.smallrye.reactive.messaging.kafka.base.JsonObjectSerde;
 import io.smallrye.reactive.messaging.kafka.base.KafkaCompanionTestBase;
-import io.smallrye.reactive.messaging.kafka.base.UnsatisfiedInstance;
 import io.smallrye.reactive.messaging.kafka.companion.ConsumerTask;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSink;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
@@ -43,9 +40,7 @@ public class SerializerConfigurationTest extends KafkaCompanionTestBase {
     @Test
     public void testThatWhenNotSetKeySerializerIsString() {
         MapBasedConfig config = commonConsumerConfiguration();
-        sink = new KafkaSink(new KafkaConnectorOutgoingConfiguration(config), CountKafkaCdiEvents.noCdiEvents,
-                UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance(),
-                UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance());
+        sink = createSink(config);
 
         ConsumerTask<String, String> consumed = companion.consumeStrings().fromTopics(topic, 4, Duration.ofSeconds(10));
 
@@ -76,9 +71,7 @@ public class SerializerConfigurationTest extends KafkaCompanionTestBase {
                 .with("value.serializer", JsonObjectSerde.JsonObjectSerializer.class.getName())
                 .with("key.serializer", JsonObjectSerde.JsonObjectSerializer.class.getName())
                 .with("retries", 0L);
-        sink = new KafkaSink(new KafkaConnectorOutgoingConfiguration(config), CountKafkaCdiEvents.noCdiEvents,
-                UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance(),
-                UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance());
+        sink = createSink(config);
         Flow.Subscriber<? extends Message<?>> subscriber = sink.getSink();
         AtomicBoolean nacked = new AtomicBoolean();
         Multi.createFrom().items(
@@ -96,9 +89,7 @@ public class SerializerConfigurationTest extends KafkaCompanionTestBase {
                 .with("value.serializer", JsonObjectSerde.JsonObjectSerializer.class.getName())
                 .with("key.serializer", JsonObjectSerde.JsonObjectSerializer.class.getName())
                 .with("retries", 0L);
-        sink = new KafkaSink(new KafkaConnectorOutgoingConfiguration(config), CountKafkaCdiEvents.noCdiEvents,
-                UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance(),
-                UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance());
+        sink = createSink(config);
         Flow.Subscriber<? extends Message<?>> subscriber = sink.getSink();
         AtomicBoolean nacked = new AtomicBoolean();
         Multi.createFrom().items(
@@ -116,9 +107,7 @@ public class SerializerConfigurationTest extends KafkaCompanionTestBase {
                 .without("value.serializer");
 
         assertThatThrownBy(() -> {
-            sink = new KafkaSink(new KafkaConnectorOutgoingConfiguration(config), CountKafkaCdiEvents.noCdiEvents,
-                    UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance(),
-                    UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance());
+            sink = createSink(config);
         }).isInstanceOf(IllegalArgumentException.class).hasMessageContaining("value.serializer");
 
     }
@@ -129,9 +118,7 @@ public class SerializerConfigurationTest extends KafkaCompanionTestBase {
                 .with("value.serializer", BrokenSerializerFailingDuringConfig.class.getName());
 
         assertThatThrownBy(() -> {
-            sink = new KafkaSink(new KafkaConnectorOutgoingConfiguration(config), CountKafkaCdiEvents.noCdiEvents,
-                    UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance(),
-                    UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance());
+            sink = createSink(config);
         }).isInstanceOf(KafkaException.class)
                 .hasCauseInstanceOf(IllegalStateException.class)
                 .hasStackTraceContaining("boom");

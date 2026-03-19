@@ -60,6 +60,7 @@ import io.smallrye.reactive.messaging.kafka.api.OutgoingKafkaRecordMetadata;
 import io.smallrye.reactive.messaging.kafka.commit.ContextHolder;
 import io.smallrye.reactive.messaging.kafka.commit.KafkaLatestCommit;
 import io.smallrye.reactive.messaging.kafka.impl.ConfigHelper;
+import io.smallrye.reactive.messaging.kafka.impl.KafkaAdminClientRegistry;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSink;
 import io.smallrye.reactive.messaging.kafka.impl.ReactiveKafkaConsumer;
 import io.smallrye.reactive.messaging.providers.impl.Configs;
@@ -90,6 +91,9 @@ public class KafkaDelayedRetryTopic extends ContextHolder implements KafkaFailur
 
         @Inject
         KafkaCDIEvents kafkaCDIEvents;
+
+        @Inject
+        KafkaAdminClientRegistry adminClientRegistry;
 
         @Inject
         @Any
@@ -152,8 +156,8 @@ public class KafkaDelayedRetryTopic extends ContextHolder implements KafkaFailur
             log.delayedRetryTopic(config.getChannel(), retryTopics, maxRetries, retryTimeout, deadQueueTopic);
 
             UnicastProcessor<Message<?>> processor = UnicastProcessor.create();
-            KafkaSink kafkaSink = new KafkaSink(producerConfig, kafkaCDIEvents, openTelemetryInstance,
-                    configCustomizers, serializationFailureHandlers, producerInterceptors);
+            KafkaSink kafkaSink = new KafkaSink(producerConfig, kafkaCDIEvents, adminClientRegistry,
+                    openTelemetryInstance, configCustomizers, serializationFailureHandlers, producerInterceptors);
             wireOutgoingConnectorToUpstream(processor, kafkaSink.getSink(), subscriberDecorators,
                     producerConfig.getChannel() + "-" + CHANNEL_DLQ_SUFFIX);
 

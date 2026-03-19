@@ -73,11 +73,7 @@ public class KafkaSourceTest extends KafkaCompanionTestBase {
     public void testSource() {
         MapBasedConfig config = newCommonConfigForSource()
                 .with("value.deserializer", IntegerDeserializer.class.getName());
-        KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
-        source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
-                UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
-                UnsatisfiedInstance.instance(), CountKafkaCdiEvents.noCdiEvents,
-                UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance(), -1);
+        source = createSource(config);
 
         List<Message<?>> messages = new ArrayList<>();
         source.getStream().subscribe().with(messages::add);
@@ -97,11 +93,7 @@ public class KafkaSourceTest extends KafkaCompanionTestBase {
                 .with("partitions", 4);
 
         companion.topics().createAndWait(topic, 3, Duration.ofMinutes(1));
-        KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
-        source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
-                UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
-                UnsatisfiedInstance.instance(), CountKafkaCdiEvents.noCdiEvents,
-                UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance(), -1);
+        source = createSource(config);
 
         List<Message<?>> messages = new ArrayList<>();
         source.getStream().subscribe().with(messages::add);
@@ -121,11 +113,7 @@ public class KafkaSourceTest extends KafkaCompanionTestBase {
     public void testSourceWithChannelName() {
         MapBasedConfig config = newCommonConfigForSource()
                 .with("value.deserializer", IntegerDeserializer.class.getName());
-        KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
-        source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
-                UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
-                UnsatisfiedInstance.instance(), CountKafkaCdiEvents.noCdiEvents,
-                UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance(), -1);
+        source = createSource(config);
 
         List<KafkaRecord> messages = new ArrayList<>();
         source.getStream().subscribe().with(messages::add);
@@ -155,6 +143,7 @@ public class KafkaSourceTest extends KafkaCompanionTestBase {
         connector.commitHandlerFactories = new SingletonInstance<>("throttled",
                 new KafkaThrottledLatestProcessedCommit.Factory());
         connector.failureHandlerFactories = new SingletonInstance<>("fail", new KafkaFailStop.Factory());
+        connector.adminClientRegistry = getAdminClientRegistry();
         connector.init();
 
         Flow.Publisher<KafkaRecord<?, ?>> builder = (Flow.Publisher<KafkaRecord<?, ?>>) connector.getPublisher(config);
@@ -195,6 +184,7 @@ public class KafkaSourceTest extends KafkaCompanionTestBase {
         connector.commitHandlerFactories = new SingletonInstance<>("throttled",
                 new KafkaThrottledLatestProcessedCommit.Factory());
         connector.failureHandlerFactories = new SingletonInstance<>("fail", new KafkaFailStop.Factory());
+        connector.adminClientRegistry = getAdminClientRegistry();
         connector.init();
 
         Flow.Publisher<KafkaRecord<?, ?>> builder = (Flow.Publisher<KafkaRecord<?, ?>>) connector.getPublisher(config);
@@ -232,11 +222,7 @@ public class KafkaSourceTest extends KafkaCompanionTestBase {
 
             KafkaCompanion kafkaCompanion = new KafkaCompanion(KafkaBrokerExtension.getBootstrapServers(kafka));
 
-            KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
-            source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
-                    UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
-                    UnsatisfiedInstance.instance(), CountKafkaCdiEvents.noCdiEvents,
-                    UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance(), -1);
+            source = createSource(config);
             List<KafkaRecord> messages1 = new ArrayList<>();
             source.getStream().subscribe().with(messages1::add);
 
@@ -501,11 +487,7 @@ public class KafkaSourceTest extends KafkaCompanionTestBase {
     public void testInvalidIncomingType() {
         MapBasedConfig config = newCommonConfigForSource()
                 .with("value.deserializer", IntegerDeserializer.class.getName());
-        KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
-        source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
-                UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
-                UnsatisfiedInstance.instance(), CountKafkaCdiEvents.noCdiEvents,
-                UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance(), -1);
+        source = createSource(config);
 
         List<Message<?>> messages = new ArrayList<>();
         source.getStream().subscribe().with(messages::add);
@@ -567,11 +549,7 @@ public class KafkaSourceTest extends KafkaCompanionTestBase {
                 .with("value.deserializer", IntegerDeserializer.class.getName())
                 .with("sasl.jaas.config", "") //optional configuration
                 .with("sasl.mechanism", ""); //optional configuration
-        KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
-        source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
-                UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
-                UnsatisfiedInstance.instance(), CountKafkaCdiEvents.noCdiEvents,
-                UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance(), -1);
+        source = createSource(config);
 
         List<Message<?>> messages = new ArrayList<>();
         source.getStream().subscribe().with(messages::add);
