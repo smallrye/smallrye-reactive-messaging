@@ -1,0 +1,211 @@
+# Sending messages to RabbitMQ
+
+The RabbitMQ OG connector can write Reactive Messaging `Messages` as
+RabbitMQ Messages.
+
+!!!note
+    In this context, the reactive messaging concept of a *Channel* is
+    realised as a [RabbitMQ
+    Exchange](https://www.rabbitmq.com/tutorials/amqp-concepts.html#exchanges).
+
+## Example
+
+Let's imagine you have a RabbitMQ broker running, and accessible using
+the `rabbitmq:5672` address (by default it would use `localhost:5672`).
+Configure your application to send the messages from the `prices`
+channel as a RabbitMQ Message as follows:
+
+```
+rabbitmq-host=rabbitmq   # <1>
+rabbitmq-port=5672       # <2>
+rabbitmq-username=my-username # <3>
+rabbitmq-password=my-password  # <4>
+
+mp.messaging.outgoing.prices.connector=smallrye-rabbitmq-og # <5>
+mp.messaging.outgoing.prices.default-routing-key=normal       # <6>
+```
+
+1.  Configures the broker/router host name. You can do it per channel
+    (using the `host` attribute) or globally using `rabbitmq-host`
+
+2.  Configures the broker/router port. You can do it per channel (using
+    the `port` attribute) or globally using `rabbitmq-port`. The default
+    is `5672`.
+
+3.  Configures the broker/router username if required. You can do it per
+    channel (using the `username` attribute) or globally using
+    `rabbitmq-username`.
+
+4.  Configures the broker/router password if required. You can do it per
+    channel (using the `password` attribute) or globally using
+    `rabbitmq-password`.
+
+5.  Instructs the `prices` channel to be managed by the RabbitMQ OG
+    connector
+
+6.  Supplies the default routing key to be included in outbound
+    messages; this will be used if the "raw payload" form of message
+    sending is used (see below).
+
+!!!note
+    You don't need to set the RabbitMQ exchange name. By default, it uses
+    the channel name (`prices`) as the name of the exchange to send messages
+    to. You can configure the `exchange.name` attribute to override it.
+
+Then, your application can send `Message<Double>` to the prices channel.
+It can use `double` payloads as in the following snippet:
+
+``` java
+{{ insert('rabbitmq/og/outbound/RabbitMQPriceProducer.java') }}
+```
+
+Or, you can send `Message<Double>`, which affords the opportunity to
+explicitly specify metadata on the outgoing message:
+
+``` java
+{{ insert('rabbitmq/og/outbound/RabbitMQPriceMessageProducer.java') }}
+```
+
+## Serialization
+
+When sending a `Message<T>`, the connector converts the message into a
+RabbitMQ Message. The payload is converted to the RabbitMQ Message body.
+
+| T                                  | RabbitMQ Message Body                                                          |
+|------------------------------------|--------------------------------------------------------------------------------|
+| primitive types or `UUID`/`String` | String value with `content_type` set to `text/plain`                           |
+| `byte[]`                           | Binary content, with `content_type` set to `application/octet-stream`          |
+| Any other class                    | The payload is converted via `toString()` with `content_type` set to `application/json` |
+
+!!!note
+    Unlike the Vert.x-based RabbitMQ connector, the OG connector does not
+    handle Vert.x `JsonObject`, `JsonArray`, or `Buffer` types directly.
+    For JSON payloads, serialize to `String` or `byte[]` before sending.
+
+If the message payload cannot be serialized, the message is *nacked*.
+
+## Outbound Metadata
+
+When sending `Messages`, you can add an instance of {{ javadoc('io.smallrye.reactive.messaging.rabbitmq.og.OutgoingRabbitMQMetadata', False, 'io.smallrye.reactive/smallrye-reactive-messaging-rabbitmq-og') }}
+to influence how the message is handled by RabbitMQ. For example, you
+can configure the routing key, timestamp and headers:
+
+``` java
+{{ insert('rabbitmq/og/outbound/RabbitMQOutboundMetadataExample.java', 'code') }}
+```
+
+!!!note
+    The `OutgoingRabbitMQMetadata` in the OG connector uses
+    `OutgoingRabbitMQMetadata.builder()` as the entry point for building
+    metadata (instead of `new OutgoingRabbitMQMetadata.Builder()`). It
+    also uses `java.util.Date` for timestamps instead of `ZonedDateTime`.
+
+## Publisher Confirms
+
+The OG connector supports [publisher confirms](https://www.rabbitmq.com/docs/confirms#publisher-confirms)
+for reliable message publishing. When enabled, the connector waits for
+the broker to acknowledge each published message before considering the
+send operation complete.
+
+```properties
+mp.messaging.outgoing.prices.publish-confirms=true
+```
+
+When publisher confirms are enabled, message acknowledgement in
+Reactive Messaging is tied to the broker's confirmation. If the broker
+does not confirm the message, the Reactive Messaging message is *nacked*.
+
+## Acknowledgement
+
+By default, the Reactive Messaging `Message` is acknowledged when the
+broker acknowledges the message.
+
+## Configuration Reference
+
+{{ insert('../../../target/connectors/smallrye-rabbitmq-og-outgoing.md') }}
+
+## Using existing destinations
+
+To use an existing *exchange*, you may need to configure the
+`exchange.name` attribute.
+
+For example, if you have a RabbitMQ broker already configured with an
+exchange called `people` that you wish to send messages to, you need the
+following configuration:
+
+``` properties
+mp.messaging.outgoing.people.connector=smallrye-rabbitmq-og
+```
+
+You would need to configure the `exchange.name` attribute, if the
+exchange name were not the channel name:
+
+``` properties
+mp.messaging.outgoing.people-out.connector=smallrye-rabbitmq-og
+mp.messaging.outgoing.people-out.exchange.name=people
+```
+
+If you want RabbitMQ to create the `people` exchange, you need the
+following configuration:
+
+``` properties
+mp.messaging.outgoing.people-out.connector=smallrye-rabbitmq-og
+mp.messaging.outgoing.people-out.exchange.name=people
+mp.messaging.outgoing.people-out.exchange.declare=true
+```
+
+!!!note
+    The above example will create a `topic` exchange and use an empty
+    default `routing-key` (unless overridden programatically using outgoing
+    metadata for the message). If you want to create a different type of
+    exchange or have a different default routing key, then the
+    `exchange.type` and `default-routing-key` properties need to be
+    explicitly specified.
+
+## Sending to specific queues via the default exchange
+
+To send a message to a specific queue (usually a reply queue),
+you have to configure the default exchange as an outgoing channel and set the name of the queue as routing key in the message metadata.
+The name of the exchange needs to be set to `""`.
+
+```properties
+mp.messaging.outgoing.channel-name-for-default-exchange.connector=smallrye-rabbitmq-og
+mp.messaging.outgoing.channel-name-for-default-exchange.exchange.name=""
+```
+
+## Custom arguments for Exchange declaration
+
+When exchange declaration is made by the Reactive Messaging channel, using the `exchange.declare=true` configuration,
+custom exchange arguments can be specified using the `exchange.arguments` attribute.
+`exchange.arguments` accepts the identifier (using the `@Identifier` qualifier) of a `Map<String, Object>` exposed as a CDI bean.
+If no arguments has been configured, the default **rabbitmq-exchange-arguments** identifier is looked for.
+
+The following CDI bean produces such a configuration identified with **my-arguments**:
+
+``` java
+{{ insert('rabbitmq/og/customization/ArgumentProducers.java') }}
+```
+
+Then the channel can be configured to use those arguments in exchange declaration:
+
+```properties
+mp.messaging.outgoing.data.exchange.arguments=my-arguments
+```
+
+Similarly, the `dead-letter-exchange.arguments` allows configuring custom arguments for dead letter exchange when one is declared (`dlx.declare=true`).
+
+## Retry on failure
+
+The OG connector supports automatic retry when message publishing fails.
+This is controlled by two configuration attributes:
+
+-   `retry-on-fail-attempts` (default: 6) - the number of retry attempts
+    before giving up.
+
+-   `retry-on-fail-interval` (default: 5 seconds) - the interval between
+    retry attempts.
+
+```properties
+mp.messaging.outgoing.prices.retry-on-fail-attempts=10
+mp.messaging.outgoing.prices.retry-on-fail-interval=3
+```

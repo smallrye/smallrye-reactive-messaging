@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
@@ -60,7 +61,7 @@
     <maven.compiler.source>17</maven.compiler.source>
     <maven.compiler.target>17</maven.compiler.target>
 
-    <vertx.version>4.5.14</vertx.version>
+    <vertx.version>5.0.8</vertx.version>
     <rxjava.version>2.2.21</rxjava.version>
     <cloudevent.version>1.1.0</cloudevent.version>
     <weld.version>6.0.4.Final</weld.version>
@@ -92,7 +93,7 @@
     <opentelemetry.instrumentation.version>2.23.0</opentelemetry.instrumentation.version> <!-- Otel SDK 1.57.0-->
     <opentelemetry-semconv.version>1.37.0</opentelemetry-semconv.version>
 
-    <smallrye-vertx-mutiny-clients.version>3.19.1</smallrye-vertx-mutiny-clients.version>
+    <smallrye-vertx-mutiny-clients.version>4.0.0-beta0</smallrye-vertx-mutiny-clients.version>
     <smallrye-reactive-converters.version>3.0.0</smallrye-reactive-converters.version>
     <mutiny-zero.version>1.1.0</mutiny-zero.version>
 
@@ -137,13 +138,14 @@
     <module>smallrye-reactive-messaging-kafka</module>
     <module>smallrye-reactive-messaging-kafka-api</module>
     <module>smallrye-reactive-messaging-kafka-test-companion</module>
-    <module>smallrye-reactive-messaging-mqtt</module>
+<!--    <module>smallrye-reactive-messaging-mqtt</module>-->
     <module>smallrye-reactive-messaging-amqp</module>
     <module>smallrye-reactive-messaging-jms</module>
     <module>smallrye-reactive-messaging-jsonb</module>
     <module>smallrye-reactive-messaging-jackson</module>
     <module>smallrye-reactive-messaging-health</module>
     <module>smallrye-reactive-messaging-rabbitmq</module>
+    <module>smallrye-reactive-messaging-rabbitmq-og</module>
     <module>smallrye-reactive-messaging-gcp-pubsub</module>
     <module>smallrye-reactive-messaging-pulsar</module>
     <module>smallrye-reactive-messaging-aws-sns</module>
@@ -153,6 +155,7 @@
     <module>smallrye-connector-attribute-processor</module>
     <module>smallrye-reactive-messaging-connector-archetype</module>
 
+    <module>openrewrite-recipes</module>
     <module>test-common</module>
   </modules>
 
@@ -225,7 +228,7 @@
       </dependency>
       <dependency>
         <groupId>io.smallrye.common</groupId>
-        <artifactId>smallrye-common-vertx-context</artifactId>
+        <artifactId>smallrye-common-vertx5-context</artifactId>
         <version>${smallrye-common.version}</version>
       </dependency>
       <dependency>
@@ -693,6 +696,40 @@
           <skip>${revapi.skip}</skip>
         </configuration>
       </plugin>
+
+      <plugin>
+        <groupId>org.openrewrite.maven</groupId>
+        <artifactId>rewrite-maven-plugin</artifactId>
+        <version>6.29.0</version>
+        <configuration>
+          <activeRecipes>
+            <recipe>io.smallrye.reactive.messaging.recipes.VertxMigration</recipe>
+          </activeRecipes>
+          <!-- Allow running on non-compiling code -->
+          <failOnInvalidActiveRecipes>false</failOnInvalidActiveRecipes>
+          <failOnDryRunResults>false</failOnDryRunResults>
+          <!-- Skip parsing errors caused by missing types -->
+          <skipMavenParsing>false</skipMavenParsing>
+          <!-- Exclude empty marker files and other non-parseable resources -->
+          <exclusions>
+            <exclusion>**/beans.xml</exclusion>
+          </exclusions>
+          <!-- Treat empty XML files as plain text to avoid parsing errors -->
+          <plainTextMasks>
+            <mask>**/beans.xml</mask>
+          </plainTextMasks>
+          <!-- Explicitly parse test sources -->
+          <pomCacheEnabled>false</pomCacheEnabled>
+          <sizeThresholdMb>10</sizeThresholdMb>
+        </configuration>
+        <dependencies>
+          <dependency>
+            <groupId>io.smallrye.reactive</groupId>
+            <artifactId>smallrye-reactive-messaging-openrewrite-recipes</artifactId>
+            <version>${project.version}</version>
+          </dependency>
+        </dependencies>
+      </plugin>
     </plugins>
   </build>
 
@@ -807,7 +844,7 @@
         <activeByDefault>false</activeByDefault>
       </activation>
       <properties>
-        <excludedGroups />
+        <excludedGroups/>
         <groups>slow,flaky</groups>
       </properties>
     </profile>
@@ -849,17 +886,17 @@
         <defaultGoal>clean install</defaultGoal>
         <plugins>
           <plugin>
-          <groupId>io.sundr</groupId>
-          <artifactId>sundr-maven-plugin</artifactId>
-          <version>${sundr-maven-plugin.version}</version>
-          <executions>
-            <execution>
-              <goals>
-                <goal>generate-bom</goal>
-              </goals>
-              <phase>none</phase>
-            </execution>
-          </executions>
+            <groupId>io.sundr</groupId>
+            <artifactId>sundr-maven-plugin</artifactId>
+            <version>${sundr-maven-plugin.version}</version>
+            <executions>
+              <execution>
+                <goals>
+                  <goal>generate-bom</goal>
+                </goals>
+                <phase>none</phase>
+              </execution>
+            </executions>
           </plugin>
         </plugins>
       </build>
