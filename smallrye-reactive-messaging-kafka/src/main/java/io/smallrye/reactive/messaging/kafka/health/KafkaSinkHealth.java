@@ -17,7 +17,7 @@ import io.smallrye.reactive.messaging.health.HealthReport;
 import io.smallrye.reactive.messaging.kafka.KafkaAdmin;
 import io.smallrye.reactive.messaging.kafka.KafkaConnectorOutgoingConfiguration;
 import io.smallrye.reactive.messaging.kafka.KafkaProducer;
-import io.smallrye.reactive.messaging.kafka.impl.KafkaAdminHelper;
+import io.smallrye.reactive.messaging.kafka.impl.KafkaAdminClientRegistry;
 
 public class KafkaSinkHealth extends BaseHealth {
 
@@ -26,9 +26,10 @@ public class KafkaSinkHealth extends BaseHealth {
     private final KafkaProducer<?, ?> client;
     private final Duration adminClientTimeout;
 
-    public KafkaSinkHealth(KafkaConnectorOutgoingConfiguration config,
+    public KafkaSinkHealth(KafkaAdminClientRegistry adminClientRegistry, KafkaConnectorOutgoingConfiguration config,
             Map<String, ?> kafkaConfiguration, KafkaProducer<?, ?> client) {
         super(config.getChannel(),
+                adminClientRegistry,
                 config.getHealthReadinessTopicVerification().orElse(config.getHealthTopicVerificationEnabled()),
                 config.getHealthTopicVerificationStartupDisabled(),
                 config.getHealthTopicVerificationReadinessDisabled());
@@ -40,7 +41,7 @@ public class KafkaSinkHealth extends BaseHealth {
         if (config.getHealthReadinessTopicVerification().orElse(config.getHealthTopicVerificationEnabled())) {
             // Do not create the client if the readiness health checks are disabled
             Map<String, Object> adminConfiguration = new HashMap<>(kafkaConfiguration);
-            this.admin = KafkaAdminHelper.createAdminClient(adminConfiguration, config.getChannel(), true);
+            this.admin = adminClientRegistry.getOrCreateAdminClient(adminConfiguration, config.getChannel(), false);
         } else {
             this.admin = null;
         }

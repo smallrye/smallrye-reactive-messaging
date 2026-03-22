@@ -28,6 +28,7 @@ import io.smallrye.reactive.messaging.kafka.base.UnsatisfiedInstance;
 import io.smallrye.reactive.messaging.kafka.companion.KafkaCompanion;
 import io.smallrye.reactive.messaging.kafka.companion.test.KafkaBrokerExtension;
 import io.smallrye.reactive.messaging.kafka.companion.test.KafkaBrokerExtension.KafkaBootstrapServers;
+import io.smallrye.reactive.messaging.kafka.impl.KafkaAdminClientRegistry;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 import io.vertx.mutiny.core.Vertx;
@@ -47,6 +48,7 @@ public class KafkaClientReactiveStreamsPublisherTest
 
     public static Vertx vertx;
     public static KafkaCompanion companion;
+    public static KafkaAdminClientRegistry adminClientRegistry;
 
     // A random topic.
     public static String topic;
@@ -58,6 +60,7 @@ public class KafkaClientReactiveStreamsPublisherTest
         companion.topics().createAndWait(newTopic, partitions);
         topic = newTopic;
         vertx = Vertx.vertx();
+        adminClientRegistry = new KafkaAdminClientRegistry();
 
         companion.produceStrings()
                 .usingGenerator(i -> new ProducerRecord<>(topic, Integer.toString(i % partitions), Integer.toString(i)),
@@ -73,6 +76,9 @@ public class KafkaClientReactiveStreamsPublisherTest
         }
         if (companion != null) {
             companion.close();
+        }
+        if (adminClientRegistry != null) {
+            adminClientRegistry.close();
         }
     }
 
@@ -125,6 +131,7 @@ public class KafkaClientReactiveStreamsPublisherTest
                 UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
                 UnsatisfiedInstance.instance(),
                 CountKafkaCdiEvents.noCdiEvents,
+                adminClientRegistry,
                 UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance(), 0);
 
         return source;

@@ -1,7 +1,5 @@
 package io.smallrye.reactive.messaging.kafka.health;
 
-import static io.smallrye.reactive.messaging.kafka.i18n.KafkaLogging.log;
-
 import java.util.Map;
 import java.util.Optional;
 
@@ -10,6 +8,7 @@ import org.apache.kafka.common.MetricName;
 
 import io.smallrye.reactive.messaging.health.HealthReport;
 import io.smallrye.reactive.messaging.kafka.KafkaAdmin;
+import io.smallrye.reactive.messaging.kafka.impl.KafkaAdminClientRegistry;
 
 public abstract class BaseHealth {
 
@@ -17,6 +16,7 @@ public abstract class BaseHealth {
     public static final String CONNECTION_CREATION_TOTAL_METRIC_NAME = "connection-creation-total";
 
     protected final String channel;
+    private final KafkaAdminClientRegistry adminClientRegistry;
 
     private final boolean topicVerificationEnabled;
     protected final boolean startupTopicVerificationDisabled;
@@ -26,9 +26,11 @@ public abstract class BaseHealth {
     private Metric connectionCountMetric;
     private Metric connectionCreationTotalMetric;
 
-    public BaseHealth(String channel, boolean topicVerificationEnabled,
+    public BaseHealth(String channel, KafkaAdminClientRegistry adminClientRegistry,
+            boolean topicVerificationEnabled,
             boolean startupTopicVerificationDisabled, boolean readinessTopicVerificationDisabled) {
         this.channel = channel;
+        this.adminClientRegistry = adminClientRegistry;
         this.topicVerificationEnabled = topicVerificationEnabled;
         this.startupTopicVerificationDisabled = startupTopicVerificationDisabled;
         this.readinessTopicVerificationDisabled = readinessTopicVerificationDisabled;
@@ -43,14 +45,7 @@ public abstract class BaseHealth {
     }
 
     public void close() {
-        KafkaAdmin admin = getAdmin();
-        if (admin != null) {
-            try {
-                admin.closeAndAwait();
-            } catch (Throwable e) {
-                log.exceptionOnClose(e);
-            }
-        }
+        adminClientRegistry.release(getAdmin());
     }
 
     public void isStarted(HealthReport.HealthReportBuilder builder) {

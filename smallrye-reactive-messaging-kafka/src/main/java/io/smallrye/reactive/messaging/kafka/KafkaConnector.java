@@ -38,6 +38,7 @@ import io.smallrye.reactive.messaging.health.HealthReporter;
 import io.smallrye.reactive.messaging.kafka.commit.KafkaCommitHandler;
 import io.smallrye.reactive.messaging.kafka.fault.KafkaFailureHandler;
 import io.smallrye.reactive.messaging.kafka.impl.ConfigHelper;
+import io.smallrye.reactive.messaging.kafka.impl.KafkaAdminClientRegistry;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaShareGroupSource;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSink;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
@@ -190,6 +191,9 @@ public class KafkaConnector implements InboundConnector, OutboundConnector, Heal
     private final List<KafkaSink> sinks = new CopyOnWriteArrayList<>();
 
     @Inject
+    KafkaAdminClientRegistry adminClientRegistry;
+
+    @Inject
     @Any
     Instance<Map<String, Object>> configurations;
 
@@ -200,6 +204,7 @@ public class KafkaConnector implements InboundConnector, OutboundConnector, Heal
         sources.forEach(KafkaSource::closeQuietly);
         shareGroupSources.forEach(KafkaShareGroupSource::closeQuietly);
         sinks.forEach(KafkaSink::closeQuietly);
+        adminClientRegistry.close();
         TopicPartitions.clearCache();
     }
 
@@ -239,7 +244,7 @@ public class KafkaConnector implements InboundConnector, OutboundConnector, Heal
                 log.warn("Share group mode does not support multiple partitions. Using single consumer.");
             }
             KafkaShareGroupSource<Object, Object> source = new KafkaShareGroupSource<>(vertx, group, ic,
-                    openTelemetryInstance, kafkaCDIEvents, configCustomizers,
+                    openTelemetryInstance, kafkaCDIEvents, adminClientRegistry, configCustomizers,
                     deserializationFailureHandlers);
             shareGroupSources.add(source);
             boolean broadcast = ic.getBroadcast();
@@ -260,7 +265,7 @@ public class KafkaConnector implements InboundConnector, OutboundConnector, Heal
             KafkaSource<Object, Object> source = new KafkaSource<>(vertx, group, ic, openTelemetryInstance,
                     commitHandlerFactories, failureHandlerFactories,
                     consumerRebalanceListeners,
-                    kafkaCDIEvents, configCustomizers, deserializationFailureHandlers, -1);
+                    kafkaCDIEvents, adminClientRegistry, configCustomizers, deserializationFailureHandlers, -1);
             sources.add(source);
             boolean broadcast = ic.getBroadcast();
             Multi<? extends Message<?>> stream;
@@ -282,7 +287,7 @@ public class KafkaConnector implements InboundConnector, OutboundConnector, Heal
             KafkaSource<Object, Object> source = new KafkaSource<>(vertx, group, ic, openTelemetryInstance,
                     commitHandlerFactories, failureHandlerFactories,
                     consumerRebalanceListeners,
-                    kafkaCDIEvents, configCustomizers, deserializationFailureHandlers, i);
+                    kafkaCDIEvents, adminClientRegistry, configCustomizers, deserializationFailureHandlers, i);
             sources.add(source);
             if (!ic.getBatch()) {
                 streams.add(source.getStream());
@@ -316,7 +321,7 @@ public class KafkaConnector implements InboundConnector, OutboundConnector, Heal
         if (oc.getHealthReadinessTimeout().isPresent()) {
             log.deprecatedConfig("health-readiness-timeout", "health-topic-verification-timeout");
         }
-        KafkaSink sink = new KafkaSink(oc, kafkaCDIEvents, openTelemetryInstance,
+        KafkaSink sink = new KafkaSink(oc, kafkaCDIEvents, adminClientRegistry, openTelemetryInstance,
                 configCustomizers, serializationFailureHandlers, producerInterceptors);
         sinks.add(sink);
         return sink.getSink();

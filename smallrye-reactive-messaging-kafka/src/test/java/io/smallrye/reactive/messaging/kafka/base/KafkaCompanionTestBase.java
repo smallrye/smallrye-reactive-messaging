@@ -3,6 +3,8 @@ package io.smallrye.reactive.messaging.kafka.base;
 import java.lang.reflect.Method;
 import java.util.UUID;
 
+import jakarta.enterprise.inject.Instance;
+
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.junit.jupiter.api.AfterAll;
@@ -12,9 +14,19 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.TestInfo;
 import org.junit.jupiter.api.extension.ExtendWith;
 
+import io.smallrye.reactive.messaging.kafka.CountKafkaCdiEvents;
+import io.smallrye.reactive.messaging.kafka.DeserializationFailureHandler;
+import io.smallrye.reactive.messaging.kafka.KafkaCDIEvents;
+import io.smallrye.reactive.messaging.kafka.KafkaConnectorIncomingConfiguration;
+import io.smallrye.reactive.messaging.kafka.KafkaConnectorOutgoingConfiguration;
+import io.smallrye.reactive.messaging.kafka.KafkaConsumerRebalanceListener;
 import io.smallrye.reactive.messaging.kafka.companion.KafkaCompanion;
 import io.smallrye.reactive.messaging.kafka.companion.test.KafkaBrokerExtension;
 import io.smallrye.reactive.messaging.kafka.companion.test.KafkaBrokerExtension.KafkaBootstrapServers;
+import io.smallrye.reactive.messaging.kafka.impl.KafkaShareGroupSource;
+import io.smallrye.reactive.messaging.kafka.impl.KafkaSink;
+import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
+import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 import io.vertx.core.impl.cpu.CpuCoreSensor;
 import io.vertx.core.json.JsonObject;
 import io.vertx.mutiny.core.Vertx;
@@ -93,6 +105,52 @@ public class KafkaCompanionTestBase extends WeldTestBase {
             return 1;
         }
         return Math.min(expected, cpus / 2);
+    }
+
+    public <K, V> KafkaSource<K, V> createSource(MapBasedConfig config) {
+        return createSource(UUID.randomUUID().toString(), config);
+    }
+
+    public <K, V> KafkaSource<K, V> createSource(String consumerGroup, MapBasedConfig config) {
+        return createSource(consumerGroup, config, -1);
+    }
+
+    public <K, V> KafkaSource<K, V> createSource(String consumerGroup, MapBasedConfig config, int index) {
+        return createSource(consumerGroup, config,
+                UnsatisfiedInstance.instance(), index);
+    }
+
+    public <K, V> KafkaSource<K, V> createSource(String consumerGroup, MapBasedConfig config,
+            Instance<DeserializationFailureHandler<?>> deserializationFailureHandlers,
+            int index) {
+        return createSource(consumerGroup, config, UnsatisfiedInstance.instance(),
+                deserializationFailureHandlers, index);
+    }
+
+    public <K, V> KafkaSource<K, V> createSource(String consumerGroup, MapBasedConfig config,
+            Instance<KafkaConsumerRebalanceListener> rebalanceListeners,
+            Instance<DeserializationFailureHandler<?>> deserializationFailureHandlers,
+            int index) {
+        return new KafkaSource<>(vertx, consumerGroup, new KafkaConnectorIncomingConfiguration(config),
+                UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
+                rebalanceListeners, CountKafkaCdiEvents.noCdiEvents, getAdminClientRegistry(),
+                UnsatisfiedInstance.instance(), deserializationFailureHandlers, index);
+    }
+
+    public <K, V> KafkaShareGroupSource<K, V> createShareGroupSource(String shareGroup, MapBasedConfig config) {
+        return new KafkaShareGroupSource<>(vertx, shareGroup, new KafkaConnectorIncomingConfiguration(config),
+                UnsatisfiedInstance.instance(), CountKafkaCdiEvents.noCdiEvents, getAdminClientRegistry(),
+                UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance());
+    }
+
+    public KafkaSink createSink(MapBasedConfig config) {
+        return createSink(config, CountKafkaCdiEvents.noCdiEvents);
+    }
+
+    public KafkaSink createSink(MapBasedConfig config, KafkaCDIEvents cdiEvents) {
+        return new KafkaSink(new KafkaConnectorOutgoingConfiguration(config), cdiEvents, getAdminClientRegistry(),
+                UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance(),
+                UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance());
     }
 
 }

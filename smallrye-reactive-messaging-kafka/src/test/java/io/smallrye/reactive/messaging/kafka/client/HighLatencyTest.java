@@ -68,7 +68,7 @@ public class HighLatencyTest extends KafkaCompanionProxyTestBase {
         KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
         source = new KafkaSource<>(vertx, UUID.randomUUID().toString(), ic,
                 UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
-                UnsatisfiedInstance.instance(), CountKafkaCdiEvents.noCdiEvents,
+                UnsatisfiedInstance.instance(), CountKafkaCdiEvents.noCdiEvents, getAdminClientRegistry(),
                 UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance(), -1);
         List<KafkaRecord<?, ?>> messages1 = new ArrayList<>();
         source.getStream().subscribe().with(messages1::add);

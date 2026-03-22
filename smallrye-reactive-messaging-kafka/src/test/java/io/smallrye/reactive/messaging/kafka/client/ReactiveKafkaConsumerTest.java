@@ -236,7 +236,7 @@ public class ReactiveKafkaConsumerTest extends ClientTestBase {
 
         source = new KafkaSource<>(vertx, groupId, new KafkaConnectorIncomingConfiguration(config),
                 UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
-                listeners, CountKafkaCdiEvents.noCdiEvents,
+                listeners, CountKafkaCdiEvents.noCdiEvents, getAdminClientRegistry(),
                 UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance(), 0);
 
         AssertSubscriber<IncomingKafkaRecord<Integer, String>> subscriber = source.getStream()
@@ -423,6 +423,7 @@ public class ReactiveKafkaConsumerTest extends ClientTestBase {
                 UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
                 UnsatisfiedInstance.instance(),
                 CountKafkaCdiEvents.noCdiEvents,
+                getAdminClientRegistry(),
                 UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance(), 3);
         source2.getStream()
                 .invoke(i -> {

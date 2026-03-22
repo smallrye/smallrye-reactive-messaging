@@ -23,7 +23,7 @@ public class ReactiveKafkaAdminClient implements KafkaAdmin {
 
     private final AdminClient adminClient;
 
-    public ReactiveKafkaAdminClient(Map<String, String> config) {
+    public ReactiveKafkaAdminClient(Map<String, Object> config) {
         adminClient = AdminClient.create(new HashMap<>(config));
     }
 

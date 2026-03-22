@@ -31,12 +31,9 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 import io.smallrye.reactive.messaging.health.HealthReport;
-import io.smallrye.reactive.messaging.kafka.CountKafkaCdiEvents;
 import io.smallrye.reactive.messaging.kafka.IncomingKafkaRecord;
-import io.smallrye.reactive.messaging.kafka.KafkaConnectorIncomingConfiguration;
 import io.smallrye.reactive.messaging.kafka.KafkaRecord;
 import io.smallrye.reactive.messaging.kafka.base.KafkaCompanionTestBase;
-import io.smallrye.reactive.messaging.kafka.base.UnsatisfiedInstance;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 
@@ -59,14 +56,8 @@ public class KafkaCommitHandlerTest extends KafkaCompanionTestBase {
                 .with(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "true")
                 .with(ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG, 500)
                 .with("value.deserializer", IntegerDeserializer.class.getName());
-        KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
 
-        source = new KafkaSource<>(vertx,
-                "test-source-with-auto-commit-enabled",
-                ic,
-                UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
-                UnsatisfiedInstance.instance(),
-                CountKafkaCdiEvents.noCdiEvents, UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance(), -1);
+        source = createSource("test-source-with-auto-commit-enabled", config);
 
         List<Message<?>> messages = Collections.synchronizedList(new ArrayList<>());
         source.getStream().subscribe().with(messages::add);
@@ -105,11 +96,7 @@ public class KafkaCommitHandlerTest extends KafkaCompanionTestBase {
                 .with("value.deserializer", IntegerDeserializer.class.getName())
                 .with("commit-strategy", "latest");
 
-        KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
-        source = new KafkaSource<>(vertx, "test-source-with-auto-commit-disabled", ic,
-                UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
-                UnsatisfiedInstance.instance(), CountKafkaCdiEvents.noCdiEvents,
-                UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance(), -1);
+        source = createSource("test-source-with-auto-commit-disabled", config);
 
         List<Message<?>> messages = Collections.synchronizedList(new ArrayList<>());
         source.getStream().subscribe().with(messages::add);
@@ -143,13 +130,7 @@ public class KafkaCommitHandlerTest extends KafkaCompanionTestBase {
                 .with("commit-strategy", "throttled")
                 .with("throttled.unprocessed-record-max-age.ms", 100);
 
-        KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
-        source = new KafkaSource<>(vertx,
-                "test-source-with-throttled-latest-processed-commit", ic,
-                UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
-                UnsatisfiedInstance.instance(),
-                CountKafkaCdiEvents.noCdiEvents,
-                UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance(), -1);
+        source = createSource("test-source-with-throttled-latest-processed-commit", config);
 
         List<Message<?>> messages = Collections.synchronizedList(new ArrayList<>());
         source.getStream().subscribe().with(messages::add);
@@ -192,13 +173,7 @@ public class KafkaCommitHandlerTest extends KafkaCompanionTestBase {
                 .with("max.poll.records", 16)
                 .with("throttled.unprocessed-record-max-age.ms", 100);
 
-        KafkaConnectorIncomingConfiguration ic = new KafkaConnectorIncomingConfiguration(config);
-        source = new KafkaSource<>(vertx,
-                "test-source-with-throttled-latest-processed-commit-without-acking", ic,
-                UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
-                UnsatisfiedInstance.instance(),
-                CountKafkaCdiEvents.noCdiEvents,
-                UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance(), -1);
+        source = createSource("test-source-with-throttled-latest-processed-commit-without-acking", config);
 
         List<Message<?>> messages = Collections.synchronizedList(new ArrayList<>());
         source.getStream().subscribe().with(messages::add);
@@ -245,21 +220,9 @@ public class KafkaCommitHandlerTest extends KafkaCompanionTestBase {
                 .with("commit-strategy", "throttled")
                 .with("throttled.unprocessed-record-max-age.ms", 100);
 
-        KafkaConnectorIncomingConfiguration ic1 = new KafkaConnectorIncomingConfiguration(config1);
-        KafkaConnectorIncomingConfiguration ic2 = new KafkaConnectorIncomingConfiguration(config2);
-        source = new KafkaSource<>(vertx,
-                "test-source-with-throttled-latest-processed-commit", ic1,
-                UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
-                UnsatisfiedInstance.instance(),
-                CountKafkaCdiEvents.noCdiEvents,
-                UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance(), -1);
+        source = createSource("test-source-with-throttled-latest-processed-commit", config1);
 
-        KafkaSource<String, Integer> source2 = new KafkaSource<>(vertx,
-                "test-source-with-throttled-latest-processed-commit", ic2,
-                UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
-                UnsatisfiedInstance.instance(),
-                CountKafkaCdiEvents.noCdiEvents,
-                UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance(), -1);
+        KafkaSource<String, Integer> source2 = createSource("test-source-with-throttled-latest-processed-commit", config2);
 
         List<Message<?>> messages1 = Collections.synchronizedList(new ArrayList<>());
         source.getStream().subscribe().with(m -> {
@@ -339,21 +302,10 @@ public class KafkaCommitHandlerTest extends KafkaCompanionTestBase {
                 .with(ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG, 100)
                 .with("throttled.unprocessed-record-max-age.ms", 1000);
 
-        KafkaConnectorIncomingConfiguration ic1 = new KafkaConnectorIncomingConfiguration(config1);
-        KafkaConnectorIncomingConfiguration ic2 = new KafkaConnectorIncomingConfiguration(config2);
-        source = new KafkaSource<>(vertx,
-                "test-source-with-throttled-latest-processed-commit", ic1,
-                UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
-                UnsatisfiedInstance.instance(),
-                CountKafkaCdiEvents.noCdiEvents,
-                UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance(), -1);
+        source = createSource("test-source-with-throttled-latest-processed-commit", config1);
 
-        KafkaSource<String, Integer> source2 = new KafkaSource<>(vertx,
-                "test-source-with-throttled-latest-processed-commit", ic2,
-                UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
-                UnsatisfiedInstance.instance(),
-                CountKafkaCdiEvents.noCdiEvents,
-                UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance(), -1);
+        KafkaSource<String, Integer> source2 = createSource(
+                "test-source-with-throttled-latest-processed-commit", config2);
 
         // start source1
         List<Message<?>> messages1 = Collections.synchronizedList(new ArrayList<>());

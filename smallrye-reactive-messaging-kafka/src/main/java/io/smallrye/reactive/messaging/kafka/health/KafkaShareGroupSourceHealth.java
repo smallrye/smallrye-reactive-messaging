@@ -17,7 +17,7 @@ import org.apache.kafka.common.MetricName;
 import io.smallrye.reactive.messaging.health.HealthReport;
 import io.smallrye.reactive.messaging.kafka.KafkaAdmin;
 import io.smallrye.reactive.messaging.kafka.KafkaConnectorIncomingConfiguration;
-import io.smallrye.reactive.messaging.kafka.impl.KafkaAdminHelper;
+import io.smallrye.reactive.messaging.kafka.impl.KafkaAdminClientRegistry;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaShareGroupSource;
 import io.smallrye.reactive.messaging.kafka.impl.ReactiveKafkaShareConsumer;
 
@@ -30,8 +30,9 @@ public class KafkaShareGroupSourceHealth extends BaseHealth {
     private final Duration adminClientTimeout;
 
     public KafkaShareGroupSourceHealth(KafkaShareGroupSource<?, ?> source, KafkaConnectorIncomingConfiguration config,
-            ReactiveKafkaShareConsumer<?, ?> client, Set<String> topics) {
+            ReactiveKafkaShareConsumer<?, ?> client, KafkaAdminClientRegistry adminClientRegistry, Set<String> topics) {
         super(config.getChannel(),
+                adminClientRegistry,
                 config.getHealthReadinessTopicVerification().orElse(config.getHealthTopicVerificationEnabled()),
                 config.getHealthTopicVerificationStartupDisabled(),
                 config.getHealthTopicVerificationReadinessDisabled());
@@ -43,7 +44,7 @@ public class KafkaShareGroupSourceHealth extends BaseHealth {
         if (config.getHealthReadinessTopicVerification().orElse(config.getHealthTopicVerificationEnabled())) {
             // Do not create the client if the readiness health checks are disabled
             Map<String, Object> adminConfiguration = new HashMap<>(client.configuration());
-            this.admin = KafkaAdminHelper.createAdminClient(adminConfiguration, config.getChannel(), true);
+            this.admin = adminClientRegistry.getOrCreateAdminClient(adminConfiguration, config.getChannel(), true);
         } else {
             this.admin = null;
         }

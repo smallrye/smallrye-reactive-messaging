@@ -13,7 +13,6 @@ import org.apache.kafka.common.serialization.IntegerDeserializer;
 import org.junit.jupiter.api.Test;
 
 import io.smallrye.reactive.messaging.kafka.base.KafkaCompanionTestBase;
-import io.smallrye.reactive.messaging.kafka.base.UnsatisfiedInstance;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 
@@ -48,18 +47,8 @@ public class SourceCloseTest extends KafkaCompanionTestBase {
 
         List<Integer> list = new ArrayList<>();
 
-        KafkaSource<String, Integer> source1 = new KafkaSource<>(vertx, groupId,
-                new KafkaConnectorIncomingConfiguration(config1),
-                UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
-                UnsatisfiedInstance.instance(),
-                CountKafkaCdiEvents.noCdiEvents,
-                UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance(), 0);
-        KafkaSource<String, Integer> source2 = new KafkaSource<>(vertx, groupId,
-                new KafkaConnectorIncomingConfiguration(config2),
-                UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
-                UnsatisfiedInstance.instance(),
-                CountKafkaCdiEvents.noCdiEvents,
-                UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance(), 0);
+        KafkaSource<String, Integer> source1 = createSource(groupId, config1);
+        KafkaSource<String, Integer> source2 = createSource(groupId, config2);
 
         source1.getStream()
                 .subscribe().with(l -> {

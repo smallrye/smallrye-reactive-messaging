@@ -36,10 +36,8 @@ import org.junit.jupiter.api.BeforeEach;
 
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.subscription.Cancellable;
-import io.smallrye.reactive.messaging.kafka.CountKafkaCdiEvents;
 import io.smallrye.reactive.messaging.kafka.IncomingKafkaRecord;
 import io.smallrye.reactive.messaging.kafka.IncomingKafkaRecordBatch;
-import io.smallrye.reactive.messaging.kafka.KafkaConnectorIncomingConfiguration;
 import io.smallrye.reactive.messaging.kafka.KafkaConsumerRebalanceListener;
 import io.smallrye.reactive.messaging.kafka.KafkaRecord;
 import io.smallrye.reactive.messaging.kafka.base.KafkaCompanionTestBase;
@@ -124,10 +122,7 @@ public class ClientTestBase extends KafkaCompanionTestBase {
         SingletonInstance<KafkaConsumerRebalanceListener> listeners = new SingletonInstance<>(groupId,
                 getKafkaConsumerRebalanceListenerAwaitingAssignation());
 
-        source = new KafkaSource<>(vertx, groupId, new KafkaConnectorIncomingConfiguration(config),
-                UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
-                listeners, CountKafkaCdiEvents.noCdiEvents,
-                UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance(), 0);
+        source = createSource(groupId, config, listeners, UnsatisfiedInstance.instance(), 0);
         sources.add(source);
         return source;
     }
@@ -140,10 +135,7 @@ public class ClientTestBase extends KafkaCompanionTestBase {
         SingletonInstance<KafkaConsumerRebalanceListener> listeners = new SingletonInstance<>(groupId,
                 getKafkaConsumerRebalanceListenerAwaitingAssignationAndSeekToBeginning());
 
-        source = new KafkaSource<>(vertx, groupId, new KafkaConnectorIncomingConfiguration(config),
-                UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
-                listeners, CountKafkaCdiEvents.noCdiEvents,
-                UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance(), 0);
+        source = createSource(groupId, config, listeners, UnsatisfiedInstance.instance(), 0);
         sources.add(source);
         return source;
     }
@@ -157,10 +149,7 @@ public class ClientTestBase extends KafkaCompanionTestBase {
         SingletonInstance<KafkaConsumerRebalanceListener> listeners = new SingletonInstance<>(groupId,
                 getKafkaConsumerRebalanceListenerAwaitingAssignation());
 
-        source = new KafkaSource<>(vertx, groupId, new KafkaConnectorIncomingConfiguration(config),
-                UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
-                listeners, CountKafkaCdiEvents.noCdiEvents,
-                UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance(), 0);
+        source = createSource(groupId, config, listeners, UnsatisfiedInstance.instance(), 0);
         sources.add(source);
         return source;
     }
@@ -173,10 +162,7 @@ public class ClientTestBase extends KafkaCompanionTestBase {
         SingletonInstance<KafkaConsumerRebalanceListener> listeners = new SingletonInstance<>(groupId,
                 getKafkaConsumerRebalanceListenerAwaitingAssignationAndSeekToEnd());
 
-        source = new KafkaSource<>(vertx, groupId, new KafkaConnectorIncomingConfiguration(config),
-                UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
-                listeners, CountKafkaCdiEvents.noCdiEvents,
-                UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance(), 0);
+        source = createSource(groupId, config, listeners, UnsatisfiedInstance.instance(), 0);
         sources.add(source);
         return source;
     }
@@ -189,19 +175,13 @@ public class ClientTestBase extends KafkaCompanionTestBase {
         SingletonInstance<KafkaConsumerRebalanceListener> listeners = new SingletonInstance<>(groupId,
                 getKafkaConsumerRebalanceListenerAwaitingAssignationAndSeekToOffset());
 
-        source = new KafkaSource<>(vertx, groupId, new KafkaConnectorIncomingConfiguration(config),
-                UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
-                listeners, CountKafkaCdiEvents.noCdiEvents,
-                UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance(), 0);
+        source = createSource(groupId, config, listeners, UnsatisfiedInstance.instance(), 0);
         sources.add(source);
         return source;
     }
 
     public KafkaSource<Integer, String> createSource(MapBasedConfig config, int index) {
-        source = new KafkaSource<>(vertx, "groupId", new KafkaConnectorIncomingConfiguration(config),
-                UnsatisfiedInstance.instance(), commitHandlerFactories, failureHandlerFactories,
-                UnsatisfiedInstance.instance(), CountKafkaCdiEvents.noCdiEvents,
-                UnsatisfiedInstance.instance(), UnsatisfiedInstance.instance(), index);
+        source = createSource("groupId", config, index);
         sources.add(source);
         return source;
     }
