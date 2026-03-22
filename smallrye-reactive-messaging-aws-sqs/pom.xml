@@ -9,6 +9,11 @@
   <artifactId>smallrye-reactive-messaging-aws-sqs</artifactId>
   <name>SmallRye Reactive Messaging : Connector :: AWS SQS</name>
   <description>A module for Smallrye reactive messaging integration with AWS SQS Service</description>
+
+  <properties>
+    <revapi.skip>true</revapi.skip>
+  </properties>
+
   <dependencyManagement>
     <dependencies>
       <dependency>

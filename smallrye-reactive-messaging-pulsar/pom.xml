@@ -13,6 +13,7 @@
   <name>SmallRye Reactive Messaging : Connector :: Pulsar</name>
 
   <properties>
+    <revapi.skip>true</revapi.skip>
     <pulsar.version>4.1.1</pulsar.version>
   </properties>
 

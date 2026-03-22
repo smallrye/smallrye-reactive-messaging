@@ -9,6 +9,11 @@
   <artifactId>smallrye-reactive-messaging-aws-sns</artifactId>
   <name>SmallRye Reactive Messaging : Connector :: AWS SNS</name>
   <description>A module for Smallrye reactive messaging integration with AWS SNS Service</description>
+
+  <properties>
+    <revapi.skip>true</revapi.skip>
+  </properties>
+
   <dependencyManagement>
     <dependencies>
       <dependency>

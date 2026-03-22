@@ -15,4 +15,8 @@
 
     <packaging>pom</packaging>
 
+    <properties>
+      <revapi.skip>true</revapi.skip>
+    </properties>
+
 </project>

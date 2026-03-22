@@ -11,6 +11,16 @@ build:
     @echo "Building locally without tests"
     ./mvnw clean install -DskipTests -T1C
 
+# Build locally without tests (fast, skipping docs, tests, revapi)
+build-fast:
+    @echo "Building fast locally"
+    ./mvnw clean install -Dquickly -T1.5C
+
+# Build locally without tests (fast, with local maven repository)
+build-fast-local repository=".repository":
+    @echo "Building fast locally with local repository"
+    ./mvnw clean install -Dquickly -T1.5C -Dmaven.repo.local={{repository}}
+
 # Build locally with tests
 test:
     @echo "Testing locally"
