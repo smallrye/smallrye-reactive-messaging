@@ -19,7 +19,7 @@ import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaShareConsumer;
-import org.apache.kafka.clients.consumer.internals.AutoOffsetResetStrategy;
+import org.apache.kafka.clients.consumer.internals.ShareAcquireMode;
 import org.apache.kafka.common.errors.WakeupException;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.jboss.logging.Logger;
@@ -191,26 +191,39 @@ public class ShareConsumerBuilder<K, V> implements Closeable {
     /**
      * Add configuration property for {@code share.auto.offset.reset}
      *
-     * @param strategy the offset reset strategy
-     * @return this {@link ConsumerBuilder}
+     * @param offsetResetStrategy the offset reset strategy, e.g. {@code "earliest"}, {@code "latest"},
+     *        {@code "by_duration:PT1H"}
+     * @return this {@link ShareConsumerBuilder}
      */
-    public ShareConsumerBuilder<K, V> withOffsetReset(AutoOffsetResetStrategy strategy) {
-        String offsetResetStrategy = switch (strategy.type()) {
-            case LATEST, EARLIEST, NONE -> strategy.name();
-            case BY_DURATION -> strategy.name() + strategy.duration().map(Duration::toString).orElse("");
-        };
+    public ShareConsumerBuilder<K, V> withOffsetReset(String offsetResetStrategy) {
         return withProp("share.auto.offset.reset", offsetResetStrategy);
     }
 
     /**
      * Acknowledge explicitly records matching the given function with returned acknowledge type.
      *
-     * @param function the predicate to determine which records to acknowledge
+     * @param function the function to determine the acknowledge type for each record
      * @return this {@link ShareConsumerBuilder}
      */
     public ShareConsumerBuilder<K, V> withExplicitAck(Function<ConsumerRecord<K, V>, AcknowledgeType> function) {
         this.acknowledgeFunction = function;
         return withProp(ConsumerConfig.SHARE_ACKNOWLEDGEMENT_MODE_CONFIG, "explicit");
+    }
+
+    /**
+     * Set the share acquire mode controlling fetch behavior (KIP-1206).
+     * <ul>
+     * <li>{@link ShareAcquireMode#BATCH_OPTIMIZED} - Soft limit, may exceed {@code max.poll.records} to align with batch
+     * boundaries (default).</li>
+     * <li>{@link ShareAcquireMode#RECORD_LIMIT} - Strict enforcement, acquires records only up to
+     * {@code max.poll.records}.</li>
+     * </ul>
+     *
+     * @param mode the share acquire mode
+     * @return this {@link ShareConsumerBuilder}
+     */
+    public ShareConsumerBuilder<K, V> withAcquireMode(ShareAcquireMode mode) {
+        return withProp("share.acquire.mode", mode.toString());
     }
 
     /**

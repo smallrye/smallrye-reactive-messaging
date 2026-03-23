@@ -13,7 +13,6 @@ import org.apache.kafka.clients.admin.ShareGroupDescription;
 import org.apache.kafka.clients.admin.ShareMemberDescription;
 import org.apache.kafka.clients.admin.SharePartitionOffsetInfo;
 import org.apache.kafka.clients.consumer.AcknowledgeType;
-import org.apache.kafka.clients.consumer.internals.AutoOffsetResetStrategy;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.TopicPartition;
 import org.junit.jupiter.api.Test;
@@ -30,7 +29,7 @@ public class ShareGroupsTest extends KafkaCompanionTestBase {
         companion.consumerGroups().alterShareGroupConfig(groupId, "share.auto.offset.reset", "earliest");
         try (ConsumerTask<String, Integer> task = companion.shareConsumeIntegers()
                 .withGroupId(groupId)
-                .withOffsetReset(AutoOffsetResetStrategy.EARLIEST)
+                .withOffsetReset("earliest")
                 .fromTopics(topic)) {
 
             companion.consumerGroups().waitForShareGroupAssignment(groupId)
@@ -66,7 +65,7 @@ public class ShareGroupsTest extends KafkaCompanionTestBase {
         companion.consumerGroups().alterShareGroupConfig(groupId, "share.auto.offset.reset", "earliest");
         try (ConsumerTask<String, Integer> task = companion.shareConsumeIntegers()
                 .withGroupId(groupId)
-                .withOffsetReset(AutoOffsetResetStrategy.EARLIEST)
+                .withOffsetReset("earliest")
                 .fromTopics(topic)) {
 
             companion.consumerGroups().waitForShareGroupAssignment(groupId)
@@ -105,7 +104,7 @@ public class ShareGroupsTest extends KafkaCompanionTestBase {
         companion.consumerGroups().alterShareGroupConfig(groupId, "share.auto.offset.reset", "earliest");
         try (ConsumerTask<String, Integer> task = companion.shareConsumeIntegers()
                 .withGroupId(groupId)
-                .withOffsetReset(AutoOffsetResetStrategy.EARLIEST)
+                .withOffsetReset("earliest")
                 .fromTopics(topic)) {
 
             companion.consumerGroups().waitForShareGroupAssignment(groupId)
@@ -136,7 +135,7 @@ public class ShareGroupsTest extends KafkaCompanionTestBase {
         try (ConsumerTask<String, Integer> task = companion.shareConsumeIntegers()
                 .withGroupId(groupId)
                 .withClientId(clientId)
-                .withOffsetReset(AutoOffsetResetStrategy.EARLIEST)
+                .withOffsetReset("earliest")
                 .fromTopics(topic)) {
 
             companion.consumerGroups().waitForShareGroupAssignment(groupId)
@@ -167,7 +166,7 @@ public class ShareGroupsTest extends KafkaCompanionTestBase {
 
         // Consume 5 records with explicit-acknowledge
         ShareConsumerBuilder<String, Integer> builder = companion.shareConsumeIntegers()
-                .withOffsetReset(AutoOffsetResetStrategy.EARLIEST)
+                .withOffsetReset("earliest")
                 .withExplicitAck(r -> AcknowledgeType.ACCEPT);
         companion.consumerGroups().alterShareGroupConfig(builder.groupId(), "share.auto.offset.reset", "earliest");
         try (ConsumerTask<String, Integer> task = builder.fromTopics(topic, 5)) {
