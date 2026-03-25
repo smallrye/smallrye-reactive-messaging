@@ -27,6 +27,7 @@ import org.apache.kafka.clients.admin.MemberToRemove;
 import org.apache.kafka.clients.admin.RemoveMembersFromConsumerGroupOptions;
 import org.apache.kafka.clients.admin.ShareGroupDescription;
 import org.apache.kafka.clients.admin.SharePartitionOffsetInfo;
+import org.apache.kafka.clients.admin.StreamsGroupDescription;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.config.ConfigResource;
@@ -50,8 +51,9 @@ public class ConsumerGroupsCompanion {
 
     /**
      * @return the list of consumer groups
+     * @deprecated Use {@link #listGroups()} instead which returns all group types.
      */
-    @Deprecated
+    @Deprecated(forRemoval = true)
     public Collection<ConsumerGroupListing> list() {
         return toUni(() -> adminClient.listConsumerGroups().all())
                 .await().atMost(kafkaApiTimeout);
@@ -272,5 +274,46 @@ public class ConsumerGroupsCompanion {
     public void deleteOffsets(String groupId, List<TopicPartition> topicPartitions) {
         toUni(() -> adminClient.deleteConsumerGroupOffsets(groupId, new HashSet<>(topicPartitions)).all())
                 .await().atMost(kafkaApiTimeout);
+    }
+
+    /*
+     * STREAMS GROUPS (KIP-1071)
+     */
+
+    /**
+     * @param groupIds streams group ids
+     * @return the map of streams group descriptions by id
+     */
+    public Map<String, StreamsGroupDescription> describeStreamsGroups(String... groupIds) {
+        return toUni(() -> adminClient.describeStreamsGroups(Set.of(groupIds)).all())
+                .await().atMost(kafkaApiTimeout);
+    }
+
+    /**
+     * @param groupId streams group id
+     * @return the streams group description
+     */
+    public StreamsGroupDescription describeStreamsGroup(String groupId) {
+        return toUni(() -> adminClient.describeStreamsGroups(Set.of(groupId)).all())
+                .onItem().transform(result -> result.get(groupId))
+                .await().atMost(kafkaApiTimeout);
+    }
+
+    /**
+     * @param groupId streams group id
+     * @return the map of topic partitions to offset
+     */
+    public Map<TopicPartition, OffsetAndMetadata> streamsGroupOffsets(String groupId) {
+        return consumerStreamsGroupUni(groupId, null).await().atMost(kafkaApiTimeout);
+    }
+
+    /**
+     * @param groupId streams group id
+     * @param topicPartitions list of topic partitions
+     * @return the map of topic partitions to offset
+     */
+    public Map<TopicPartition, OffsetAndMetadata> streamsGroupOffsets(String groupId,
+            List<TopicPartition> topicPartitions) {
+        return consumerStreamsGroupUni(groupId, topicPartitions).await().atMost(kafkaApiTimeout);
     }
 }

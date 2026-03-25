@@ -31,10 +31,26 @@ public class ClusterCompanion {
     }
 
     /**
+     * Returns the controller node of the cluster.
+     * <p>
+     * Note: When the admin client is configured with {@code bootstrap.servers} (the default),
+     * this returns a random broker node, not the actual KRaft controller.
+     * When configured with {@code bootstrap.controllers}, it returns the current voter leader.
+     *
      * @return the controller {@link Node} of the cluster
      */
     public Node controller() {
         return toUni(() -> adminClient.describeCluster().controller()).await().atMost(kafkaApiTimeout);
+    }
+
+    /**
+     * @param includeFenced whether to include fenced brokers in the result
+     * @return the collection of {@link Node}s of the cluster, optionally including fenced brokers
+     */
+    public Collection<Node> nodes(boolean includeFenced) {
+        return toUni(() -> adminClient.describeCluster(new DescribeClusterOptions()
+                .includeFencedBrokers(includeFenced)).nodes())
+                .await().atMost(kafkaApiTimeout);
     }
 
     /**

@@ -293,9 +293,23 @@ public class ConsumerBuilder<K, V> implements ConsumerRebalanceListener, Closeab
      *
      * @param offsetResetStrategy the offset reset strategy
      * @return this {@link ConsumerBuilder}
+     * @deprecated {@link OffsetResetStrategy} is deprecated for removal in Kafka 4.0+.
+     *             Use {@link #withOffsetReset(String)} instead with values like {@code "earliest"}, {@code "latest"},
+     *             {@code "none"}.
      */
+    @Deprecated(forRemoval = true)
     public ConsumerBuilder<K, V> withOffsetReset(OffsetResetStrategy offsetResetStrategy) {
         return withProp(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, offsetResetStrategy.name().toLowerCase());
+    }
+
+    /**
+     * Add configuration property for {@code auto.offset.reset}
+     *
+     * @param offsetResetStrategy the offset reset strategy, e.g. {@code "earliest"}, {@code "latest"}, {@code "none"}
+     * @return this {@link ConsumerBuilder}
+     */
+    public ConsumerBuilder<K, V> withOffsetReset(String offsetResetStrategy) {
+        return withProp(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, offsetResetStrategy);
     }
 
     /**

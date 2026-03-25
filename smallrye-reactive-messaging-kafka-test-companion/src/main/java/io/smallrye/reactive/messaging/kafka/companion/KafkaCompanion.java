@@ -25,7 +25,6 @@ import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.RecordsToDelete;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
-import org.apache.kafka.clients.consumer.OffsetResetStrategy;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.KafkaFuture;
@@ -208,7 +207,7 @@ public class KafkaCompanion implements AutoCloseable {
         config.put(GROUP_ID_CONFIG, "companion-" + UUID.randomUUID());
         config.put(CLIENT_ID_CONFIG, "companion-" + UUID.randomUUID());
         config.put(ENABLE_AUTO_COMMIT_CONFIG, Boolean.FALSE.toString());
-        config.put(AUTO_OFFSET_RESET_CONFIG, OffsetResetStrategy.EARLIEST.toString().toLowerCase());
+        config.put(AUTO_OFFSET_RESET_CONFIG, "earliest");
         config.putAll(getCommonClientConfig());
         return config;
     }
