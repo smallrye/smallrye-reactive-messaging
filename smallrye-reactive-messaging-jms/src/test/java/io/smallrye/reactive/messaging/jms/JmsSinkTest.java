@@ -313,6 +313,132 @@ public class JmsSinkTest extends JmsTestBase {
         );
     }
 
+    @Test
+    public void testDirectAutoRecoveryAfterBrokerRestart() throws JMSException {
+        // Use factory-based context creator matching production behavior
+        JmsResourceHolder<JMSProducer> holder = new JmsResourceHolder<>("jms",
+                () -> factory.createContext());
+
+        MapBasedConfig config = new MapBasedConfig()
+                .with("destination", "queue-one")
+                .with("channel-name", "jms")
+                .with("retry", true)
+                .with("retry.initial-delay", "PT0.1S")
+                .with("retry.max-delay", "PT1S")
+                .with("retry.max-retries", 10)
+                .with("retry.jitter", 0.0);
+
+        JmsSink sink = new JmsSink(holder, new JmsConnectorOutgoingConfiguration(config),
+                UnsatisfiedInstance.instance(),
+                jsonMapping,
+                executor);
+
+        MyJmsClient client = new MyJmsClient(jms.createQueue("queue-one"));
+        subscriber = sink.getSink();
+        subscriber.onSubscribe(new Subscriptions.EmptySubscription());
+
+        // Send message, verify receipt
+        AtomicBoolean acked1 = new AtomicBoolean();
+        subscriber.onNext(Message.of("first",
+                () -> CompletableFuture.runAsync(() -> acked1.set(true))));
+        await().until(() -> client.messages.size() >= 1);
+        assertThat(acked1).isTrue();
+        assertThat(client.messages.get(0).getBody(String.class)).isEqualTo("first");
+
+        // Close the test consumer's JMS context before stopping broker
+        jms.close();
+
+        // Stop and restart broker - breaks existing connections
+        stopArtemis();
+        restartArtemis();
+
+        // Close the resource holder - simulates what the onFailure handler does on send failure.
+        // This nullifies context/producer/destination so lazy getters recreate them.
+        holder.close();
+
+        // Reinitialize the factory and JMS context for the test consumer
+        // Note: don't call init()/close() as they manage the executor which the sink still uses
+        factory = new ActiveMQJMSConnectionFactory("tcp://localhost:61616", null, null);
+        jms = factory.createContext();
+        MyJmsClient client2 = new MyJmsClient(jms.createQueue("queue-one"));
+
+        // Send a message after broker restart and holder close.
+        // The holder lazily recreates the context, producer and destination from the factory.
+        AtomicBoolean acked2 = new AtomicBoolean();
+        subscriber.onNext(Message.of("after-recovery",
+                () -> CompletableFuture.runAsync(() -> acked2.set(true))));
+
+        await().atMost(10, TimeUnit.SECONDS).until(acked2::get);
+        await().until(() -> client2.messages.size() >= 1);
+        assertThat(client2.messages.get(0).getBody(String.class)).isEqualTo("after-recovery");
+    }
+
+    @Test
+    public void testDirectNoRecoveryWhenRetryDisabled() throws JMSException, InterruptedException {
+        // Use factory-based context creator matching production behavior
+        JmsResourceHolder<JMSProducer> holder = new JmsResourceHolder<>("jms",
+                () -> factory.createContext());
+
+        MapBasedConfig config = new MapBasedConfig()
+                .with("destination", "queue-one")
+                .with("channel-name", "jms")
+                .with("retry", false);
+
+        JmsSink sink = new JmsSink(holder, new JmsConnectorOutgoingConfiguration(config),
+                UnsatisfiedInstance.instance(),
+                jsonMapping,
+                executor);
+
+        MyJmsClient client = new MyJmsClient(jms.createQueue("queue-one"));
+        subscriber = sink.getSink();
+        subscriber.onSubscribe(new Subscriptions.EmptySubscription());
+
+        // Send message successfully
+        AtomicBoolean acked1 = new AtomicBoolean();
+        subscriber.onNext(Message.of("before-disconnect",
+                () -> CompletableFuture.runAsync(() -> acked1.set(true))));
+        await().until(() -> client.messages.size() >= 1);
+        assertThat(acked1).isTrue();
+        assertThat(client.messages.get(0).getBody(String.class)).isEqualTo("before-disconnect");
+
+        // Close the test consumer's JMS context before stopping broker
+        jms.close();
+
+        // Stop broker - the JMS context/producer in the holder become broken
+        stopArtemis();
+
+        // Wait for broker to fully stop and disconnect to be detected
+        Thread.sleep(1000);
+
+        // Send a message while broker is down - the send will fail in dispatch.
+        // With retry=false, the failure terminates the stream.
+        AtomicBoolean acked2 = new AtomicBoolean();
+        subscriber.onNext(Message.of("during-outage",
+                () -> CompletableFuture.runAsync(() -> acked2.set(true))));
+
+        // Wait for the failure to propagate and terminate the stream
+        await().pollDelay(3, TimeUnit.SECONDS).until(() -> true);
+        assertThat(acked2).isFalse();
+
+        // Restart broker
+        restartArtemis();
+        factory = new ActiveMQJMSConnectionFactory("tcp://localhost:61616", null, null);
+        jms = factory.createContext();
+        MyJmsClient client2 = new MyJmsClient(jms.createQueue("queue-one"));
+
+        // Send another message after restart - should NOT be processed because stream is terminated
+        AtomicBoolean acked3 = new AtomicBoolean();
+        subscriber.onNext(Message.of("after-restart",
+                () -> CompletableFuture.runAsync(() -> acked3.set(true))));
+
+        // Verify the message is NOT delivered (stream was terminally failed)
+        await().pollDelay(3, TimeUnit.SECONDS)
+                .untilAsserted(() -> {
+                    assertThat(acked3).isFalse();
+                    assertThat(client2.messages).isEmpty();
+                });
+    }
+
     @SuppressWarnings("ConstantConditions")
     @Test
     public void testPropagation() throws JMSException {

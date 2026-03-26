@@ -85,7 +85,11 @@ public class JmsResourceHolder<T> implements ExceptionListener {
     void close() {
         synchronized (this) {
             if (context != null) {
-                context.close();
+                try {
+                    context.close();
+                } catch (Exception e) {
+                    log.infof(e, "Error closing context for channel %s", channel);
+                }
                 context = null;
             }
             destination = null;
