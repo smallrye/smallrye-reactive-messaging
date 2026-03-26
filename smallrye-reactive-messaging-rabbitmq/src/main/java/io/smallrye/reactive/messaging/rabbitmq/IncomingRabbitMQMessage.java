@@ -60,12 +60,6 @@ public class IncomingRabbitMQMessage<T> implements ContextAwareMessage<T>, Metad
     private final String contentTypeOverride;
     private final T payload;
 
-    public IncomingRabbitMQMessage(RabbitMQMessage delegate, ClientHolder holder,
-            RabbitMQFailureHandler onNack,
-            RabbitMQAckHandler onAck, String contentTypeOverride) {
-        this(delegate.getDelegate(), holder, holder.getContext(), onNack, onAck, contentTypeOverride);
-    }
-
     public IncomingRabbitMQMessage(RabbitMQMessage delegate, ClientHolder holder, Context context,
             RabbitMQFailureHandler onNack,
             RabbitMQAckHandler onAck, String contentTypeOverride) {
@@ -77,7 +71,7 @@ public class IncomingRabbitMQMessage<T> implements ContextAwareMessage<T>, Metad
         this.message = msg;
         this.deliveryTag = msg.envelope().getDeliveryTag();
         this.holder = holder;
-        this.context = context != null ? context : holder.getContext();
+        this.context = context;
         this.contentTypeOverride = contentTypeOverride;
         this.rabbitMQMetadata = new IncomingRabbitMQMetadata(this.message, contentTypeOverride);
         this.onNack = onNack;

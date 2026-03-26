@@ -6,14 +6,12 @@ import static io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Dire
 import static io.smallrye.reactive.messaging.rabbitmq.i18n.RabbitMQExceptions.ex;
 import static io.smallrye.reactive.messaging.rabbitmq.i18n.RabbitMQLogging.log;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Flow;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import jakarta.annotation.Priority;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -169,10 +167,11 @@ public class RabbitMQConnector implements InboundConnector, OutboundConnector, H
     @Inject
     @Any
     Instance<RabbitMQFailureHandler.Factory> failureHandlerFactories;
-    private List<IncomingRabbitMQChannel> incomings = new CopyOnWriteArrayList<>();
-    private List<OutgoingRabbitMQChannel> outgoings = new CopyOnWriteArrayList<>();
-    private Map<String, ClientRegistration> clientRegistrations = new ConcurrentHashMap<>();
-    private Map<String, SharedClient> sharedClients = new ConcurrentHashMap<>();
+    private final List<IncomingRabbitMQChannel> incomings = new CopyOnWriteArrayList<>();
+    private final List<OutgoingRabbitMQChannel> outgoings = new CopyOnWriteArrayList<>();
+    private final Map<String, ClientHolder> clients = new ConcurrentHashMap<>();
+    // connection-name to fingerprint map to check against same connection-name but different options
+    private final Map<String, String> connectionFingerprints = new ConcurrentHashMap<>();
 
     @Inject
     @Any
@@ -271,11 +270,11 @@ public class RabbitMQConnector implements InboundConnector, OutboundConnector, H
             outgoing.terminate();
         }
 
-        List<String> registeredChannels = new ArrayList<>(clientRegistrations.keySet());
-        for (String channel : registeredChannels) {
-            releaseClient(channel);
+        for (Map.Entry<String, ClientHolder> entry : clients.entrySet()) {
+            stopClient(entry.getValue().client(), true);
         }
-        sharedClients.clear();
+        clients.clear();
+        connectionFingerprints.clear();
     }
 
     public Vertx vertx() {
@@ -284,16 +283,7 @@ public class RabbitMQConnector implements InboundConnector, OutboundConnector, H
 
     public void reportIncomingFailure(String channel, Throwable reason) {
         log.failureReported(channel, reason);
-        ClientRegistration registration = clientRegistrations.remove(channel);
-        if (registration == null) {
-            return;
-        }
-
-        if (registration.shared) {
-            releaseSharedClient(registration.key, false);
-        } else {
-            stopClient(registration.holder.client(), false);
-        }
+        releaseClient(channel, false);
     }
 
     public Instance<RabbitMQFailureHandler.Factory> failureHandlerFactories() {
@@ -316,71 +306,30 @@ public class RabbitMQConnector implements InboundConnector, OutboundConnector, H
         return configMaps;
     }
 
-    public ClientHolder getClientHolder(RabbitMQConnectorCommonConfiguration config, io.vertx.mutiny.core.Context context) {
-        ClientRegistration existing = clientRegistrations.get(config.getChannel());
-        if (existing != null) {
-            return existing.holder;
-        }
-
-        return config.getSharedConnectionName()
-                .map(name -> getOrCreateSharedHolder(config, context, name))
-                .orElseGet(() -> createAndRegisterHolder(config, context, config.getChannel(), false));
-    }
-
-    private ClientHolder createAndRegisterHolder(RabbitMQConnectorCommonConfiguration config,
-            io.vertx.mutiny.core.Context context, String key, boolean shared) {
-        ClientHolder holder = new ClientHolder(RabbitMQClientHelper.createClient(this, config), config.getChannel(), vertx(),
-                context);
-        clientRegistrations.put(config.getChannel(), new ClientRegistration(holder, shared, key));
-        return holder;
-    }
-
-    private ClientHolder getOrCreateSharedHolder(RabbitMQConnectorCommonConfiguration config,
-            io.vertx.mutiny.core.Context context, String name) {
+    public ClientHolder getClientHolder(RabbitMQConnectorCommonConfiguration config) {
+        String channel = config.getChannel();
         RabbitMQOptions options = RabbitMQClientHelper.buildClientOptions(this, config);
+        String connectionName = options.getConnectionName();
         String fingerprint = RabbitMQClientHelper.computeConnectionFingerprint(options);
-        SharedClient shared = sharedClients.compute(name, (key, existing) -> {
-            if (existing != null) {
-                if (!existing.fingerprint.equals(fingerprint)) {
-                    throw ex.illegalStateSharedConnectionConfigMismatch(name);
+        String existing = connectionFingerprints.putIfAbsent(connectionName, fingerprint);
+        if (existing != null && !existing.equals(fingerprint)) {
+            throw ex.illegalStateSharedConnectionConfigMismatch(connectionName);
+        }
+        return clients.compute(fingerprint,
+                (key, current) -> (current == null ? new ClientHolder(RabbitMQClient.create(vertx(), options)) : current)
+                        .retain(channel));
+    }
+
+    public void releaseClient(String channel, boolean await) {
+        for (var e : clients.entrySet()) {
+            ClientHolder shared = e.getValue();
+            if (shared.channels().contains(channel)) {
+                if (clients.computeIfPresent(e.getKey(), (k, c) -> c.release(channel) ? null : c) == null) {
+                    connectionFingerprints.values().remove(e.getKey());
+                    stopClient(shared.client(), await);
                 }
-                existing.retain();
-                if (context != null) {
-                    existing.holder.ensureContext(context);
-                }
-                return existing;
+                return;
             }
-            return new SharedClient(name, new ClientHolder(
-                    RabbitMQClient.create(vertx(), options),
-                    config.getChannel(),
-                    vertx(),
-                    context), fingerprint);
-        });
-        clientRegistrations.put(config.getChannel(), new ClientRegistration(shared.holder, true, name));
-        return shared.holder;
-    }
-
-    public void releaseClient(String channel) {
-        ClientRegistration registration = clientRegistrations.remove(channel);
-        if (registration == null) {
-            return;
-        }
-
-        if (registration.shared) {
-            releaseSharedClient(registration.key, true);
-        } else {
-            stopClient(registration.holder.client(), true);
-        }
-    }
-
-    private void releaseSharedClient(String sharedName, boolean await) {
-        SharedClient shared = sharedClients.get(sharedName);
-        if (shared == null) {
-            return;
-        }
-        if (shared.release()) {
-            sharedClients.remove(sharedName, shared);
-            stopClient(shared.holder.client(), await);
         }
     }
 
@@ -395,36 +344,4 @@ public class RabbitMQConnector implements InboundConnector, OutboundConnector, H
         }
     }
 
-    private static final class ClientRegistration {
-        final ClientHolder holder;
-        final boolean shared;
-        final String key;
-
-        private ClientRegistration(ClientHolder holder, boolean shared, String key) {
-            this.holder = holder;
-            this.shared = shared;
-            this.key = key;
-        }
-    }
-
-    private static final class SharedClient {
-        final String name;
-        final ClientHolder holder;
-        final String fingerprint;
-        final AtomicInteger references = new AtomicInteger(1);
-
-        private SharedClient(String name, ClientHolder holder, String fingerprint) {
-            this.name = name;
-            this.holder = holder;
-            this.fingerprint = fingerprint;
-        }
-
-        private void retain() {
-            references.incrementAndGet();
-        }
-
-        private boolean release() {
-            return references.decrementAndGet() == 0;
-        }
-    }
 }

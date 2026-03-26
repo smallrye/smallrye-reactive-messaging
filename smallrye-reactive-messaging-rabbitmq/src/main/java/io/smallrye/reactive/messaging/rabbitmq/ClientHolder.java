@@ -3,7 +3,10 @@ package io.smallrye.reactive.messaging.rabbitmq;
 import static io.smallrye.reactive.messaging.rabbitmq.i18n.RabbitMQExceptions.ex;
 import static io.smallrye.reactive.messaging.rabbitmq.i18n.RabbitMQLogging.log;
 
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
@@ -13,51 +16,34 @@ import io.smallrye.common.annotation.CheckReturnValue;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.providers.helpers.VertxContext;
 import io.vertx.mutiny.core.Context;
-import io.vertx.mutiny.core.Vertx;
 import io.vertx.mutiny.rabbitmq.RabbitMQClient;
 
 public class ClientHolder {
 
     private final RabbitMQClient client;
 
-    private final AtomicBoolean connected = new AtomicBoolean(false);
-    private final AtomicReference<CurrentConnection> connectionHolder = new AtomicReference<>();
-    private final AtomicReference<Context> rootContext;
-    private final AtomicReference<CompletionStage<RabbitMQClient>> connectionStage = new AtomicReference<>();
+    private final AtomicBoolean hasBeenConnected = new AtomicBoolean(false);
+    private final AtomicReference<CompletableFuture<RabbitMQClient>> ongoingConnection = new AtomicReference<>();
     private final Uni<RabbitMQClient> connection;
+    private final Set<String> channels = ConcurrentHashMap.newKeySet();
 
-    private final Vertx vertx;
-
-    public ClientHolder(RabbitMQClient client,
-            String channel,
-            Vertx vertx,
-            Context root) {
+    public ClientHolder(RabbitMQClient client) {
         this.client = client;
-        this.vertx = vertx;
-        this.rootContext = new AtomicReference<>(root);
         this.connection = Uni.createFrom().deferred(() -> client.start()
                 .onSubscription().invoke(() -> {
-                    connected.set(true);
-                    log.connectionEstablished(channel);
+                    hasBeenConnected.set(true);
+                    log.connectionEstablished(String.join(", ", channels));
                 })
                 .onItem().transform(ignored -> {
-                    Context ctx = rootContext.get();
-                    connectionHolder
-                            .set(new CurrentConnection(client, ctx == null ? Vertx.currentContext() : ctx));
-
                     // handle the case we are already disconnected.
-                    if (!client.isConnected() || connectionHolder.get() == null) {
+                    if (!client.isConnected()) {
                         // Throwing the exception would trigger a retry.
-                        connectionHolder.set(null);
                         throw ex.illegalStateConnectionDisconnected();
                     }
                     return client;
                 })
-                .onFailure().invoke(log::unableToConnectToBroker)
-                .onFailure().invoke(t -> {
-                    connectionHolder.set(null);
-                    log.unableToRecoverFromConnectionDisruption(t);
-                }));
+                .onFailure().invoke(log::unableToConnectToBroker))
+                .memoize().until(() -> !client.isConnected());
     }
 
     public static CompletionStage<Void> runOnContext(Context context, IncomingRabbitMQMessage<?> msg,
@@ -76,32 +62,12 @@ public class ClientHolder {
         });
     }
 
-    public Context getContext() {
-        CurrentConnection connection = connectionHolder.get();
-        if (connection != null) {
-            return connection.context;
-        } else {
-            return null;
-        }
-    }
-
-    public void ensureContext(Context context) {
-        if (context == null) {
-            return;
-        }
-        rootContext.compareAndSet(null, context);
-        CurrentConnection connection = connectionHolder.get();
-        if (connection != null && connection.context == null) {
-            connectionHolder.compareAndSet(connection, new CurrentConnection(connection.client, context));
-        }
-    }
-
     public RabbitMQClient client() {
         return client;
     }
 
     public boolean hasBeenConnected() {
-        return connected.get();
+        return hasBeenConnected.get();
     }
 
     @CheckReturnValue
@@ -113,46 +79,46 @@ public class ClientHolder {
         return t -> client.basicNack(deliveryTag, false, requeue);
     }
 
-    public Vertx getVertx() {
-        return vertx;
-    }
-
     @CheckReturnValue
     public Uni<RabbitMQClient> getOrEstablishConnection() {
-        CompletionStage<RabbitMQClient> existing = connectionStage.get();
-        if (existing != null) {
-            if (!existing.toCompletableFuture().isDone() || client.isConnected()) {
-                return Uni.createFrom().completionStage(existing);
-            }
-            connectionStage.compareAndSet(existing, null);
-        }
-
-        for (;;) {
-            CompletionStage<RabbitMQClient> current = connectionStage.get();
-            if (current != null) {
-                return Uni.createFrom().completionStage(current);
-            }
-            CompletionStage<RabbitMQClient> created = connection.subscribeAsCompletionStage();
-            if (connectionStage.compareAndSet(null, created)) {
-                created.whenComplete((result, error) -> {
-                    if (error != null) {
-                        connectionStage.compareAndSet(created, null);
-                    }
-                });
-                return Uni.createFrom().completionStage(created);
-            }
-        }
+        return Uni.createFrom().deferred(this::establishConnection);
     }
 
-    private static class CurrentConnection {
-
-        final RabbitMQClient client;
-        final Context context;
-
-        private CurrentConnection(RabbitMQClient client, Context context) {
-            this.client = client;
-            this.context = context;
+    private Uni<RabbitMQClient> establishConnection() {
+        CompletableFuture<RabbitMQClient> existing = ongoingConnection.get();
+        if (existing != null) {
+            if (!existing.isDone() || client.isConnected()) {
+                return Uni.createFrom().completionStage(existing);
+            }
+            ongoingConnection.compareAndSet(existing, null);
         }
+
+        CompletableFuture<RabbitMQClient> placeholder = new CompletableFuture<>();
+        CompletableFuture<RabbitMQClient> current = ongoingConnection.compareAndExchange(null, placeholder);
+        if (current != null) {
+            return Uni.createFrom().completionStage(current);
+        }
+        connection.subscribe().with(placeholder::complete, placeholder::completeExceptionally);
+        placeholder.whenComplete((result, error) -> {
+            if (error != null) {
+                ongoingConnection.compareAndSet(placeholder, null);
+            }
+        });
+        return Uni.createFrom().completionStage(placeholder);
+    }
+
+    public Set<String> channels() {
+        return channels;
+    }
+
+    public ClientHolder retain(String channel) {
+        channels.add(channel);
+        return this;
+    }
+
+    public boolean release(String channel) {
+        channels.remove(channel);
+        return channels.isEmpty();
     }
 
 }

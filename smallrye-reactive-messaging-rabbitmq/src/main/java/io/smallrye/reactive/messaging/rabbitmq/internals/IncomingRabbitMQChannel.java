@@ -65,7 +65,7 @@ public class IncomingRabbitMQChannel {
         final RabbitMQFailureHandler onNack = createFailureHandler(connector.failureHandlerFactories(), ic);
         final RabbitMQAckHandler onAck = createAckHandler(ic);
 
-        Multi<? extends Message<?>> multi = createConsumer(connector, ic, incomingContext)
+        Multi<? extends Message<?>> multi = createConsumer(connector, ic)
                 .invoke(tuple -> client = tuple.getItem1().client())
                 // Translate all consumers into a merged stream of messages
                 .onItem().transformToMulti(
@@ -114,8 +114,8 @@ public class IncomingRabbitMQChannel {
     }
 
     private Uni<Tuple2<ClientHolder, RabbitMQConsumer>> createConsumer(RabbitMQConnector connector,
-            RabbitMQConnectorIncomingConfiguration ic, Context root) {
-        ClientHolder holder = connector.getClientHolder(ic, root);
+            RabbitMQConnectorIncomingConfiguration ic) {
+        ClientHolder holder = connector.getClientHolder(ic);
         final RabbitMQClient client = holder.client();
         client.getDelegate().addConnectionEstablishedCallback(promise -> {
 
@@ -135,7 +135,6 @@ public class IncomingRabbitMQChannel {
         });
 
         return holder.getOrEstablishConnection()
-                .invoke(() -> log.connectionEstablished(ic.getChannel()))
                 .flatMap(connection -> createConsumer(ic, connection).map(consumer -> Tuple2.of(holder, consumer)));
     }
 

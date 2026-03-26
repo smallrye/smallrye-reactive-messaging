@@ -33,7 +33,7 @@ public class OutgoingRabbitMQChannel {
             Instance<OpenTelemetry> openTelemetryInstance) {
 
         this.config = oc;
-        holder = connector.getClientHolder(oc, null);
+        holder = connector.getClientHolder(oc);
         // Create a client
         final RabbitMQClient client = holder.client();
         client.getDelegate().addConnectionEstablishedCallback(promise -> {
@@ -60,11 +60,14 @@ public class OutgoingRabbitMQChannel {
         // Return a SubscriberBuilder
         subscriber = MultiUtils.via(processor, m -> m.onFailure().invoke(t -> log.error(oc.getChannel(), t))
                 .onTermination().call(() -> {
-                    if (publisher != null) {
-                        return publisher.stop()
-                                .ifNoItem().after(Duration.ofSeconds(oc.getReconnectInterval())).fail()
+                    RabbitMQPublisher pub = publisher;
+                    publisher = null;
+                    if (pub != null) {
+                        return pub.stop()
+                                .ifNoItem().after(Duration.ofSeconds(oc.getConnectionTimeout())).fail()
                                 .onFailure()
-                                .invoke(e -> log.infof(e, "Error terminating outgoing channel %s", config.getChannel()));
+                                .invoke(e -> log.infof(e, "Error terminating outgoing channel %s", config.getChannel()))
+                                .onFailure().recoverWithNull();
                     }
                     return Uni.createFrom().voidItem();
                 }));

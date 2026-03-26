@@ -47,7 +47,7 @@ public class IncomingRabbitMQMessageTest {
 
         Exception nackReason = new Exception("test");
 
-        IncomingRabbitMQMessage<String> ackMsg = new IncomingRabbitMQMessage<>(msg, mock(ClientHolder.class),
+        IncomingRabbitMQMessage<String> ackMsg = new IncomingRabbitMQMessage<>(msg, mock(ClientHolder.class), null,
                 doNothingNack,
                 doNothingAck,
                 "text/plain");
@@ -67,7 +67,7 @@ public class IncomingRabbitMQMessageTest {
 
         Exception nackReason = new Exception("test");
 
-        IncomingRabbitMQMessage<String> nackMsg = new IncomingRabbitMQMessage<>(msg, mock(ClientHolder.class),
+        IncomingRabbitMQMessage<String> nackMsg = new IncomingRabbitMQMessage<>(msg, mock(ClientHolder.class), null,
                 doNothingNack,
                 doNothingAck,
                 "text/plain");
@@ -87,7 +87,7 @@ public class IncomingRabbitMQMessageTest {
         RabbitMQMessage msg = RabbitMQMessage.newInstance(mockMsg);
 
         IncomingRabbitMQMessage<Buffer> incomingRabbitMQMessage = new IncomingRabbitMQMessage<>(msg,
-                mock(ClientHolder.class),
+                mock(ClientHolder.class), null,
                 doNothingNack, doNothingAck, null);
 
         assertThat(incomingRabbitMQMessage.getPayload()).isEqualTo(payloadBuffer);
