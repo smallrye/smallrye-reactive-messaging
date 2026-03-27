@@ -1,6 +1,9 @@
 package io.smallrye.reactive.messaging.rabbitmq;
 
-import static io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Direction.*;
+import static io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Direction.INCOMING;
+import static io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Direction.INCOMING_AND_OUTGOING;
+import static io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Direction.OUTGOING;
+import static io.smallrye.reactive.messaging.rabbitmq.i18n.RabbitMQExceptions.ex;
 import static io.smallrye.reactive.messaging.rabbitmq.i18n.RabbitMQLogging.log;
 
 import java.util.List;
@@ -38,6 +41,7 @@ import io.smallrye.reactive.messaging.providers.connectors.ExecutionHolder;
 import io.smallrye.reactive.messaging.rabbitmq.fault.RabbitMQFailureHandler;
 import io.smallrye.reactive.messaging.rabbitmq.internals.IncomingRabbitMQChannel;
 import io.smallrye.reactive.messaging.rabbitmq.internals.OutgoingRabbitMQChannel;
+import io.smallrye.reactive.messaging.rabbitmq.internals.RabbitMQClientHelper;
 import io.vertx.mutiny.core.Vertx;
 import io.vertx.mutiny.rabbitmq.RabbitMQClient;
 import io.vertx.rabbitmq.RabbitMQOptions;
@@ -64,6 +68,7 @@ import io.vertx.rabbitmq.RabbitMQOptions;
 @ConnectorAttribute(name = "reconnect-interval", direction = INCOMING_AND_OUTGOING, description = "The interval (in seconds) between two reconnection attempts", type = "int", alias = "rabbitmq-reconnect-interval", defaultValue = "10")
 @ConnectorAttribute(name = "network-recovery-interval", direction = INCOMING_AND_OUTGOING, description = "How long (ms) will automatic recovery wait before attempting to reconnect", type = "int", defaultValue = "5000")
 @ConnectorAttribute(name = "user", direction = INCOMING_AND_OUTGOING, description = "The user name to use when connecting to the broker", type = "string", defaultValue = "guest")
+@ConnectorAttribute(name = "shared-connection-name", direction = INCOMING_AND_OUTGOING, description = "Optional identifier allowing multiple channels to share the same RabbitMQ connection when set to the same value", type = "string")
 @ConnectorAttribute(name = "include-properties", direction = INCOMING_AND_OUTGOING, description = "Whether to include properties when a broker message is passed on the event bus", type = "boolean", defaultValue = "false")
 @ConnectorAttribute(name = "requested-channel-max", direction = INCOMING_AND_OUTGOING, description = "The initially requested maximum channel number", type = "int", defaultValue = "2047")
 @ConnectorAttribute(name = "requested-heartbeat", direction = INCOMING_AND_OUTGOING, description = "The initially requested heartbeat interval (seconds), zero for none", type = "int", defaultValue = "60")
@@ -162,9 +167,11 @@ public class RabbitMQConnector implements InboundConnector, OutboundConnector, H
     @Inject
     @Any
     Instance<RabbitMQFailureHandler.Factory> failureHandlerFactories;
-    private List<IncomingRabbitMQChannel> incomings = new CopyOnWriteArrayList<>();
-    private List<OutgoingRabbitMQChannel> outgoings = new CopyOnWriteArrayList<>();
-    private Map<String, RabbitMQClient> clients = new ConcurrentHashMap<>();
+    private final List<IncomingRabbitMQChannel> incomings = new CopyOnWriteArrayList<>();
+    private final List<OutgoingRabbitMQChannel> outgoings = new CopyOnWriteArrayList<>();
+    private final Map<String, ClientHolder> clients = new ConcurrentHashMap<>();
+    // connection-name to fingerprint map to check against same connection-name but different options
+    private final Map<String, String> connectionFingerprints = new ConcurrentHashMap<>();
 
     @Inject
     @Any
@@ -263,28 +270,20 @@ public class RabbitMQConnector implements InboundConnector, OutboundConnector, H
             outgoing.terminate();
         }
 
-        clients.forEach((channel, rabbitMQClient) -> rabbitMQClient.stopAndAwait());
+        for (Map.Entry<String, ClientHolder> entry : clients.entrySet()) {
+            stopClient(entry.getValue().client(), true);
+        }
         clients.clear();
+        connectionFingerprints.clear();
     }
 
     public Vertx vertx() {
         return executionHolder.vertx();
     }
 
-    public void registerClient(String channel, RabbitMQClient client) {
-        RabbitMQClient old = clients.put(channel, client);
-        if (old != null) {
-            old.stopAndForget();
-        }
-    }
-
     public void reportIncomingFailure(String channel, Throwable reason) {
         log.failureReported(channel, reason);
-        RabbitMQClient client = clients.remove(channel);
-        if (client != null) {
-            // Called on vertx context, we can't block: stop clients without waiting
-            client.stopAndForget();
-        }
+        releaseClient(channel, false);
     }
 
     public Instance<RabbitMQFailureHandler.Factory> failureHandlerFactories() {
@@ -306,4 +305,43 @@ public class RabbitMQConnector implements InboundConnector, OutboundConnector, H
     public Instance<Map<String, ?>> configMaps() {
         return configMaps;
     }
+
+    public ClientHolder getClientHolder(RabbitMQConnectorCommonConfiguration config) {
+        String channel = config.getChannel();
+        RabbitMQOptions options = RabbitMQClientHelper.buildClientOptions(this, config);
+        String connectionName = options.getConnectionName();
+        String fingerprint = RabbitMQClientHelper.computeConnectionFingerprint(options);
+        String existing = connectionFingerprints.putIfAbsent(connectionName, fingerprint);
+        if (existing != null && !existing.equals(fingerprint)) {
+            throw ex.illegalStateSharedConnectionConfigMismatch(connectionName);
+        }
+        return clients.compute(fingerprint,
+                (key, current) -> (current == null ? new ClientHolder(RabbitMQClient.create(vertx(), options)) : current)
+                        .retain(channel));
+    }
+
+    public void releaseClient(String channel, boolean await) {
+        for (var e : clients.entrySet()) {
+            ClientHolder shared = e.getValue();
+            if (shared.channels().contains(channel)) {
+                if (clients.computeIfPresent(e.getKey(), (k, c) -> c.release(channel) ? null : c) == null) {
+                    connectionFingerprints.values().remove(e.getKey());
+                    stopClient(shared.client(), await);
+                }
+                return;
+            }
+        }
+    }
+
+    private void stopClient(RabbitMQClient client, boolean await) {
+        if (client == null) {
+            return;
+        }
+        if (await) {
+            client.stopAndAwait();
+        } else {
+            client.stopAndForget();
+        }
+    }
+
 }

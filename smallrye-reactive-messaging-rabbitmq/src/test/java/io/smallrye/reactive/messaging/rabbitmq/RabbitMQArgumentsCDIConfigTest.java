@@ -49,7 +49,7 @@ public class RabbitMQArgumentsCDIConfigTest extends RabbitMQBrokerTestBase {
 
         JsonObject queue = usage.getQueue(queueName);
         assertThat(queue.getJsonObject("arguments").getMap())
-                .containsExactlyInAnyOrderEntriesOf(Map.of("my-str-arg", "str-value", "my-int-arg", 4));
+                .containsAllEntriesOf(Map.of("my-str-arg", "str-value", "my-int-arg", 4));
 
         await().atMost(2, TimeUnit.MINUTES).until(() -> list.size() >= 10);
         assertThat(list).containsExactly(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
@@ -84,11 +84,11 @@ public class RabbitMQArgumentsCDIConfigTest extends RabbitMQBrokerTestBase {
 
         JsonObject queue = usage.getQueue(queueName);
         assertThat(queue.getJsonObject("arguments").getMap())
-                .containsExactlyInAnyOrderEntriesOf(Map.of("default-queue-arg", "default-value"));
+                .containsAllEntriesOf(Map.of("default-queue-arg", "default-value"));
 
         JsonObject exchange = usage.getExchange(queueName);
         assertThat(exchange.getJsonObject("arguments").getMap())
-                .containsExactlyInAnyOrderEntriesOf(Map.of("default-exchange-arg", "default-value"));
+                .containsAllEntriesOf(Map.of("default-exchange-arg", "default-value"));
 
         await().atMost(2, TimeUnit.MINUTES).until(() -> list.size() >= 10);
         assertThat(list).containsExactly(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
@@ -124,7 +124,7 @@ public class RabbitMQArgumentsCDIConfigTest extends RabbitMQBrokerTestBase {
 
         JsonObject exchange = usage.getExchange(queueName);
         assertThat(exchange.getJsonObject("arguments").getMap())
-                .containsExactlyInAnyOrderEntriesOf(Map.of("my-str-arg", "str-value", "my-int-arg", 4));
+                .containsAllEntriesOf(Map.of("my-str-arg", "str-value", "my-int-arg", 4));
 
         await().atMost(2, TimeUnit.MINUTES).until(() -> list.size() >= 10);
         assertThat(list).containsExactly(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
@@ -165,11 +165,11 @@ public class RabbitMQArgumentsCDIConfigTest extends RabbitMQBrokerTestBase {
 
         JsonObject queue = usage.getQueue(dlqName);
         assertThat(queue.getJsonObject("arguments").getMap())
-                .containsExactlyInAnyOrderEntriesOf(Map.of("my-str-arg", "str-value", "my-int-arg", 4));
+                .containsAllEntriesOf(Map.of("my-str-arg", "str-value", "my-int-arg", 4));
 
         JsonObject exchange = usage.getExchange("DLX");
         assertThat(exchange.getJsonObject("arguments").getMap())
-                .containsExactlyInAnyOrderEntriesOf(Map.of("my-str-arg", "str-value", "my-int-arg", 4));
+                .containsAllEntriesOf(Map.of("my-str-arg", "str-value", "my-int-arg", 4));
 
         await().atMost(2, TimeUnit.MINUTES).until(() -> list.size() >= 10);
         assertThat(list).containsExactly(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);

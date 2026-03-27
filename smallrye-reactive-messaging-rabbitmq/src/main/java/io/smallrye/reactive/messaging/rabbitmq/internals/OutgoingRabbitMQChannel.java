@@ -26,21 +26,22 @@ public class OutgoingRabbitMQChannel {
     private final Flow.Subscriber<Message<?>> subscriber;
     private final RabbitMQConnectorOutgoingConfiguration config;
     private final ClientHolder holder;
+    private final RabbitMQMessageSender processor;
     private volatile RabbitMQPublisher publisher;
 
     public OutgoingRabbitMQChannel(RabbitMQConnector connector, RabbitMQConnectorOutgoingConfiguration oc,
             Instance<OpenTelemetry> openTelemetryInstance) {
 
         this.config = oc;
+        holder = connector.getClientHolder(oc);
         // Create a client
-        final RabbitMQClient client = RabbitMQClientHelper.createClient(connector, oc);
+        final RabbitMQClient client = holder.client();
         client.getDelegate().addConnectionEstablishedCallback(promise -> {
             // Ensure we create the exchange to which messages are to be sent
             RabbitMQClientHelper.declareExchangeIfNeeded(client, oc, connector.configMaps())
                     .subscribe().with((ignored) -> promise.complete(), promise::fail);
         });
 
-        holder = new ClientHolder(client, oc, connector.vertx(), null);
         final Uni<RabbitMQPublisher> getSender = holder.getOrEstablishConnection()
                 .onItem()
                 .transformToUni(connection -> Uni.createFrom().item(RabbitMQPublisher.create(connector.vertx(), connection,
@@ -54,10 +55,22 @@ public class OutgoingRabbitMQChannel {
                 .onFailure().recoverWithNull().memoize().indefinitely();
 
         // Set up a sender based on the publisher we established above
-        final RabbitMQMessageSender processor = new RabbitMQMessageSender(oc, getSender, openTelemetryInstance);
+        processor = new RabbitMQMessageSender(oc, getSender, openTelemetryInstance);
 
         // Return a SubscriberBuilder
-        subscriber = MultiUtils.via(processor, m -> m.onFailure().invoke(t -> log.error(oc.getChannel(), t)));
+        subscriber = MultiUtils.via(processor, m -> m.onFailure().invoke(t -> log.error(oc.getChannel(), t))
+                .onTermination().call(() -> {
+                    RabbitMQPublisher pub = publisher;
+                    publisher = null;
+                    if (pub != null) {
+                        return pub.stop()
+                                .ifNoItem().after(Duration.ofSeconds(oc.getConnectionTimeout())).fail()
+                                .onFailure()
+                                .invoke(e -> log.infof(e, "Error terminating outgoing channel %s", config.getChannel()))
+                                .onFailure().recoverWithNull();
+                    }
+                    return Uni.createFrom().voidItem();
+                }));
     }
 
     public Flow.Subscriber<Message<?>> getSubscriber() {
@@ -95,12 +108,6 @@ public class OutgoingRabbitMQChannel {
     }
 
     public void terminate() {
-        if (publisher != null) {
-            try {
-                publisher.stop().await().atMost(Duration.ofMillis(config.getConnectionTimeout()));
-            } catch (Exception e) {
-                log.infof(e, "Error terminating outgoing channel %s", config.getChannel());
-            }
-        }
+        processor.cancel();
     }
 }

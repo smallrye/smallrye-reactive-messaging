@@ -60,18 +60,18 @@ public class IncomingRabbitMQMessage<T> implements ContextAwareMessage<T>, Metad
     private final String contentTypeOverride;
     private final T payload;
 
-    public IncomingRabbitMQMessage(RabbitMQMessage delegate, ClientHolder holder,
+    public IncomingRabbitMQMessage(RabbitMQMessage delegate, ClientHolder holder, Context context,
             RabbitMQFailureHandler onNack,
             RabbitMQAckHandler onAck, String contentTypeOverride) {
-        this(delegate.getDelegate(), holder, onNack, onAck, contentTypeOverride);
+        this(delegate.getDelegate(), holder, context, onNack, onAck, contentTypeOverride);
     }
 
-    IncomingRabbitMQMessage(io.vertx.rabbitmq.RabbitMQMessage msg, ClientHolder holder,
+    IncomingRabbitMQMessage(io.vertx.rabbitmq.RabbitMQMessage msg, ClientHolder holder, Context context,
             RabbitMQFailureHandler onNack, RabbitMQAckHandler onAck, String contentTypeOverride) {
         this.message = msg;
         this.deliveryTag = msg.envelope().getDeliveryTag();
         this.holder = holder;
-        this.context = holder.getContext();
+        this.context = context;
         this.contentTypeOverride = contentTypeOverride;
         this.rabbitMQMetadata = new IncomingRabbitMQMetadata(this.message, contentTypeOverride);
         this.onNack = onNack;
@@ -132,17 +132,6 @@ public class IncomingRabbitMQMessage<T> implements ContextAwareMessage<T>, Metad
      */
     public void acknowledgeMessage() {
         holder.getAck(this.deliveryTag).subscribeAsCompletionStage();
-    }
-
-    /**
-     * Rejects the message by nack'ing with requeue=false; this will either discard the message for good or
-     * (if a DLQ has been set up) send it to the DLQ.
-     *
-     * @param reason the cause of the rejection, which must not be null
-     */
-    public void rejectMessage(Throwable reason) {
-        this.rejectMessage(reason, false);
-        holder.getNack(this.deliveryTag, false).apply(reason).subscribeAsCompletionStage();
     }
 
     /**
