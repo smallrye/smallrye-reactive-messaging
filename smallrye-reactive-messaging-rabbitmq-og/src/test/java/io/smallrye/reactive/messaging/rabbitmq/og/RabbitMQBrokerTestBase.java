@@ -2,7 +2,6 @@ package io.smallrye.reactive.messaging.rabbitmq.og;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
-import java.time.Duration;
 import java.util.UUID;
 
 import jakarta.enterprise.inject.Any;
@@ -10,18 +9,11 @@ import jakarta.enterprise.inject.se.SeContainer;
 
 import org.eclipse.microprofile.config.ConfigProvider;
 import org.jboss.weld.environment.se.WeldContainer;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.TestInfo;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.testcontainers.containers.GenericContainer;
-import org.testcontainers.containers.Network;
-import org.testcontainers.containers.wait.strategy.Wait;
-import org.testcontainers.utility.DockerImageName;
-import org.testcontainers.utility.MountableFile;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 import io.smallrye.common.vertx.VertxContext;
 import io.smallrye.config.SmallRyeConfigProviderResolver;
@@ -33,20 +25,8 @@ import io.vertx.mutiny.core.Vertx;
 /**
  * Provides a basis for test classes, by managing the RabbitMQ broker test container.
  */
+@ExtendWith(RabbitMQBrokerExtension.class)
 public class RabbitMQBrokerTestBase {
-
-    private static final Logger LOGGER = LoggerFactory.getLogger("RabbitMQ-OG");
-
-    private static final GenericContainer<?> RABBIT = new GenericContainer<>(
-            DockerImageName.parse("rabbitmq:4.2-management"))
-            .withExposedPorts(5672, 15672)
-            .withNetworkAliases("rabbitmq-og")
-            .withNetwork(Network.SHARED)
-            .withLogConsumer(of -> LOGGER.debug(of.getUtf8String()))
-            .waitingFor(Wait.forLogMessage(".*Server startup complete.*\\n", 1)
-                    .withStartupTimeout(Duration.ofSeconds(30)))
-            .withCopyFileToContainer(MountableFile.forClasspathResource("rabbitmq/enabled_plugins"),
-                    "/etc/rabbitmq/enabled_plugins");
 
     protected static String host;
     protected static int port;
@@ -60,25 +40,18 @@ public class RabbitMQBrokerTestBase {
     protected String queueName;
 
     @BeforeAll
-    public static void startBroker() {
-        RABBIT.start();
+    public static void initBroker(
+            @RabbitMQBrokerExtension.RabbitMQHost String h,
+            @RabbitMQBrokerExtension.RabbitMQPort int p,
+            @RabbitMQBrokerExtension.RabbitMQManagementPort int mp) {
+        host = h;
+        port = p;
+        managementPort = mp;
 
-        port = RABBIT.getMappedPort(5672);
-        managementPort = RABBIT.getMappedPort(15672);
-        host = RABBIT.getContainerIpAddress();
-
-        // Set global alias properties that the connector can use
         System.setProperty("rabbitmq-host", host);
         System.setProperty("rabbitmq-port", Integer.toString(port));
         System.setProperty("rabbitmq-username", username);
         System.setProperty("rabbitmq-password", password);
-    }
-
-    @AfterAll
-    public static void stopBroker() {
-        RABBIT.stop();
-        System.clearProperty("rabbitmq-host");
-        System.clearProperty("rabbitmq-port");
     }
 
     @BeforeEach
