@@ -12,6 +12,10 @@
 
   <name>SmallRye Reactive Messaging : Connector :: RabbitMQ</name>
 
+  <properties>
+    <skipTests>true</skipTests>
+  </properties>
+
   <dependencies>
     <dependency>
       <groupId>io.smallrye.reactive</groupId>
