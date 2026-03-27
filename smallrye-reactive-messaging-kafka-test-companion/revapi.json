@@ -24,65 +24,7 @@
     "criticality" : "highlight",
     "minSeverity" : "POTENTIALLY_BREAKING",
     "minCriticality" : "documented",
-    "differences" : [ {
-            "code": "java.field.constantValueChanged",
-            "old": "field io.smallrye.reactive.messaging.kafka.companion.test.KafkaBrokerExtension.KAFKA_VERSION",
-            "new": "field io.smallrye.reactive.messaging.kafka.companion.test.KafkaBrokerExtension.KAFKA_VERSION",
-            "justification": "Default kafka version to 4.1.0"
-        },
-        {
-            "code": "java.field.typeChanged",
-            "old": "field io.smallrye.reactive.messaging.kafka.companion.test.KafkaBrokerExtension.kafka",
-            "new": "field io.smallrye.reactive.messaging.kafka.companion.test.KafkaBrokerExtension.kafka",
-            "justification": "Kafka broker container is no longer restricted to StrimziKafkaContainer"
-        },
-        {
-            "code": "java.method.visibilityReduced",
-            "old": "method <T extends io.strimzi.test.container.StrimziKafkaContainer> T io.smallrye.reactive.messaging.kafka.companion.test.KafkaBrokerExtension::configureKafkaContainer(T)",
-            "new": "method io.smallrye.reactive.messaging.kafka.companion.test.KafkaContainer io.smallrye.reactive.messaging.kafka.companion.test.KafkaBrokerExtension::configureKafkaContainer(io.smallrye.reactive.messaging.kafka.companion.test.KafkaContainer)",
-            "oldVisibility": "public",
-            "newVisibility": "private",
-            "justification": "Kafka broker container is no longer restricted to StrimziKafkaContainer"
-        },
-        {
-            "code": "java.method.returnTypeChanged",
-            "old": "method io.strimzi.test.container.StrimziKafkaContainer io.smallrye.reactive.messaging.kafka.companion.test.KafkaBrokerExtension::createKafkaContainer()",
-            "new": "method org.testcontainers.containers.GenericContainer<?> io.smallrye.reactive.messaging.kafka.companion.test.KafkaBrokerExtension::createKafkaContainer()",
-            "justification": "Kafka broker container is no longer restricted to StrimziKafkaContainer"
-        },
-        {
-            "code": "java.method.parameterTypeChanged",
-            "old": "parameter io.strimzi.test.container.StrimziKafkaContainer io.smallrye.reactive.messaging.kafka.companion.test.KafkaBrokerExtension::restart(===io.strimzi.test.container.StrimziKafkaContainer===, int)",
-            "new": "parameter org.testcontainers.containers.GenericContainer<?> io.smallrye.reactive.messaging.kafka.companion.test.KafkaBrokerExtension::restart(===org.testcontainers.containers.GenericContainer<?>===, int)",
-            "parameterIndex": "0",
-            "justification": "Kafka broker container is no longer restricted to StrimziKafkaContainer"
-        },
-        {
-            "code": "java.method.returnTypeChanged",
-            "old": "method io.strimzi.test.container.StrimziKafkaContainer io.smallrye.reactive.messaging.kafka.companion.test.KafkaBrokerExtension::restart(io.strimzi.test.container.StrimziKafkaContainer, int)",
-            "new": "method org.testcontainers.containers.GenericContainer<?> io.smallrye.reactive.messaging.kafka.companion.test.KafkaBrokerExtension::restart(org.testcontainers.containers.GenericContainer<?>, int)",
-            "justification": "Kafka broker container is no longer restricted to StrimziKafkaContainer"
-        },
-        {
-            "code": "java.method.returnTypeChanged",
-            "old": "method io.strimzi.test.container.StrimziKafkaContainer io.smallrye.reactive.messaging.kafka.companion.test.KafkaBrokerExtension::startKafkaBroker(int)",
-            "new": "method org.testcontainers.containers.GenericContainer<?> io.smallrye.reactive.messaging.kafka.companion.test.KafkaBrokerExtension::startKafkaBroker(int)",
-            "justification": "Kafka broker container is no longer restricted to StrimziKafkaContainer"
-        },
-        {
-            "code": "java.class.removed",
-            "old": "class io.smallrye.reactive.messaging.kafka.companion.test.ProxiedStrimziKafkaContainer",
-            "justification": "StrimziKafkaContainer is no longer accessible"
-        },
-        {
-            "code": "java.method.visibilityIncreased",
-            "old": "method void io.smallrye.reactive.messaging.kafka.companion.test.KafkaProxy::<init>(eu.rekawek.toxiproxy.Proxy, java.lang.String, int, int)",
-            "new": "method void io.smallrye.reactive.messaging.kafka.companion.test.KafkaProxy::<init>(eu.rekawek.toxiproxy.Proxy, java.lang.String, int, int)",
-            "oldVisibility": "protected",
-            "newVisibility": "public",
-            "justification": "KafkaProxy is now public"
-        }
-    ]
+    "differences" : [ ]
   }
 }, {
   "extension" : "revapi.reporter.json",

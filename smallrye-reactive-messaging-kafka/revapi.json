@@ -36,75 +36,7 @@
     "criticality" : "highlight",
     "minSeverity" : "POTENTIALLY_BREAKING",
     "minCriticality" : "documented",
-    "differences" : [
-        {
-            "code": "java.annotation.attributeValueChanged",
-            "old": "class io.smallrye.reactive.messaging.kafka.KafkaConnector",
-            "new": "class io.smallrye.reactive.messaging.kafka.KafkaConnector",
-            "annotationType": "io.smallrye.reactive.messaging.annotations.ConnectorAttributes",
-            "attribute": "value"
-        },
-        {
-            "code": "java.method.addedToInterface",
-            "new": "method java.util.Set<java.lang.String> io.smallrye.reactive.messaging.kafka.KafkaClientService::getShareConsumerChannels()",
-            "justification": "Added for shared consumers support"
-        },
-        {
-            "code": "java.method.addedToInterface",
-            "new": "method <K, V> java.util.List<io.smallrye.reactive.messaging.kafka.KafkaShareConsumer<K, V>> io.smallrye.reactive.messaging.kafka.KafkaClientService::getShareConsumers(java.lang.String)",
-            "justification": "Added for shared consumers support"
-        },
-        {
-            "code": "java.method.addedToInterface",
-            "new": "method io.smallrye.mutiny.Uni<java.util.Map<java.lang.String, org.apache.kafka.clients.admin.ConsumerGroupDescription>> io.smallrye.reactive.messaging.kafka.KafkaAdmin::describeConsumerGroup(java.util.Collection<java.lang.String>)",
-            "justification": "Added describeConsumerGroup method to support shared consumer groups administration"
-        },
-        {
-            "code": "java.method.addedToInterface",
-            "new": "method io.smallrye.mutiny.Uni<java.util.Map<java.lang.String, org.apache.kafka.clients.admin.ShareGroupDescription>> io.smallrye.reactive.messaging.kafka.KafkaAdmin::describeShareGroup(java.util.Collection<java.lang.String>)",
-            "justification": "Added describeShareGroup method to support shared consumer groups administration"
-        },
-        {
-            "code": "java.method.addedToInterface",
-            "new": "method boolean io.smallrye.reactive.messaging.kafka.KafkaProducer<K, V>::isClosed()",
-            "justification": "Added isClosed() to KafkaProducer interface for pooled producer support"
-        },
-        {
-            "code": "java.method.addedToInterface",
-            "new": "method boolean io.smallrye.reactive.messaging.kafka.KafkaProducer<K, V>::isPooled()",
-            "justification": "Added isPooled() default method for pooled producer support"
-        },
-        {
-            "code": "java.method.addedToInterface",
-            "new": "method io.smallrye.mutiny.Uni<java.lang.Void> io.smallrye.reactive.messaging.kafka.KafkaConsumer<K, V>::resetToLastCommittedPositions(java.util.Collection<org.apache.kafka.common.TopicPartition>)",
-            "justification": "Added resetToLastCommittedPositions method to KafkaConsumer interface to support resetting only a subset of partitions to their last committed positions"
-        },
-        {
-            "code": "java.method.addedToInterface",
-            "new": "method <R> io.smallrye.mutiny.Uni<R> io.smallrye.reactive.messaging.kafka.transactions.KafkaTransactions<T>::withTransaction(io.smallrye.reactive.messaging.kafka.api.IncomingKafkaRecordMetadata<?, ?>, java.util.function.Function<io.smallrye.reactive.messaging.kafka.transactions.TransactionalEmitter<T>, io.smallrye.mutiny.Uni<R>>)",
-            "justification": "Added withTransaction overload accepting IncomingKafkaRecordMetadata directly"
-        },
-        {
-            "code": "java.method.addedToInterface",
-            "new": "method <R> io.smallrye.mutiny.Uni<R> io.smallrye.reactive.messaging.kafka.transactions.KafkaTransactions<T>::withTransaction(io.smallrye.reactive.messaging.kafka.api.IncomingKafkaRecordBatchMetadata<?, ?>, java.util.function.Function<io.smallrye.reactive.messaging.kafka.transactions.TransactionalEmitter<T>, io.smallrye.mutiny.Uni<R>>)",
-            "justification": "Added withTransaction overload accepting IncomingKafkaRecordBatchMetadata directly"
-        },
-        {
-            "code": "java.method.addedToInterface",
-            "new": "method <R> R io.smallrye.reactive.messaging.kafka.transactions.KafkaTransactions<T>::withTransactionAndAwait(io.smallrye.reactive.messaging.kafka.api.IncomingKafkaRecordBatchMetadata<?, ?>, java.util.function.Function<io.smallrye.reactive.messaging.kafka.transactions.TransactionalEmitter<T>, io.smallrye.mutiny.Uni<R>>)",
-            "justification": "Blocking version of KafkaTransactions withTransaction"
-        },
-        {
-            "code": "java.method.addedToInterface",
-            "new": "method <R> R io.smallrye.reactive.messaging.kafka.transactions.KafkaTransactions<T>::withTransactionAndAwait(io.smallrye.reactive.messaging.kafka.api.IncomingKafkaRecordMetadata<?, ?>, java.util.function.Function<io.smallrye.reactive.messaging.kafka.transactions.TransactionalEmitter<T>, io.smallrye.mutiny.Uni<R>>)",
-            "justification": "Blocking version of KafkaTransactions withTransaction"
-        },
-        {
-            "code": "java.method.addedToInterface",
-            "new": "method <R> R io.smallrye.reactive.messaging.kafka.transactions.KafkaTransactions<T>::withTransactionAndAwait(java.util.function.Function<io.smallrye.reactive.messaging.kafka.transactions.TransactionalEmitter<T>, io.smallrye.mutiny.Uni<R>>)",
-            "justification": "Blocking version of KafkaTransactions withTransaction"
-        }
-    ]
+    "differences" : [ ]
   }
 }, {
   "extension" : "revapi.reporter.json",
