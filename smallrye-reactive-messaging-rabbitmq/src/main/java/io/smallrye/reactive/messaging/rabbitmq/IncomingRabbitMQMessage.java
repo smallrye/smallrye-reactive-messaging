@@ -135,17 +135,6 @@ public class IncomingRabbitMQMessage<T> implements ContextAwareMessage<T>, Metad
     }
 
     /**
-     * Rejects the message by nack'ing with requeue=false; this will either discard the message for good or
-     * (if a DLQ has been set up) send it to the DLQ.
-     *
-     * @param reason the cause of the rejection, which must not be null
-     */
-    public void rejectMessage(Throwable reason) {
-        this.rejectMessage(reason, false);
-        holder.getNack(this.deliveryTag, false).apply(reason).subscribeAsCompletionStage();
-    }
-
-    /**
      * Rejects the message by nack'ing it.
      * <p>
      * This will either discard the message for good, requeue (if requeue=true is set)

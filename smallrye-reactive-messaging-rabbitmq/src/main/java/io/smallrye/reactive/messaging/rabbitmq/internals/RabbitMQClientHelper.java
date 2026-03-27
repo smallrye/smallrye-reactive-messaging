@@ -45,16 +45,6 @@ public class RabbitMQClientHelper {
         // avoid direct instantiation.
     }
 
-    public static RabbitMQClient createClient(RabbitMQConnector connector, RabbitMQConnectorCommonConfiguration config) {
-        try {
-            RabbitMQOptions options = buildClientOptions(connector, config);
-            return RabbitMQClient.create(connector.vertx(), options);
-        } catch (Exception e) {
-            log.unableToCreateClient(e);
-            throw ex.illegalStateUnableToCreateClient(e);
-        }
-    }
-
     public static RabbitMQOptions buildClientOptions(RabbitMQConnector connector, RabbitMQConnectorCommonConfiguration config) {
         Optional<String> clientOptionsName = config.getClientOptionsName();
         Vertx vertx = connector.vertx();
