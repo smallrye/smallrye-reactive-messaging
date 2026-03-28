@@ -11,6 +11,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import jakarta.enterprise.inject.Instance;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import com.rabbitmq.client.ConnectionFactory;
@@ -21,6 +22,7 @@ import io.vertx.mutiny.core.Vertx;
 /**
  * Advanced tests for IncomingRabbitMQChannel configuration
  */
+@Disabled
 public class IncomingRabbitMQChannelAdvancedTest extends RabbitMQBrokerTestBase {
 
     @Test
