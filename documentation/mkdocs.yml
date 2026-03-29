@@ -66,6 +66,7 @@ nav:
         - 'Health Checks' : rabbitmq/rabbitmq-health.md
         - 'Client Customization' : rabbitmq/rabbitmq-client-customization.md
         - 'Connecting to managed instances' : rabbitmq/rabbitmq-cloud.md
+        - 'RabbitMQ Request/Reply': rabbitmq/request-reply.md
 
   - Pulsar:
         - pulsar/pulsar.md
