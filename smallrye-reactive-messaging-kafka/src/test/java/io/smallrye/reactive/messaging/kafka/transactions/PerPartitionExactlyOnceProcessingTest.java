@@ -187,6 +187,40 @@ public class PerPartitionExactlyOnceProcessingTest extends KafkaCompanionTestBas
     }
 
     @Test
+    void testConcurrentPerPartitionBlockingTransactions() {
+        int numberOfRecords = 4000;
+        int partitions = 5;
+        inTopic = companion.topics().createAndWait(topic, partitions);
+        outTopic = companion.topics().createAndWait(topic + "-out", partitions);
+        MapBasedConfig config = new MapBasedConfig(producerConfig());
+        config.putAll(orderedPartitionConsumerConfig()
+                .with("concurrency", partitions));
+        ConcurrentPerPartitionBlockingProcessor application = runApplication(config,
+                ConcurrentPerPartitionBlockingProcessor.class);
+
+        // Send records distributed across 3 partitions
+        companion.produceIntegers()
+                .usingGenerator(i -> new ProducerRecord<>(inTopic, i % partitions, "k" + i, i), numberOfRecords);
+
+        ConsumerTask<String, Integer> records = companion.consumeIntegers()
+                .withOffsetReset(OffsetResetStrategy.EARLIEST)
+                .withProp(ConsumerConfig.ISOLATION_LEVEL_CONFIG, "read_committed")
+                .fromTopics(outTopic, numberOfRecords)
+                .awaitCompletion(Duration.ofSeconds(20));
+
+        assertThat(records.getRecords())
+                .extracting(ConsumerRecord::value)
+                .containsAll(IntStream.range(0, numberOfRecords).boxed().collect(Collectors.toList()))
+                .doesNotHaveDuplicates();
+
+        // Verify that transactions actually ran concurrently
+        assertThat(application.getMaxConcurrency())
+                .as("Max concurrent transactions should be > 1, proving pooled scopes run in parallel")
+                .isGreaterThan(1);
+        await().untilAsserted(() -> assertThat(application.transaction().isTransactionInProgress()).isFalse());
+    }
+
+    @Test
     void testConcurrentAbortDoesNotCauseDuplicates() {
         int numberOfRecords = 100;
         int partitions = 3;
@@ -579,6 +613,48 @@ public class PerPartitionExactlyOnceProcessingTest extends KafkaCompanionTestBas
                 processed.add(record.getPayload());
                 return Uni.createFrom().voidItem();
             }).eventually(() -> concurrency.decrementAndGet());
+        }
+
+        public List<Integer> getProcessed() {
+            return processed;
+        }
+
+        public int getMaxConcurrency() {
+            return maxConcurrency.get();
+        }
+
+        public KafkaTransactions<Integer> transaction() {
+            return transaction;
+        }
+    }
+
+    @ApplicationScoped
+    public static class ConcurrentPerPartitionBlockingProcessor {
+
+        @Inject
+        @Channel("transactional-producer")
+        KafkaTransactions<Integer> transaction;
+
+        List<Integer> processed = new CopyOnWriteArrayList<>();
+        AtomicInteger concurrency = new AtomicInteger(0);
+        AtomicInteger maxConcurrency = new AtomicInteger(0);
+
+        @Incoming("exactly-once-consumer")
+        @Blocking
+        void process(Integer value, IncomingKafkaRecordMetadata<String, Integer> metadata) {
+            System.out.println("processing value " + value + " from " + metadata.getPartition() + ":" + metadata.getOffset()
+                    + " concurrency " + concurrency.get() + " maxConcurrency " + maxConcurrency.get());
+            int current = concurrency.incrementAndGet();
+            maxConcurrency.updateAndGet(max -> Math.max(max, current));
+            try {
+                transaction.withTransactionAndAwait(metadata, emitter -> {
+                    emitter.send(KafkaRecord.of(metadata.getKey(), value));
+                    processed.add(value);
+                    return Uni.createFrom().voidItem();
+                });
+            } finally {
+                concurrency.decrementAndGet();
+            }
         }
 
         public List<Integer> getProcessed() {
