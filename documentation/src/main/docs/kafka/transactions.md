@@ -116,7 +116,6 @@ each with its own independent transaction:
 mp.messaging.outgoing.tx-out-example.transactional.id=my-tx-producer
 mp.messaging.outgoing.tx-out-example.pooled-producer=true
 
-mp.messaging.incoming.in-channel.concurrency=5
 mp.messaging.incoming.in-channel.ordered=partition
 mp.messaging.incoming.in-channel.commit-strategy=ignore
 mp.messaging.incoming.in-channel.failure-strategy=ignore
