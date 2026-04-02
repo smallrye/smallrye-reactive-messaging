@@ -1,5 +1,7 @@
 package io.smallrye.reactive.messaging.amqp;
 
+import static org.awaitility.Awaitility.await;
+
 import java.time.Duration;
 
 import org.eclipse.microprofile.config.ConfigProvider;
@@ -10,10 +12,10 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.testcontainers.containers.BindMode;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.utility.DockerImageName;
+import org.testcontainers.utility.MountableFile;
 
 import io.smallrye.config.SmallRyeConfigProviderResolver;
 import io.smallrye.mutiny.infrastructure.Infrastructure;
@@ -43,7 +45,12 @@ public class RabbitMQBrokerTestBase {
 
     @BeforeAll
     public static void startBroker() {
-        RABBIT.start();
+        try {
+            RABBIT.start();
+        } catch (Exception e) {
+            LOGGER.error("Failed to start RabbitMQ container, trying again...", e);
+            RABBIT.start();
+        }
 
         port = RABBIT.getPort();
         host = RABBIT.getHost();
@@ -57,6 +64,7 @@ public class RabbitMQBrokerTestBase {
         RABBIT.stop();
         System.clearProperty("amqp-host");
         System.clearProperty("amqp-port");
+        await().until(() -> !RABBIT.isRunning());
     }
 
     public static void restartBroker() {
@@ -97,14 +105,12 @@ public class RabbitMQBrokerTestBase {
     public static class RabbitMQContainer extends GenericContainer<RabbitMQContainer> {
 
         public RabbitMQContainer() {
-            super(DockerImageName.parse("rabbitmq:3.12-management"));
+            super(DockerImageName.parse("docker.io/rabbitmq:3.12-management"));
             withExposedPorts(5672, 15672);
-            withReuse(true);
-            //            withLogConsumer(outputFrame -> LOGGER.info(outputFrame.getUtf8String()));
             waitingFor(Wait.forLogMessage(".*Server startup complete; 4 plugins started.*\\n", 1)
                     .withStartupTimeout(Duration.ofSeconds(30)));
-            withFileSystemBind("src/test/resources/rabbitmq/enabled_plugins", "/etc/rabbitmq/enabled_plugins",
-                    BindMode.READ_ONLY);
+            withCopyFileToContainer(MountableFile.forClasspathResource("rabbitmq/enabled_plugins"),
+                    "/etc/rabbitmq/enabled_plugins");
         }
 
         public RabbitMQContainer(int port) {

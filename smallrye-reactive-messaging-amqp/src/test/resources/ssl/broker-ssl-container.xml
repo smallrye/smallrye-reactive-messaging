@@ -8,13 +8,12 @@
 
     <name>0.0.0.0</name>
 
-
     <persistence-enabled>true</persistence-enabled>
     <journal-type>NIO</journal-type>
-    <paging-directory>target/data/paging</paging-directory>
-    <bindings-directory>target/data/bindings</bindings-directory>
-    <journal-directory>target/data/journal</journal-directory>
-    <large-messages-directory>target/data/large-messages</large-messages-directory>
+    <paging-directory>data/paging</paging-directory>
+    <bindings-directory>data/bindings</bindings-directory>
+    <journal-directory>data/journal</journal-directory>
+    <large-messages-directory>data/large-messages</large-messages-directory>
     <journal-datasync>true</journal-datasync>
     <journal-min-files>2</journal-min-files>
     <journal-pool-files>10</journal-pool-files>
@@ -37,12 +36,16 @@
         tcp://0.0.0.0:61616?tcpSendBufferSize=1048576;tcpReceiveBufferSize=1048576;protocols=CORE,AMQP;amqpCredits=1000;amqpLowCredits=300;amqpDuplicateDetection=true
       </acceptor>
 
-      <!-- AMQP Acceptor.  Listens on default AMQP port for AMQP traffic.-->
+      <!-- AMQP Acceptor. Listens on default AMQP port for AMQP traffic. Secured with SSL -->
       <acceptor name="amqp">
-        tcp://0.0.0.0:5672?tcpSendBufferSize=1048576;tcpReceiveBufferSize=1048576;protocols=AMQP;amqpCredits=1000;amqpLowCredits=300;amqpDuplicateDetection=true
+        tcp://0.0.0.0:5672?tcpSendBufferSize=1048576;tcpReceiveBufferSize=1048576;protocols=AMQP;amqpCredits=1000;amqpLowCredits=300;amqpDuplicateDetection=true;sslEnabled=true;keyStorePath=/tmp/server.keystore.p12;keyStorePassword=serverks
+      </acceptor>
+
+      <!-- Non-secured acceptor for the test framework to send, on default port + 1 -->
+      <acceptor name="amqp-test">
+        tcp://0.0.0.0:5673?tcpSendBufferSize=1048576;tcpReceiveBufferSize=1048576;protocols=AMQP;amqpCredits=1000;amqpLowCredits=300;amqpDuplicateDetection=true
       </acceptor>
     </acceptors>
-
 
     <security-settings>
       <security-setting match="#">
@@ -55,18 +58,15 @@
         <permission type="consume" roles="amq"/>
         <permission type="browse" roles="amq"/>
         <permission type="send" roles="amq"/>
-        <!-- we need this otherwise ./artemis data imp wouldn't work -->
         <permission type="manage" roles="amq"/>
       </security-setting>
     </security-settings>
 
     <address-settings>
-      <!-- if you define auto-create on certain queues, management has to be auto-create -->
       <address-setting match="activemq.management#">
         <dead-letter-address>DLQ</dead-letter-address>
         <expiry-address>ExpiryQueue</expiry-address>
         <redelivery-delay>0</redelivery-delay>
-        <!-- with -1 only the global-max-size is in use for limiting -->
         <max-size-bytes>-1</max-size-bytes>
         <message-counter-history-day-limit>10</message-counter-history-day-limit>
         <address-full-policy>PAGE</address-full-policy>
@@ -75,12 +75,10 @@
         <auto-create-jms-queues>true</auto-create-jms-queues>
         <auto-create-jms-topics>true</auto-create-jms-topics>
       </address-setting>
-      <!--default for catch all-->
       <address-setting match="#">
         <dead-letter-address>DLQ</dead-letter-address>
         <expiry-address>ExpiryQueue</expiry-address>
         <redelivery-delay>0</redelivery-delay>
-        <!-- with -1 only the global-max-size is in use for limiting -->
         <max-size-bytes>-1</max-size-bytes>
         <message-counter-history-day-limit>10</message-counter-history-day-limit>
         <address-full-policy>PAGE</address-full-policy>
@@ -102,14 +100,6 @@
           <queue name="ExpiryQueue"/>
         </anycast>
       </address>
-
     </addresses>
-    <queues>
-      <queue name="people">
-        <address>people</address>
-        <durable>true</durable>
-        <user>artemis</user>
-      </queue>
-    </queues>
   </core>
 </configuration>
