@@ -49,17 +49,16 @@ public class RabbitMQClientHelper {
         Optional<String> clientOptionsName = config.getClientOptionsName();
         Vertx vertx = connector.vertx();
         RabbitMQOptions options;
-        String connectionLabel = config.getSharedConnectionName().orElse(config.getChannel());
         if (clientOptionsName.isPresent()) {
             options = getClientOptionsFromBean(connector.clientOptions(), clientOptionsName.get());
         } else {
             options = getClientOptions(vertx, config, connector.credentialsProviders());
         }
-        if (DEFAULT_METRICS_NAME.equals(options.getMetricsName())) {
-            options.setMetricsName("rabbitmq|" + connectionLabel);
-        }
         if (options.getConnectionName() == null || options.getConnectionName().isEmpty()) {
             options.setConnectionName(resolveConnectionName(config));
+        }
+        if (DEFAULT_METRICS_NAME.equals(options.getMetricsName())) {
+            options.setMetricsName("rabbitmq|" + options.getConnectionName());
         }
         return ConfigUtils.customize(config.config(), connector.configCustomizers(), options);
     }
@@ -166,7 +165,7 @@ public class RabbitMQClientHelper {
         return options;
     }
 
-    private static String resolveConnectionName(RabbitMQConnectorCommonConfiguration config) {
+    public static String resolveConnectionName(RabbitMQConnectorCommonConfiguration config) {
         return config.getSharedConnectionName()
                 .orElseGet(() -> String.format("%s (%s)",
                         config.getChannel(),
