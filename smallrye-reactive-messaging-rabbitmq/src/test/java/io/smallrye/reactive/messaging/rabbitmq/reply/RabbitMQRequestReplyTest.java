@@ -64,7 +64,6 @@ class RabbitMQRequestReplyTest extends RabbitMQBrokerTestBase {
                 .with("mp.messaging.outgoing.request-reply.exchange.name", exchange)
                 .with("mp.messaging.outgoing.request-reply.exchange.type", "direct")
                 .with("mp.messaging.outgoing.request-reply.default-routing-key", requestAddress)
-                .with("mp.messaging.outgoing.request-reply.shared-connection-name", "request-reply")
 
                 .with("mp.messaging.incoming.req.connector", "smallrye-rabbitmq")
                 .with("mp.messaging.incoming.req.exchange.name", exchange)
@@ -206,7 +205,6 @@ class RabbitMQRequestReplyTest extends RabbitMQBrokerTestBase {
                 .with("mp.messaging.outgoing.request-reply2.exchange.name", exchange)
                 .with("mp.messaging.outgoing.request-reply2.exchange.type", "direct")
                 .with("mp.messaging.outgoing.request-reply2.default-routing-key", requestAddress)
-                .with("mp.messaging.outgoing.request-reply2.shared-connection-name", "request-reply2")
                 .write();
         container = weld.initialize();
 

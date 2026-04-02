@@ -72,6 +72,13 @@ public class RabbitMQClientHelper {
         return sha256(json.encode());
     }
 
+    public static String resolveConnectionName(RabbitMQConnectorCommonConfiguration config) {
+        return config.getSharedConnectionName()
+                .orElseGet(() -> String.format("%s (%s)",
+                        config.getChannel(),
+                        config instanceof RabbitMQConnectorIncomingConfiguration ? "Incoming" : "Outgoing"));
+    }
+
     static RabbitMQOptions getClientOptionsFromBean(Instance<RabbitMQOptions> options, String optionsBeanName) {
         options = options.select(Identifier.Literal.of(optionsBeanName));
         if (options.isUnsatisfied()) {
@@ -163,13 +170,6 @@ public class RabbitMQClientHelper {
         }
 
         return options;
-    }
-
-    public static String resolveConnectionName(RabbitMQConnectorCommonConfiguration config) {
-        return config.getSharedConnectionName()
-                .orElseGet(() -> String.format("%s (%s)",
-                        config.getChannel(),
-                        config instanceof RabbitMQConnectorIncomingConfiguration ? "Incoming" : "Outgoing"));
     }
 
     private static String sha256(String value) {

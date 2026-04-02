@@ -30,6 +30,8 @@ import io.smallrye.reactive.messaging.providers.locals.ContextAwareMessage;
 import io.smallrye.reactive.messaging.rabbitmq.IncomingRabbitMQMessage;
 import io.smallrye.reactive.messaging.rabbitmq.OutgoingRabbitMQMetadata;
 import io.smallrye.reactive.messaging.rabbitmq.RabbitMQConnector;
+import io.smallrye.reactive.messaging.rabbitmq.RabbitMQConnectorCommonConfiguration;
+import io.smallrye.reactive.messaging.rabbitmq.internals.RabbitMQClientHelper;
 
 @Experimental("Experimental API")
 public class RabbitMQRequestReplyImpl<Req, Rep> extends MutinyEmitterImpl<Req>
@@ -75,6 +77,8 @@ public class RabbitMQRequestReplyImpl<Req, Rep> extends MutinyEmitterImpl<Req>
         this.replyFailureHandler = replyFailureHandler;
 
         Config incomingConfig = Configs.override(connectorConfig, Map.of(
+                "shared-connection-name",
+                RabbitMQClientHelper.resolveConnectionName(new RabbitMQConnectorCommonConfiguration(connectorConfig)),
                 "auto-acknowledgement", true,
                 "queue.declare", false,
                 "queue.name", REPLY_TO));

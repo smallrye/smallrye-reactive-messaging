@@ -12,7 +12,6 @@ mp.messaging.outgoing.my-request.connector=smallrye-rabbitmq
 mp.messaging.outgoing.my-request.exchange.name=rpc
 mp.messaging.outgoing.my-request.exchange.type=direct
 mp.messaging.outgoing.my-request.default-routing-key=rpc-request
-mp.messaging.outgoing.my-request.shared-connection-name=my-request
 ```
 
 The `RabbitMQRequestReply` emitter implements the requestor (or the client) of the request-reply pattern for RabbitMQ outbound channels:
@@ -22,7 +21,7 @@ The `RabbitMQRequestReply` emitter implements the requestor (or the client) of t
 ```
 
 The `request` method publishes the request message to the configured target address of the outgoing channel leveraging RabbitMQ [Direct Reply-To](https://www.rabbitmq.com/docs/direct-reply-to),
-and waits for a reply. Since RabbitMQ requires that the direct reply-to requestor needs to publish the request and consume the response on the same connection, the `shared-connection-name` property needs to be set to any non-empty string.
+and waits for a reply.
 When the reply is received the returned `Uni` is completed with the message payload.
 
 The request send operation generates a correlation id and sets the `correlationId` property,
