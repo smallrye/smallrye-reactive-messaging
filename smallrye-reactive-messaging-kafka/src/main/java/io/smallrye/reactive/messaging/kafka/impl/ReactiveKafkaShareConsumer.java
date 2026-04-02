@@ -44,7 +44,6 @@ public class ReactiveKafkaShareConsumer<K, V> implements KafkaShareConsumer<K, V
     private final Uni<ShareConsumer<K, V>> consumerUni;
     private final AtomicReference<ShareConsumer<K, V>> consumerRef = new AtomicReference<>();
     private final RuntimeKafkaSourceConfiguration configuration;
-    private final Duration pollTimeout;
     private final String shareGroup;
     private final String clientId;
 
@@ -79,7 +78,7 @@ public class ReactiveKafkaShareConsumer<K, V> implements KafkaShareConsumer<K, V
             DeserializationFailureHandler<V> valueDeserializationFailureHandler,
             RuntimeKafkaSourceConfiguration config,
             boolean lazyClient,
-            int pollTimeout,
+            int pollTimeoutMs,
             boolean failOnDeserializationFailure,
             boolean cloudEventsEnabled,
             java.util.function.Consumer<ShareConsumer<K, V>> onConsumerCreated,
@@ -106,8 +105,6 @@ public class ReactiveKafkaShareConsumer<K, V> implements KafkaShareConsumer<K, V
         keyDeserializer.configure(kafkaConfiguration, true);
         valueDeserializer.configure(kafkaConfiguration, false);
 
-        this.pollTimeout = Duration.ofMillis(pollTimeout);
-
         kafkaWorker = Executors.newSingleThreadScheduledExecutor(KafkaPollingThread::new);
         consumerUni = Uni.createFrom().item(() -> consumerRef.updateAndGet(c -> {
             if (c != null) {
@@ -124,7 +121,29 @@ public class ReactiveKafkaShareConsumer<K, V> implements KafkaShareConsumer<K, V
         if (!lazyClient) {
             consumerUni.await().indefinitely();
         }
-        stream = new PausablePollingStream<>(clientId, Uni.createFrom().deferred(this::poll), (records, p) -> {
+
+        Duration pollTimeout = Duration.ofMillis(pollTimeoutMs);
+        Duration retryMaxWait = Duration.ofSeconds(configuration.getRetryMaxWait());
+        Uni<ConsumerRecords<K, V>> poll = runOnPollingThread(c -> {
+            return c.poll(pollTimeout);
+        })
+                .onFailure(t -> isClosed() || t instanceof WakeupException).recoverWithItem(ConsumerRecords::empty)
+                .onFailure(IllegalStateException.class).retry()
+                .withBackOff(Duration.ofMillis(100), retryMaxWait).until(t -> !isClosed())
+                .onItem().transform(cr -> cr.isEmpty() ? null : cr)
+                .plug(e -> {
+                    if (configuration.getRetry()) {
+                        int retryAttempts = configuration.getRetryAttempts() == -1 ? Integer.MAX_VALUE
+                                : configuration.getRetryAttempts();
+                        return e
+                                .onFailure(t -> !isClosed())
+                                .invoke(f -> log.pollFailureRetry(shareGroup, configuration.getChannel(), f))
+                                .onFailure(t -> !isClosed()).retry()
+                                .withBackOff(Duration.ofSeconds(1), retryMaxWait).atMost(retryAttempts);
+                    }
+                    return e;
+                });
+        stream = new PausablePollingStream<>(clientId, poll, (records, p) -> {
             if (records != null) {
                 for (ConsumerRecord<K, V> r : records) {
                     p.onNext(r);
@@ -134,7 +153,7 @@ public class ReactiveKafkaShareConsumer<K, V> implements KafkaShareConsumer<K, V
                 p.cancel();
             }
         }, kafkaWorker, 1, false);
-        batchStream = new PausablePollingStream<>(clientId, Uni.createFrom().deferred(this::poll), (records, p) -> {
+        batchStream = new PausablePollingStream<>(clientId, poll, (records, p) -> {
             if (records != null) {
                 p.onNext(records);
             }
@@ -170,29 +189,6 @@ public class ReactiveKafkaShareConsumer<K, V> implements KafkaShareConsumer<K, V
         return withConsumerOnPollingThread()
                 .invoke(action)
                 .replaceWithVoid();
-    }
-
-    Uni<ConsumerRecords<K, V>> poll() {
-        return runOnPollingThread(c -> {
-            return c.poll(pollTimeout);
-        })
-                .onFailure(t -> isClosed() || t instanceof WakeupException).recoverWithItem(ConsumerRecords::empty)
-                .onFailure(IllegalStateException.class).retry()
-                .withBackOff(Duration.ofMillis(100)).until(t -> !isClosed())
-                .onItem().transform(cr -> cr.isEmpty() ? null : cr)
-                .plug(e -> {
-                    if (configuration.getRetry()) {
-                        int maxWait = configuration.getRetryMaxWait();
-                        int retryAttempts = configuration.getRetryAttempts() == -1 ? Integer.MAX_VALUE
-                                : configuration.getRetryAttempts();
-                        return e
-                                .onFailure(t -> !isClosed())
-                                .invoke(f -> log.pollFailureRetry(shareGroup, configuration.getChannel(), f))
-                                .onFailure(t -> !isClosed()).retry()
-                                .withBackOff(Duration.ofSeconds(1), Duration.ofSeconds(maxWait)).atMost(retryAttempts);
-                    }
-                    return e;
-                });
     }
 
     @CheckReturnValue
