@@ -3,15 +3,16 @@ package io.smallrye.reactive.messaging.amqp;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.apache.activemq.artemis.api.core.RoutingType;
-import org.apache.activemq.artemis.api.core.SimpleString;
-import org.apache.activemq.artemis.core.server.ActiveMQServer;
-import org.apache.activemq.artemis.core.server.impl.AddressInfo;
 import org.eclipse.microprofile.config.ConfigProvider;
 import org.jboss.weld.environment.se.Weld;
 import org.jboss.weld.environment.se.WeldContainer;
@@ -92,10 +93,33 @@ public class AmqpCapabilitiesConfigTest extends AmqpBrokerTestBase {
 
         usage.produceTenIntegers(address, counter::incrementAndGet);
         await().until(() -> bean.getResults().size() == 10);
-        ActiveMQServer activeMQServer = broker.getServer().getActiveMQServer();
-        AddressInfo addressInfo = activeMQServer.getAddressInfo(SimpleString.toSimpleString(address));
-        assertThat(addressInfo).isNotNull();
-        assertThat(addressInfo.getRoutingType()).isEqualTo(RoutingType.MULTICAST);
+
+        // Verify routing type via Jolokia REST API
+        assertAddressHasMulticastRouting(address);
+    }
+
+    private void assertAddressHasMulticastRouting(String address) {
+        try {
+            String credentials = Base64.getEncoder().encodeToString((username + ":" + password).getBytes());
+            String url = String.format(
+                    "http://%s:%d/console/jolokia/read/org.apache.activemq.artemis:broker=%%220.0.0.0%%22,component=addresses,address=%%22%s%%22/RoutingTypes",
+                    host, managementPort, address);
+
+            HttpClient client = HttpClient.newHttpClient();
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(url))
+                    .header("Authorization", "Basic " + credentials)
+                    .header("Origin", "http://localhost")
+                    .GET()
+                    .build();
+
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            assertThat(response.statusCode()).isEqualTo(200);
+            String body = response.body();
+            assertThat(body).contains("MULTICAST");
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to query Jolokia for address routing type", e);
+        }
     }
 
 }

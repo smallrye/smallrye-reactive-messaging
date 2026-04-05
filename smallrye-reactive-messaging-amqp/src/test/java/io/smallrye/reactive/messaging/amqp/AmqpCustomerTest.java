@@ -1,7 +1,7 @@
 package io.smallrye.reactive.messaging.amqp;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.testcontainers.shaded.org.awaitility.Awaitility.await;
+import static org.awaitility.Awaitility.await;
 
 import java.time.Duration;
 import java.util.List;
@@ -27,9 +27,6 @@ public class AmqpCustomerTest extends AmqpBrokerTestBase {
 
     @Test
     public void testWithCustomPort() {
-        stopBroker();
-        broker.start(9999);
-
         Weld weld = new Weld();
         weld.addBeanClass(MyAMQPOptionCustomizer.class).addBeanClass(Application.class);
 
@@ -119,7 +116,7 @@ public class AmqpCustomerTest extends AmqpBrokerTestBase {
         public AmqpClientOptions options() {
             return new AmqpClientOptions()
                     .setHost(System.getProperty("amqp-host"))
-                    .setPort(9999)
+                    .setPort(Integer.parseInt(System.getProperty("amqp-port")))
                     .setUsername(System.getProperty("amqp-user"))
                     .setPassword(System.getProperty("amqp-pwd"));
         }
