@@ -21,8 +21,8 @@ public class ClientProducers {
 
         return new MqttClientSessionOptions()
                 .setSsl(true)
-                .setPemKeyCertOptions(keycert)
-                .setPemTrustOptions(trust)
+                .setKeyCertOptions(keycert)
+                .setTrustOptions(trust)
                 .setHostnameVerificationAlgorithm("HTTPS")
                 .setConnectTimeout(30000)
                 .setReconnectInterval(5000);
