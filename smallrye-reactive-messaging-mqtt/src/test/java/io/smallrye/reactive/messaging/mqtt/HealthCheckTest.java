@@ -80,8 +80,8 @@ public class HealthCheckTest extends MqttTestBase {
         String prefix = "mp.messaging.outgoing.out.";
         Map<String, Object> config = new HashMap<>();
         config.put(prefix + "connector", CONNECTOR_NAME);
-        config.put(prefix + "host", System.getProperty("mqtt-host"));
-        config.put(prefix + "port", Integer.valueOf(System.getProperty("mqtt-port")));
+        config.put(prefix + "host", address);
+        config.put(prefix + "port", port);
         if (System.getProperty("mqtt-user") != null) {
             config.put(prefix + "username", System.getProperty("mqtt-user"));
             config.put(prefix + "password", System.getProperty("mqtt-pwd"));
@@ -89,8 +89,8 @@ public class HealthCheckTest extends MqttTestBase {
 
         prefix = "mp.messaging.incoming.in.";
         config.put(prefix + "connector", CONNECTOR_NAME);
-        config.put(prefix + "host", System.getProperty("mqtt-host"));
-        config.put(prefix + "port", Integer.valueOf(System.getProperty("mqtt-port")));
+        config.put(prefix + "host", address);
+        config.put(prefix + "port", port);
         if (System.getProperty("mqtt-user") != null) {
             config.put(prefix + "username", System.getProperty("mqtt-user"));
             config.put(prefix + "password", System.getProperty("mqtt-pwd"));

@@ -4,7 +4,10 @@ import static io.smallrye.reactive.messaging.mqtt.i18n.MqttLogging.log;
 
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+
+import jakarta.enterprise.inject.Instance;
 
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.operators.multi.processors.BroadcastProcessor;
@@ -23,6 +26,11 @@ public class Clients {
     }
 
     static ClientHolder getHolder(Vertx vertx, MqttClientSessionOptions options) {
+        return getHolder(vertx, options, null);
+    }
+
+    static ClientHolder getHolder(Vertx vertx, MqttClientSessionOptions options,
+            Instance<MqttClientSessionCustomizer> sessionCustomizers) {
 
         String host = options.getHostname();
         int port = options.getPort();
@@ -30,12 +38,23 @@ public class Clients {
         String server = options.getServerName().orElse("");
         String username = options.getUsername();
 
-        String id = String.format("%s@%s:%s<%s>-[%s]", username, host, port, server, clientId);
+        int version = options.getVersion();
+        String id = String.format("%s@%s:%s<%s>-[%s]-v%d", username, host, port, server, clientId, version);
         return clients.computeIfAbsent(id, key -> {
             log.infof("Create MQTT Client for %s", id);
             MqttClientSession client = MqttClientSession.create(vertx.getDelegate(), options);
+            if (sessionCustomizers != null) {
+                for (MqttClientSessionCustomizer customizer : sessionCustomizers) {
+                    customizer.customize(client);
+                }
+            }
             return new ClientHolder(client);
         });
+    }
+
+    static void release(ClientHolder holder) {
+        clients.values().remove(holder);
+        holder.close();
     }
 
     /**
@@ -50,11 +69,22 @@ public class Clients {
 
         private final MqttClientSession client;
         private final BroadcastProcessor<MqttPublishMessage> messages;
+        private final Set<String> channels = ConcurrentHashMap.newKeySet();
 
         public ClientHolder(MqttClientSession client) {
             this.client = client;
             messages = BroadcastProcessor.create();
             client.messageHandler(m -> messages.onNext(MqttPublishMessage.newInstance(m)));
+        }
+
+        public ClientHolder retain(String channel) {
+            channels.add(channel);
+            return this;
+        }
+
+        public boolean release(String channel) {
+            channels.remove(channel);
+            return channels.isEmpty();
         }
 
         public Future<Void> start() {

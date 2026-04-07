@@ -25,7 +25,7 @@ public class ReceivingMqttMessage implements MqttMessage<byte[]> {
 
     @Override
     public byte[] getPayload() {
-        return this.message.payload().getDelegate().getBytes();
+        return this.message.payload().getBytes();
     }
 
     @Override
