@@ -6,6 +6,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
+import jakarta.enterprise.inject.Instance;
+
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.operators.multi.processors.BroadcastProcessor;
 import io.smallrye.reactive.messaging.mqtt.session.MqttClientSession;
@@ -23,6 +25,11 @@ public class Clients {
     }
 
     static ClientHolder getHolder(Vertx vertx, MqttClientSessionOptions options) {
+        return getHolder(vertx, options, null);
+    }
+
+    static ClientHolder getHolder(Vertx vertx, MqttClientSessionOptions options,
+            Instance<MqttClientSessionCustomizer> sessionCustomizers) {
 
         String host = options.getHostname();
         int port = options.getPort();
@@ -30,10 +37,16 @@ public class Clients {
         String server = options.getServerName().orElse("");
         String username = options.getUsername();
 
-        String id = String.format("%s@%s:%s<%s>-[%s]", username, host, port, server, clientId);
+        int version = options.getVersion();
+        String id = String.format("%s@%s:%s<%s>-[%s]-v%d", username, host, port, server, clientId, version);
         return clients.computeIfAbsent(id, key -> {
             log.infof("Create MQTT Client for %s", id);
             MqttClientSession client = MqttClientSession.create(vertx.getDelegate(), options);
+            if (sessionCustomizers != null) {
+                for (MqttClientSessionCustomizer customizer : sessionCustomizers) {
+                    customizer.customize(client);
+                }
+            }
             return new ClientHolder(client);
         });
     }

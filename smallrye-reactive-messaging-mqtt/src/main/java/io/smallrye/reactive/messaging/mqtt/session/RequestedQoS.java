@@ -4,12 +4,11 @@ import io.smallrye.reactive.messaging.mqtt.i18n.MqttExceptions;
 
 /**
  * The requested QoS level.
- * <p>
- * NOTE: This is missing QoS 2, as this mode is not properly supported by the session.
  */
 public enum RequestedQoS {
     QOS_0(0),
-    QOS_1(1);
+    QOS_1(1),
+    QOS_2(2);
 
     private final int value;
 
@@ -30,6 +29,8 @@ public enum RequestedQoS {
                 return RequestedQoS.QOS_0;
             case 1:
                 return RequestedQoS.QOS_1;
+            case 2:
+                return RequestedQoS.QOS_2;
             default:
                 throw MqttExceptions.ex.illegalArgumentInvalidQoS(qos);
         }
