@@ -31,7 +31,6 @@ import io.smallrye.config.SmallRyeConfigProviderResolver;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.helpers.test.UniAssertSubscriber;
 import io.smallrye.reactive.messaging.rabbitmq.IncomingRabbitMQMessage;
-import io.smallrye.reactive.messaging.rabbitmq.IncomingRabbitMQMetadata;
 import io.smallrye.reactive.messaging.rabbitmq.OutgoingRabbitMQMetadata;
 import io.smallrye.reactive.messaging.rabbitmq.OutgoingRabbitMQMetadata.Builder;
 import io.smallrye.reactive.messaging.rabbitmq.RabbitMQBrokerTestBase;
@@ -349,15 +348,9 @@ class RabbitMQRequestReplyTest extends RabbitMQBrokerTestBase {
 
         @Incoming("req")
         @Outgoing("rep")
-        public Message<String> replier(Message<String> message) {
-            LOGGER.info("Replying to " + message.getPayload());
-            IncomingRabbitMQMetadata metadata = message.getMetadata(IncomingRabbitMQMetadata.class).get();
-            String payload = message.getPayload();
-            String response = payload + "";
-            OutgoingRabbitMQMetadata outgoing = OutgoingRabbitMQMetadata.builder()
-                    .withCorrelationId(metadata.getCorrelationId().get())
-                    .withRoutingKey(metadata.getReplyTo().get()).build();
-            return Message.of(response).addMetadata(outgoing);
+        public String replier(String payload) {
+            LOGGER.info("Replying to " + payload);
+            return payload;
         }
     }
 
@@ -372,14 +365,10 @@ class RabbitMQRequestReplyTest extends RabbitMQBrokerTestBase {
             if (message.getPayload() == null) {
                 return null;
             }
-            IncomingRabbitMQMetadata metadata = message.getMetadata(IncomingRabbitMQMetadata.class).get();
             String payload = message.getPayload();
-            OutgoingRabbitMQMetadata outgoing = OutgoingRabbitMQMetadata.builder()
-                    .withCorrelationId(metadata.getCorrelationId().get())
-                    .withRoutingKey(metadata.getReplyTo().get()).build();
             return Multi.createFrom().emitter(multiEmitter -> {
                 for (int i = 0; i < REPLIES; i++) {
-                    multiEmitter.emit(Message.of(payload + ": " + i).addMetadata(outgoing));
+                    multiEmitter.emit(message.withPayload(payload + ": " + i));
                 }
                 multiEmitter.complete();
             });
@@ -392,15 +381,12 @@ class RabbitMQRequestReplyTest extends RabbitMQBrokerTestBase {
         @Incoming("req")
         @Outgoing("rep")
         public Message<String> replier(Message<String> message) {
-            IncomingRabbitMQMetadata metadata = message.getMetadata(IncomingRabbitMQMetadata.class).get();
             String payload = message.getPayload();
-            Builder outgoing = OutgoingRabbitMQMetadata.builder()
-                    .withCorrelationId(metadata.getCorrelationId().get())
-                    .withRoutingKey(metadata.getReplyTo().get());
+            Builder outgoing = OutgoingRabbitMQMetadata.builder();
             if (Integer.parseInt(payload) % 3 == 0) {
                 outgoing.withHeader("REPLY_ERROR", "Cannot reply to " + payload);
             }
-            return Message.of(payload).addMetadata(outgoing.build());
+            return message.withPayload(payload).addMetadata(outgoing.build());
         }
     }
 
@@ -424,14 +410,10 @@ class RabbitMQRequestReplyTest extends RabbitMQBrokerTestBase {
         @Incoming("req")
         @Outgoing("rep")
         public Message<String> replier(Message<String> message) throws InterruptedException {
-            IncomingRabbitMQMetadata metadata = message.getMetadata(IncomingRabbitMQMetadata.class).get();
             String payload = message.getPayload();
             String response = payload + "";
-            OutgoingRabbitMQMetadata outgoing = OutgoingRabbitMQMetadata.builder()
-                    .withCorrelationId(metadata.getCorrelationId().get())
-                    .withRoutingKey(metadata.getReplyTo().get()).build();
             Thread.sleep(3000);
-            return Message.of(response).addMetadata(outgoing);
+            return message.withPayload(response);
         }
     }
 

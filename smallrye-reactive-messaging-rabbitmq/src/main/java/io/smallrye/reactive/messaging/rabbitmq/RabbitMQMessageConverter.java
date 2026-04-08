@@ -110,11 +110,20 @@ public class RabbitMQMessageConverter {
             final String defaultContentType = getDefaultContentTypeForPayload(message.getPayload());
             body = getBodyFromPayload(message.getPayload());
 
-            final OutgoingRabbitMQMetadata metadata = message.getMetadata(OutgoingRabbitMQMetadata.class)
-                    .orElse(new OutgoingRabbitMQMetadata.Builder()
+            Optional<OutgoingRabbitMQMetadata> outgoing = message.getMetadata(OutgoingRabbitMQMetadata.class);
+            OutgoingRabbitMQMetadata.Builder builder = outgoing.map(OutgoingRabbitMQMetadata::from)
+                    .orElseGet(() -> new OutgoingRabbitMQMetadata.Builder()
                             .withContentType(defaultContentType)
-                            .withExpiration(defaultTtl.map(String::valueOf).orElse(null))
-                            .build());
+                            .withExpiration(defaultTtl.map(String::valueOf).orElse(null)));
+
+            Optional<IncomingRabbitMQMetadata> incoming = message.getMetadata(IncomingRabbitMQMetadata.class);
+            incoming.ifPresent(in -> {
+                if (outgoing.map(OutgoingRabbitMQMetadata::getCorrelationId).isEmpty()) {
+                    in.getCorrelationId().ifPresent(builder::withCorrelationId);
+                }
+            });
+
+            final OutgoingRabbitMQMetadata metadata = builder.build();
 
             if (isTracingEnabled) {
                 // Create a new span for the outbound message and record updated tracing information in
@@ -227,11 +236,13 @@ public class RabbitMQMessageConverter {
         if (rabbitMQMessage.isPresent()) {
             return Optional.of(rabbitMQMessage.get().envelope().getRoutingKey());
         }
-
+        String routing = message.getMetadata(IncomingRabbitMQMetadata.class)
+                .flatMap(IncomingRabbitMQMetadata::getReplyTo)
+                .orElse(null);
         // Getting here means we have to work a little harder
         final OutgoingRabbitMQMetadata metadata = message.getMetadata(OutgoingRabbitMQMetadata.class)
                 .orElse(new OutgoingRabbitMQMetadata());
-        return Optional.ofNullable(metadata.getRoutingKey());
+        return Optional.ofNullable(metadata.getRoutingKey()).or(() -> Optional.ofNullable(routing));
     }
 
     private static boolean isPrimitive(Class<?> clazz) {
