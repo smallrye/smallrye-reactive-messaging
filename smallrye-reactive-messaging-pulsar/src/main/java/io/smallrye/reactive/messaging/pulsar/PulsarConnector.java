@@ -39,6 +39,7 @@ import io.smallrye.reactive.messaging.health.HealthReport;
 import io.smallrye.reactive.messaging.health.HealthReporter;
 import io.smallrye.reactive.messaging.providers.connectors.ExecutionHolder;
 import io.smallrye.reactive.messaging.providers.helpers.CDIUtils;
+import io.vertx.core.internal.VertxInternal;
 import io.vertx.mutiny.core.Vertx;
 
 @ApplicationScoped
@@ -165,7 +166,7 @@ public class PulsarConnector implements InboundConnector, OutboundConnector, Hea
         try {
             ClientConfigurationData data = configResolver.configure(cc, configuration).getClientConfigurationData();
             log.createdClientWithConfig(data);
-            return new PulsarClientImpl(data, vertx.nettyEventLoopGroup());
+            return new PulsarClientImpl(data, ((VertxInternal) vertx.getDelegate()).nettyEventLoopGroup());
         } catch (PulsarClientException e) {
             throw ex.illegalStateUnableToBuildClient(e);
         }

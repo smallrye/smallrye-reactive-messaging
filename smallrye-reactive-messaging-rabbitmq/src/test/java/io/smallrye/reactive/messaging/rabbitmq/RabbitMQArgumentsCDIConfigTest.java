@@ -21,7 +21,7 @@ public class RabbitMQArgumentsCDIConfigTest extends RabbitMQBrokerTestBase {
     private WeldContainer container;
 
     @Test
-    public void testConfigByCDIQueueArguments() throws IOException {
+    public void testConfigByCDIQueueArguments() throws IOException, InterruptedException {
         Weld weld = new Weld();
 
         weld.addBeanClass(ArgumentsConfigBean.class);
@@ -32,6 +32,7 @@ public class RabbitMQArgumentsCDIConfigTest extends RabbitMQBrokerTestBase {
                 .with("mp.messaging.incoming.data.connector", RabbitMQConnector.CONNECTOR_NAME)
                 .with("mp.messaging.incoming.data.host", host)
                 .with("mp.messaging.incoming.data.port", port)
+                .with("mp.messaging.incoming.data.queue.declare", true)
                 .with("rabbitmq-username", username)
                 .with("rabbitmq-password", password)
                 .with("mp.messaging.incoming.data.queue.arguments", "my-args")
@@ -39,8 +40,9 @@ public class RabbitMQArgumentsCDIConfigTest extends RabbitMQBrokerTestBase {
                 .write();
 
         container = weld.initialize();
-        await().until(() -> isRabbitMQConnectorAlive(container));
+        await().pollDelay(5, TimeUnit.SECONDS).until(() -> isRabbitMQConnectorAlive(container));
         await().until(() -> isRabbitMQConnectorReady(container));
+        Thread.sleep(10000);
         List<Integer> list = container.select(ConsumptionBean.class).get().getResults();
         assertThat(list).isEmpty();
 
