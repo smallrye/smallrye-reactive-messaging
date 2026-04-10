@@ -56,16 +56,6 @@ public class MyAttributesExtractor implements AttributesExtractor<MyTrace, Void>
         }
 
         @Override
-        public Long getMessagePayloadSize(final MyTrace myTrace) {
-            return null;
-        }
-
-        @Override
-        public Long getMessagePayloadCompressedSize(final MyTrace myTrace) {
-            return null;
-        }
-
-        @Override
         public String getMessageId(final MyTrace myTrace, final Void unused) {
             return null;
         }
