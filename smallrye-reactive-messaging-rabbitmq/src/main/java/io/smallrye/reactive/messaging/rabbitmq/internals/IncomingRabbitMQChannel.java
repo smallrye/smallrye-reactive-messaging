@@ -53,7 +53,7 @@ public class IncomingRabbitMQChannel {
             RabbitMQConnectorIncomingConfiguration ic, Instance<OpenTelemetry> openTelemetryInstance) {
         if (ic.getTracingEnabled()) {
             instrumenter = RabbitMQOpenTelemetryInstrumenter
-                    .createForConnector(openTelemetryInstance);
+                    .createForConnector(openTelemetryInstance, ic);
         } else {
             instrumenter = null;
         }
