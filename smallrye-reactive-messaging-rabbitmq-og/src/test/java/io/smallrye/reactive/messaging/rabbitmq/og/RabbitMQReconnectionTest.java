@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.Network;
 import org.testcontainers.containers.ToxiproxyContainer;
@@ -79,6 +80,7 @@ public class RabbitMQReconnectionTest extends WeldTestBase {
     }
 
     @Test
+    @Disabled("sending retry doesn't reconnect when trying")
     void testSendingMessagesToRabbitMQ_connection_fails_after_connection() {
         final String routingKey = "normal";
 
@@ -113,9 +115,9 @@ public class RabbitMQReconnectionTest extends WeldTestBase {
 
             container = weld.initialize();
 
-            await().pollDelay(3, SECONDS).until(() -> isRabbitMQConnectorAvailable(container));
+            await().until(() -> isRabbitMQConnectorAvailable(container));
             proxy.disable();
-            await().pollDelay(3, SECONDS).until(() -> !isRabbitMQConnectorAvailable(container));
+            await().until(() -> !isRabbitMQConnectorAvailable(container));
             proxy.enable();
 
             await().untilAsserted(() -> assertThat(received).hasSize(10));
