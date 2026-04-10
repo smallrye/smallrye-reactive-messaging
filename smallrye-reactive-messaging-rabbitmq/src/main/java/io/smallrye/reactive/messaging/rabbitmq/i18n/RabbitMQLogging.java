@@ -131,4 +131,12 @@ public interface RabbitMQLogging extends BasicLogger {
     @Message(id = 17040, value = "Established dead letter binding of queue `%s` to exchange '%s' using routing key '%s'")
     void deadLetterBindingEstablished(String queueName, String exchangeName, String routingKey);
 
+    @LogMessage(level = Logger.Level.DEBUG)
+    @Message(id = 17041, value = "Ignored reply from channel `%s` with correlation id %s")
+    void requestReplyMessageIgnored(String channel, String correlationId);
+
+    @LogMessage(level = Logger.Level.ERROR)
+    @Message(id = 17042, value = "Failure from channel `%s` request/reply consumer")
+    void requestReplyConsumerFailure(String channel, @Cause Throwable throwable);
+
 }

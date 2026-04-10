@@ -94,6 +94,25 @@ public class OutgoingRabbitMQMetadata {
         return new Builder();
     }
 
+    public static Builder from(OutgoingRabbitMQMetadata other) {
+        return builder()
+                .withHeaders(other.headers)
+                .withAppId(other.appId)
+                .withClusterId(other.clusterId)
+                .withContentEncoding(other.contentEncoding)
+                .withContentType(other.contentType)
+                .withCorrelationId(other.correlationId)
+                .withDeliveryMode(other.deliveryMode)
+                .withExpiration(other.expiration)
+                .withMessageId(other.messageId)
+                .withRoutingKey(other.routingKey)
+                .withPriority(other.priority)
+                .withReplyTo(other.replyTo)
+                .withTimestamp(other.timestamp)
+                .withType(other.type)
+                .withUserId(other.userId);
+    }
+
     /**
      * Allows the builder-style construction of {@link OutgoingRabbitMQMetadata}
      */

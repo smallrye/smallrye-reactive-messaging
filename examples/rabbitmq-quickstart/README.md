@@ -30,9 +30,11 @@ received jsonobject price: 0
 
 In addition to the commandline output, the application is composed by 3 components:
 
-* `BeanUsingAnEmitter` - a bean sending a changing message to RabbitMQevery second.
-* `Sender` - a bean sending a changing message to RabbitMQevery second.
+* `BeanUsingAnEmitter` - a bean sending a changing message to RabbitMQ every second.
+* `Sender` - a bean sending a changing message to RabbitMQ every second.
 * `Receiver`  - on the consuming side, the `Receiver` retrieves messages from RabbitMQ and writes the message content to `stdout`.
+* `Requester` - a bean sending requests via the `RabbitMQRequestReply` every second and writes the response content to `stdout`.
+* `Replier` - receives requests from the `Requester` and replies with a response.
 
 The interaction with RabbitMQ is managed by MicroProfile Reactive Messaging.
 The configuration is located in the microprofile config properties.
