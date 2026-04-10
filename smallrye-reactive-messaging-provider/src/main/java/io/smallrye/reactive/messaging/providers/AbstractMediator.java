@@ -5,7 +5,9 @@ import static io.smallrye.reactive.messaging.providers.i18n.ProviderExceptions.e
 import static io.smallrye.reactive.messaging.providers.i18n.ProviderLogging.log;
 import static io.smallrye.reactive.messaging.providers.i18n.ProviderMessages.msg;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -49,6 +51,7 @@ public abstract class AbstractMediator {
     private Instance<MessageConverter> converters;
     private Instance<KeyValueExtractor> extractors;
     private int maxConcurrency;
+    private List<ProcessingDecorator.ProcessingInterceptor> processingInterceptors = Collections.emptyList();
 
     public AbstractMediator(MediatorConfiguration configuration) {
         this.configuration = configuration;
@@ -114,6 +117,17 @@ public abstract class AbstractMediator {
 
     public void setMaxConcurrency(int maxConcurrency) {
         this.maxConcurrency = maxConcurrency;
+    }
+
+    public void setProcessingDecorators(List<ProcessingDecorator> decorators) {
+        List<ProcessingDecorator.ProcessingInterceptor> interceptors = new ArrayList<>();
+        for (ProcessingDecorator decorator : decorators) {
+            ProcessingDecorator.ProcessingInterceptor interceptor = decorator.decorate(configuration);
+            if (interceptor != null) {
+                interceptors.add(interceptor);
+            }
+        }
+        this.processingInterceptors = interceptors;
     }
 
     public void run() {
@@ -221,6 +235,14 @@ public abstract class AbstractMediator {
      */
     public static <T> Uni<T> skipContextPropagation(Supplier<Uni<? extends T>> supplier) {
         return Infrastructure.onUniCreation(new UniCreateFromDeferredSupplier<>(supplier));
+    }
+
+    @SuppressWarnings("unchecked")
+    protected <T> Uni<T> decorateProcessing(Message<?> message, Uni<T> uni) {
+        for (ProcessingDecorator.ProcessingInterceptor decorator : processingInterceptors) {
+            uni = (Uni<T>) decorator.intercept(uni, message);
+        }
+        return uni;
     }
 
     protected CompletionStage<Message<?>> getAckOrCompletion(Message<?> message) {

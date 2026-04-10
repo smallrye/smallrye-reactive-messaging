@@ -209,7 +209,7 @@ public class KafkaThrottledLatestProcessedCommit extends ContextHolder implement
                     .emitOn(this::runOnContext) // Switch back to event loop
                     .onItem().transform(offsets -> {
                         OffsetAndMetadata lastCommitted = offsets.get(recordsTopicPartition);
-                        OffsetStore store = new OffsetStore(recordsTopicPartition, unprocessedRecordMaxAge,
+                        OffsetStore store = new OffsetStore(recordsTopicPartition,
                                 lastCommitted == null ? -1 : lastCommitted.offset() - 1);
                         offsetStores.put(recordsTopicPartition, store);
                         return store;
@@ -220,7 +220,7 @@ public class KafkaThrottledLatestProcessedCommit extends ContextHolder implement
 
         return uni
                 .onItem().invoke(store -> {
-                    store.received(record.getOffset());
+                    store.received(record);
                     if (timerId < 0) {
                         startFlushAndCheckHealthTimer();
                     }
@@ -307,44 +307,20 @@ public class KafkaThrottledLatestProcessedCommit extends ContextHolder implement
 
         if (this.unprocessedRecordMaxAge > 0) {
             for (OffsetStore store : offsetStores.values()) {
-                long millis = store.hasTooManyMessagesWithoutAck();
-                if (millis != -1) {
-                    OffsetReceivedAt received = store.receivedOffsets.peek();
-                    if (received != null) {
-                        long lastOffset = store.getLastProcessedOffset();
-                        TooManyMessagesWithoutAckException exception = new TooManyMessagesWithoutAckException(
-                                store.topicPartition,
-                                received.offset,
-                                millis / 1000,
-                                store.receivedOffsets.size(),
-                                lastOffset);
-                        this.reportFailure.accept(exception, true);
-                    }
-                }
+                store.checkHasTooManyMessagesWithoutAck();
             }
         }
 
     }
 
-    private static class OffsetReceivedAt {
-        private final long offset;
-        private final long receivedAt;
+    private record OffsetReceivedAt(IncomingKafkaRecord<?, ?> record, long receivedAt) {
 
-        private OffsetReceivedAt(long offset, long receivedAt) {
-            this.offset = offset;
-            this.receivedAt = receivedAt;
+        OffsetReceivedAt(IncomingKafkaRecord<?, ?> record) {
+            this(record, System.currentTimeMillis());
         }
 
-        static OffsetReceivedAt received(long offset) {
-            return new OffsetReceivedAt(offset, System.currentTimeMillis());
-        }
-
-        public long getOffset() {
-            return offset;
-        }
-
-        public long getReceivedAt() {
-            return receivedAt;
+        long offset() {
+            return record.getOffset();
         }
     }
 
@@ -352,26 +328,21 @@ public class KafkaThrottledLatestProcessedCommit extends ContextHolder implement
 
         private final TopicPartition topicPartition;
         private final Queue<OffsetReceivedAt> receivedOffsets = new PriorityQueue<>(
-                Comparator.comparingLong(OffsetReceivedAt::getOffset));
+                Comparator.comparingLong(OffsetReceivedAt::offset));
         private final Set<Long> processedOffsets = new HashSet<>();
-        private final int unprocessedRecordMaxAge;
         private final AtomicLong unProcessedTotal = new AtomicLong();
         private long lastProcessedOffset;
 
-        OffsetStore(TopicPartition topicPartition, int unprocessedRecordMaxAge, long lastProcessedOffset) {
+        OffsetStore(TopicPartition topicPartition, long lastProcessedOffset) {
             this.topicPartition = topicPartition;
-            this.unprocessedRecordMaxAge = unprocessedRecordMaxAge;
             log.initializeStoreAtPosition(topicPartition, lastProcessedOffset);
             this.lastProcessedOffset = lastProcessedOffset;
         }
 
-        long getLastProcessedOffset() {
-            return lastProcessedOffset;
-        }
-
-        void received(long offset) {
+        void received(IncomingKafkaRecord<?, ?> record) {
+            long offset = record.getOffset();
             if (offset > lastProcessedOffset) {
-                this.receivedOffsets.offer(OffsetReceivedAt.received(offset));
+                this.receivedOffsets.offer(new OffsetReceivedAt(record));
                 unProcessedTotal.incrementAndGet();
             } else {
                 log.receivedOutdatedOffset(topicPartition, offset, lastProcessedOffset);
@@ -387,13 +358,13 @@ public class KafkaThrottledLatestProcessedCommit extends ContextHolder implement
                 long largestSequentialProcessedOffset = -1;
 
                 while (!receivedOffsets.isEmpty()) {
-                    if (!processedOffsets.remove(receivedOffsets.peek().getOffset())) {
+                    if (!processedOffsets.remove(receivedOffsets.peek().offset())) {
                         break;
                     }
                     unProcessedTotal.decrementAndGet();
                     OffsetReceivedAt poll = receivedOffsets.poll();
                     if (poll != null) {
-                        largestSequentialProcessedOffset = poll.getOffset();
+                        largestSequentialProcessedOffset = poll.offset();
                     }
                 }
 
@@ -411,26 +382,29 @@ public class KafkaThrottledLatestProcessedCommit extends ContextHolder implement
 
         private void removeReceivedOffsetsFromLastProcessedOffset() {
             // Remove received offset from previous assignments if any
-            receivedOffsets.removeIf(o -> o.getOffset() <= lastProcessedOffset);
+            receivedOffsets.removeIf(o -> o.offset() <= lastProcessedOffset);
         }
 
-        long hasTooManyMessagesWithoutAck() {
-            if (receivedOffsets.isEmpty() || !isStillAssigned()) {
-                return -1;
-            }
-            OffsetReceivedAt peek = receivedOffsets.peek();
-            if (peek == null) {
-                return -1;
-            }
-            long elapsed = System.currentTimeMillis() - peek.getReceivedAt();
+        public void checkHasTooManyMessagesWithoutAck() {
             long lag = receivedOffsets.size();
-            boolean waitedTooLong = elapsed > unprocessedRecordMaxAge;
-            if (waitedTooLong) {
-                log.waitingForAckForTooLong(peek.getOffset(), topicPartition, elapsed / 1000, unprocessedRecordMaxAge,
-                        lag, lastProcessedOffset);
-                return elapsed;
+            if (lag == 0 || !isStillAssigned()) {
+                return;
             }
-            return -1;
+            OffsetReceivedAt received = receivedOffsets.peek();
+            if (received != null) {
+                long elapsed = System.currentTimeMillis() - received.receivedAt();
+                if (elapsed > unprocessedRecordMaxAge) {
+                    long elapsedSeconds = elapsed / 1000;
+                    log.waitingForAckForTooLong(received.offset(), topicPartition, elapsedSeconds, unprocessedRecordMaxAge,
+                            lag, lastProcessedOffset);
+                    reportFailure.accept(new TooManyMessagesWithoutAckException(
+                            topicPartition,
+                            received.offset(),
+                            elapsedSeconds,
+                            lag,
+                            lastProcessedOffset), true);
+                }
+            }
         }
 
         private boolean isStillAssigned() {
