@@ -41,6 +41,8 @@ public class RabbitMQClientHelper {
     private static final double CREDENTIALS_PROVIDER_REFRESH_DELAY_RATIO = 0.8;
     private static final Duration CREDENTIALS_PROVIDER_APPROACH_EXPIRE_TIME = ofSeconds(1);
 
+    private static final String DEFAULT_ROUTING_KEY = "#";
+
     private RabbitMQClientHelper() {
         // avoid direct instantiation.
     }
@@ -335,8 +337,18 @@ public class RabbitMQClientHelper {
             final RabbitMQConnectorIncomingConfiguration ic) {
         final String exchangeName = getExchangeName(ic);
         final String queueName = getQueueName(ic);
-        final List<String> routingKeys = Arrays.stream(ic.getRoutingKeys().split(","))
-                .map(String::trim).collect(Collectors.toList());
+        final List<String> routingKeys;
+        if (ic.getRoutingKeys().isPresent()) {
+            String routingKeysStr = ic.getRoutingKeys().get();
+            routingKeys = Arrays.stream(routingKeysStr.split(","))
+                    .map(String::trim)
+                    .map(s -> "\"\"".equals(s) ? "" : s)
+                    .toList();
+        } else if ("x-local-random".equals(ic.getExchangeType())) {
+            routingKeys = Collections.singletonList("");
+        } else {
+            routingKeys = Collections.singletonList(DEFAULT_ROUTING_KEY);
+        }
         final Map<String, Object> arguments = parseArguments(ic.getArguments());
 
         // Skip queue bindings if exchange name is default ("")

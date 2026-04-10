@@ -132,11 +132,11 @@ public interface RabbitMQLogging extends BasicLogger {
     void deadLetterBindingEstablished(String queueName, String exchangeName, String routingKey);
 
     @LogMessage(level = Logger.Level.DEBUG)
-    @Message(id = 17041, value = "Ignored reply from channel `%s` to requestAddress `%s` with correlation id %s")
-    void requestReplyMessageIgnored(String channel, String requestAddress, String correlationId);
+    @Message(id = 17041, value = "Ignored reply from channel `%s` with correlation id %s")
+    void requestReplyMessageIgnored(String channel, String correlationId);
 
     @LogMessage(level = Logger.Level.ERROR)
-    @Message(id = 17042, value = "Failure from channel `%s` request/reply consumer for requestAddress `%s`")
-    void requestReplyConsumerFailure(String channel, String requestAddress, @Cause Throwable throwable);
+    @Message(id = 17042, value = "Failure from channel `%s` request/reply consumer")
+    void requestReplyConsumerFailure(String channel, @Cause Throwable throwable);
 
 }

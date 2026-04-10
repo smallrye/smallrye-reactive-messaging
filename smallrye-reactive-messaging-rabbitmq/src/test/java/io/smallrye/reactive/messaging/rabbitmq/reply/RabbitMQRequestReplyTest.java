@@ -93,6 +93,114 @@ class RabbitMQRequestReplyTest extends RabbitMQBrokerTestBase {
     }
 
     @Test
+    public void testReplyWithLocalRandomExchange() {
+        weld.addBeanClasses(RequestReplyProducer.class, ReplyServer.class);
+        commonConfig()
+                .with("mp.messaging.outgoing.request-reply.connector", "smallrye-rabbitmq")
+                .with("mp.messaging.outgoing.request-reply.exchange.name", exchangeName)
+                .with("mp.messaging.outgoing.request-reply.exchange.type", "x-local-random")
+
+                .with("mp.messaging.incoming.req.connector", "smallrye-rabbitmq")
+                .with("mp.messaging.incoming.req.exchange.name", exchangeName)
+                .with("mp.messaging.incoming.req.exchange.type", "x-local-random")
+
+                .with("mp.messaging.outgoing.rep.connector", "smallrye-rabbitmq")
+                .with("mp.messaging.outgoing.rep.exchange.name", "\"\"")
+                .write();
+        container = weld.initialize();
+
+        List<String> replies = new CopyOnWriteArrayList<>();
+        RequestReplyProducer producer = container.getBeanManager()
+                .createInstance().select(RequestReplyProducer.class).get();
+        await().until(() -> isRabbitMQConnectorAvailable(container));
+        for (int i = 0; i < 10; i++) {
+            producer.requestReply().request(i).subscribe().with(replies::add);
+        }
+        await().atMost(java.time.Duration.ofSeconds(5))
+                .untilAsserted(() -> assertThat(replies).hasSize(10));
+        assertThat(replies).containsExactlyInAnyOrder(
+                "0", "1", "2", "3", "4", "5", "6", "7", "8", "9");
+        assertThat(producer.requestReply().getPendingReplies()).isEmpty();
+    }
+
+    @Test
+    public void testReplyWithTopicExchange() {
+        String exchange = "test-topic-exchange";
+        String routingKey = "rpc.requests";
+        weld.addBeanClasses(RequestReplyProducer.class, ReplyServer.class);
+        commonConfig()
+                .with("mp.messaging.outgoing.request-reply.connector", "smallrye-rabbitmq")
+                .with("mp.messaging.outgoing.request-reply.exchange.name", exchange)
+                .with("mp.messaging.outgoing.request-reply.exchange.type", "topic")
+                .with("mp.messaging.outgoing.request-reply.default-routing-key", routingKey)
+                .with("mp.messaging.incoming.req.connector", "smallrye-rabbitmq")
+                .with("mp.messaging.incoming.req.exchange.name", exchange)
+                .with("mp.messaging.incoming.req.exchange.type", "topic")
+                .with("mp.messaging.incoming.req.routing-keys", "rpc.*")
+                .with("mp.messaging.outgoing.rep.connector", "smallrye-rabbitmq")
+                .with("mp.messaging.outgoing.rep.exchange.name", "\"\"")
+                .write();
+        container = weld.initialize();
+
+        List<String> replies = new CopyOnWriteArrayList<>();
+        RequestReplyProducer producer = container.getBeanManager()
+                .createInstance().select(RequestReplyProducer.class).get();
+        await().until(() -> isRabbitMQConnectorAvailable(container));
+        for (int i = 0; i < 10; i++) {
+            producer.requestReply().request(i).subscribe().with(replies::add);
+        }
+        await().atMost(java.time.Duration.ofSeconds(5))
+                .untilAsserted(() -> assertThat(replies).hasSize(10));
+        assertThat(replies).containsExactlyInAnyOrder(
+                "0", "1", "2", "3", "4", "5", "6", "7", "8", "9");
+        assertThat(producer.requestReply().getPendingReplies()).isEmpty();
+    }
+
+    @Test
+    public void testReplyWithFanoutExchangeMultipleConsumers() {
+        String exchange = "test-fanout-exchange";
+        weld.addBeanClasses(RequestReplyProducer.class, ReplyServer.class, ReplyServerFanout.class);
+        commonConfig()
+                .with("mp.messaging.outgoing.request-reply.connector", "smallrye-rabbitmq")
+                .with("mp.messaging.outgoing.request-reply.exchange.name", exchange)
+                .with("mp.messaging.outgoing.request-reply.exchange.type", "fanout")
+                .with("mp.messaging.incoming.req.connector", "smallrye-rabbitmq")
+                .with("mp.messaging.incoming.req.exchange.name", exchange)
+                .with("mp.messaging.incoming.req.exchange.type", "fanout")
+                .with("mp.messaging.incoming.req2.connector", "smallrye-rabbitmq")
+                .with("mp.messaging.incoming.req2.exchange.name", exchange)
+                .with("mp.messaging.incoming.req2.exchange.type", "fanout")
+                .with("mp.messaging.outgoing.rep.connector", "smallrye-rabbitmq")
+                .with("mp.messaging.outgoing.rep.exchange.name", "\"\"")
+                .with("mp.messaging.outgoing.rep2.connector", "smallrye-rabbitmq")
+                .with("mp.messaging.outgoing.rep2.exchange.name", "\"\"")
+                .write();
+        container = weld.initialize();
+
+        List<String> replies = new CopyOnWriteArrayList<>();
+        RequestReplyProducer producer = container.getBeanManager()
+                .createInstance().select(RequestReplyProducer.class).get();
+        await().until(() -> isRabbitMQConnectorAvailable(container));
+        int sent = 5;
+        for (int i = 0; i < sent; i++) {
+            producer.requestReply().requestMulti(i)
+                    .subscribe()
+                    .with(replies::add);
+        }
+        // Each request gets 2 replies (one from each consumer)
+        await().atMost(java.time.Duration.ofSeconds(5))
+                .untilAsserted(() -> assertThat(replies).hasSize(sent * 2));
+        // Each value appears twice (once per consumer)
+        assertThat(replies).containsExactlyInAnyOrder(
+                "0", "0", "1", "1", "2", "2", "3", "3", "4", "4");
+        Map<CorrelationId, PendingReply> pendingReplies = producer.requestReply().getPendingReplies();
+        for (PendingReply pending : pendingReplies.values()) {
+            pending.complete();
+        }
+        await().untilAsserted(() -> assertThat(producer.requestReply().getPendingReplies()).isEmpty());
+    }
+
+    @Test
     public void testReplyWithConverter() {
         String exchange = "test-exchange";
         String requestAddress = "requests";
@@ -350,6 +458,16 @@ class RabbitMQRequestReplyTest extends RabbitMQBrokerTestBase {
         @Outgoing("rep")
         public String replier(String payload) {
             LOGGER.info("Replying to " + payload);
+            return payload;
+        }
+    }
+
+    @ApplicationScoped
+    public static class ReplyServerFanout {
+
+        @Incoming("req2")
+        @Outgoing("rep2")
+        public String replier(String payload) {
             return payload;
         }
     }

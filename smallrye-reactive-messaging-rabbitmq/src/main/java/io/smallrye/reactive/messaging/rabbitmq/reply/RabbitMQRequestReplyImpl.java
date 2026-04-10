@@ -39,7 +39,6 @@ public class RabbitMQRequestReplyImpl<Req, Rep> extends MutinyEmitterImpl<Req>
 
     private static final String REPLY_TO = "amq.rabbitmq.reply-to";
     private final String channel;
-    private final String requestAddress;
     private final Duration replyTimeout;
 
     private final CorrelationIdHandler correlationIdHandler;
@@ -57,9 +56,6 @@ public class RabbitMQRequestReplyImpl<Req, Rep> extends MutinyEmitterImpl<Req>
         this.channel = config.name();
         Config connectorConfig = Configs.outgoing(channelConfig, RabbitMQConnector.CONNECTOR_NAME,
                 channel);
-        this.requestAddress = connectorConfig.getOptionalValue("default-routing-key", String.class)
-                .orElseThrow(() -> new IllegalArgumentException(
-                        "Routing key must be set for RabbitMQ request-reply"));
         this.replyTimeout = connectorConfig.getOptionalValue(REPLY_TIMEOUT_KEY, Long.class)
                 .map(Duration::ofMillis)
                 .orElse(Duration.ofSeconds(5));
@@ -126,8 +122,7 @@ public class RabbitMQRequestReplyImpl<Req, Rep> extends MutinyEmitterImpl<Req>
                 .map(OutgoingRabbitMQMetadata::from)
                 .orElseGet(OutgoingRabbitMQMetadata::builder);
         CorrelationId correlationId = correlationIdHandler.generate(request);
-        builder.withRoutingKey(requestAddress).withCorrelationId(correlationId.toString())
-                .withReplyTo(REPLY_TO);
+        builder.withCorrelationId(correlationId.toString()).withReplyTo(REPLY_TO);
         OutgoingRabbitMQMetadata outMetadata = builder.build();
         return sendMessage(request.addMetadata(outMetadata))
                 .invoke(() -> subscription.get().request(1))
@@ -174,14 +169,14 @@ public class RabbitMQRequestReplyImpl<Req, Rep> extends MutinyEmitterImpl<Req>
     @Override
     public void onItem(IncomingRabbitMQMessage<Rep> item) {
         CorrelationId correlationId = item.getCorrelationId()
-                .map(id -> correlationIdHandler.parse(id))
+                .map(correlationIdHandler::parse)
                 .orElse(null);
         if (correlationId != null) {
             PendingReplyImpl<Rep> reply = pendingReplies.get(correlationId);
             if (reply != null) {
                 reply.emitter.emit(item);
             } else {
-                log.requestReplyMessageIgnored(channel, requestAddress, correlationId.toString());
+                log.requestReplyMessageIgnored(channel, correlationId.toString());
             }
         }
         // request more
@@ -190,7 +185,7 @@ public class RabbitMQRequestReplyImpl<Req, Rep> extends MutinyEmitterImpl<Req>
 
     @Override
     public void onFailure(Throwable failure) {
-        log.requestReplyConsumerFailure(channel, requestAddress, failure);
+        log.requestReplyConsumerFailure(channel, failure);
     }
 
     @Override
