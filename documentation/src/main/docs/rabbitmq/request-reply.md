@@ -5,7 +5,7 @@
 
 The RabbitMQ [Request-Reply](https://www.enterpriseintegrationpatterns.com/patterns/messaging/RequestReply.html) pattern allows you to publish a message to a RabbitMQ address and then await for a reply message that responds to the initial request, which can be used to implement [RPC over RabbitMQ](https://www.rabbitmq.com/tutorials/tutorial-six-java).
 
-Given the following request/reply outgoing configuration:
+Given the following request/reply outgoing configuration example:
 
 ```properties
 mp.messaging.outgoing.my-request.connector=smallrye-rabbitmq
@@ -19,6 +19,10 @@ The `RabbitMQRequestReply` emitter implements the requestor (or the client) of t
 ``` java
 {{ insert('rabbitmq/outbound/RabbitMQRequestReplyEmitter.java') }}
 ```
+
+!!! note
+    While in this example we use a direct exchange, it is also possible to use a topic or fanout exchange as well as [Local Random Exchanges](https://www.rabbitmq.com/docs/local-random-exchange) for request/reply.
+
 
 The `request` method publishes the request message to the configured target address of the outgoing channel leveraging RabbitMQ [Direct Reply-To](https://www.rabbitmq.com/docs/direct-reply-to),
 and waits for a reply.
