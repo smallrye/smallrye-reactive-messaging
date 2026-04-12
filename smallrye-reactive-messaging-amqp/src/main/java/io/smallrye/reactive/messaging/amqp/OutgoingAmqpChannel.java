@@ -16,8 +16,10 @@ import io.opentelemetry.api.OpenTelemetry;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.providers.helpers.MultiUtils;
 import io.vertx.amqp.AmqpSenderOptions;
+import io.vertx.core.internal.VertxInternal;
 import io.vertx.mutiny.amqp.AmqpClient;
 import io.vertx.mutiny.amqp.AmqpSender;
+import io.vertx.mutiny.core.Context;
 import io.vertx.mutiny.core.Vertx;
 import io.vertx.proton.ProtonSender;
 
@@ -37,7 +39,8 @@ public class OutgoingAmqpChannel {
 
         AtomicReference<AmqpSender> sender = new AtomicReference<>();
         String link = oc.getLinkName().orElseGet(oc::getChannel);
-        ConnectionHolder holder = new ConnectionHolder(client, oc, vertx, null);
+        Context root = Context.newInstance(((VertxInternal) vertx.getDelegate()).createEventLoopContext());
+        ConnectionHolder holder = new ConnectionHolder(client, oc, vertx, root);
 
         Uni<AmqpSender> getSender = Uni.createFrom().deferred(() -> {
 
