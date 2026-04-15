@@ -176,6 +176,7 @@
             <configuration>
               <!-- Disable TestNG -->
               <testNGArtifactName>none:none</testNGArtifactName>
+              <forkCount>2</forkCount>
               <reuseForks>true</reuseForks>
               <systemPropertyVariables>
                 <org.jboss.logging.provider>slf4j</org.jboss.logging.provider>
