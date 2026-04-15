@@ -147,6 +147,16 @@ jobs:
                       -Drevapi.skip=true -Dformat.skip=true \
                       -pl :${{ matrix.connector.artifact }}
 
+    ci-status:
+        if: always()
+        needs: [build, core-tests, kafka-tests, connector-tests]
+        runs-on: ubuntu-latest
+        name: CI Status
+        steps:
+            -   name: Check CI status
+                if: ${{ needs.build.result != 'success' || needs.core-tests.result != 'success' || needs.kafka-tests.result != 'success' || needs.connector-tests.result != 'success' }}
+                run: exit 1
+
     slow-flaky-tests:
         needs: build
         runs-on: ubuntu-latest
