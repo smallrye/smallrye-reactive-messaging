@@ -1,5 +1,8 @@
 package io.smallrye.reactive.messaging.kafka.base;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import jakarta.enterprise.inject.Instance;
 import jakarta.enterprise.inject.spi.BeanManager;
 
@@ -11,6 +14,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 
+import io.smallrye.config.SmallRyeConfigBuilder;
 import io.smallrye.config.SmallRyeConfigProviderResolver;
 import io.smallrye.config.inject.ConfigExtension;
 import io.smallrye.mutiny.infrastructure.Infrastructure;
@@ -162,21 +166,31 @@ public class WeldTestBase {
     }
 
     public void runApplication(MapBasedConfig config) {
-        if (config != null) {
-            config.write();
-        } else {
-            MapBasedConfig.cleanup();
-        }
-
+        installConfig(config);
         container = weld.initialize();
     }
 
     public static void addConfig(KafkaMapBasedConfig config) {
+        installConfig(config);
+    }
+
+    private static void installConfig(MapBasedConfig config) {
+        // Release any previously registered config
+        SmallRyeConfigProviderResolver.instance().releaseConfig(ConfigProvider.getConfig());
+
+        Map<String, String> properties = new HashMap<>();
         if (config != null) {
-            config.write();
-        } else {
-            KafkaMapBasedConfig.cleanup();
+            config.forEach((key, value) -> properties.put(key, value.toString()));
         }
+
+        // Build and register an in-memory SmallRye Config
+        SmallRyeConfigProviderResolver.instance().registerConfig(
+                new SmallRyeConfigBuilder()
+                        .addDefaultSources()
+                        .addDefaultInterceptors()
+                        .withSources(new InMemoryConfigSource(properties))
+                        .build(),
+                Thread.currentThread().getContextClassLoader());
     }
 
     public HealthCenter getHealth() {
