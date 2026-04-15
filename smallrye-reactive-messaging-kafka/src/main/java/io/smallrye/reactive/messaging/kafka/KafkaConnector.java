@@ -3,7 +3,9 @@ package io.smallrye.reactive.messaging.kafka;
 import static io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Direction.INCOMING;
 import static io.smallrye.reactive.messaging.kafka.i18n.KafkaLogging.log;
 
+import java.time.Duration;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Flow;
 import java.util.concurrent.Flow.Publisher;
@@ -29,6 +31,8 @@ import io.opentelemetry.api.trace.SpanBuilder;
 import io.opentelemetry.api.trace.Tracer;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.ClientCustomizer;
+import io.smallrye.reactive.messaging.MediatorConfiguration;
+import io.smallrye.reactive.messaging.ProcessingDecorator;
 import io.smallrye.reactive.messaging.annotations.ConnectorAttribute;
 import io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Direction;
 import io.smallrye.reactive.messaging.connector.InboundConnector;
@@ -137,7 +141,7 @@ import io.vertx.mutiny.core.Vertx;
 @ConnectorAttribute(name = "pooled-producer", type = "boolean", direction = Direction.OUTGOING, description = "Whether to use a pool of Kafka producers for concurrent transactions. Each transaction scope acquires a producer from the pool, enabling concurrent exactly-once processing. Requires transactional.id to be set.", defaultValue = "false")
 @ConnectorAttribute(name = "pooled-producer.initial-pool-size", type = "int", direction = Direction.OUTGOING, description = "Number of Kafka producers to pre-create in the pool at startup. Respects the lazy-client setting. Defaults to 0 (lazy creation).", defaultValue = "0")
 @ConnectorAttribute(name = "pooled-producer.max-pool-size", type = "int", direction = Direction.OUTGOING, description = "Maximum number of Kafka producers in the pool. When all producers are in use and the pool is exhausted, an exception is thrown. Defaults to 10.", defaultValue = "10")
-public class KafkaConnector implements InboundConnector, OutboundConnector, HealthReporter {
+public class KafkaConnector implements InboundConnector, OutboundConnector, HealthReporter, ProcessingDecorator {
 
     public static final String CONNECTOR_NAME = "smallrye-kafka";
 
@@ -189,6 +193,7 @@ public class KafkaConnector implements InboundConnector, OutboundConnector, Heal
     private final List<KafkaSource<?, ?>> sources = new CopyOnWriteArrayList<>();
     private final List<KafkaShareGroupSource<?, ?>> shareGroupSources = new CopyOnWriteArrayList<>();
     private final List<KafkaSink> sinks = new CopyOnWriteArrayList<>();
+    private final Map<String, Duration> channelProcessingTimeouts = new ConcurrentHashMap<>();
 
     @Inject
     KafkaAdminClientRegistry adminClientRegistry;
@@ -238,6 +243,9 @@ public class KafkaConnector implements InboundConnector, OutboundConnector, Heal
             log.noGroupId(s);
             return s;
         });
+
+        // Register processing timeout for this channel (used by ProcessingTimeoutProvider SPI)
+        registerProcessingTimeout(ic);
 
         if (ic.getShareGroup()) {
             if (partitions > 1) {
@@ -415,5 +423,34 @@ public class KafkaConnector implements InboundConnector, OutboundConnector, Heal
                 .filter(s -> s.getChannel().equals(channel))
                 .map(s -> (KafkaShareConsumer<K, V>) s.getConsumer())
                 .toList();
+    }
+
+    private void registerProcessingTimeout(KafkaConnectorIncomingConfiguration ic) {
+        String channel = ic.getChannel();
+        if (ic.getShareGroup()) {
+            int maxAge = ic.getShareGroupUnprocessedRecordMaxAgeMs();
+            if (maxAge > 0) {
+                channelProcessingTimeouts.put(channel, Duration.ofMillis(maxAge));
+            }
+        } else {
+            String commitStrategy = ic.getCommitStrategy().orElse(KafkaCommitHandler.Strategy.THROTTLED);
+            if (KafkaCommitHandler.Strategy.THROTTLED.equals(commitStrategy)) {
+                int maxAge = ic.getThrottledUnprocessedRecordMaxAgeMs();
+                if (maxAge > 0) {
+                    channelProcessingTimeouts.put(channel, Duration.ofMillis(maxAge));
+                }
+            }
+        }
+    }
+
+    @Override
+    public ProcessingInterceptor decorate(MediatorConfiguration configuration) {
+        for (String channel : configuration.getIncoming()) {
+            Duration timeout = channelProcessingTimeouts.get(channel);
+            if (timeout != null) {
+                return (processing, message) -> processing.ifNoItem().after(timeout).fail();
+            }
+        }
+        return null;
     }
 }

@@ -159,13 +159,15 @@ public class SubscriberMediator extends AbstractMediator {
         if (configuration.isBlocking()) {
             if (configuration.isBlockingExecutionOrdered()) {
                 this.function = upstream -> MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration)
-                        .onItem().transformToUniAndConcatenate(msg -> invokeBlocking(msg, getArguments(msg))
+                        .onItem().transformToUniAndConcatenate(msg -> decorateProcessing(msg,
+                                invokeBlocking(msg, getArguments(msg)))
                                 .onItemOrFailure().transformToUni(handleInvocationResult(msg)))
                         .onFailure()
                         .invoke(failure -> health.reportApplicationFailure(configuration.methodAsString(), failure));
             } else {
                 this.function = upstream -> MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration)
-                        .onItem().transformToUni(msg -> invokeBlocking(msg, getArguments(msg))
+                        .onItem().transformToUni(msg -> decorateProcessing(msg,
+                                invokeBlocking(msg, getArguments(msg)))
                                 .onItemOrFailure().transformToUni(handleInvocationResult(msg)))
                         .merge(maxConcurrency())
                         .onFailure()
@@ -175,7 +177,7 @@ public class SubscriberMediator extends AbstractMediator {
             this.function = upstream -> MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration)
                     .onItem()
                     .transformToUniAndConcatenate(
-                            msg -> invokeOnMessageContext(msg, getArguments(msg))
+                            msg -> decorateProcessing(msg, invokeOnMessageContext(msg, getArguments(msg)))
                                     .onItemOrFailure().transformToUni(handleInvocationResult(msg)))
                     .onFailure().invoke(failure -> health.reportApplicationFailure(configuration.methodAsString(), failure));
         }
@@ -217,8 +219,8 @@ public class SubscriberMediator extends AbstractMediator {
         } else {
             this.function = upstream -> MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration)
                     .onItem().transformToUniAndConcatenate(msg -> {
-                        Uni<?> uni = invokeOnMessageContext(msg, getArguments(msg))
-                                .onItem().transformToUni(cs -> Uni.createFrom().completionStage((CompletionStage<?>) cs));
+                        Uni<?> uni = decorateProcessing(msg, invokeOnMessageContext(msg, getArguments(msg))
+                                .onItem().transformToUni(cs -> Uni.createFrom().completionStage((CompletionStage<?>) cs)));
                         return uni.onItemOrFailure().transformToUni(handleInvocationResult(msg));
                     })
                     .onFailure().invoke(this::reportFailure);
@@ -226,7 +228,7 @@ public class SubscriberMediator extends AbstractMediator {
     }
 
     private Uni<? extends Message<?>> invokeBlockingAndHandleOutcome(Message<?> msg) {
-        Uni<?> uni = invokeBlocking(msg, getArguments(msg));
+        Uni<?> uni = decorateProcessing(msg, invokeBlocking(msg, getArguments(msg)));
         return uni.onItemOrFailure().transformToUni(handleInvocationResult(msg));
     }
 
@@ -250,8 +252,8 @@ public class SubscriberMediator extends AbstractMediator {
         } else {
             this.function = upstream -> MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration)
                     .onItem().transformToUniAndConcatenate(msg -> {
-                        Uni<?> uni = invokeOnMessageContext(msg, getArguments(msg))
-                                .onItem().transformToUni(u -> (Uni<?>) u);
+                        Uni<?> uni = decorateProcessing(msg, invokeOnMessageContext(msg, getArguments(msg))
+                                .onItem().transformToUni(u -> (Uni<?>) u));
                         return uni.onItemOrFailure().transformToUni(handleInvocationResult(msg));
                     })
                     .onFailure().invoke(this::reportFailure);

@@ -2,6 +2,7 @@ package io.smallrye.reactive.messaging.providers.extension;
 
 import static io.smallrye.reactive.messaging.providers.connectors.WorkerPoolRegistry.WORKER_CONCURRENCY;
 import static io.smallrye.reactive.messaging.providers.connectors.WorkerPoolRegistry.WORKER_CONFIG_PREFIX;
+import static io.smallrye.reactive.messaging.providers.helpers.CDIUtils.getSortedInstances;
 import static io.smallrye.reactive.messaging.providers.i18n.ProviderLogging.log;
 
 import java.lang.reflect.Constructor;
@@ -9,6 +10,7 @@ import java.lang.reflect.Method;
 import java.util.*;
 
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Any;
 import jakarta.enterprise.inject.Instance;
 import jakarta.enterprise.inject.spi.*;
 import jakarta.inject.Inject;
@@ -87,6 +89,10 @@ public class MediatorManager {
 
     @Inject
     Instance<Config> configInstance;
+
+    @Inject
+    @Any
+    Instance<ProcessingDecorator> processingDecorators;
 
     public <T> void analyze(AnnotatedType<T> annotatedType, Bean<T> bean) {
 
@@ -215,6 +221,7 @@ public class MediatorManager {
         mediator.setHealth(health);
         mediator.setWorkerPoolRegistry(workerPoolRegistry);
         mediator.setMaxConcurrency(getWorkerMaxConcurrency(configuration));
+        mediator.setProcessingDecorators(getSortedInstances(processingDecorators));
 
         try {
             Object beanInstance = beanManager.getReference(configuration.getBean(), Object.class,
