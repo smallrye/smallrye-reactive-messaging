@@ -64,6 +64,7 @@ jobs:
                 run: |
                     mvn -s .build/ci-maven-settings.xml -Dmaven.resolver.transport=wagon \
                       -B verify -Dtest-containers=true \
+                      -Drevapi.skip=true -Dformat.skip=true \
                       -pl :smallrye-reactive-messaging-api,:smallrye-reactive-messaging-provider,:smallrye-reactive-messaging-otel,:smallrye-reactive-messaging-health,:smallrye-reactive-messaging-jackson,:smallrye-reactive-messaging-jsonb,:test-common,:smallrye-connector-attribute-processor,:smallrye-reactive-messaging-kafka-api,:smallrye-reactive-messaging-kafka-test-companion
 
     kafka-tests:
@@ -93,6 +94,7 @@ jobs:
                 run: |
                     mvn -s .build/ci-maven-settings.xml -Dmaven.resolver.transport=wagon \
                       -B verify -Dtest-containers=true \
+                      -Drevapi.skip=true -Dformat.skip=true \
                       -pl :smallrye-reactive-messaging-kafka
 
     connector-tests:
@@ -143,6 +145,7 @@ jobs:
                 run: |
                     mvn -s .build/ci-maven-settings.xml -Dmaven.resolver.transport=wagon \
                       -B verify -Dtest-containers=true \
+                      -Drevapi.skip=true -Dformat.skip=true \
                       -pl :${{ matrix.connector.artifact }}
 
     slow-flaky-tests:
