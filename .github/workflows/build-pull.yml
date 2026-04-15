@@ -62,11 +62,8 @@ jobs:
             -   name: Run Core Tests
                 run: |
                     mvn -s .build/ci-maven-settings.xml -Dmaven.resolver.transport=wagon \
-                      -B verify -Pcoverage -Dtest-containers=true \
+                      -B verify -Dtest-containers=true \
                       -pl :smallrye-reactive-messaging-api,:smallrye-reactive-messaging-provider,:smallrye-reactive-messaging-otel,:smallrye-reactive-messaging-health,:smallrye-reactive-messaging-jackson,:smallrye-reactive-messaging-jsonb,:test-common,:smallrye-connector-attribute-processor,:smallrye-reactive-messaging-kafka-api,:smallrye-reactive-messaging-kafka-test-companion
-            -   name: Codecov
-                uses: codecov/codecov-action@v6.0.0
-                if: false
 
     kafka-tests:
         needs: build
@@ -94,11 +91,8 @@ jobs:
             -   name: Run Kafka Tests
                 run: |
                     mvn -s .build/ci-maven-settings.xml -Dmaven.resolver.transport=wagon \
-                      -B verify -Pcoverage -Dtest-containers=true \
+                      -B verify -Dtest-containers=true \
                       -pl :smallrye-reactive-messaging-kafka
-            -   name: Codecov
-                uses: codecov/codecov-action@v6.0.0
-                if: false
 
     connector-tests:
         needs: build
@@ -147,11 +141,8 @@ jobs:
             -   name: Run ${{ matrix.connector.name }} Tests
                 run: |
                     mvn -s .build/ci-maven-settings.xml -Dmaven.resolver.transport=wagon \
-                      -B verify -Pcoverage -Dtest-containers=true \
+                      -B verify -Dtest-containers=true \
                       -pl :${{ matrix.connector.artifact }}
-            -   name: Codecov
-                uses: codecov/codecov-action@v6.0.0
-                if: false
 
     slow-flaky-tests:
         needs: build
