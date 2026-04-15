@@ -11,43 +11,133 @@ on:
 jobs:
     build:
         runs-on: ubuntu-latest
-        continue-on-error: ${{ matrix.java.continue-on-error == true }}
-        strategy:
-            matrix:
-                java: [
-                    {
-                        'name': '',
-                        'version': '17',
-                    },
-                    {
-                        'name': '',
-                        'version': '21',
-                    },
-                    {
-                        'name': '',
-                        'version': '25',
-                    },
-                    {
-                        'version': '21',
-                        'build_opts': '-Pslow-flaky-tests -Drevapi.skip=true -Dformat.skip=true',
-                        'name': 'Slow and Flaky tests',
-                        'continue-on-error': true
-                    }
-                ]
-        name: Build with Java ${{ matrix.java.version }} ${{ matrix.java.name }}
+        name: Build
         steps:
             -   uses: actions/checkout@v6
             -   uses: actions/setup-java@v5
                 with:
-                    java-version: ${{ matrix.java.version }}
+                    java-version: '21'
                     distribution: temurin
                     cache: maven
             -   name: Build with Maven
-                env:
-                    MAVEN_OPTS: ${{ matrix.java.opts }}
                 run: |
                     mvn -s .build/ci-maven-settings.xml -Dmaven.resolver.transport=wagon \
-                       -B clean install -Pcoverage -Dtest-containers=true ${{ matrix.java.build_opts }}
+                      -B clean install -DskipTests
+
+    core-tests:
+        needs: build
+        runs-on: ubuntu-latest
+        strategy:
+            fail-fast: false
+            matrix:
+                java:
+                    - '17'
+                    - '21'
+                    - '25'
+        name: Core Tests (Java ${{ matrix.java }})
+        steps:
+            -   uses: actions/checkout@v6
+            -   uses: actions/setup-java@v5
+                with:
+                    java-version: ${{ matrix.java }}
+                    distribution: temurin
+                    cache: maven
+            -   name: Build with Maven
+                run: |
+                    mvn -s .build/ci-maven-settings.xml -Dmaven.resolver.transport=wagon \
+                      -B clean install -DskipTests -T1C
+            -   name: Run Core Tests
+                run: |
+                    mvn -s .build/ci-maven-settings.xml -Dmaven.resolver.transport=wagon \
+                      -B verify -Pcoverage -Dtest-containers=true \
+                      -pl :smallrye-reactive-messaging-api,:smallrye-reactive-messaging-provider,:smallrye-reactive-messaging-otel,:smallrye-reactive-messaging-health,:smallrye-reactive-messaging-jackson,:smallrye-reactive-messaging-jsonb,:test-common,:smallrye-connector-attribute-processor,:smallrye-reactive-messaging-kafka-api,:smallrye-reactive-messaging-kafka-test-companion
             -   name: Codecov
                 uses: codecov/codecov-action@v6.0.0
                 if: false
+
+    connector-tests:
+        needs: build
+        runs-on: ubuntu-latest
+        strategy:
+            fail-fast: false
+            matrix:
+                connector:
+                    -   name: Kafka
+                        artifact: smallrye-reactive-messaging-kafka
+                    -   name: AMQP
+                        artifact: smallrye-reactive-messaging-amqp
+                    -   name: MQTT
+                        artifact: smallrye-reactive-messaging-mqtt
+                    -   name: RabbitMQ
+                        artifact: smallrye-reactive-messaging-rabbitmq
+                    -   name: Pulsar
+                        artifact: smallrye-reactive-messaging-pulsar
+                    -   name: GCP Pub/Sub
+                        artifact: smallrye-reactive-messaging-gcp-pubsub
+                    -   name: AWS SNS
+                        artifact: smallrye-reactive-messaging-aws-sns
+                    -   name: AWS SQS
+                        artifact: smallrye-reactive-messaging-aws-sqs
+                    -   name: Camel
+                        artifact: smallrye-reactive-messaging-camel
+                    -   name: JMS
+                        artifact: smallrye-reactive-messaging-jms
+                    -   name: In-Memory
+                        artifact: smallrye-reactive-messaging-in-memory
+                java:
+                    - '17'
+                    - '21'
+                    - '25'
+        name: ${{ matrix.connector.name }} Tests (Java ${{ matrix.java }})
+        steps:
+            -   uses: actions/checkout@v6
+            -   uses: actions/setup-java@v5
+                with:
+                    java-version: ${{ matrix.java }}
+                    distribution: temurin
+                    cache: maven
+            -   name: Build with Maven
+                run: |
+                    mvn -s .build/ci-maven-settings.xml -Dmaven.resolver.transport=wagon \
+                      -B clean install -DskipTests -T1C
+            -   name: Run ${{ matrix.connector.name }} Tests
+                run: |
+                    mvn -s .build/ci-maven-settings.xml -Dmaven.resolver.transport=wagon \
+                      -B verify -Pcoverage -Dtest-containers=true \
+                      -pl :${{ matrix.connector.artifact }}
+            -   name: Codecov
+                uses: codecov/codecov-action@v6.0.0
+                if: false
+
+    slow-flaky-tests:
+        needs: build
+        runs-on: ubuntu-latest
+        continue-on-error: true
+        strategy:
+            fail-fast: false
+            matrix:
+                connector:
+                    -   name: Kafka
+                        artifact: smallrye-reactive-messaging-kafka
+                    -   name: Pulsar
+                        artifact: smallrye-reactive-messaging-pulsar
+                    -   name: Kafka Test Companion
+                        artifact: smallrye-reactive-messaging-kafka-test-companion
+        name: ${{ matrix.connector.name }} Slow/Flaky Tests
+        steps:
+            -   uses: actions/checkout@v6
+            -   uses: actions/setup-java@v5
+                with:
+                    java-version: '21'
+                    distribution: temurin
+                    cache: maven
+            -   name: Build with Maven
+                run: |
+                    mvn -s .build/ci-maven-settings.xml -Dmaven.resolver.transport=wagon \
+                      -B clean install -DskipTests -T1C
+            -   name: Run ${{ matrix.connector.name }} Slow/Flaky Tests
+                run: |
+                    mvn -s .build/ci-maven-settings.xml -Dmaven.resolver.transport=wagon \
+                      -B verify -Pslow-flaky-tests -Dtest-containers=true \
+                      -Drevapi.skip=true -Dformat.skip=true \
+                      -pl :${{ matrix.connector.artifact }}
