@@ -11,6 +11,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.stream.Collectors;
 
+import org.jboss.logging.Logger;
+
 import io.netty.handler.codec.mqtt.MqttQoS;
 import io.smallrye.reactive.messaging.mqtt.session.MqttClientSession;
 import io.smallrye.reactive.messaging.mqtt.session.MqttClientSessionOptions;
@@ -27,9 +29,7 @@ import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxException;
 import io.vertx.core.buffer.Buffer;
-import io.vertx.core.impl.VertxInternal;
-import io.vertx.core.impl.logging.Logger;
-import io.vertx.core.impl.logging.LoggerFactory;
+import io.vertx.core.internal.VertxInternal;
 import io.vertx.mqtt.MqttClient;
 import io.vertx.mqtt.messages.MqttConnAckMessage;
 import io.vertx.mqtt.messages.MqttPublishMessage;
@@ -37,7 +37,7 @@ import io.vertx.mqtt.messages.MqttSubAckMessage;
 
 public class MqttClientSessionImpl implements MqttClientSession {
 
-    private static final Logger log = LoggerFactory.getLogger(MqttClientSessionImpl.class);
+    private static final Logger log = Logger.getLogger(MqttClientSessionImpl.class);
 
     private final VertxInternal vertx;
     private final MqttClientSessionOptions options;
@@ -130,12 +130,13 @@ public class MqttClientSessionImpl implements MqttClientSession {
         return result.future();
     }
 
-    private void doStart(Handler<AsyncResult<Void>> handler) {
+    private void doStart(Promise<Void> handler) {
         if (this.running) {
             // nothing to do
 
             if (handler != null) {
                 if (this.state == SessionState.CONNECTED) {
+                    handler.complete();
                     handler.handle(Future.succeededFuture());
                 } else {
                     this.notifyConnected.add(handler);

@@ -68,6 +68,15 @@ nav:
         - 'Connecting to managed instances' : rabbitmq/rabbitmq-cloud.md
         - 'RabbitMQ Request/Reply': rabbitmq/request-reply.md
 
+  - RabbitMQ OG:
+        - rabbitmq-og/rabbitmq-og.md
+        - 'Receiving messages' : rabbitmq-og/receiving-messages-from-rabbitmq.md
+        - 'Sending messages' : rabbitmq-og/sending-messages-to-rabbitmq.md
+        - 'Health Checks' : rabbitmq-og/rabbitmq-og-health.md
+        - 'Client Customization' : rabbitmq-og/rabbitmq-og-client-customization.md
+        - 'OpenTelemetry Tracing' : rabbitmq-og/rabbitmq-og-tracing.md
+        - 'Connecting to managed instances' : rabbitmq-og/rabbitmq-og-cloud.md
+
   - Pulsar:
         - pulsar/pulsar.md
         - 'Receiving messages': pulsar/receiving-pulsar-messages.md
@@ -90,12 +99,6 @@ nav:
         - 'Receiving JMS messages' : jms/receiving-jms-messages.md
         - 'Sending JMS messages' : jms/sending-jms-messages.md
         - 'Advanced configuration' : jms/advanced-jms.md
-
-  - MQTT:
-        - mqtt/mqtt.md
-        - 'Receiving MQTT messages': mqtt/receiving-mqtt-messages.md
-        - 'Sending MQTT messages': mqtt/sending-messages-to-mqtt.md
-        - 'Customizing the MQTT client': mqtt/client-customization.md
 
   - AWS SQS:
         - sqs/sqs.md
