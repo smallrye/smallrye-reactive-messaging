@@ -31,7 +31,7 @@ jobs:
                     mvn -s .build/ci-maven-settings.xml -Dmaven.resolver.transport=wagon \
                       -B clean install -DskipTests -T1C
             -   name: Upload Maven Repository
-                uses: actions/upload-artifact@v4
+                uses: actions/upload-artifact@v7
                 with:
                     name: maven-repo-java-${{ matrix.java }}
                     path: ~/.m2/repository/io/smallrye/reactive/
@@ -56,7 +56,7 @@ jobs:
                     distribution: temurin
                     cache: maven
             -   name: Download Maven Repository
-                uses: actions/download-artifact@v4
+                uses: actions/download-artifact@v8
                 with:
                     name: maven-repo-java-${{ matrix.java }}
                     path: ~/.m2/repository/io/smallrye/reactive/
@@ -86,7 +86,7 @@ jobs:
                     distribution: temurin
                     cache: maven
             -   name: Download Maven Repository
-                uses: actions/download-artifact@v4
+                uses: actions/download-artifact@v8
                 with:
                     name: maven-repo-java-${{ matrix.java }}
                     path: ~/.m2/repository/io/smallrye/reactive/
@@ -137,7 +137,7 @@ jobs:
                     distribution: temurin
                     cache: maven
             -   name: Download Maven Repository
-                uses: actions/download-artifact@v4
+                uses: actions/download-artifact@v8
                 with:
                     name: maven-repo-java-${{ matrix.java }}
                     path: ~/.m2/repository/io/smallrye/reactive/
@@ -171,7 +171,7 @@ jobs:
                     distribution: temurin
                     cache: maven
             -   name: Download Maven Repository
-                uses: actions/download-artifact@v4
+                uses: actions/download-artifact@v8
                 with:
                     name: maven-repo-java-21
                     path: ~/.m2/repository/io/smallrye/reactive/
