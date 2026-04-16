@@ -64,7 +64,15 @@ jobs:
                     mvn -s .build/ci-maven-settings.xml -Dmaven.resolver.transport=wagon \
                       -B verify -Dtest-containers=true \
                       -Drevapi.skip=true -Dformat.skip=true \
+                      ${{ matrix.java == '25' && '-Pcoverage' || '' }} \
                       -pl :smallrye-reactive-messaging-api,:smallrye-reactive-messaging-provider,:smallrye-reactive-messaging-otel,:smallrye-reactive-messaging-health,:smallrye-reactive-messaging-jackson,:smallrye-reactive-messaging-jsonb,:test-common,:smallrye-connector-attribute-processor,:smallrye-reactive-messaging-kafka-api,:smallrye-reactive-messaging-kafka-test-companion
+            -   name: Upload JaCoCo exec files
+                if: matrix.java == '25'
+                uses: actions/upload-artifact@v7
+                with:
+                    name: jacoco-exec-core
+                    path: '**/target/jacoco.exec'
+                    retention-days: 1
 
     kafka-tests:
         needs: build
@@ -94,7 +102,15 @@ jobs:
                     mvn -s .build/ci-maven-settings.xml -Dmaven.resolver.transport=wagon \
                       -B verify -Dtest-containers=true \
                       -Drevapi.skip=true -Dformat.skip=true \
+                      ${{ matrix.java == '25' && '-Pcoverage' || '' }} \
                       -pl :smallrye-reactive-messaging-kafka
+            -   name: Upload JaCoCo exec files
+                if: matrix.java == '25'
+                uses: actions/upload-artifact@v7
+                with:
+                    name: jacoco-exec-kafka
+                    path: '**/target/jacoco.exec'
+                    retention-days: 1
 
     connector-tests:
         needs: build
@@ -145,7 +161,59 @@ jobs:
                     mvn -s .build/ci-maven-settings.xml -Dmaven.resolver.transport=wagon \
                       -B verify -Dtest-containers=true \
                       -Drevapi.skip=true -Dformat.skip=true \
+                      ${{ matrix.java == '25' && '-Pcoverage' || '' }} \
                       -pl :${{ matrix.connector.artifact }}
+            -   name: Upload JaCoCo exec files
+                if: matrix.java == '25'
+                uses: actions/upload-artifact@v7
+                with:
+                    name: jacoco-exec-${{ matrix.connector.artifact }}
+                    path: '**/target/jacoco.exec'
+                    retention-days: 1
+
+    coverage-report:
+        needs: [core-tests, kafka-tests, connector-tests]
+        if: always()
+        runs-on: ubuntu-latest
+        name: Coverage Report
+        steps:
+            -   uses: actions/checkout@v6
+            -   uses: actions/setup-java@v5
+                with:
+                    java-version: '25'
+                    distribution: temurin
+                    cache: maven
+            -   name: Download Maven Repository
+                uses: actions/download-artifact@v8
+                with:
+                    name: maven-repo-java-25
+                    path: ~/.m2/repository/io/smallrye/reactive/
+            -   name: Download all JaCoCo exec artifacts
+                uses: actions/download-artifact@v8
+                with:
+                    pattern: jacoco-exec-*
+                    path: jacoco-exec
+                    merge-multiple: true
+            -   name: Compile sources
+                run: |
+                    mvn -s .build/ci-maven-settings.xml -Dmaven.resolver.transport=wagon \
+                      -B compile -DskipTests -T1C
+            -   name: Install JBang
+                uses: jbangdev/setup-jbang@main
+            -   name: Generate Coverage Report
+                run: |
+                    jbang jacocoreport.java \
+                      --exec-dir jacoco-exec \
+                      --classes-dir . \
+                      --sources-dir . \
+                      -o target/coverage-report \
+                      -n "SmallRye Reactive Messaging"
+            -   name: Upload Coverage Report
+                uses: actions/upload-artifact@v7
+                with:
+                    name: coverage-report
+                    path: target/coverage-report/
+                    retention-days: 7
 
     ci-status:
         if: always()
