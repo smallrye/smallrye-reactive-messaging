@@ -24,7 +24,14 @@
     "criticality" : "highlight",
     "minSeverity" : "POTENTIALLY_BREAKING",
     "minCriticality" : "documented",
-    "differences" : [ ]
+    "differences" : [
+        {
+            "code": "java.field.constantValueChanged",
+            "old": "field io.smallrye.reactive.messaging.kafka.companion.test.KafkaBrokerExtension.KAFKA_IMAGE",
+            "new": "field io.smallrye.reactive.messaging.kafka.companion.test.KafkaBrokerExtension.KAFKA_IMAGE",
+            "justification": "Run tests on kafka-native image"
+        }
+    ]
   }
 }, {
   "extension" : "revapi.reporter.json",

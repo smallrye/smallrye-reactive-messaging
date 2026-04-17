@@ -32,7 +32,7 @@ import io.strimzi.test.container.StrimziKafkaContainer;
 public class KafkaBrokerExtension implements BeforeAllCallback, BeforeEachCallback, ParameterResolver, CloseableResource {
     public static final Logger LOGGER = Logger.getLogger(KafkaBrokerExtension.class.getName());
 
-    public static final String KAFKA_IMAGE = "apache/kafka";
+    public static final String KAFKA_IMAGE = "apache/kafka-native";
     public static final String STRIMZI_IMAGE = "quay.io/strimzi-test-container/test-container";
     public static final String KAFKA_VERSION = "4.2.0";
     public static final String STRIMZI_VERSION = "4.2.0";
