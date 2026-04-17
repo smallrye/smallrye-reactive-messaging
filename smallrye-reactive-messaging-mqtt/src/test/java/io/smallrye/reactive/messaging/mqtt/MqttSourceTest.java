@@ -59,6 +59,45 @@ public class MqttSourceTest extends MqttTestBase {
                 .containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
     }
 
+    /**
+     * Verifies that when the downstream consumer is slower than the broker producer,
+     * messages are NOT lost due to buffer overflow on the TCP read task.
+     * Without backpressure (pause/resume on the MQTT client) this test fails by timeout,
+     * because the incoming buffer overflows and messages are dropped.
+     */
+    @Test
+    public void testTryOverflowTheBuffer() {
+        String topic = UUID.randomUUID().toString();
+        Map<String, Object> config = new HashMap<>();
+        config.put("topic", topic);
+        config.put("host", address);
+        config.put("port", port);
+        config.put("buffer-size", 1000);
+        config.put("max-message-size", 256);
+        config.put("receive-buffer-size", 512);
+        config.put("channel-name", topic);
+        MqttSource source = new MqttSource(vertx, new MqttConnectorIncomingConfiguration(new MapBasedConfig(config)),
+                null, null);
+
+        List<MqttMessage<?>> messages = new ArrayList<>();
+        Flow.Publisher<? extends MqttMessage<?>> stream = source.getSource();
+        Multi.createFrom().publisher(stream).subscribe().with(m -> {
+            messages.add(m);
+            try {
+                Thread.sleep(5);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        });
+
+        awaitUntilReady(source);
+        AtomicInteger counter = new AtomicInteger();
+        new Thread(() -> usage.produceIntegers(topic, 2000, null,
+                counter::getAndIncrement)).start();
+
+        await().atMost(30, TimeUnit.SECONDS).until(() -> messages.size() == 2000);
+    }
+
     @Test
     public void testSourceUsingChannelName() {
         String topic = UUID.randomUUID().toString();
