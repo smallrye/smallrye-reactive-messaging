@@ -12,6 +12,16 @@
 
   <name>SmallRye Reactive Messaging : Connector :: MQTT</name>
 
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>io.vertx</groupId>
+        <artifactId>vertx-mqtt</artifactId>
+        <version>4.5.27-SNAPSHOT</version>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+  
   <dependencies>
     <dependency>
       <groupId>${project.groupId}</groupId>
@@ -110,4 +120,5 @@
       </build>
     </profile>
   </profiles>
+
 </project>
