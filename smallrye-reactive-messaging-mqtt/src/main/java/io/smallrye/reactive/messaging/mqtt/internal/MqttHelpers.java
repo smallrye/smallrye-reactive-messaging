@@ -38,6 +38,8 @@ public class MqttHelpers {
         options.setHostname(config.getHost());
         options.setKeepAliveInterval(config.getKeepAliveSeconds());
         options.setMaxInflightQueue(config.getMaxInflightQueue());
+        options.setReceiveBufferSize(config.getReceiveBufferSize());
+        options.setRecvByteBufAllocatorSize(config.getRecvBytebufAllocatorSize());
         options.setMaxMessageSize(config.getMaxMessageSize());
         options.setPassword(config.getPassword().orElse(null));
         options.setPort(config.getPort().orElseGet(() -> config.getSsl() ? 8883 : 1883));
