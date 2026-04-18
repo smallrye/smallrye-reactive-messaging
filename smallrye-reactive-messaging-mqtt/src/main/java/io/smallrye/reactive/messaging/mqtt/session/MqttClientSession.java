@@ -105,6 +105,21 @@ public interface MqttClientSession {
     Future<Void> stop();
 
     /**
+     * Check whether the reading of new incoming messages is currently paused.
+     */
+    boolean isPaused();
+
+    /**
+     * Pause the reading of new incoming messages.
+     */
+    void pause();
+
+    /**
+     * Resume the reading of new incoming messages.
+     */
+    void resume();
+
+    /**
      * Get the current session state.
      *
      * @return The current state.
