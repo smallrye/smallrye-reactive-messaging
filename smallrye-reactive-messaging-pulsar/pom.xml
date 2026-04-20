@@ -14,7 +14,7 @@
 
   <properties>
     <revapi.skip>true</revapi.skip>
-    <pulsar.version>4.1.1</pulsar.version>
+    <pulsar.version>4.2.0</pulsar.version>
     <jacocoArgLine></jacocoArgLine>
   </properties>
 
