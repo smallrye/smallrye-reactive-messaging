@@ -15,6 +15,7 @@
   <properties>
     <revapi.skip>true</revapi.skip>
     <pulsar.version>4.1.1</pulsar.version>
+    <jacocoArgLine></jacocoArgLine>
   </properties>
 
   <dependencies>
@@ -176,7 +177,7 @@
               <systemPropertyVariables>
                 <org.jboss.logging.provider>slf4j</org.jboss.logging.provider>
               </systemPropertyVariables>
-              <argLine>--add-opens=java.base/sun.net=ALL-UNNAMED</argLine>
+              <argLine>@{jacocoArgLine} --add-opens=java.base/sun.net=ALL-UNNAMED</argLine>
             </configuration>
           </execution>
         </executions>
@@ -188,9 +189,6 @@
   <profiles>
     <profile>
       <id>coverage</id>
-      <properties>
-        <argLine>@{jacocoArgLine}</argLine>
-      </properties>
       <build>
         <plugins>
           <plugin>
