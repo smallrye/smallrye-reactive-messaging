@@ -91,6 +91,7 @@ public class AmqpConnector implements InboundConnector, OutboundConnector, Healt
 
     public static final Symbol PAIRED_KEY = Symbol.valueOf("paired");
     public static final String ME_ADDRESS = "$me";
+    public static final String DIRECT_REPLY_TO_ADDRESS = "amq.rabbitmq.reply-to";
 
     @Inject
     private ExecutionHolder executionHolder;

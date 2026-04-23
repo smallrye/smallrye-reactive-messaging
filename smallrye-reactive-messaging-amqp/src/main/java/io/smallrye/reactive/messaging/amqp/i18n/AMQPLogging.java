@@ -139,4 +139,12 @@ public interface AMQPLogging extends BasicLogger {
     @LogMessage(level = Logger.Level.INFO)
     @Message(id = 16230, value = "No credits for channel %s, checking periodically for credits")
     void stillNoMoreCreditsForChannel(String channel);
+
+    @LogMessage(level = Logger.Level.WARN)
+    @Message(id = 16231, value = "Received reply message on channel `%s` with unknown correlation ID `%s`, ignoring")
+    void requestReplyMessageIgnored(String channel, String correlationId);
+
+    @LogMessage(level = Logger.Level.ERROR)
+    @Message(id = 16232, value = "Reply consumer failure on channel `%s`")
+    void requestReplyConsumerFailure(String channel, @Cause Throwable t);
 }
