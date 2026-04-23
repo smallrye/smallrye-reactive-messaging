@@ -16,8 +16,9 @@ import io.opentelemetry.api.OpenTelemetry;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.providers.helpers.MultiUtils;
 import io.vertx.amqp.AmqpSenderOptions;
-import io.vertx.mutiny.amqp.AmqpClient;
+import io.vertx.core.impl.VertxInternal;
 import io.vertx.mutiny.amqp.AmqpSender;
+import io.vertx.mutiny.core.Context;
 import io.vertx.mutiny.core.Vertx;
 import io.vertx.proton.ProtonSender;
 
@@ -28,7 +29,14 @@ public class OutgoingAmqpChannel {
     private final AmqpCreditBasedSender processor;
     private final boolean healthEnabled;
 
-    public OutgoingAmqpChannel(AmqpConnectorOutgoingConfiguration oc, AmqpClient client, Vertx vertx,
+    public OutgoingAmqpChannel(AmqpConnectorOutgoingConfiguration oc, AmqpClientHolder clientHolder, Vertx vertx,
+            Instance<OpenTelemetry> openTelemetryInstance, BiConsumer<String, Throwable> reportFailure) {
+        this(oc, clientHolder.getOrCreateConnectionHolder(oc, vertx,
+                Context.newInstance(((VertxInternal) vertx.getDelegate()).createEventLoopContext())),
+                openTelemetryInstance, reportFailure);
+    }
+
+    public OutgoingAmqpChannel(AmqpConnectorOutgoingConfiguration oc, ConnectionHolder holder,
             Instance<OpenTelemetry> openTelemetryInstance, BiConsumer<String, Throwable> reportFailure) {
         String configuredAddress = oc.getAddress().orElseGet(oc::getChannel);
 
@@ -37,7 +45,6 @@ public class OutgoingAmqpChannel {
 
         AtomicReference<AmqpSender> sender = new AtomicReference<>();
         String link = oc.getLinkName().orElseGet(oc::getChannel);
-        ConnectionHolder holder = new ConnectionHolder(client, oc, vertx, null);
 
         Uni<AmqpSender> getSender = Uni.createFrom().deferred(() -> {
 

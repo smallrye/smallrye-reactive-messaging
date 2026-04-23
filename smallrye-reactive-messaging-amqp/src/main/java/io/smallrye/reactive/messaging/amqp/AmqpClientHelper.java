@@ -4,53 +4,24 @@ import static io.smallrye.reactive.messaging.amqp.i18n.AMQPExceptions.ex;
 import static io.smallrye.reactive.messaging.amqp.i18n.AMQPLogging.log;
 import static io.vertx.core.net.ClientOptionsBase.DEFAULT_METRICS_NAME;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.Optional;
+import java.util.UUID;
 
 import jakarta.enterprise.inject.Instance;
 import jakarta.enterprise.inject.literal.NamedLiteral;
 
 import io.smallrye.common.annotation.Identifier;
-import io.smallrye.reactive.messaging.ClientCustomizer;
 import io.smallrye.reactive.messaging.providers.helpers.ConfigUtils;
 import io.smallrye.reactive.messaging.providers.i18n.ProviderLogging;
 import io.vertx.amqp.AmqpClientOptions;
-import io.vertx.mutiny.amqp.AmqpClient;
-import io.vertx.mutiny.core.Vertx;
 
 public class AmqpClientHelper {
 
     private AmqpClientHelper() {
         // avoid direct instantiation.
-    }
-
-    static AmqpClient createClient(AmqpConnector connector, AmqpConnectorCommonConfiguration config,
-            Instance<AmqpClientOptions> amqpClientOptions,
-            Instance<ClientCustomizer<AmqpClientOptions>> configCustomizers) {
-        Optional<String> clientOptionsName = config.getClientOptionsName();
-        AmqpClientOptions options;
-        if (clientOptionsName.isPresent()) {
-            options = createClientFromClientOptionsBean(amqpClientOptions, clientOptionsName.get(), config);
-        } else {
-            options = getOptionsFromChannel(config);
-        }
-        AmqpClientOptions clientOptions = ConfigUtils.customize(config.config(), configCustomizers, options);
-        AmqpClient client = AmqpClient.create(connector.getVertx(), clientOptions);
-        connector.addClient(client);
-        return client;
-    }
-
-    static AmqpClient createClient(Vertx vertx, AmqpConnectorCommonConfiguration config,
-            Instance<AmqpClientOptions> amqpClientOptions,
-            Instance<ClientCustomizer<AmqpClientOptions>> configCustomizers) {
-        Optional<String> clientOptionsName = config.getClientOptionsName();
-        AmqpClientOptions options;
-        if (clientOptionsName.isPresent()) {
-            options = createClientFromClientOptionsBean(amqpClientOptions, clientOptionsName.get(), config);
-        } else {
-            options = getOptionsFromChannel(config);
-        }
-        AmqpClientOptions clientOptions = ConfigUtils.customize(config.config(), configCustomizers, options);
-        return AmqpClient.create(vertx, clientOptions);
     }
 
     static AmqpClientOptions createClientFromClientOptionsBean(Instance<AmqpClientOptions> instance,
@@ -181,11 +152,43 @@ public class AmqpClientHelper {
                 .setReconnectInterval(reconnectInterval)
                 .setConnectTimeout(connectTimeout);
 
-        options.setMetricsName("amqp|" + config.getChannel());
-
         config.getSniServerName().ifPresent(options::setSniServerName);
         config.getVirtualHost().ifPresent(options::setVirtualHost);
         return options;
+    }
+
+    static AmqpClientOptions buildClientOptions(AmqpConnector connector, AmqpConnectorCommonConfiguration config) {
+        Optional<String> clientOptionsName = config.getClientOptionsName();
+        AmqpClientOptions options;
+        if (clientOptionsName.isPresent()) {
+            options = createClientFromClientOptionsBean(connector.getClientOptions(), clientOptionsName.get(), config);
+        } else {
+            options = getOptionsFromChannel(config);
+        }
+        if (options.getContainerId() == null) {
+            options.setContainerId("vert.x-" + UUID.randomUUID());
+        } else {
+            options.setMetricsName("amqp|" + options.getContainerId());
+        }
+        return ConfigUtils.customize(config.config(), connector.getConfigCustomizers(), options);
+    }
+
+    public static String computeConnectionFingerprint(AmqpClientOptions options) {
+        return sha256(options.toJson().encode());
+    }
+
+    private static String sha256(String input) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hash = digest.digest(input.getBytes(StandardCharsets.UTF_8));
+            StringBuilder sb = new StringBuilder();
+            for (byte b : hash) {
+                sb.append(String.format("%02x", b));
+            }
+            return sb.toString();
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException(e);
+        }
     }
 
 }
