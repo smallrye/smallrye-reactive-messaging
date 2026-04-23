@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -35,15 +36,17 @@ public class RabbitMQTest extends RabbitMQBrokerTestBase {
 
     @Test
     public void testSendingMessagesToRabbitMQ() throws InterruptedException {
+        String queue = UUID.randomUUID().toString();
+        createQueue(queue);
 
         CountDownLatch latch = new CountDownLatch(10);
-        usage.consumeIntegers("sink",
+        usage.consumeIntegers("/queues/" + queue,
                 v -> latch.countDown());
 
         weld.addBeanClass(ProducingBean.class);
 
         new MapBasedConfig()
-                .with("mp.messaging.outgoing.sink.address", "sink")
+                .with("mp.messaging.outgoing.sink.address", "/queues/" + queue)
                 .with("mp.messaging.outgoing.sink.connector", AmqpConnector.CONNECTOR_NAME)
                 .with("mp.messaging.outgoing.sink.host", host)
                 .with("mp.messaging.outgoing.sink.port", port)
@@ -62,16 +65,18 @@ public class RabbitMQTest extends RabbitMQBrokerTestBase {
     }
 
     @Test
-    public void testSendingMessagesToRabbitMQWithNotAnonymousDetection() throws InterruptedException {
+    public void testSendingMessagesToRabbitMQWithAnonymousDetection() throws InterruptedException {
+        String queue = UUID.randomUUID().toString();
+        createQueue(queue);
 
         CountDownLatch latch = new CountDownLatch(10);
-        usage.consumeIntegers("sink-not-anonymous",
+        usage.consumeIntegers("/queues/" + queue,
                 v -> latch.countDown());
 
         weld.addBeanClass(ProducingBean.class);
 
         new MapBasedConfig()
-                .with("mp.messaging.outgoing.sink.address", "sink-not-anonymous")
+                .with("mp.messaging.outgoing.sink.address", "/queues/" + queue)
                 .with("mp.messaging.outgoing.sink.connector", AmqpConnector.CONNECTOR_NAME)
                 .with("mp.messaging.outgoing.sink.host", host)
                 .with("mp.messaging.outgoing.sink.port", port)
@@ -90,8 +95,11 @@ public class RabbitMQTest extends RabbitMQBrokerTestBase {
 
     @Test
     public void testReceivingMessagesFromRabbitMQ() {
+        String queue = UUID.randomUUID().toString();
+        createQueue(queue);
+
         new MapBasedConfig()
-                .put("mp.messaging.incoming.data.address", "data")
+                .put("mp.messaging.incoming.data.address", "/queues/" + queue)
                 .put("mp.messaging.incoming.data.connector", AmqpConnector.CONNECTOR_NAME)
                 .put("mp.messaging.incoming.data.host", host)
                 .put("mp.messaging.incoming.data.port", port)
@@ -114,7 +122,7 @@ public class RabbitMQTest extends RabbitMQBrokerTestBase {
         assertThat(list).isEmpty();
 
         AtomicInteger counter = new AtomicInteger();
-        usage.produceTenIntegers("data", counter::getAndIncrement);
+        usage.produceTenIntegers("/queues/" + queue, counter::getAndIncrement);
 
         await().atMost(2, TimeUnit.MINUTES).until(() -> list.size() >= 10);
         assertThat(list).containsExactly(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
