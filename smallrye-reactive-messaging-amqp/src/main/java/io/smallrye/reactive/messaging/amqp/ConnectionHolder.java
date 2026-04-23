@@ -15,6 +15,9 @@ import org.apache.qpid.proton.amqp.Symbol;
 
 import io.smallrye.common.annotation.CheckReturnValue;
 import io.smallrye.mutiny.Uni;
+import io.smallrye.reactive.messaging.amqp.cbs.CbsExchange;
+import io.smallrye.reactive.messaging.amqp.cbs.CbsTokenManager;
+import io.smallrye.reactive.messaging.amqp.cbs.RefreshingCbsTokenManager;
 import io.smallrye.reactive.messaging.providers.helpers.VertxContext;
 import io.vertx.mutiny.amqp.AmqpClient;
 import io.vertx.mutiny.amqp.AmqpConnection;
@@ -24,7 +27,7 @@ import io.vertx.mutiny.core.Vertx;
 public class ConnectionHolder {
 
     private final AmqpConnectorCommonConfiguration configuration;
-    private final AtomicReference<AmqpConnection> holder = new AtomicReference<>();
+    private final AtomicReference<CurrentConnection> holder = new AtomicReference<>();
 
     private final Vertx vertx;
     private final Context root;
@@ -32,8 +35,11 @@ public class ConnectionHolder {
     private Consumer<Throwable> onFailure;
 
     public ConnectionHolder(AmqpClient client,
+            CbsTokenManager baseTokenManager,
             AmqpConnectorCommonConfiguration configuration,
             Vertx vertx, Context root) {
+        CbsTokenManager tokenManager = baseTokenManager == null ? null
+                : new RefreshingCbsTokenManager(baseTokenManager, vertx, root, this::closeCurrent);
         this.configuration = configuration;
         this.vertx = vertx;
         this.root = root;
@@ -46,23 +52,40 @@ public class ConnectionHolder {
                 .onSubscription().invoke(s -> log.establishingConnection())
                 .onFailure().invoke(log::unableToConnectToBroker)
                 .onItem().invoke(log::connectionEstablished)
-                .onItem().invoke(conn -> {
-                    holder.set(conn);
-                    conn.exceptionHandler(t -> {
-                        holder.set(null);
-                        log.connectionFailure(t);
-                        Consumer<Throwable> c;
-                        synchronized (this) {
-                            c = onFailure;
-                        }
-                        if (c != null) {
-                            c.accept(t);
-                        }
-                    });
+                .onItem().transform(conn -> {
+                    CbsExchange cbsExchange = tokenManager == null ? null : tokenManager.exchange(conn);
+                    return new CurrentConnection(conn, cbsExchange);
+                })
+                .onItem().transformToUni(currentConnection -> {
+                    if (tokenManager != null && currentConnection.exchange() != null) {
+                        return tokenManager.authorize(currentConnection.exchange())
+                                .onFailure().invoke(t -> currentConnection.close())
+                                .replaceWith(currentConnection);
+                    } else {
+                        return Uni.createFrom().item(currentConnection);
+                    }
+                })
+                .onItem().transform(currentConn -> {
+                    holder.set(currentConn);
+                    AmqpConnection conn = currentConn.connection;
+                    conn
+                            .exceptionHandler(t -> {
+                                closeCurrent();
+                                log.connectionFailure(t);
+
+                                Consumer<Throwable> c;
+                                synchronized (this) {
+                                    c = onFailure;
+                                }
+                                if (c != null) {
+                                    c.accept(t);
+                                }
+                            });
                     if (conn.isDisconnected() || holder.get() == null) {
-                        holder.set(null);
+                        closeCurrent();
                         throw ex.illegalStateConnectionDisconnected();
                     }
+                    return conn;
                 })
                 .onFailure().invoke(log::unableToConnectToBroker)
                 .onFailure().retry().withBackOff(ofSeconds(1), ofSeconds(retryInterval)).atMost(retryAttempts)
@@ -71,9 +94,16 @@ public class ConnectionHolder {
                     log.unableToRecoverFromConnectionDisruption(t);
                 }))
                 .memoize().until(() -> {
-                    AmqpConnection current = holder.get();
-                    return current == null || current.isDisconnected();
+                    CurrentConnection current = holder.get();
+                    return current == null || current.connection == null || current.connection.isDisconnected();
                 });
+    }
+
+    void closeCurrent() {
+        CurrentConnection current = holder.getAndSet(null);
+        if (current != null) {
+            current.close();
+        }
     }
 
     public Context getContext() {
@@ -82,12 +112,17 @@ public class ConnectionHolder {
 
     @CheckReturnValue
     public Uni<Boolean> isConnected() {
-        AmqpConnection connection = holder.get();
+        CurrentConnection connection = holder.get();
         if (connection == null) {
             return Uni.createFrom().item(false);
         }
 
-        return Uni.createFrom().item(() -> !connection.isDisconnected())
+        AmqpConnection underlying = connection.connection;
+        if (underlying == null) {
+            return Uni.createFrom().item(false);
+        }
+
+        return Uni.createFrom().item(() -> !underlying.isDisconnected())
                 .runSubscriptionOn(root::runOnContext);
     }
 
@@ -99,6 +134,9 @@ public class ConnectionHolder {
      */
     public static List<String> capabilities(AmqpConnection connection) {
         Symbol[] capabilities = connection.getDelegate().unwrap().getRemoteOfferedCapabilities();
+        if (capabilities == null) {
+            return List.of();
+        }
         return Arrays.stream(capabilities).map(Symbol::toString).collect(Collectors.toList());
     }
 
@@ -119,6 +157,15 @@ public class ConnectionHolder {
 
     public int getHealthTimeout() {
         return configuration.getHealthTimeout();
+    }
+
+    private record CurrentConnection(AmqpConnection connection, CbsExchange exchange) {
+
+        public void close() {
+            if (exchange != null) {
+                exchange.close();
+            }
+        }
     }
 
     public synchronized void onFailure(Consumer<Throwable> callback) {

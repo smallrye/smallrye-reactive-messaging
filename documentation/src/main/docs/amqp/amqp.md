@@ -10,6 +10,7 @@ With this connector, your application can:
 -   receive messages from an AMQP Broker or Router.
 -   send `Message` to an AMQP *address*
 -   implement [request-reply](request-reply.md) messaging patterns
+-   authenticate using [Claims-Based Security (CBS)](cbs-authentication.md) tokens
 
 The AMQP connector is based on the [Vert.x AMQP Client](https://vertx.io/docs/vertx-amqp-client/java/).
 

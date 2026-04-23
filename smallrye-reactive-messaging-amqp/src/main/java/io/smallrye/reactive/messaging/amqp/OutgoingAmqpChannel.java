@@ -14,6 +14,7 @@ import org.eclipse.microprofile.reactive.messaging.Message;
 
 import io.opentelemetry.api.OpenTelemetry;
 import io.smallrye.mutiny.Uni;
+import io.smallrye.reactive.messaging.amqp.cbs.CbsTokenManager;
 import io.smallrye.reactive.messaging.providers.helpers.MultiUtils;
 import io.vertx.amqp.AmqpSenderOptions;
 import io.vertx.core.impl.VertxInternal;
@@ -30,8 +31,9 @@ public class OutgoingAmqpChannel {
     private final boolean healthEnabled;
 
     public OutgoingAmqpChannel(AmqpConnectorOutgoingConfiguration oc, AmqpClientHolder clientHolder, Vertx vertx,
+            CbsTokenManager cbsTokenManager,
             Instance<OpenTelemetry> openTelemetryInstance, BiConsumer<String, Throwable> reportFailure) {
-        this(oc, clientHolder.getOrCreateConnectionHolder(oc, vertx,
+        this(oc, clientHolder.getOrCreateConnectionHolder(cbsTokenManager, oc, vertx,
                 Context.newInstance(((VertxInternal) vertx.getDelegate()).createEventLoopContext())),
                 openTelemetryInstance, reportFailure);
     }

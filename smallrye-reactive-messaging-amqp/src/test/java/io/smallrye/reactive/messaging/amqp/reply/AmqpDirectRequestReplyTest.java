@@ -3,6 +3,7 @@ package io.smallrye.reactive.messaging.amqp.reply;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.Duration;
+import java.util.UUID;
 
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -17,9 +18,13 @@ public class AmqpDirectRequestReplyTest extends AmqpBrokerTestBase {
 
     @Test
     void testRequestReply() {
+        String id = UUID.randomUUID().toString().substring(0, 8);
+        String requestAddress = "test-request-" + id;
+        String replyAddress = requestAddress + "-client-reply-to";
+
         AmqpConnection amqpConnection = usage.client.connectAndAwait();
-        AmqpSender replySender = usage.client.createSender("test-request-client-reply-to").await().indefinitely();
-        usage.client.createReceiver("test-request")
+        AmqpSender replySender = usage.client.createSender(replyAddress).await().indefinitely();
+        usage.client.createReceiver(requestAddress)
                 .onItem().transformToMulti(AmqpReceiver::toMulti)
                 .onItem().transformToUniAndConcatenate(request -> replySender.sendWithAck(AmqpMessage.create()
                         .correlationId(request.id())
@@ -30,7 +35,8 @@ public class AmqpDirectRequestReplyTest extends AmqpBrokerTestBase {
 
                 });
 
-        AmqpDirectRequestReply amqpRequestReply = new AmqpDirectRequestReply(amqpConnection, "test-request", "test-link");
+        AmqpDirectRequestReply amqpRequestReply = new AmqpDirectRequestReply(amqpConnection, requestAddress,
+                "test-link-" + id);
         String replyBody = amqpRequestReply.request(AmqpMessage.create().withBody("ping").build())
                 .await().atMost(Duration.ofSeconds(4))
                 .bodyAsString();
@@ -40,10 +46,13 @@ public class AmqpDirectRequestReplyTest extends AmqpBrokerTestBase {
 
     @Test
     void testRequestTimeout() {
-        AmqpConnection amqpConnection = usage.client.connectAndAwait();
-        // no reply sender is created, so the request should timeout
+        String id = UUID.randomUUID().toString().substring(0, 8);
+        String requestAddress = "test-request-" + id;
 
-        AmqpDirectRequestReply amqpRequestReply = new AmqpDirectRequestReply(amqpConnection, "test-request", "test-link");
+        AmqpConnection amqpConnection = usage.client.connectAndAwait();
+
+        AmqpDirectRequestReply amqpRequestReply = new AmqpDirectRequestReply(amqpConnection, requestAddress,
+                "test-link-" + id);
         Assertions.assertThatThrownBy(() -> {
             amqpRequestReply.request(AmqpMessage.create().withBody("ping").build())
                     .await().atMost(Duration.ofSeconds(4));
