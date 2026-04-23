@@ -33,8 +33,8 @@ import io.smallrye.reactive.messaging.kafka.api.IncomingKafkaRecordMetadata;
 import io.smallrye.reactive.messaging.kafka.api.OutgoingKafkaRecordMetadata;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaRecordHelper;
 import io.smallrye.reactive.messaging.kafka.impl.RuntimeKafkaSinkConfiguration;
+import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonObject;
-import io.vertx.mutiny.core.buffer.Buffer;
 
 public class KafkaCloudEventHelper {
 
