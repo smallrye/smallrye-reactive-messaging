@@ -83,11 +83,13 @@ import io.vertx.mutiny.core.Vertx;
 @ConnectorAttribute(name = "cloud-events-insert-timestamp", type = "boolean", direction = OUTGOING, description = "Whether or not the connector should insert automatically the `time` attribute into the outgoing Cloud Event. Requires `cloud-events` to be set to `true`. This value is used if the message does not configure the `time` attribute itself", alias = "cloud-events-default-timestamp", defaultValue = "true")
 @ConnectorAttribute(name = "cloud-events-mode", type = "string", direction = OUTGOING, description = "The Cloud Event mode (`structured` or `binary` (default)). Indicates how are written the cloud events in the outgoing record", defaultValue = "binary")
 @ConnectorAttribute(name = "lazy-client", type = "boolean", direction = OUTGOING, description = "Whether to create the connection and sender at startup or at first send request", defaultValue = "true")
+@ConnectorAttribute(name = "link-pairing", type = "boolean", direction = INCOMING_AND_OUTGOING, description = "Whether to use AMQP Link Pairing. When enabled, the sender and receiver links are paired according to the AMQP Link Pair specification (OASIS).", defaultValue = "false")
 
 public class AmqpConnector implements InboundConnector, OutboundConnector, HealthReporter {
 
     public static final String CONNECTOR_NAME = "smallrye-amqp";
 
+    public static final Symbol PAIRED_KEY = Symbol.valueOf("paired");
     public static final String ME_ADDRESS = "$me";
 
     @Inject

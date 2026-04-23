@@ -1,5 +1,6 @@
 package io.smallrye.reactive.messaging.amqp;
 
+import static io.smallrye.reactive.messaging.amqp.AmqpSenderHelper.createSenderWithProperties;
 import static io.smallrye.reactive.messaging.amqp.ChannelUtils.getClientCapabilities;
 import static io.smallrye.reactive.messaging.amqp.i18n.AMQPLogging.log;
 
@@ -46,6 +47,8 @@ public class OutgoingAmqpChannel {
         AtomicReference<AmqpSender> sender = new AtomicReference<>();
         String link = oc.getLinkName().orElseGet(oc::getChannel);
 
+        boolean linkPairing = oc.getLinkPairing();
+
         Uni<AmqpSender> getSender = Uni.createFrom().deferred(() -> {
 
             // If we already have a sender, use it.
@@ -61,6 +64,12 @@ public class OutgoingAmqpChannel {
 
             return holder.getOrEstablishConnection()
                     .onItem().transformToUni(connection -> {
+                        if (linkPairing) {
+                            boolean explicitlyAnonymous = oc.getUseAnonymousSender().orElse(false);
+                            String senderAddress = explicitlyAnonymous ? null : configuredAddress;
+                            return createSenderWithProperties(holder, connection, senderAddress, link, oc, linkPairing);
+                        }
+
                         boolean anonymous = oc.getUseAnonymousSender()
                                 .orElseGet(() -> ConnectionHolder.supportAnonymousRelay(connection));
 
