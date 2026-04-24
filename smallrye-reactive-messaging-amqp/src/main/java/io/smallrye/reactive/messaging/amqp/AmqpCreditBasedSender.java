@@ -1,5 +1,6 @@
 package io.smallrye.reactive.messaging.amqp;
 
+import static io.smallrye.reactive.messaging.amqp.AmqpConnector.ME_ADDRESS;
 import static io.smallrye.reactive.messaging.amqp.i18n.AMQPExceptions.ex;
 import static io.smallrye.reactive.messaging.amqp.i18n.AMQPLogging.log;
 import static java.time.Duration.ofSeconds;
@@ -340,7 +341,7 @@ public class AmqpCreditBasedSender implements Processor<Message<?>, Message<?>>,
             return null;
         }
 
-        if (!actualAddress.equals(amqp.address())) {
+        if (!ME_ADDRESS.equals(actualAddress) && !actualAddress.equals(amqp.address())) {
             amqp.getDelegate().unwrap().setAddress(actualAddress);
         }
 
@@ -369,6 +370,8 @@ public class AmqpCreditBasedSender implements Processor<Message<?>, Message<?>>,
                     }
                     return Optional.ofNullable(addressFromMessage);
                 })
+                .or(() -> message.getMetadata(IncomingAmqpMetadata.class)
+                        .map(IncomingAmqpMetadata::getReplyTo))
                 .orElse(configuredAddress);
     }
 

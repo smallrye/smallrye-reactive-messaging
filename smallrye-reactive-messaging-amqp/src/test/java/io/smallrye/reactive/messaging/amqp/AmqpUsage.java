@@ -39,7 +39,7 @@ import io.vertx.proton.ProtonHelper;
 public class AmqpUsage {
 
     private final static Logger LOGGER = Logger.getLogger(AmqpUsage.class);
-    private final AmqpClient client;
+    public final AmqpClient client;
     private final Vertx vertx;
 
     public AmqpUsage(Vertx vertx, String host, int port, String user, String pwd) {

@@ -69,7 +69,13 @@ public class AmqpMessageConverter {
         output.setAddress(metadata.getAddress());
         output.setSubject(metadata.getSubject());
         output.setReplyTo(metadata.getReplyTo());
-        output.setCorrelationId(metadata.getCorrelationId());
+        if (metadata.getCorrelationId() != null) {
+            output.setCorrelationId(metadata.getCorrelationId());
+        } else {
+            message.getMetadata(IncomingAmqpMetadata.class)
+                    .filter(incoming -> incoming.getReplyTo() != null)
+                    .ifPresent(incoming -> output.setCorrelationId(incoming.getId()));
+        }
         output.setContentType(metadata.getContentType());
         output.setContentEncoding(metadata.getContentEncoding());
         output.setExpiryTime(metadata.getExpiryTime());
