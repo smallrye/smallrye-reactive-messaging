@@ -65,6 +65,8 @@ public class MqttHelpers {
         options.setUnsubscribeOnDisconnect(config.getUnsubscribeOnDisconnection());
         options.setMetricsName("mqtt|" + config.getChannel());
 
+        config.config().getOptionalValue("version", Integer.class).ifPresent(v -> options.setVersion(v));
+
         return options;
     }
 
