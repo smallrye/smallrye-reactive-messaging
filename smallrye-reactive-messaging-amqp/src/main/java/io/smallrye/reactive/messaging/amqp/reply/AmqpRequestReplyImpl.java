@@ -72,26 +72,13 @@ public class AmqpRequestReplyImpl<Req, Rep> extends MutinyEmitterImpl<Req>
                 .map(id -> CDIUtils.getInstanceById(replyFailureHandlers, id, () -> null))
                 .orElse(null);
 
-        boolean linkPairing = connectorConfig.getOptionalValue(LINK_PAIRING_KEY, Boolean.class)
-                .orElse(false);
-
         Map<String, Function<OverrideConfig, Object>> override = new HashMap<>();
         override.put("auto-acknowledgement", x -> true);
         connectorConfig.getOptionalValue("container-id", String.class)
                 .ifPresent(s -> override.put("container-id", x -> s));
 
-        if (linkPairing) {
-            String linkName = connectorConfig.getOptionalValue("link-name", String.class).orElse(channel);
-            boolean hasExplicitReplyAddress = connectorConfig.getOptionalValue(REPLY_ADDRESS_KEY, String.class)
-                    .isPresent();
-            this.replyToAddress = hasExplicitReplyAddress
-                    ? connectorConfig.getOptionalValue(REPLY_ADDRESS_KEY, String.class).get()
-                    : ME_ADDRESS;
-            override.put("link-name", x -> linkName);
-        } else {
-            this.replyToAddress = connectorConfig.getOptionalValue(REPLY_ADDRESS_KEY, String.class)
-                    .orElse(channel + "-reply");
-        }
+        this.replyToAddress = connectorConfig.getOptionalValue(REPLY_ADDRESS_KEY, String.class)
+                .orElse(channel + "-reply");
         override.put("address", x -> replyToAddress);
 
         Config incomingConfig = Configs.prefixOverride(connectorConfig, "reply", override);

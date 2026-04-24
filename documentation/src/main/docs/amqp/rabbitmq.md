@@ -50,8 +50,7 @@ the broker does not support anonymous sender (See
 
 ## Request/Reply with RabbitMQ
 
-This connector supports the request-reply pattern with RabbitMQ, including
-RabbitMQ’s [Direct Reply-To](https://www.rabbitmq.com/docs/direct-reply-to) mechanism.
+This connector supports the request-reply pattern with RabbitMQ.
 See [AMQP Request/Reply](request-reply.md#using-with-rabbitmq) for details.
 
 Alternatively, you can use the [RabbitMQ connector](../rabbitmq/rabbitmq.md).

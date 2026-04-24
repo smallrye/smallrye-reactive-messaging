@@ -1,6 +1,5 @@
 package io.smallrye.reactive.messaging.amqp;
 
-import static io.smallrye.reactive.messaging.amqp.AmqpReceiverHelper.createReceiver;
 import static io.smallrye.reactive.messaging.amqp.ChannelUtils.getClientCapabilities;
 import static io.smallrye.reactive.messaging.amqp.i18n.AMQPLogging.log;
 import static java.time.Duration.ofSeconds;
@@ -74,8 +73,6 @@ public class IncomingAmqpChannel {
 
         ic.getQos().ifPresent(options::setQos);
 
-        boolean linkPairing = ic.getLinkPairing();
-
         if (ic.getTracingEnabled()) {
             amqpInstrumenter = AmqpOpenTelemetryInstrumenter.createForConnector(openTelemetryInstance);
         } else {
@@ -86,8 +83,7 @@ public class IncomingAmqpChannel {
         Integer interval = ic.getRetryOnFailInterval();
         Integer attempts = ic.getRetryOnFailAttempts();
         multi = holder.getOrEstablishConnection()
-                .onItem()
-                .transformToUni(connection -> createReceiver(holder, connection, address, options, linkPairing))
+                .onItem().transformToUni(connection -> connection.createReceiver(address, options))
                 .onItem().invoke(r -> {
                     opened.set(true);
                     resolvedAddress = r.address();

@@ -117,52 +117,6 @@ A sample reply error handler can lookup application properties and return the er
 
 `null` return value indicates that no error has been found in the reply message, and it can be delivered to the application.
 
-## Using Link Pairing
-
-AMQP 1.0 supports the concept of _link pairing_ where sender and receiver links are created as a paired unit on the same connection.
-When link pairing is enabled, the sender link and the reply receiver link are paired at the broker level,
-allowing the sender to reference the receiver's address as the reply-to target using the special `$me` address.
-
-To enable link pairing:
-
-```properties
-mp.messaging.outgoing.my-request.connector=smallrye-amqp
-mp.messaging.outgoing.my-request.address=requests
-mp.messaging.outgoing.my-request.link-pairing=true
-mp.messaging.outgoing.my-request.container-id=my-request-client
-```
-
-When `link-pairing` is enabled and no explicit `reply.address` is set, the reply address defaults to `$me`,
-meaning the reply receiver's address is resolved by the broker through the paired link.
-
-You can still provide an explicit reply address with link pairing:
-
-```properties
-mp.messaging.outgoing.my-request.link-pairing=true
-mp.messaging.outgoing.my-request.reply.address=my-reply-queue
-```
-
-### Implementing a paired replier
-
-The replier (server) can also use link pairing by configuring both the incoming and outgoing channels
-with the same `container-id` and `link-name`, and setting `link-pairing=true`:
-
-```properties
-# Server incoming config
-mp.messaging.incoming.server-in.connector=smallrye-amqp
-mp.messaging.incoming.server-in.address=requests
-mp.messaging.incoming.server-in.container-id=reply-server
-mp.messaging.incoming.server-in.link-name=reply-server-link
-mp.messaging.incoming.server-in.link-pairing=true
-
-# Server outgoing config
-mp.messaging.outgoing.server-out.connector=smallrye-amqp
-mp.messaging.outgoing.server-out.address=$me
-mp.messaging.outgoing.server-out.container-id=reply-server
-mp.messaging.outgoing.server-out.link-name=reply-server-link
-mp.messaging.outgoing.server-out.link-pairing=true
-```
-
 ## Connection Sharing
 
 Multiple AMQP channels can share the same underlying connection when configured with the same `container-id`.
@@ -186,30 +140,24 @@ Both channels above will share the same AMQP connection because they use the sam
     Connection sharing requires all channels with the same `container-id` to have compatible connection settings (host, port, credentials, etc.).
     If the settings differ, the connector will detect the conflict and raise an error.
 
-When using link pairing with request-reply, the outgoing channel and its reply receiver automatically share a connection
-when configured with the same `container-id`.
-
 ## Using with RabbitMQ
 
-RabbitMQ 4.0+ with the native AMQP 1.0 support provides the `amq.rabbitmq.reply-to` pseudo-address for
-[Direct Reply-To](https://www.rabbitmq.com/docs/direct-reply-to),
-which dynamically creates volatile reply-to queues.
-
-To use direct reply-to with request-reply:
+RabbitMQ 4.0+ with native AMQP 1.0 support is compatible with the request-reply pattern.
+When using RabbitMQ, remember to use `/queues/` prefixed addresses (v2 address format)
+and set `use-anonymous-sender=false` as anonymous senders are not supported.
 
 ```properties
 mp.messaging.outgoing.my-request.connector=smallrye-amqp
 mp.messaging.outgoing.my-request.address=/queues/requests
-mp.messaging.outgoing.my-request.reply.address=amq.rabbitmq.reply-to
-mp.messaging.outgoing.my-request.container-id=my-request
+mp.messaging.outgoing.my-request.reply.address=/queues/replies
 mp.messaging.outgoing.my-request.use-anonymous-sender=false
+
+mp.messaging.incoming.request.connector=smallrye-amqp
+mp.messaging.incoming.request.address=/queues/requests
+
+mp.messaging.outgoing.reply.connector=smallrye-amqp
+mp.messaging.outgoing.reply.address=/queues/replies
+mp.messaging.outgoing.reply.use-anonymous-sender=false
 ```
 
-When using `amq.rabbitmq.reply-to`, the broker creates a dynamic volatile queue for replies.
-The actual queue address is resolved at connection time and used as the `reply-to` property on request messages.
-
-!!! note
-    With RabbitMQ, remember to use `/queues/` prefixed addresses (v2 address format)
-    and set `use-anonymous-sender=false` as anonymous senders are not supported.
-
-Link pairing is also supported with RabbitMQ, see [Using Link Pairing](#using-link-pairing) above for configuration details.
+See [Using RabbitMQ](rabbitmq.md) for more details on RabbitMQ-specific configuration.

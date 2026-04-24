@@ -29,8 +29,6 @@ public interface AmqpRequestReply<Req, Rep> extends EmitterType {
 
     String REPLY_ADDRESS_KEY = "reply.address";
 
-    String LINK_PAIRING_KEY = "link-pairing";
-
     /**
      * Sends a request and receives a response.
      *
