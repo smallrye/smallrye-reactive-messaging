@@ -5,6 +5,7 @@ import static io.smallrye.reactive.messaging.rabbitmq.i18n.RabbitMQLogging.log;
 import static io.smallrye.reactive.messaging.rabbitmq.internals.RabbitMQClientHelper.parseArguments;
 import static io.smallrye.reactive.messaging.rabbitmq.internals.RabbitMQClientHelper.serverQueueName;
 
+import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.Flow;
 import java.util.concurrent.atomic.AtomicReference;
@@ -65,9 +66,13 @@ public class IncomingRabbitMQChannel {
         final RabbitMQFailureHandler onNack = createFailureHandler(connector.failureHandlerFactories(), ic);
         final RabbitMQAckHandler onAck = createAckHandler(ic);
 
-        Multi<? extends Message<?>> multi = createConsumer(connector, ic)
+        Uni<Tuple2<ClientHolder, RabbitMQConsumer>> consumerUni = createConsumer(connector, ic)
                 .invoke(tuple -> client = tuple.getItem1().client())
-                // Translate all consumers into a merged stream of messages
+                .memoize().indefinitely();
+
+        consumerUni.await().atMost(Duration.ofMillis(ic.getConnectionTimeout()));
+
+        Multi<? extends Message<?>> multi = consumerUni
                 .onItem().transformToMulti(
                         tuple -> getStreamOfMessages(tuple.getItem2(), tuple.getItem1(), incomingContext, ic, onNack, onAck));
 

@@ -30,7 +30,7 @@ public class ClientHolder {
     public ClientHolder(RabbitMQClient client) {
         this.client = client;
         this.connection = Uni.createFrom().deferred(() -> client.start()
-                .onSubscription().invoke(() -> {
+                .onItem().invoke(ignored -> {
                     hasBeenConnected.set(true);
                     log.connectionEstablished(String.join(", ", channels));
                 })
