@@ -66,15 +66,12 @@ public class IncomingRabbitMQChannel {
         final RabbitMQFailureHandler onNack = createFailureHandler(connector.failureHandlerFactories(), ic);
         final RabbitMQAckHandler onAck = createAckHandler(ic);
 
-        Uni<Tuple2<ClientHolder, RabbitMQConsumer>> consumerUni = createConsumer(connector, ic)
-                .invoke(tuple -> client = tuple.getItem1().client())
-                .memoize().indefinitely();
+        Tuple2<ClientHolder, RabbitMQConsumer> consumer = createConsumer(connector, ic)
+                .await().atMost(Duration.ofMillis(ic.getConnectionTimeout()));
+        client = consumer.getItem1().client();
 
-        consumerUni.await().atMost(Duration.ofMillis(ic.getConnectionTimeout()));
-
-        Multi<? extends Message<?>> multi = consumerUni
-                .onItem().transformToMulti(
-                        tuple -> getStreamOfMessages(tuple.getItem2(), tuple.getItem1(), incomingContext, ic, onNack, onAck));
+        Multi<? extends Message<?>> multi = getStreamOfMessages(
+                consumer.getItem2(), consumer.getItem1(), incomingContext, ic, onNack, onAck);
 
         if (ic.getBroadcast()) {
             multi = multi.broadcast().toAllSubscribers();
