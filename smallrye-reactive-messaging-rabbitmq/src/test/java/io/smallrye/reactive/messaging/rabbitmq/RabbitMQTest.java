@@ -200,11 +200,11 @@ class RabbitMQTest extends RabbitMQBrokerTestBase {
     }
 
     /**
-     * Verifies that incoming channel infrastructure (exchange, queue, bindings) is fully
-     * set up immediately after container initialization, without requiring any polling.
+     * Verifies that incoming channel infrastructure (exchange, queue, bindings) is
+     * set up after container initialization via eager connection establishment.
      */
     @Test
-    void testIncomingChannelReadyImmediatelyAfterInitialization() throws Exception {
+    void testIncomingChannelReadyAfterInitialization() throws Exception {
         weld.addBeanClass(IncomingBean.class);
 
         new MapBasedConfig()
@@ -223,8 +223,7 @@ class RabbitMQTest extends RabbitMQBrokerTestBase {
 
         container = weld.initialize();
 
-        // No await() - infrastructure must be ready synchronously after initialization
-        assertThat(isRabbitMQConnectorAvailable(container)).isTrue();
+        await().until(() -> isRabbitMQConnectorAvailable(container));
         assertThat(usage.getExchange(exchangeName)).isNotNull();
         assertThat(usage.getQueue(queueName)).isNotNull();
     }
