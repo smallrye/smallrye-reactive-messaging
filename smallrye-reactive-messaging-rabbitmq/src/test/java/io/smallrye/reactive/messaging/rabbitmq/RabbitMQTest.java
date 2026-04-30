@@ -199,6 +199,35 @@ class RabbitMQTest extends RabbitMQBrokerTestBase {
         assertThat(binding2.getString("routing_key")).isEqualTo("urgent");
     }
 
+    /**
+     * Verifies that incoming channel infrastructure (exchange, queue, bindings) is
+     * set up after container initialization via eager connection establishment.
+     */
+    @Test
+    void testIncomingChannelReadyAfterInitialization() throws Exception {
+        weld.addBeanClass(IncomingBean.class);
+
+        new MapBasedConfig()
+                .put("mp.messaging.incoming.data.exchange.name", exchangeName)
+                .put("mp.messaging.incoming.data.exchange.declare", true)
+                .put("mp.messaging.incoming.data.queue.name", queueName)
+                .put("mp.messaging.incoming.data.queue.declare", true)
+                .put("mp.messaging.incoming.data.connector", RabbitMQConnector.CONNECTOR_NAME)
+                .put("mp.messaging.incoming.data.host", host)
+                .put("mp.messaging.incoming.data.port", port)
+                .put("mp.messaging.incoming.data.tracing.enabled", false)
+                .put("rabbitmq-username", username)
+                .put("rabbitmq-password", password)
+                .put("rabbitmq-reconnect-attempts", 0)
+                .write();
+
+        container = weld.initialize();
+
+        await().until(() -> isRabbitMQConnectorAvailable(container));
+        assertThat(usage.getExchange(exchangeName)).isNotNull();
+        assertThat(usage.getQueue(queueName)).isNotNull();
+    }
+
     @Test
     void testSharedConnectionIncomingAndOutgoingStartup() {
         final String routingKey = "shared";
