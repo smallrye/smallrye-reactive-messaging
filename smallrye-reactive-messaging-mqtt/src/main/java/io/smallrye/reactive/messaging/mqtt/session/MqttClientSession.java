@@ -16,7 +16,9 @@
 
 package io.smallrye.reactive.messaging.mqtt.session;
 
+import io.netty.handler.codec.mqtt.MqttProperties;
 import io.netty.handler.codec.mqtt.MqttQoS;
+import io.netty.handler.codec.mqtt.MqttSubscriptionOption;
 import io.smallrye.reactive.messaging.mqtt.session.impl.MqttClientSessionImpl;
 import io.vertx.codegen.annotations.Fluent;
 import io.vertx.codegen.annotations.VertxGen;
@@ -138,6 +140,15 @@ public interface MqttClientSession {
     Future<Integer> subscribe(String topic, RequestedQoS qos);
 
     /**
+     * Subscribes to a single topic with MQTT 5.0 subscription options.
+     *
+     * @param topic The topic to subscribe to.
+     * @param subscriptionOption The v5 subscription option, or null to use default options.
+     * @return a {@code Future} completed with the granted QoS
+     */
+    Future<Integer> subscribe(String topic, MqttSubscriptionOption subscriptionOption);
+
+    /**
      * Unsubscribe from receiving messages on given topic
      *
      * @param topic Topic you want to unsubscribe from
@@ -174,6 +185,20 @@ public interface MqttClientSession {
      * @return a {@code Future} completed after PUBLISH packet sent with packetid (not when QoS 0)
      */
     Future<Integer> publish(String topic, Buffer payload, MqttQoS qosLevel, boolean isDup, boolean isRetain);
+
+    /**
+     * Sends the PUBLISH message with MQTT 5.0 properties.
+     *
+     * @param topic topic on which the message is published
+     * @param payload message payload
+     * @param qosLevel QoS level
+     * @param isDup if the message is a duplicate
+     * @param isRetain if the message needs to be retained
+     * @param properties MQTT 5.0 properties; use {@link MqttProperties#NO_PROPERTIES} for none
+     * @return a {@code Future} completed after PUBLISH packet sent with packetid (not when QoS 0)
+     */
+    Future<Integer> publish(String topic, Buffer payload, MqttQoS qosLevel, boolean isDup, boolean isRetain,
+            MqttProperties properties);
 
     /**
      * Sends the PUBLISH message to the remote MQTT server

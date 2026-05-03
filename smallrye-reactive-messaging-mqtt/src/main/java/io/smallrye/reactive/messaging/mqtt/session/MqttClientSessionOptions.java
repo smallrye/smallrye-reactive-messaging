@@ -31,6 +31,11 @@ public class MqttClientSessionOptions extends MqttClientOptions {
     private ReconnectDelayOptions reconnectDelay = DEFAULT_RECONNECT_DELAY;
     private boolean unsubscribeOnDisconnect = false;
 
+    // Snapshots of WILL settings for easy access without reflection
+    private boolean willFlagSnapshot = false;
+    private int willQoSSnapshot = 0;
+    private boolean willRetainSnapshot = false;
+
     /**
      * Default constructor
      */
@@ -49,6 +54,9 @@ public class MqttClientSessionOptions extends MqttClientOptions {
         this.port = other.port;
         this.serverName = other.serverName;
         this.reconnectDelay = other.reconnectDelay.copy();
+        this.willFlagSnapshot = other.willFlagSnapshot;
+        this.willQoSSnapshot = other.willQoSSnapshot;
+        this.willRetainSnapshot = other.willRetainSnapshot;
     }
 
     public int getPort() {
@@ -141,19 +149,34 @@ public class MqttClientSessionOptions extends MqttClientOptions {
     @Override
     public MqttClientSessionOptions setWillFlag(boolean willFlag) {
         super.setWillFlag(willFlag);
+        this.willFlagSnapshot = willFlag;
         return this;
     }
 
     @Override
     public MqttClientSessionOptions setWillQoS(int willQoS) {
         super.setWillQoS(willQoS);
+        this.willQoSSnapshot = willQoS;
         return this;
     }
 
     @Override
     public MqttClientSessionOptions setWillRetain(boolean willRetain) {
         super.setWillRetain(willRetain);
+        this.willRetainSnapshot = willRetain;
         return this;
+    }
+
+    public boolean getWillFlagSnapshot() {
+        return willFlagSnapshot;
+    }
+
+    public int getWillQoSSnapshot() {
+        return willQoSSnapshot;
+    }
+
+    public boolean getWillRetainSnapshot() {
+        return willRetainSnapshot;
     }
 
     @Override
@@ -501,4 +524,8 @@ public class MqttClientSessionOptions extends MqttClientOptions {
         super.setTcpUserTimeout(tcpUserTimeout);
         return this;
     }
+
+    // Note: setVersion, setSessionExpireInterval, setReceiveMaximum, setTopicAliasMaximum
+    // are inherited from MqttClientOptions and return void. We don't override them
+    // to avoid return type incompatibility issues.
 }

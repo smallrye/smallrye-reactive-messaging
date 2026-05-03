@@ -22,4 +22,7 @@ public interface MqttExceptions {
     @Message(id = 17002, value = "Cannot find a %s bean identified with %s")
     IllegalStateException illegalStateFindingBean(String className, String beanName);
 
+    @Message(id = 17003, value = "Invalid retain-handling value: %d. Must be 0, 1, or 2.")
+    IllegalArgumentException illegalArgumentInvalidRetainHandling(int value);
+
 }

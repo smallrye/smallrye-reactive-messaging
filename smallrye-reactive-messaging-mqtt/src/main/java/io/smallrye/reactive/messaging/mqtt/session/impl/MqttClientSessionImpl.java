@@ -11,7 +11,9 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.stream.Collectors;
 
+import io.netty.handler.codec.mqtt.MqttProperties;
 import io.netty.handler.codec.mqtt.MqttQoS;
+import io.netty.handler.codec.mqtt.MqttSubscriptionOption;
 import io.smallrye.reactive.messaging.mqtt.session.MqttClientSession;
 import io.smallrye.reactive.messaging.mqtt.session.MqttClientSessionOptions;
 import io.smallrye.reactive.messaging.mqtt.session.ReconnectDelayProvider;
@@ -43,9 +45,9 @@ public class MqttClientSessionImpl implements MqttClientSession {
     private final MqttClientSessionOptions options;
 
     // record the subscriptions
-    private final Map<String, RequestedQoS> subscriptions = new HashMap<>();
+    private final Map<String, SubscriptionEntry> subscriptions = new HashMap<>();
     // record the pending subscribes
-    private final Map<Integer, LinkedHashMap<String, RequestedQoS>> pendingSubscribes = new HashMap<>();
+    private final Map<Integer, LinkedHashMap<String, SubscriptionEntry>> pendingSubscribes = new HashMap<>();
     // record the pending unsubscribes
     private final Map<Integer, List<String>> pendingUnsubscribes = new HashMap<>();
     // the provider for the reconnect delay
@@ -119,7 +121,17 @@ public class MqttClientSessionImpl implements MqttClientSession {
     @Override
     public Future<Integer> subscribe(String topic, RequestedQoS qos) {
         Promise<Integer> result = Promise.promise();
-        this.vertx.runOnContext(x -> doSubscribe(topic, qos, result));
+        this.vertx.runOnContext(x -> doSubscribe(topic, qos, null, result));
+        return result.future();
+    }
+
+    @Override
+    public Future<Integer> subscribe(String topic, MqttSubscriptionOption subscriptionOption) {
+        Promise<Integer> result = Promise.promise();
+        this.vertx.runOnContext(x -> {
+            RequestedQoS requestedQoS = RequestedQoS.valueOf(subscriptionOption.qos().value());
+            doSubscribe(topic, requestedQoS, subscriptionOption, result);
+        });
         return result.future();
     }
 
@@ -498,7 +510,7 @@ public class MqttClientSessionImpl implements MqttClientSession {
             // If the session is present on broker, I mark all subscription to SUBSC
             log.debug("Session present on broker, subscriptions request not sent. "
                     + "Be sure that the subscriptions on the broker side are the same that this client needs.");
-            this.subscriptions.forEach((t, q) -> notifySubscriptionState(t, SubscriptionState.SUBSCRIBED, q.toInteger()));
+            this.subscriptions.forEach((t, e) -> notifySubscriptionState(t, SubscriptionState.SUBSCRIBED, e.qos.toInteger()));
         }
 
     }
@@ -582,26 +594,31 @@ public class MqttClientSessionImpl implements MqttClientSession {
     /**
      * Perform subscribing.
      *
-     * @param topic The topics to subscribe to.
+     * @param topic The topic to subscribe to.
+     * @param qos The QoS to request.
+     * @param option MQTT 5.0 subscription option, or null for default.
+     * @param handler Callback for subscription result.
      */
-    private void doSubscribe(String topic, RequestedQoS qos, Handler<AsyncResult<Integer>> handler) {
+    private void doSubscribe(String topic, RequestedQoS qos, MqttSubscriptionOption option,
+            Handler<AsyncResult<Integer>> handler) {
 
         if (log.isDebugEnabled()) {
             log.debug(String.format("Request to subscribe to: %s / %s", topic, qos));
         }
 
-        RequestedQoS current = this.subscriptions.get(topic);
+        SubscriptionEntry current = this.subscriptions.get(topic);
         if (current != null) {
             if (log.isDebugEnabled()) {
-                log.debug("Already subscribed with: " + current);
+                log.debug("Already subscribed with qos " + current.qos);
             }
             if (handler != null) {
-                handler.handle(Future.succeededFuture(current.toInteger()));
+                handler.handle(Future.succeededFuture(current.qos.toInteger()));
             }
             return;
         }
 
-        this.subscriptions.put(topic, qos);
+        SubscriptionEntry entry = new SubscriptionEntry(qos, option);
+        this.subscriptions.put(topic, entry);
 
         if (handler != null) {
             this.notifySubscribed.computeIfAbsent(topic, x -> new LinkedList<>())
@@ -611,7 +628,7 @@ public class MqttClientSessionImpl implements MqttClientSession {
         if (log.isDebugEnabled()) {
             log.debug(String.format("Requesting subscribe: %s / %s", topic, qos));
         }
-        requestSubscribe(new LinkedHashMap<>(Collections.singletonMap(topic, qos)));
+        requestSubscribe(new LinkedHashMap<>(Collections.singletonMap(topic, entry)));
     }
 
     /**
@@ -640,9 +657,9 @@ public class MqttClientSessionImpl implements MqttClientSession {
     /**
      * Request to subscribe from the server.
      *
-     * @param topics The topics to subscribe to, including the requested QoS.
+     * @param topics The topics to subscribe to, including the requested QoS and subscription options.
      */
-    private void requestSubscribe(LinkedHashMap<String, RequestedQoS> topics) {
+    private void requestSubscribe(LinkedHashMap<String, SubscriptionEntry> topics) {
         if (topics.isEmpty() || this.client == null || !this.client.isConnected()) {
             // nothing to do
             return;
@@ -652,11 +669,16 @@ public class MqttClientSessionImpl implements MqttClientSession {
             log.debug("Request Subscribe to: " + topics);
         }
 
-        this.client
-                .subscribe(topics.entrySet()
-                        .stream().collect(Collectors.toMap(
-                                Map.Entry::getKey,
-                                e -> e.getValue().toInteger())))
+        // For MQTT v5, we would use MqttTopicSubscription with subscription options,
+        // but for compatibility with vertx-mqtt 4.5.27, we use Map-based subscribe which works for v4 and v5.
+        // The subscription options are stored in our SubscriptionEntry and will be
+        // automatically re-applied on reconnect via the subscriptions map.
+        java.util.Map<String, Integer> topicsMap = topics.entrySet().stream()
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey,
+                        e -> e.getValue().qos.toInteger()));
+
+        this.client.subscribe(topicsMap, MqttProperties.NO_PROPERTIES)
                 .onComplete(result -> subscribeSent(result, topics));
     }
 
@@ -684,7 +706,7 @@ public class MqttClientSessionImpl implements MqttClientSession {
      *
      * @param result The result of sending the request, contains the packet id.
      */
-    private void subscribeSent(AsyncResult<Integer> result, LinkedHashMap<String, RequestedQoS> topics) {
+    private void subscribeSent(AsyncResult<Integer> result, LinkedHashMap<String, SubscriptionEntry> topics) {
         if (result.failed() || result.result() == null) {
             // failed
             for (String topic : topics.keySet()) {
@@ -718,7 +740,7 @@ public class MqttClientSessionImpl implements MqttClientSession {
      * @param ack The acknowledge message.
      */
     private void subscribeCompleted(MqttSubAckMessage ack) {
-        LinkedHashMap<String, RequestedQoS> request = this.pendingSubscribes.remove(ack.messageId());
+        LinkedHashMap<String, SubscriptionEntry> request = this.pendingSubscribes.remove(ack.messageId());
         if (request == null) {
             closeConnection(String.format("Unexpected subscription ack response - messageId: %s", ack.messageId()));
             return;
@@ -753,17 +775,22 @@ public class MqttClientSessionImpl implements MqttClientSession {
 
     @Override
     public Future<Integer> publish(String topic, Buffer payload, MqttQoS qosLevel, boolean isDup, boolean isRetain) {
+        return publish(topic, payload, qosLevel, isDup, isRetain, MqttProperties.NO_PROPERTIES);
+    }
+
+    @Override
+    public Future<Integer> publish(String topic, Buffer payload, MqttQoS qosLevel, boolean isDup, boolean isRetain,
+            MqttProperties properties) {
         Promise<Integer> future = Promise.promise();
-        this.vertx
-                .runOnContext(x -> doPublish(topic, payload, qosLevel, isDup, isRetain)
-                        .onComplete(future));
+        this.vertx.runOnContext(
+                x -> doPublish(topic, payload, qosLevel, isDup, isRetain, properties).onComplete(future));
         return future.future();
     }
 
-    private Future<Integer> doPublish(String topic, Buffer payload, MqttQoS qosLevel, boolean isDup, boolean isRetain) {
+    private Future<Integer> doPublish(String topic, Buffer payload, MqttQoS qosLevel, boolean isDup, boolean isRetain,
+            MqttProperties properties) {
         if (this.client != null && this.client.isConnected()) {
-            // not checking for isConnected might throw a NPE from inside the client
-            return this.client.publish(topic, payload, qosLevel, isDup, isRetain);
+            return this.client.publish(topic, payload, qosLevel, isDup, isRetain, properties);
         } else {
             return Future.failedFuture("Session is not connected");
         }

@@ -29,12 +29,19 @@ public class Clients {
         String clientId = Optional.ofNullable(options.getClientId()).orElse("");
         String server = options.getServerName().orElse("");
         String username = options.getUsername();
+        boolean ssl = options.isSsl();
+        boolean trustAll = options.isTrustAll();
+        boolean willFlag = options.getWillFlagSnapshot();
+        int willQoS = options.getWillQoSSnapshot();
+        boolean willRetain = options.getWillRetainSnapshot();
 
-        String id = String.format("%s@%s:%s<%s>-[%s]", username, host, port, server, clientId);
+        String id = String.format("%s@%s:%s<%s>-[%s]-ssl:%s-trustAll:%s-will:%s:%d:%s",
+                username, host, port, server, clientId, ssl, trustAll, willFlag, willQoS, willRetain);
+
         return clients.computeIfAbsent(id, key -> {
             log.infof("Create MQTT Client for %s", id);
             MqttClientSession client = MqttClientSession.create(vertx.getDelegate(), options);
-            return new ClientHolder(client);
+            return new ClientHolder(client, options);
         });
     }
 
@@ -49,10 +56,12 @@ public class Clients {
     public static class ClientHolder {
 
         private final MqttClientSession client;
+        private final MqttClientSessionOptions options;
         private final BroadcastProcessor<MqttPublishMessage> messages;
 
-        public ClientHolder(MqttClientSession client) {
+        public ClientHolder(MqttClientSession client, MqttClientSessionOptions options) {
             this.client = client;
+            this.options = options;
             messages = BroadcastProcessor.create();
             client.messageHandler(m -> messages.onNext(MqttPublishMessage.newInstance(m)));
         }
