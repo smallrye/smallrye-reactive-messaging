@@ -68,6 +68,9 @@ public class MqttHelpers {
         options.setTopicAliasMaximum(config.getTopicAliasMaximum());
 
         if (config.getWillFlag()) {
+            if (config.getWillTopic().isEmpty() || config.getWillPayload().isEmpty()) {
+                throw ex.illegalArgumentMissingWillTopicOrPayload(config.getChannel());
+            }
             options.setWillTopic(config.getWillTopic());
             options.setWillQoS(config.getWillQos());
             options.setWillRetain(config.getWillRetain());

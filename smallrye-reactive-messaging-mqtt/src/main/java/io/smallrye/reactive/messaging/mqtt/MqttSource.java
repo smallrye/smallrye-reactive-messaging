@@ -6,6 +6,8 @@ import static io.smallrye.reactive.messaging.mqtt.i18n.MqttLogging.log;
 import java.util.concurrent.Flow;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import jakarta.enterprise.inject.Instance;
+
 import io.netty.handler.codec.mqtt.MqttQoS;
 import io.netty.handler.codec.mqtt.MqttSubscriptionOption;
 import io.netty.handler.codec.mqtt.MqttSubscriptionOption.RetainedHandlingPolicy;
@@ -21,7 +23,6 @@ import io.smallrye.reactive.messaging.providers.helpers.VertxContext;
 import io.vertx.core.impl.VertxInternal;
 import io.vertx.mutiny.core.Context;
 import io.vertx.mutiny.core.Vertx;
-import jakarta.enterprise.inject.Instance;
 
 public class MqttSource {
 

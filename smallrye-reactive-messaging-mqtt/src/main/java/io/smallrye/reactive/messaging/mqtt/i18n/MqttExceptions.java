@@ -25,4 +25,7 @@ public interface MqttExceptions {
     @Message(id = 17003, value = "Invalid retain-handling value: %d. Must be 0, 1, or 2.")
     IllegalArgumentException illegalArgumentInvalidRetainHandling(int value);
 
+    @Message(id = 17004, value = "When 'will-flag' is enabled on channel '%s', both 'will-topic' and 'will-payload' must be set")
+    IllegalArgumentException illegalArgumentMissingWillTopicOrPayload(String channel);
+
 }
