@@ -28,4 +28,7 @@ public interface MqttExceptions {
     @Message(id = 17004, value = "When 'will-flag' is enabled on channel '%s', both 'will-topic' and 'will-payload' must be set")
     IllegalArgumentException illegalArgumentMissingWillTopicOrPayload(String channel);
 
+    @Message(id = 17005, value = "Cannot build a response message: the input message has no MQTT 5 'Response Topic' property")
+    IllegalArgumentException illegalArgumentMissingResponseTopic();
+
 }
