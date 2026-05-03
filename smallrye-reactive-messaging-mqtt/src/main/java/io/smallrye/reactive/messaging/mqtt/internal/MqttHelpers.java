@@ -203,7 +203,7 @@ public class MqttHelpers {
             custom.setTrustAll(config.getTrustAll());
         }
 
-        if (isSetInChannelConfiguration("will-qus", config)) {
+        if (isSetInChannelConfiguration("will-qos", config)) {
             custom.setWillQoS(config.getWillQos());
         }
 
