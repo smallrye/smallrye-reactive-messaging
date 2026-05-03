@@ -15,6 +15,7 @@ import io.smallrye.reactive.messaging.mqtt.MqttConnectorCommonConfiguration;
 import io.smallrye.reactive.messaging.mqtt.session.ConstantReconnectDelayOptions;
 import io.smallrye.reactive.messaging.mqtt.session.MqttClientSessionOptions;
 import io.smallrye.reactive.messaging.mqtt.session.ReconnectDelayOptions;
+import io.vertx.core.buffer.Buffer;
 import io.vertx.core.net.JksOptions;
 import io.vertx.core.net.KeyCertOptions;
 import io.vertx.core.net.PemKeyCertOptions;
@@ -59,6 +60,8 @@ public class MqttHelpers {
         options.setWillQoS(config.getWillQos());
         options.setWillFlag(config.getWillFlag());
         options.setWillRetain(config.getWillRetain());
+        options.setWillTopic(config.getWillTopic());
+        options.setWillMessageBytes(Buffer.buffer(config.getWillPayload()));
         options.setUnsubscribeOnDisconnect(config.getUnsubscribeOnDisconnection());
         options.setMetricsName("mqtt|" + config.getChannel());
 
@@ -213,6 +216,12 @@ public class MqttHelpers {
 
         if (isSetInChannelConfiguration("will-retain", config)) {
             custom.setWillRetain(config.getWillRetain());
+        }
+        if (isSetInChannelConfiguration("will-topic", config)) {
+            custom.setWillTopic(config.getWillTopic());
+        }
+        if (isSetInChannelConfiguration("will-payload", config)) {
+            custom.setWillMessageBytes(Buffer.buffer(config.getWillPayload()));
         }
         if (isSetInChannelConfiguration("unsubscribe-on-disconnection", config)) {
             custom.setUnsubscribeOnDisconnect(config.getUnsubscribeOnDisconnection());
