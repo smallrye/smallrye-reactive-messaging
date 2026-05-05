@@ -1,6 +1,7 @@
 package io.smallrye.reactive.messaging.rabbitmq.og;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.awaitility.Awaitility.await;
 
 import java.util.Comparator;
@@ -26,6 +27,362 @@ import io.vertx.core.json.JsonObject;
 
 @SuppressWarnings("ConstantConditions")
 class RabbitMQTest extends WeldTestBase {
+
+    @Test
+    void testOutgoingDeclarations() throws Exception {
+        final boolean exchangeDurable = false;
+        final boolean exchangeAutoDelete = true;
+        final String exchangeType = "fanout";
+
+        weld.addBeanClass(OutgoingBean.class);
+
+        new MapBasedConfig()
+                .put("mp.messaging.outgoing.sink.exchange.name", exchangeName)
+                .put("mp.messaging.outgoing.sink.exchange.durable", exchangeDurable)
+                .put("mp.messaging.outgoing.sink.exchange.auto-delete", exchangeAutoDelete)
+                .put("mp.messaging.outgoing.sink.exchange.type", exchangeType)
+                .put("mp.messaging.outgoing.sink.exchange.declare", true)
+                .put("mp.messaging.outgoing.sink.connector", RabbitMQConnector.CONNECTOR_NAME)
+                .put("mp.messaging.outgoing.sink.host", host)
+                .put("mp.messaging.outgoing.sink.port", port)
+                .put("mp.messaging.outgoing.sink.tracing.enabled", false)
+                .put("rabbitmq-username", username)
+                .put("rabbitmq-password", password)
+                .put("rabbitmq-reconnect-attempts", 0)
+                .write();
+
+        container = weld.initialize();
+        await().until(() -> isRabbitMQConnectorAvailable(container));
+
+        final JsonObject exchange = usage.getExchange(exchangeName);
+        assertThat(exchange).isNotNull();
+        assertThat(exchange.getString("name")).isEqualTo(exchangeName);
+        assertThat(exchange.getString("type")).isEqualTo(exchangeType);
+        assertThat(exchange.getBoolean("auto_delete")).isEqualTo(exchangeAutoDelete);
+        assertThat(exchange.getBoolean("durable")).isEqualTo(exchangeDurable);
+        assertThat(exchange.getBoolean("internal")).isFalse();
+    }
+
+    @Test
+    void testIncomingDeclarations() throws Exception {
+        final boolean exchangeDurable = false;
+        final boolean exchangeAutoDelete = true;
+        final String exchangeType = "fanout";
+
+        final boolean queueDurable = false;
+        final boolean queueExclusive = true;
+        final boolean queueAutoDelete = true;
+        final long queueTtl = 10000L;
+        final String queueType = "classic";
+        final String queueMode = "default";
+
+        final String routingKeys = "urgent, normal";
+        final String arguments = "key1:value1,key2:value2";
+
+        weld.addBeanClass(IncomingBean.class);
+
+        new MapBasedConfig()
+                .put("mp.messaging.incoming.data.exchange.name", exchangeName)
+                .put("mp.messaging.incoming.data.exchange.durable", exchangeDurable)
+                .put("mp.messaging.incoming.data.exchange.auto-delete", exchangeAutoDelete)
+                .put("mp.messaging.incoming.data.exchange.type", exchangeType)
+                .put("mp.messaging.incoming.data.exchange.declare", true)
+                .put("mp.messaging.incoming.data.queue.name", queueName)
+                .put("mp.messaging.incoming.data.queue.durable", queueDurable)
+                .put("mp.messaging.incoming.data.queue.exclusive", queueExclusive)
+                .put("mp.messaging.incoming.data.queue.auto-delete", queueAutoDelete)
+                .put("mp.messaging.incoming.data.queue.declare", true)
+                .put("mp.messaging.incoming.data.queue.ttl", queueTtl)
+                .put("mp.messaging.incoming.data.queue.x-queue-type", queueType)
+                .put("mp.messaging.incoming.data.queue.x-queue-mode", queueMode)
+                .put("mp.messaging.incoming.data.queue.single-active-consumer", true)
+                .put("mp.messaging.incoming.data.routing-keys", routingKeys)
+                .put("mp.messaging.incoming.data.arguments", arguments)
+                .put("mp.messaging.incoming.data.connector", RabbitMQConnector.CONNECTOR_NAME)
+                .put("mp.messaging.incoming.data.host", host)
+                .put("mp.messaging.incoming.data.port", port)
+                .put("mp.messaging.incoming.data.tracing.enabled", false)
+                .put("rabbitmq-username", username)
+                .put("rabbitmq-password", password)
+                .put("rabbitmq-reconnect-attempts", 0)
+                .write();
+
+        container = weld.initialize();
+        await().until(() -> isRabbitMQConnectorAvailable(container));
+
+        final JsonObject exchange = usage.getExchange(exchangeName);
+        assertThat(exchange).isNotNull();
+        assertThat(exchange.getString("name")).isEqualTo(exchangeName);
+        assertThat(exchange.getString("type")).isEqualTo(exchangeType);
+        assertThat(exchange.getBoolean("auto_delete")).isEqualTo(exchangeAutoDelete);
+        assertThat(exchange.getBoolean("durable")).isEqualTo(exchangeDurable);
+        assertThat(exchange.getBoolean("internal")).isFalse();
+
+        final JsonObject queue = usage.getQueue(queueName);
+        assertThat(queue).isNotNull();
+        assertThat(queue.getString("name")).isEqualTo(queueName);
+        assertThat(queue.getBoolean("auto_delete")).isEqualTo(queueAutoDelete);
+        assertThat(queue.getBoolean("durable")).isEqualTo(queueDurable);
+        assertThat(queue.getBoolean("exclusive")).isEqualTo(queueExclusive);
+        assertThat(queue.getString("type")).isEqualTo(queueType);
+
+        final JsonObject queueArguments = queue.getJsonObject("arguments");
+        assertThat(queueArguments).isNotNull();
+        assertThat(queueArguments.getString("x-dead-letter-exchange")).isNull();
+        assertThat(queueArguments.getString("x-dead-letter-routing-key")).isNull();
+        assertThat(queueArguments.getLong("x-message-ttl")).isEqualTo(queueTtl);
+        assertThat(queueArguments.getString("x-queue-type")).isEqualTo(queueType);
+        assertThat(queueArguments.getString("x-queue-mode")).isEqualTo(queueMode);
+        assertThat(queueArguments.getBoolean("x-single-active-consumer")).isEqualTo(true);
+
+        final JsonArray queueBindings = usage.getBindings(exchangeName, queueName);
+        assertThat(queueBindings.size()).isEqualTo(2);
+
+        final List<?> bindings = queueBindings.stream()
+                .sorted(Comparator.comparing(x -> ((JsonObject) x).getString("routing_key")))
+                .collect(Collectors.toList());
+
+        final JsonObject binding1 = (JsonObject) bindings.get(0);
+        assertThat(binding1).isNotNull();
+        assertThat(binding1.getString("source")).isEqualTo(exchangeName);
+        assertThat(binding1.getString("vhost")).isEqualTo("/");
+        assertThat(binding1.getString("destination")).isEqualTo(queueName);
+        assertThat(binding1.getString("destination_type")).isEqualTo("queue");
+        assertThat(binding1.getString("routing_key")).isEqualTo("normal");
+
+        final JsonObject binding1Arguments = binding1.getJsonObject("arguments");
+        assertThat(binding1Arguments.getString("key1")).isEqualTo("value1");
+        assertThat(binding1Arguments.getString("key2")).isEqualTo("value2");
+
+        final JsonObject binding2 = (JsonObject) bindings.get(1);
+        assertThat(binding2).isNotNull();
+        assertThat(binding2.getString("source")).isEqualTo(exchangeName);
+        assertThat(binding2.getString("vhost")).isEqualTo("/");
+        assertThat(binding2.getString("destination")).isEqualTo(queueName);
+        assertThat(binding2.getString("destination_type")).isEqualTo("queue");
+        assertThat(binding2.getString("routing_key")).isEqualTo("urgent");
+    }
+
+    @Test
+    void testSharedConnectionIncomingAndOutgoingStartup() {
+        final String routingKey = "shared";
+
+        weld.addBeanClass(IncomingBean.class);
+        weld.addBeanClass(OutgoingBean.class);
+
+        new MapBasedConfig()
+                .put("mp.messaging.incoming.data.exchange.name", exchangeName)
+                .put("mp.messaging.incoming.data.exchange.declare", true)
+                .put("mp.messaging.incoming.data.queue.name", queueName)
+                .put("mp.messaging.incoming.data.queue.declare", true)
+                .put("mp.messaging.incoming.data.routing-keys", routingKey)
+                .put("mp.messaging.incoming.data.shared-connection-name", "shared-connection")
+                .put("mp.messaging.incoming.data.connector", RabbitMQConnector.CONNECTOR_NAME)
+                .put("mp.messaging.incoming.data.host", host)
+                .put("mp.messaging.incoming.data.port", port)
+                .put("mp.messaging.incoming.data.tracing.enabled", false)
+                .put("mp.messaging.outgoing.sink.exchange.name", exchangeName)
+                .put("mp.messaging.outgoing.sink.exchange.declare", true)
+                .put("mp.messaging.outgoing.sink.shared-connection-name", "shared-connection")
+                .put("mp.messaging.outgoing.sink.connector", RabbitMQConnector.CONNECTOR_NAME)
+                .put("mp.messaging.outgoing.sink.host", host)
+                .put("mp.messaging.outgoing.sink.port", port)
+                .put("mp.messaging.outgoing.sink.tracing.enabled", false)
+                .put("rabbitmq-username", username)
+                .put("rabbitmq-password", password)
+                .put("rabbitmq-reconnect-attempts", 0)
+                .write();
+
+        container = weld.initialize();
+        await().until(() -> isRabbitMQConnectorAvailable(container));
+    }
+
+    @Test
+    void testSharedConnectionIncomingUsesEventLoopContext() throws Exception {
+        final String routingKey = "shared";
+
+        weld.addBeanClass(IncomingContextBean.class);
+        weld.addBeanClass(OutgoingBean.class);
+
+        new MapBasedConfig()
+                .put("mp.messaging.incoming.data.exchange.name", exchangeName)
+                .put("mp.messaging.incoming.data.exchange.declare", true)
+                .put("mp.messaging.incoming.data.queue.name", queueName)
+                .put("mp.messaging.incoming.data.queue.declare", true)
+                .put("mp.messaging.incoming.data.routing-keys", routingKey)
+                .put("mp.messaging.incoming.data.shared-connection-name", "shared-connection")
+                .put("mp.messaging.incoming.data.connector", RabbitMQConnector.CONNECTOR_NAME)
+                .put("mp.messaging.incoming.data.host", host)
+                .put("mp.messaging.incoming.data.port", port)
+                .put("mp.messaging.incoming.data.tracing.enabled", false)
+                .put("mp.messaging.outgoing.sink.exchange.name", exchangeName)
+                .put("mp.messaging.outgoing.sink.exchange.declare", true)
+                .put("mp.messaging.outgoing.sink.default-routing-key", routingKey)
+                .put("mp.messaging.outgoing.sink.shared-connection-name", "shared-connection")
+                .put("mp.messaging.outgoing.sink.connector", RabbitMQConnector.CONNECTOR_NAME)
+                .put("mp.messaging.outgoing.sink.host", host)
+                .put("mp.messaging.outgoing.sink.port", port)
+                .put("mp.messaging.outgoing.sink.tracing.enabled", false)
+                .put("rabbitmq-username", username)
+                .put("rabbitmq-password", password)
+                .put("rabbitmq-reconnect-attempts", 0)
+                .write();
+
+        container = weld.initialize();
+        await().until(() -> isRabbitMQConnectorAvailable(container));
+
+        IncomingContextBean bean = get(container, IncomingContextBean.class);
+        await().atMost(1, TimeUnit.MINUTES).untilAsserted(() -> {
+            JsonArray connections = usage.getConnections();
+            assertThat(connections).isNotNull();
+
+            List<String> sharedConnectionNames = connections.stream()
+                    .map(JsonObject.class::cast)
+                    .map(RabbitMQTest::getConnectionName)
+                    .filter(name -> name != null && name.startsWith("shared-connection"))
+                    .distinct()
+                    .collect(Collectors.toList());
+            assertThat(sharedConnectionNames).hasSize(1);
+        });
+
+        usage.produce(exchangeName, queueName, routingKey, 1, () -> 1);
+
+        assertThat(bean.awaitMessage(1, TimeUnit.MINUTES)).isTrue();
+        assertThat(bean.getMessageContext()).isNotNull();
+        assertThat(bean.isEventLoopContext()).isTrue();
+    }
+
+    @Test
+    void testSharedConnectionNameIsNotSuffixed() throws Exception {
+        final String routingKey = "shared";
+
+        weld.addBeanClass(IncomingBean.class);
+        weld.addBeanClass(OutgoingBean.class);
+
+        new MapBasedConfig()
+                .put("mp.messaging.incoming.data.exchange.name", exchangeName)
+                .put("mp.messaging.incoming.data.exchange.declare", true)
+                .put("mp.messaging.incoming.data.queue.name", queueName)
+                .put("mp.messaging.incoming.data.queue.declare", true)
+                .put("mp.messaging.incoming.data.routing-keys", routingKey)
+                .put("mp.messaging.incoming.data.shared-connection-name", "shared-connection")
+                .put("mp.messaging.incoming.data.connector", RabbitMQConnector.CONNECTOR_NAME)
+                .put("mp.messaging.incoming.data.host", host)
+                .put("mp.messaging.incoming.data.port", port)
+                .put("mp.messaging.incoming.data.tracing.enabled", false)
+                .put("mp.messaging.outgoing.sink.exchange.name", exchangeName)
+                .put("mp.messaging.outgoing.sink.exchange.declare", true)
+                .put("mp.messaging.outgoing.sink.shared-connection-name", "shared-connection")
+                .put("mp.messaging.outgoing.sink.connector", RabbitMQConnector.CONNECTOR_NAME)
+                .put("mp.messaging.outgoing.sink.host", host)
+                .put("mp.messaging.outgoing.sink.port", port)
+                .put("mp.messaging.outgoing.sink.tracing.enabled", false)
+                .put("rabbitmq-username", username)
+                .put("rabbitmq-password", password)
+                .put("rabbitmq-reconnect-attempts", 0)
+                .write();
+
+        container = weld.initialize();
+        await().until(() -> isRabbitMQConnectorAvailable(container));
+
+        await().atMost(1, TimeUnit.MINUTES).untilAsserted(() -> {
+            JsonArray connections = usage.getConnections();
+            assertThat(connections).isNotNull();
+
+            List<String> sharedConnectionNames = connections.stream()
+                    .map(JsonObject.class::cast)
+                    .map(RabbitMQTest::getConnectionName)
+                    .filter(name -> "shared-connection".equals(name))
+                    .distinct()
+                    .collect(Collectors.toList());
+            assertThat(sharedConnectionNames).hasSize(1);
+        });
+    }
+
+    @Test
+    void testDefaultConnectionNameIncludesDirection() throws Exception {
+        final String routingKey = "default";
+
+        weld.addBeanClass(IncomingBean.class);
+
+        new MapBasedConfig()
+                .put("mp.messaging.incoming.data.exchange.name", exchangeName)
+                .put("mp.messaging.incoming.data.exchange.declare", true)
+                .put("mp.messaging.incoming.data.queue.name", queueName)
+                .put("mp.messaging.incoming.data.queue.declare", true)
+                .put("mp.messaging.incoming.data.routing-keys", routingKey)
+                .put("mp.messaging.incoming.data.connector", RabbitMQConnector.CONNECTOR_NAME)
+                .put("mp.messaging.incoming.data.host", host)
+                .put("mp.messaging.incoming.data.port", port)
+                .put("mp.messaging.incoming.data.tracing.enabled", false)
+                .put("rabbitmq-username", username)
+                .put("rabbitmq-password", password)
+                .put("rabbitmq-reconnect-attempts", 0)
+                .write();
+
+        container = weld.initialize();
+        await().until(() -> isRabbitMQConnectorAvailable(container));
+
+        await().atMost(1, TimeUnit.MINUTES).untilAsserted(() -> {
+            JsonArray connections = usage.getConnections();
+            assertThat(connections).isNotNull();
+
+            boolean hasDefaultName = connections.stream()
+                    .map(JsonObject.class::cast)
+                    .map(RabbitMQTest::getConnectionName)
+                    .anyMatch(name -> "data (Incoming)".equals(name));
+            assertThat(hasDefaultName).isTrue();
+        });
+    }
+
+    private static String getConnectionName(JsonObject connection) {
+        String connectionName = connection.getString("connection_name");
+        if (connectionName != null) {
+            return connectionName;
+        }
+
+        JsonObject properties = connection.getJsonObject("client_properties");
+        if (properties == null) {
+            return null;
+        }
+
+        return properties.getString("connection_name");
+    }
+
+    @Test
+    void testSharedConnectionConfigMismatchFailsStartup() {
+        final String routingKey = "shared";
+
+        weld.addBeanClass(IncomingBean.class);
+        weld.addBeanClass(OutgoingBean.class);
+
+        new MapBasedConfig()
+                .put("mp.messaging.incoming.data.exchange.name", exchangeName)
+                .put("mp.messaging.incoming.data.exchange.declare", true)
+                .put("mp.messaging.incoming.data.queue.name", queueName)
+                .put("mp.messaging.incoming.data.queue.declare", true)
+                .put("mp.messaging.incoming.data.routing-keys", routingKey)
+                .put("mp.messaging.incoming.data.shared-connection-name", "shared")
+                .put("mp.messaging.incoming.data.connector", RabbitMQConnector.CONNECTOR_NAME)
+                .put("mp.messaging.incoming.data.host", host)
+                .put("mp.messaging.incoming.data.port", port)
+                .put("mp.messaging.incoming.data.tracing.enabled", false)
+                .put("mp.messaging.outgoing.sink.exchange.name", exchangeName)
+                .put("mp.messaging.outgoing.sink.exchange.declare", true)
+                .put("mp.messaging.outgoing.sink.shared-connection-name", "shared")
+                .put("mp.messaging.outgoing.sink.connector", RabbitMQConnector.CONNECTOR_NAME)
+                .put("mp.messaging.outgoing.sink.host", "some-other-host")
+                .put("mp.messaging.outgoing.sink.port", port)
+                .put("mp.messaging.outgoing.sink.tracing.enabled", false)
+                .put("rabbitmq-username", username)
+                .put("rabbitmq-password", password)
+                .put("rabbitmq-reconnect-attempts", 0)
+                .write();
+
+        assertThatThrownBy(() -> container = weld.initialize())
+                .isInstanceOf(Exception.class)
+                .hasStackTraceContaining("mismatched configuration");
+    }
 
     /**
      * Verifies that Exchanges, Queues and Bindings are correctly declared as a result of
@@ -661,6 +1018,101 @@ class RabbitMQTest extends WeldTestBase {
                     .getJsonObject("arguments")
                     .getInteger("x-priority")).isEqualTo(10);
         });
+    }
+
+    @Test
+    void testSharedConnectionMultipleIncomingChannelsGetDistinctContexts() throws Exception {
+        final String routingKey1 = "ctx1";
+        final String routingKey2 = "ctx2";
+        final String queueName2 = queueName + "-2";
+
+        weld.addBeanClass(DualIncomingContextBean.class);
+
+        new MapBasedConfig()
+                .put("mp.messaging.incoming.data1.exchange.name", exchangeName)
+                .put("mp.messaging.incoming.data1.exchange.declare", true)
+                .put("mp.messaging.incoming.data1.queue.name", queueName)
+                .put("mp.messaging.incoming.data1.queue.declare", true)
+                .put("mp.messaging.incoming.data1.routing-keys", routingKey1)
+                .put("mp.messaging.incoming.data1.shared-connection-name", "shared-connection")
+                .put("mp.messaging.incoming.data1.connector", RabbitMQConnector.CONNECTOR_NAME)
+                .put("mp.messaging.incoming.data1.host", host)
+                .put("mp.messaging.incoming.data1.port", port)
+                .put("mp.messaging.incoming.data1.tracing.enabled", false)
+                .put("mp.messaging.incoming.data2.exchange.name", exchangeName)
+                .put("mp.messaging.incoming.data2.exchange.declare", true)
+                .put("mp.messaging.incoming.data2.queue.name", queueName2)
+                .put("mp.messaging.incoming.data2.queue.declare", true)
+                .put("mp.messaging.incoming.data2.routing-keys", routingKey2)
+                .put("mp.messaging.incoming.data2.shared-connection-name", "shared-connection")
+                .put("mp.messaging.incoming.data2.connector", RabbitMQConnector.CONNECTOR_NAME)
+                .put("mp.messaging.incoming.data2.host", host)
+                .put("mp.messaging.incoming.data2.port", port)
+                .put("mp.messaging.incoming.data2.tracing.enabled", false)
+                .put("rabbitmq-username", username)
+                .put("rabbitmq-password", password)
+                .put("rabbitmq-reconnect-attempts", 0)
+                .write();
+
+        container = weld.initialize();
+        await().atMost(1, TimeUnit.MINUTES).until(() -> isRabbitMQConnectorAvailable(container));
+
+        DualIncomingContextBean bean = get(container, DualIncomingContextBean.class);
+
+        usage.produce(exchangeName, queueName, routingKey1, 1, () -> 1);
+        usage.produce(exchangeName, queueName2, routingKey2, 1, () -> 2);
+
+        assertThat(bean.awaitMessages(1, TimeUnit.MINUTES)).isTrue();
+
+        assertThat(bean.isEventLoop1()).isTrue();
+        assertThat(bean.isEventLoop2()).isTrue();
+        assertThat(bean.getContext1()).isNotSameAs(bean.getContext2());
+
+        await().atMost(1, TimeUnit.MINUTES).untilAsserted(() -> {
+            JsonArray connections = usage.getConnections();
+            assertThat(connections).isNotNull();
+
+            List<String> sharedConnectionNames = connections.stream()
+                    .map(JsonObject.class::cast)
+                    .map(RabbitMQTest::getConnectionName)
+                    .filter(name -> name != null && name.startsWith("shared-connection"))
+                    .distinct()
+                    .collect(Collectors.toList());
+            assertThat(sharedConnectionNames).hasSize(1);
+        });
+    }
+
+    @Test
+    void testNonSharedIncomingUsesEventLoopContext() throws InterruptedException {
+        final String routingKey = "nonshared";
+
+        weld.addBeanClass(IncomingContextBean.class);
+
+        new MapBasedConfig()
+                .put("mp.messaging.incoming.data.exchange.name", exchangeName)
+                .put("mp.messaging.incoming.data.exchange.declare", true)
+                .put("mp.messaging.incoming.data.queue.name", queueName)
+                .put("mp.messaging.incoming.data.queue.declare", true)
+                .put("mp.messaging.incoming.data.routing-keys", routingKey)
+                .put("mp.messaging.incoming.data.connector", RabbitMQConnector.CONNECTOR_NAME)
+                .put("mp.messaging.incoming.data.host", host)
+                .put("mp.messaging.incoming.data.port", port)
+                .put("mp.messaging.incoming.data.tracing.enabled", false)
+                .put("rabbitmq-username", username)
+                .put("rabbitmq-password", password)
+                .put("rabbitmq-reconnect-attempts", 0)
+                .write();
+
+        container = weld.initialize();
+        await().until(() -> isRabbitMQConnectorAvailable(container));
+
+        IncomingContextBean bean = get(container, IncomingContextBean.class);
+
+        usage.produce(exchangeName, queueName, routingKey, 1, () -> 1);
+
+        assertThat(bean.awaitMessage(1, TimeUnit.MINUTES)).isTrue();
+        assertThat(bean.getMessageContext()).isNotNull();
+        assertThat(bean.isEventLoopContext()).isTrue();
     }
 
 }

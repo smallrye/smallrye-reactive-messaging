@@ -5,6 +5,8 @@ import static io.smallrye.reactive.messaging.rabbitmq.og.i18n.RabbitMQLogging.lo
 
 import java.io.IOException;
 import java.time.Duration;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
@@ -25,11 +27,13 @@ public class ConnectionHolder {
 
     private final ConnectionFactory factory;
     private final String channelName;
+    private final String connectionName;
     private final Vertx vertx;
     private final Context context;
     private final AtomicBoolean connected = new AtomicBoolean(false);
     private final int reconnectAttempts;
     private final int reconnectInterval;
+    private final Set<String> channels = ConcurrentHashMap.newKeySet();
 
     private volatile Connection connection;
     private Consumer<Connection> onConnectionEstablished;
@@ -38,22 +42,22 @@ public class ConnectionHolder {
             ConnectionFactory factory,
             String channelName,
             io.vertx.mutiny.core.Vertx mutinyVertx) {
-        this(factory, channelName, mutinyVertx, 0, 10);
+        this(factory, channelName, channelName, mutinyVertx, 0, 10);
     }
 
     public ConnectionHolder(
             ConnectionFactory factory,
             String channelName,
+            String connectionName,
             io.vertx.mutiny.core.Vertx mutinyVertx,
             int reconnectAttempts,
             int reconnectInterval) {
         this.factory = factory;
         this.channelName = channelName;
+        this.connectionName = connectionName;
         this.vertx = mutinyVertx.getDelegate();
         this.reconnectAttempts = reconnectAttempts;
         this.reconnectInterval = reconnectInterval;
-        // We need event loop context for each connection, so the duplicated context will be running on different event
-        // loop threads, but that's fine as long as we use the same context for all operations related to this connection
         this.context = ((VertxInternal) vertx).createEventLoopContext();
     }
 
@@ -74,7 +78,7 @@ public class ConnectionHolder {
             try {
                 log.establishingConnection(channelName);
 
-                Connection conn = factory.newConnection();
+                Connection conn = factory.newConnection(connectionName);
 
                 // Set connection before recovery listeners so createChannel() works in recovery callbacks
                 connection = conn;
@@ -181,5 +185,19 @@ public class ConnectionHolder {
                 // Ignore close errors
             }
         }
+    }
+
+    public Set<String> channels() {
+        return channels;
+    }
+
+    public ConnectionHolder retain(String channel) {
+        channels.add(channel);
+        return this;
+    }
+
+    public boolean release(String channel) {
+        channels.remove(channel);
+        return channels.isEmpty();
     }
 }
