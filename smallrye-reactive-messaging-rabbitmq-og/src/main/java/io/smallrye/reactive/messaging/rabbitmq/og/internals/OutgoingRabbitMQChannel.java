@@ -29,6 +29,7 @@ import io.smallrye.reactive.messaging.rabbitmq.og.RabbitMQConnectorOutgoingConfi
 import io.smallrye.reactive.messaging.rabbitmq.og.tracing.RabbitMQOpenTelemetryInstrumenter;
 import io.smallrye.reactive.messaging.rabbitmq.og.tracing.RabbitMQTrace;
 import io.vertx.core.Context;
+import io.vertx.core.internal.VertxInternal;
 
 /**
  * Outgoing RabbitMQ channel that publishes messages to an exchange.
@@ -45,8 +46,8 @@ public class OutgoingRabbitMQChannel implements Subscriber<Message<?>> {
     private final AtomicBoolean completed = new AtomicBoolean(false);
     private final AtomicLong inflightMessages = new AtomicLong(0);
 
+    private final Context outgoingContext;
     private Channel channel;
-    private Context context;
     private Subscription subscription;
 
     private final boolean publisherConfirms;
@@ -68,6 +69,7 @@ public class OutgoingRabbitMQChannel implements Subscriber<Message<?>> {
         this.connectionHolder = connectionHolder;
         this.configuration = configuration;
         this.configMaps = configMaps;
+        this.outgoingContext = ((VertxInternal) connectionHolder.getVertx()).createEventLoopContext();
 
         // Initialize tracing if enabled
         if (configuration.getTracingEnabled()) {
@@ -92,7 +94,6 @@ public class OutgoingRabbitMQChannel implements Subscriber<Message<?>> {
                                 try {
                                     // Create channel for publishing
                                     channel = connectionHolder.createChannel();
-                                    context = connectionHolder.getContext();
 
                                     // Set up topology
                                     setupTopology();
@@ -128,11 +129,11 @@ public class OutgoingRabbitMQChannel implements Subscriber<Message<?>> {
 
     private void setupConfirmListeners() throws IOException {
         ConfirmCallback ackCallback = (sequenceNumber, multiple) -> {
-            context.runOnContext(v -> handleConfirm(sequenceNumber, multiple, true));
+            outgoingContext.runOnContext(v -> handleConfirm(sequenceNumber, multiple, true));
         };
 
         ConfirmCallback nackCallback = (sequenceNumber, multiple) -> {
-            context.runOnContext(v -> handleConfirm(sequenceNumber, multiple, false));
+            outgoingContext.runOnContext(v -> handleConfirm(sequenceNumber, multiple, false));
         };
 
         channel.addConfirmListener(ackCallback, nackCallback);
@@ -221,7 +222,7 @@ public class OutgoingRabbitMQChannel implements Subscriber<Message<?>> {
                 throw new RuntimeException("Failed to publish message", e);
             }
         })
-                .runSubscriptionOn(command -> context.runOnContext(x -> command.run()))
+                .runSubscriptionOn(command -> outgoingContext.runOnContext(x -> command.run()))
                 .onFailure().retry()
                 .withBackOff(Duration.ofSeconds(retryInterval))
                 .atMost(remainingAttempts);

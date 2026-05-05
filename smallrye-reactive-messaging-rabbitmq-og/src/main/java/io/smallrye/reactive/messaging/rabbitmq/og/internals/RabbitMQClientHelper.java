@@ -8,9 +8,11 @@ import static java.time.Duration.ofSeconds;
 
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.security.KeyManagementException;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
+import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
 import java.time.Duration;
@@ -87,9 +89,7 @@ public class RabbitMQClientHelper {
             RabbitMQConnectorCommonConfiguration config,
             Instance<CredentialsProvider> credentialsProviders) {
 
-        String connectionName = String.format("%s (%s)",
-                config.getChannel(),
-                config instanceof RabbitMQConnectorIncomingConfiguration ? "Incoming" : "Outgoing");
+        String connectionName = resolveConnectionName(config);
 
         Address[] addresses = config.getAddresses()
                 .map(Address::parseAddresses)
@@ -192,6 +192,42 @@ public class RabbitMQClientHelper {
             return sslContext;
         } else {
             return SSLContext.getDefault();
+        }
+    }
+
+    public static String resolveConnectionName(RabbitMQConnectorCommonConfiguration config) {
+        return config.getSharedConnectionName()
+                .orElseGet(() -> String.format("%s (%s)",
+                        config.getChannel(),
+                        config instanceof RabbitMQConnectorIncomingConfiguration ? "Incoming" : "Outgoing"));
+    }
+
+    public static String computeConnectionFingerprint(ConnectionFactory factory) {
+        String raw = factory.getHost()
+                + ":" + factory.getPort()
+                + ":" + factory.getVirtualHost()
+                + ":" + factory.getUsername()
+                + ":" + factory.isAutomaticRecoveryEnabled()
+                + ":" + factory.getConnectionTimeout()
+                + ":" + factory.getHandshakeTimeout()
+                + ":" + factory.getRequestedChannelMax()
+                + ":" + factory.getRequestedHeartbeat()
+                + ":" + factory.getNetworkRecoveryInterval()
+                + ":" + factory.isSSL();
+        return sha256(raw);
+    }
+
+    private static String sha256(String value) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hash = digest.digest(value.getBytes(StandardCharsets.UTF_8));
+            StringBuilder hex = new StringBuilder(hash.length * 2);
+            for (byte b : hash) {
+                hex.append(String.format("%02x", b));
+            }
+            return hex.toString();
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException("Unable to compute SHA-256 hash", e);
         }
     }
 

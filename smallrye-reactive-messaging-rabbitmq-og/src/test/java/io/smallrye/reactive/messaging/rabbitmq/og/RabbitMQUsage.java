@@ -317,6 +317,19 @@ public class RabbitMQUsage {
         }
     }
 
+    public JsonArray getConnections() throws IOException {
+        final URL url = new URL(String.format("http://%s:%d/api/connections", host, managementPort));
+        final HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+        conn.setRequestProperty("Authorization", "Basic " + getBasicAuth());
+        conn.connect();
+        if (conn.getResponseCode() == 200) {
+            final String jsonString = getResponseString(conn);
+            return new JsonArray(jsonString);
+        } else {
+            return null;
+        }
+    }
+
     private String getBasicAuth() {
         final String loginPassword = username + ":" + password;
         return Base64.getEncoder().encodeToString(loginPassword.getBytes());

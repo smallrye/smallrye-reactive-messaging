@@ -50,4 +50,7 @@ public interface RabbitMQExceptions {
 
     @Message(id = 19012, value = "RabbitMQ channel is closed")
     IllegalStateException illegalStateChannelClosed();
+
+    @Message(id = 19013, value = "Shared connection '%s' has mismatched configuration; ensure all channels using the same shared-connection-name have identical connection settings")
+    IllegalStateException illegalStateSharedConnectionConfigMismatch(String sharedConnectionName);
 }
