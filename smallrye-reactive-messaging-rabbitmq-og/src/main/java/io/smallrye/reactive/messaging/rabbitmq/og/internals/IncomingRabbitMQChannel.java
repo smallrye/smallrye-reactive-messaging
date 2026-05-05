@@ -37,6 +37,7 @@ import io.smallrye.reactive.messaging.rabbitmq.og.fault.RabbitMQFailureHandler;
 import io.smallrye.reactive.messaging.rabbitmq.og.tracing.RabbitMQOpenTelemetryInstrumenter;
 import io.smallrye.reactive.messaging.rabbitmq.og.tracing.RabbitMQTrace;
 import io.vertx.core.Context;
+import io.vertx.core.internal.VertxInternal;
 
 /**
  * Incoming RabbitMQ channel that consumes messages from a queue.
@@ -49,6 +50,7 @@ public class IncomingRabbitMQChannel {
     private final Instance<java.util.Map<String, ?>> configMaps;
     private final RabbitMQOpenTelemetryInstrumenter instrumenter;
 
+    private final Context incomingContext;
     private final AtomicBoolean subscribed = new AtomicBoolean(false);
     private final AtomicInteger outstandingMessages = new AtomicInteger(0);
     private final AtomicReference<Channel> channelRef = new AtomicReference<>();
@@ -65,10 +67,10 @@ public class IncomingRabbitMQChannel {
             Instance<java.util.Map<String, ?>> configMaps,
             Instance<OpenTelemetry> openTelemetryInstance) {
 
-        System.out.println("Creating IncomingRabbitMQChannel for channel: " + configuration.getChannel());
         this.connectionHolder = connectionHolder;
         this.configuration = configuration;
         this.configMaps = configMaps;
+        this.incomingContext = ((VertxInternal) connectionHolder.getVertx()).createEventLoopContext();
 
         // Initialize tracing if enabled
         if (configuration.getTracingEnabled()) {
@@ -94,7 +96,7 @@ public class IncomingRabbitMQChannel {
     private Multi<? extends Message<?>> createStream() {
         // Determine if broadcast mode is needed
         boolean broadcast = configuration.getBroadcast();
-        Context context = connectionHolder.getContext();
+        Context context = incomingContext;
 
         Multi<Message<?>> messageStream;
 
@@ -190,7 +192,7 @@ public class IncomingRabbitMQChannel {
         Channel channel = connectionHolder.createChannel();
         channelRef.set(channel);
 
-        Context context = connectionHolder.getContext();
+        Context context = incomingContext;
 
         // Set up QoS for backpressure (prefetch count)
         // Note: In auto-ack mode, messages are immediately acknowledged upon delivery,

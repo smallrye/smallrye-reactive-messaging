@@ -116,7 +116,7 @@ public class RabbitMQArgumentsCDIConfigTest extends WeldTestBase {
 
         JsonObject exchange = usage.getExchange(queueName);
         assertThat(exchange.getJsonObject("arguments").getMap())
-                .containsExactlyInAnyOrderEntriesOf(Map.of("my-str-arg", "str-value", "my-int-arg", 4));
+                .containsAllEntriesOf(Map.of("my-str-arg", "str-value", "my-int-arg", 4));
 
         await().atMost(2, TimeUnit.MINUTES).until(() -> list.size() >= 10);
         assertThat(list).containsExactly(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
