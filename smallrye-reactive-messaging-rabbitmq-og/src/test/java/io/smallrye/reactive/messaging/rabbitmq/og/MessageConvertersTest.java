@@ -3,6 +3,7 @@ package io.smallrye.reactive.messaging.rabbitmq.og;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -36,6 +37,26 @@ class MessageConvertersTest extends WeldTestBase {
         await().until(() -> bean.counts().size() >= 10);
         assertThat(bean.counts())
                 .extracting(j -> j.getInteger("count"))
+                .containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
+    }
+
+    @Test
+    public void testByteArrayConverter() {
+        weld.addBeanClass(ByteArrayConsumer.class);
+
+        MapBasedConfig config = getConfig(null);
+        ByteArrayConsumer bean = runApplication(config, ByteArrayConsumer.class);
+
+        assertThat(bean.counts()).isEmpty();
+
+        AtomicInteger counter = new AtomicInteger();
+        usage.produce(exchangeName, queueName, queueName, 10,
+                () -> String.valueOf(counter.getAndIncrement()), (String) null);
+
+        await().until(() -> bean.counts().size() >= 10);
+        assertThat(bean.counts())
+                .extracting(b -> new String(b, StandardCharsets.UTF_8))
+                .extracting(Integer::valueOf)
                 .containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
     }
 
@@ -83,6 +104,21 @@ class MessageConvertersTest extends WeldTestBase {
         }
 
         public List<JsonObject> counts() {
+            return counts;
+        }
+    }
+
+    @ApplicationScoped
+    public static class ByteArrayConsumer {
+
+        List<byte[]> counts = new CopyOnWriteArrayList<>();
+
+        @Incoming("count")
+        public void processCount(byte[] count) {
+            counts.add(count);
+        }
+
+        public List<byte[]> counts() {
             return counts;
         }
     }

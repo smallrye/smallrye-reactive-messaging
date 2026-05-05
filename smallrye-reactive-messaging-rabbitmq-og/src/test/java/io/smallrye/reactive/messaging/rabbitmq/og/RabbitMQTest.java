@@ -466,10 +466,8 @@ class RabbitMQTest extends WeldTestBase {
         AtomicInteger counter = new AtomicInteger();
         usage.produce(exchangeName, queueName, routingKey, 10, counter::getAndIncrement, "application/invalid");
         await().atMost(1, TimeUnit.MINUTES).until(() -> list.size() >= 10);
-        // OG connector always delivers byte[] which is converted to String regardless of content-type
-        // So no ClassCastException occurs and messages are parsed normally
-        assertThat(bean.getTypeCasts()).isEqualTo(0);
-        assertThat(list).containsExactly(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
+        assertThat(bean.getTypeCasts()).isEqualTo(10);
+        assertThat(list).containsOnly(0);
     }
 
     /**
