@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.Optional;
 
 import com.rabbitmq.client.AMQP;
+import com.rabbitmq.client.Envelope;
 
 /**
  * Metadata for outgoing RabbitMQ messages.
@@ -35,8 +36,38 @@ public class OutgoingRabbitMQMetadata {
         return properties;
     }
 
+    public IncomingRabbitMQMetadata toIncomingMetadata(String exchange, boolean isRedeliver) {
+        Envelope envelope = new Envelope(0, isRedeliver, exchange, routingKey);
+        return new IncomingRabbitMQMetadata(envelope, properties);
+    }
+
     public static Builder builder() {
         return new Builder();
+    }
+
+    public static Builder from(OutgoingRabbitMQMetadata other) {
+        Builder b = builder();
+        b.routingKey = other.routingKey;
+        b.exchange = other.exchange;
+        if (other.properties != null) {
+            AMQP.BasicProperties p = other.properties;
+            b.contentType = p.getContentType();
+            b.contentEncoding = p.getContentEncoding();
+            if (p.getHeaders() != null) {
+                b.headers.putAll(p.getHeaders());
+            }
+            b.deliveryMode = p.getDeliveryMode();
+            b.priority = p.getPriority();
+            b.correlationId = p.getCorrelationId();
+            b.replyTo = p.getReplyTo();
+            b.expiration = p.getExpiration();
+            b.messageId = p.getMessageId();
+            b.timestamp = p.getTimestamp();
+            b.type = p.getType();
+            b.userId = p.getUserId();
+            b.appId = p.getAppId();
+        }
+        return b;
     }
 
     public static class Builder {
