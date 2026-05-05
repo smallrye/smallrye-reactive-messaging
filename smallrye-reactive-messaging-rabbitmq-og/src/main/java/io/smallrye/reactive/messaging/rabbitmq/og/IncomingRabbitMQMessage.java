@@ -141,6 +141,10 @@ public class IncomingRabbitMQMessage<T> implements ContextAwareMessage<T>, Metad
         return java.util.Optional.ofNullable(rabbitMQMetadata.getCorrelationId());
     }
 
+    public java.util.Map<String, Object> getHeaders() {
+        return rabbitMQMetadata.getHeaders();
+    }
+
     @Override
     public Supplier<CompletionStage<Void>> getAck() {
         return () -> ackHandler.handle(this);
