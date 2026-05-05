@@ -4,6 +4,7 @@ import java.util.*;
 
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Envelope;
+import com.rabbitmq.client.LongString;
 
 /**
  * Metadata for incoming RabbitMQ messages.
@@ -63,7 +64,16 @@ public class IncomingRabbitMQMetadata {
     }
 
     public Map<String, Object> getHeaders() {
-        return properties.getHeaders() != null ? properties.getHeaders() : Collections.emptyMap();
+        Map<String, Object> raw = properties.getHeaders();
+        if (raw == null) {
+            return Collections.emptyMap();
+        }
+        Map<String, Object> result = new java.util.HashMap<>();
+        for (Map.Entry<String, Object> e : raw.entrySet()) {
+            Object v = e.getValue();
+            result.put(e.getKey(), v instanceof LongString ? v.toString() : v);
+        }
+        return result;
     }
 
     public Integer getDeliveryMode() {
