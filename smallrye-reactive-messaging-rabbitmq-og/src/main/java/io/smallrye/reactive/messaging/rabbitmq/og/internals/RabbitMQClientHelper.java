@@ -43,6 +43,8 @@ public class RabbitMQClientHelper {
     private static final double CREDENTIALS_PROVIDER_REFRESH_DELAY_RATIO = 0.8;
     private static final Duration CREDENTIALS_PROVIDER_APPROACH_EXPIRE_TIME = ofSeconds(1);
 
+    private static final String DEFAULT_ROUTING_KEY = "#";
+
     private RabbitMQClientHelper() {
         // avoid direct instantiation.
     }
@@ -301,12 +303,18 @@ public class RabbitMQClientHelper {
     /**
      * Declare queue with all arguments
      */
+    private static final String REPLY_TO_PSEUDO_QUEUE = "amq.rabbitmq.reply-to";
+
     public static String declareQueueIfNeeded(
             final Channel channel,
             final RabbitMQConnectorIncomingConfiguration ic,
             final Instance<Map<String, ?>> configMaps) throws IOException {
 
         final String queueName = getQueueName(ic);
+
+        if (REPLY_TO_PSEUDO_QUEUE.equals(queueName)) {
+            return queueName;
+        }
 
         if (!ic.getQueueDeclare()) {
             // Not declaring the queue, just validate it exists
@@ -382,11 +390,22 @@ public class RabbitMQClientHelper {
 
         final String exchangeName = getExchangeName(ic);
         final String queueName = getQueueName(ic);
-        final List<String> routingKeys = Arrays.asList(ic.getRoutingKeys().split(","));
+        final List<String> routingKeys;
+        if (ic.getRoutingKeys().isPresent()) {
+            String routingKeysStr = ic.getRoutingKeys().get();
+            routingKeys = Arrays.stream(routingKeysStr.split(","))
+                    .map(String::trim)
+                    .map(s -> "\"\"".equals(s) ? "" : s)
+                    .toList();
+        } else if ("x-local-random".equals(ic.getExchangeType())) {
+            routingKeys = Collections.singletonList("");
+        } else {
+            routingKeys = Collections.singletonList(DEFAULT_ROUTING_KEY);
+        }
         final Map<String, Object> arguments = parseArguments(ic.getArguments());
 
-        // Skip queue bindings if exchange name is default ("")
-        if (exchangeName.isEmpty()) {
+        // Skip queue bindings if exchange name is default ("") or pseudo-queue
+        if (exchangeName.isEmpty() || REPLY_TO_PSEUDO_QUEUE.equals(queueName)) {
             return;
         }
 

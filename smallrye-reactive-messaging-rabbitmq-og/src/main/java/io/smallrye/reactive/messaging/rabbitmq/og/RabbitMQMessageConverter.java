@@ -54,22 +54,50 @@ public class RabbitMQMessageConverter {
             return convertFromIncoming((IncomingRabbitMQMessage<?>) message, defaultRoutingKey);
         }
 
-        // Get routing key from metadata or use default
-        String routingKey = message.getMetadata(OutgoingRabbitMQMetadata.class)
-                .map(OutgoingRabbitMQMetadata::getRoutingKey)
-                .orElse(defaultRoutingKey);
-
-        // Get exchange from metadata (optional override)
-        Optional<String> exchange = message.getMetadata(OutgoingRabbitMQMetadata.class)
-                .flatMap(OutgoingRabbitMQMetadata::getExchange);
-
         // Convert payload to bytes
         byte[] body = getBodyFromPayload(message.getPayload());
+        String defaultContentType = getDefaultContentTypeForPayload(message.getPayload());
 
-        // Build properties
-        AMQP.BasicProperties properties = buildProperties(message, defaultTtl);
+        Optional<OutgoingRabbitMQMetadata> outgoing = message.getMetadata(OutgoingRabbitMQMetadata.class);
+        OutgoingRabbitMQMetadata.Builder builder = outgoing.map(out -> {
+            OutgoingRabbitMQMetadata.Builder b = OutgoingRabbitMQMetadata.from(out);
+            if (out.getProperties().getContentType() == null) {
+                b.withContentType(defaultContentType);
+            }
+            if (out.getProperties().getDeliveryMode() == null) {
+                b.withDeliveryMode(2);
+            }
+            return b;
+        }).orElseGet(() -> OutgoingRabbitMQMetadata.builder()
+                .withContentType(defaultContentType)
+                .withDeliveryMode(2)
+                .withExpiration(defaultTtl.map(String::valueOf).orElse(null)));
 
-        return new OutgoingRabbitMQMessage(routingKey, exchange, body, properties);
+        Optional<IncomingRabbitMQMetadata> incoming = message.getMetadata(IncomingRabbitMQMetadata.class);
+        incoming.ifPresent(in -> {
+            if (outgoing.map(m -> m.getProperties().getCorrelationId()).isEmpty()) {
+                String cid = in.getCorrelationId();
+                if (cid != null) {
+                    builder.withCorrelationId(cid);
+                }
+            }
+        });
+
+        OutgoingRabbitMQMetadata metadata = builder.build();
+
+        // Get routing key: outgoing metadata > replyTo from incoming > default
+        String routingKey = metadata.getRoutingKey();
+        if (routingKey == null) {
+            routingKey = incoming.map(IncomingRabbitMQMetadata::getReplyTo).orElse(null);
+        }
+        if (routingKey == null) {
+            routingKey = defaultRoutingKey;
+        }
+
+        // Get exchange from metadata (optional override)
+        Optional<String> exchange = metadata.getExchange();
+
+        return new OutgoingRabbitMQMessage(routingKey, exchange, body, metadata.getProperties());
     }
 
     /**
@@ -116,44 +144,6 @@ public class RabbitMQMessageConverter {
                 .build();
 
         return new OutgoingRabbitMQMessage(routingKey, exchange, body, properties);
-    }
-
-    /**
-     * Build AMQP properties from message metadata.
-     */
-    private static AMQP.BasicProperties buildProperties(Message<?> message, Optional<Long> defaultTtl) {
-        Optional<OutgoingRabbitMQMetadata> metadata = message.getMetadata(OutgoingRabbitMQMetadata.class);
-
-        if (metadata.isPresent() && metadata.get().getProperties() != null) {
-            // Use properties from metadata if provided
-            return metadata.get().getProperties();
-        }
-
-        // Build default properties
-        AMQP.BasicProperties.Builder builder = new AMQP.BasicProperties.Builder();
-
-        // Set content type based on payload
-        String contentType = getDefaultContentTypeForPayload(message.getPayload());
-        builder.contentType(contentType);
-
-        // Set delivery mode to persistent by default
-        builder.deliveryMode(2);
-
-        // Set TTL if provided
-        if (defaultTtl.isPresent()) {
-            builder.expiration(String.valueOf(defaultTtl.get()));
-        }
-
-        // Apply metadata if present
-        if (metadata.isPresent()) {
-            OutgoingRabbitMQMetadata meta = metadata.get();
-
-            // Note: If properties were set via builder in metadata, they were already returned above
-            // This handles the case where individual fields might be set (though current implementation
-            // always builds complete properties)
-        }
-
-        return builder.build();
     }
 
     /**

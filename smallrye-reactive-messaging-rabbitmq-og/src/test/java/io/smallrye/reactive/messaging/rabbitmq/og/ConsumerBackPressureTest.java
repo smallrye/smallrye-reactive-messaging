@@ -331,8 +331,8 @@ public class ConsumerBackPressureTest extends RabbitMQBrokerTestBase {
         }
 
         @Override
-        public String getRoutingKeys() {
-            return "#";
+        public java.util.Optional<String> getRoutingKeys() {
+            return java.util.Optional.of("#");
         }
 
         @Override
