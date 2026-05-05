@@ -37,7 +37,6 @@ import io.smallrye.reactive.messaging.rabbitmq.og.fault.RabbitMQFailureHandler;
 import io.smallrye.reactive.messaging.rabbitmq.og.tracing.RabbitMQOpenTelemetryInstrumenter;
 import io.smallrye.reactive.messaging.rabbitmq.og.tracing.RabbitMQTrace;
 import io.vertx.core.Context;
-import io.vertx.core.internal.VertxInternal;
 
 /**
  * Incoming RabbitMQ channel that consumes messages from a queue.
@@ -70,7 +69,7 @@ public class IncomingRabbitMQChannel {
         this.connectionHolder = connectionHolder;
         this.configuration = configuration;
         this.configMaps = configMaps;
-        this.incomingContext = ((VertxInternal) connectionHolder.getVertx()).createEventLoopContext();
+        this.incomingContext = connectionHolder.getOrCreateSharedChannelContext(configuration.getChannel());
 
         // Initialize tracing if enabled
         if (configuration.getTracingEnabled()) {
@@ -144,23 +143,8 @@ public class IncomingRabbitMQChannel {
             java.util.function.Consumer<Throwable> onError,
             Runnable onComplete) {
 
-        // Register recovery callback to re-register consumer after connection recovery.
-        // With topologyRecoveryEnabled=false, consumers are not automatically recovered
-        // by the RabbitMQ client, so we must re-setup manually.
         connectionHolder.onConnectionEstablished(conn -> {
             try {
-                // Close old channel (it has been recovered but has no consumer registered)
-                Channel oldChannel = channelRef.get();
-                if (oldChannel != null) {
-                    try {
-                        if (oldChannel.isOpen()) {
-                            oldChannel.close();
-                        }
-                    } catch (Exception e) {
-                        // Ignore - channel may already be closed
-                    }
-                }
-                // Re-setup consumer on recovered connection
                 setupConsumerOnConnection(onMessage, onError, onComplete);
             } catch (Exception e) {
                 log.unableToCreateConsumer(configuration.getChannel(), e);
@@ -189,7 +173,7 @@ public class IncomingRabbitMQChannel {
             Runnable onComplete) throws Exception {
 
         // Create channel for consuming
-        Channel channel = connectionHolder.createChannel();
+        Channel channel = connectionHolder.getOrCreateSharedChannel(configuration.getChannel());
         channelRef.set(channel);
 
         Context context = incomingContext;
@@ -498,14 +482,6 @@ public class IncomingRabbitMQChannel {
                     channel.basicCancel(consumerTag);
                 } catch (IOException e) {
                     log.unableToCancelConsumer(configuration.getChannel(), e);
-                }
-            }
-
-            if (channel != null && channel.isOpen()) {
-                try {
-                    channel.close();
-                } catch (Exception e) {
-                    log.unableToCloseChannel(configuration.getChannel(), e);
                 }
             }
 

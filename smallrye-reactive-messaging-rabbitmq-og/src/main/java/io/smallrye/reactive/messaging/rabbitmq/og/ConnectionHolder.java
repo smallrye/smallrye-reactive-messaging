@@ -36,6 +36,9 @@ public class ConnectionHolder {
     private final Set<String> channels = ConcurrentHashMap.newKeySet();
 
     private volatile Connection connection;
+    private final ConcurrentHashMap<String, Channel> sharedChannels = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, Context> sharedChannelContexts = new ConcurrentHashMap<>();
+    private volatile Uni<Connection> connectionUni;
     private Consumer<Connection> onConnectionEstablished;
 
     public ConnectionHolder(
@@ -74,35 +77,44 @@ public class ConnectionHolder {
      * Retries connection based on reconnect-attempts and reconnect-interval configuration.
      */
     public Uni<Connection> connect() {
-        Uni<Connection> connectionUni = Uni.createFrom().item(() -> {
-            try {
-                log.establishingConnection(channelName);
-
-                Connection conn = factory.newConnection(connectionName);
-
-                // Set connection before recovery listeners so createChannel() works in recovery callbacks
-                connection = conn;
-                connected.set(true);
-
-                setupRecoveryListeners(conn);
-
-                log.connectionEstablished(channelName);
-
-                return conn;
-            } catch (IOException | TimeoutException e) {
-                log.unableToConnectToBroker(e);
-                throw ex.illegalStateUnableToCreateClient(e);
-            }
-        }).runSubscriptionOn(Infrastructure.getDefaultWorkerPool());
-
-        if (reconnectAttempts > 0) {
-            connectionUni = connectionUni
-                    .onFailure().retry()
-                    .withBackOff(Duration.ofSeconds(reconnectInterval))
-                    .atMost(reconnectAttempts);
+        if (connectionUni != null) {
+            return connectionUni;
         }
+        synchronized (this) {
+            if (connectionUni != null) {
+                return connectionUni;
+            }
+            Uni<Connection> uni = Uni.createFrom().item(() -> {
+                try {
+                    log.establishingConnection(channelName);
 
-        return connectionUni;
+                    Connection conn = factory.newConnection(connectionName);
+
+                    // Set connection before recovery listeners so createChannel() works in recovery callbacks
+                    connection = conn;
+                    connected.set(true);
+
+                    setupRecoveryListeners(conn);
+
+                    log.connectionEstablished(channelName);
+
+                    return conn;
+                } catch (IOException | TimeoutException e) {
+                    log.unableToConnectToBroker(e);
+                    throw ex.illegalStateUnableToCreateClient(e);
+                }
+            }).runSubscriptionOn(Infrastructure.getDefaultWorkerPool());
+
+            if (reconnectAttempts > 0) {
+                uni = uni
+                        .onFailure().retry()
+                        .withBackOff(Duration.ofSeconds(reconnectInterval))
+                        .atMost(reconnectAttempts);
+            }
+
+            connectionUni = uni.memoize().until(() -> connection != null && !connection.isOpen());
+            return connectionUni;
+        }
     }
 
     private void setupRecoveryListeners(Connection conn) {
@@ -135,7 +147,34 @@ public class ConnectionHolder {
     }
 
     /**
-     * Creates a new channel.
+     * Returns the Vert.x context for the given shared channel name, creating it if needed.
+     * All access to the corresponding shared AMQP channel must be serialized through this context.
+     */
+    public Context getOrCreateSharedChannelContext(String name) {
+        return sharedChannelContexts.computeIfAbsent(name,
+                k -> ((VertxInternal) vertx).createEventLoopContext());
+    }
+
+    /**
+     * Returns the shared AMQP channel for the given name, creating it if needed.
+     * An outgoing publisher and its reply-to consumer must use the same named channel
+     * for RabbitMQ direct reply-to to work (it is channel-scoped).
+     * All access must be serialized through {@link #getOrCreateSharedChannelContext(String)}.
+     */
+    public Channel getOrCreateSharedChannel(String name) throws IOException {
+        Channel ch = sharedChannels.get(name);
+        if (ch == null || !ch.isOpen()) {
+            if (connection == null || !connection.isOpen()) {
+                throw ex.illegalStateConnectionClosed();
+            }
+            ch = connection.createChannel();
+            sharedChannels.put(name, ch);
+        }
+        return ch;
+    }
+
+    /**
+     * Creates a new private channel.
      * Note: Channels are NOT thread-safe and should be used from a single thread or synchronized.
      */
     public Channel createChannel() throws IOException {

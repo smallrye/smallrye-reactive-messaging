@@ -29,7 +29,6 @@ import io.smallrye.reactive.messaging.rabbitmq.og.RabbitMQConnectorOutgoingConfi
 import io.smallrye.reactive.messaging.rabbitmq.og.tracing.RabbitMQOpenTelemetryInstrumenter;
 import io.smallrye.reactive.messaging.rabbitmq.og.tracing.RabbitMQTrace;
 import io.vertx.core.Context;
-import io.vertx.core.internal.VertxInternal;
 
 /**
  * Outgoing RabbitMQ channel that publishes messages to an exchange.
@@ -69,7 +68,7 @@ public class OutgoingRabbitMQChannel implements Subscriber<Message<?>> {
         this.connectionHolder = connectionHolder;
         this.configuration = configuration;
         this.configMaps = configMaps;
-        this.outgoingContext = ((VertxInternal) connectionHolder.getVertx()).createEventLoopContext();
+        this.outgoingContext = connectionHolder.getOrCreateSharedChannelContext(configuration.getChannel());
 
         // Initialize tracing if enabled
         if (configuration.getTracingEnabled()) {
@@ -92,8 +91,7 @@ public class OutgoingRabbitMQChannel implements Subscriber<Message<?>> {
                     .subscribe().with(
                             conn -> {
                                 try {
-                                    // Create channel for publishing
-                                    channel = connectionHolder.createChannel();
+                                    channel = connectionHolder.getOrCreateSharedChannel(configuration.getChannel());
 
                                     // Set up topology
                                     setupTopology();
