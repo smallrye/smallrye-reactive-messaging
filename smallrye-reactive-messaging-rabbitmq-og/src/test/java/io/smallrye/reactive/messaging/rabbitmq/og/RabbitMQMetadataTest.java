@@ -92,7 +92,43 @@ public class RabbitMQMetadataTest {
         assertThat(props.getType()).isEqualTo("test-type");
     }
 
-    // testOutgoingToIncomingMetadata is skipped:
-    // og's OutgoingRabbitMQMetadata does not have a toIncomingMetadata() method
+    @Test
+    void testOutgoingToIncomingMetadata() {
+        Date timestamp = new Date();
+
+        OutgoingRabbitMQMetadata outgoingMetadata = OutgoingRabbitMQMetadata.builder()
+                .withUserId("test-user")
+                .withAppId("tests")
+                .withContentType("text/plain")
+                .withContentEncoding("utf8")
+                .withCorrelationId("req-123")
+                .withDeliveryMode(11)
+                .withExpiration("1000")
+                .withPriority(100)
+                .withMessageId("12345")
+                .withReplyTo("test-source")
+                .withTimestamp(timestamp)
+                .withType("test-type")
+                .withRoutingKey("test-routing-key")
+                .build();
+
+        IncomingRabbitMQMetadata incoming = outgoingMetadata.toIncomingMetadata("exchange", true);
+
+        assertThat(incoming.getUserId()).isEqualTo("test-user");
+        assertThat(incoming.getAppId()).isEqualTo("tests");
+        assertThat(incoming.getContentType()).isEqualTo("text/plain");
+        assertThat(incoming.getContentEncoding()).isEqualTo("utf8");
+        assertThat(incoming.getCorrelationId()).isEqualTo("req-123");
+        assertThat(incoming.getDeliveryMode()).isEqualTo(11);
+        assertThat(incoming.getExpiration()).isEqualTo("1000");
+        assertThat(incoming.getPriority()).isEqualTo(100);
+        assertThat(incoming.getMessageId()).isEqualTo("12345");
+        assertThat(incoming.getReplyTo()).isEqualTo("test-source");
+        assertThat(incoming.getTimestamp()).isEqualTo(timestamp);
+        assertThat(incoming.getType()).isEqualTo("test-type");
+        assertThat(incoming.getExchange()).isEqualTo("exchange");
+        assertThat(incoming.getRoutingKey()).isEqualTo("test-routing-key");
+        assertThat(incoming.isRedeliver()).isTrue();
+    }
 
 }
