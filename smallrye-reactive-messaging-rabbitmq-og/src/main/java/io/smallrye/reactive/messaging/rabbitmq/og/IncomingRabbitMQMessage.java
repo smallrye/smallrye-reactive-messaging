@@ -137,6 +137,10 @@ public class IncomingRabbitMQMessage<T> implements ContextAwareMessage<T>, Metad
         return rabbitMQMetadata;
     }
 
+    public java.util.Optional<String> getCorrelationId() {
+        return java.util.Optional.ofNullable(rabbitMQMetadata.getCorrelationId());
+    }
+
     @Override
     public Supplier<CompletionStage<Void>> getAck() {
         return () -> ackHandler.handle(this);
