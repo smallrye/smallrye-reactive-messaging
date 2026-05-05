@@ -218,4 +218,12 @@ public interface RabbitMQLogging extends BasicLogger {
     @LogMessage(level = Logger.Level.ERROR)
     @Message(id = 18062, value = "Wait for confirms failed for channel `%s`")
     void waitForConfirmsFailed(String channel, @Cause Throwable e);
+
+    @LogMessage(level = Logger.Level.DEBUG)
+    @Message(id = 18063, value = "Request-reply message ignored on channel `%s`, correlation ID `%s`")
+    void requestReplyMessageIgnored(String channel, String correlationId);
+
+    @LogMessage(level = Logger.Level.ERROR)
+    @Message(id = 18064, value = "Request-reply consumer failure on channel `%s`")
+    void requestReplyConsumerFailure(String channel, @Cause Throwable t);
 }
