@@ -3,9 +3,11 @@ package io.smallrye.reactive.messaging.rabbitmq.og;
 import static io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Direction.INCOMING;
 import static io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Direction.INCOMING_AND_OUTGOING;
 import static io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Direction.OUTGOING;
+import static io.smallrye.reactive.messaging.rabbitmq.og.i18n.RabbitMQExceptions.ex;
 
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Flow;
 
@@ -33,6 +35,7 @@ import io.smallrye.reactive.messaging.connector.OutboundConnector;
 import io.smallrye.reactive.messaging.health.HealthReport;
 import io.smallrye.reactive.messaging.health.HealthReporter;
 import io.smallrye.reactive.messaging.providers.connectors.ExecutionHolder;
+import io.smallrye.reactive.messaging.rabbitmq.og.internals.RabbitMQClientHelper;
 import io.vertx.core.Vertx;
 
 @ApplicationScoped
@@ -57,6 +60,7 @@ import io.vertx.core.Vertx;
 @ConnectorAttribute(name = "reconnect-interval", direction = INCOMING_AND_OUTGOING, description = "The interval (in seconds) between two reconnection attempts", type = "int", alias = "rabbitmq-reconnect-interval", defaultValue = "10")
 @ConnectorAttribute(name = "network-recovery-interval", direction = INCOMING_AND_OUTGOING, description = "How long (ms) will automatic recovery wait before attempting to reconnect", type = "int", defaultValue = "5000")
 @ConnectorAttribute(name = "user", direction = INCOMING_AND_OUTGOING, description = "The user name to use when connecting to the broker", type = "string", defaultValue = "guest")
+@ConnectorAttribute(name = "shared-connection-name", direction = INCOMING_AND_OUTGOING, description = "Optional identifier allowing multiple channels to share the same RabbitMQ connection when set to the same value", type = "string")
 @ConnectorAttribute(name = "include-properties", direction = INCOMING_AND_OUTGOING, description = "Whether to include properties when a broker message is passed on the event bus", type = "boolean", defaultValue = "false")
 @ConnectorAttribute(name = "requested-channel-max", direction = INCOMING_AND_OUTGOING, description = "The initially requested maximum channel number", type = "int", defaultValue = "2047")
 @ConnectorAttribute(name = "requested-heartbeat", direction = INCOMING_AND_OUTGOING, description = "The initially requested heartbeat interval (seconds), zero for none", type = "int", defaultValue = "60")
@@ -161,6 +165,8 @@ public class RabbitMQConnector implements InboundConnector, OutboundConnector, H
 
     private final List<io.smallrye.reactive.messaging.rabbitmq.og.internals.IncomingRabbitMQChannel> incomings = new CopyOnWriteArrayList<>();
     private final List<io.smallrye.reactive.messaging.rabbitmq.og.internals.OutgoingRabbitMQChannel> outgoings = new CopyOnWriteArrayList<>();
+    private final Map<String, ConnectionHolder> connections = new ConcurrentHashMap<>();
+    private final Map<String, String> connectionFingerprints = new ConcurrentHashMap<>();
 
     RabbitMQConnector() {
         // used for proxies
@@ -170,13 +176,7 @@ public class RabbitMQConnector implements InboundConnector, OutboundConnector, H
     public Flow.Publisher<? extends Message<?>> getPublisher(Config config) {
         RabbitMQConnectorIncomingConfiguration ic = new RabbitMQConnectorIncomingConfiguration(config);
 
-        // Create ConnectionFactory
-        ConnectionFactory factory = io.smallrye.reactive.messaging.rabbitmq.og.internals.RabbitMQClientHelper
-                .createConnectionFactory(ic, connectionFactories, credentialsProviders, configCustomizers);
-
-        // Create ConnectionHolder
-        ConnectionHolder holder = new ConnectionHolder(factory, ic.getChannel(),
-                executionHolder.vertx(), ic.getReconnectAttempts(), ic.getReconnectInterval());
+        ConnectionHolder holder = getOrCreateConnectionHolder(ic);
 
         // Create IncomingRabbitMQChannel
         io.smallrye.reactive.messaging.rabbitmq.og.internals.IncomingRabbitMQChannel channel = new io.smallrye.reactive.messaging.rabbitmq.og.internals.IncomingRabbitMQChannel(
@@ -192,13 +192,7 @@ public class RabbitMQConnector implements InboundConnector, OutboundConnector, H
     public Flow.Subscriber<? extends Message<?>> getSubscriber(Config config) {
         RabbitMQConnectorOutgoingConfiguration oc = new RabbitMQConnectorOutgoingConfiguration(config);
 
-        // Create ConnectionFactory
-        ConnectionFactory factory = io.smallrye.reactive.messaging.rabbitmq.og.internals.RabbitMQClientHelper
-                .createConnectionFactory(oc, connectionFactories, credentialsProviders, configCustomizers);
-
-        // Create ConnectionHolder
-        ConnectionHolder holder = new ConnectionHolder(factory, oc.getChannel(),
-                executionHolder.vertx(), oc.getReconnectAttempts(), oc.getReconnectInterval());
+        ConnectionHolder holder = getOrCreateConnectionHolder(oc);
 
         // Create OutgoingRabbitMQChannel
         io.smallrye.reactive.messaging.rabbitmq.og.internals.OutgoingRabbitMQChannel channel = new io.smallrye.reactive.messaging.rabbitmq.og.internals.OutgoingRabbitMQChannel(
@@ -297,6 +291,45 @@ public class RabbitMQConnector implements InboundConnector, OutboundConnector, H
             }
         }
         outgoings.clear();
+
+        for (ConnectionHolder holder : connections.values()) {
+            holder.close();
+        }
+        connections.clear();
+        connectionFingerprints.clear();
+    }
+
+    public ConnectionHolder getOrCreateConnectionHolder(RabbitMQConnectorCommonConfiguration config) {
+        String channel = config.getChannel();
+        ConnectionFactory factory = RabbitMQClientHelper
+                .createConnectionFactory(config, connectionFactories, credentialsProviders, configCustomizers);
+        String connectionName = RabbitMQClientHelper.resolveConnectionName(config);
+        String fingerprint = RabbitMQClientHelper.computeConnectionFingerprint(factory);
+        String existing = connectionFingerprints.putIfAbsent(connectionName, fingerprint);
+        if (existing != null && !existing.equals(fingerprint)) {
+            throw ex.illegalStateSharedConnectionConfigMismatch(connectionName);
+        }
+        return connections.compute(fingerprint,
+                (key, current) -> {
+                    if (current == null) {
+                        current = new ConnectionHolder(factory, channel, connectionName,
+                                executionHolder.vertx(), config.getReconnectAttempts(), config.getReconnectInterval());
+                    }
+                    return current.retain(channel);
+                });
+    }
+
+    public void releaseClient(String channel) {
+        for (var e : connections.entrySet()) {
+            ConnectionHolder holder = e.getValue();
+            if (holder.channels().contains(channel)) {
+                if (connections.computeIfPresent(e.getKey(), (k, c) -> c.release(channel) ? null : c) == null) {
+                    connectionFingerprints.values().remove(e.getKey());
+                    holder.close();
+                }
+                return;
+            }
+        }
     }
 
     public Vertx vertx() {

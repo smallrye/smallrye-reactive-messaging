@@ -270,4 +270,50 @@ public class IncomingRabbitMQMessageTest {
         assertThat(metadata.getUserId()).isNull();
         assertThat(metadata.getAppId()).isNull();
     }
+
+    @Test
+    void testConvertPayloadFallback() {
+        Envelope envelope = new Envelope(13456L, false, "test", "test");
+        AMQP.BasicProperties properties = new AMQP.BasicProperties.Builder()
+                .contentType("application/json")
+                .build();
+        byte[] body = "payload".getBytes();
+
+        IncomingRabbitMQMessage<byte[]> incoming = new IncomingRabbitMQMessage<>(envelope,
+                properties, body,
+                IncomingRabbitMQMessage.BYTE_ARRAY_CONVERTER,
+                doNothingAck, doNothingNack,
+                null, null);
+
+        assertThat(incoming.getPayload()).isEqualTo(body);
+    }
+
+    @Test
+    void testGetCorrelationId() {
+        Envelope envelope = new Envelope(1L, false, "exchange", "routing-key");
+        AMQP.BasicProperties properties = new AMQP.BasicProperties.Builder()
+                .correlationId("my-correlation-id")
+                .build();
+
+        IncomingRabbitMQMessage<String> incoming = new IncomingRabbitMQMessage<>(envelope,
+                properties, new byte[0],
+                IncomingRabbitMQMessage.STRING_CONVERTER,
+                doNothingAck, doNothingNack,
+                null, null);
+
+        assertThat(incoming.getCorrelationId()).hasValue("my-correlation-id");
+    }
+
+    @Test
+    void testGetCorrelationIdWhenNotSet() {
+        Envelope envelope = new Envelope(1L, false, "exchange", "routing-key");
+
+        IncomingRabbitMQMessage<String> incoming = new IncomingRabbitMQMessage<>(envelope,
+                EMPTY_PROPS, new byte[0],
+                IncomingRabbitMQMessage.STRING_CONVERTER,
+                doNothingAck, doNothingNack,
+                null, null);
+
+        assertThat(incoming.getCorrelationId()).isEmpty();
+    }
 }
