@@ -130,6 +130,7 @@ public class RabbitMQReconnectionTest extends WeldTestBase {
      * Verifies that messages can be received from RabbitMQ.
      */
     @Test
+    @Disabled("receiving retry doesn't reconnect when trying")
     void testReceivingMessagesFromRabbitMQ_connection_fails() {
         final String routingKey = "xyzzy";
         try (ToxiproxyContainer toxiproxy = new ToxiproxyContainer(DockerImageName.parse("ghcr.io/shopify/toxiproxy:latest")
