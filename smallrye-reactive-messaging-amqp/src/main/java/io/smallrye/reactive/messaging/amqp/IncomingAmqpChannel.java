@@ -62,7 +62,7 @@ public class IncomingAmqpChannel {
                 .setLinkName(link)
                 .setCapabilities(getClientCapabilities(ic))
                 .setSelector(ic.getSelector().orElse(null))
-                .setMaxBufferedMessages(ic.getInitialCredits().orElse(1000));
+                .setMaxBufferedMessages(ic.getInitialCredits());
 
         if (ic.getTracingEnabled()) {
             amqpInstrumenter = AmqpOpenTelemetryInstrumenter.createForConnector(openTelemetryInstance);
