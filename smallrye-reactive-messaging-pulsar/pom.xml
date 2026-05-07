@@ -5,7 +5,7 @@
   <parent>
     <groupId>io.smallrye.reactive</groupId>
     <artifactId>smallrye-reactive-messaging</artifactId>
-    <version>999-SNAPSHOT</version>
+    <version>5.0.0-beta1</version>
   </parent>
 
   <artifactId>smallrye-reactive-messaging-pulsar</artifactId>
@@ -15,7 +15,7 @@
   <properties>
     <revapi.skip>true</revapi.skip>
     <pulsar.version>4.1.1</pulsar.version>
-    <jacocoArgLine></jacocoArgLine>
+    <jacocoArgLine />
   </properties>
 
   <dependencies>
