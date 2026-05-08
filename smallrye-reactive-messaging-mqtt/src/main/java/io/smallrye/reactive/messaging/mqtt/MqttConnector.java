@@ -45,7 +45,6 @@ import io.vertx.mutiny.core.Vertx;
 @ConnectorAttribute(name = "keep-alive-seconds", type = "int", description = "Set the keep alive timeout in seconds", defaultValue = "30", direction = INCOMING_AND_OUTGOING)
 @ConnectorAttribute(name = "max-inflight-queue", type = "int", direction = INCOMING_AND_OUTGOING, description = "Set max count of unacknowledged messages", defaultValue = "10")
 @ConnectorAttribute(name = "auto-clean-session", type = "boolean", direction = INCOMING_AND_OUTGOING, description = "Set to start with a clean session (`true` by default)", defaultValue = "true")
-@ConnectorAttribute(name = "will-flag", type = "boolean", direction = INCOMING_AND_OUTGOING, description = "Set if will information are provided on connection", defaultValue = "false")
 @ConnectorAttribute(name = "will-retain", type = "boolean", direction = INCOMING_AND_OUTGOING, description = "Set if the will message must be retained", defaultValue = "false")
 @ConnectorAttribute(name = "will-qos", type = "int", direction = INCOMING_AND_OUTGOING, description = "Set the QoS level for the will message", defaultValue = "0")
 @ConnectorAttribute(name = "will-topic", type = "string", direction = INCOMING_AND_OUTGOING, description = "Set the will message's topic", defaultValue = "")

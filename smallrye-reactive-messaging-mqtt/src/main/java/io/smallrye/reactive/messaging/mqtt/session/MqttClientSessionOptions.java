@@ -147,13 +147,6 @@ public class MqttClientSessionOptions extends MqttClientOptions {
     }
 
     @Override
-    public MqttClientSessionOptions setWillFlag(boolean willFlag) {
-        super.setWillFlag(willFlag);
-        this.willFlagSnapshot = willFlag;
-        return this;
-    }
-
-    @Override
     public MqttClientSessionOptions setWillQoS(int willQoS) {
         super.setWillQoS(willQoS);
         this.willQoSSnapshot = willQoS;

@@ -58,7 +58,6 @@ public class MqttHelpers {
         options.setTrustOptions(getTrustOptions(config));
         options.setTrustAll(config.getTrustAll());
         options.setUsername(config.getUsername().orElse(null));
-        options.setWillFlag(config.getWillFlag());
         options.setUnsubscribeOnDisconnect(config.getUnsubscribeOnDisconnection());
         options.setMetricsName("mqtt|" + config.getChannel());
 
@@ -67,7 +66,7 @@ public class MqttHelpers {
         config.getReceiveMaximum().ifPresent(options::setReceiveMaximum);
         options.setTopicAliasMaximum(config.getTopicAliasMaximum());
 
-        if (config.getWillFlag()) {
+        if (!config.getWillTopic().isEmpty() || !config.getWillPayload().isEmpty()) {
             if (config.getWillTopic().isEmpty() || config.getWillPayload().isEmpty()) {
                 throw ex.illegalArgumentMissingWillTopicOrPayload(config.getChannel());
             }
@@ -246,42 +245,35 @@ public class MqttHelpers {
             custom.setTopicAliasMaximum(config.getTopicAliasMaximum());
         }
 
-        if (config.getWillFlag()) {
-
-            if (isSetInChannelConfiguration("will-qos", config)) {
-                custom.setWillQoS(config.getWillQos());
-            }
-
-            if (isSetInChannelConfiguration("will-flag", config)) {
-                custom.setWillFlag(config.getWillFlag());
-            }
-
-            if (isSetInChannelConfiguration("will-retain", config)) {
-                custom.setWillRetain(config.getWillRetain());
-            }
-
-            if (isSetInChannelConfiguration("will-topic", config)) {
-                custom.setWillTopic(config.getWillTopic());
-            }
-
-            if (isSetInChannelConfiguration("will-payload", config)) {
-                custom.setWillMessageBytes(Buffer.buffer(config.getWillPayload()));
-            }
-
-            MqttClientWillOptions willOpts = custom.getWillOptions();
-            if (isSetInChannelConfiguration("will-content-type", config)) {
-                config.getWillContentType().ifPresent(willOpts::setContentType);
-            }
-
-            if (isSetInChannelConfiguration("will-response-topic", config)) {
-                config.getWillResponseTopic().ifPresent(willOpts::setResponseTopic);
-            }
-
-            if (isSetInChannelConfiguration("will-delay-interval", config)) {
-                config.getWillDelayInterval().ifPresent(willOpts::setWillDelayInterval);
-            }
-
+        if (isSetInChannelConfiguration("will-qos", config)) {
+            custom.setWillQoS(config.getWillQos());
         }
+
+        if (isSetInChannelConfiguration("will-retain", config)) {
+            custom.setWillRetain(config.getWillRetain());
+        }
+
+        if (isSetInChannelConfiguration("will-topic", config)) {
+            custom.setWillTopic(config.getWillTopic());
+        }
+
+        if (isSetInChannelConfiguration("will-payload", config)) {
+            custom.setWillMessageBytes(Buffer.buffer(config.getWillPayload()));
+        }
+
+        MqttClientWillOptions willOpts = custom.getWillOptions();
+        if (isSetInChannelConfiguration("will-content-type", config)) {
+            config.getWillContentType().ifPresent(willOpts::setContentType);
+        }
+
+        if (isSetInChannelConfiguration("will-response-topic", config)) {
+            config.getWillResponseTopic().ifPresent(willOpts::setResponseTopic);
+        }
+
+        if (isSetInChannelConfiguration("will-delay-interval", config)) {
+            config.getWillDelayInterval().ifPresent(willOpts::setWillDelayInterval);
+        }
+
     }
 
     /**
