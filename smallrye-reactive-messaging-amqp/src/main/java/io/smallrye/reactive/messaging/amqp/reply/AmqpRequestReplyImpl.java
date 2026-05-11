@@ -1,7 +1,6 @@
 package io.smallrye.reactive.messaging.amqp.reply;
 
 import static io.smallrye.reactive.messaging.amqp.AmqpConnector.DIRECT_REPLY_TO_ADDRESS;
-import static io.smallrye.reactive.messaging.amqp.AmqpConnector.ME_ADDRESS;
 import static io.smallrye.reactive.messaging.amqp.i18n.AMQPLogging.log;
 
 import java.time.Duration;
@@ -198,6 +197,10 @@ public class AmqpRequestReplyImpl<Req, Rep> extends MutinyEmitterImpl<Req>
     @Override
     public void onFailure(Throwable failure) {
         log.requestReplyConsumerFailure(channel, failure);
+        for (Map.Entry<CorrelationId, PendingReplyImpl<Rep>> replyEntry : pendingReplies.entrySet()) {
+            replyEntry.getValue().emitter.fail(failure);
+        }
+        pendingReplies.clear();
     }
 
     @Override

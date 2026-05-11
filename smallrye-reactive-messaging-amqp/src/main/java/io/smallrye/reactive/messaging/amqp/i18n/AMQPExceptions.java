@@ -32,6 +32,6 @@ public interface AMQPExceptions {
     @Message(id = 16005, value = "Only one subscriber allowed")
     IllegalStateException illegalStateOnlyOneSubscriberAllowed();
 
-    @Message(id = 16006, value = "Container ID '%s' does not match the configuration")
+    @Message(id = 16006, value = "Container ID '%s' is already in use with different connection settings. Channels sharing a container-id must have identical connection configuration")
     IllegalStateException illegalStateContainerIdConfigMismatch(String containerId);
 }

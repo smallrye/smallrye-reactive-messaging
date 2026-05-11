@@ -25,6 +25,7 @@ import org.junit.jupiter.api.Test;
 
 import io.smallrye.common.annotation.Identifier;
 import io.smallrye.config.SmallRyeConfigProviderResolver;
+import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.helpers.test.UniAssertSubscriber;
 import io.smallrye.reactive.messaging.amqp.AmqpBrokerTestBase;
 import io.smallrye.reactive.messaging.amqp.AmqpConnector;
@@ -88,23 +89,16 @@ public class AmqpRequestReplyEmitterTest extends AmqpBrokerTestBase {
     private void startSlowReplyServer() {
         usage.client.createReceiver("requests")
                 .onItem().transformToMulti(AmqpReceiver::toMulti)
-                .subscribe().with(request -> {
-                    String replyTo = request.replyTo();
-                    String correlationId = request.id();
-                    if (replyTo != null && correlationId != null) {
-                        try {
-                            Thread.sleep(3000);
-                        } catch (InterruptedException e) {
-                            Thread.currentThread().interrupt();
-                        }
-                        usage.client.createSender(replyTo)
-                                .onItem().transformToUni(sender -> sender.sendWithAck(AmqpMessage.create()
-                                        .correlationId(correlationId)
-                                        .withBody(String.valueOf(request.bodyAsInteger()))
-                                        .build()))
-                                .subscribe().with(x -> {
-                                });
-                    }
+                .filter(request -> request.replyTo() != null && request.id() != null)
+                .onItem()
+                .transformToUniAndConcatenate(
+                        request -> Uni.createFrom().item(request).onItem().delayIt().by(Duration.ofSeconds(3)))
+                .onItem().transformToUniAndConcatenate(request -> usage.client.createSender(request.replyTo())
+                        .onItem().transformToUni(sender -> sender.sendWithAck(AmqpMessage.create()
+                                .correlationId(request.id())
+                                .withBody(String.valueOf(request.bodyAsInteger()))
+                                .build())))
+                .subscribe().with(x -> {
                 });
     }
 
