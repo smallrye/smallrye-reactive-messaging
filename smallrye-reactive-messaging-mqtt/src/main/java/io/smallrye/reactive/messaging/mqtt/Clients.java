@@ -31,12 +31,13 @@ public class Clients {
         String username = options.getUsername();
         boolean ssl = options.isSsl();
         boolean trustAll = options.isTrustAll();
-        boolean willFlag = options.getWillFlagSnapshot();
-        int willQoS = options.getWillQoSSnapshot();
-        boolean willRetain = options.getWillRetainSnapshot();
+        String willTopic = Optional.ofNullable(options.getWillTopic()).orElse("");
+        int willQoS = options.getWillQoS();
+        boolean willRetain = options.isWillRetain();
+        int version = options.getVersion();
 
-        String id = String.format("%s@%s:%s<%s>-[%s]-ssl:%s-trustAll:%s-will:%s:%d:%s",
-                username, host, port, server, clientId, ssl, trustAll, willFlag, willQoS, willRetain);
+        String id = String.format("%s@%s:%s<%s>-[%s]-ssl:%s-trustAll:%s-will:%s:%d:%s-v:%d",
+                username, host, port, server, clientId, ssl, trustAll, willTopic, willQoS, willRetain, version);
 
         return clients.computeIfAbsent(id, key -> {
             log.infof("Create MQTT Client for %s", id);
