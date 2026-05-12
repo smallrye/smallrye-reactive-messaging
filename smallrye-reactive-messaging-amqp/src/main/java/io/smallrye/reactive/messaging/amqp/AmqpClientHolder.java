@@ -11,7 +11,7 @@ public class AmqpClientHolder {
 
     private final AmqpClient client;
     private final Set<String> channels = ConcurrentHashMap.newKeySet();
-    private volatile ConnectionHolder connectionHolder;
+    private ConnectionHolder connectionHolder;
 
     public AmqpClientHolder(AmqpClient client) {
         this.client = client;
@@ -26,7 +26,10 @@ public class AmqpClientHolder {
         return this;
     }
 
-    public synchronized ConnectionHolder getOrCreateConnectionHolder(
+    /**
+     * Called during channel initialization which happens sequentially on a single thread.
+     */
+    public ConnectionHolder getOrCreateConnectionHolder(
             AmqpConnectorCommonConfiguration config,
             Vertx vertx,
             Context rootContext) {
