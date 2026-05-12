@@ -53,7 +53,63 @@ The MQTT Connector does not handle the deserialization and creates a
 
 ## Inbound Metadata
 
-The MQTT connector does not provide inbound metadata.
+Each incoming `Message` carries a
+`io.smallrye.reactive.messaging.mqtt.ReceivingMqttMessageMetadata`
+instance that exposes the MQTT publish frame:
+
+```java
+ReceivingMqttMessageMetadata metadata = message
+        .getMetadata(ReceivingMqttMessageMetadata.class)
+        .orElseThrow();
+
+String topic       = metadata.getTopic();
+MqttQoS qos        = metadata.getQosLevel();
+boolean retain     = metadata.isRetain();
+boolean duplicate  = metadata.isDuplicate();
+int messageId      = metadata.getMessageId();
+```
+
+When connected to a broker in MQTT 5.0 mode (`version=5`), the metadata
+also exposes the MQTT 5.0 message properties:
+
+| Accessor                       | Returns                                                |
+|--------------------------------|--------------------------------------------------------|
+| `getProperties()`              | The full `io.netty.handler.codec.mqtt.MqttProperties`  |
+| `getUserProperties()`          | The User Properties (`List<StringPair>`)               |
+| `getContentType()`             | The `Content-Type` property, or `null`                 |
+| `getResponseTopic()`           | The `Response Topic` property, or `null`               |
+| `getCorrelationData()`         | The `Correlation Data` bytes, or `null`                |
+| `getMessageExpiryInterval()`   | The message expiry interval in seconds, or `null`      |
+| `getPayloadFormatIndicator()`  | The payload format indicator (0=binary, 1=UTF-8)       |
+
+For convenience the `MqttMessage` interface itself exposes
+`getResponseTopic()` and `getCorrelationData()` directly, so that the
+typical request/response handling code does not need to dig into the
+metadata. See
+[Sending messages to MQTT](sending-messages-to-mqtt.md#mqtt-5-requestresponse)
+for an example of how to use them when replying.
+
+## MQTT 5.0 subscription options
+
+In addition to `qos`, three MQTT 5.0 subscription options can be set on
+the inbound channel:
+
+```properties
+mp.messaging.incoming.prices.version=5
+mp.messaging.incoming.prices.no-local=true
+mp.messaging.incoming.prices.retain-as-published=true
+mp.messaging.incoming.prices.retain-handling=2
+```
+
+- `no-local` (default `false`): when `true` the broker does not forward
+  to this subscription the messages that were published by the same
+  connection.
+- `retain-as-published` (default `false`): preserves the `retain` flag
+  on messages delivered to the subscriber instead of clearing it.
+- `retain-handling` (default `0`): controls how retained messages are
+  sent on subscribe — `0` send them on subscribe, `1` send them only if
+  the subscription does not already exist, `2` never send retained
+  messages on subscribe.
 
 ## Failure Management
 
