@@ -4,11 +4,9 @@ import static io.smallrye.reactive.messaging.rabbitmq.i18n.RabbitMQExceptions.ex
 import static io.smallrye.reactive.messaging.rabbitmq.i18n.RabbitMQLogging.log;
 
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -23,7 +21,6 @@ public class ClientHolder {
     private final RabbitMQClient client;
 
     private final AtomicBoolean hasBeenConnected = new AtomicBoolean(false);
-    private final AtomicReference<CompletableFuture<RabbitMQClient>> ongoingConnection = new AtomicReference<>();
     private final Uni<RabbitMQClient> connection;
     private final Set<String> channels = ConcurrentHashMap.newKeySet();
 
@@ -81,30 +78,7 @@ public class ClientHolder {
 
     @CheckReturnValue
     public Uni<RabbitMQClient> getOrEstablishConnection() {
-        return Uni.createFrom().deferred(this::establishConnection);
-    }
-
-    private Uni<RabbitMQClient> establishConnection() {
-        CompletableFuture<RabbitMQClient> existing = ongoingConnection.get();
-        if (existing != null) {
-            if (!existing.isDone() || client.isConnected()) {
-                return Uni.createFrom().completionStage(existing);
-            }
-            ongoingConnection.compareAndSet(existing, null);
-        }
-
-        CompletableFuture<RabbitMQClient> placeholder = new CompletableFuture<>();
-        CompletableFuture<RabbitMQClient> current = ongoingConnection.compareAndExchange(null, placeholder);
-        if (current != null) {
-            return Uni.createFrom().completionStage(current);
-        }
-        connection.subscribe().with(placeholder::complete, placeholder::completeExceptionally);
-        placeholder.whenComplete((result, error) -> {
-            if (error != null) {
-                ongoingConnection.compareAndSet(placeholder, null);
-            }
-        });
-        return Uni.createFrom().completionStage(placeholder);
+        return connection;
     }
 
     public Set<String> channels() {

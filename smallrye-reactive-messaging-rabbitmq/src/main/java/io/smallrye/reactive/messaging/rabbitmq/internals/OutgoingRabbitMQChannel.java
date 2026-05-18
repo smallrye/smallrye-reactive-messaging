@@ -34,15 +34,20 @@ public class OutgoingRabbitMQChannel {
 
         this.config = oc;
         holder = connector.getClientHolder(oc);
-        // Create a client
         final RabbitMQClient client = holder.client();
-        client.getDelegate().addConnectionEstablishedCallback(promise -> {
-            // Ensure we create the exchange to which messages are to be sent
-            RabbitMQClientHelper.declareExchangeIfNeeded(client, oc, connector.configMaps())
-                    .subscribe().with((ignored) -> promise.complete(), promise::fail);
-        });
+        registerExchangeCallback(client, oc, connector);
 
-        final Uni<RabbitMQPublisher> getSender = holder.getOrEstablishConnection()
+        Uni<RabbitMQClient> connectionUni = holder.getOrEstablishConnection();
+        if (oc.getSharedConnectionName().isPresent()) {
+            connectionUni = connectionUni
+                    .call(() -> RabbitMQClientHelper.declareExchangeIfNeeded(client, oc, connector.configMaps()));
+        }
+
+        if (!oc.getLazyClient()) {
+            connectionUni.await().atMost(Duration.ofSeconds(config.getConnectionTimeout()));
+        }
+
+        final Uni<RabbitMQPublisher> getSender = connectionUni
                 .onItem()
                 .transformToUni(connection -> Uni.createFrom().item(RabbitMQPublisher.create(connector.vertx(), connection,
                         new RabbitMQPublisherOptions()
@@ -105,6 +110,14 @@ public class OutgoingRabbitMQChannel {
         }
 
         return computeHealthReport(builder);
+    }
+
+    private void registerExchangeCallback(RabbitMQClient client,
+            RabbitMQConnectorOutgoingConfiguration oc, RabbitMQConnector connector) {
+        client.getDelegate().addConnectionEstablishedCallback(promise -> {
+            RabbitMQClientHelper.declareExchangeIfNeeded(client, oc, connector.configMaps())
+                    .subscribe().with(ignored -> promise.complete(), promise::fail);
+        });
     }
 
     public void terminate() {

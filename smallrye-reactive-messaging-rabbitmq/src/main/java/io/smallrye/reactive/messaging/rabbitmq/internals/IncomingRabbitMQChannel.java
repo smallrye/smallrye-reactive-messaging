@@ -5,6 +5,7 @@ import static io.smallrye.reactive.messaging.rabbitmq.i18n.RabbitMQLogging.log;
 import static io.smallrye.reactive.messaging.rabbitmq.internals.RabbitMQClientHelper.parseArguments;
 import static io.smallrye.reactive.messaging.rabbitmq.internals.RabbitMQClientHelper.serverQueueName;
 
+import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.Flow;
 import java.util.concurrent.atomic.AtomicReference;
@@ -18,7 +19,6 @@ import com.rabbitmq.client.AMQP;
 import io.opentelemetry.api.OpenTelemetry;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
-import io.smallrye.mutiny.tuples.Tuple2;
 import io.smallrye.reactive.messaging.health.HealthReport;
 import io.smallrye.reactive.messaging.providers.helpers.CDIUtils;
 import io.smallrye.reactive.messaging.providers.helpers.VertxContext;
@@ -65,11 +65,23 @@ public class IncomingRabbitMQChannel {
         final RabbitMQFailureHandler onNack = createFailureHandler(connector.failureHandlerFactories(), ic);
         final RabbitMQAckHandler onAck = createAckHandler(ic);
 
-        Multi<? extends Message<?>> multi = createConsumer(connector, ic)
-                .invoke(tuple -> client = tuple.getItem1().client())
-                // Translate all consumers into a merged stream of messages
+        ClientHolder holder = connector.getClientHolder(ic);
+        this.client = holder.client();
+        registerInfrastructureCallback(holder.client(), ic, connector);
+
+        Uni<RabbitMQClient> connectionUni = holder.getOrEstablishConnection();
+        if (ic.getSharedConnectionName().isPresent()) {
+            connectionUni = connectionUni.call(() -> declareInfrastructure(holder.client(), ic, connector));
+        }
+
+        if (!ic.getLazyClient()) {
+            connectionUni.await().atMost(Duration.ofMillis(config.getConnectionTimeout()));
+        }
+
+        Multi<? extends Message<?>> multi = connectionUni
+                .flatMap(connection -> createConsumer(ic, connection))
                 .onItem().transformToMulti(
-                        tuple -> getStreamOfMessages(tuple.getItem2(), tuple.getItem1(), incomingContext, ic, onNack, onAck));
+                        consumer -> getStreamOfMessages(consumer, holder, incomingContext, ic, onNack, onAck));
 
         if (ic.getBroadcast()) {
             multi = multi.broadcast().toAllSubscribers();
@@ -113,29 +125,27 @@ public class IncomingRabbitMQChannel {
         return computeHealthReport(builder);
     }
 
-    private Uni<Tuple2<ClientHolder, RabbitMQConsumer>> createConsumer(RabbitMQConnector connector,
-            RabbitMQConnectorIncomingConfiguration ic) {
-        ClientHolder holder = connector.getClientHolder(ic);
-        final RabbitMQClient client = holder.client();
+    private Uni<Void> declareInfrastructure(RabbitMQClient client,
+            RabbitMQConnectorIncomingConfiguration ic, RabbitMQConnector connector) {
+        Uni<Void> uni;
+        if (ic.getMaxOutstandingMessages().isPresent()) {
+            uni = client.basicQos(ic.getMaxOutstandingMessages().get(), false);
+        } else {
+            uni = Uni.createFrom().voidItem();
+        }
+
+        Instance<Map<String, ?>> maps = connector.configMaps();
+        return uni
+                .call(() -> declareQueue(client, ic, maps))
+                .call(() -> RabbitMQClientHelper.configureDLQorDLX(client, ic, maps));
+    }
+
+    private void registerInfrastructureCallback(RabbitMQClient client,
+            RabbitMQConnectorIncomingConfiguration ic, RabbitMQConnector connector) {
         client.getDelegate().addConnectionEstablishedCallback(promise -> {
-
-            Uni<Void> uni;
-            if (ic.getMaxOutstandingMessages().isPresent()) {
-                uni = client.basicQos(ic.getMaxOutstandingMessages().get(), false);
-            } else {
-                uni = Uni.createFrom().nullItem();
-            }
-
-            Instance<Map<String, ?>> maps = connector.configMaps();
-            // Ensure we create the queues (and exchanges) from which messages will be read
-            uni
-                    .call(() -> declareQueue(client, ic, maps))
-                    .call(() -> RabbitMQClientHelper.configureDLQorDLX(client, ic, maps))
+            declareInfrastructure(client, ic, connector)
                     .subscribe().with(ignored -> promise.complete(), promise::fail);
         });
-
-        return holder.getOrEstablishConnection()
-                .flatMap(connection -> createConsumer(ic, connection).map(consumer -> Tuple2.of(holder, consumer)));
     }
 
     private RabbitMQFailureHandler createFailureHandler(Instance<RabbitMQFailureHandler.Factory> failureHandlerFactories,
