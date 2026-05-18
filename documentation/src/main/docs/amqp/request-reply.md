@@ -97,8 +97,10 @@ The default handler is based on randomly generated UUID strings, set as the AMQP
 The reply message is expected to carry the same value in the `correlation-id` property.
 
 The correlation id handler implementation can be configured using the `reply.correlation-id.handler` attribute.
-The default configuration is `uuid`,
-and an alternative `bytes` implementation can be used to generate random binary correlation ids.
+The default configuration is `uuid`, which uses randomly generated UUID strings as correlation ids.
+An alternative `bytes` implementation can be used to generate random binary correlation ids.
+The `bytes` id handler generates 12 random bytes,
+but the length can be configured with the `smallrye.amqp.request-reply.correlation-id.bytes.length` attribute.
 
 Custom handlers can be implemented by proposing a CDI-managed bean with `@Identifier` qualifier.
 
@@ -161,3 +163,10 @@ mp.messaging.outgoing.reply.use-anonymous-sender=false
 ```
 
 See [Using RabbitMQ](rabbitmq.md) for more details on RabbitMQ-specific configuration.
+
+## Limitations
+
+The following features are not yet supported:
+
+- **Direct reply-to** (`amq.rabbitmq.reply-to`): RabbitMQ's direct reply-to mechanism requires link pairing, which is not yet implemented.
+- **Link pairing**: Pairing sender and receiver links on the same connection for request-reply routing is not yet available.

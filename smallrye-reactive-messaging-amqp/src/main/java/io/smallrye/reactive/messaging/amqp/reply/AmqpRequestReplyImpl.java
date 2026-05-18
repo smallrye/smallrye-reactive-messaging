@@ -205,7 +205,10 @@ public class AmqpRequestReplyImpl<Req, Rep> extends MutinyEmitterImpl<Req>
 
     @Override
     public void onCompletion() {
-
+        for (Map.Entry<CorrelationId, PendingReplyImpl<Rep>> replyEntry : pendingReplies.entrySet()) {
+            replyEntry.getValue().complete();
+        }
+        pendingReplies.clear();
     }
 
     private static class PendingReplyImpl<Rep> implements PendingReply {
