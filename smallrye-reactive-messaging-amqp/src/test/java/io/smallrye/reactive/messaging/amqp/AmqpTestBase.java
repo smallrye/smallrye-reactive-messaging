@@ -17,7 +17,7 @@ public class AmqpTestBase {
 
     private final Logger logger = Logger.getLogger(getClass());
 
-    ExecutionHolder executionHolder;
+    protected ExecutionHolder executionHolder;
 
     @BeforeAll
     public static void setupClass(TestInfo testInfo) {

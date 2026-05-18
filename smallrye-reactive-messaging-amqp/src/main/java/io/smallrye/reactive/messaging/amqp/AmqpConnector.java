@@ -1,15 +1,14 @@
 package io.smallrye.reactive.messaging.amqp;
 
+import static io.smallrye.reactive.messaging.amqp.i18n.AMQPExceptions.ex;
 import static io.smallrye.reactive.messaging.amqp.i18n.AMQPLogging.log;
 import static io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Direction.INCOMING;
 import static io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Direction.INCOMING_AND_OUTGOING;
 import static io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Direction.OUTGOING;
 
 import java.time.Duration;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Flow;
 
 import jakarta.annotation.Priority;
@@ -50,7 +49,7 @@ import io.vertx.mutiny.core.Vertx;
 @ConnectorAttribute(name = "reconnect-attempts", direction = INCOMING_AND_OUTGOING, description = "The number of reconnection attempts", type = "int", alias = "amqp-reconnect-attempts", defaultValue = "100")
 @ConnectorAttribute(name = "reconnect-interval", direction = INCOMING_AND_OUTGOING, description = "The interval in second between two reconnection attempts", type = "int", alias = "amqp-reconnect-interval", defaultValue = "10")
 @ConnectorAttribute(name = "connect-timeout", direction = INCOMING_AND_OUTGOING, description = "The connection timeout in milliseconds", type = "int", alias = "amqp-connect-timeout", defaultValue = "1000")
-@ConnectorAttribute(name = "container-id", direction = INCOMING_AND_OUTGOING, description = "The AMQP container id", type = "string")
+@ConnectorAttribute(name = "container-id", direction = INCOMING_AND_OUTGOING, description = "The AMQP container id. Channels with the same container id share the same AMQP connection.", type = "string")
 @ConnectorAttribute(name = "address", direction = INCOMING_AND_OUTGOING, description = "The AMQP address. If not set, the channel name is used", type = "string")
 @ConnectorAttribute(name = "link-name", direction = INCOMING_AND_OUTGOING, description = "The name of the link. If not set, the channel name is used.", type = "string")
 @ConnectorAttribute(name = "client-options-name", direction = INCOMING_AND_OUTGOING, description = "The name of the AMQP Client Option bean used to customize the AMQP client configuration", type = "string", alias = "amqp-client-options-name")
@@ -62,12 +61,12 @@ import io.vertx.mutiny.core.Vertx;
 @ConnectorAttribute(name = "capabilities", type = "string", direction = INCOMING_AND_OUTGOING, description = " A comma-separated list of capabilities proposed by the sender or receiver client.")
 @ConnectorAttribute(name = "retry-on-fail-attempts", direction = INCOMING_AND_OUTGOING, description = "The number of tentative to retry on failure", type = "int", defaultValue = "6")
 @ConnectorAttribute(name = "retry-on-fail-interval", direction = INCOMING_AND_OUTGOING, description = "The interval (in seconds) between two sending attempts", type = "int", defaultValue = "5")
-
 @ConnectorAttribute(name = "broadcast", direction = INCOMING, description = "Whether the received AMQP messages must be dispatched to multiple _subscribers_", type = "boolean", defaultValue = "false")
 @ConnectorAttribute(name = "durable", direction = INCOMING, description = "Whether AMQP subscription is durable", type = "boolean", defaultValue = "false")
 @ConnectorAttribute(name = "auto-acknowledgement", direction = INCOMING, description = "Whether the received AMQP messages must be acknowledged when received", type = "boolean", defaultValue = "false")
 @ConnectorAttribute(name = "failure-strategy", type = "string", direction = INCOMING, description = "Specify the failure strategy to apply when a message produced from an AMQP message is nacked. Accepted values are `fail` (default), `accept`, `release`, `reject`, `modified-failed`, `modified-failed-undeliverable-here`", defaultValue = "fail")
 @ConnectorAttribute(name = "selector", direction = INCOMING, description = "Sets a message selector. This attribute is used to define an `apache.org:selector-filter:string` filter on the source terminus, using SQL-based syntax to request the server filters which messages are delivered to the receiver (if supported by the server in question). Precise functionality supported and syntax needed can vary depending on the server.", type = "string")
+@ConnectorAttribute(name = "qos", direction = INCOMING, description = "Sets the local QOS config, values can be {@code null}, {@code AT_MOST_ONCE} or {@code AT_LEAST_ONCE}.", type = "string")
 
 @ConnectorAttribute(name = "durable", direction = OUTGOING, description = "Whether sent AMQP messages are marked durable", type = "boolean", defaultValue = "false")
 @ConnectorAttribute(name = "ttl", direction = OUTGOING, description = "The time-to-live of the send AMQP messages. 0 to disable the TTL", type = "long", defaultValue = "0")
@@ -88,6 +87,9 @@ public class AmqpConnector implements InboundConnector, OutboundConnector, Healt
 
     public static final String CONNECTOR_NAME = "smallrye-amqp";
 
+    public static final String ME_ADDRESS = "$me";
+    public static final String DIRECT_REPLY_TO_ADDRESS = "amq.rabbitmq.reply-to";
+
     @Inject
     private ExecutionHolder executionHolder;
 
@@ -102,7 +104,8 @@ public class AmqpConnector implements InboundConnector, OutboundConnector, Healt
     @Inject
     private Instance<OpenTelemetry> openTelemetryInstance;
 
-    private final List<AmqpClient> clients = new CopyOnWriteArrayList<>();
+    private final Map<String, AmqpClientHolder> clients = new ConcurrentHashMap<>();
+    private final Map<String, String> containerIdFingerprints = new ConcurrentHashMap<>();
 
     /**
      * Tracks the consumer connection holder.
@@ -127,35 +130,44 @@ public class AmqpConnector implements InboundConnector, OutboundConnector, Healt
     @Override
     public Flow.Publisher<? extends Message<?>> getPublisher(Config config) {
         AmqpConnectorIncomingConfiguration ic = new AmqpConnectorIncomingConfiguration(config);
-        AmqpClient client = AmqpClientHelper.createClient(executionHolder.vertx(), ic, clientOptions, configCustomizers);
-        addClient(client);
-
-        IncomingAmqpChannel incoming = new IncomingAmqpChannel(ic, client, executionHolder.vertx(),
+        IncomingAmqpChannel incoming = new IncomingAmqpChannel(ic, getClientHolder(ic), executionHolder.vertx(),
                 openTelemetryInstance, this::reportFailure);
         incomingChannels.put(ic.getChannel(), incoming);
-
         return incoming.getPublisher();
     }
 
     @Override
     public Flow.Subscriber<? extends Message<?>> getSubscriber(Config config) {
         AmqpConnectorOutgoingConfiguration oc = new AmqpConnectorOutgoingConfiguration(config);
-        AmqpClient client = AmqpClientHelper.createClient(executionHolder.vertx(), oc, clientOptions, configCustomizers);
-        addClient(client);
-        OutgoingAmqpChannel outgoing = new OutgoingAmqpChannel(oc, client, executionHolder.vertx(),
+        OutgoingAmqpChannel outgoing = new OutgoingAmqpChannel(oc, getClientHolder(oc), executionHolder.vertx(),
                 openTelemetryInstance, this::reportFailure);
         outgoingChannels.put(oc.getChannel(), outgoing);
         return outgoing.getSubscriber();
+    }
+
+    private AmqpClientHolder getClientHolder(AmqpConnectorCommonConfiguration config) {
+        String channel = config.getChannel();
+        AmqpClientOptions options = AmqpClientHelper.buildClientOptions(this, config);
+        String containerId = options.getContainerId();
+        String fingerprint = AmqpClientHelper.computeConnectionFingerprint(options);
+        String existing = containerIdFingerprints.putIfAbsent(containerId, fingerprint);
+        if (existing != null && !existing.equals(fingerprint)) {
+            throw ex.illegalStateContainerIdConfigMismatch(containerId);
+        }
+        return clients.compute(fingerprint, (key, current) -> {
+            if (current == null)
+                return new AmqpClientHolder(AmqpClient.create(executionHolder.vertx(), options)).retain(channel);
+            return current.retain(channel);
+        });
     }
 
     public void terminate(
             @Observes(notifyObserver = Reception.IF_EXISTS) @Priority(50) @BeforeDestroyed(ApplicationScoped.class) Object event) {
         outgoingChannels.values().forEach(OutgoingAmqpChannel::close);
         incomingChannels.values().forEach(IncomingAmqpChannel::close);
-        clients.forEach(c -> {
-            // We cannot use andForget as it could report an error is the broker is not available.
+        clients.values().forEach(holder -> {
             //noinspection ResultOfMethodCallIgnored
-            c.close().subscribeAsCompletionStage();
+            holder.client().close().subscribeAsCompletionStage();
         });
         clients.clear();
     }
@@ -164,12 +176,16 @@ public class AmqpConnector implements InboundConnector, OutboundConnector, Healt
         return executionHolder.vertx();
     }
 
-    public void addClient(AmqpClient client) {
-        clients.add(client);
+    public Map<String, AmqpClientHolder> getClients() {
+        return clients;
     }
 
-    public List<AmqpClient> getClients() {
-        return clients;
+    public Instance<AmqpClientOptions> getClientOptions() {
+        return clientOptions;
+    }
+
+    public Instance<ClientCustomizer<AmqpClientOptions>> getConfigCustomizers() {
+        return configCustomizers;
     }
 
     /**
@@ -237,6 +253,14 @@ public class AmqpConnector implements InboundConnector, OutboundConnector, Healt
     public void reportFailure(String channel, Throwable reason) {
         log.failureReported(channel, reason);
         terminate(null);
+    }
+
+    public String getIncomingAddress(String channel) {
+        IncomingAmqpChannel incoming = incomingChannels.get(channel);
+        if (incoming == null) {
+            return null;
+        }
+        return incoming.getResolvedAddress();
     }
 
 }

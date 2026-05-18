@@ -27,7 +27,6 @@ import io.smallrye.reactive.messaging.amqp.tracing.AmqpOpenTelemetryInstrumenter
 import io.smallrye.reactive.messaging.providers.helpers.VertxContext;
 import io.vertx.amqp.AmqpReceiverOptions;
 import io.vertx.core.impl.VertxInternal;
-import io.vertx.mutiny.amqp.AmqpClient;
 import io.vertx.mutiny.amqp.AmqpReceiver;
 import io.vertx.mutiny.core.Context;
 import io.vertx.mutiny.core.Vertx;
@@ -40,8 +39,16 @@ public class IncomingAmqpChannel {
     private final BiConsumer<String, Throwable> reportFailure;
     private final ConnectionHolder holder;
     private final boolean healthEnabled;
+    private volatile String resolvedAddress;
 
-    public IncomingAmqpChannel(AmqpConnectorIncomingConfiguration ic, AmqpClient client, Vertx vertx,
+    public IncomingAmqpChannel(AmqpConnectorIncomingConfiguration ic, AmqpClientHolder clientHolder, Vertx vertx,
+            Instance<OpenTelemetry> openTelemetryInstance, BiConsumer<String, Throwable> reportFailure) {
+        this(ic, clientHolder.getOrCreateConnectionHolder(ic, vertx,
+                Context.newInstance(((VertxInternal) vertx.getDelegate()).createEventLoopContext())),
+                openTelemetryInstance, reportFailure);
+    }
+
+    public IncomingAmqpChannel(AmqpConnectorIncomingConfiguration ic, ConnectionHolder holder,
             Instance<OpenTelemetry> openTelemetryInstance, BiConsumer<String, Throwable> reportFailure) {
         this.reportFailure = reportFailure;
         this.opened = new AtomicBoolean(false);
@@ -53,8 +60,9 @@ public class IncomingAmqpChannel {
         String link = ic.getLinkName().orElse(channel);
         boolean cloudEvents = ic.getCloudEvents();
         boolean tracing = ic.getTracingEnabled();
-        Context root = Context.newInstance(((VertxInternal) vertx.getDelegate()).createEventLoopContext());
-        this.holder = new ConnectionHolder(client, ic, vertx, root);
+        this.holder = holder;
+
+        this.resolvedAddress = address;
 
         AmqpReceiverOptions options = new AmqpReceiverOptions()
                 .setAutoAcknowledgement(ic.getAutoAcknowledgement())
@@ -62,6 +70,8 @@ public class IncomingAmqpChannel {
                 .setLinkName(link)
                 .setCapabilities(getClientCapabilities(ic))
                 .setSelector(ic.getSelector().orElse(null));
+
+        ic.getQos().ifPresent(options::setQos);
 
         if (ic.getTracingEnabled()) {
             amqpInstrumenter = AmqpOpenTelemetryInstrumenter.createForConnector(openTelemetryInstance);
@@ -74,8 +84,11 @@ public class IncomingAmqpChannel {
         Integer attempts = ic.getRetryOnFailAttempts();
         multi = holder.getOrEstablishConnection()
                 .onItem().transformToUni(connection -> connection.createReceiver(address, options))
-                .onItem().invoke(r -> opened.set(true))
-                .onItem().transformToMulti(r -> getStreamOfMessages(r, holder, address, channel, onNack,
+                .onItem().invoke(r -> {
+                    opened.set(true);
+                    resolvedAddress = r.address();
+                })
+                .onItem().transformToMulti(r -> getStreamOfMessages(r, holder, channel, onNack,
                         cloudEvents, tracing))
                 // Retry on failure.
                 .onFailure().invoke(log::retrieveMessagesRetrying)
@@ -99,15 +112,18 @@ public class IncomingAmqpChannel {
         return multi;
     }
 
+    public String getResolvedAddress() {
+        return resolvedAddress;
+    }
+
     @SuppressWarnings({ "rawtypes", "unchecked" })
     private Multi<? extends Message<?>> getStreamOfMessages(AmqpReceiver receiver,
             ConnectionHolder holder,
-            String address,
             String channel,
             AmqpFailureHandler onNack,
             boolean cloudEventEnabled,
             Boolean tracingEnabled) {
-        log.receiverListeningAddress(address);
+        log.receiverListeningAddress(resolvedAddress);
 
         // The processor is used to inject AMQP Connection failure in the stream and trigger a retry.
         BroadcastProcessor processor = BroadcastProcessor.create();

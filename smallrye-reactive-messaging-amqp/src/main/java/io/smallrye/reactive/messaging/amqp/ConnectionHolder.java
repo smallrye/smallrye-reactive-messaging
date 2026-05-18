@@ -16,7 +16,6 @@ import org.apache.qpid.proton.amqp.Symbol;
 import io.smallrye.common.annotation.CheckReturnValue;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.providers.helpers.VertxContext;
-import io.vertx.amqp.impl.AmqpConnectionImpl;
 import io.vertx.mutiny.amqp.AmqpClient;
 import io.vertx.mutiny.amqp.AmqpConnection;
 import io.vertx.mutiny.core.Context;
@@ -24,46 +23,72 @@ import io.vertx.mutiny.core.Vertx;
 
 public class ConnectionHolder {
 
-    private final AmqpClient client;
     private final AmqpConnectorCommonConfiguration configuration;
-    private final AtomicReference<CurrentConnection> holder = new AtomicReference<>();
+    private final AtomicReference<AmqpConnection> holder = new AtomicReference<>();
 
     private final Vertx vertx;
     private final Context root;
+    private final Uni<AmqpConnection> connection;
     private Consumer<Throwable> onFailure;
 
     public ConnectionHolder(AmqpClient client,
             AmqpConnectorCommonConfiguration configuration,
             Vertx vertx, Context root) {
-        this.client = client;
         this.configuration = configuration;
         this.vertx = vertx;
         this.root = root;
+
+        Integer retryInterval = configuration.getReconnectInterval();
+        Integer retryAttempts = configuration.getReconnectAttempts();
+
+        this.connection = Uni.createFrom().deferred(() -> client.connect()
+                .runSubscriptionOn(root::runOnContext)
+                .onSubscription().invoke(s -> log.establishingConnection())
+                .onFailure().invoke(log::unableToConnectToBroker)
+                .onItem().invoke(log::connectionEstablished)
+                .onItem().invoke(conn -> {
+                    holder.set(conn);
+                    conn.exceptionHandler(t -> {
+                        holder.set(null);
+                        log.connectionFailure(t);
+                        Consumer<Throwable> c;
+                        synchronized (this) {
+                            c = onFailure;
+                        }
+                        if (c != null) {
+                            c.accept(t);
+                        }
+                    });
+                    if (conn.isDisconnected() || holder.get() == null) {
+                        holder.set(null);
+                        throw ex.illegalStateConnectionDisconnected();
+                    }
+                })
+                .onFailure().invoke(log::unableToConnectToBroker)
+                .onFailure().retry().withBackOff(ofSeconds(1), ofSeconds(retryInterval)).atMost(retryAttempts)
+                .onFailure().invoke(t -> {
+                    holder.set(null);
+                    log.unableToRecoverFromConnectionDisruption(t);
+                }))
+                .memoize().until(() -> {
+                    AmqpConnection current = holder.get();
+                    return current == null || current.isDisconnected();
+                });
     }
 
     public Context getContext() {
-        CurrentConnection connection = holder.get();
-        if (connection != null) {
-            return connection.context;
-        } else {
-            return null;
-        }
+        return root;
     }
 
     @CheckReturnValue
     public Uni<Boolean> isConnected() {
-        CurrentConnection connection = holder.get();
+        AmqpConnection connection = holder.get();
         if (connection == null) {
             return Uni.createFrom().item(false);
         }
 
-        AmqpConnection underlying = connection.connection;
-        if (underlying == null) {
-            return Uni.createFrom().item(false);
-        }
-
-        return Uni.createFrom().item(() -> !underlying.isDisconnected())
-                .runSubscriptionOn(connection.context::runOnContext);
+        return Uni.createFrom().item(() -> !connection.isDisconnected())
+                .runSubscriptionOn(root::runOnContext);
     }
 
     /**
@@ -73,7 +98,7 @@ public class ConnectionHolder {
      * @return the list of capability
      */
     public static List<String> capabilities(AmqpConnection connection) {
-        Symbol[] capabilities = ((AmqpConnectionImpl) connection.getDelegate()).unwrap().getRemoteOfferedCapabilities();
+        Symbol[] capabilities = connection.getDelegate().unwrap().getRemoteOfferedCapabilities();
         return Arrays.stream(capabilities).map(Symbol::toString).collect(Collectors.toList());
     }
 
@@ -96,77 +121,17 @@ public class ConnectionHolder {
         return configuration.getHealthTimeout();
     }
 
-    private static class CurrentConnection {
-        final AmqpConnection connection;
-        final Context context;
-
-        private CurrentConnection(AmqpConnection connection, Context context) {
-            this.connection = connection;
-            this.context = context;
-        }
-    }
-
     public synchronized void onFailure(Consumer<Throwable> callback) {
         this.onFailure = callback;
     }
 
+    /**
+     * Safe to call from any thread: memoize().until() handles concurrent subscriptions,
+     * ensuring a single in-flight connection attempt is shared across all callers.
+     */
     @CheckReturnValue
     public Uni<AmqpConnection> getOrEstablishConnection() {
-        return Uni.createFrom().item(() -> {
-            CurrentConnection connection = holder.get();
-            if (connection != null && connection.connection != null && !connection.connection.isDisconnected()) {
-                return connection.connection;
-            } else {
-                return null;
-            }
-        })
-                .onItem().ifNull().switchTo(() -> {
-                    // we don't have a connection, try to connect.
-                    Integer retryInterval = configuration.getReconnectInterval();
-                    Integer retryAttempts = configuration.getReconnectAttempts();
-
-                    CurrentConnection reference = holder.get();
-
-                    if (reference != null && reference.connection != null && !reference.connection.isDisconnected()) {
-                        AmqpConnection connection = reference.connection;
-                        return Uni.createFrom().item(connection);
-                    }
-
-                    return client.connect()
-                            .onSubscription().invoke(s -> log.establishingConnection())
-                            .onItem().transform(conn -> {
-                                log.connectionEstablished();
-                                holder.set(new CurrentConnection(conn, root == null ? Vertx.currentContext() : root));
-                                conn
-                                        .exceptionHandler(t -> {
-                                            holder.set(null);
-                                            log.connectionFailure(t);
-
-                                            // The callback failure allows propagating the failure downstream,
-                                            // as we are disconnected from the flow.
-                                            Consumer<Throwable> c;
-                                            synchronized (this) {
-                                                c = onFailure;
-                                            }
-                                            if (c != null) {
-                                                c.accept(t);
-                                            }
-                                        });
-                                // handle the case we are already disconnected.
-                                if (conn.isDisconnected() || holder.get() == null) {
-                                    // Throwing the exception would trigger a retry.
-                                    holder.set(null);
-                                    throw ex.illegalStateConnectionDisconnected();
-                                }
-                                return conn;
-                            })
-                            .onFailure().invoke(log::unableToConnectToBroker)
-                            .onFailure().retry().withBackOff(ofSeconds(1), ofSeconds(retryInterval)).atMost(retryAttempts)
-                            .onFailure().invoke(t -> {
-                                holder.set(null);
-                                log.unableToRecoverFromConnectionDisruption(t);
-                            });
-                });
+        return connection;
     }
 
     public static CompletionStage<Void> runOnContext(Context context, AmqpMessage<?> msg,
@@ -184,4 +149,5 @@ public class ConnectionHolder {
             msg.runOnMessageContext(() -> f.completeExceptionally(reason));
         });
     }
+
 }

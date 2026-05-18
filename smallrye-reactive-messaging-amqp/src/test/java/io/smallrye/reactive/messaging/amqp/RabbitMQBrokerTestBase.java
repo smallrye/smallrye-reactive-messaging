@@ -2,7 +2,12 @@ package io.smallrye.reactive.messaging.amqp;
 
 import static org.awaitility.Awaitility.await;
 
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.time.Duration;
+import java.util.Base64;
 
 import org.eclipse.microprofile.config.ConfigProvider;
 import org.jboss.weld.environment.se.WeldContainer;
@@ -15,7 +20,6 @@ import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.utility.DockerImageName;
-import org.testcontainers.utility.MountableFile;
 
 import io.smallrye.config.SmallRyeConfigProviderResolver;
 import io.smallrye.mutiny.infrastructure.Infrastructure;
@@ -33,10 +37,11 @@ public class RabbitMQBrokerTestBase {
 
     protected static String host;
     protected static int port;
-    final static String username = "guest";
-    final static String password = "guest";
-    AmqpUsage usage;
-    ExecutionHolder executionHolder;
+    protected static int managementPort;
+    protected final static String username = "guest";
+    protected final static String password = "guest";
+    protected AmqpUsage usage;
+    protected ExecutionHolder executionHolder;
 
     @BeforeAll
     public static void setupMutiny() {
@@ -45,14 +50,27 @@ public class RabbitMQBrokerTestBase {
 
     @BeforeAll
     public static void startBroker() {
-        try {
-            RABBIT.start();
-        } catch (Exception e) {
-            LOGGER.error("Failed to start RabbitMQ container, trying again...", e);
-            RABBIT.start();
+        int maxAttempts = 5;
+        for (int attempt = 1; attempt <= maxAttempts; attempt++) {
+            try {
+                RABBIT.start();
+                break;
+            } catch (Exception e) {
+                if (attempt == maxAttempts) {
+                    throw e;
+                }
+                LOGGER.error("Failed to start RabbitMQ container (attempt {}), retrying...", attempt, e);
+                try {
+                    Thread.sleep(2000L * attempt);
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    throw new RuntimeException(ie);
+                }
+            }
         }
 
         port = RABBIT.getPort();
+        managementPort = RABBIT.getManagementPort();
         host = RABBIT.getHost();
 
         System.setProperty("amqp-host", host);
@@ -92,6 +110,22 @@ public class RabbitMQBrokerTestBase {
         MapBasedConfig.cleanup();
     }
 
+    protected static void createQueue(String name) {
+        try {
+            String auth = Base64.getEncoder().encodeToString((username + ":" + password).getBytes());
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create("http://" + host + ":" + managementPort + "/api/queues/%2f/" + name))
+                    .header("Authorization", "Basic " + auth)
+                    .header("Content-Type", "application/json")
+                    .PUT(HttpRequest.BodyPublishers.ofString("{\"durable\":false,\"auto_delete\":true}"))
+                    .build();
+            HttpClient.newBuilder().version(HttpClient.Version.HTTP_1_1).build()
+                    .send(request, HttpResponse.BodyHandlers.ofString());
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to create queue: " + name, e);
+        }
+    }
+
     public boolean isAmqpConnectorReady(WeldContainer container) {
         HealthCenter health = container.getBeanManager().createInstance().select(HealthCenter.class).get();
         return health.getReadiness().isOk();
@@ -105,12 +139,11 @@ public class RabbitMQBrokerTestBase {
     public static class RabbitMQContainer extends GenericContainer<RabbitMQContainer> {
 
         public RabbitMQContainer() {
-            super(DockerImageName.parse("docker.io/rabbitmq:3.12-management"));
+            super(DockerImageName.parse("docker.io/rabbitmq:4.2.5-management"));
             withExposedPorts(5672, 15672);
-            waitingFor(Wait.forLogMessage(".*Server startup complete; 4 plugins started.*\\n", 1)
+            waitingFor(Wait.forHttp("/api/overview").forPort(15672)
+                    .withBasicCredentials("guest", "guest")
                     .withStartupTimeout(Duration.ofSeconds(30)));
-            withCopyFileToContainer(MountableFile.forClasspathResource("rabbitmq/enabled_plugins"),
-                    "/etc/rabbitmq/enabled_plugins");
         }
 
         public RabbitMQContainer(int port) {
@@ -120,6 +153,10 @@ public class RabbitMQBrokerTestBase {
 
         public int getPort() {
             return getMappedPort(5672);
+        }
+
+        public int getManagementPort() {
+            return getMappedPort(15672);
         }
 
     }

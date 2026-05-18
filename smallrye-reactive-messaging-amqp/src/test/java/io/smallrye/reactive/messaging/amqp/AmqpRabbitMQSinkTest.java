@@ -55,6 +55,7 @@ public class AmqpRabbitMQSinkTest extends RabbitMQBrokerTestBase {
         int msgCount = 10;
         String topic = UUID.randomUUID().toString();
         List<org.apache.qpid.proton.message.Message> messagesReceived = new CopyOnWriteArrayList<>();
+        createQueue(topic);
         usage.consume(topic, new AmqpReceiverOptions().setDurable(false),
                 msg -> messagesReceived.add(msg.getDelegate().unwrap()));
 
@@ -69,7 +70,7 @@ public class AmqpRabbitMQSinkTest extends RabbitMQBrokerTestBase {
 
         assertThat(messagesReceived).allSatisfy(msg -> {
             assertThat(msg.getBody()).isInstanceOf(AmqpValue.class);
-            assertThat(msg.getAddress()).isEqualTo(topic);
+            assertThat(msg.getAddress()).isEqualTo("/queues/" + topic);
         }).extracting(msg -> ((AmqpValue) msg.getBody()).getValue())
                 .containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
     }
@@ -79,6 +80,7 @@ public class AmqpRabbitMQSinkTest extends RabbitMQBrokerTestBase {
         int msgCount = 10;
         String topic = UUID.randomUUID().toString();
         List<org.apache.qpid.proton.message.Message> messagesReceived = new CopyOnWriteArrayList<>();
+        createQueue(topic);
         usage.consume(topic, new AmqpReceiverOptions().setDurable(false),
                 msg -> messagesReceived.add(msg.getDelegate().unwrap()));
 
@@ -104,7 +106,7 @@ public class AmqpRabbitMQSinkTest extends RabbitMQBrokerTestBase {
 
         assertThat(messagesReceived).allSatisfy(msg -> {
             assertThat(msg.getBody()).isInstanceOf(AmqpValue.class);
-            assertThat(msg.getAddress()).isEqualTo(topic);
+            assertThat(msg.getAddress()).isEqualTo("/queues/" + topic);
         }).extracting(msg -> ((AmqpValue) msg.getBody()).getValue())
                 .containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
     }
@@ -114,6 +116,7 @@ public class AmqpRabbitMQSinkTest extends RabbitMQBrokerTestBase {
         int msgCount = 10;
         String topic = UUID.randomUUID().toString();
         List<org.apache.qpid.proton.message.Message> messagesReceived = new CopyOnWriteArrayList<>();
+        createQueue(topic);
         usage.consume(topic, new AmqpReceiverOptions().setDurable(false),
                 msg -> messagesReceived.add(msg.getDelegate().unwrap()));
 
@@ -129,7 +132,7 @@ public class AmqpRabbitMQSinkTest extends RabbitMQBrokerTestBase {
         // Should have used a fixed-address sender link, vertify target address
         assertThat(messagesReceived).allSatisfy(msg -> {
             assertThat(msg.getBody()).isInstanceOf(AmqpValue.class);
-            assertThat(msg.getAddress()).isEqualTo(topic);
+            assertThat(msg.getAddress()).isEqualTo("/queues/" + topic);
         }).extracting(msg -> ((AmqpValue) msg.getBody()).getValue())
                 .containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
     }
@@ -139,6 +142,7 @@ public class AmqpRabbitMQSinkTest extends RabbitMQBrokerTestBase {
         int msgCount = 10;
         String topic = UUID.randomUUID().toString();
         List<org.apache.qpid.proton.message.Message> messagesReceived = new CopyOnWriteArrayList<>();
+        createQueue(topic);
         usage.consume(topic, new AmqpReceiverOptions().setDurable(false),
                 msg -> messagesReceived.add(msg.getDelegate().unwrap()));
 
@@ -153,7 +157,7 @@ public class AmqpRabbitMQSinkTest extends RabbitMQBrokerTestBase {
 
         assertThat(messagesReceived).allSatisfy(msg -> {
             assertThat(msg.getBody()).isInstanceOf(AmqpValue.class);
-            assertThat(msg.getAddress()).isEqualTo(topic);
+            assertThat(msg.getAddress()).isEqualTo("/queues/" + topic);
         }).extracting(msg -> ((AmqpValue) msg.getBody()).getValue())
                 .containsExactly("0", "1", "2", "3", "4", "5", "6", "7", "8", "9");
     }
@@ -175,6 +179,7 @@ public class AmqpRabbitMQSinkTest extends RabbitMQBrokerTestBase {
         int msgCount = 10;
         String topic = UUID.randomUUID().toString();
         List<org.apache.qpid.proton.message.Message> messagesReceived = new CopyOnWriteArrayList<>();
+        createQueue(topic);
         usage.consume(topic, new AmqpReceiverOptions().setDurable(false),
                 msg -> messagesReceived.add(msg.getDelegate().unwrap()));
 
@@ -223,6 +228,7 @@ public class AmqpRabbitMQSinkTest extends RabbitMQBrokerTestBase {
         String topic = UUID.randomUUID().toString();
         AtomicInteger nack = new AtomicInteger();
         List<org.apache.qpid.proton.message.Message> messagesReceived = new CopyOnWriteArrayList<>();
+        createQueue(topic);
         usage.consume(topic, new AmqpReceiverOptions().setDurable(false),
                 msg -> messagesReceived.add(msg.getDelegate().unwrap()));
 
@@ -265,6 +271,7 @@ public class AmqpRabbitMQSinkTest extends RabbitMQBrokerTestBase {
         int msgCount = 10;
         String topic = UUID.randomUUID().toString();
         List<org.apache.qpid.proton.message.Message> messagesReceived = new CopyOnWriteArrayList<>();
+        createQueue(topic);
         usage.consume(topic, new AmqpReceiverOptions().setDurable(false),
                 msg -> messagesReceived.add(msg.getDelegate().unwrap()));
 
@@ -292,6 +299,7 @@ public class AmqpRabbitMQSinkTest extends RabbitMQBrokerTestBase {
         int msgCount = 10;
         String topic = UUID.randomUUID().toString();
         List<org.apache.qpid.proton.message.Message> messagesReceived = new CopyOnWriteArrayList<>();
+        createQueue(topic);
         usage.consume(topic, new AmqpReceiverOptions().setDurable(false),
                 msg -> messagesReceived.add(msg.getDelegate().unwrap()));
 
@@ -328,6 +336,7 @@ public class AmqpRabbitMQSinkTest extends RabbitMQBrokerTestBase {
         int msgCount = 10;
         String topic = UUID.randomUUID().toString();
         List<org.apache.qpid.proton.message.Message> messagesReceived = new CopyOnWriteArrayList<>();
+        createQueue(topic);
         usage.consume(topic, new AmqpReceiverOptions().setDurable(false),
                 msg -> messagesReceived.add(msg.getDelegate().unwrap()));
 
@@ -362,6 +371,7 @@ public class AmqpRabbitMQSinkTest extends RabbitMQBrokerTestBase {
         int msgCount = 10;
         String topic = UUID.randomUUID().toString();
         List<org.apache.qpid.proton.message.Message> messagesReceived = new CopyOnWriteArrayList<>();
+        createQueue(topic);
         usage.consume(topic, new AmqpReceiverOptions().setDurable(false),
                 msg -> messagesReceived.add(msg.getDelegate().unwrap()));
 
@@ -396,6 +406,7 @@ public class AmqpRabbitMQSinkTest extends RabbitMQBrokerTestBase {
         int msgCount = 10;
         String topic = UUID.randomUUID().toString();
         List<org.apache.qpid.proton.message.Message> messagesReceived = new CopyOnWriteArrayList<>();
+        createQueue(topic);
         usage.consume(topic, new AmqpReceiverOptions().setDurable(false),
                 msg -> messagesReceived.add(msg.getDelegate().unwrap()));
 
@@ -444,14 +455,14 @@ public class AmqpRabbitMQSinkTest extends RabbitMQBrokerTestBase {
 
     private Flow.Subscriber<? extends Message<?>> createProviderAndSink(String topic) {
         Map<String, Object> config = createBaseConfig(topic);
-        config.put("address", topic);
+        config.put("address", "/queues/" + topic);
 
         return getSubscriberBuilder(config);
     }
 
     private Flow.Subscriber<? extends Message<?>> createProviderAndSinkOrdered(String topic) {
         Map<String, Object> config = createBaseConfig(topic);
-        config.put("address", topic);
+        config.put("address", "/queues/" + topic);
         config.put("max-inflight-messages", 1L);
 
         return getSubscriberBuilder(config);
@@ -459,7 +470,7 @@ public class AmqpRabbitMQSinkTest extends RabbitMQBrokerTestBase {
 
     private Flow.Subscriber<? extends Message<?>> createProviderAndNonAnonymousSink(String topic) {
         Map<String, Object> config = createBaseConfig(topic);
-        config.put("address", topic);
+        config.put("address", "/queues/" + topic);
         config.put("use-anonymous-sender", false);
 
         return getSubscriberBuilder(config);
