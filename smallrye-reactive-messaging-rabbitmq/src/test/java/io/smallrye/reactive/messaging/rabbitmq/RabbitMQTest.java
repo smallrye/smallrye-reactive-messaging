@@ -200,7 +200,7 @@ class RabbitMQTest extends RabbitMQBrokerTestBase {
     }
 
     /**
-     * Verifies that with eager client (default), incoming channel infrastructure
+     * Verifies that with eager client, incoming channel infrastructure
      * (exchange, queue, bindings) is declared during container initialization.
      */
     @Test

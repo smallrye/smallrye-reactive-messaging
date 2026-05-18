@@ -5,6 +5,7 @@ import static io.smallrye.reactive.messaging.rabbitmq.i18n.RabbitMQLogging.log;
 import static io.smallrye.reactive.messaging.rabbitmq.internals.RabbitMQClientHelper.parseArguments;
 import static io.smallrye.reactive.messaging.rabbitmq.internals.RabbitMQClientHelper.serverQueueName;
 
+import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.Flow;
 import java.util.concurrent.atomic.AtomicReference;
@@ -68,15 +69,16 @@ public class IncomingRabbitMQChannel {
         this.client = holder.client();
         registerInfrastructureCallback(holder.client(), ic, connector);
 
-        if (!ic.getLazyClient()) {
-            Uni<Void> connection = holder.getOrEstablishConnection().replaceWithVoid();
-            if (ic.getSharedConnectionName().isPresent()) {
-                connection = connection.call(() -> declareInfrastructure(holder.client(), ic, connector));
-            }
-            connection.await().indefinitely();
+        Uni<RabbitMQClient> connectionUni = holder.getOrEstablishConnection();
+        if (ic.getSharedConnectionName().isPresent()) {
+            connectionUni = connectionUni.call(() -> declareInfrastructure(holder.client(), ic, connector));
         }
 
-        Multi<? extends Message<?>> multi = holder.getOrEstablishConnection()
+        if (!ic.getLazyClient()) {
+            connectionUni.await().atMost(Duration.ofMillis(config.getConnectionTimeout()));
+        }
+
+        Multi<? extends Message<?>> multi = connectionUni
                 .flatMap(connection -> createConsumer(ic, connection))
                 .onItem().transformToMulti(
                         consumer -> getStreamOfMessages(consumer, holder, incomingContext, ic, onNack, onAck));

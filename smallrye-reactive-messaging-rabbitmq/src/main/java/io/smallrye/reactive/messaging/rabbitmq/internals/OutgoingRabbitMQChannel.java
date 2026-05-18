@@ -37,16 +37,17 @@ public class OutgoingRabbitMQChannel {
         final RabbitMQClient client = holder.client();
         registerExchangeCallback(client, oc, connector);
 
-        if (!oc.getLazyClient()) {
-            Uni<Void> connection = holder.getOrEstablishConnection().replaceWithVoid();
-            if (oc.getSharedConnectionName().isPresent()) {
-                connection = connection
-                        .call(() -> RabbitMQClientHelper.declareExchangeIfNeeded(client, oc, connector.configMaps()));
-            }
-            connection.await().indefinitely();
+        Uni<RabbitMQClient> connectionUni = holder.getOrEstablishConnection();
+        if (oc.getSharedConnectionName().isPresent()) {
+            connectionUni = connectionUni
+                    .call(() -> RabbitMQClientHelper.declareExchangeIfNeeded(client, oc, connector.configMaps()));
         }
 
-        final Uni<RabbitMQPublisher> getSender = holder.getOrEstablishConnection()
+        if (!oc.getLazyClient()) {
+            connectionUni.await().atMost(Duration.ofSeconds(config.getConnectionTimeout()));
+        }
+
+        final Uni<RabbitMQPublisher> getSender = connectionUni
                 .onItem()
                 .transformToUni(connection -> Uni.createFrom().item(RabbitMQPublisher.create(connector.vertx(), connection,
                         new RabbitMQPublisherOptions()
