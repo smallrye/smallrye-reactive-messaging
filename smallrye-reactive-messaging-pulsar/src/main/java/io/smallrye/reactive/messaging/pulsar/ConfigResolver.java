@@ -18,6 +18,7 @@ import org.apache.pulsar.client.api.BatchReceivePolicy;
 import org.apache.pulsar.client.api.ClientBuilder;
 import org.apache.pulsar.client.api.ConsumerBuilder;
 import org.apache.pulsar.client.api.DeadLetterPolicy;
+import org.apache.pulsar.client.api.DecryptFailListener;
 import org.apache.pulsar.client.api.KeySharedPolicy;
 import org.apache.pulsar.client.api.ProducerBuilder;
 import org.apache.pulsar.client.api.PulsarClientException;
@@ -191,6 +192,9 @@ public class ConfigResolver {
         }
         if (conf.getCryptoKeyReader() != null) {
             builder.cryptoKeyReader(conf.getCryptoKeyReader());
+        }
+        if (conf.getDecryptFailListener() != null) {
+            builder.decryptFailListener((DecryptFailListener<T>) conf.getDecryptFailListener());
         }
         if (conf.getMessageCrypto() != null) {
             builder.messageCrypto(conf.getMessageCrypto());
