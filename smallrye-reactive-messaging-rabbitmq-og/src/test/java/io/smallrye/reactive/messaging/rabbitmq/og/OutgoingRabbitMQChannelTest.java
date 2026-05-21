@@ -1,7 +1,6 @@
 package io.smallrye.reactive.messaging.rabbitmq.og;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.awaitility.Awaitility.await;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
@@ -20,6 +19,7 @@ import com.rabbitmq.client.ConnectionFactory;
 
 import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.rabbitmq.og.internals.OutgoingRabbitMQChannel;
+import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 import io.vertx.mutiny.core.Vertx;
 
 /**
@@ -328,107 +328,29 @@ public class OutgoingRabbitMQChannelTest extends RabbitMQBrokerTestBase {
 
     // Helper methods to create test configurations
 
+    private MapBasedConfig baseOutgoingConfig() {
+        return new MapBasedConfig()
+                .with("channel-name", "test-channel")
+                .with("connector", RabbitMQConnector.CONNECTOR_NAME)
+                .with("exchange.name", exchangeName)
+                .with("exchange.durable", false)
+                .with("exchange.auto-delete", true)
+                .with("default-routing-key", "test.key")
+                .with("retry-on-fail-interval", 1)
+                .with("tracing.enabled", false);
+    }
+
     private RabbitMQConnectorOutgoingConfiguration createTestConfig() {
-        return new TestOutgoingConfig(exchangeName, false, 1024, 10);
+        return new RabbitMQConnectorOutgoingConfiguration(baseOutgoingConfig());
     }
 
     private RabbitMQConnectorOutgoingConfiguration createConfigWithConfirms() {
-        return new TestOutgoingConfig(exchangeName, true, 1024, 10);
+        return new RabbitMQConnectorOutgoingConfiguration(
+                baseOutgoingConfig().with("publish-confirms", true));
     }
 
     private RabbitMQConnectorOutgoingConfiguration createBackpressureConfig() {
-        return new TestOutgoingConfig(exchangeName, false, 10, 10);
-    }
-
-    // Simple test configuration implementation
-    static class TestOutgoingConfig extends RabbitMQConnectorOutgoingConfiguration {
-
-        private final String exchangeName;
-        private final boolean publishConfirms;
-        private final long maxInflight;
-        private final int retryAttempts;
-
-        public TestOutgoingConfig(String exchangeName, boolean publishConfirms, long maxInflight, int retryAttempts) {
-            super(null);
-            this.exchangeName = exchangeName;
-            this.publishConfirms = publishConfirms;
-            this.maxInflight = maxInflight;
-            this.retryAttempts = retryAttempts;
-        }
-
-        @Override
-        public String getChannel() {
-            return "test-channel";
-        }
-
-        @Override
-        public java.util.Optional<String> getExchangeName() {
-            return java.util.Optional.of(exchangeName);
-        }
-
-        @Override
-        public Boolean getExchangeDeclare() {
-            return true;
-        }
-
-        @Override
-        public String getExchangeType() {
-            return "topic";
-        }
-
-        @Override
-        public Boolean getExchangeDurable() {
-            return false;
-        }
-
-        @Override
-        public Boolean getExchangeAutoDelete() {
-            return true;
-        }
-
-        @Override
-        public String getExchangeArguments() {
-            return "rabbitmq-exchange-arguments";
-        }
-
-        @Override
-        public Boolean getPublishConfirms() {
-            return publishConfirms;
-        }
-
-        @Override
-        public Long getMaxInflightMessages() {
-            return maxInflight;
-        }
-
-        @Override
-        public String getDefaultRoutingKey() {
-            return "test.key";
-        }
-
-        @Override
-        public java.util.Optional<Long> getDefaultTtl() {
-            return java.util.Optional.empty();
-        }
-
-        @Override
-        public Integer getRetryOnFailAttempts() {
-            return retryAttempts;
-        }
-
-        @Override
-        public Integer getRetryOnFailInterval() {
-            return 1;
-        }
-
-        @Override
-        public Boolean getTracingEnabled() {
-            return false;
-        }
-
-        @Override
-        public Boolean getHealthEnabled() {
-            return true;
-        }
+        return new RabbitMQConnectorOutgoingConfiguration(
+                baseOutgoingConfig().with("max-inflight-messages", 10L));
     }
 }

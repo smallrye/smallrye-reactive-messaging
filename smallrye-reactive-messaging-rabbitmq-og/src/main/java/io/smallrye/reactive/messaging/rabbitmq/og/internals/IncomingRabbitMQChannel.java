@@ -4,6 +4,7 @@ import static io.smallrye.reactive.messaging.rabbitmq.og.i18n.RabbitMQExceptions
 import static io.smallrye.reactive.messaging.rabbitmq.og.i18n.RabbitMQLogging.log;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -80,6 +81,11 @@ public class IncomingRabbitMQChannel {
 
         this.autoAck = configuration.getAutoAcknowledgement();
         this.maxOutstandingMessages = configuration.getMaxOutstandingMessages().orElse(256);
+
+        if (!configuration.getLazyClient()) {
+            connectionHolder.connect()
+                    .await().atMost(Duration.ofMillis(configuration.getConnectionTimeout()));
+        }
     }
 
     /**
