@@ -83,6 +83,11 @@ public class OutgoingRabbitMQChannel implements Subscriber<Message<?>> {
         this.defaultTtl = configuration.getDefaultTtl().orElse(null);
         this.retryAttempts = configuration.getRetryOnFailAttempts();
         this.retryInterval = configuration.getRetryOnFailInterval();
+
+        if (!configuration.getLazyClient()) {
+            connectionHolder.connect()
+                    .await().atMost(Duration.ofMillis(configuration.getConnectionTimeout()));
+        }
     }
 
     private void initialize() {
