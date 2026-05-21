@@ -69,6 +69,9 @@ import io.vertx.core.Vertx;
 @ConnectorAttribute(name = "client-options-name", direction = INCOMING_AND_OUTGOING, description = "The name of the RabbitMQ ConnectionFactory bean used to customize the RabbitMQ client configuration", type = "string", alias = "rabbitmq-client-options-name")
 @ConnectorAttribute(name = "credentials-provider-name", direction = INCOMING_AND_OUTGOING, description = "The name of the RabbitMQ Credentials Provider bean used to provide dynamic credentials to the RabbitMQ client", type = "string", alias = "rabbitmq-credentials-provider-name")
 
+// Client
+@ConnectorAttribute(name = "lazy-client", type = "boolean", direction = INCOMING_AND_OUTGOING, description = "Whether the RabbitMQ client is created lazily or eagerly.", defaultValue = "true")
+
 // Health
 @ConnectorAttribute(name = "health-enabled", type = "boolean", direction = INCOMING_AND_OUTGOING, description = "Whether health reporting is enabled (default) or disabled", defaultValue = "true")
 @ConnectorAttribute(name = "health-readiness-enabled", type = "boolean", direction = INCOMING_AND_OUTGOING, description = "Whether readiness health reporting is enabled (default) or disabled", defaultValue = "true")
