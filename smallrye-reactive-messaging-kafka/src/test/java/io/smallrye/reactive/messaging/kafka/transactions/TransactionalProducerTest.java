@@ -92,7 +92,6 @@ public class TransactionalProducerTest extends KafkaCompanionTestBase {
     }
 
     @Test
-    // TODO this used to pass in its reactive form on Vert.x 4
     void testTransactionFromVertxContextBlocking() {
         topic = companion.topics().createAndWait(topic, 3);
         int numberOfRecords = 100;
@@ -100,8 +99,10 @@ public class TransactionalProducerTest extends KafkaCompanionTestBase {
 
         vertx.executeBlocking(() -> {
             application.produceInTransaction(numberOfRecords);
+            assertThat(Vertx.currentContext()).isNotNull();
+            assertThat(Context.isOnWorkerThread()).isTrue();
             return null;
-        }).await().indefinitely();
+        }).await().atMost(Duration.ofSeconds(4));
 
         companion.consumeIntegers()
                 .withProp(ConsumerConfig.ISOLATION_LEVEL_CONFIG, "read_committed")
@@ -181,7 +182,6 @@ public class TransactionalProducerTest extends KafkaCompanionTestBase {
         void produceInTransaction(final int numberOfRecords) {
             assertThat(Vertx.currentContext()).isNotNull();
             assertThat(Context.isOnWorkerThread()).isTrue();
-//            return transaction.withTransaction(emitter -> {
             transaction.withTransactionAndAwait(emitter -> {
                 assertThat(Vertx.currentContext()).isNotNull();
                 assertThat(Context.isOnWorkerThread()).isTrue();
@@ -371,7 +371,7 @@ public class TransactionalProducerTest extends KafkaCompanionTestBase {
     }
 
     @Test
-    // TODO this used to pass in its reactive form on Vert.x 4
+    // this used to pass in its reactive form on Vert.x 4
     void testTransactionalConsumerBlocking() {
         String inTopic = companion.topics().createAndWait(UUID.randomUUID().toString(), 1);
 
@@ -432,14 +432,6 @@ public class TransactionalProducerTest extends KafkaCompanionTestBase {
                 emitter.send(KafkaRecord.of(msg, 3));
                 return Uni.createFrom().voidItem();
             });
-//            return transaction.withTransaction(emitter -> {
-//                assertThat(Vertx.currentContext()).isNotNull();
-//                assertThat(Context.isOnWorkerThread()).isTrue();
-//                emitter.send(KafkaRecord.of(msg, 1));
-//                emitter.send(KafkaRecord.of(msg, 2));
-//                emitter.send(KafkaRecord.of(msg, 3));
-//                return Uni.createFrom().voidItem();
-//            });
         }
 
     }
