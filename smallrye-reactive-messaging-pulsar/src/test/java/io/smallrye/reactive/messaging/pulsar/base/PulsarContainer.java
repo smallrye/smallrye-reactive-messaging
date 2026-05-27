@@ -3,6 +3,8 @@ package io.smallrye.reactive.messaging.pulsar.base;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 
+import org.jboss.logging.Logger;
+import org.testcontainers.containers.ContainerLaunchException;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.images.builder.Transferable;
@@ -12,7 +14,10 @@ import com.github.dockerjava.api.command.InspectContainerResponse;
 
 public class PulsarContainer extends GenericContainer<PulsarContainer> {
 
-    public static final DockerImageName PULSAR_IMAGE = DockerImageName.parse("apachepulsar/pulsar:4.0.0");
+    private static final Logger LOGGER = Logger.getLogger(PulsarContainer.class);
+    private static final int MAX_START_RETRIES = 3;
+
+    public static final DockerImageName PULSAR_IMAGE = DockerImageName.parse("apachepulsar/pulsar:4.0.4");
 
     public static final String STARTER_SCRIPT = "/run_pulsar.sh";
 
@@ -51,6 +56,29 @@ public class PulsarContainer extends GenericContainer<PulsarContainer> {
         copyFileToContainer(
                 Transferable.of(command.getBytes(StandardCharsets.UTF_8), 700),
                 STARTER_SCRIPT);
+    }
+
+    @Override
+    public void start() {
+        ContainerLaunchException lastException = null;
+        for (int attempt = 1; attempt <= MAX_START_RETRIES; attempt++) {
+            try {
+                super.start();
+                return;
+            } catch (ContainerLaunchException e) {
+                lastException = e;
+                LOGGER.warnf("Container start attempt %d/%d failed: %s", attempt, MAX_START_RETRIES, e.getMessage());
+                if (attempt < MAX_START_RETRIES) {
+                    try {
+                        Thread.sleep(2000L * attempt);
+                    } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                        throw e;
+                    }
+                }
+            }
+        }
+        throw lastException;
     }
 
     public PulsarContainer withPort(final int fixedPort) {

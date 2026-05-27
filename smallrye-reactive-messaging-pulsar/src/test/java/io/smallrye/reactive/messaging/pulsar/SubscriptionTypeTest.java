@@ -246,8 +246,7 @@ public class SubscriptionTypeTest extends PulsarBaseTest {
                 .create(),
                 NUMBER_OF_MESSAGES, (i, p) -> p.newMessage().key("k-" + i).value(i));
 
-        await().until(() -> messages1.size() > 0 && messages2.size() > 0
-                && (messages1.size() + messages2.size() == NUMBER_OF_MESSAGES));
+        await().until(() -> messages1.size() + messages2.size() == NUMBER_OF_MESSAGES);
 
         List<Message<?>> allMessages = Stream.concat(messages1.stream(), messages2.stream()).collect(Collectors.toList());
         assertThat(allMessages).allSatisfy(m -> {
