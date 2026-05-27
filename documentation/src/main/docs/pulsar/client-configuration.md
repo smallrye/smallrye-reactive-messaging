@@ -69,6 +69,22 @@ Corresponding sections list the [Consumer Configuration Reference](../pulsar/rec
 [Producer Configuration Reference](../pulsar/sending-messages-to-pulsar.md#configuration-reference).
 Configuration properties not configurable in configuration files (non-serializable) is noted in the column `Config file`.
 
+## Shared Resources
+
+The Pulsar connector shares an event loop group and DNS resolver across all Pulsar clients using
+{{ javadoc('org.apache.pulsar.client.api.PulsarClientSharedResources', False, 'org.apache.pulsar/pulsar-client-api') }}.
+This reduces thread usage and avoids creating separate thread pools per client.
+
+By default, the connector creates and manages a `PulsarClientSharedResources` instance with shared `EventLoopGroup` and `DnsResolver`.
+To customize the shared resources, produce a CDI bean of type `PulsarClientSharedResources`:
+
+```java
+{{ insert('pulsar/configuration/PulsarClientConfigProducers.java', 'shared-resources') }}
+```
+
+When a `PulsarClientSharedResources` bean is provided, the connector uses it for all Pulsar clients and does not manage its lifecycle.
+The application is responsible for closing the shared resources when they are no longer needed.
+
 ## `PulsarClient` Configuration Reference
 
 {{ insert('../docs/pulsar/config/smallrye-pulsar-client.md') }}

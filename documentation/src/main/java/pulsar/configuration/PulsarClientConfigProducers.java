@@ -6,6 +6,7 @@ import java.util.Map;
 import jakarta.enterprise.inject.Produces;
 
 import org.apache.pulsar.client.api.BatcherBuilder;
+import org.apache.pulsar.client.api.PulsarClientSharedResources;
 import org.apache.pulsar.client.impl.AutoClusterFailover;
 import org.apache.pulsar.client.impl.DefaultCryptoKeyReader;
 import org.apache.pulsar.client.impl.conf.ClientConfigurationData;
@@ -41,6 +42,15 @@ public class PulsarClientConfigProducers {
         return data;
     }
     // </client>
+
+    // <shared-resources>
+    @Produces
+    public PulsarClientSharedResources getSharedResources() {
+        return PulsarClientSharedResources.builder()
+                .configureEventLoop(config -> config.numberOfThreads(4))
+                .build();
+    }
+    // </shared-resources>
 
     // <producer>
     @Produces
