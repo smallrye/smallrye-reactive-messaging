@@ -30,6 +30,18 @@ public class BufferOverflowStrategyTest extends WeldTestBaseWithoutTails {
     }
 
     @Test
+    public void testHasRequestsConsistentWithBuffer() {
+        BeanUsingBufferOverflowStrategy bean = installInitializeAndGet(BeanUsingBufferOverflowStrategy.class);
+
+        assertThat(bean.hasRequests()).isTrue();
+
+        bean.sendOne();
+        assertThat(bean.hasRequests()).isTrue();
+
+        await().until(() -> bean.output().size() == 1);
+    }
+
+    @Test
     public void testOverflow() {
         BeanUsingBufferOverflowStrategy bean = installInitializeAndGet(BeanUsingBufferOverflowStrategy.class);
         bean.emitALotOfItems();
@@ -61,6 +73,14 @@ public class BufferOverflowStrategyTest extends WeldTestBaseWithoutTails {
 
         public boolean isComplete() {
             return completed.get();
+        }
+
+        public boolean hasRequests() {
+            return emitter.hasRequests();
+        }
+
+        public void sendOne() {
+            emitter.send("1");
         }
 
         public void emitThree() {
