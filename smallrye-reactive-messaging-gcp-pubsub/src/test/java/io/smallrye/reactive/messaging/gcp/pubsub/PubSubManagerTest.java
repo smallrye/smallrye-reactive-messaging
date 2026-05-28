@@ -2,6 +2,7 @@ package io.smallrye.reactive.messaging.gcp.pubsub;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
+import org.eclipse.microprofile.config.ConfigProvider;
 import org.jboss.weld.environment.se.Weld;
 import org.jboss.weld.environment.se.WeldContainer;
 import org.junit.jupiter.api.AfterEach;
@@ -11,6 +12,7 @@ import org.junit.jupiter.api.Test;
 import com.google.pubsub.v1.Topic;
 import com.google.pubsub.v1.TopicName;
 
+import io.smallrye.config.SmallRyeConfigProviderResolver;
 import io.smallrye.reactive.messaging.providers.impl.ConnectorFactories;
 
 public class PubSubManagerTest extends PubSubTestBase {
@@ -33,8 +35,9 @@ public class PubSubManagerTest extends PubSubTestBase {
         // cleanup
         PubSubManager manager = container.select(PubSubManager.class).get();
         deleteTopicIfExists(manager, TOPIC);
-        clear();
         container.shutdown();
+        SmallRyeConfigProviderResolver.instance().releaseConfig(ConfigProvider.getConfig());
+        clear();
     }
 
     @Test
