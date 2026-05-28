@@ -25,7 +25,7 @@ import org.apache.pulsar.client.api.Consumer;
 import org.apache.pulsar.client.api.Producer;
 import org.apache.pulsar.client.api.PulsarClient;
 import org.apache.pulsar.client.api.PulsarClientException;
-import org.apache.pulsar.client.impl.PulsarClientImpl;
+import org.apache.pulsar.client.api.PulsarClientSharedResources;
 import org.apache.pulsar.client.impl.conf.ClientConfigurationData;
 import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.reactive.messaging.Message;
@@ -96,9 +96,29 @@ public class PulsarConnector implements InboundConnector, OutboundConnector, Hea
     @Inject
     private Instance<OpenTelemetry> openTelemetryInstance;
 
+    /**
+     * Optional CDI bean providing shared resources (event loop group, DNS resolver) across all Pulsar clients.
+     * If not provided, the connector creates and manages a default instance.
+     */
+    @Inject
+    private Instance<PulsarClientSharedResources> sharedResourcesInstance;
+
+    private PulsarClientSharedResources sharedResources;
+    private boolean managedSharedResources;
+
     @PostConstruct
     void init() {
         this.vertx = executionHolder.vertx();
+        if (sharedResourcesInstance.isResolvable()) {
+            this.sharedResources = sharedResourcesInstance.get();
+            this.managedSharedResources = false;
+        } else {
+            this.sharedResources = PulsarClientSharedResources.builder()
+                    .resourceTypes(PulsarClientSharedResources.SharedResource.EventLoopGroup,
+                            PulsarClientSharedResources.SharedResource.DnsResolver)
+                    .build();
+            this.managedSharedResources = true;
+        }
     }
 
     @Override
@@ -159,13 +179,22 @@ public class PulsarConnector implements InboundConnector, OutboundConnector, Hea
         outgoingChannels.clear();
         clients.clear();
         clientsByChannel.clear();
+        if (managedSharedResources && sharedResources != null) {
+            try {
+                sharedResources.close();
+            } catch (PulsarClientException e) {
+                log.unableToCloseClient(e);
+            }
+        }
     }
 
-    private PulsarClientImpl createPulsarClient(PulsarConnectorCommonConfiguration cc, ClientConfigurationData configuration) {
+    private PulsarClient createPulsarClient(PulsarConnectorCommonConfiguration cc, ClientConfigurationData configuration) {
         try {
-            ClientConfigurationData data = configResolver.configure(cc, configuration).getClientConfigurationData();
-            log.createdClientWithConfig(data);
-            return new PulsarClientImpl(data, vertx.nettyEventLoopGroup());
+            var builder = configResolver.configure(cc, configuration);
+            log.createdClientWithConfig(builder.getClientConfigurationData());
+            return builder
+                    .sharedResources(sharedResources)
+                    .build();
         } catch (PulsarClientException e) {
             throw ex.illegalStateUnableToBuildClient(e);
         }
