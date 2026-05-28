@@ -106,7 +106,7 @@
 
     <jakarta.jms.api.version>3.1.0</jakarta.jms.api.version>
     <jackson.version>2.20.1</jackson.version>
-    <jackson.annotations.version>2.20</jackson.annotations.version>
+    <jackson.annotations.version>2.21</jackson.annotations.version>
     <yasson.version>2.0.3</yasson.version>
 
     <jandex-maven-plugin.version>3.5.3</jandex-maven-plugin.version>
