@@ -32,6 +32,8 @@ public class PubSubTest extends PubSubTestBase {
 
     @BeforeEach
     public void initTest(TestInfo testInfo) {
+        SmallRyeConfigProviderResolver.instance().releaseConfig(ConfigProvider.getConfig());
+        MapBasedConfig.cleanup();
         topic = testInfo.getTestMethod().map(Method::getName).orElse("") + "_" + UUID.randomUUID();
         initConfiguration(topic);
         final Weld weld = baseWeld();
