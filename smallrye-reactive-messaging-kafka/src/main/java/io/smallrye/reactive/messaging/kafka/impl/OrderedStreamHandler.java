@@ -1,6 +1,8 @@
 package io.smallrye.reactive.messaging.kafka.impl;
 
 import static io.smallrye.mutiny.helpers.Subscriptions.CANCELLED;
+import static io.smallrye.mutiny.helpers.Subscriptions.complete;
+import static io.smallrye.reactive.messaging.kafka.i18n.KafkaLogging.log;
 
 import java.util.Collection;
 import java.util.Map;
@@ -55,7 +57,7 @@ public class OrderedStreamHandler extends ContextHolder implements KafkaCommitHa
     private final int maxPollRecords;
     private final int maxQueueSizeFactor;
     private final int maxConcurrency;
-    private Map<TopicPartitionKey, OrderedGroup> orderedByGroups;
+    Map<TopicPartitionKey, OrderedGroup> orderedByGroups;
 
     public OrderedStreamHandler(KafkaConnectorIncomingConfiguration configuration,
             Vertx vertx,
@@ -235,7 +237,11 @@ public class OrderedStreamHandler extends ContextHolder implements KafkaCommitHa
 
             @Override
             public void onSubscribe(Flow.Subscription subscription) {
-                if (compareAndSetUpstreamSubscription(null, subscription) && orderedGroup != null) {
+                if (orderedGroup == null) {
+                    subscription.cancel();
+                    log.debugf("Group for key %s already revoked before subscription, completing downstream", key);
+                    complete(downstream);
+                } else if (compareAndSetUpstreamSubscription(null, subscription)) {
                     // Propagate subscription to downstream.
                     orderedGroup.subscription(this);
                     downstream.onSubscribe(this);
