@@ -1,5 +1,7 @@
 package io.smallrye.reactive.messaging.kafka.impl;
 
+import static io.smallrye.reactive.messaging.kafka.i18n.KafkaLogging.log;
+
 import java.util.concurrent.CompletionStage;
 
 import org.eclipse.microprofile.reactive.messaging.Metadata;
@@ -21,12 +23,20 @@ public class OrderedIncomingKafkaRecord<K, T> extends IncomingKafkaRecord<K, T> 
 
     @Override
     public CompletionStage<Void> ack(Metadata metadata) {
-        return super.ack(metadata).thenRun(postProcessing);
+        return super.ack(metadata).whenComplete((ignored, failure) -> runPostProcessing());
     }
 
     @Override
     public CompletionStage<Void> nack(Throwable reason, Metadata metadata) {
-        return super.nack(reason, metadata).thenRun(postProcessing);
+        return super.nack(reason, metadata).whenComplete((ignored, failure) -> runPostProcessing());
+    }
+
+    private void runPostProcessing() {
+        try {
+            postProcessing.run();
+        } catch (Exception e) {
+            log.debugf(e, "An exception was thrown while completing ordered Kafka record post-processing");
+        }
     }
 
 }
