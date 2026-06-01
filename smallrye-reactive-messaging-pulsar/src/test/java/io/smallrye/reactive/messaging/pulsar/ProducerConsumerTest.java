@@ -8,6 +8,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 
 import jakarta.enterprise.context.ApplicationScoped;
 
+import org.apache.pulsar.client.admin.PulsarAdminException;
 import org.apache.pulsar.client.api.SubscriptionInitialPosition;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
@@ -20,8 +21,9 @@ import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 public class ProducerConsumerTest extends WeldTestBase {
 
     @Test
-    void testProducerConsumer() {
+    void testProducerConsumer() throws PulsarAdminException {
         topic = "testProducerConsumer";
+        admin.topics().createNonPartitionedTopic(topic);
         ProducerConsumerApp app = runApplication(config(), ProducerConsumerApp.class);
 
         await().untilAsserted(() -> assertThat(app.received()).contains("1", "2", "3", "4", "5"));
