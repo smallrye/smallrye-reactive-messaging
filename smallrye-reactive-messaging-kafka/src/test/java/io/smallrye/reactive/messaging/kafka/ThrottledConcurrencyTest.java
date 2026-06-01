@@ -11,6 +11,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.BiConsumer;
 import java.util.stream.IntStream;
 
 import jakarta.enterprise.context.ApplicationScoped;
@@ -18,14 +19,20 @@ import jakarta.enterprise.context.ApplicationScoped;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.serialization.StringDeserializer;
+import org.eclipse.microprofile.reactive.messaging.Acknowledgment;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
+import org.eclipse.microprofile.reactive.messaging.Message;
+import org.eclipse.microprofile.reactive.messaging.Metadata;
 import org.junit.jupiter.api.Test;
 
+import io.smallrye.common.annotation.Identifier;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.annotations.Blocking;
 import io.smallrye.reactive.messaging.kafka.api.IncomingKafkaRecordMetadata;
 import io.smallrye.reactive.messaging.kafka.base.KafkaCompanionTestBase;
+import io.smallrye.reactive.messaging.kafka.fault.KafkaFailureHandler;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
+import io.vertx.mutiny.core.Vertx;
 
 public class ThrottledConcurrencyTest extends KafkaCompanionTestBase {
 
@@ -34,6 +41,7 @@ public class ThrottledConcurrencyTest extends KafkaCompanionTestBase {
     final static int concurrency = 4;
     final static int recordsParPartition = 30;
     final static int processingTimeMs = 20;
+    final static String FAILING_NACK = "failing-nack";
 
     @Test
     public void testUnorderedParallelProcessing() {
@@ -246,6 +254,83 @@ public class ThrottledConcurrencyTest extends KafkaCompanionTestBase {
                     .hasSize(partitions)
                     .allSatisfy(offset -> assertThat(offset).isGreaterThanOrEqualTo(recordsParPartition));
         });
+    }
+
+    @Test
+    public void testOrderedByKeyReleasesAfterFailingNackOnBroker() {
+        companion.topics().createAndWait(topic, 1);
+
+        companion.produceStrings()
+                .fromRecords(List.of(
+                        new ProducerRecord<>(topic, 0, "same-key", "value-0"),
+                        new ProducerRecord<>(topic, 0, "same-key", "value-1")))
+                .awaitCompletion(Duration.ofSeconds(30));
+
+        MapBasedConfig config = kafkaConfig("mp.messaging.incoming.fail-release")
+                .with("topic", topic)
+                .with("group.id", UUID.randomUUID().toString())
+                .with("max.poll.records", 10)
+                .with("auto.offset.reset", "earliest")
+                .with("value.deserializer", StringDeserializer.class.getName())
+                .with("key.deserializer", StringDeserializer.class.getName())
+                .with("ordered", "key")
+                .with("commit-strategy", "throttled")
+                .with("failure-strategy", FAILING_NACK)
+                .withPrefix("")
+                .with("smallrye.messaging.worker.fail-release-pool.max-concurrency", 2);
+
+        addBeans(FailingNackFailureHandler.Factory.class);
+        FailingNackReleaseConsumer app = runApplication(config, FailingNackReleaseConsumer.class);
+
+        await().atMost(30, TimeUnit.SECONDS)
+                .untilAsserted(() -> assertThat(app.received())
+                        .containsExactly("value-0", "value-1"));
+        assertThat(app.nacks()).hasValue(1);
+    }
+
+    @ApplicationScoped
+    public static class FailingNackReleaseConsumer {
+
+        private final List<String> received = new CopyOnWriteArrayList<>();
+        private final AtomicInteger nacks = new AtomicInteger();
+
+        @Incoming("fail-release")
+        @Acknowledgment(Acknowledgment.Strategy.MANUAL)
+        @Blocking(ordered = false, value = "fail-release-pool")
+        public Uni<Void> consume(Message<String> message) {
+            received.add(message.getPayload());
+            if ("value-0".equals(message.getPayload()) && nacks.compareAndSet(0, 1)) {
+                return Uni.createFrom()
+                        .completionStage(message.nack(new IllegalStateException("nack fails with fail strategy")))
+                        .onFailure().recoverWithNull();
+            }
+            return Uni.createFrom().completionStage(message.ack());
+        }
+
+        public List<String> received() {
+            return received;
+        }
+
+        public AtomicInteger nacks() {
+            return nacks;
+        }
+    }
+
+    public static class FailingNackFailureHandler implements KafkaFailureHandler {
+        @Override
+        public <K, V> Uni<Void> handle(IncomingKafkaRecord<K, V> record, Throwable reason, Metadata metadata) {
+            return Uni.createFrom().failure(reason);
+        }
+
+        @ApplicationScoped
+        @Identifier(FAILING_NACK)
+        public static class Factory implements KafkaFailureHandler.Factory {
+            @Override
+            public KafkaFailureHandler create(KafkaConnectorIncomingConfiguration config, Vertx vertx,
+                    KafkaConsumer<?, ?> consumer, BiConsumer<Throwable, Boolean> reportFailure) {
+                return new FailingNackFailureHandler();
+            }
+        }
     }
 
     @Test
