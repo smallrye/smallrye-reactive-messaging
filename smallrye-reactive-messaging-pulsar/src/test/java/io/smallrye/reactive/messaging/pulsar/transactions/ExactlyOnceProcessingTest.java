@@ -37,9 +37,9 @@ public class ExactlyOnceProcessingTest extends WeldTestBase {
     @Test
     void testExactlyOnceProcessor() throws PulsarAdminException, PulsarClientException {
         this.inTopic = UUID.randomUUID().toString();
-        admin.topics().createPartitionedTopic(inTopic, 3);
+        createPartitionedTopic(inTopic, 3);
         this.outTopic = UUID.randomUUID().toString();
-        admin.topics().createPartitionedTopic(outTopic, 3);
+        createPartitionedTopic(outTopic, 3);
         int numberOfRecords = 10;
         MapBasedConfig config = new MapBasedConfig(producerConfig());
         config.putAll(consumerConfig());
@@ -82,9 +82,9 @@ public class ExactlyOnceProcessingTest extends WeldTestBase {
     @Test
     void testExactlyOnceProcessorWithProcessingError() throws PulsarAdminException, PulsarClientException {
         this.inTopic = UUID.randomUUID().toString();
-        admin.topics().createPartitionedTopic(inTopic, 3);
+        createPartitionedTopic(inTopic, 3);
         this.outTopic = UUID.randomUUID().toString();
-        admin.topics().createPartitionedTopic(outTopic, 3);
+        createPartitionedTopic(outTopic, 3);
         int numberOfRecords = 10;
         MapBasedConfig config = new MapBasedConfig(producerConfig());
         config.putAll(consumerConfig());
