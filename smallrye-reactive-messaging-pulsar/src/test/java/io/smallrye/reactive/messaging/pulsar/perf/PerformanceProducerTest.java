@@ -37,7 +37,7 @@ public class PerformanceProducerTest extends WeldTestBase {
     @Test
     public void testDefault() throws PulsarAdminException, PulsarClientException {
         String topic = UUID.randomUUID().toString();
-        admin.topics().createPartitionedTopic(topic, 10);
+        createPartitionedTopic(topic, 10);
 
         List<Integer> messages = new CopyOnWriteArrayList<>();
         receive(client.newConsumer(Schema.INT32)
@@ -77,7 +77,7 @@ public class PerformanceProducerTest extends WeldTestBase {
     @Test
     public void testDefaultNoWait() throws PulsarAdminException, PulsarClientException {
         String topic = UUID.randomUUID().toString();
-        admin.topics().createPartitionedTopic(topic, 10);
+        createPartitionedTopic(topic, 10);
 
         List<Integer> messages = new CopyOnWriteArrayList<>();
         receive(client.newConsumer(Schema.INT32)
@@ -118,7 +118,7 @@ public class PerformanceProducerTest extends WeldTestBase {
     @Test
     public void testWithoutBackPressure() throws PulsarAdminException, PulsarClientException {
         String topic = UUID.randomUUID().toString();
-        admin.topics().createPartitionedTopic(topic, 10);
+        createPartitionedTopic(topic, 10);
 
         List<Integer> messages = new CopyOnWriteArrayList<>();
         receive(client.newConsumer(Schema.INT32)
@@ -158,7 +158,7 @@ public class PerformanceProducerTest extends WeldTestBase {
     @Test
     public void testWithoutBackPressureAndNoWait() throws PulsarAdminException, PulsarClientException {
         String topic = UUID.randomUUID().toString();
-        admin.topics().createPartitionedTopic(topic, 10);
+        createPartitionedTopic(topic, 10);
 
         List<Integer> messages = new CopyOnWriteArrayList<>();
         receive(client.newConsumer(Schema.INT32)
@@ -201,7 +201,7 @@ public class PerformanceProducerTest extends WeldTestBase {
     public void testWithoutBackPressureAndIdempotence() throws PulsarAdminException, PulsarClientException {
         String topic = UUID.randomUUID().toString();
         admin.namespaces().setDeduplicationStatus("public/default", true);
-        admin.topics().createPartitionedTopic(topic, 10);
+        createPartitionedTopic(topic, 10);
 
         List<Integer> messages = new CopyOnWriteArrayList<>();
         receive(client.newConsumer(Schema.INT32)

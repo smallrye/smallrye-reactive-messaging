@@ -1,6 +1,9 @@
 package io.smallrye.reactive.messaging.pulsar.base;
 
+import static org.awaitility.Awaitility.await;
+
 import java.lang.reflect.Method;
+import java.time.Duration;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
@@ -9,6 +12,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.apache.pulsar.client.admin.PulsarAdmin;
+import org.apache.pulsar.client.admin.PulsarAdminException;
 import org.apache.pulsar.client.api.Consumer;
 import org.apache.pulsar.client.api.Message;
 import org.apache.pulsar.client.api.MessageId;
@@ -84,6 +88,20 @@ public class PulsarClientBaseTest {
         if (admin != null) {
             admin.close();
         }
+    }
+
+    protected static void createPartitionedTopic(String topic, int partitions) throws PulsarAdminException {
+        admin.topics().createPartitionedTopic(topic, partitions);
+        // Wait until all partition sub-topics are initialized by the broker
+        await().atMost(Duration.ofSeconds(30))
+                .ignoreExceptions()
+                .until(() -> {
+                    boolean ready = admin.topics().getPartitionedTopicMetadata(topic).partitions == partitions;
+                    for (int i = 0; i < partitions; i++) {
+                        ready &= "LedgerOpened".equals(admin.topics().getInternalStats(topic + "-partition-" + i).state);
+                    }
+                    return ready;
+                });
     }
 
     public static <T> Multi<Message<T>> receive(Consumer<T> consumer) {
