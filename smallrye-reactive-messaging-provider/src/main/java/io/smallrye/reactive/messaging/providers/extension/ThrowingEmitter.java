@@ -65,10 +65,12 @@ class ThrowingEmitter<T> implements MultiEmitter<T> {
     }
 
     public void fail(Throwable failure) {
+        requested.set(0);
         delegate.fail(failure);
     }
 
     public void complete() {
+        requested.set(0);
         delegate.complete();
     }
 
@@ -82,7 +84,7 @@ class ThrowingEmitter<T> implements MultiEmitter<T> {
     }
 
     public long requested() {
-        return delegate.requested();
+        return requested.get();
     }
 
     public void request(long requests) {
