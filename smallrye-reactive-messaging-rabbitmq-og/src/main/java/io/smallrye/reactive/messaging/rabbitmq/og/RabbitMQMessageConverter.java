@@ -10,6 +10,8 @@ import org.eclipse.microprofile.reactive.messaging.Message;
 
 import com.rabbitmq.client.AMQP;
 
+import io.vertx.core.json.JsonObject;
+
 /**
  * Utility class for converting between Reactive Messaging Message and RabbitMQ message format.
  * Handles different payload types and content-type determination.
@@ -166,9 +168,8 @@ public class RabbitMQMessageConverter {
             return payload.toString().getBytes(StandardCharsets.UTF_8);
         }
 
-        // For other types, convert to string representation
-        // In a full implementation, you might want to use Jackson for JSON serialization
-        return payload.toString().getBytes(StandardCharsets.UTF_8);
+        // For complex objects, serialize to JSON
+        return JsonObject.mapFrom(payload).encode().getBytes(StandardCharsets.UTF_8);
     }
 
     /**
