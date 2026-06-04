@@ -51,7 +51,6 @@ class ConfigResolverTest {
                 "autoUpdatePartitions",
                 "autoUpdatePartitionsIntervalSeconds",
                 "batchIndexAckEnabled",
-                "cryptoFailureAction",
                 "expireTimeOfIncompleteChunkedMessageMillis",
                 "maxPendingChuckedMessage",
                 "maxPendingChunkedMessage",

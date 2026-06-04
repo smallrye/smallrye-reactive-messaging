@@ -103,7 +103,7 @@ public interface PulsarTransactions<T> extends EmitterType {
      * This is a convenience method that ignores the item returned by the transaction and returns the {@code Uni} which
      * <ul>
      * <li>acks the given message if the transaction is successful.</li>
-     * <li>nacks the given message if the transaction is aborted.</li>
+     * <li>nacks the given message if the transaction is aborted (handled by {@link #withTransaction(Message, Function)}).</li>
      * </ul>
      *
      * @param message the incoming Pulsar message.
@@ -115,7 +115,7 @@ public interface PulsarTransactions<T> extends EmitterType {
     @CheckReturnValue
     default Uni<Void> withTransactionAndAck(Message<?> message, Function<TransactionalEmitter<T>, Uni<Void>> work) {
         return withTransaction(message, work)
-                .onFailure().recoverWithUni(throwable -> Uni.createFrom().completionStage(message.nack(throwable)));
+                .onFailure().recoverWithUni(t -> Uni.createFrom().voidItem());
     }
 
     /**
@@ -123,7 +123,7 @@ public interface PulsarTransactions<T> extends EmitterType {
      * This is a convenience method that ignores the item returned by the transaction and returns the {@code Uni} which
      * <ul>
      * <li>acks the given message if the transaction is successful.</li>
-     * <li>nacks the given message if the transaction is aborted.</li>
+     * <li>nacks the given message if the transaction is aborted (handled by {@link #withTransaction(Message, Function)}).</li>
      * </ul>
      *
      * @param txnTimeout the timeout of the transaction
@@ -135,7 +135,7 @@ public interface PulsarTransactions<T> extends EmitterType {
     default Uni<Void> withTransactionAndAck(Duration txnTimeout, Message<?> message,
             Function<TransactionalEmitter<T>, Uni<Void>> work) {
         return withTransaction(txnTimeout, message, work)
-                .onFailure().recoverWithUni(throwable -> Uni.createFrom().completionStage(message.nack(throwable)));
+                .onFailure().recoverWithUni(t -> Uni.createFrom().voidItem());
     }
 
     /**

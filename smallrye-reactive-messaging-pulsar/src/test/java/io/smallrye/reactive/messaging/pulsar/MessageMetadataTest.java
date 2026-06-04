@@ -1,7 +1,6 @@
 package io.smallrye.reactive.messaging.pulsar;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.nio.charset.StandardCharsets;
 
@@ -26,7 +25,7 @@ public class MessageMetadataTest {
         assertThat(msg.getMetadataBuilder().hasPartitionKey()).isFalse();
         assertThat(msg.hasKey()).isFalse();
 
-        assertThatThrownBy(() -> msg.getKey()).isInstanceOf(IllegalStateException.class);
+        assertThat(msg.getKey()).isNullOrEmpty();
     }
 
     @Test
@@ -41,7 +40,7 @@ public class MessageMetadataTest {
         assertThat(msg.getMetadataBuilder().hasPartitionKey()).isFalse();
         assertThat(msg.hasKey()).isFalse();
 
-        assertThatThrownBy(() -> msg.getKey()).isInstanceOf(IllegalStateException.class);
+        assertThat(msg.getKey()).isNullOrEmpty();
     }
 
     @Test
@@ -54,7 +53,7 @@ public class MessageMetadataTest {
         assertThat(msg.getMetadataBuilder().hasPartitionKey()).isFalse();
         assertThat(msg.hasKey()).isFalse();
 
-        assertThatThrownBy(() -> msg.getKey()).isInstanceOf(IllegalStateException.class);
+        assertThat(msg.getKey()).isNullOrEmpty();
     }
 
     @Test
