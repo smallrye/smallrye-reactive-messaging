@@ -396,4 +396,8 @@ public interface KafkaLogging extends BasicLogger {
     @LogMessage(level = Logger.Level.WARN)
     @Message(id = 18294, value = "Configuration 'throttled.ordered' is deprecated. Use 'ordered' instead, which works with any commit strategy.")
     void throttledOrderedDeprecated();
+
+    @LogMessage(level = Logger.Level.WARN)
+    @Message(id = 18295, value = "Evicting broken pooled producer from channel %s with transactional.id %s")
+    void pooledProducerEvicted(String channel, Object transactionalId);
 }

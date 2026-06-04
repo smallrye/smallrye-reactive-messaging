@@ -14,6 +14,7 @@ import jakarta.inject.Inject;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.KafkaException;
+import org.apache.kafka.common.errors.InvalidTxnStateException;
 import org.apache.kafka.common.errors.RecordTooLargeException;
 import org.apache.kafka.common.errors.TransactionAbortedException;
 import org.apache.kafka.common.serialization.ByteArraySerializer;
@@ -527,7 +528,7 @@ public class TransactionalProducerTest extends KafkaCompanionTestBase {
         // Delay must exceed the broker's transaction abort cleanup interval (~10s)
         // so the broker detects the timeout and aborts the transaction before commit.
         assertThatThrownBy(() -> application.produceSlowly(15_000).await().atMost(Duration.ofSeconds(30)))
-                .hasRootCauseInstanceOf(KafkaException.class);
+                .isInstanceOf(InvalidTxnStateException.class);
         assertThat(application.transaction().isTransactionInProgress()).isFalse();
 
         // No records should be visible to a read_committed consumer
@@ -544,7 +545,7 @@ public class TransactionalProducerTest extends KafkaCompanionTestBase {
         SlowTransactionalProducer application = runApplication(shortTimeoutConfig(), SlowTransactionalProducer.class);
 
         assertThatThrownBy(() -> application.produceSlowlyBlocking(15_000))
-                .hasRootCauseInstanceOf(KafkaException.class);
+                .isInstanceOf(InvalidTxnStateException.class);
         assertThat(application.transaction().isTransactionInProgress()).isFalse();
 
         companion.consumeIntegers()
@@ -650,7 +651,7 @@ public class TransactionalProducerTest extends KafkaCompanionTestBase {
 
         // First transaction: times out, broker aborts it
         assertThatThrownBy(() -> application.produceSlowly(15_000).await().atMost(Duration.ofSeconds(30)))
-                .hasRootCauseInstanceOf(KafkaException.class);
+                .isInstanceOf(InvalidTxnStateException.class);
         assertThat(application.transaction().isTransactionInProgress()).isFalse();
 
         // After a broker-side timeout abort, the Kafka producer enters a permanent error state.

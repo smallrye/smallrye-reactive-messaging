@@ -246,8 +246,8 @@ public class ExactlyOnceProcessingTest extends KafkaCompanionTestBase {
                 .withProp(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, "1")
                 .fromTopics(inTopic);
 
-        // Let the rebalance settle, then remove the intruder so our processor reclaims all partitions
-        Thread.sleep(8000);
+        // Wait for the rebalance to complete (intruder gets assigned partitions and polls records)
+        await().atMost(Duration.ofSeconds(30)).until(() -> intruder.count() > 0);
         intruder.close();
 
         // All records should eventually be processed despite the rebalance

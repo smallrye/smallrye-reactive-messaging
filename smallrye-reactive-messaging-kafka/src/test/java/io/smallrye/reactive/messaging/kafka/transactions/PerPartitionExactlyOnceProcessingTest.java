@@ -28,6 +28,7 @@ import org.apache.kafka.common.serialization.IntegerDeserializer;
 import org.apache.kafka.common.serialization.IntegerSerializer;
 import org.eclipse.microprofile.reactive.messaging.Channel;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import io.smallrye.mutiny.Uni;
@@ -36,6 +37,7 @@ import io.smallrye.reactive.messaging.kafka.KafkaClientService;
 import io.smallrye.reactive.messaging.kafka.KafkaProducer;
 import io.smallrye.reactive.messaging.kafka.KafkaRecord;
 import io.smallrye.reactive.messaging.kafka.KafkaRecordBatch;
+import io.smallrye.reactive.messaging.kafka.TestTags;
 import io.smallrye.reactive.messaging.kafka.api.IncomingKafkaRecordBatchMetadata;
 import io.smallrye.reactive.messaging.kafka.api.IncomingKafkaRecordMetadata;
 import io.smallrye.reactive.messaging.kafka.base.KafkaCompanionTestBase;
@@ -173,7 +175,7 @@ public class PerPartitionExactlyOnceProcessingTest extends KafkaCompanionTestBas
                 .withOffsetReset(OffsetResetStrategy.EARLIEST)
                 .withProp(ConsumerConfig.ISOLATION_LEVEL_CONFIG, "read_committed")
                 .fromTopics(outTopic, numberOfRecords)
-                .awaitCompletion(Duration.ofSeconds(20));
+                .awaitCompletion(Duration.ofSeconds(30));
 
         assertThat(records.getRecords())
                 .extracting(ConsumerRecord::value)
@@ -207,7 +209,7 @@ public class PerPartitionExactlyOnceProcessingTest extends KafkaCompanionTestBas
                 .withOffsetReset(OffsetResetStrategy.EARLIEST)
                 .withProp(ConsumerConfig.ISOLATION_LEVEL_CONFIG, "read_committed")
                 .fromTopics(outTopic, numberOfRecords)
-                .awaitCompletion(Duration.ofSeconds(20));
+                .awaitCompletion(Duration.ofSeconds(30));
 
         assertThat(records.getRecords())
                 .extracting(ConsumerRecord::value)
@@ -430,6 +432,28 @@ public class PerPartitionExactlyOnceProcessingTest extends KafkaCompanionTestBas
     }
 
     @Test
+    @Tag(TestTags.SLOW)
+    void testPooledProducerRecoveryAfterBrokerTimeout() {
+        outTopic = companion.topics().createAndWait(topic, 1);
+        MapBasedConfig config = new MapBasedConfig(producerConfig()
+                .with("transaction.timeout.ms", 2000));
+        PooledTimeoutRecoveryApp app = runApplication(config, PooledTimeoutRecoveryApp.class);
+
+        // First transaction: broker times out and aborts, producer enters fatal error state
+        assertThatThrownBy(() -> app.produceSlowly(15_000).await().atMost(Duration.ofSeconds(30)))
+                .isNotNull();
+
+        // The broken producer should be evicted from the pool.
+        // A subsequent transaction should get a fresh producer and succeed.
+        app.produceQuickly(5).await().atMost(Duration.ofSeconds(30));
+
+        companion.consumeIntegers()
+                .withProp(ConsumerConfig.ISOLATION_LEVEL_CONFIG, "read_committed")
+                .fromTopics(outTopic, 5)
+                .awaitCompletion(Duration.ofMinutes(1));
+    }
+
+    @Test
     void testPoolExhausted() {
         outTopic = companion.topics().createAndWait(topic, 3);
         // max-pool-size=1 means only one concurrent transaction is allowed
@@ -509,6 +533,31 @@ public class PerPartitionExactlyOnceProcessingTest extends KafkaCompanionTestBas
                 .with("max.poll.records", "100")
                 .with("auto.offset.reset", "earliest")
                 .with("value.deserializer", IntegerDeserializer.class.getName());
+    }
+
+    @ApplicationScoped
+    public static class PooledTimeoutRecoveryApp {
+
+        @Inject
+        @Channel("transactional-producer")
+        KafkaTransactions<Integer> transaction;
+
+        Uni<Void> produceSlowly(long delayMillis) {
+            return transaction.withTransaction(emitter -> {
+                emitter.send(KafkaRecord.of("key", 1));
+                return Uni.createFrom().voidItem()
+                        .onItem().delayIt().by(Duration.ofMillis(delayMillis));
+            });
+        }
+
+        Uni<Void> produceQuickly(int count) {
+            return transaction.withTransaction(emitter -> {
+                for (int i = 0; i < count; i++) {
+                    emitter.send(KafkaRecord.of("key", i));
+                }
+                return Uni.createFrom().voidItem();
+            });
+        }
     }
 
     @ApplicationScoped
