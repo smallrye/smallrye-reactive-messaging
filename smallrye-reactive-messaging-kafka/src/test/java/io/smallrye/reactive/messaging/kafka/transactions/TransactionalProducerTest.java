@@ -13,6 +13,7 @@ import jakarta.inject.Inject;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.KafkaException;
 import org.apache.kafka.common.errors.RecordTooLargeException;
 import org.apache.kafka.common.errors.TransactionAbortedException;
 import org.apache.kafka.common.serialization.ByteArraySerializer;
@@ -22,12 +23,14 @@ import org.apache.kafka.common.serialization.StringSerializer;
 import org.assertj.core.api.Assertions;
 import org.eclipse.microprofile.reactive.messaging.Channel;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import io.smallrye.mutiny.CompositeException;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.annotations.Blocking;
 import io.smallrye.reactive.messaging.kafka.KafkaRecord;
+import io.smallrye.reactive.messaging.kafka.TestTags;
 import io.smallrye.reactive.messaging.kafka.base.KafkaCompanionTestBase;
 import io.smallrye.reactive.messaging.kafka.base.KafkaMapBasedConfig;
 import io.smallrye.reactive.messaging.kafka.base.PerfTestUtils;
@@ -509,5 +512,150 @@ public class TransactionalProducerTest extends KafkaCompanionTestBase {
         public KafkaTransactions<byte[]> transaction() {
             return transaction;
         }
+    }
+
+    private KafkaMapBasedConfig shortTimeoutConfig() {
+        return config().put("transaction.timeout.ms", 2000);
+    }
+
+    @Test
+    @Tag(TestTags.SLOW)
+    void testTransactionTimedOutByBroker() {
+        topic = companion.topics().createAndWait(topic, 1);
+        SlowTransactionalProducer application = runApplication(shortTimeoutConfig(), SlowTransactionalProducer.class);
+
+        // Delay must exceed the broker's transaction abort cleanup interval (~10s)
+        // so the broker detects the timeout and aborts the transaction before commit.
+        assertThatThrownBy(() -> application.produceSlowly(15_000).await().atMost(Duration.ofSeconds(30)))
+                .hasRootCauseInstanceOf(KafkaException.class);
+        assertThat(application.transaction().isTransactionInProgress()).isFalse();
+
+        // No records should be visible to a read_committed consumer
+        companion.consumeIntegers()
+                .withProp(ConsumerConfig.ISOLATION_LEVEL_CONFIG, "read_committed")
+                .fromTopics(topic, 1)
+                .awaitNoRecords(Duration.ofSeconds(3));
+    }
+
+    @Test
+    @Tag(TestTags.SLOW)
+    void testTransactionTimedOutByBrokerBlocking() {
+        topic = companion.topics().createAndWait(topic, 1);
+        SlowTransactionalProducer application = runApplication(shortTimeoutConfig(), SlowTransactionalProducer.class);
+
+        assertThatThrownBy(() -> application.produceSlowlyBlocking(15_000))
+                .hasRootCauseInstanceOf(KafkaException.class);
+        assertThat(application.transaction().isTransactionInProgress()).isFalse();
+
+        companion.consumeIntegers()
+                .withProp(ConsumerConfig.ISOLATION_LEVEL_CONFIG, "read_committed")
+                .fromTopics(topic, 1)
+                .awaitNoRecords(Duration.ofSeconds(3));
+    }
+
+    @ApplicationScoped
+    public static class SlowTransactionalProducer {
+
+        @Inject
+        @Channel("transactional-producer")
+        KafkaTransactions<Integer> transaction;
+
+        Uni<Void> produceSlowly(long delayMillis) {
+            return transaction.withTransaction(emitter -> {
+                emitter.send(KafkaRecord.of("key", 1));
+                return Uni.createFrom().voidItem()
+                        .onItem().delayIt().by(Duration.ofMillis(delayMillis));
+            });
+        }
+
+        void produceSlowlyBlocking(long delayMillis) {
+            transaction.withTransactionAndAwait(emitter -> {
+                emitter.send(KafkaRecord.of("key", 1));
+                return Uni.createFrom().voidItem()
+                        .onItem().delayIt().by(Duration.ofMillis(delayMillis));
+            });
+        }
+
+        Uni<Void> produceQuickly(int count) {
+            return transaction.withTransaction(emitter -> {
+                for (int i = 0; i < count; i++) {
+                    emitter.send(KafkaRecord.of("key", i));
+                }
+                return Uni.createFrom().voidItem();
+            });
+        }
+
+        public KafkaTransactions<Integer> transaction() {
+            return transaction;
+        }
+    }
+
+    @Test
+    void testEmptyTransaction() {
+        topic = companion.topics().createAndWait(topic, 1);
+        EmptyTransactionalProducer application = runApplication(config(), EmptyTransactionalProducer.class);
+
+        // A transaction that does work but sends no records should commit successfully
+        String result = application.doWorkWithoutSending().await().atMost(Duration.ofSeconds(10));
+        assertThat(result).isEqualTo("done");
+        assertThat(application.transaction().isTransactionInProgress()).isFalse();
+
+        // No records should appear
+        companion.consumeIntegers()
+                .withProp(ConsumerConfig.ISOLATION_LEVEL_CONFIG, "read_committed")
+                .fromTopics(topic, 1)
+                .awaitNoRecords(Duration.ofSeconds(3));
+    }
+
+    @Test
+    void testEmptyTransactionBlocking() {
+        topic = companion.topics().createAndWait(topic, 1);
+        EmptyTransactionalProducer application = runApplication(config(), EmptyTransactionalProducer.class);
+
+        String result = application.doWorkWithoutSendingBlocking();
+        assertThat(result).isEqualTo("done");
+        assertThat(application.transaction().isTransactionInProgress()).isFalse();
+    }
+
+    @ApplicationScoped
+    public static class EmptyTransactionalProducer {
+
+        @Inject
+        @Channel("transactional-producer")
+        KafkaTransactions<Integer> transaction;
+
+        Uni<String> doWorkWithoutSending() {
+            return transaction.withTransaction(emitter -> {
+                // Do some work but don't send any records
+                return Uni.createFrom().item("done");
+            });
+        }
+
+        String doWorkWithoutSendingBlocking() {
+            return transaction.withTransactionAndAwait(emitter -> {
+                return Uni.createFrom().item("done");
+            });
+        }
+
+        public KafkaTransactions<Integer> transaction() {
+            return transaction;
+        }
+    }
+
+    @Test
+    @Tag(TestTags.SLOW)
+    void testProducerNotReusableAfterBrokerTimeout() {
+        topic = companion.topics().createAndWait(topic, 1);
+        SlowTransactionalProducer application = runApplication(shortTimeoutConfig(), SlowTransactionalProducer.class);
+
+        // First transaction: times out, broker aborts it
+        assertThatThrownBy(() -> application.produceSlowly(15_000).await().atMost(Duration.ofSeconds(30)))
+                .hasRootCauseInstanceOf(KafkaException.class);
+        assertThat(application.transaction().isTransactionInProgress()).isFalse();
+
+        // After a broker-side timeout abort, the Kafka producer enters a permanent error state.
+        // Subsequent transactions on the same producer will fail.
+        assertThatThrownBy(() -> application.produceQuickly(5).await().atMost(Duration.ofSeconds(10)))
+                .isInstanceOf(KafkaException.class);
     }
 }

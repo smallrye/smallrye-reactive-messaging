@@ -1,6 +1,7 @@
 package io.smallrye.reactive.messaging.kafka.transactions;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.awaitility.Awaitility.await;
 
 import java.time.Duration;
@@ -428,6 +429,44 @@ public class PerPartitionExactlyOnceProcessingTest extends KafkaCompanionTestBas
                 .doesNotHaveDuplicates();
     }
 
+    @Test
+    void testPoolExhausted() {
+        outTopic = companion.topics().createAndWait(topic, 3);
+        // max-pool-size=1 means only one concurrent transaction is allowed
+        MapBasedConfig config = new MapBasedConfig(producerConfig()
+                .with("pooled-producer.max-pool-size", 1));
+        PoolExhaustionApp app = runApplication(config, PoolExhaustionApp.class);
+
+        // First transaction holds a producer, second should fail with pool exhausted
+        assertThatThrownBy(() -> app.runConcurrentTransactions().await().atMost(Duration.ofSeconds(10)))
+                .hasMessageContaining("pool");
+    }
+
+    @Test
+    void testInitialPoolSizeCreatesProducersAtStartup() {
+        outTopic = companion.topics().createAndWait(topic, 3);
+        MapBasedConfig config = new MapBasedConfig(producerConfig()
+                .with("pooled-producer.initial-pool-size", 3)
+                .with("pooled-producer.max-pool-size", 5));
+        runApplication(config, WithTransactionNoMessageApp.class);
+
+        KafkaClientService clientService = get(KafkaClientService.class);
+        KafkaProducer<?, ?> producer = clientService.getProducer("transactional-producer");
+        assertThat(producer).isInstanceOf(PooledKafkaProducer.class);
+
+        PooledKafkaProducer<?, ?> pooledProducer = (PooledKafkaProducer<?, ?>) producer;
+        assertThat(pooledProducer.getProducers())
+                .as("initial-pool-size=3 should pre-create 3 producers")
+                .hasSize(3);
+
+        // Each should have a distinct transactional.id
+        Set<String> txIds = pooledProducer.getProducers().stream()
+                .map(p -> (String) p.configuration().get(ProducerConfig.TRANSACTIONAL_ID_CONFIG))
+                .collect(Collectors.toSet());
+        assertThat(txIds).hasSize(3);
+        txIds.forEach(id -> assertThat(id).startsWith("tx-producer-"));
+    }
+
     private KafkaMapBasedConfig producerConfig() {
         return kafkaConfig("mp.messaging.outgoing.transactional-producer")
                 .with("topic", outTopic)
@@ -484,6 +523,29 @@ public class PerPartitionExactlyOnceProcessingTest extends KafkaCompanionTestBas
                 emitter.send(1);
                 return Uni.createFrom().voidItem();
             });
+        }
+    }
+
+    @ApplicationScoped
+    public static class PoolExhaustionApp {
+
+        @Inject
+        @Channel("transactional-producer")
+        KafkaTransactions<Integer> transaction;
+
+        Uni<Void> runConcurrentTransactions() {
+            // First transaction holds the only pooled producer with a delay
+            Uni<Void> tx1 = transaction.withTransaction(emitter -> {
+                emitter.send(1);
+                return Uni.createFrom().voidItem()
+                        .onItem().delayIt().by(Duration.ofSeconds(5));
+            });
+            // Second transaction should fail because pool is exhausted (max-pool-size=1)
+            Uni<Void> tx2 = transaction.withTransaction(emitter -> {
+                emitter.send(2);
+                return Uni.createFrom().voidItem();
+            });
+            return Uni.join().all(tx1, tx2).andCollectFailures().replaceWithVoid();
         }
     }
 
