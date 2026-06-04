@@ -81,7 +81,6 @@ public class RabbitMQReconnectionTest extends WeldTestBase {
     }
 
     @Test
-    @Disabled("sending retry doesn't reconnect when trying")
     void testSendingMessagesToRabbitMQ_connection_fails_after_connection() {
         final String routingKey = "normal";
 
@@ -109,6 +108,7 @@ public class RabbitMQReconnectionTest extends WeldTestBase {
                     .put("mp.messaging.outgoing.sink.host", toxiproxy.getHost())
                     .put("mp.messaging.outgoing.sink.port", exposedPort)
                     .put("mp.messaging.outgoing.sink.tracing.enabled", false)
+                    .put("mp.messaging.outgoing.sink.publish-confirms", true)
                     .put("rabbitmq-username", username)
                     .put("rabbitmq-password", password)
                     .put("rabbitmq-reconnect-interval", 1)

@@ -1,6 +1,7 @@
 package io.smallrye.reactive.messaging.rabbitmq.og;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
 
 import java.nio.charset.StandardCharsets;
 import java.util.List;
@@ -11,7 +12,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import jakarta.enterprise.inject.Instance;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import com.rabbitmq.client.ConnectionFactory;
@@ -22,7 +22,6 @@ import io.vertx.mutiny.core.Vertx;
 /**
  * Advanced tests for IncomingRabbitMQChannel configuration
  */
-@Disabled
 public class IncomingRabbitMQChannelAdvancedTest extends RabbitMQBrokerTestBase {
 
     @Test
@@ -61,7 +60,7 @@ public class IncomingRabbitMQChannelAdvancedTest extends RabbitMQBrokerTestBase 
                 latch2.countDown();
             });
 
-            Thread.sleep(500);
+            await().until(channel::isHealthy);
 
             // Publish messages
             usage.produce(exchangeName, null, "test.key", 1, () -> "Broadcast-1");
@@ -113,7 +112,7 @@ public class IncomingRabbitMQChannelAdvancedTest extends RabbitMQBrokerTestBase 
                 msg.ack().whenComplete((v, t) -> processLatch.countDown());
             });
 
-            Thread.sleep(500);
+            await().until(channel::isHealthy);
 
             // Publish 10 messages
             for (int i = 0; i < 10; i++) {
@@ -159,7 +158,7 @@ public class IncomingRabbitMQChannelAdvancedTest extends RabbitMQBrokerTestBase 
                 });
             });
 
-            Thread.sleep(500);
+            await().until(channel::isHealthy);
 
             usage.produce(exchangeName, null, "test.key", 1, () -> "Nack-Test");
 
@@ -198,7 +197,7 @@ public class IncomingRabbitMQChannelAdvancedTest extends RabbitMQBrokerTestBase 
                 latch.countDown();
             });
 
-            Thread.sleep(500);
+            await().until(channel::isHealthy);
 
             // Publish with different routing keys
             usage.produce(exchangeName, null, "key.1", 1, () -> "Message 1");
@@ -252,7 +251,7 @@ public class IncomingRabbitMQChannelAdvancedTest extends RabbitMQBrokerTestBase 
                 latch.countDown();
             });
 
-            Thread.sleep(500);
+            await().until(channel::isHealthy);
 
             // Publish some messages
             usage.produce(exchangeName, null, "test.key", 1, () -> "Before-1");
@@ -292,7 +291,7 @@ public class IncomingRabbitMQChannelAdvancedTest extends RabbitMQBrokerTestBase 
                 latch.countDown();
             });
 
-            Thread.sleep(500);
+            await().until(channel::isHealthy);
 
             usage.produce(exchangeName, null, "test.key", 1, () -> "Config-Test");
 

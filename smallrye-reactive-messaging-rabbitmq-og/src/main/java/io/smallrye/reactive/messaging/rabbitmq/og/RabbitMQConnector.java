@@ -203,38 +203,7 @@ public class RabbitMQConnector implements InboundConnector, OutboundConnector, H
 
         outgoings.add(channel);
 
-        // Wrap Reactive Streams Subscriber as Flow.Subscriber
-        return new Flow.Subscriber<Message<?>>() {
-            @Override
-            public void onSubscribe(Flow.Subscription subscription) {
-                channel.onSubscribe(new org.reactivestreams.Subscription() {
-                    @Override
-                    public void request(long n) {
-                        subscription.request(n);
-                    }
-
-                    @Override
-                    public void cancel() {
-                        subscription.cancel();
-                    }
-                });
-            }
-
-            @Override
-            public void onNext(Message<?> message) {
-                channel.onNext(message);
-            }
-
-            @Override
-            public void onError(Throwable throwable) {
-                channel.onError(throwable);
-            }
-
-            @Override
-            public void onComplete() {
-                channel.onComplete();
-            }
-        };
+        return channel.getSink();
     }
 
     @Override
@@ -286,12 +255,7 @@ public class RabbitMQConnector implements InboundConnector, OutboundConnector, H
 
         // Clean up all outgoing channels
         for (io.smallrye.reactive.messaging.rabbitmq.og.internals.OutgoingRabbitMQChannel outgoing : outgoings) {
-            try {
-                outgoing.onComplete();
-            } catch (Exception e) {
-                // Log but continue cleanup
-                e.printStackTrace();
-            }
+            outgoing.closeQuietly();
         }
         outgoings.clear();
 
