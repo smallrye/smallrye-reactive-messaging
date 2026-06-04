@@ -193,6 +193,64 @@ public class RabbitMQMessageConverterTest {
     }
 
     @Test
+    void convertWithComplexObjectProducesValidJson() {
+        TestPojo pojo = new TestPojo("alice", 30);
+        Message<TestPojo> message = Message.of(pojo);
+        RabbitMQMessageConverter.OutgoingRabbitMQMessage result = RabbitMQMessageConverter.convert(
+                message, "key", Optional.empty());
+
+        String body = new String(result.getBody(), StandardCharsets.UTF_8);
+        assertThat(result.getProperties().getContentType()).isEqualTo("application/json");
+        io.vertx.core.json.JsonObject json = new io.vertx.core.json.JsonObject(body);
+        assertThat(json.getString("name")).isEqualTo("alice");
+        assertThat(json.getInteger("age")).isEqualTo(30);
+    }
+
+    @Test
+    void convertWithNestedObjectProducesValidJson() {
+        Map<String, Object> nested = new HashMap<>();
+        nested.put("person", Map.of("name", "bob", "age", 25));
+        nested.put("active", true);
+        Message<Map<String, Object>> message = Message.of(nested);
+        RabbitMQMessageConverter.OutgoingRabbitMQMessage result = RabbitMQMessageConverter.convert(
+                message, "key", Optional.empty());
+
+        String body = new String(result.getBody(), StandardCharsets.UTF_8);
+        io.vertx.core.json.JsonObject json = new io.vertx.core.json.JsonObject(body);
+        assertThat(json.getBoolean("active")).isTrue();
+        assertThat(json.getJsonObject("person").getString("name")).isEqualTo("bob");
+    }
+
+    public static class TestPojo {
+        private String name;
+        private int age;
+
+        public TestPojo() {
+        }
+
+        public TestPojo(String name, int age) {
+            this.name = name;
+            this.age = age;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public void setName(String name) {
+            this.name = name;
+        }
+
+        public int getAge() {
+            return age;
+        }
+
+        public void setAge(int age) {
+            this.age = age;
+        }
+    }
+
+    @Test
     void convertWithoutMetadataAndNoDefaultTtl() {
         Message<String> message = Message.of("hello");
         RabbitMQMessageConverter.OutgoingRabbitMQMessage result = RabbitMQMessageConverter.convert(
