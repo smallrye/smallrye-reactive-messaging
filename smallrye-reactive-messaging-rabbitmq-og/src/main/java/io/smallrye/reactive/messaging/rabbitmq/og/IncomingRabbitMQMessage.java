@@ -1,12 +1,12 @@
 package io.smallrye.reactive.messaging.rabbitmq.og;
 
 import java.nio.charset.StandardCharsets;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiFunction;
 import java.util.function.Function;
-import java.util.function.Supplier;
 
-import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Metadata;
 
 import com.rabbitmq.client.AMQP;
@@ -26,6 +26,8 @@ import io.vertx.core.internal.ContextInternal;
  * Wraps a RabbitMQ delivery and provides access to payload, metadata, and acknowledgement.
  */
 public class IncomingRabbitMQMessage<T> implements ContextAwareMessage<T>, MetadataInjectableMessage<T> {
+
+    private final AtomicBoolean acknowledged = new AtomicBoolean(false);
 
     private final T payload;
     private Metadata metadata;
@@ -146,13 +148,8 @@ public class IncomingRabbitMQMessage<T> implements ContextAwareMessage<T>, Metad
     }
 
     @Override
-    public Supplier<CompletionStage<Void>> getAck() {
-        return () -> ackHandler.handle(this);
-    }
-
-    @Override
-    public Function<Throwable, CompletionStage<Void>> getNack() {
-        return (failure) -> nackHandler.handle(this, null, failure);
+    public Function<Metadata, CompletionStage<Void>> getAckWithMetadata() {
+        return this::ack;
     }
 
     @Override
@@ -160,57 +157,34 @@ public class IncomingRabbitMQMessage<T> implements ContextAwareMessage<T>, Metad
         return this::nack;
     }
 
-    /**
-     * Nack with metadata support.
-     *
-     * @param reason the reason for the nack
-     * @param metadata additional nack metadata
-     * @return a completion stage
-     */
+    @Override
+    public CompletionStage<Void> ack(Metadata metadata) {
+        if (acknowledged.compareAndSet(false, true)) {
+            return ackHandler.handle(this)
+                    .whenComplete((v, t) -> {
+                        if (t != null) {
+                            acknowledged.set(false);
+                        }
+                    });
+        }
+        return CompletableFuture.completedFuture(null);
+    }
+
     public CompletionStage<Void> nack(Throwable reason, Metadata metadata) {
-        return nackHandler.handle(this, metadata, reason);
+        if (acknowledged.compareAndSet(false, true)) {
+            return nackHandler.handle(this, metadata, reason)
+                    .whenComplete((v, t) -> {
+                        if (t != null) {
+                            acknowledged.set(false);
+                        }
+                    });
+        }
+        return CompletableFuture.completedFuture(null);
     }
 
     @Override
     public synchronized void injectMetadata(Object metadataObject) {
         this.metadata = this.metadata.with(metadataObject);
-    }
-
-    /**
-     * Create a new message with a different payload but same metadata and ack/nack handlers.
-     * This is useful for transforming messages in a processing chain.
-     *
-     * @param <P> the new payload type
-     * @param newPayload the new payload
-     * @return a new message with the new payload
-     */
-    public <P> Message<P> withPayload(P newPayload) {
-        return new Message<P>() {
-            @Override
-            public P getPayload() {
-                return newPayload;
-            }
-
-            @Override
-            public Metadata getMetadata() {
-                return IncomingRabbitMQMessage.this.metadata;
-            }
-
-            @Override
-            public Supplier<CompletionStage<Void>> getAck() {
-                return IncomingRabbitMQMessage.this.getAck();
-            }
-
-            @Override
-            public Function<Throwable, CompletionStage<Void>> getNack() {
-                return IncomingRabbitMQMessage.this.getNack();
-            }
-
-            @Override
-            public BiFunction<Throwable, Metadata, CompletionStage<Void>> getNackWithMetadata() {
-                return IncomingRabbitMQMessage.this.getNackWithMetadata();
-            }
-        };
     }
 
     /**
