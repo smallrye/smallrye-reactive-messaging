@@ -15,6 +15,9 @@ import java.util.stream.Collectors;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.common.errors.InvalidProducerEpochException;
+import org.apache.kafka.common.errors.InvalidTxnStateException;
+import org.apache.kafka.common.errors.ProducerFencedException;
 import org.apache.kafka.common.errors.TransactionAbortedException;
 import org.eclipse.microprofile.reactive.messaging.Message;
 
@@ -51,6 +54,23 @@ public class KafkaTransactionsImpl<T> extends MutinyEmitterImpl<T> implements Ka
         this.clientService = clientService;
         this.producer = clientService.getProducer(config.name());
         this.transactionTimeout = resolveTransactionTimeout(producer.configuration());
+    }
+
+    public static boolean isFatalError(Throwable t) {
+        if (t instanceof ProducerFencedException || t instanceof InvalidProducerEpochException
+                || t instanceof InvalidTxnStateException) {
+            return true;
+        }
+        // InvalidTxnStateException may also appear wrapped in the cause chain
+        // (e.g. KafkaException -> TransactionAbortableException -> InvalidTxnStateException)
+        Throwable cause = t.getCause();
+        while (cause != null) {
+            if (cause instanceof InvalidTxnStateException) {
+                return true;
+            }
+            cause = cause.getCause();
+        }
+        return false;
     }
 
     private static Duration resolveTransactionTimeout(Map<String, ?> config) {
@@ -330,7 +350,12 @@ public class KafkaTransactionsImpl<T> extends MutinyEmitterImpl<T> implements Ka
                     // commit or rollback the transaction
                     .call(() -> abort ? abort() : commit().onFailure().recoverWithUni(throwable -> {
                         KafkaLogging.log.transactionCommitFailed(throwable);
-                        return abort();
+                        return abort().onItemOrFailure().transformToUni((v, f) -> {
+                            if (isFatalError(throwable)) {
+                                return Uni.createFrom().failure(throwable);
+                            }
+                            return Uni.createFrom().voidItem();
+                        });
                     }))
                     // finally, call after commit or after abort callbacks
                     .onFailure().recoverWithUni(throwable -> afterAbort.apply(throwable))

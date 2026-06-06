@@ -1,6 +1,7 @@
 package io.smallrye.reactive.messaging.kafka.impl;
 
 import static io.smallrye.reactive.messaging.kafka.i18n.KafkaLogging.log;
+import static io.smallrye.reactive.messaging.kafka.transactions.KafkaTransactionsImpl.isFatalError;
 
 import java.util.HashMap;
 import java.util.List;
@@ -33,6 +34,7 @@ import io.smallrye.reactive.messaging.kafka.KafkaConnectorOutgoingConfiguration;
 import io.smallrye.reactive.messaging.kafka.KafkaProducer;
 import io.smallrye.reactive.messaging.kafka.SerializationFailureHandler;
 import io.smallrye.reactive.messaging.kafka.i18n.KafkaExceptions;
+import io.smallrye.reactive.messaging.kafka.transactions.KafkaTransactionsImpl;
 
 public class PooledKafkaProducer<K, V> implements KafkaProducer<K, V> {
 
@@ -151,6 +153,24 @@ public class PooledKafkaProducer<K, V> implements KafkaProducer<K, V> {
 
     private void releaseProducer(ReactiveKafkaProducer<K, V> p) {
         availableProducers.offer(p);
+    }
+
+    // Workaround for KAFKA-19177: broker-side transaction timeout causes the producer to enter
+    // FATAL_ERROR state from which it cannot recover. The Kafka client fix (reclassifying
+    // INVALID_TXN_STATE as abortable in EndTxn responses, per KIP-588) is not yet released.
+    // Until then, we evict the broken producer so the pool creates a fresh replacement.
+    private void evictProducer(ReactiveKafkaProducer<K, V> p) {
+        allProducers.remove(p);
+        availableProducers.remove(p);
+        log.pooledProducerEvicted(channel, p.configuration().get(ProducerConfig.TRANSACTIONAL_ID_CONFIG));
+    }
+
+    private void releaseOrEvict(ReactiveKafkaProducer<K, V> p, Throwable t) {
+        if (isFatalError(t)) {
+            evictProducer(p);
+        } else {
+            releaseProducer(p);
+        }
     }
 
     private ReactiveKafkaProducer<K, V> createProducer(int index) {
@@ -322,13 +342,18 @@ public class PooledKafkaProducer<K, V> implements KafkaProducer<K, V> {
         @Override
         @CheckReturnValue
         public Uni<Void> beginTransaction() {
-            return acquire().beginTransaction()
-                    .onFailure().invoke(() -> {
-                        ReactiveKafkaProducer<K, V> released = producer.getAndSet(null);
-                        if (released != null) {
-                            releaseProducer(released);
-                        }
-                    });
+            return Uni.createFrom().voidItem()
+                    .chain(() -> {
+                        ReactiveKafkaProducer<K, V> p = acquire();
+                        return p.beginTransaction()
+                                .onFailure().invoke(t -> {
+                                    producer.compareAndSet(p, null);
+                                    releaseOrEvict(p, t);
+                                });
+                    })
+                    // If the acquired producer is in a fatal error state (e.g. broker-side transaction timeout),
+                    // evict it and retry once to acquire a fresh producer from the pool.
+                    .onFailure(KafkaTransactionsImpl::isFatalError).retry().atMost(1);
         }
 
         synchronized ReactiveKafkaProducer<K, V> acquire() {
@@ -368,9 +393,11 @@ public class PooledKafkaProducer<K, V> implements KafkaProducer<K, V> {
                 return Uni.createFrom().voidItem();
             }
             try {
-                return p.commitTransaction().eventually(() -> releaseProducer(p));
+                return p.commitTransaction()
+                        .invoke(() -> releaseProducer(p))
+                        .onFailure().invoke(t -> releaseOrEvict(p, t));
             } catch (Exception e) {
-                releaseProducer(p);
+                releaseOrEvict(p, e);
                 throw e;
             }
         }
@@ -383,9 +410,11 @@ public class PooledKafkaProducer<K, V> implements KafkaProducer<K, V> {
                 return Uni.createFrom().voidItem();
             }
             try {
-                return p.abortTransaction().eventually(() -> releaseProducer(p));
+                return p.abortTransaction()
+                        .invoke(() -> releaseProducer(p))
+                        .onFailure().invoke(t -> releaseOrEvict(p, t));
             } catch (Exception e) {
-                releaseProducer(p);
+                releaseOrEvict(p, e);
                 throw e;
             }
         }

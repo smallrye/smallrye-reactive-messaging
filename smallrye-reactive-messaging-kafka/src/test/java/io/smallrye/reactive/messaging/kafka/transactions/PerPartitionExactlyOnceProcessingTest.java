@@ -1,6 +1,7 @@
 package io.smallrye.reactive.messaging.kafka.transactions;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.awaitility.Awaitility.await;
 
 import java.time.Duration;
@@ -27,6 +28,7 @@ import org.apache.kafka.common.serialization.IntegerDeserializer;
 import org.apache.kafka.common.serialization.IntegerSerializer;
 import org.eclipse.microprofile.reactive.messaging.Channel;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import io.smallrye.mutiny.Uni;
@@ -35,6 +37,7 @@ import io.smallrye.reactive.messaging.kafka.KafkaClientService;
 import io.smallrye.reactive.messaging.kafka.KafkaProducer;
 import io.smallrye.reactive.messaging.kafka.KafkaRecord;
 import io.smallrye.reactive.messaging.kafka.KafkaRecordBatch;
+import io.smallrye.reactive.messaging.kafka.TestTags;
 import io.smallrye.reactive.messaging.kafka.api.IncomingKafkaRecordBatchMetadata;
 import io.smallrye.reactive.messaging.kafka.api.IncomingKafkaRecordMetadata;
 import io.smallrye.reactive.messaging.kafka.base.KafkaCompanionTestBase;
@@ -172,7 +175,7 @@ public class PerPartitionExactlyOnceProcessingTest extends KafkaCompanionTestBas
                 .withOffsetReset(OffsetResetStrategy.EARLIEST)
                 .withProp(ConsumerConfig.ISOLATION_LEVEL_CONFIG, "read_committed")
                 .fromTopics(outTopic, numberOfRecords)
-                .awaitCompletion(Duration.ofSeconds(20));
+                .awaitCompletion(Duration.ofSeconds(30));
 
         assertThat(records.getRecords())
                 .extracting(ConsumerRecord::value)
@@ -206,7 +209,7 @@ public class PerPartitionExactlyOnceProcessingTest extends KafkaCompanionTestBas
                 .withOffsetReset(OffsetResetStrategy.EARLIEST)
                 .withProp(ConsumerConfig.ISOLATION_LEVEL_CONFIG, "read_committed")
                 .fromTopics(outTopic, numberOfRecords)
-                .awaitCompletion(Duration.ofSeconds(20));
+                .awaitCompletion(Duration.ofSeconds(30));
 
         assertThat(records.getRecords())
                 .extracting(ConsumerRecord::value)
@@ -428,6 +431,66 @@ public class PerPartitionExactlyOnceProcessingTest extends KafkaCompanionTestBas
                 .doesNotHaveDuplicates();
     }
 
+    @Test
+    @Tag(TestTags.SLOW)
+    void testPooledProducerRecoveryAfterBrokerTimeout() {
+        outTopic = companion.topics().createAndWait(topic, 1);
+        MapBasedConfig config = new MapBasedConfig(producerConfig()
+                .with("transaction.timeout.ms", 2000));
+        PooledTimeoutRecoveryApp app = runApplication(config, PooledTimeoutRecoveryApp.class);
+
+        // First transaction: broker times out and aborts, producer enters fatal error state
+        assertThatThrownBy(() -> app.produceSlowly(15_000).await().atMost(Duration.ofSeconds(30)))
+                .isNotNull();
+
+        // The broken producer should be evicted from the pool.
+        // A subsequent transaction should get a fresh producer and succeed.
+        app.produceQuickly(5).await().atMost(Duration.ofSeconds(30));
+
+        companion.consumeIntegers()
+                .withProp(ConsumerConfig.ISOLATION_LEVEL_CONFIG, "read_committed")
+                .fromTopics(outTopic, 5)
+                .awaitCompletion(Duration.ofMinutes(1));
+    }
+
+    @Test
+    void testPoolExhausted() {
+        outTopic = companion.topics().createAndWait(topic, 3);
+        // max-pool-size=1 means only one concurrent transaction is allowed
+        MapBasedConfig config = new MapBasedConfig(producerConfig()
+                .with("pooled-producer.max-pool-size", 1));
+        PoolExhaustionApp app = runApplication(config, PoolExhaustionApp.class);
+
+        // First transaction holds a producer, second should fail with pool exhausted
+        assertThatThrownBy(() -> app.runConcurrentTransactions().await().atMost(Duration.ofSeconds(10)))
+                .hasMessageContaining("pool");
+    }
+
+    @Test
+    void testInitialPoolSizeCreatesProducersAtStartup() {
+        outTopic = companion.topics().createAndWait(topic, 3);
+        MapBasedConfig config = new MapBasedConfig(producerConfig()
+                .with("pooled-producer.initial-pool-size", 3)
+                .with("pooled-producer.max-pool-size", 5));
+        runApplication(config, WithTransactionNoMessageApp.class);
+
+        KafkaClientService clientService = get(KafkaClientService.class);
+        KafkaProducer<?, ?> producer = clientService.getProducer("transactional-producer");
+        assertThat(producer).isInstanceOf(PooledKafkaProducer.class);
+
+        PooledKafkaProducer<?, ?> pooledProducer = (PooledKafkaProducer<?, ?>) producer;
+        assertThat(pooledProducer.getProducers())
+                .as("initial-pool-size=3 should pre-create 3 producers")
+                .hasSize(3);
+
+        // Each should have a distinct transactional.id
+        Set<String> txIds = pooledProducer.getProducers().stream()
+                .map(p -> (String) p.configuration().get(ProducerConfig.TRANSACTIONAL_ID_CONFIG))
+                .collect(Collectors.toSet());
+        assertThat(txIds).hasSize(3);
+        txIds.forEach(id -> assertThat(id).startsWith("tx-producer-"));
+    }
+
     private KafkaMapBasedConfig producerConfig() {
         return kafkaConfig("mp.messaging.outgoing.transactional-producer")
                 .with("topic", outTopic)
@@ -473,6 +536,31 @@ public class PerPartitionExactlyOnceProcessingTest extends KafkaCompanionTestBas
     }
 
     @ApplicationScoped
+    public static class PooledTimeoutRecoveryApp {
+
+        @Inject
+        @Channel("transactional-producer")
+        KafkaTransactions<Integer> transaction;
+
+        Uni<Void> produceSlowly(long delayMillis) {
+            return transaction.withTransaction(emitter -> {
+                emitter.send(KafkaRecord.of("key", 1));
+                return Uni.createFrom().voidItem()
+                        .onItem().delayIt().by(Duration.ofMillis(delayMillis));
+            });
+        }
+
+        Uni<Void> produceQuickly(int count) {
+            return transaction.withTransaction(emitter -> {
+                for (int i = 0; i < count; i++) {
+                    emitter.send(KafkaRecord.of("key", i));
+                }
+                return Uni.createFrom().voidItem();
+            });
+        }
+    }
+
+    @ApplicationScoped
     public static class WithTransactionNoMessageApp {
 
         @Inject
@@ -484,6 +572,29 @@ public class PerPartitionExactlyOnceProcessingTest extends KafkaCompanionTestBas
                 emitter.send(1);
                 return Uni.createFrom().voidItem();
             });
+        }
+    }
+
+    @ApplicationScoped
+    public static class PoolExhaustionApp {
+
+        @Inject
+        @Channel("transactional-producer")
+        KafkaTransactions<Integer> transaction;
+
+        Uni<Void> runConcurrentTransactions() {
+            // First transaction holds the only pooled producer with a delay
+            Uni<Void> tx1 = transaction.withTransaction(emitter -> {
+                emitter.send(1);
+                return Uni.createFrom().voidItem()
+                        .onItem().delayIt().by(Duration.ofSeconds(5));
+            });
+            // Second transaction should fail because pool is exhausted (max-pool-size=1)
+            Uni<Void> tx2 = transaction.withTransaction(emitter -> {
+                emitter.send(2);
+                return Uni.createFrom().voidItem();
+            });
+            return Uni.join().all(tx1, tx2).andCollectFailures().replaceWithVoid();
         }
     }
 

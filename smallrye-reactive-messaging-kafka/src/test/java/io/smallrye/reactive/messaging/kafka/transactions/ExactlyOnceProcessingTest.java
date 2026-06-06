@@ -7,6 +7,8 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -84,6 +86,32 @@ public class ExactlyOnceProcessingTest extends KafkaCompanionTestBase {
             return processed;
         }
 
+    }
+
+    @Test
+    void testWithTransactionAndAckSingleRecord() {
+        inTopic = companion.topics().createAndWait(Uuid.randomUuid().toString(), 1);
+        outTopic = companion.topics().createAndWait(Uuid.randomUuid().toString(), 1);
+        int numberOfRecords = 10;
+        MapBasedConfig config = new MapBasedConfig(producerConfig());
+        config.putAll(consumerConfig());
+        WithTransactionAndAckProcessor application = runApplication(config, WithTransactionAndAckProcessor.class);
+
+        companion.produceIntegers().usingGenerator(i -> new ProducerRecord<>(inTopic, i), numberOfRecords);
+
+        ConsumerTask<String, Integer> records = companion.consumeIntegers()
+                .withProp(ConsumerConfig.ISOLATION_LEVEL_CONFIG, "read_committed")
+                .fromTopics(outTopic, numberOfRecords)
+                .awaitCompletion(Duration.ofMinutes(1));
+
+        assertThat(records.getRecords())
+                .extracting(ConsumerRecord::value)
+                .containsAll(IntStream.range(0, numberOfRecords).boxed().collect(Collectors.toList()))
+                .doesNotHaveDuplicates();
+
+        assertThat(application.getProcessed())
+                .containsAll(IntStream.range(0, numberOfRecords).boxed().collect(Collectors.toList()))
+                .doesNotHaveDuplicates();
     }
 
     @Test
@@ -190,6 +218,107 @@ public class ExactlyOnceProcessingTest extends KafkaCompanionTestBase {
                 .with("max.poll.records", "100")
                 .with("auto.offset.reset", "earliest")
                 .with("value.deserializer", IntegerDeserializer.class.getName());
+    }
+
+    @Test
+    @Tag(TestTags.SLOW)
+    void testExactlyOnceProcessorWithRebalanceDuringTransaction() throws InterruptedException {
+        inTopic = companion.topics().createAndWait(Uuid.randomUuid().toString(), 3);
+        outTopic = companion.topics().createAndWait(Uuid.randomUuid().toString(), 3);
+        int numberOfRecords = 20;
+        MapBasedConfig config = new MapBasedConfig(producerConfig());
+        config.putAll(consumerConfig()
+                .with("max.poll.records", "1")
+                .with("session.timeout.ms", "6000")
+                .with("heartbeat.interval.ms", "2000"));
+        RebalanceExactlyOnceProcessor application = runApplication(config, RebalanceExactlyOnceProcessor.class);
+
+        companion.produceIntegers()
+                .usingGenerator(i -> new ProducerRecord<>(inTopic, i % 3, "k" + i, i), numberOfRecords);
+
+        // Wait until processing is underway
+        assertThat(application.awaitProcessingStarted(30, TimeUnit.SECONDS)).isTrue();
+
+        // Join a second consumer to the same group to trigger a rebalance
+        // while transactions are in-flight (each record takes 1s to process)
+        ConsumerTask<String, Integer> intruder = companion.consumeIntegers()
+                .withGroupId("my-consumer")
+                .withProp(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, "1")
+                .fromTopics(inTopic);
+
+        // Wait for the rebalance to complete (intruder gets assigned partitions and polls records)
+        await().atMost(Duration.ofSeconds(30)).until(() -> intruder.count() > 0);
+        intruder.close();
+
+        // All records should eventually be processed despite the rebalance
+        await().atMost(Duration.ofMinutes(2)).untilAsserted(() -> {
+            assertThat(application.getProcessed())
+                    .containsAll(IntStream.range(0, numberOfRecords).boxed().collect(Collectors.toList()));
+        });
+
+        // Output should contain all records with no duplicates
+        ConsumerTask<String, Integer> records = companion.consumeIntegers()
+                .withProp(ConsumerConfig.ISOLATION_LEVEL_CONFIG, "read_committed")
+                .fromTopics(outTopic, numberOfRecords)
+                .awaitCompletion(Duration.ofMinutes(1));
+
+        assertThat(records.getRecords())
+                .extracting(ConsumerRecord::value)
+                .containsAll(IntStream.range(0, numberOfRecords).boxed().collect(Collectors.toList()))
+                .doesNotHaveDuplicates();
+    }
+
+    @ApplicationScoped
+    public static class RebalanceExactlyOnceProcessor {
+
+        @Inject
+        @Channel("transactional-producer")
+        KafkaTransactions<Integer> transaction;
+
+        private final CountDownLatch processingStarted = new CountDownLatch(1);
+        private final List<Integer> processed = new CopyOnWriteArrayList<>();
+
+        @Incoming("exactly-once-consumer")
+        Uni<Void> process(KafkaRecord<String, Integer> record) {
+            return transaction.withTransaction(record, emitter -> {
+                processingStarted.countDown();
+                emitter.send(KafkaRecord.of(record.getKey(), record.getPayload()));
+                return Uni.createFrom().voidItem()
+                        .onItem().delayIt().by(Duration.ofSeconds(1))
+                        .invoke(() -> processed.add(record.getPayload()));
+            }).onFailure().recoverWithUni(t -> Uni.createFrom().completionStage(record.nack(t)));
+        }
+
+        public boolean awaitProcessingStarted(long timeout, TimeUnit unit) throws InterruptedException {
+            return processingStarted.await(timeout, unit);
+        }
+
+        public List<Integer> getProcessed() {
+            return processed;
+        }
+    }
+
+    @ApplicationScoped
+    public static class WithTransactionAndAckProcessor {
+
+        @Inject
+        @Channel("transactional-producer")
+        KafkaTransactions<Integer> transaction;
+
+        List<Integer> processed = new CopyOnWriteArrayList<>();
+
+        @Incoming("exactly-once-consumer")
+        Uni<Void> process(KafkaRecord<String, Integer> record) {
+            return transaction.withTransactionAndAck(record, emitter -> {
+                emitter.send(KafkaRecord.of(record.getKey(), record.getPayload()));
+                processed.add(record.getPayload());
+                return Uni.createFrom().voidItem();
+            });
+        }
+
+        public List<Integer> getProcessed() {
+            return processed;
+        }
     }
 
     @ApplicationScoped
