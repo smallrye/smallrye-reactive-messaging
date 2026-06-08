@@ -69,6 +69,7 @@ public class IncomingAmqpChannel {
         AmqpReceiverOptions options = new AmqpReceiverOptions()
                 .setAutoAcknowledgement(ic.getAutoAcknowledgement())
                 .setDurable(ic.getDurable())
+                .setMaxBufferedMessages(ic.getInitialCredits())
                 .setLinkName(link)
                 .setCapabilities(getClientCapabilities(ic))
                 .setSelector(ic.getSelector().orElse(null));
