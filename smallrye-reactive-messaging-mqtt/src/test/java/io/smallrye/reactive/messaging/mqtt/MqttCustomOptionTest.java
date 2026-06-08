@@ -46,7 +46,7 @@ public class MqttCustomOptionTest extends MqttTestBase {
                 .with("mp.messaging.incoming.source.tracing-enabled", false)
                 .write();
 
-        try (WeldContainer container = weld.initialize()) {
+        try (WeldContainer container = initializeContainer(weld)) {
             MqttConnector connector = container.getBeanManager().createInstance().select(MqttConnector.class,
                     ConnectorLiteral.of(MqttConnector.CONNECTOR_NAME)).get();
 
@@ -96,7 +96,7 @@ public class MqttCustomOptionTest extends MqttTestBase {
                 .with("mp.messaging.incoming.source.tracing-enabled", false)
                 .write();
 
-        try (WeldContainer container = weld.initialize()) {
+        try (WeldContainer container = initializeContainer(weld)) {
             MqttConnector connector = container.getBeanManager().createInstance().select(MqttConnector.class,
                     ConnectorLiteral.of(MqttConnector.CONNECTOR_NAME)).get();
 

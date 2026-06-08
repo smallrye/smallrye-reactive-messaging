@@ -14,6 +14,7 @@ import org.jboss.weld.environment.se.WeldContainer;
 import org.junit.jupiter.api.Test;
 
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
+import io.smallrye.reactive.messaging.test.common.config.SmallRyeConfigTestUtil;
 import io.vertx.core.json.JsonObject;
 
 public class RabbitMQArgumentsCDIConfigTest extends RabbitMQBrokerTestBase {
@@ -38,6 +39,7 @@ public class RabbitMQArgumentsCDIConfigTest extends RabbitMQBrokerTestBase {
                 .with("mp.messaging.incoming.data.tracing-enabled", false)
                 .write();
 
+        SmallRyeConfigTestUtil.installConfig();
         container = weld.initialize();
         await().until(() -> isRabbitMQConnectorAlive(container));
         await().until(() -> isRabbitMQConnectorReady(container));
@@ -73,6 +75,7 @@ public class RabbitMQArgumentsCDIConfigTest extends RabbitMQBrokerTestBase {
                 .with("mp.messaging.incoming.data.tracing-enabled", false)
                 .write();
 
+        SmallRyeConfigTestUtil.installConfig();
         container = weld.initialize();
         await().until(() -> isRabbitMQConnectorAlive(container));
         await().until(() -> isRabbitMQConnectorReady(container));
@@ -113,6 +116,7 @@ public class RabbitMQArgumentsCDIConfigTest extends RabbitMQBrokerTestBase {
                 .with("mp.messaging.incoming.data.tracing-enabled", false)
                 .write();
 
+        SmallRyeConfigTestUtil.installConfig();
         container = weld.initialize();
         await().until(() -> isRabbitMQConnectorAlive(container));
         await().until(() -> isRabbitMQConnectorReady(container));
@@ -154,6 +158,7 @@ public class RabbitMQArgumentsCDIConfigTest extends RabbitMQBrokerTestBase {
                 .with("mp.messaging.incoming.data.tracing-enabled", false)
                 .write();
 
+        SmallRyeConfigTestUtil.installConfig();
         container = weld.initialize();
         await().until(() -> isRabbitMQConnectorAlive(container));
         await().until(() -> isRabbitMQConnectorReady(container));

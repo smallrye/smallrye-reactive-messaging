@@ -32,6 +32,7 @@ import io.smallrye.reactive.messaging.providers.metrics.MetricDecorator;
 import io.smallrye.reactive.messaging.providers.metrics.MicrometerDecorator;
 import io.smallrye.reactive.messaging.providers.wiring.Wiring;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
+import io.smallrye.reactive.messaging.test.common.config.SmallRyeConfigTestUtil;
 import io.vertx.core.Context;
 
 public class WeldTestBase {
@@ -103,6 +104,7 @@ public class WeldTestBase {
         } else {
             MapBasedConfig.cleanup();
         }
+        SmallRyeConfigTestUtil.installConfig();
         container = weld.initialize();
     }
 

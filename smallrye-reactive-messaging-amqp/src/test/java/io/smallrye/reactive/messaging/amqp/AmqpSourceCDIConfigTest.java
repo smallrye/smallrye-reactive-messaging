@@ -7,17 +7,16 @@ import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.eclipse.microprofile.config.ConfigProvider;
 import org.jboss.weld.environment.se.Weld;
 import org.jboss.weld.environment.se.WeldContainer;
 import org.jboss.weld.exceptions.DeploymentException;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
-import io.smallrye.config.SmallRyeConfigProviderResolver;
 import io.smallrye.reactive.messaging.amqp.ssl.ClientSslContextBean;
 import io.smallrye.reactive.messaging.providers.connectors.ExecutionHolder;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
+import io.smallrye.reactive.messaging.test.common.config.SmallRyeConfigTestUtil;
 
 public class AmqpSourceCDIConfigTest extends AmqpBrokerTestBase {
 
@@ -36,7 +35,7 @@ public class AmqpSourceCDIConfigTest extends AmqpBrokerTestBase {
         }
 
         MapBasedConfig.cleanup();
-        SmallRyeConfigProviderResolver.instance().releaseConfig(ConfigProvider.getConfig());
+        SmallRyeConfigTestUtil.releaseConfig();
 
         System.clearProperty("mp-config");
         System.clearProperty("client-options-name");
@@ -61,7 +60,7 @@ public class AmqpSourceCDIConfigTest extends AmqpBrokerTestBase {
                 .with("mp.messaging.incoming.data.tracing-enabled", false)
                 .write();
 
-        assertThatThrownBy(() -> container = weld.initialize())
+        assertThatThrownBy(() -> container = initializeContainer(weld))
                 .isInstanceOf(DeploymentException.class);
     }
 
@@ -84,7 +83,7 @@ public class AmqpSourceCDIConfigTest extends AmqpBrokerTestBase {
                 .with("mp.messaging.incoming.data.tracing-enabled", false)
                 .write();
 
-        assertThatThrownBy(() -> container = weld.initialize())
+        assertThatThrownBy(() -> container = initializeContainer(weld))
                 .isInstanceOf(DeploymentException.class);
     }
 
@@ -106,7 +105,7 @@ public class AmqpSourceCDIConfigTest extends AmqpBrokerTestBase {
                 .with("mp.messaging.incoming.data.tracing-enabled", false)
                 .write();
 
-        container = weld.initialize();
+        container = initializeContainer(weld);
         await().until(() -> isAmqpConnectorAlive(container));
         await().until(() -> isAmqpConnectorReady(container));
         List<Integer> list = container.select(ConsumptionBean.class).get().getResults();
@@ -138,7 +137,7 @@ public class AmqpSourceCDIConfigTest extends AmqpBrokerTestBase {
                 .with("amqp-client-options-name", "myclientoptions")
                 .write();
 
-        container = weld.initialize();
+        container = initializeContainer(weld);
         await().until(() -> isAmqpConnectorAlive(container));
         await().until(() -> isAmqpConnectorReady(container));
         List<Integer> list = container.select(ConsumptionBean.class).get().getResults();
@@ -170,7 +169,7 @@ public class AmqpSourceCDIConfigTest extends AmqpBrokerTestBase {
                 .put("amqp-client-options-name", "myclientoptions")
                 .write();
 
-        assertThatThrownBy(() -> container = weld.initialize())
+        assertThatThrownBy(() -> container = initializeContainer(weld))
                 .isInstanceOf(DeploymentException.class);
     }
 
@@ -193,7 +192,7 @@ public class AmqpSourceCDIConfigTest extends AmqpBrokerTestBase {
                 .put("amqp-client-options-name", "dummyoptionsnonexistent")
                 .write();
 
-        assertThatThrownBy(() -> container = weld.initialize())
+        assertThatThrownBy(() -> container = initializeContainer(weld))
                 .isInstanceOf(DeploymentException.class);
     }
 
@@ -219,7 +218,7 @@ public class AmqpSourceCDIConfigTest extends AmqpBrokerTestBase {
                 .with("amqp-client-options-name", "myclientoptions2")
                 .write();
 
-        container = weld.initialize();
+        container = initializeContainer(weld);
         await().until(() -> isAmqpConnectorAlive(container));
         await().until(() -> isAmqpConnectorReady(container));
         List<Integer> list = container.select(ConsumptionBean.class).get().getResults();
@@ -253,7 +252,7 @@ public class AmqpSourceCDIConfigTest extends AmqpBrokerTestBase {
                 // Not actually setting ssl to true. The test's main purpose is to check that the SSLContext bean can be found
                 .write();
 
-        container = weld.initialize();
+        container = initializeContainer(weld);
         await().until(() -> isAmqpConnectorAlive(container));
         await().until(() -> isAmqpConnectorReady(container));
         List<Integer> list = container.select(ConsumptionBean.class).get().getResults();

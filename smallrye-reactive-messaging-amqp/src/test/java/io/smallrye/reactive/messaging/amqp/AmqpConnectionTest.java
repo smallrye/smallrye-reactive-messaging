@@ -69,7 +69,7 @@ public class AmqpConnectionTest extends AmqpTestBase {
                 .put("mp.messaging.incoming.messages-in.tracing-enabled", false);
         config.write();
 
-        container = weld.initialize();
+        container = initializeContainer(weld);
 
         MyConsumer consumer = container.getBeanManager().createInstance().select(MyConsumer.class).get();
 

@@ -14,7 +14,6 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
 
-import org.eclipse.microprofile.config.ConfigProvider;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.spi.ConnectorLiteral;
 import org.jboss.weld.environment.se.Weld;
@@ -23,13 +22,13 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 import io.netty.handler.codec.http.HttpHeaderValues;
-import io.smallrye.config.SmallRyeConfigProviderResolver;
 import io.smallrye.reactive.messaging.json.JsonMapping;
 import io.smallrye.reactive.messaging.rabbitmq.converter.ByteArrayMessageConverter;
 import io.smallrye.reactive.messaging.rabbitmq.converter.JsonValueMessageConverter;
 import io.smallrye.reactive.messaging.rabbitmq.converter.StringMessageConverter;
 import io.smallrye.reactive.messaging.rabbitmq.converter.TypeMessageConverter;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
+import io.smallrye.reactive.messaging.test.common.config.SmallRyeConfigTestUtil;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonObject;
 
@@ -50,7 +49,7 @@ class MessageConvertersTest extends RabbitMQBrokerTestBase {
         }
 
         MapBasedConfig.cleanup();
-        SmallRyeConfigProviderResolver.instance().releaseConfig(ConfigProvider.getConfig());
+        SmallRyeConfigTestUtil.releaseConfig();
     }
 
     @Test
@@ -58,6 +57,7 @@ class MessageConvertersTest extends RabbitMQBrokerTestBase {
         init(weld, getConfig(HttpHeaderValues.APPLICATION_JSON.toString()));
         weld.addBeanClass(JsonObjectConsumer.class);
 
+        SmallRyeConfigTestUtil.installConfig();
         container = weld.initialize();
 
         await().until(() -> isRabbitMQConnectorAvailable(container));
@@ -83,6 +83,7 @@ class MessageConvertersTest extends RabbitMQBrokerTestBase {
         init(weld, getConfig(HttpHeaderValues.TEXT_PLAIN.toString()));
         weld.addBeanClass(StringConsumer.class);
 
+        SmallRyeConfigTestUtil.installConfig();
         container = weld.initialize();
 
         await().until(() -> isRabbitMQConnectorAvailable(container));
@@ -108,6 +109,7 @@ class MessageConvertersTest extends RabbitMQBrokerTestBase {
         weld.addBeanClass(TypeConsumer.class);
         weld.addBeanClass(JsonbMapping.class);
 
+        SmallRyeConfigTestUtil.installConfig();
         container = weld.initialize();
 
         await().until(() -> isRabbitMQConnectorAvailable(container));
@@ -133,6 +135,7 @@ class MessageConvertersTest extends RabbitMQBrokerTestBase {
         init(weld, getConfig(null));
         weld.addBeanClass(BytesConsumer.class);
 
+        SmallRyeConfigTestUtil.installConfig();
         container = weld.initialize();
 
         await().until(() -> isRabbitMQConnectorAvailable(container));

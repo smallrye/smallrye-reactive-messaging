@@ -38,7 +38,7 @@ public class MultipleTopicsConsumptionTest extends MqttTestBase {
         Clients.clear();
         Weld weld = baseWeld(getConfig("my-id"));
         weld.addBeanClass(Consumers.class);
-        container = weld.initialize();
+        container = initializeContainer(weld);
 
         Consumers bean = container.getBeanManager().createInstance().select(Consumers.class).get();
         MqttConnector mqttConnector = this.container.select(MqttConnector.class, ConnectorLiteral.of("smallrye-mqtt")).get();
@@ -64,7 +64,7 @@ public class MultipleTopicsConsumptionTest extends MqttTestBase {
         Clients.clear();
         Weld weld = baseWeld(getConfig(null));
         weld.addBeanClass(Consumers.class);
-        container = weld.initialize();
+        container = initializeContainer(weld);
 
         Consumers bean = container.getBeanManager().createInstance().select(Consumers.class).get();
         MqttConnector mqttConnector = this.container.select(MqttConnector.class, ConnectorLiteral.of("smallrye-mqtt")).get();

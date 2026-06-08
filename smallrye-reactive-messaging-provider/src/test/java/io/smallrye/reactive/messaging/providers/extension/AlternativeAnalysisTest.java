@@ -16,6 +16,7 @@ import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
+import io.smallrye.config.inject.ConfigExtension;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.Invoker;
 import io.smallrye.reactive.messaging.MediatorConfiguration;
@@ -30,6 +31,7 @@ import io.smallrye.reactive.messaging.providers.impl.ConnectorFactories;
 import io.smallrye.reactive.messaging.providers.impl.InternalChannelRegistry;
 import io.smallrye.reactive.messaging.providers.locals.ContextDecorator;
 import io.smallrye.reactive.messaging.providers.wiring.Wiring;
+import io.smallrye.reactive.messaging.test.common.config.SmallRyeConfigTestUtil;
 
 /**
  * Test the analysis as used in Quarkus.
@@ -62,12 +64,11 @@ public class AlternativeAnalysisTest {
                 HealthCenter.class,
                 ContextDecorator.class,
                 // Messaging provider
-                MyDummyConnector.class,
-
-                // SmallRye config
-                io.smallrye.config.inject.ConfigProducer.class);
+                MyDummyConnector.class);
         initializer.addBeanClasses(MyApplicationWithIncomingAndOutgoing.class, Empty.class);
+        initializer.addExtensions(new ConfigExtension());
 
+        SmallRyeConfigTestUtil.installConfig();
         container = initializer.initialize();
         MediatorManager manager = container.select(MediatorManager.class).get();
 

@@ -15,6 +15,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 
+import io.smallrye.config.inject.ConfigExtension;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.WeldTestBaseWithoutTails;
 import io.smallrye.reactive.messaging.annotations.Blocking;
@@ -57,14 +58,12 @@ public class BlockingWithoutExecutionHolderTest extends WeldTestBaseWithoutTails
                 MetricDecorator.class,
                 HealthCenter.class,
                 // Messaging provider
-                MyDummyConnector.class,
-
-                // SmallRye config
-                io.smallrye.config.inject.ConfigProducer.class);
+                MyDummyConnector.class);
 
         List<Class<?>> beans = getBeans();
         initializer.addBeanClasses(beans.toArray(new Class<?>[0]));
         initializer.disableDiscovery();
+        initializer.addExtensions(new ConfigExtension());
         initializer.addExtensions(new ReactiveMessagingExtension());
     }
 

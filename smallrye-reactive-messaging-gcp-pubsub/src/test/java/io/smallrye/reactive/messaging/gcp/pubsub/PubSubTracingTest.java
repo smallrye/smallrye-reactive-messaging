@@ -13,7 +13,6 @@ import java.util.concurrent.TimeUnit;
 
 import jakarta.enterprise.context.ApplicationScoped;
 
-import org.eclipse.microprofile.config.ConfigProvider;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
@@ -40,9 +39,9 @@ import io.opentelemetry.sdk.trace.SpanProcessor;
 import io.opentelemetry.sdk.trace.data.SpanData;
 import io.opentelemetry.sdk.trace.export.SimpleSpanProcessor;
 import io.opentelemetry.sdk.trace.samplers.Sampler;
-import io.smallrye.config.SmallRyeConfigProviderResolver;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
+import io.smallrye.reactive.messaging.test.common.config.SmallRyeConfigTestUtil;
 
 public class PubSubTracingTest extends PubSubTestBase {
 
@@ -56,7 +55,7 @@ public class PubSubTracingTest extends PubSubTestBase {
     @BeforeEach
     public void setup(TestInfo testInfo) {
         // Ensure clean config state from any previously-run test class
-        SmallRyeConfigProviderResolver.instance().releaseConfig(ConfigProvider.getConfig());
+        SmallRyeConfigTestUtil.releaseConfig();
         MapBasedConfig.cleanup();
 
         topic = testInfo.getTestMethod().map(Method::getName).orElse("") + "_" + UUID.randomUUID();
@@ -86,7 +85,7 @@ public class PubSubTracingTest extends PubSubTestBase {
             deleteTopicIfExists(manager, topic);
             container.shutdown();
         }
-        SmallRyeConfigProviderResolver.instance().releaseConfig(ConfigProvider.getConfig());
+        SmallRyeConfigTestUtil.releaseConfig();
         clear();
     }
 
@@ -103,7 +102,7 @@ public class PubSubTracingTest extends PubSubTestBase {
 
         addConfig(config);
         weld.addBeanClass(ProducerApp.class);
-        container = weld.initialize();
+        container = initializeContainer(weld);
 
         ProducerApp app = container.select(ProducerApp.class).get();
 
@@ -145,7 +144,7 @@ public class PubSubTracingTest extends PubSubTestBase {
 
         addConfig(config);
         weld.addBeanClass(ConsumerApp.class);
-        container = weld.initialize();
+        container = initializeContainer(weld);
 
         ConsumerApp app = container.select(ConsumerApp.class).get();
 
@@ -201,7 +200,7 @@ public class PubSubTracingTest extends PubSubTestBase {
 
         addConfig(config);
         weld.addBeanClass(ProcessorApp.class);
-        container = weld.initialize();
+        container = initializeContainer(weld);
 
         ProcessorApp app = container.select(ProcessorApp.class).get();
 

@@ -82,8 +82,12 @@ public class MutualTlsMqttTestBase {
         vertx.closeAndAwait();
         usage.close();
 
-        SmallRyeConfigProviderResolver.instance()
-                .releaseConfig(ConfigProvider.getConfig(this.getClass().getClassLoader()));
+        try {
+            SmallRyeConfigProviderResolver.instance()
+                    .releaseConfig(ConfigProvider.getConfig(this.getClass().getClassLoader()));
+        } catch (IllegalArgumentException e) {
+            // No config registered
+        }
     }
 
 }

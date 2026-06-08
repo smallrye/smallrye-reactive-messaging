@@ -40,7 +40,7 @@ public class MessageConverterTest extends MqttTestBase {
         String topic = UUID.randomUUID().toString();
         Weld weld = baseWeld(getConfig(topic));
         weld.addBeanClass(JsonObjectConsumer.class);
-        container = weld.initialize();
+        container = initializeContainer(weld);
 
         JsonObjectConsumer bean = container.getBeanManager().createInstance().select(JsonObjectConsumer.class).get();
         MqttConnector mqttConnector = this.container.select(MqttConnector.class, ConnectorLiteral.of("smallrye-mqtt")).get();
@@ -64,7 +64,7 @@ public class MessageConverterTest extends MqttTestBase {
         String topic = UUID.randomUUID().toString();
         Weld weld = baseWeld(getConfig(topic));
         weld.addBeanClass(StringConsumer.class);
-        container = weld.initialize();
+        container = initializeContainer(weld);
 
         StringConsumer bean = container.getBeanManager().createInstance().select(StringConsumer.class).get();
         MqttConnector mqttConnector = this.container.select(MqttConnector.class, ConnectorLiteral.of("smallrye-mqtt")).get();

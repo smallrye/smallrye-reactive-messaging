@@ -45,7 +45,7 @@ public class MqttAcknowledgementTest extends MqttTestBase {
                 null,
                 v -> latch.countDown());
 
-        container = weld.initialize();
+        container = initializeContainer(weld);
 
         EmitterBean bean = container.getBeanManager().createInstance().select(EmitterBean.class).get();
         bean.sendAndAwait();
@@ -64,7 +64,7 @@ public class MqttAcknowledgementTest extends MqttTestBase {
                 null,
                 v -> latch.countDown());
 
-        container = weld.initialize();
+        container = initializeContainer(weld);
 
         EmitterBean bean = container.getBeanManager().createInstance().select(EmitterBean.class).get();
         bean.sendAndAwait();
@@ -83,7 +83,7 @@ public class MqttAcknowledgementTest extends MqttTestBase {
                 null,
                 v -> latch.countDown());
 
-        container = weld.initialize();
+        container = initializeContainer(weld);
 
         EmitterBean bean = container.getBeanManager().createInstance().select(EmitterBean.class).get();
         bean.sendAndAwait();

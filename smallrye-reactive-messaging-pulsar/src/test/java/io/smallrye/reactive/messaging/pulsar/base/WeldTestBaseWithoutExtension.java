@@ -2,14 +2,12 @@ package io.smallrye.reactive.messaging.pulsar.base;
 
 import jakarta.enterprise.inject.spi.BeanManager;
 
-import org.eclipse.microprofile.config.ConfigProvider;
 import org.eclipse.microprofile.reactive.messaging.spi.ConnectorLiteral;
 import org.jboss.weld.environment.se.Weld;
 import org.jboss.weld.environment.se.WeldContainer;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 
-import io.smallrye.config.SmallRyeConfigProviderResolver;
 import io.smallrye.config.inject.ConfigExtension;
 import io.smallrye.reactive.messaging.providers.MediatorFactory;
 import io.smallrye.reactive.messaging.providers.connectors.ExecutionHolder;
@@ -30,6 +28,7 @@ import io.smallrye.reactive.messaging.pulsar.SchemaResolver;
 import io.smallrye.reactive.messaging.pulsar.ack.PulsarMessageAck;
 import io.smallrye.reactive.messaging.pulsar.fault.PulsarNack;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
+import io.smallrye.reactive.messaging.test.common.config.SmallRyeConfigTestUtil;
 
 public class WeldTestBaseWithoutExtension extends PulsarClientBaseTest {
 
@@ -75,7 +74,7 @@ public class WeldTestBaseWithoutExtension extends PulsarClientBaseTest {
             container.close();
         }
         // Release the config objects
-        SmallRyeConfigProviderResolver.instance().releaseConfig(ConfigProvider.getConfig());
+        SmallRyeConfigTestUtil.releaseConfig();
     }
 
     public BeanManager getBeanManager() {
@@ -106,6 +105,7 @@ public class WeldTestBaseWithoutExtension extends PulsarClientBaseTest {
             MapBasedConfig.cleanup();
         }
 
+        SmallRyeConfigTestUtil.installConfig();
         container = weld.initialize();
     }
 

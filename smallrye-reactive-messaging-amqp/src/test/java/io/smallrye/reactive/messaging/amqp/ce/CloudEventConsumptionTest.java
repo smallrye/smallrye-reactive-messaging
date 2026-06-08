@@ -13,7 +13,6 @@ import java.util.concurrent.TimeUnit;
 
 import jakarta.enterprise.context.ApplicationScoped;
 
-import org.eclipse.microprofile.config.ConfigProvider;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.jboss.weld.environment.se.Weld;
@@ -21,11 +20,11 @@ import org.jboss.weld.environment.se.WeldContainer;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
-import io.smallrye.config.SmallRyeConfigProviderResolver;
 import io.smallrye.reactive.messaging.amqp.*;
 import io.smallrye.reactive.messaging.ce.CloudEventMetadata;
 import io.smallrye.reactive.messaging.ce.IncomingCloudEventMetadata;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
+import io.smallrye.reactive.messaging.test.common.config.SmallRyeConfigTestUtil;
 import io.vertx.core.json.JsonObject;
 import io.vertx.mutiny.amqp.AmqpMessage;
 import io.vertx.mutiny.core.buffer.Buffer;
@@ -42,7 +41,7 @@ public class CloudEventConsumptionTest extends AmqpBrokerTestBase {
             container.close();
         }
         // Release the config objects
-        SmallRyeConfigProviderResolver.instance().releaseConfig(ConfigProvider.getConfig());
+        SmallRyeConfigTestUtil.releaseConfig();
     }
 
     @Test
@@ -60,7 +59,7 @@ public class CloudEventConsumptionTest extends AmqpBrokerTestBase {
                 .write();
 
         weld.addBeanClass(MyConsumptionBean.class);
-        container = weld.initialize();
+        container = initializeContainer(weld);
         await().until(() -> isAmqpConnectorReady(container));
         MyConsumptionBean bean = container.getBeanManager().createInstance().select(MyConsumptionBean.class).get();
 
@@ -117,7 +116,7 @@ public class CloudEventConsumptionTest extends AmqpBrokerTestBase {
                 .write();
 
         weld.addBeanClass(MyConsumptionBean.class);
-        container = weld.initialize();
+        container = initializeContainer(weld);
         await().until(() -> isAmqpConnectorReady(container));
         MyConsumptionBean bean = container.getBeanManager().createInstance().select(MyConsumptionBean.class).get();
 
@@ -174,7 +173,7 @@ public class CloudEventConsumptionTest extends AmqpBrokerTestBase {
                 .write();
 
         weld.addBeanClass(MyConsumptionBean.class);
-        container = weld.initialize();
+        container = initializeContainer(weld);
         await().until(() -> isAmqpConnectorReady(container));
         MyConsumptionBean bean = container.getBeanManager().createInstance().select(MyConsumptionBean.class).get();
 
@@ -230,7 +229,7 @@ public class CloudEventConsumptionTest extends AmqpBrokerTestBase {
                 .write();
 
         weld.addBeanClass(MyConsumptionBean.class);
-        container = weld.initialize();
+        container = initializeContainer(weld);
         await().until(() -> isAmqpConnectorReady(container));
         MyConsumptionBean bean = container.getBeanManager().createInstance().select(MyConsumptionBean.class).get();
 
@@ -270,7 +269,7 @@ public class CloudEventConsumptionTest extends AmqpBrokerTestBase {
                 .write();
 
         weld.addBeanClass(MyConsumptionBean.class);
-        container = weld.initialize();
+        container = initializeContainer(weld);
         await().until(() -> isAmqpConnectorReady(container));
         MyConsumptionBean bean = container.getBeanManager().createInstance().select(MyConsumptionBean.class).get();
 
@@ -328,7 +327,7 @@ public class CloudEventConsumptionTest extends AmqpBrokerTestBase {
                 .write();
 
         weld.addBeanClass(MyStringConsumptionBean.class);
-        container = weld.initialize();
+        container = initializeContainer(weld);
         await().until(() -> isAmqpConnectorReady(container));
 
         MyStringConsumptionBean bean = container.getBeanManager().createInstance().select(MyStringConsumptionBean.class).get();
@@ -390,7 +389,7 @@ public class CloudEventConsumptionTest extends AmqpBrokerTestBase {
                 .write();
 
         weld.addBeanClass(MyConsumptionBean.class);
-        container = weld.initialize();
+        container = initializeContainer(weld);
         await().until(() -> isAmqpConnectorReady(container));
         MyConsumptionBean bean = container.getBeanManager().createInstance().select(MyConsumptionBean.class).get();
 
@@ -431,7 +430,7 @@ public class CloudEventConsumptionTest extends AmqpBrokerTestBase {
                 .write();
 
         weld.addBeanClass(MyConsumptionBean.class);
-        container = weld.initialize();
+        container = initializeContainer(weld);
         await().until(() -> isAmqpConnectorReady(container));
         MyConsumptionBean bean = container.getBeanManager().createInstance().select(MyConsumptionBean.class).get();
 
@@ -525,7 +524,7 @@ public class CloudEventConsumptionTest extends AmqpBrokerTestBase {
                 .write();
 
         weld.addBeanClass(MyConsumptionBean.class);
-        container = weld.initialize();
+        container = initializeContainer(weld);
         await().until(() -> isAmqpConnectorReady(container));
         MyConsumptionBean bean = container.getBeanManager().createInstance().select(MyConsumptionBean.class).get();
 
@@ -575,7 +574,7 @@ public class CloudEventConsumptionTest extends AmqpBrokerTestBase {
                 .write();
 
         weld.addBeanClass(MyConsumptionBean.class);
-        container = weld.initialize();
+        container = initializeContainer(weld);
         await().until(() -> isAmqpConnectorReady(container));
 
         MyConsumptionBean bean = container.getBeanManager().createInstance().select(MyConsumptionBean.class).get();
@@ -622,7 +621,7 @@ public class CloudEventConsumptionTest extends AmqpBrokerTestBase {
                 .write();
 
         weld.addBeanClass(MyConsumptionBean.class);
-        container = weld.initialize();
+        container = initializeContainer(weld);
         await().until(() -> isAmqpConnectorReady(container));
         MyConsumptionBean bean = container.getBeanManager().createInstance().select(MyConsumptionBean.class).get();
 

@@ -17,7 +17,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import jakarta.enterprise.inject.Any;
 import jakarta.enterprise.inject.se.SeContainer;
 
-import org.eclipse.microprofile.config.ConfigProvider;
 import org.eclipse.microprofile.reactive.messaging.spi.ConnectorLiteral;
 import org.jboss.weld.environment.se.Weld;
 import org.jboss.weld.environment.se.WeldContainer;
@@ -36,10 +35,10 @@ import org.testcontainers.utility.MountableFile;
 
 import eu.rekawek.toxiproxy.Proxy;
 import eu.rekawek.toxiproxy.ToxiproxyClient;
-import io.smallrye.config.SmallRyeConfigProviderResolver;
 import io.smallrye.reactive.messaging.providers.connectors.ExecutionHolder;
 import io.smallrye.reactive.messaging.providers.extension.HealthCenter;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
+import io.smallrye.reactive.messaging.test.common.config.SmallRyeConfigTestUtil;
 import io.vertx.mutiny.core.Vertx;
 
 /**
@@ -104,7 +103,7 @@ public class RabbitMQReconnectionTest {
     void setup() {
         executionHolder = new ExecutionHolder(Vertx.vertx());
         usage = new RabbitMQUsage(executionHolder.vertx(), host, port, managementPort, username, password);
-        SmallRyeConfigProviderResolver.instance().releaseConfig(ConfigProvider.getConfig());
+        SmallRyeConfigTestUtil.releaseConfig();
         MapBasedConfig.cleanup();
     }
 
@@ -120,7 +119,7 @@ public class RabbitMQReconnectionTest {
     void tearDown() {
         usage.close();
         executionHolder.terminate(null);
-        SmallRyeConfigProviderResolver.instance().releaseConfig(ConfigProvider.getConfig());
+        SmallRyeConfigTestUtil.releaseConfig();
         MapBasedConfig.cleanup();
     }
 
@@ -133,7 +132,7 @@ public class RabbitMQReconnectionTest {
         }
 
         MapBasedConfig.cleanup();
-        SmallRyeConfigProviderResolver.instance().releaseConfig(ConfigProvider.getConfig());
+        SmallRyeConfigTestUtil.releaseConfig();
     }
 
     boolean isRabbitMQConnectorAvailable(WeldContainer container) {
@@ -196,6 +195,7 @@ public class RabbitMQReconnectionTest {
                     .put("rabbitmq-reconnect-interval", 1)
                     .write();
 
+            SmallRyeConfigTestUtil.installConfig();
             container = weld.initialize();
 
             await().pollDelay(3, SECONDS).until(() -> !isRabbitMQConnectorAlive(container));
@@ -241,6 +241,7 @@ public class RabbitMQReconnectionTest {
                     .put("rabbitmq-reconnect-interval", 1)
                     .write();
 
+            SmallRyeConfigTestUtil.installConfig();
             container = weld.initialize();
 
             await().pollDelay(3, SECONDS).until(() -> isRabbitMQConnectorAvailable(container));
@@ -297,6 +298,7 @@ public class RabbitMQReconnectionTest {
                     .put("rabbitmq-reconnect-interval", 1)
                     .write();
 
+            SmallRyeConfigTestUtil.installConfig();
             container = weld.initialize();
             await().until(() -> isRabbitMQConnectorAvailable(container));
 
@@ -374,6 +376,7 @@ public class RabbitMQReconnectionTest {
 
             weld.addBeanClass(ConsumptionBean.class);
 
+            SmallRyeConfigTestUtil.installConfig();
             container = weld.initialize();
             ConsumptionBean bean = get(container, ConsumptionBean.class);
 

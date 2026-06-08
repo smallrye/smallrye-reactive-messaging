@@ -11,7 +11,6 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
-import org.eclipse.microprofile.config.ConfigProvider;
 import org.eclipse.microprofile.reactive.messaging.Channel;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Message;
@@ -22,13 +21,13 @@ import org.jboss.weld.environment.se.WeldContainer;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
-import io.smallrye.config.SmallRyeConfigProviderResolver;
 import io.smallrye.mutiny.helpers.test.UniAssertSubscriber;
 import io.smallrye.reactive.messaging.amqp.AmqpConnector;
 import io.smallrye.reactive.messaging.amqp.IncomingAmqpMetadata;
 import io.smallrye.reactive.messaging.amqp.OutgoingAmqpMetadata;
 import io.smallrye.reactive.messaging.amqp.RabbitMQBrokerTestBase;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
+import io.smallrye.reactive.messaging.test.common.config.SmallRyeConfigTestUtil;
 import io.vertx.mutiny.amqp.AmqpMessage;
 import io.vertx.mutiny.amqp.AmqpReceiver;
 
@@ -46,7 +45,7 @@ public class AmqpRabbitMQRequestReplyTest extends RabbitMQBrokerTestBase {
         }
 
         MapBasedConfig.cleanup();
-        SmallRyeConfigProviderResolver.instance().releaseConfig(ConfigProvider.getConfig());
+        SmallRyeConfigTestUtil.releaseConfig();
     }
 
     private MapBasedConfig commonConfig() {
@@ -96,7 +95,7 @@ public class AmqpRabbitMQRequestReplyTest extends RabbitMQBrokerTestBase {
         Weld weld = new Weld();
         weld.addBeanClasses(RequestReplyProducer.class);
         requestReplyConfig(requestQueue, replyQueue).write();
-        container = weld.initialize();
+        container = initializeContainer(weld);
 
         List<String> replies = new CopyOnWriteArrayList<>();
         RequestReplyProducer producer = container.getBeanManager().createInstance()
@@ -123,7 +122,7 @@ public class AmqpRabbitMQRequestReplyTest extends RabbitMQBrokerTestBase {
         Weld weld = new Weld();
         weld.addBeanClasses(RequestReplyProducer.class);
         requestReplyConfig(requestQueue, replyQueue).write();
-        container = weld.initialize();
+        container = initializeContainer(weld);
 
         List<String> replies = new CopyOnWriteArrayList<>();
         RequestReplyProducer producer = container.getBeanManager().createInstance()
@@ -153,7 +152,7 @@ public class AmqpRabbitMQRequestReplyTest extends RabbitMQBrokerTestBase {
         requestReplyConfig(requestQueue, replyQueue)
                 .with("mp.messaging.outgoing.request-reply." + AmqpRequestReply.REPLY_TIMEOUT_KEY, "1000")
                 .write();
-        container = weld.initialize();
+        container = initializeContainer(weld);
 
         RequestReplyProducer producer = container.getBeanManager().createInstance()
                 .select(RequestReplyProducer.class).get();
@@ -181,7 +180,7 @@ public class AmqpRabbitMQRequestReplyTest extends RabbitMQBrokerTestBase {
                 .with("mp.messaging.outgoing.server-out.address", "/queues/" + replyQueue)
                 .with("mp.messaging.outgoing.server-out.use-anonymous-sender", false)
                 .write();
-        container = weld.initialize();
+        container = initializeContainer(weld);
 
         List<String> replies = new CopyOnWriteArrayList<>();
         RequestReplyProducer producer = container.getBeanManager().createInstance()
@@ -214,7 +213,7 @@ public class AmqpRabbitMQRequestReplyTest extends RabbitMQBrokerTestBase {
                 .with("mp.messaging.outgoing.server-out.address", "/queues/" + replyQueue)
                 .with("mp.messaging.outgoing.server-out.use-anonymous-sender", false)
                 .write();
-        container = weld.initialize();
+        container = initializeContainer(weld);
 
         List<String> replies = new CopyOnWriteArrayList<>();
         RequestReplyProducer producer = container.getBeanManager().createInstance()

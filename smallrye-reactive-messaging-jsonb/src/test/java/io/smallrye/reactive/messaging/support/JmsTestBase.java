@@ -1,12 +1,10 @@
 package io.smallrye.reactive.messaging.support;
 
-import org.eclipse.microprofile.config.ConfigProvider;
 import org.jboss.weld.environment.se.Weld;
 import org.jboss.weld.environment.se.WeldContainer;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 
-import io.smallrye.config.SmallRyeConfigProviderResolver;
 import io.smallrye.config.inject.ConfigExtension;
 import io.smallrye.reactive.messaging.jms.JmsConnector;
 import io.smallrye.reactive.messaging.jms.fault.JmsDlqFailure;
@@ -29,6 +27,7 @@ import io.smallrye.reactive.messaging.providers.impl.ConnectorFactories;
 import io.smallrye.reactive.messaging.providers.impl.InternalChannelRegistry;
 import io.smallrye.reactive.messaging.providers.wiring.Wiring;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
+import io.smallrye.reactive.messaging.test.common.config.SmallRyeConfigTestUtil;
 
 /**
  * FIXME?: make the original class reusable?
@@ -50,7 +49,7 @@ public class JmsTestBase {
 
     @BeforeEach
     public void initializeWeld() {
-        SmallRyeConfigProviderResolver.instance().releaseConfig(ConfigProvider.getConfig());
+        SmallRyeConfigTestUtil.releaseConfig();
         if (withConnectionFactory()) {
             initWeldWithConnectionFactory();
         } else {
@@ -65,11 +64,12 @@ public class JmsTestBase {
     @AfterEach
     public void cleanUp() {
         weld.shutdown();
-        SmallRyeConfigProviderResolver.instance().releaseConfig(ConfigProvider.getConfig());
+        SmallRyeConfigTestUtil.releaseConfig();
     }
 
     protected WeldContainer deploy(Class<?>... beanClass) {
         weld.addBeanClasses(beanClass);
+        SmallRyeConfigTestUtil.installConfig();
         return weld.initialize();
     }
 

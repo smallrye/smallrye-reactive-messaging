@@ -27,7 +27,7 @@ public class PubSubManagerTest extends PubSubTestBase {
         final Weld weld = baseWeld();
         addConfig(createSourceConfig(TOPIC, SUBSCRIPTION, PUBSUB_CONTAINER.getFirstMappedPort()));
         weld.addBeanClass(ConnectorFactories.class);
-        container = weld.initialize();
+        container = initializeContainer(weld);
     }
 
     @AfterEach

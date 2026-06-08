@@ -5,7 +5,6 @@ import static org.assertj.core.api.Assertions.*;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-import org.eclipse.microprofile.config.ConfigProvider;
 import org.jboss.weld.environment.se.Weld;
 import org.jboss.weld.environment.se.WeldContainer;
 import org.jboss.weld.exceptions.DeploymentException;
@@ -13,8 +12,8 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
-import io.smallrye.config.SmallRyeConfigProviderResolver;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
+import io.smallrye.reactive.messaging.test.common.config.SmallRyeConfigTestUtil;
 
 public class AmqpSinkCDIConfigTest extends AmqpBrokerTestBase {
 
@@ -32,7 +31,7 @@ public class AmqpSinkCDIConfigTest extends AmqpBrokerTestBase {
         }
 
         MapBasedConfig.cleanup();
-        SmallRyeConfigProviderResolver.instance().releaseConfig(ConfigProvider.getConfig());
+        SmallRyeConfigTestUtil.releaseConfig();
 
         System.clearProperty("mp-config");
         System.clearProperty("client-options-name");
@@ -57,7 +56,7 @@ public class AmqpSinkCDIConfigTest extends AmqpBrokerTestBase {
                 .put("mp.messaging.outgoing.sink.tracing-enabled", false)
                 .write();
 
-        assertThatThrownBy(() -> container = weld.initialize()).isInstanceOf(DeploymentException.class);
+        assertThatThrownBy(() -> container = initializeContainer(weld)).isInstanceOf(DeploymentException.class);
     }
 
     @Test
@@ -78,7 +77,7 @@ public class AmqpSinkCDIConfigTest extends AmqpBrokerTestBase {
                 .put("mp.messaging.outgoing.sink.tracing-enabled", false)
                 .write();
 
-        assertThatThrownBy(() -> container = weld.initialize()).isInstanceOf(DeploymentException.class);
+        assertThatThrownBy(() -> container = initializeContainer(weld)).isInstanceOf(DeploymentException.class);
     }
 
     @Test
@@ -104,7 +103,7 @@ public class AmqpSinkCDIConfigTest extends AmqpBrokerTestBase {
                 .put("mp.messaging.outgoing.sink.client-options-name", "myclientoptions")
                 .write();
 
-        container = weld.initialize();
+        container = initializeContainer(weld);
 
         assertThat(latch.await(1, TimeUnit.MINUTES)).isTrue();
     }
@@ -128,7 +127,7 @@ public class AmqpSinkCDIConfigTest extends AmqpBrokerTestBase {
                 .write();
 
         assertThatThrownBy(() -> {
-            container = weld.initialize();
+            container = initializeContainer(weld);
         }).isInstanceOf(DeploymentException.class);
     }
 
@@ -153,7 +152,7 @@ public class AmqpSinkCDIConfigTest extends AmqpBrokerTestBase {
                 .write();
 
         assertThatThrownBy(() -> {
-            container = weld.initialize();
+            container = initializeContainer(weld);
         }).isInstanceOf(DeploymentException.class);
     }
 
@@ -180,7 +179,7 @@ public class AmqpSinkCDIConfigTest extends AmqpBrokerTestBase {
                 .put("amqp-client-options-name", "myclientoptions")
                 .write();
 
-        container = weld.initialize();
+        container = initializeContainer(weld);
 
         assertThat(latch.await(1, TimeUnit.MINUTES)).isTrue();
     }

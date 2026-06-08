@@ -37,7 +37,7 @@ public class MultipleConnectorTest extends MqttTestBase {
     void test() {
         Weld weld = baseWeld(multiConnectorConfig());
         weld.addBeanClass(MyConsumers.class);
-        container = weld.initialize();
+        container = initializeContainer(weld);
 
         usage.produceStrings("arconsis/test/quarkus", 1, null, () -> {
             return "hello";

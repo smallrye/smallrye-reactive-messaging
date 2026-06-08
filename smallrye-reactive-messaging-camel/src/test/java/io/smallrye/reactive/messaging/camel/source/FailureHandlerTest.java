@@ -12,18 +12,17 @@ import java.util.concurrent.TimeUnit;
 import jakarta.enterprise.context.ApplicationScoped;
 
 import org.apache.camel.CamelContext;
-import org.eclipse.microprofile.config.ConfigProvider;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.jboss.weld.environment.se.Weld;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
-import io.smallrye.config.SmallRyeConfigProviderResolver;
 import io.smallrye.reactive.messaging.camel.CamelCdiLite;
 import io.smallrye.reactive.messaging.camel.CamelConnector;
 import io.smallrye.reactive.messaging.camel.CamelMessage;
 import io.smallrye.reactive.messaging.camel.CamelTestBase;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
+import io.smallrye.reactive.messaging.test.common.config.SmallRyeConfigTestUtil;
 
 public class FailureHandlerTest extends CamelTestBase {
 
@@ -33,7 +32,7 @@ public class FailureHandlerTest extends CamelTestBase {
             container.close();
         }
         // Release the config objects
-        SmallRyeConfigProviderResolver.instance().releaseConfig(ConfigProvider.getConfig());
+        SmallRyeConfigTestUtil.releaseConfig();
     }
 
     private MyReceiverBean deploy() {
@@ -41,6 +40,7 @@ public class FailureHandlerTest extends CamelTestBase {
         weld.addBeanClass(CamelCdiLite.class);
         weld.addBeanClass(MyReceiverBean.class);
 
+        SmallRyeConfigTestUtil.installConfig();
         container = weld.initialize();
         return container.getBeanManager().createInstance().select(MyReceiverBean.class).get();
     }

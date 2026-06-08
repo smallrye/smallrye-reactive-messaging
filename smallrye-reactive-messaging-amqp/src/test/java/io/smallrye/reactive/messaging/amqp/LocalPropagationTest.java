@@ -17,7 +17,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import jakarta.enterprise.context.ApplicationScoped;
 
-import org.eclipse.microprofile.config.ConfigProvider;
 import org.eclipse.microprofile.reactive.messaging.Acknowledgment;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Message;
@@ -30,7 +29,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
 
 import io.smallrye.common.vertx.ContextLocals;
-import io.smallrye.config.SmallRyeConfigProviderResolver;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.infrastructure.Infrastructure;
 import io.smallrye.reactive.messaging.annotations.Blocking;
@@ -38,6 +36,7 @@ import io.smallrye.reactive.messaging.annotations.Broadcast;
 import io.smallrye.reactive.messaging.annotations.Merge;
 import io.smallrye.reactive.messaging.providers.locals.LocalContextMetadata;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
+import io.smallrye.reactive.messaging.test.common.config.SmallRyeConfigTestUtil;
 import io.vertx.core.impl.ConcurrentHashSet;
 import io.vertx.mutiny.core.Vertx;
 
@@ -62,7 +61,7 @@ public class LocalPropagationTest extends AmqpBrokerTestBase {
             container.close();
         }
         // Release the config objects
-        SmallRyeConfigProviderResolver.instance().releaseConfig(ConfigProvider.getConfig());
+        SmallRyeConfigTestUtil.releaseConfig();
     }
 
     private MapBasedConfig dataconfig() {
@@ -85,7 +84,7 @@ public class LocalPropagationTest extends AmqpBrokerTestBase {
     private <T> T runApplication(MapBasedConfig config, Class<T> beanClass) {
         config.write();
         weld.addBeanClass(beanClass);
-        container = weld.initialize();
+        container = initializeContainer(weld);
 
         return container.getBeanManager().createInstance().select(beanClass).get();
     }

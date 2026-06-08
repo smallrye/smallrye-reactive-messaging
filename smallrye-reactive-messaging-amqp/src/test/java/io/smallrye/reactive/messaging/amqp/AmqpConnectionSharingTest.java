@@ -11,7 +11,6 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
-import org.eclipse.microprofile.config.ConfigProvider;
 import org.eclipse.microprofile.reactive.messaging.Channel;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Message;
@@ -22,9 +21,9 @@ import org.jboss.weld.environment.se.WeldContainer;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
-import io.smallrye.config.SmallRyeConfigProviderResolver;
 import io.smallrye.reactive.messaging.amqp.reply.AmqpRequestReply;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
+import io.smallrye.reactive.messaging.test.common.config.SmallRyeConfigTestUtil;
 import io.vertx.mutiny.amqp.AmqpMessage;
 import io.vertx.mutiny.amqp.AmqpReceiver;
 
@@ -42,7 +41,7 @@ public class AmqpConnectionSharingTest extends AmqpBrokerTestBase {
         }
 
         MapBasedConfig.cleanup();
-        SmallRyeConfigProviderResolver.instance().releaseConfig(ConfigProvider.getConfig());
+        SmallRyeConfigTestUtil.releaseConfig();
     }
 
     @Test
@@ -67,7 +66,7 @@ public class AmqpConnectionSharingTest extends AmqpBrokerTestBase {
                 .with("mp.messaging.outgoing.out-channel.tracing-enabled", false)
                 .with("mp.messaging.outgoing.out-channel.container-id", "my-shared-connection")
                 .write();
-        container = weld.initialize();
+        container = initializeContainer(weld);
 
         AmqpConnector connector = container.getBeanManager().createInstance()
                 .select(AmqpConnector.class, ConnectorLiteral.of(AmqpConnector.CONNECTOR_NAME)).get();
@@ -96,7 +95,7 @@ public class AmqpConnectionSharingTest extends AmqpBrokerTestBase {
                 .with("mp.messaging.outgoing.out-channel.password", password)
                 .with("mp.messaging.outgoing.out-channel.tracing-enabled", false)
                 .write();
-        container = weld.initialize();
+        container = initializeContainer(weld);
 
         AmqpConnector connector = container.getBeanManager().createInstance()
                 .select(AmqpConnector.class, ConnectorLiteral.of(AmqpConnector.CONNECTOR_NAME)).get();
@@ -128,6 +127,8 @@ public class AmqpConnectionSharingTest extends AmqpBrokerTestBase {
                 .with("mp.messaging.outgoing.out-channel.container-id", "same-id")
                 .write();
 
+        SmallRyeConfigTestUtil.installConfig();
+
         assertThatThrownBy(weld::initialize)
                 .isInstanceOf(Exception.class);
     }
@@ -154,7 +155,7 @@ public class AmqpConnectionSharingTest extends AmqpBrokerTestBase {
                 .with("mp.messaging.incoming.data2.tracing-enabled", false)
                 .with("mp.messaging.incoming.data2.container-id", "dual-incoming")
                 .write();
-        container = weld.initialize();
+        container = initializeContainer(weld);
 
         AmqpConnector connector = container.getBeanManager().createInstance()
                 .select(AmqpConnector.class, ConnectorLiteral.of(AmqpConnector.CONNECTOR_NAME)).get();
@@ -191,7 +192,7 @@ public class AmqpConnectionSharingTest extends AmqpBrokerTestBase {
                 .with("mp.messaging.outgoing.rr-channel.container-id", "rr-shared")
                 .with("mp.messaging.outgoing.rr-channel.reply.address", "rr-share-replies")
                 .write();
-        container = weld.initialize();
+        container = initializeContainer(weld);
 
         AmqpConnector connector = container.getBeanManager().createInstance()
                 .select(AmqpConnector.class, ConnectorLiteral.of(AmqpConnector.CONNECTOR_NAME)).get();
@@ -232,7 +233,7 @@ public class AmqpConnectionSharingTest extends AmqpBrokerTestBase {
                 .with("mp.messaging.outgoing.out-channel.tracing-enabled", false)
                 .with("mp.messaging.outgoing.out-channel.container-id", "exchange-test")
                 .write();
-        container = weld.initialize();
+        container = initializeContainer(weld);
 
         AmqpConnector connector = container.getBeanManager().createInstance()
                 .select(AmqpConnector.class, ConnectorLiteral.of(AmqpConnector.CONNECTOR_NAME)).get();

@@ -12,7 +12,6 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
-import org.eclipse.microprofile.config.ConfigProvider;
 import org.eclipse.microprofile.reactive.messaging.Channel;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Message;
@@ -24,7 +23,6 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 import io.smallrye.common.annotation.Identifier;
-import io.smallrye.config.SmallRyeConfigProviderResolver;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.helpers.test.UniAssertSubscriber;
 import io.smallrye.reactive.messaging.amqp.AmqpBrokerTestBase;
@@ -32,6 +30,7 @@ import io.smallrye.reactive.messaging.amqp.AmqpConnector;
 import io.smallrye.reactive.messaging.amqp.IncomingAmqpMetadata;
 import io.smallrye.reactive.messaging.amqp.OutgoingAmqpMetadata;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
+import io.smallrye.reactive.messaging.test.common.config.SmallRyeConfigTestUtil;
 import io.vertx.mutiny.amqp.AmqpMessage;
 import io.vertx.mutiny.amqp.AmqpReceiver;
 
@@ -49,7 +48,7 @@ public class AmqpRequestReplyEmitterTest extends AmqpBrokerTestBase {
         }
 
         MapBasedConfig.cleanup();
-        SmallRyeConfigProviderResolver.instance().releaseConfig(ConfigProvider.getConfig());
+        SmallRyeConfigTestUtil.releaseConfig();
     }
 
     private MapBasedConfig config() {
@@ -109,7 +108,7 @@ public class AmqpRequestReplyEmitterTest extends AmqpBrokerTestBase {
         Weld weld = new Weld();
         weld.addBeanClasses(RequestReplyProducer.class);
         config().write();
-        container = weld.initialize();
+        container = initializeContainer(weld);
 
         List<String> replies = new CopyOnWriteArrayList<>();
         RequestReplyProducer producer = container.getBeanManager().createInstance()
@@ -131,7 +130,7 @@ public class AmqpRequestReplyEmitterTest extends AmqpBrokerTestBase {
         Weld weld = new Weld();
         weld.addBeanClasses(RequestReplyProducer.class);
         config().write();
-        container = weld.initialize();
+        container = initializeContainer(weld);
 
         List<String> replies = new CopyOnWriteArrayList<>();
         RequestReplyProducer producer = container.getBeanManager().createInstance()
@@ -156,7 +155,7 @@ public class AmqpRequestReplyEmitterTest extends AmqpBrokerTestBase {
         config()
                 .with("mp.messaging.outgoing.request-reply." + AmqpRequestReply.REPLY_TIMEOUT_KEY, "1000")
                 .write();
-        container = weld.initialize();
+        container = initializeContainer(weld);
 
         RequestReplyProducer producer = container.getBeanManager().createInstance()
                 .select(RequestReplyProducer.class).get();
@@ -174,7 +173,7 @@ public class AmqpRequestReplyEmitterTest extends AmqpBrokerTestBase {
         Weld weld = new Weld();
         weld.addBeanClasses(RequestReplyProducer.class);
         config().write();
-        container = weld.initialize();
+        container = initializeContainer(weld);
 
         List<String> replies = new CopyOnWriteArrayList<>();
         RequestReplyProducer producer = container.getBeanManager().createInstance()
@@ -208,7 +207,7 @@ public class AmqpRequestReplyEmitterTest extends AmqpBrokerTestBase {
         Weld weld = new Weld();
         weld.addBeanClasses(RequestReplyProducer.class);
         config().write();
-        container = weld.initialize();
+        container = initializeContainer(weld);
 
         List<String> replies = new CopyOnWriteArrayList<>();
         RequestReplyProducer producer = container.getBeanManager().createInstance()
@@ -243,7 +242,7 @@ public class AmqpRequestReplyEmitterTest extends AmqpBrokerTestBase {
                 .with("mp.messaging.outgoing.request-reply2.tracing-enabled", false)
                 .with("mp.messaging.outgoing.request-reply2.reply.address", "request-reply2-reply")
                 .write();
-        container = weld.initialize();
+        container = initializeContainer(weld);
 
         List<String> replies = new CopyOnWriteArrayList<>();
         RequestReplyProducerSecond app = container.getBeanManager().createInstance()
@@ -274,7 +273,7 @@ public class AmqpRequestReplyEmitterTest extends AmqpBrokerTestBase {
                 .with("mp.messaging.outgoing.request-reply." + AmqpRequestReply.REPLY_CORRELATION_ID_HANDLER_KEY,
                         "bytes")
                 .write();
-        container = weld.initialize();
+        container = initializeContainer(weld);
 
         List<String> replies = new CopyOnWriteArrayList<>();
         RequestReplyProducer producer = container.getBeanManager().createInstance()
@@ -299,7 +298,7 @@ public class AmqpRequestReplyEmitterTest extends AmqpBrokerTestBase {
                 .with("mp.messaging.outgoing.request-reply." + AmqpRequestReply.REPLY_FAILURE_HANDLER_KEY,
                         "my-reply-error")
                 .write();
-        container = weld.initialize();
+        container = initializeContainer(weld);
 
         List<String> replies = new CopyOnWriteArrayList<>();
         List<Throwable> errors = new CopyOnWriteArrayList<>();
@@ -332,7 +331,7 @@ public class AmqpRequestReplyEmitterTest extends AmqpBrokerTestBase {
         config()
                 .with("mp.messaging.outgoing.request-reply." + AmqpRequestReply.REPLY_TIMEOUT_KEY, "30000")
                 .write();
-        container = weld.initialize();
+        container = initializeContainer(weld);
 
         RequestReplyProducer producer = container.getBeanManager().createInstance()
                 .select(RequestReplyProducer.class).get();

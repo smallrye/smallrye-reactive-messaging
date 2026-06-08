@@ -7,6 +7,7 @@ import java.time.Duration;
 
 import org.eclipse.microprofile.config.ConfigProvider;
 import org.jboss.weld.environment.se.Weld;
+import org.jboss.weld.environment.se.WeldContainer;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -37,6 +38,7 @@ import io.smallrye.reactive.messaging.providers.impl.InternalChannelRegistry;
 import io.smallrye.reactive.messaging.providers.locals.ContextDecorator;
 import io.smallrye.reactive.messaging.providers.wiring.Wiring;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
+import io.smallrye.reactive.messaging.test.common.config.SmallRyeConfigTestUtil;
 import io.vertx.mqtt.MqttClientOptions;
 import io.vertx.mutiny.core.Vertx;
 import io.vertx.mutiny.mqtt.MqttClient;
@@ -132,12 +134,17 @@ public class MqttTestBase {
         vertx.closeAndAwait();
         usage.close();
 
-        SmallRyeConfigProviderResolver.instance()
-                .releaseConfig(ConfigProvider.getConfig(this.getClass().getClassLoader()));
+        try {
+            SmallRyeConfigProviderResolver.instance()
+                    .releaseConfig(ConfigProvider.getConfig(this.getClass().getClassLoader()));
+        } catch (IllegalArgumentException e) {
+            // No config registered
+        }
     }
 
     static Weld baseWeld(MapBasedConfig config) {
         addConfig(config);
+        SmallRyeConfigTestUtil.installConfig();
         Weld weld = new Weld();
         weld.disableDiscovery();
         weld.addBeanClass(MediatorFactory.class);
@@ -172,6 +179,11 @@ public class MqttTestBase {
         } else {
             clear();
         }
+    }
+
+    protected static WeldContainer initializeContainer(Weld weld) {
+        SmallRyeConfigTestUtil.installConfig();
+        return weld.initialize();
     }
 
     @SuppressWarnings("ResultOfMethodCallIgnored")

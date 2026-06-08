@@ -37,6 +37,7 @@ import io.smallrye.reactive.messaging.rabbitmq.fault.RabbitMQAccept;
 import io.smallrye.reactive.messaging.rabbitmq.fault.RabbitMQFailStop;
 import io.smallrye.reactive.messaging.rabbitmq.fault.RabbitMQReject;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
+import io.smallrye.reactive.messaging.test.common.config.SmallRyeConfigTestUtil;
 import io.vertx.core.Context;
 
 public class WeldTestBase extends RabbitMQBrokerTestBase {
@@ -127,6 +128,7 @@ public class WeldTestBase extends RabbitMQBrokerTestBase {
             MapBasedConfig.cleanup();
         }
 
+        SmallRyeConfigTestUtil.installConfig();
         container = weld.initialize();
         await().until(() -> isRabbitMQConnectorAlive(container));
         await().until(() -> isRabbitMQConnectorReady(container));

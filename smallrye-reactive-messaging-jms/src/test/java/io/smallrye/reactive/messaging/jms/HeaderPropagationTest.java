@@ -16,7 +16,6 @@ import jakarta.inject.Inject;
 import jakarta.jms.*;
 
 import org.apache.activemq.artemis.jms.client.ActiveMQJMSConnectionFactory;
-import org.eclipse.microprofile.config.ConfigProvider;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Metadata;
@@ -25,10 +24,10 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import io.smallrye.config.SmallRyeConfigProviderResolver;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.support.JmsTestBase;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
+import io.smallrye.reactive.messaging.test.common.config.SmallRyeConfigTestUtil;
 
 public class HeaderPropagationTest extends JmsTestBase {
 
@@ -48,7 +47,7 @@ public class HeaderPropagationTest extends JmsTestBase {
         jms.close();
         factory.close();
         // Release the config objects
-        SmallRyeConfigProviderResolver.instance().releaseConfig(ConfigProvider.getConfig());
+        SmallRyeConfigTestUtil.releaseConfig();
     }
 
     @Test

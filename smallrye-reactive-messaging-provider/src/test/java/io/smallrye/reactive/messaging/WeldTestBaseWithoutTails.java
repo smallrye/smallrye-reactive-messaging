@@ -21,6 +21,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 
 import io.smallrye.config.SmallRyeConfigProviderResolver;
+import io.smallrye.config.inject.ConfigExtension;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.infrastructure.Infrastructure;
 import io.smallrye.reactive.messaging.providers.IncomingInterceptorDecorator;
@@ -46,6 +47,7 @@ import io.smallrye.reactive.messaging.providers.locals.ContextDecorator;
 import io.smallrye.reactive.messaging.providers.metrics.MetricDecorator;
 import io.smallrye.reactive.messaging.providers.metrics.MicrometerDecorator;
 import io.smallrye.reactive.messaging.providers.wiring.Wiring;
+import io.smallrye.reactive.messaging.test.common.config.SmallRyeConfigTestUtil;
 import io.vertx.core.Context;
 
 public class WeldTestBaseWithoutTails {
@@ -70,8 +72,12 @@ public class WeldTestBaseWithoutTails {
     }
 
     public static void releaseConfig() {
-        SmallRyeConfigProviderResolver.instance()
-                .releaseConfig(ConfigProvider.getConfig(WeldTestBaseWithoutTails.class.getClassLoader()));
+        try {
+            SmallRyeConfigProviderResolver.instance()
+                    .releaseConfig(ConfigProvider.getConfig(WeldTestBaseWithoutTails.class.getClassLoader()));
+        } catch (IllegalArgumentException e) {
+            // No config registered for this class loader
+        }
         clearConfigFile();
     }
 
@@ -155,13 +161,12 @@ public class WeldTestBaseWithoutTails {
                 PausableChannelDecorator.class,
                 // Observation Decorator
                 ObservationDecorator.class,
-                OutgoingObservationDecorator.class,
-                // SmallRye config
-                io.smallrye.config.inject.ConfigProducer.class);
+                OutgoingObservationDecorator.class);
 
         List<Class<?>> beans = getBeans();
         initializer.addBeanClasses(beans.toArray(new Class<?>[0]));
         initializer.disableDiscovery();
+        initializer.addExtensions(new ConfigExtension());
         initializer.addExtensions(new ReactiveMessagingExtension());
     }
 
@@ -192,6 +197,7 @@ public class WeldTestBaseWithoutTails {
 
     public void initialize() {
         assert container == null;
+        SmallRyeConfigTestUtil.installConfig();
         container = initializer.initialize();
     }
 

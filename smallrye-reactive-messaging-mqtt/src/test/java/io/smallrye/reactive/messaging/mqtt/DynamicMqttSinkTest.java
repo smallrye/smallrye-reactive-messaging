@@ -43,7 +43,7 @@ public class DynamicMqttSinkTest extends MqttTestBase {
                     rawMessages.add(msg);
                 });
 
-        container = weld.initialize();
+        container = initializeContainer(weld);
 
         await().atMost(1, TimeUnit.MINUTES).until(() -> topics.size() >= 10);
         assertThat(topics.size()).isEqualTo(10);
@@ -66,7 +66,7 @@ public class DynamicMqttSinkTest extends MqttTestBase {
                     rawMessages.add(msg);
                 });
 
-        container = weld.initialize();
+        container = initializeContainer(weld);
 
         await().atMost(1, TimeUnit.MINUTES).until(() -> topics.size() >= 10);
         assertThat(topics.size()).isEqualTo(10);

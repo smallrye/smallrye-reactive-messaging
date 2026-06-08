@@ -16,7 +16,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import jakarta.enterprise.context.ApplicationScoped;
 
-import org.eclipse.microprofile.config.ConfigProvider;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
@@ -39,8 +38,8 @@ import io.opentelemetry.sdk.trace.SpanProcessor;
 import io.opentelemetry.sdk.trace.data.SpanData;
 import io.opentelemetry.sdk.trace.export.SimpleSpanProcessor;
 import io.opentelemetry.sdk.trace.samplers.Sampler;
-import io.smallrye.config.SmallRyeConfigProviderResolver;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
+import io.smallrye.reactive.messaging.test.common.config.SmallRyeConfigTestUtil;
 import io.vertx.core.json.JsonObject;
 import io.vertx.mutiny.amqp.AmqpMessage;
 
@@ -76,7 +75,7 @@ public class TracingAmqpToAppToAmqpTest extends AmqpBrokerTestBase {
             container.close();
         }
         // Release the config objects
-        SmallRyeConfigProviderResolver.instance().releaseConfig(ConfigProvider.getConfig());
+        SmallRyeConfigTestUtil.releaseConfig();
     }
 
     @AfterAll
@@ -99,7 +98,7 @@ public class TracingAmqpToAppToAmqpTest extends AmqpBrokerTestBase {
                 .write();
 
         weld.addBeanClass(MyAppProcessingData.class);
-        container = weld.initialize();
+        container = initializeContainer(weld);
         await().until(() -> isAmqpConnectorReady(container));
         await().until(() -> isAmqpConnectorAlive(container));
 

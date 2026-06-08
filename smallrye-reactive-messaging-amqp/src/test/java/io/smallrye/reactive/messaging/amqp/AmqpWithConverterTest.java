@@ -28,6 +28,7 @@ import org.junit.jupiter.api.Timeout;
 
 import io.smallrye.reactive.messaging.MessageConverter;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
+import io.smallrye.reactive.messaging.test.common.config.SmallRyeConfigTestUtil;
 import io.vertx.core.Vertx;
 
 public class AmqpWithConverterTest extends AmqpTestBase {
@@ -64,6 +65,7 @@ public class AmqpWithConverterTest extends AmqpTestBase {
                 .with("mp.messaging.incoming.in.tracing-enabled", false)
                 .write();
         weld.addBeanClasses(DummyConverter.class, MyApp.class);
+        SmallRyeConfigTestUtil.installConfig();
         container = weld.initialize();
 
         MyApp app = container.getBeanManager().createInstance().select(MyApp.class).get();

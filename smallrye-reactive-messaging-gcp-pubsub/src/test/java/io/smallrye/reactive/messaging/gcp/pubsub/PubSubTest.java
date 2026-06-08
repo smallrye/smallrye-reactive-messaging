@@ -23,6 +23,7 @@ import com.google.pubsub.v1.TopicName;
 import io.smallrye.config.SmallRyeConfigProviderResolver;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
+import io.smallrye.reactive.messaging.test.common.config.SmallRyeConfigTestUtil;
 
 public class PubSubTest extends PubSubTestBase {
 
@@ -39,7 +40,7 @@ public class PubSubTest extends PubSubTestBase {
         final Weld weld = baseWeld();
         weld.addBeanClass(ConsumptionBean.class);
         addConfig(createSourceConfig(topic, SUBSCRIPTION, PUBSUB_CONTAINER.getFirstMappedPort()));
-        container = weld.initialize();
+        container = initializeContainer(weld);
     }
 
     @AfterEach
@@ -49,7 +50,7 @@ public class PubSubTest extends PubSubTestBase {
             deleteTopicIfExists(manager, topic);
             container.shutdown();
         }
-        SmallRyeConfigProviderResolver.instance().releaseConfig(ConfigProvider.getConfig());
+        SmallRyeConfigTestUtil.releaseConfig();
         clear();
     }
 

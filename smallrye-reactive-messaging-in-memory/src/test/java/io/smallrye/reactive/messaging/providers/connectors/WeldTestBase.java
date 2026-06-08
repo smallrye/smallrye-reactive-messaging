@@ -14,6 +14,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 
 import io.smallrye.config.SmallRyeConfigProviderResolver;
+import io.smallrye.config.inject.ConfigExtension;
 import io.smallrye.reactive.messaging.ChannelRegistry;
 import io.smallrye.reactive.messaging.memory.InMemoryConnector;
 import io.smallrye.reactive.messaging.providers.MediatorFactory;
@@ -28,6 +29,7 @@ import io.smallrye.reactive.messaging.providers.metrics.MetricDecorator;
 import io.smallrye.reactive.messaging.providers.metrics.MicrometerDecorator;
 import io.smallrye.reactive.messaging.providers.wiring.Wiring;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
+import io.smallrye.reactive.messaging.test.common.config.SmallRyeConfigTestUtil;
 
 public class WeldTestBase {
 
@@ -41,8 +43,12 @@ public class WeldTestBase {
     }
 
     public static void releaseConfig() {
-        SmallRyeConfigProviderResolver.instance()
-                .releaseConfig(ConfigProvider.getConfig(WeldTestBase.class.getClassLoader()));
+        try {
+            SmallRyeConfigProviderResolver.instance()
+                    .releaseConfig(ConfigProvider.getConfig(WeldTestBase.class.getClassLoader()));
+        } catch (IllegalArgumentException e) {
+            // No config registered for this class loader
+        }
         clearConfigFile();
     }
 
@@ -80,14 +86,12 @@ public class WeldTestBase {
                 Wiring.class,
 
                 // In memory connector
-                InMemoryConnector.class,
-
-                // SmallRye config
-                io.smallrye.config.inject.ConfigProducer.class);
+                InMemoryConnector.class);
 
         List<Class<?>> beans = getBeans();
         initializer.addBeanClasses(beans.toArray(new Class<?>[0]));
         initializer.disableDiscovery();
+        initializer.addExtensions(new ConfigExtension());
         initializer.addExtensions(new ReactiveMessagingExtension());
     }
 
@@ -118,7 +122,12 @@ public class WeldTestBase {
 
     public void initialize() {
         assert container == null;
+        installDefaultConfig();
         container = initializer.initialize();
+    }
+
+    private static void installDefaultConfig() {
+        SmallRyeConfigTestUtil.installConfig();
     }
 
     protected <T> T installInitializeAndGet(Class<T> beanClass) {

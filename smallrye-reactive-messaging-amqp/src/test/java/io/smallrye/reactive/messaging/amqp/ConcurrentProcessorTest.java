@@ -15,7 +15,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
-import org.eclipse.microprofile.config.ConfigProvider;
 import org.eclipse.microprofile.reactive.messaging.Acknowledgment;
 import org.eclipse.microprofile.reactive.messaging.Channel;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
@@ -28,10 +27,10 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
 
-import io.smallrye.config.SmallRyeConfigProviderResolver;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
+import io.smallrye.reactive.messaging.test.common.config.SmallRyeConfigTestUtil;
 import io.vertx.core.json.JsonObject;
 import io.vertx.mutiny.amqp.AmqpMessageBuilder;
 
@@ -56,7 +55,7 @@ public class ConcurrentProcessorTest extends AmqpBrokerTestBase {
             container.close();
         }
         // Release the config objects
-        SmallRyeConfigProviderResolver.instance().releaseConfig(ConfigProvider.getConfig());
+        SmallRyeConfigTestUtil.releaseConfig();
     }
 
     private MapBasedConfig dataconfig() {
@@ -77,7 +76,7 @@ public class ConcurrentProcessorTest extends AmqpBrokerTestBase {
     private <T> T runApplication(MapBasedConfig config, Class<T> beanClass) {
         config.write();
         weld.addBeanClass(beanClass);
-        container = weld.initialize();
+        container = initializeContainer(weld);
 
         return container.getBeanManager().createInstance().select(beanClass).get();
     }

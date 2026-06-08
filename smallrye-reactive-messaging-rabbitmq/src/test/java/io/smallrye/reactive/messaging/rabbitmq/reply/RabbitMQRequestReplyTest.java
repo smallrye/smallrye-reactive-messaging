@@ -13,7 +13,6 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
-import org.eclipse.microprofile.config.ConfigProvider;
 import org.eclipse.microprofile.reactive.messaging.Channel;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Message;
@@ -27,7 +26,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.smallrye.common.annotation.Identifier;
-import io.smallrye.config.SmallRyeConfigProviderResolver;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.helpers.test.UniAssertSubscriber;
 import io.smallrye.reactive.messaging.rabbitmq.IncomingRabbitMQMessage;
@@ -37,6 +35,7 @@ import io.smallrye.reactive.messaging.rabbitmq.RabbitMQBrokerTestBase;
 import io.smallrye.reactive.messaging.rabbitmq.RabbitMQConnector;
 import io.smallrye.reactive.messaging.rabbitmq.converter.ByteArrayMessageConverter;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
+import io.smallrye.reactive.messaging.test.common.config.SmallRyeConfigTestUtil;
 
 class RabbitMQRequestReplyTest extends RabbitMQBrokerTestBase {
 
@@ -54,7 +53,7 @@ class RabbitMQRequestReplyTest extends RabbitMQBrokerTestBase {
         }
 
         MapBasedConfig.cleanup();
-        SmallRyeConfigProviderResolver.instance().releaseConfig(ConfigProvider.getConfig());
+        SmallRyeConfigTestUtil.releaseConfig();
     }
 
     private MapBasedConfig config(String exchange, String requestAddress) {
@@ -79,6 +78,7 @@ class RabbitMQRequestReplyTest extends RabbitMQBrokerTestBase {
         String requestAddress = "requests";
         weld.addBeanClasses(RequestReplyProducer.class, ReplyServer.class);
         config(exchange, requestAddress).write();
+        SmallRyeConfigTestUtil.installConfig();
         container = weld.initialize();
 
         List<String> replies = new CopyOnWriteArrayList<>();
@@ -107,6 +107,7 @@ class RabbitMQRequestReplyTest extends RabbitMQBrokerTestBase {
                 .with("mp.messaging.outgoing.rep.connector", "smallrye-rabbitmq")
                 .with("mp.messaging.outgoing.rep.exchange.name", "\"\"")
                 .write();
+        SmallRyeConfigTestUtil.installConfig();
         container = weld.initialize();
 
         List<String> replies = new CopyOnWriteArrayList<>();
@@ -140,6 +141,7 @@ class RabbitMQRequestReplyTest extends RabbitMQBrokerTestBase {
                 .with("mp.messaging.outgoing.rep.connector", "smallrye-rabbitmq")
                 .with("mp.messaging.outgoing.rep.exchange.name", "\"\"")
                 .write();
+        SmallRyeConfigTestUtil.installConfig();
         container = weld.initialize();
 
         List<String> replies = new CopyOnWriteArrayList<>();
@@ -175,6 +177,7 @@ class RabbitMQRequestReplyTest extends RabbitMQBrokerTestBase {
                 .with("mp.messaging.outgoing.rep2.connector", "smallrye-rabbitmq")
                 .with("mp.messaging.outgoing.rep2.exchange.name", "\"\"")
                 .write();
+        SmallRyeConfigTestUtil.installConfig();
         container = weld.initialize();
 
         List<String> replies = new CopyOnWriteArrayList<>();
@@ -206,6 +209,7 @@ class RabbitMQRequestReplyTest extends RabbitMQBrokerTestBase {
         String requestAddress = "requests";
         weld.addBeanClasses(RequestReplyProducerWithConverter.class, ReplyServer.class, ByteArrayMessageConverter.class);
         config(exchange, requestAddress).write();
+        SmallRyeConfigTestUtil.installConfig();
         container = weld.initialize();
 
         List<byte[]> replies = new CopyOnWriteArrayList<>();
@@ -229,6 +233,7 @@ class RabbitMQRequestReplyTest extends RabbitMQBrokerTestBase {
         String requestAddress = "requests";
         weld.addBeanClasses(RequestReplyProducer.class, ReplyServer.class);
         config(exchange, requestAddress).write();
+        SmallRyeConfigTestUtil.installConfig();
         container = weld.initialize();
 
         List<String> replies = new CopyOnWriteArrayList<>();
@@ -249,6 +254,7 @@ class RabbitMQRequestReplyTest extends RabbitMQBrokerTestBase {
         String requestAddress = "requests";
         weld.addBeanClasses(RequestReplyProducer.class, ReplyServerMultipleReplies.class);
         config(exchange, requestAddress).write();
+        SmallRyeConfigTestUtil.installConfig();
         container = weld.initialize();
 
         List<String> replies = new CopyOnWriteArrayList<>();
@@ -285,6 +291,7 @@ class RabbitMQRequestReplyTest extends RabbitMQBrokerTestBase {
         String requestAddress = "requests";
         weld.addBeanClasses(RequestReplyProducer.class, ReplyServerMultipleReplies.class, MyReplyFailureHandler.class);
         config(exchange, requestAddress).write();
+        SmallRyeConfigTestUtil.installConfig();
         container = weld.initialize();
 
         List<String> replies = new CopyOnWriteArrayList<>();
@@ -313,6 +320,7 @@ class RabbitMQRequestReplyTest extends RabbitMQBrokerTestBase {
                 .with("mp.messaging.outgoing.request-reply2.exchange.type", "direct")
                 .with("mp.messaging.outgoing.request-reply2.default-routing-key", requestAddress)
                 .write();
+        SmallRyeConfigTestUtil.installConfig();
         container = weld.initialize();
 
         List<String> replies = new CopyOnWriteArrayList<>();
@@ -344,6 +352,7 @@ class RabbitMQRequestReplyTest extends RabbitMQBrokerTestBase {
         config(exchange, requestAddress)
                 .with("mp.messaging.outgoing.request-reply.reply.correlation-id.handler", "bytes")
                 .write();
+        SmallRyeConfigTestUtil.installConfig();
         container = weld.initialize();
 
         List<String> replies = new CopyOnWriteArrayList<>();
@@ -365,6 +374,7 @@ class RabbitMQRequestReplyTest extends RabbitMQBrokerTestBase {
         config(exchange, requestAddress)
                 .with("mp.messaging.outgoing.request-reply." + REPLY_FAILURE_HANDLER_KEY, "my-reply-error")
                 .write();
+        SmallRyeConfigTestUtil.installConfig();
         container = weld.initialize();
 
         List<String> replies = new CopyOnWriteArrayList<>();
@@ -395,6 +405,7 @@ class RabbitMQRequestReplyTest extends RabbitMQBrokerTestBase {
         config(exchange, requestAddress)
                 .with("mp.messaging.outgoing.request-reply." + REPLY_TIMEOUT_KEY, "1000")
                 .write();
+        SmallRyeConfigTestUtil.installConfig();
         container = weld.initialize();
 
         RequestReplyProducer producer = container.getBeanManager().createInstance().select(RequestReplyProducer.class).get();

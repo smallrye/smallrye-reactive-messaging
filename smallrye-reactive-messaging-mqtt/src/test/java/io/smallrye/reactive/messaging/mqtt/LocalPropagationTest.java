@@ -71,7 +71,7 @@ public class LocalPropagationTest extends MqttTestBase {
     private <T> T runApplication(MapBasedConfig config, Class<T> beanClass) {
         Weld weld = baseWeld(config);
         weld.addBeanClass(beanClass);
-        container = weld.initialize();
+        container = initializeContainer(weld);
 
         waitUntilReady(container);
         return container.getBeanManager().createInstance().select(beanClass).get();
