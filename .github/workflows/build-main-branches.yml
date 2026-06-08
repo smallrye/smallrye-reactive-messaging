@@ -69,7 +69,7 @@ jobs:
                       -pl :smallrye-reactive-messaging-api,:smallrye-reactive-messaging-provider,:smallrye-reactive-messaging-otel,:smallrye-reactive-messaging-health,:smallrye-reactive-messaging-jackson,:smallrye-reactive-messaging-jsonb,:test-common,:smallrye-connector-attribute-processor,:smallrye-reactive-messaging-kafka-api,:smallrye-reactive-messaging-kafka-test-companion
             -   name: Codecov
                 if: matrix.java == '25'
-                uses: codecov/codecov-action@v6
+                uses: codecov/codecov-action@v7
 
     kafka-tests:
         needs: build
@@ -103,7 +103,7 @@ jobs:
                       -pl :smallrye-reactive-messaging-kafka
             -   name: Codecov
                 if: matrix.java == '25'
-                uses: codecov/codecov-action@v6
+                uses: codecov/codecov-action@v7
 
     connector-tests:
         needs: build
@@ -158,7 +158,7 @@ jobs:
                       -pl :${{ matrix.connector.artifact }}
             -   name: Codecov
                 if: matrix.java == '25'
-                uses: codecov/codecov-action@v6
+                uses: codecov/codecov-action@v7
 
     slow-flaky-tests:
         needs: build
