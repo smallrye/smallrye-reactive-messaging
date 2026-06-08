@@ -140,7 +140,11 @@ public class WeldTestBase {
             container.close();
         }
         // Release the config objects
-        SmallRyeConfigProviderResolver.instance().releaseConfig(ConfigProvider.getConfig());
+        try {
+            SmallRyeConfigProviderResolver.instance().releaseConfig(ConfigProvider.getConfig());
+        } catch (IllegalArgumentException e) {
+            // No config registered
+        }
         TopicPartitions.clearCache();
     }
 
@@ -176,7 +180,11 @@ public class WeldTestBase {
 
     private static void installConfig(MapBasedConfig config) {
         // Release any previously registered config
-        SmallRyeConfigProviderResolver.instance().releaseConfig(ConfigProvider.getConfig());
+        try {
+            SmallRyeConfigProviderResolver.instance().releaseConfig(ConfigProvider.getConfig());
+        } catch (IllegalArgumentException e) {
+            // No config registered
+        }
 
         Map<String, String> properties = new HashMap<>();
         if (config != null) {

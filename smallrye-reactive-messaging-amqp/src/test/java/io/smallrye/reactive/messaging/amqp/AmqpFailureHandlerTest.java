@@ -53,7 +53,7 @@ public class AmqpFailureHandlerTest extends AmqpTestBase {
         Weld weld = new Weld();
         weld.addBeanClass(MyReceiverBean.class);
 
-        container = weld.initialize();
+        container = initializeContainer(weld);
         return container.getBeanManager().createInstance().select(MyReceiverBean.class).get();
     }
 
@@ -61,7 +61,7 @@ public class AmqpFailureHandlerTest extends AmqpTestBase {
         Weld weld = new Weld();
         weld.addBeanClass(MyReceiverBeanRecovering.class);
 
-        container = weld.initialize();
+        container = initializeContainer(weld);
         return container.getBeanManager().createInstance().select(MyReceiverBeanRecovering.class).get();
     }
 

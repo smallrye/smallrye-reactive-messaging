@@ -4,13 +4,14 @@ import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 
 import org.awaitility.Awaitility;
-import org.eclipse.microprofile.config.ConfigProvider;
 import org.jboss.logging.Logger;
+import org.jboss.weld.environment.se.Weld;
+import org.jboss.weld.environment.se.WeldContainer;
 import org.junit.jupiter.api.*;
 
-import io.smallrye.config.SmallRyeConfigProviderResolver;
 import io.smallrye.reactive.messaging.providers.connectors.ExecutionHolder;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
+import io.smallrye.reactive.messaging.test.common.config.SmallRyeConfigTestUtil;
 import io.vertx.mutiny.core.Vertx;
 
 public class AmqpTestBase {
@@ -36,7 +37,7 @@ public class AmqpTestBase {
 
         executionHolder = new ExecutionHolder(Vertx.vertx());
 
-        SmallRyeConfigProviderResolver.instance().releaseConfig(ConfigProvider.getConfig());
+        SmallRyeConfigTestUtil.releaseConfig();
         MapBasedConfig.cleanup();
     }
 
@@ -45,8 +46,13 @@ public class AmqpTestBase {
         logger.infof("========== tearDown %s.%s ==========", getClass().getSimpleName(), testInfo.getDisplayName());
 
         executionHolder.terminate(null);
-        SmallRyeConfigProviderResolver.instance().releaseConfig(ConfigProvider.getConfig());
+        SmallRyeConfigTestUtil.releaseConfig();
         MapBasedConfig.cleanup();
+    }
+
+    protected static WeldContainer initializeContainer(Weld weld) {
+        SmallRyeConfigTestUtil.installConfig();
+        return weld.initialize();
     }
 
     public boolean isAmqpConnectorReady(AmqpConnector connector) {

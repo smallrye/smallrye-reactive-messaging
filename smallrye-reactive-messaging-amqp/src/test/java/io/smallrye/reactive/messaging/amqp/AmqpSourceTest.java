@@ -620,7 +620,7 @@ public class AmqpSourceTest extends AmqpTestBase {
         Weld weld = new Weld();
         weld.addBeanClass(ConsumptionBean.class);
 
-        container = weld.initialize();
+        container = initializeContainer(weld);
         return container.getBeanManager().createInstance().select(ConsumptionBean.class).get();
     }
 

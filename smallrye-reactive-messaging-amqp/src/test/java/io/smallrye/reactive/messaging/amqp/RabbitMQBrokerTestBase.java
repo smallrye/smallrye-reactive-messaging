@@ -9,7 +9,7 @@ import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.Base64;
 
-import org.eclipse.microprofile.config.ConfigProvider;
+import org.jboss.weld.environment.se.Weld;
 import org.jboss.weld.environment.se.WeldContainer;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
@@ -21,11 +21,11 @@ import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.utility.DockerImageName;
 
-import io.smallrye.config.SmallRyeConfigProviderResolver;
 import io.smallrye.mutiny.infrastructure.Infrastructure;
 import io.smallrye.reactive.messaging.providers.connectors.ExecutionHolder;
 import io.smallrye.reactive.messaging.providers.extension.HealthCenter;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
+import io.smallrye.reactive.messaging.test.common.config.SmallRyeConfigTestUtil;
 import io.vertx.core.Context;
 import io.vertx.mutiny.core.Vertx;
 
@@ -98,7 +98,7 @@ public class RabbitMQBrokerTestBase {
         executionHolder = new ExecutionHolder(Vertx.vertx());
 
         usage = new AmqpUsage(executionHolder.vertx(), host, port, username, password);
-        SmallRyeConfigProviderResolver.instance().releaseConfig(ConfigProvider.getConfig());
+        SmallRyeConfigTestUtil.releaseConfig();
         MapBasedConfig.cleanup();
     }
 
@@ -106,7 +106,7 @@ public class RabbitMQBrokerTestBase {
     public void tearDown() {
         usage.close();
         executionHolder.terminate(null);
-        SmallRyeConfigProviderResolver.instance().releaseConfig(ConfigProvider.getConfig());
+        SmallRyeConfigTestUtil.releaseConfig();
         MapBasedConfig.cleanup();
     }
 
@@ -124,6 +124,11 @@ public class RabbitMQBrokerTestBase {
         } catch (Exception e) {
             throw new RuntimeException("Failed to create queue: " + name, e);
         }
+    }
+
+    protected static WeldContainer initializeContainer(Weld weld) {
+        SmallRyeConfigTestUtil.installConfig();
+        return weld.initialize();
     }
 
     public boolean isAmqpConnectorReady(WeldContainer container) {

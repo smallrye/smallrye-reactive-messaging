@@ -14,7 +14,6 @@ import java.util.function.Function;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
-import org.eclipse.microprofile.config.ConfigProvider;
 import org.eclipse.microprofile.reactive.messaging.Channel;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.jboss.weld.environment.se.Weld;
@@ -24,11 +23,11 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
 
-import io.smallrye.config.SmallRyeConfigProviderResolver;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.providers.locals.LocalContextMetadata;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
+import io.smallrye.reactive.messaging.test.common.config.SmallRyeConfigTestUtil;
 import io.vertx.mutiny.core.Vertx;
 
 public class LocalPropagationAckTest extends AmqpBrokerTestBase {
@@ -52,7 +51,7 @@ public class LocalPropagationAckTest extends AmqpBrokerTestBase {
             container.close();
         }
         // Release the config objects
-        SmallRyeConfigProviderResolver.instance().releaseConfig(ConfigProvider.getConfig());
+        SmallRyeConfigTestUtil.releaseConfig();
     }
 
     private MapBasedConfig dataconfig() {
@@ -75,7 +74,7 @@ public class LocalPropagationAckTest extends AmqpBrokerTestBase {
     private <T> T runApplication(MapBasedConfig config, Class<T> beanClass) {
         config.write();
         weld.addBeanClass(beanClass);
-        container = weld.initialize();
+        container = initializeContainer(weld);
 
         return container.getBeanManager().createInstance().select(beanClass).get();
     }

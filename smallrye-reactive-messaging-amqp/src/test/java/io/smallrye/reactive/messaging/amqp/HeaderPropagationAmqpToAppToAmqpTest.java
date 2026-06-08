@@ -11,7 +11,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import jakarta.enterprise.context.ApplicationScoped;
 
-import org.eclipse.microprofile.config.ConfigProvider;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
@@ -20,8 +19,8 @@ import org.jboss.weld.environment.se.WeldContainer;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
-import io.smallrye.config.SmallRyeConfigProviderResolver;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
+import io.smallrye.reactive.messaging.test.common.config.SmallRyeConfigTestUtil;
 import io.vertx.core.json.JsonObject;
 
 public class HeaderPropagationAmqpToAppToAmqpTest extends AmqpBrokerTestBase {
@@ -35,7 +34,7 @@ public class HeaderPropagationAmqpToAppToAmqpTest extends AmqpBrokerTestBase {
             container.close();
         }
         // Release the config objects
-        SmallRyeConfigProviderResolver.instance().releaseConfig(ConfigProvider.getConfig());
+        SmallRyeConfigTestUtil.releaseConfig();
     }
 
     @Test
@@ -66,7 +65,7 @@ public class HeaderPropagationAmqpToAppToAmqpTest extends AmqpBrokerTestBase {
                 .with("mp.messaging.incoming.source.tracing-enabled", false)
                 .write();
 
-        container = weld.initialize();
+        container = initializeContainer(weld);
 
         AtomicInteger count = new AtomicInteger();
         usage.produce(source, 10, count::getAndIncrement);

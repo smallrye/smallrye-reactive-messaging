@@ -12,17 +12,16 @@ import java.util.concurrent.atomic.AtomicInteger;
 import jakarta.enterprise.context.ApplicationScoped;
 
 import org.eclipse.microprofile.config.Config;
-import org.eclipse.microprofile.config.ConfigProvider;
 import org.jboss.weld.environment.se.Weld;
 import org.jboss.weld.environment.se.WeldContainer;
 import org.jboss.weld.exceptions.DeploymentException;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
-import io.smallrye.config.SmallRyeConfigProviderResolver;
 import io.smallrye.reactive.messaging.ClientCustomizer;
 import io.smallrye.reactive.messaging.providers.connectors.ExecutionHolder;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
+import io.smallrye.reactive.messaging.test.common.config.SmallRyeConfigTestUtil;
 import io.vertx.rabbitmq.RabbitMQOptions;
 
 public class RabbitMQSourceCDIConfigTest extends RabbitMQBrokerTestBase {
@@ -36,7 +35,7 @@ public class RabbitMQSourceCDIConfigTest extends RabbitMQBrokerTestBase {
         }
 
         MapBasedConfig.cleanup();
-        SmallRyeConfigProviderResolver.instance().releaseConfig(ConfigProvider.getConfig());
+        SmallRyeConfigTestUtil.releaseConfig();
 
         System.clearProperty("mp-config");
         System.clearProperty("client-options-name");
@@ -61,7 +60,10 @@ public class RabbitMQSourceCDIConfigTest extends RabbitMQBrokerTestBase {
                 .with("mp.messaging.incoming.data.tracing-enabled", false)
                 .write();
 
-        assertThatThrownBy(() -> container = weld.initialize())
+        assertThatThrownBy(() -> {
+            SmallRyeConfigTestUtil.installConfig();
+            container = weld.initialize();
+        })
                 .isInstanceOf(DeploymentException.class);
     }
 
@@ -84,7 +86,10 @@ public class RabbitMQSourceCDIConfigTest extends RabbitMQBrokerTestBase {
                 .with("mp.messaging.incoming.data.tracing-enabled", false)
                 .write();
 
-        assertThatThrownBy(() -> container = weld.initialize())
+        assertThatThrownBy(() -> {
+            SmallRyeConfigTestUtil.installConfig();
+            container = weld.initialize();
+        })
                 .isInstanceOf(DeploymentException.class);
     }
 
@@ -106,6 +111,7 @@ public class RabbitMQSourceCDIConfigTest extends RabbitMQBrokerTestBase {
                 .with("mp.messaging.incoming.data.tracing-enabled", false)
                 .write();
 
+        SmallRyeConfigTestUtil.installConfig();
         container = weld.initialize();
         await().until(() -> isRabbitMQConnectorAlive(container));
         await().until(() -> isRabbitMQConnectorReady(container));
@@ -139,6 +145,7 @@ public class RabbitMQSourceCDIConfigTest extends RabbitMQBrokerTestBase {
                 .with("rabbitmq-client-options-name", "myclientoptions")
                 .write();
 
+        SmallRyeConfigTestUtil.installConfig();
         container = weld.initialize();
         await().until(() -> isRabbitMQConnectorAlive(container));
         await().until(() -> isRabbitMQConnectorReady(container));
@@ -170,7 +177,10 @@ public class RabbitMQSourceCDIConfigTest extends RabbitMQBrokerTestBase {
                 .with("rabbitmq-client-options-name", "myclientoptions")
                 .write();
 
-        assertThatThrownBy(() -> container = weld.initialize())
+        assertThatThrownBy(() -> {
+            SmallRyeConfigTestUtil.installConfig();
+            container = weld.initialize();
+        })
                 .isInstanceOf(DeploymentException.class);
     }
 
@@ -193,7 +203,10 @@ public class RabbitMQSourceCDIConfigTest extends RabbitMQBrokerTestBase {
                 .with("rabbitmq-client-options-name", "dummyoptionsnonexistent")
                 .write();
 
-        assertThatThrownBy(() -> container = weld.initialize())
+        assertThatThrownBy(() -> {
+            SmallRyeConfigTestUtil.installConfig();
+            container = weld.initialize();
+        })
                 .isInstanceOf(DeploymentException.class);
     }
 
@@ -214,6 +227,7 @@ public class RabbitMQSourceCDIConfigTest extends RabbitMQBrokerTestBase {
                 .with("rabbitmq-client-options-name", "myclientoptions")
                 .write();
 
+        SmallRyeConfigTestUtil.installConfig();
         container = weld.initialize();
         await().until(() -> isRabbitMQConnectorAlive(container));
         await().until(() -> isRabbitMQConnectorReady(container));

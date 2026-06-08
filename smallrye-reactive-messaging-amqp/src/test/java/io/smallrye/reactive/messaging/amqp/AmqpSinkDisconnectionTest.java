@@ -10,7 +10,6 @@ import java.util.List;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
-import org.eclipse.microprofile.config.ConfigProvider;
 import org.eclipse.microprofile.reactive.messaging.Channel;
 import org.eclipse.microprofile.reactive.messaging.spi.ConnectorLiteral;
 import org.jboss.weld.environment.se.Weld;
@@ -28,11 +27,11 @@ import org.testcontainers.utility.DockerImageName;
 
 import eu.rekawek.toxiproxy.Proxy;
 import eu.rekawek.toxiproxy.ToxiproxyClient;
-import io.smallrye.config.SmallRyeConfigProviderResolver;
 import io.smallrye.mutiny.infrastructure.Infrastructure;
 import io.smallrye.reactive.messaging.MutinyEmitter;
 import io.smallrye.reactive.messaging.providers.connectors.ExecutionHolder;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
+import io.smallrye.reactive.messaging.test.common.config.SmallRyeConfigTestUtil;
 import io.vertx.core.Context;
 import io.vertx.mutiny.core.Vertx;
 
@@ -78,14 +77,14 @@ public class AmqpSinkDisconnectionTest {
     @BeforeEach
     void setup() {
         executionHolder = new ExecutionHolder(Vertx.vertx());
-        SmallRyeConfigProviderResolver.instance().releaseConfig(ConfigProvider.getConfig());
+        SmallRyeConfigTestUtil.releaseConfig();
         MapBasedConfig.cleanup();
     }
 
     @AfterEach
     void tearDown() {
         executionHolder.terminate(null);
-        SmallRyeConfigProviderResolver.instance().releaseConfig(ConfigProvider.getConfig());
+        SmallRyeConfigTestUtil.releaseConfig();
         MapBasedConfig.cleanup();
     }
 
@@ -136,6 +135,7 @@ public class AmqpSinkDisconnectionTest {
                     .with("mp.messaging.outgoing.data.tracing-enabled", false)
                     .write();
 
+            SmallRyeConfigTestUtil.installConfig();
             try (WeldContainer container = weld.initialize()) {
                 AmqpConnector connector = container.getBeanManager().createInstance().select(AmqpConnector.class,
                         ConnectorLiteral.of(AmqpConnector.CONNECTOR_NAME)).get();
@@ -190,6 +190,7 @@ public class AmqpSinkDisconnectionTest {
                     .with("mp.messaging.outgoing.data.tracing-enabled", false)
                     .write();
 
+            SmallRyeConfigTestUtil.installConfig();
             try (WeldContainer container = weld.initialize()) {
                 AmqpConnector connector = container.getBeanManager().createInstance().select(AmqpConnector.class,
                         ConnectorLiteral.of(AmqpConnector.CONNECTOR_NAME)).get();

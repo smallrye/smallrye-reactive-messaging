@@ -18,7 +18,6 @@ import org.apache.qpid.proton.amqp.Binary;
 import org.apache.qpid.proton.amqp.Symbol;
 import org.apache.qpid.proton.amqp.messaging.*;
 import org.apache.qpid.proton.amqp.transport.Target;
-import org.eclipse.microprofile.config.ConfigProvider;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.spi.ConnectorFactory;
 import org.jboss.weld.environment.se.Weld;
@@ -27,9 +26,9 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 
-import io.smallrye.config.SmallRyeConfigProviderResolver;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
+import io.smallrye.reactive.messaging.test.common.config.SmallRyeConfigTestUtil;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.mutiny.core.buffer.Buffer;
@@ -58,7 +57,7 @@ public class AmqpSinkTest extends AmqpTestBase {
         }
 
         MapBasedConfig.cleanup();
-        SmallRyeConfigProviderResolver.instance().releaseConfig(ConfigProvider.getConfig());
+        SmallRyeConfigTestUtil.releaseConfig();
     }
 
     @Test
@@ -641,7 +640,7 @@ public class AmqpSinkTest extends AmqpTestBase {
                 .with("mp.messaging.outgoing.sink.tracing-enabled", false)
                 .write();
 
-        container = weld.initialize();
+        container = initializeContainer(weld);
 
         assertThat(msgsReceived.await(6, TimeUnit.SECONDS)).isTrue();
 
@@ -683,7 +682,7 @@ public class AmqpSinkTest extends AmqpTestBase {
                 .with("mp.messaging.outgoing.sink.tracing-enabled", false)
                 .write();
 
-        container = weld.initialize();
+        container = initializeContainer(weld);
 
         assertThat(msgsReceived.await(6, TimeUnit.SECONDS)).isTrue();
 
@@ -727,7 +726,7 @@ public class AmqpSinkTest extends AmqpTestBase {
                 .with("mp.messaging.outgoing.sink.tracing-enabled", false)
                 .write();
 
-        container = weld.initialize();
+        container = initializeContainer(weld);
 
         assertThat(msgsReceived.await(6, TimeUnit.SECONDS)).isTrue();
 

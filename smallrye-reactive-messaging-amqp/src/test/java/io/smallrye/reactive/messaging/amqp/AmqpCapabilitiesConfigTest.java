@@ -13,14 +13,13 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.eclipse.microprofile.config.ConfigProvider;
 import org.jboss.weld.environment.se.Weld;
 import org.jboss.weld.environment.se.WeldContainer;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
-import io.smallrye.config.SmallRyeConfigProviderResolver;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
+import io.smallrye.reactive.messaging.test.common.config.SmallRyeConfigTestUtil;
 
 public class AmqpCapabilitiesConfigTest extends AmqpBrokerTestBase {
 
@@ -34,7 +33,7 @@ public class AmqpCapabilitiesConfigTest extends AmqpBrokerTestBase {
         }
 
         MapBasedConfig.cleanup();
-        SmallRyeConfigProviderResolver.instance().releaseConfig(ConfigProvider.getConfig());
+        SmallRyeConfigTestUtil.releaseConfig();
     }
 
     /**
@@ -60,7 +59,7 @@ public class AmqpCapabilitiesConfigTest extends AmqpBrokerTestBase {
                 .write();
 
         weld.addBeanClass(ProducingBean.class);
-        container = weld.initialize();
+        container = initializeContainer(weld);
         await().until(() -> isAmqpConnectorReady(container));
 
         await().until(() -> messages.size() >= 10);
@@ -85,7 +84,7 @@ public class AmqpCapabilitiesConfigTest extends AmqpBrokerTestBase {
                 .write();
 
         weld.addBeanClass(ConsumptionBean.class);
-        container = weld.initialize();
+        container = initializeContainer(weld);
         await().until(() -> isAmqpConnectorReady(container));
         ConsumptionBean bean = container.getBeanManager().createInstance().select(ConsumptionBean.class).get();
 

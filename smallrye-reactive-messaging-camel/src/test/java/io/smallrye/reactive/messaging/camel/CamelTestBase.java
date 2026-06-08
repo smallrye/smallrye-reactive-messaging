@@ -4,16 +4,15 @@ import java.io.File;
 import java.util.Arrays;
 
 import org.apache.camel.CamelContext;
-import org.eclipse.microprofile.config.ConfigProvider;
 import org.jboss.weld.environment.se.Weld;
 import org.jboss.weld.environment.se.WeldContainer;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 
-import io.smallrye.config.SmallRyeConfigProviderResolver;
 import io.smallrye.mutiny.infrastructure.Infrastructure;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
+import io.smallrye.reactive.messaging.test.common.config.SmallRyeConfigTestUtil;
 import io.vertx.core.Context;
 
 public class CamelTestBase {
@@ -31,17 +30,18 @@ public class CamelTestBase {
         weld = new Weld();
         weld.addBeanClass(CamelCdiLite.class);
         clear();
-        SmallRyeConfigProviderResolver.instance().releaseConfig(ConfigProvider.getConfig());
+        SmallRyeConfigTestUtil.releaseConfig();
     }
 
     @AfterEach
     public void cleanUp() {
         weld.shutdown();
         clear();
-        SmallRyeConfigProviderResolver.instance().releaseConfig(ConfigProvider.getConfig());
+        SmallRyeConfigTestUtil.releaseConfig();
     }
 
     public void initialize() {
+        SmallRyeConfigTestUtil.installConfig();
         container = weld.initialize();
     }
 

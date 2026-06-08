@@ -195,7 +195,7 @@ public class MqttSourceTest extends MqttTestBase {
     private ConsumptionBean deploy() {
         Weld weld = baseWeld(getConfig());
         weld.addBeanClass(ConsumptionBean.class);
-        container = weld.initialize();
+        container = initializeContainer(weld);
         return container.getBeanManager().createInstance().select(ConsumptionBean.class).get();
     }
 

@@ -11,7 +11,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import jakarta.enterprise.inject.se.SeContainer;
 
-import org.eclipse.microprofile.config.ConfigProvider;
 import org.jboss.weld.environment.se.Weld;
 import org.jboss.weld.environment.se.WeldContainer;
 import org.junit.jupiter.api.AfterAll;
@@ -24,7 +23,6 @@ import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.utility.DockerImageName;
 import org.testcontainers.utility.MountableFile;
 
-import io.smallrye.config.SmallRyeConfigProviderResolver;
 import io.smallrye.reactive.messaging.amqp.AmqpBrokerExtension;
 import io.smallrye.reactive.messaging.amqp.AmqpConnector;
 import io.smallrye.reactive.messaging.amqp.AmqpUsage;
@@ -32,6 +30,7 @@ import io.smallrye.reactive.messaging.amqp.ConsumptionBean;
 import io.smallrye.reactive.messaging.providers.connectors.ExecutionHolder;
 import io.smallrye.reactive.messaging.providers.extension.HealthCenter;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
+import io.smallrye.reactive.messaging.test.common.config.SmallRyeConfigTestUtil;
 import io.vertx.mutiny.core.Vertx;
 
 public class AmqpSSLSourceCDISSLContextTest {
@@ -90,7 +89,7 @@ public class AmqpSSLSourceCDISSLContextTest {
         executionHolder = new ExecutionHolder(Vertx.vertx());
         // Use the non-SSL port for test framework usage (producing/consuming test messages)
         usage = new AmqpUsage(executionHolder.vertx(), host, testPort, username, password);
-        SmallRyeConfigProviderResolver.instance().releaseConfig(ConfigProvider.getConfig());
+        SmallRyeConfigTestUtil.releaseConfig();
         MapBasedConfig.cleanup();
     }
 
@@ -98,7 +97,7 @@ public class AmqpSSLSourceCDISSLContextTest {
     public void tearDown() {
         usage.close();
         executionHolder.terminate(null);
-        SmallRyeConfigProviderResolver.instance().releaseConfig(ConfigProvider.getConfig());
+        SmallRyeConfigTestUtil.releaseConfig();
         MapBasedConfig.cleanup();
     }
 
@@ -109,7 +108,7 @@ public class AmqpSSLSourceCDISSLContextTest {
         }
 
         MapBasedConfig.cleanup();
-        SmallRyeConfigProviderResolver.instance().releaseConfig(ConfigProvider.getConfig());
+        SmallRyeConfigTestUtil.releaseConfig();
 
         System.clearProperty("mp-config");
         System.clearProperty("client-options-name");
@@ -146,6 +145,7 @@ public class AmqpSSLSourceCDISSLContextTest {
                 .with("amqp-client-ssl-context-name", "mysslcontext")
                 .write();
 
+        SmallRyeConfigTestUtil.installConfig();
         container = weld.initialize();
         await().until(() -> isAmqpConnectorAlive(container));
         await().until(() -> isAmqpConnectorReady(container));
@@ -179,6 +179,7 @@ public class AmqpSSLSourceCDISSLContextTest {
                 .with("mp.messaging.incoming.data.client-ssl-context-name", "mysslcontext")
                 .write();
 
+        SmallRyeConfigTestUtil.installConfig();
         container = weld.initialize();
         await().until(() -> isAmqpConnectorAlive(container));
         await().until(() -> isAmqpConnectorReady(container));

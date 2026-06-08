@@ -42,7 +42,7 @@ public class AmqpCustomerTest extends AmqpBrokerTestBase {
                 .with("mp.messaging.incoming.source.tracing-enabled", false)
                 .write();
 
-        try (WeldContainer container = weld.initialize()) {
+        try (WeldContainer container = initializeContainer(weld)) {
             AmqpConnector connector = container.getBeanManager().createInstance().select(AmqpConnector.class,
                     ConnectorLiteral.of(AmqpConnector.CONNECTOR_NAME)).get();
             await().until(() -> isAmqpConnectorReady(connector));
@@ -76,7 +76,7 @@ public class AmqpCustomerTest extends AmqpBrokerTestBase {
                 .with("mp.messaging.incoming.source.tracing-enabled", false)
                 .write();
 
-        try (WeldContainer container = weld.initialize()) {
+        try (WeldContainer container = initializeContainer(weld)) {
             AmqpConnector connector = container.getBeanManager().createInstance().select(AmqpConnector.class,
                     ConnectorLiteral.of(AmqpConnector.CONNECTOR_NAME)).get();
 

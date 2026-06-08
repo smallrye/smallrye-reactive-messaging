@@ -128,7 +128,7 @@ public class MqttSinkTest extends MqttTestBase {
                 null,
                 v -> latch.countDown());
 
-        container = weld.initialize();
+        container = initializeContainer(weld);
 
         assertThat(latch.await(10, TimeUnit.SECONDS)).isTrue();
 
@@ -144,7 +144,7 @@ public class MqttSinkTest extends MqttTestBase {
         usage.consumeStrings("sink", 10, 10, TimeUnit.SECONDS, latch::countDown, v -> {
         });
 
-        container = weld.initialize();
+        container = initializeContainer(weld);
 
         assertThat(latch.await(10, TimeUnit.SECONDS)).isTrue();
 

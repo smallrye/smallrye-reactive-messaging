@@ -8,7 +8,6 @@ import java.util.concurrent.CopyOnWriteArrayList;
 
 import jakarta.enterprise.context.ApplicationScoped;
 
-import org.eclipse.microprofile.config.ConfigProvider;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
@@ -17,9 +16,9 @@ import org.jboss.weld.environment.se.WeldContainer;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
-import io.smallrye.config.SmallRyeConfigProviderResolver;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
+import io.smallrye.reactive.messaging.test.common.config.SmallRyeConfigTestUtil;
 import io.vertx.core.json.JsonObject;
 
 public class HeaderPropagationAmqpToAmqpTest extends AmqpBrokerTestBase {
@@ -33,7 +32,7 @@ public class HeaderPropagationAmqpToAmqpTest extends AmqpBrokerTestBase {
             container.close();
         }
         // Release the config objects
-        SmallRyeConfigProviderResolver.instance().releaseConfig(ConfigProvider.getConfig());
+        SmallRyeConfigTestUtil.releaseConfig();
     }
 
     @Test
@@ -54,7 +53,7 @@ public class HeaderPropagationAmqpToAmqpTest extends AmqpBrokerTestBase {
                 .write();
 
         usage.consume("my-address", messages::add);
-        container = weld.initialize();
+        container = initializeContainer(weld);
 
         await().until(() -> messages.size() >= 10);
         assertThat(messages).allSatisfy(entry -> {

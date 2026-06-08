@@ -14,7 +14,6 @@ import java.util.stream.Collectors;
 
 import jakarta.enterprise.context.ApplicationScoped;
 
-import org.eclipse.microprofile.config.ConfigProvider;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.spi.ConnectorLiteral;
 import org.jboss.weld.environment.se.Weld;
@@ -23,11 +22,11 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 import io.netty.handler.codec.http.HttpHeaderValues;
-import io.smallrye.config.SmallRyeConfigProviderResolver;
 import io.smallrye.reactive.messaging.OutgoingInterceptor;
 import io.smallrye.reactive.messaging.OutgoingMessageMetadata;
 import io.smallrye.reactive.messaging.rabbitmq.fault.RabbitMQFailureHandler;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
+import io.smallrye.reactive.messaging.test.common.config.SmallRyeConfigTestUtil;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 
@@ -47,7 +46,7 @@ class RabbitMQTest extends RabbitMQBrokerTestBase {
         }
 
         MapBasedConfig.cleanup();
-        SmallRyeConfigProviderResolver.instance().releaseConfig(ConfigProvider.getConfig());
+        SmallRyeConfigTestUtil.releaseConfig();
     }
 
     /**
@@ -79,6 +78,7 @@ class RabbitMQTest extends RabbitMQBrokerTestBase {
                 .put("rabbitmq-reconnect-attempts", 0)
                 .write();
 
+        SmallRyeConfigTestUtil.installConfig();
         container = weld.initialize();
         await().until(() -> isRabbitMQConnectorAvailable(container));
 
@@ -140,6 +140,7 @@ class RabbitMQTest extends RabbitMQBrokerTestBase {
                 .put("rabbitmq-reconnect-attempts", 0)
                 .write();
 
+        SmallRyeConfigTestUtil.installConfig();
         container = weld.initialize();
         await().until(() -> isRabbitMQConnectorAvailable(container));
 
@@ -222,6 +223,7 @@ class RabbitMQTest extends RabbitMQBrokerTestBase {
                 .put("rabbitmq-reconnect-attempts", 0)
                 .write();
 
+        SmallRyeConfigTestUtil.installConfig();
         container = weld.initialize();
 
         // No await() needed — eager client blocks during construction
@@ -259,6 +261,7 @@ class RabbitMQTest extends RabbitMQBrokerTestBase {
                 .put("rabbitmq-reconnect-attempts", 0)
                 .write();
 
+        SmallRyeConfigTestUtil.installConfig();
         container = weld.initialize();
         await().until(() -> isRabbitMQConnectorAvailable(container));
     }
@@ -294,6 +297,7 @@ class RabbitMQTest extends RabbitMQBrokerTestBase {
                 .put("rabbitmq-reconnect-attempts", 0)
                 .write();
 
+        SmallRyeConfigTestUtil.installConfig();
         container = weld.initialize();
         await().until(() -> isRabbitMQConnectorAvailable(container));
 
@@ -348,6 +352,7 @@ class RabbitMQTest extends RabbitMQBrokerTestBase {
                 .put("rabbitmq-reconnect-attempts", 0)
                 .write();
 
+        SmallRyeConfigTestUtil.installConfig();
         container = weld.initialize();
         await().until(() -> isRabbitMQConnectorAvailable(container));
 
@@ -386,6 +391,7 @@ class RabbitMQTest extends RabbitMQBrokerTestBase {
                 .put("rabbitmq-reconnect-attempts", 0)
                 .write();
 
+        SmallRyeConfigTestUtil.installConfig();
         container = weld.initialize();
         await().until(() -> isRabbitMQConnectorAvailable(container));
 
@@ -445,7 +451,10 @@ class RabbitMQTest extends RabbitMQBrokerTestBase {
                 .put("rabbitmq-reconnect-attempts", 0)
                 .write();
 
-        assertThatThrownBy(() -> container = weld.initialize())
+        assertThatThrownBy(() -> {
+            SmallRyeConfigTestUtil.installConfig();
+            container = weld.initialize();
+        })
                 .isInstanceOf(Exception.class)
                 .hasStackTraceContaining("mismatched configuration");
     }
@@ -513,6 +522,7 @@ class RabbitMQTest extends RabbitMQBrokerTestBase {
                 .put("rabbitmq-reconnect-attempts", 0)
                 .write();
 
+        SmallRyeConfigTestUtil.installConfig();
         container = weld.initialize();
         await().until(() -> isRabbitMQConnectorAvailable(container));
 
@@ -629,6 +639,7 @@ class RabbitMQTest extends RabbitMQBrokerTestBase {
                 .put("rabbitmq-reconnect-attempts", 0)
                 .write();
 
+        SmallRyeConfigTestUtil.installConfig();
         container = weld.initialize();
         await().until(() -> isRabbitMQConnectorAvailable(container));
 
@@ -671,6 +682,7 @@ class RabbitMQTest extends RabbitMQBrokerTestBase {
                 .put("rabbitmq-reconnect-attempts", 0)
                 .write();
 
+        SmallRyeConfigTestUtil.installConfig();
         container = weld.initialize();
         await().until(() -> isRabbitMQConnectorAvailable(container));
 
@@ -709,6 +721,7 @@ class RabbitMQTest extends RabbitMQBrokerTestBase {
                 .put("rabbitmq-reconnect-attempts", 0)
                 .write();
 
+        SmallRyeConfigTestUtil.installConfig();
         container = weld.initialize();
         await().until(() -> isRabbitMQConnectorAvailable(container));
 
@@ -785,6 +798,7 @@ class RabbitMQTest extends RabbitMQBrokerTestBase {
                 .put("rabbitmq-password", password)
                 .write();
 
+        SmallRyeConfigTestUtil.installConfig();
         container = weld.initialize();
         await().until(() -> isRabbitMQConnectorAvailable(container));
 
@@ -825,6 +839,7 @@ class RabbitMQTest extends RabbitMQBrokerTestBase {
                 .put("rabbitmq-reconnect-attempts", 0)
                 .write();
 
+        SmallRyeConfigTestUtil.installConfig();
         container = weld.initialize();
         await().until(() -> isRabbitMQConnectorAvailable(container));
 
@@ -854,6 +869,7 @@ class RabbitMQTest extends RabbitMQBrokerTestBase {
 
         weld.addBeanClass(ConsumptionBean.class);
 
+        SmallRyeConfigTestUtil.installConfig();
         container = weld.initialize();
         await().until(() -> isRabbitMQConnectorAvailable(container));
         ConsumptionBean bean = get(container, ConsumptionBean.class);
@@ -893,6 +909,7 @@ class RabbitMQTest extends RabbitMQBrokerTestBase {
 
         weld.addBeanClass(ConsumptionBean.class);
 
+        SmallRyeConfigTestUtil.installConfig();
         container = weld.initialize();
         await().until(() -> isRabbitMQConnectorAvailable(container));
         ConsumptionBean bean = get(container, ConsumptionBean.class);
@@ -933,6 +950,7 @@ class RabbitMQTest extends RabbitMQBrokerTestBase {
 
         weld.addBeanClass(ConsumptionBean.class);
 
+        SmallRyeConfigTestUtil.installConfig();
         container = weld.initialize();
         await().until(() -> isRabbitMQConnectorAvailable(container));
         ConsumptionBean bean = get(container, ConsumptionBean.class);
@@ -971,6 +989,7 @@ class RabbitMQTest extends RabbitMQBrokerTestBase {
 
         weld.addBeanClass(ConsumptionBean.class);
 
+        SmallRyeConfigTestUtil.installConfig();
         container = weld.initialize();
         await().until(() -> isRabbitMQConnectorAvailable(container));
         ConsumptionBean bean = get(container, ConsumptionBean.class);
@@ -1026,6 +1045,7 @@ class RabbitMQTest extends RabbitMQBrokerTestBase {
 
         weld.addBeanClass(RequeueFirstDeliveryBean.class);
 
+        SmallRyeConfigTestUtil.installConfig();
         container = weld.initialize();
         await().until(() -> isRabbitMQConnectorAvailable(container));
         RequeueFirstDeliveryBean bean = get(container, RequeueFirstDeliveryBean.class);
@@ -1079,6 +1099,7 @@ class RabbitMQTest extends RabbitMQBrokerTestBase {
 
         weld.addBeanClass(ConsumptionBean.class);
 
+        SmallRyeConfigTestUtil.installConfig();
         container = weld.initialize();
         await().until(() -> isRabbitMQConnectorAvailable(container));
         ConsumptionBean bean = container.getBeanManager().createInstance().select(ConsumptionBean.class).get();
@@ -1136,6 +1157,7 @@ class RabbitMQTest extends RabbitMQBrokerTestBase {
                 .put("rabbitmq-reconnect-attempts", 0)
                 .write();
 
+        SmallRyeConfigTestUtil.installConfig();
         container = weld.initialize();
         await().atMost(1, TimeUnit.MINUTES).until(() -> isRabbitMQConnectorAvailable(container));
 
@@ -1186,6 +1208,7 @@ class RabbitMQTest extends RabbitMQBrokerTestBase {
                 .put("rabbitmq-reconnect-attempts", 0)
                 .write();
 
+        SmallRyeConfigTestUtil.installConfig();
         container = weld.initialize();
         await().until(() -> isRabbitMQConnectorAvailable(container));
 

@@ -9,14 +9,13 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.eclipse.microprofile.config.ConfigProvider;
 import org.jboss.weld.environment.se.Weld;
 import org.jboss.weld.environment.se.WeldContainer;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
-import io.smallrye.config.SmallRyeConfigProviderResolver;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
+import io.smallrye.reactive.messaging.test.common.config.SmallRyeConfigTestUtil;
 
 public class RabbitMQTest extends RabbitMQBrokerTestBase {
 
@@ -31,7 +30,7 @@ public class RabbitMQTest extends RabbitMQBrokerTestBase {
         }
 
         MapBasedConfig.cleanup();
-        SmallRyeConfigProviderResolver.instance().releaseConfig(ConfigProvider.getConfig());
+        SmallRyeConfigTestUtil.releaseConfig();
     }
 
     @Test
@@ -57,7 +56,7 @@ public class RabbitMQTest extends RabbitMQBrokerTestBase {
                 .with("amqp-password", password)
                 .write();
 
-        container = weld.initialize();
+        container = initializeContainer(weld);
         await().until(() -> isAmqpConnectorReady(container));
         await().until(() -> isAmqpConnectorAlive(container));
 
@@ -86,7 +85,7 @@ public class RabbitMQTest extends RabbitMQBrokerTestBase {
                 .with("amqp-password", password)
                 .write();
 
-        container = weld.initialize();
+        container = initializeContainer(weld);
         await().until(() -> isAmqpConnectorReady(container));
         await().until(() -> isAmqpConnectorAlive(container));
 
@@ -110,7 +109,7 @@ public class RabbitMQTest extends RabbitMQBrokerTestBase {
 
         weld.addBeanClass(ConsumptionBean.class);
 
-        container = weld.initialize();
+        container = initializeContainer(weld);
         await().until(() -> isAmqpConnectorReady(container));
         await().until(() -> isAmqpConnectorAlive(container));
         ConsumptionBean bean = container.getBeanManager().createInstance().select(ConsumptionBean.class).get();

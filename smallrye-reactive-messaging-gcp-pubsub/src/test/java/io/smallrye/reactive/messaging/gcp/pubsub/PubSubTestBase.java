@@ -10,6 +10,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.jboss.weld.environment.se.Weld;
+import org.jboss.weld.environment.se.WeldContainer;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.slf4j.Logger;
@@ -36,6 +37,7 @@ import io.smallrye.reactive.messaging.providers.impl.ConnectorFactories;
 import io.smallrye.reactive.messaging.providers.impl.InternalChannelRegistry;
 import io.smallrye.reactive.messaging.providers.wiring.Wiring;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
+import io.smallrye.reactive.messaging.test.common.config.SmallRyeConfigTestUtil;
 import io.vertx.core.Context;
 
 public class PubSubTestBase {
@@ -120,7 +122,13 @@ public class PubSubTestBase {
         return new MapBasedConfig(config);
     }
 
+    protected static WeldContainer initializeContainer(Weld weld) {
+        SmallRyeConfigTestUtil.installConfig();
+        return weld.initialize();
+    }
+
     static Weld baseWeld() {
+        SmallRyeConfigTestUtil.installConfig();
         final Weld weld = new Weld();
 
         weld.addExtension(new ConfigExtension());

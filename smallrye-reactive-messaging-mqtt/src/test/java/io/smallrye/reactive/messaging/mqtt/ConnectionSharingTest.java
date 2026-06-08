@@ -38,7 +38,7 @@ public class ConnectionSharingTest extends MqttTestBase {
         Clients.clear();
         Weld weld = baseWeld(getConfig());
         weld.addBeanClass(App.class);
-        container = weld.initialize();
+        container = initializeContainer(weld);
 
         App bean = container.getBeanManager().createInstance().select(App.class).get();
         MqttConnector mqttConnector = this.container.select(MqttConnector.class, ConnectorLiteral.of("smallrye-mqtt")).get();

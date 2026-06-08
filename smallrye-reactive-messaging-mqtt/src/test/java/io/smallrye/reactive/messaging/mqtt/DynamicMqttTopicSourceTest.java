@@ -67,7 +67,7 @@ public class DynamicMqttTopicSourceTest extends MqttTestBase {
         Weld weld = baseWeld(getConfig("#"));
         weld.addBeanClass(DynamicTopicApp.class);
 
-        container = weld.initialize();
+        container = initializeContainer(weld);
 
         awaitAndVerify();
     }
@@ -77,7 +77,7 @@ public class DynamicMqttTopicSourceTest extends MqttTestBase {
         Weld weld = baseWeld(getConfig("/app/#"));
         weld.addBeanClass(DynamicTopicApp.class);
 
-        container = weld.initialize();
+        container = initializeContainer(weld);
 
         awaitAndVerify();
     }
@@ -87,7 +87,7 @@ public class DynamicMqttTopicSourceTest extends MqttTestBase {
         Weld weld = baseWeld(getConfig("/app/hello/+/greeting"));
         weld.addBeanClass(DynamicTopicApp.class);
 
-        container = weld.initialize();
+        container = initializeContainer(weld);
 
         awaitAndVerify();
     }
@@ -97,7 +97,7 @@ public class DynamicMqttTopicSourceTest extends MqttTestBase {
         Weld weld = baseWeld(getConfig("/+/hello/+/greeting"));
         weld.addBeanClass(DynamicTopicApp.class);
 
-        container = weld.initialize();
+        container = initializeContainer(weld);
 
         awaitAndVerify();
     }
@@ -107,7 +107,7 @@ public class DynamicMqttTopicSourceTest extends MqttTestBase {
         Weld weld = baseWeld(getConfig("/+/hello/+/#"));
         weld.addBeanClass(DynamicTopicApp.class);
 
-        container = weld.initialize();
+        container = initializeContainer(weld);
 
         awaitAndVerify();
     }
@@ -117,7 +117,7 @@ public class DynamicMqttTopicSourceTest extends MqttTestBase {
         Weld weld = baseWeld(getConfig("$/app/#"));
         weld.addBeanClass(DynamicTopicApp.class);
 
-        container = weld.initialize();
+        container = initializeContainer(weld);
 
         awaitAndVerify();
     }

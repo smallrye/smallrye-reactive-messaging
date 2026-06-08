@@ -2,7 +2,6 @@ package connectors.test;
 
 import jakarta.enterprise.inject.spi.BeanManager;
 
-import org.eclipse.microprofile.config.ConfigProvider;
 import org.eclipse.microprofile.reactive.messaging.spi.ConnectorLiteral;
 import org.jboss.weld.environment.se.Weld;
 import org.jboss.weld.environment.se.WeldContainer;
@@ -11,7 +10,6 @@ import org.junit.jupiter.api.BeforeEach;
 
 import connectors.MyConnector;
 import connectors.MyMessageConverter;
-import io.smallrye.config.SmallRyeConfigProviderResolver;
 import io.smallrye.config.inject.ConfigExtension;
 import io.smallrye.reactive.messaging.providers.MediatorFactory;
 import io.smallrye.reactive.messaging.providers.connectors.ExecutionHolder;
@@ -30,6 +28,7 @@ import io.smallrye.reactive.messaging.providers.metrics.MetricDecorator;
 import io.smallrye.reactive.messaging.providers.metrics.MicrometerDecorator;
 import io.smallrye.reactive.messaging.providers.wiring.Wiring;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
+import io.smallrye.reactive.messaging.test.common.config.SmallRyeConfigTestUtil;
 
 public class WeldTestBase {
 
@@ -76,7 +75,7 @@ public class WeldTestBase {
             container.close();
         }
         // Release the config objects
-        SmallRyeConfigProviderResolver.instance().releaseConfig(ConfigProvider.getConfig());
+        SmallRyeConfigTestUtil.releaseConfig();
     }
 
     public BeanManager getBeanManager() {
@@ -107,6 +106,7 @@ public class WeldTestBase {
             MapBasedConfig.cleanup();
         }
 
+        SmallRyeConfigTestUtil.installConfig();
         container = weld.initialize();
     }
 

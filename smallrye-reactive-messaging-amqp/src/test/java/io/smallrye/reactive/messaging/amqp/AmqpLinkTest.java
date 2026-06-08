@@ -85,7 +85,7 @@ public class AmqpLinkTest extends AmqpTestBase {
         }
         config.write();
 
-        container = weld.initialize();
+        container = initializeContainer(weld);
 
         MyConsumer consumer = container.getBeanManager().createInstance().select(MyConsumer.class).get();
 

@@ -12,7 +12,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import jakarta.enterprise.context.ApplicationScoped;
 
-import org.eclipse.microprofile.config.ConfigProvider;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.spi.ConnectorLiteral;
 import org.jboss.weld.environment.se.Weld;
@@ -20,8 +19,8 @@ import org.jboss.weld.environment.se.WeldContainer;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
-import io.smallrye.config.SmallRyeConfigProviderResolver;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
+import io.smallrye.reactive.messaging.test.common.config.SmallRyeConfigTestUtil;
 
 public class FailureHandlerTest extends MqttTestBase {
 
@@ -33,14 +32,14 @@ public class FailureHandlerTest extends MqttTestBase {
             container.close();
         }
         // Release the config objects
-        SmallRyeConfigProviderResolver.instance().releaseConfig(ConfigProvider.getConfig());
+        SmallRyeConfigTestUtil.releaseConfig();
     }
 
     private MyReceiverBean deploy() {
         Weld weld = new Weld();
         weld.addBeanClass(MyReceiverBean.class);
 
-        container = weld.initialize();
+        container = initializeContainer(weld);
         return container.getBeanManager().createInstance().select(MyReceiverBean.class).get();
     }
 

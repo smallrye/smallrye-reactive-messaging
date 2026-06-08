@@ -71,7 +71,7 @@ public class HealthCheckTest extends MqttTestBase {
         Weld weld = baseWeld(getConfig());
         weld.addBeanClass(JustToStartConnector.class);
 
-        container = weld.initialize();
+        container = initializeContainer(weld);
 
         awaitAndVerify();
     }

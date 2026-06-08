@@ -14,19 +14,18 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
-import org.eclipse.microprofile.config.ConfigProvider;
 import org.eclipse.microprofile.reactive.messaging.*;
 import org.jboss.weld.environment.se.Weld;
 import org.jboss.weld.environment.se.WeldContainer;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
-import io.smallrye.config.SmallRyeConfigProviderResolver;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.amqp.AmqpBrokerTestBase;
 import io.smallrye.reactive.messaging.amqp.AmqpConnector;
 import io.smallrye.reactive.messaging.ce.OutgoingCloudEventMetadata;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
+import io.smallrye.reactive.messaging.test.common.config.SmallRyeConfigTestUtil;
 import io.vertx.core.json.JsonObject;
 import io.vertx.mutiny.amqp.AmqpMessage;
 
@@ -42,7 +41,7 @@ public class CloudEventProductionTest extends AmqpBrokerTestBase {
             container.close();
         }
         // Release the config objects
-        SmallRyeConfigProviderResolver.instance().releaseConfig(ConfigProvider.getConfig());
+        SmallRyeConfigTestUtil.releaseConfig();
     }
 
     @Test
@@ -61,7 +60,7 @@ public class CloudEventProductionTest extends AmqpBrokerTestBase {
                 .write();
 
         weld.addBeanClass(AmqpSender.class);
-        container = weld.initialize();
+        container = initializeContainer(weld);
         AmqpSender bean = container.getBeanManager().createInstance().select(AmqpSender.class).get();
         Emitter<JsonObject> emitter = bean.get();
 
@@ -105,7 +104,7 @@ public class CloudEventProductionTest extends AmqpBrokerTestBase {
                 .write();
 
         weld.addBeanClass(AmqpSender.class);
-        container = weld.initialize();
+        container = initializeContainer(weld);
         AmqpSender bean = container.getBeanManager().createInstance().select(AmqpSender.class).get();
         Emitter<JsonObject> emitter = bean.get();
 
@@ -159,7 +158,7 @@ public class CloudEventProductionTest extends AmqpBrokerTestBase {
         usage.consume(address, list::add);
 
         weld.addBeanClass(AmqpSender.class);
-        container = weld.initialize();
+        container = initializeContainer(weld);
         AmqpSender bean = container.getBeanManager().createInstance().select(AmqpSender.class).get();
         Emitter<JsonObject> emitter = bean.get();
 
@@ -195,7 +194,7 @@ public class CloudEventProductionTest extends AmqpBrokerTestBase {
                 .write();
 
         weld.addBeanClass(AmqpSender.class);
-        container = weld.initialize();
+        container = initializeContainer(weld);
         AmqpSender bean = container.getBeanManager().createInstance().select(AmqpSender.class).get();
         Emitter<JsonObject> emitter = bean.get();
 
@@ -236,7 +235,7 @@ public class CloudEventProductionTest extends AmqpBrokerTestBase {
                 .write();
 
         weld.addBeanClass(AmqpSender.class);
-        container = weld.initialize();
+        container = initializeContainer(weld);
         AmqpSender bean = container.getBeanManager().createInstance().select(AmqpSender.class).get();
         Emitter<JsonObject> emitter = bean.get();
 
@@ -282,7 +281,7 @@ public class CloudEventProductionTest extends AmqpBrokerTestBase {
                 .write();
 
         weld.addBeanClass(AmqpSender.class);
-        container = weld.initialize();
+        container = initializeContainer(weld);
         AmqpSender bean = container.getBeanManager().createInstance().select(AmqpSender.class).get();
         Emitter<JsonObject> emitter = bean.get();
 
@@ -328,7 +327,7 @@ public class CloudEventProductionTest extends AmqpBrokerTestBase {
                 .write();
 
         weld.addBeanClass(AmqpSender.class);
-        container = weld.initialize();
+        container = initializeContainer(weld);
         AmqpSender bean = container.getBeanManager().createInstance().select(AmqpSender.class).get();
         Emitter<JsonObject> emitter = bean.get();
 
@@ -373,7 +372,7 @@ public class CloudEventProductionTest extends AmqpBrokerTestBase {
                 .write();
 
         weld.addBeanClass(AmqpSender.class);
-        container = weld.initialize();
+        container = initializeContainer(weld);
         AmqpSender bean = container.getBeanManager().createInstance().select(AmqpSender.class).get();
         Emitter<JsonObject> emitter = bean.get();
 
@@ -416,7 +415,7 @@ public class CloudEventProductionTest extends AmqpBrokerTestBase {
         usage.consume(address, list::add);
 
         weld.addBeanClass(AmqpSender.class);
-        container = weld.initialize();
+        container = initializeContainer(weld);
         AmqpSender bean = container.getBeanManager().createInstance().select(AmqpSender.class).get();
         Emitter<JsonObject> emitter = bean.get();
 
@@ -452,7 +451,7 @@ public class CloudEventProductionTest extends AmqpBrokerTestBase {
                 .write();
 
         weld.addBeanClass(AmqpSender.class);
-        container = weld.initialize();
+        container = initializeContainer(weld);
         AmqpSender bean = container.getBeanManager().createInstance().select(AmqpSender.class).get();
         Emitter<JsonObject> emitter = bean.get();
 
@@ -493,7 +492,7 @@ public class CloudEventProductionTest extends AmqpBrokerTestBase {
                 .write();
 
         weld.addBeanClass(AmqpSender.class);
-        container = weld.initialize();
+        container = initializeContainer(weld);
         AmqpSender bean = container.getBeanManager().createInstance().select(AmqpSender.class).get();
         Emitter<JsonObject> emitter = bean.get();
 
@@ -546,7 +545,7 @@ public class CloudEventProductionTest extends AmqpBrokerTestBase {
         usage.consume(address, list::add);
 
         weld.addBeanClasses(Source.class, Processing.class, Sender.class);
-        container = weld.initialize();
+        container = initializeContainer(weld);
 
         await().until(() -> list.size() >= 10);
 
@@ -581,7 +580,7 @@ public class CloudEventProductionTest extends AmqpBrokerTestBase {
         usage.consume(address, list::add);
 
         weld.addBeanClasses(Source.class, Processing.class, Sender.class);
-        container = weld.initialize();
+        container = initializeContainer(weld);
 
         await().until(() -> list.size() >= 10);
 
@@ -619,7 +618,7 @@ public class CloudEventProductionTest extends AmqpBrokerTestBase {
         usage.consume(address, list::add);
 
         weld.addBeanClasses(Source.class);
-        container = weld.initialize();
+        container = initializeContainer(weld);
 
         await().until(() -> list.size() >= 10);
 
@@ -658,7 +657,7 @@ public class CloudEventProductionTest extends AmqpBrokerTestBase {
         usage.consume(address, list::add);
 
         weld.addBeanClasses(Source.class);
-        container = weld.initialize();
+        container = initializeContainer(weld);
 
         await().until(() -> list.size() >= 10);
 

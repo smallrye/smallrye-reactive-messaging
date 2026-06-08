@@ -19,6 +19,7 @@ import org.junit.jupiter.api.Test;
 
 import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
+import io.smallrye.reactive.messaging.test.common.config.SmallRyeConfigTestUtil;
 
 @Disabled("does not work on CI - must be investigated")
 public class SecureMqttSourceTest extends SecureMqttTestBase {
@@ -93,6 +94,7 @@ public class SecureMqttSourceTest extends SecureMqttTestBase {
     private ConsumptionBean deploy() {
         Weld weld = MqttTestBase.baseWeld(getConfig());
         weld.addBeanClass(ConsumptionBean.class);
+        SmallRyeConfigTestUtil.installConfig();
         container = weld.initialize();
         return container.getBeanManager().createInstance().select(ConsumptionBean.class).get();
     }

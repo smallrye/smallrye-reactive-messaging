@@ -2,13 +2,13 @@ package io.smallrye.reactive.messaging.amqp;
 
 import jakarta.enterprise.inject.se.SeContainer;
 
-import org.eclipse.microprofile.config.ConfigProvider;
+import org.jboss.weld.environment.se.Weld;
+import org.jboss.weld.environment.se.WeldContainer;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtendWith;
 
-import io.smallrye.config.SmallRyeConfigProviderResolver;
 import io.smallrye.mutiny.infrastructure.Infrastructure;
 import io.smallrye.reactive.messaging.amqp.AmqpBrokerExtension.AmqpHost;
 import io.smallrye.reactive.messaging.amqp.AmqpBrokerExtension.AmqpManagementPort;
@@ -16,6 +16,7 @@ import io.smallrye.reactive.messaging.amqp.AmqpBrokerExtension.AmqpPort;
 import io.smallrye.reactive.messaging.providers.connectors.ExecutionHolder;
 import io.smallrye.reactive.messaging.providers.extension.HealthCenter;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
+import io.smallrye.reactive.messaging.test.common.config.SmallRyeConfigTestUtil;
 import io.vertx.core.Context;
 import io.vertx.mutiny.core.Vertx;
 
@@ -51,7 +52,7 @@ public class AmqpBrokerTestBase {
     public void setup() {
         executionHolder = new ExecutionHolder(Vertx.vertx());
         usage = new AmqpUsage(executionHolder.vertx(), host, port, username, password);
-        SmallRyeConfigProviderResolver.instance().releaseConfig(ConfigProvider.getConfig());
+        SmallRyeConfigTestUtil.releaseConfig();
         MapBasedConfig.cleanup();
     }
 
@@ -59,8 +60,13 @@ public class AmqpBrokerTestBase {
     public void tearDown() {
         usage.close();
         executionHolder.terminate(null);
-        SmallRyeConfigProviderResolver.instance().releaseConfig(ConfigProvider.getConfig());
+        SmallRyeConfigTestUtil.releaseConfig();
         MapBasedConfig.cleanup();
+    }
+
+    protected static WeldContainer initializeContainer(Weld weld) {
+        SmallRyeConfigTestUtil.installConfig();
+        return weld.initialize();
     }
 
     public boolean isAmqpConnectorReady(SeContainer container) {
