@@ -193,8 +193,12 @@ public class ConfigResolver {
         if (conf.getCryptoKeyReader() != null) {
             builder.cryptoKeyReader(conf.getCryptoKeyReader());
         }
-        if (conf.getDecryptFailListener() != null) {
-            builder.decryptFailListener((DecryptFailListener<T>) conf.getDecryptFailListener());
+        try {
+            if (conf.getDecryptFailListener() != null) {
+                builder.decryptFailListener((DecryptFailListener<T>) conf.getDecryptFailListener());
+            }
+        } catch (NoSuchMethodError e) {
+            // DecryptFailListener was added in Pulsar 4.2, ignore for older versions
         }
         if (conf.getMessageCrypto() != null) {
             builder.messageCrypto(conf.getMessageCrypto());
