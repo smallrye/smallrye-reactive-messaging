@@ -162,7 +162,11 @@ public class KafkaThrottledLatestProcessedCommit extends ContextHolder implement
 
         if (!result.getItem1().isEmpty()) {
             // We are on the polling thread, we can use synchronous (blocking) commit
-            consumer.unwrap().commitSync(result.getItem1());
+            try {
+                consumer.unwrap().commitSync(result.getItem1());
+            } catch (Exception e) {
+                log.failedToCommit(result.getItem1(), e);
+            }
         }
 
         if (result.getItem2()) {
