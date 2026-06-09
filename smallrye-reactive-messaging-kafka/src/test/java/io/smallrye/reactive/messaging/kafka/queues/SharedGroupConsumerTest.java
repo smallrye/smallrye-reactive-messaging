@@ -70,8 +70,9 @@ public class SharedGroupConsumerTest extends KafkaCompanionTestBase {
     @Test
     public void testShareGroupSourceThroughConnector() {
         companion.topics().createAndWait(topic, 1);
+        String connectorGroupId = "share-group-connector-test-" + topic;
         KafkaMapBasedConfig config = kafkaConfig("mp.messaging.incoming.data")
-                .with("group.id", "share-group-connector-test-" + topic)
+                .with("group.id", connectorGroupId)
                 .with("value.deserializer", IntegerDeserializer.class.getName())
                 .with("topic", topic)
                 //                .with("max.poll.records", 40)
@@ -83,6 +84,9 @@ public class SharedGroupConsumerTest extends KafkaCompanionTestBase {
         runApplication(config, ShareGroupConsumerApp.class);
 
         await().until(this::isReady);
+
+        companion.consumerGroups().waitForShareGroupAssignment(connectorGroupId)
+                .await().atMost(Duration.ofSeconds(20));
 
         companion.produceIntegers()
                 .usingGenerator(i -> new ProducerRecord<>(topic, "" + i % 2, i), 50)
@@ -158,6 +162,9 @@ public class SharedGroupConsumerTest extends KafkaCompanionTestBase {
         app.subscribe();
 
         await().until(this::isReady);
+
+        companion.consumerGroups().waitForShareGroupAssignment(groupId)
+                .await().atMost(Duration.ofSeconds(20));
 
         companion.produceIntegers()
                 .usingGenerator(i -> new ProducerRecord<>(topic, "" + i % 2, i), 10)

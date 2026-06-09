@@ -92,6 +92,9 @@ public class ShareGroupSourceHealthCheckTest extends KafkaCompanionTestBase {
 
         await().until(() -> isStarted() && isReady() && isAlive());
 
+        companion.consumerGroups().waitForShareGroupAssignment(groupId)
+                .await().atMost(Duration.ofSeconds(20));
+
         companion.produceIntegers().usingGenerator(i -> new ProducerRecord<>(topic, "key", i), 10);
 
         await().until(() -> received.size() >= 10);
@@ -122,6 +125,9 @@ public class ShareGroupSourceHealthCheckTest extends KafkaCompanionTestBase {
         channel.subscribe().with(received::add);
 
         await().until(() -> isStarted() && isReady() && isAlive());
+
+        companion.consumerGroups().waitForShareGroupAssignment(groupId)
+                .await().atMost(Duration.ofSeconds(20));
 
         companion.produceIntegers().usingGenerator(i -> new ProducerRecord<>(topic, "key", i), 10);
 
