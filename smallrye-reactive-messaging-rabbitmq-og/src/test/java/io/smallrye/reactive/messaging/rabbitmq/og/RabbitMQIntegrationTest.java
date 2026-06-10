@@ -12,6 +12,7 @@ import java.util.stream.Collectors;
 import org.junit.jupiter.api.Test;
 
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
+import io.smallrye.reactive.messaging.test.common.config.SmallRyeConfigTestUtil;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 
@@ -50,6 +51,7 @@ class RabbitMQIntegrationTest extends WeldTestBase {
                 .put("rabbitmq-reconnect-attempts", 0)
                 .write();
 
+        SmallRyeConfigTestUtil.installConfig();
         container = weld.initialize();
         await().until(() -> isRabbitMQConnectorAvailable(container));
 
@@ -110,6 +112,7 @@ class RabbitMQIntegrationTest extends WeldTestBase {
                 .put("rabbitmq-reconnect-attempts", 0)
                 .write();
 
+        SmallRyeConfigTestUtil.installConfig();
         container = weld.initialize();
         await().until(() -> isRabbitMQConnectorAvailable(container));
 
@@ -195,6 +198,7 @@ class RabbitMQIntegrationTest extends WeldTestBase {
                 .put("rabbitmq-reconnect-attempts", 0)
                 .write();
 
+        SmallRyeConfigTestUtil.installConfig();
         container = weld.initialize();
         await().until(() -> isRabbitMQConnectorAvailable(container));
 

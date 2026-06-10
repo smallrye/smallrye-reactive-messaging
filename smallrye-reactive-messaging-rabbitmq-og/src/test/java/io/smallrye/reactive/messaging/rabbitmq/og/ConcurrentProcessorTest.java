@@ -25,6 +25,7 @@ import com.rabbitmq.client.AMQP;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
+import io.smallrye.reactive.messaging.test.common.config.SmallRyeConfigTestUtil;
 
 /**
  * Tests concurrent message processing with multiple consumers.
@@ -105,6 +106,7 @@ public class ConcurrentProcessorTest extends WeldTestBase {
     public void testConcurrentStreamInjectingBean() {
         weld.addBeanClass(MyChannelInjectingBean.class);
         dataconfig().write();
+        SmallRyeConfigTestUtil.installConfig();
         container = weld.initialize();
         MyChannelInjectingBean bean = get(MyChannelInjectingBean.class);
         bean.process();

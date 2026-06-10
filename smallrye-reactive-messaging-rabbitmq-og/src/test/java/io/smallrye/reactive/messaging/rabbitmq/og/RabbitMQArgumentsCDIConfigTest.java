@@ -12,6 +12,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
 
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
+import io.smallrye.reactive.messaging.test.common.config.SmallRyeConfigTestUtil;
 import io.vertx.core.json.JsonObject;
 
 public class RabbitMQArgumentsCDIConfigTest extends WeldTestBase {
@@ -33,6 +34,7 @@ public class RabbitMQArgumentsCDIConfigTest extends WeldTestBase {
                 .with("mp.messaging.incoming.data.tracing.enabled", false)
                 .write();
 
+        SmallRyeConfigTestUtil.installConfig();
         container = weld.initialize();
         await().pollDelay(5, TimeUnit.SECONDS).until(() -> isRabbitMQConnectorAlive(container));
         await().until(() -> isRabbitMQConnectorReady(container));
@@ -67,6 +69,7 @@ public class RabbitMQArgumentsCDIConfigTest extends WeldTestBase {
                 .with("mp.messaging.incoming.data.tracing.enabled", false)
                 .write();
 
+        SmallRyeConfigTestUtil.installConfig();
         container = weld.initialize();
         await().until(() -> isRabbitMQConnectorAlive(container));
         await().until(() -> isRabbitMQConnectorReady(container));
@@ -105,6 +108,7 @@ public class RabbitMQArgumentsCDIConfigTest extends WeldTestBase {
                 .with("mp.messaging.incoming.data.tracing.enabled", false)
                 .write();
 
+        SmallRyeConfigTestUtil.installConfig();
         container = weld.initialize();
         await().until(() -> isRabbitMQConnectorAlive(container));
         await().until(() -> isRabbitMQConnectorReady(container));
@@ -144,6 +148,7 @@ public class RabbitMQArgumentsCDIConfigTest extends WeldTestBase {
                 .with("mp.messaging.incoming.data.tracing.enabled", false)
                 .write();
 
+        SmallRyeConfigTestUtil.installConfig();
         container = weld.initialize();
         await().until(() -> isRabbitMQConnectorAlive(container));
         await().until(() -> isRabbitMQConnectorReady(container));

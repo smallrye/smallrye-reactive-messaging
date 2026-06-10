@@ -19,6 +19,7 @@ import com.rabbitmq.client.ConnectionFactory;
 
 import io.smallrye.reactive.messaging.ClientCustomizer;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
+import io.smallrye.reactive.messaging.test.common.config.SmallRyeConfigTestUtil;
 
 public class RabbitMQSourceCDIConfigTest extends WeldTestBase {
 
@@ -37,7 +38,10 @@ public class RabbitMQSourceCDIConfigTest extends WeldTestBase {
                 .with("mp.messaging.incoming.data.tracing.enabled", false)
                 .write();
 
-        assertThatThrownBy(() -> container = weld.initialize())
+        assertThatThrownBy(() -> {
+            SmallRyeConfigTestUtil.installConfig();
+            container = weld.initialize();
+        })
                 .isInstanceOf(DeploymentException.class);
     }
 
@@ -57,7 +61,10 @@ public class RabbitMQSourceCDIConfigTest extends WeldTestBase {
                 .with("mp.messaging.incoming.data.tracing.enabled", false)
                 .write();
 
-        assertThatThrownBy(() -> container = weld.initialize())
+        assertThatThrownBy(() -> {
+            SmallRyeConfigTestUtil.installConfig();
+            container = weld.initialize();
+        })
                 .isInstanceOf(DeploymentException.class);
     }
 
@@ -77,6 +84,7 @@ public class RabbitMQSourceCDIConfigTest extends WeldTestBase {
                 .with("mp.messaging.incoming.data.tracing.enabled", false)
                 .write();
 
+        SmallRyeConfigTestUtil.installConfig();
         container = weld.initialize();
         await().until(() -> isRabbitMQConnectorAlive(container));
         await().until(() -> isRabbitMQConnectorReady(container));
@@ -108,6 +116,7 @@ public class RabbitMQSourceCDIConfigTest extends WeldTestBase {
                 .with("rabbitmq-client-options-name", "myclientoptions")
                 .write();
 
+        SmallRyeConfigTestUtil.installConfig();
         container = weld.initialize();
         await().until(() -> isRabbitMQConnectorAlive(container));
         await().until(() -> isRabbitMQConnectorReady(container));
@@ -136,7 +145,10 @@ public class RabbitMQSourceCDIConfigTest extends WeldTestBase {
                 .with("rabbitmq-client-options-name", "myclientoptions")
                 .write();
 
-        assertThatThrownBy(() -> container = weld.initialize())
+        assertThatThrownBy(() -> {
+            SmallRyeConfigTestUtil.installConfig();
+            container = weld.initialize();
+        })
                 .isInstanceOf(DeploymentException.class);
     }
 
@@ -156,7 +168,10 @@ public class RabbitMQSourceCDIConfigTest extends WeldTestBase {
                 .with("rabbitmq-client-options-name", "dummyoptionsnonexistent")
                 .write();
 
-        assertThatThrownBy(() -> container = weld.initialize())
+        assertThatThrownBy(() -> {
+            SmallRyeConfigTestUtil.installConfig();
+            container = weld.initialize();
+        })
                 .isInstanceOf(DeploymentException.class);
     }
 
@@ -175,6 +190,7 @@ public class RabbitMQSourceCDIConfigTest extends WeldTestBase {
                 .with("rabbitmq-client-options-name", "myclientoptions")
                 .write();
 
+        SmallRyeConfigTestUtil.installConfig();
         container = weld.initialize();
         await().until(() -> isRabbitMQConnectorAlive(container));
         await().until(() -> isRabbitMQConnectorReady(container));
