@@ -32,6 +32,8 @@ import io.smallrye.reactive.messaging.rabbitmq.OutgoingRabbitMQMetadata;
 import io.smallrye.reactive.messaging.rabbitmq.RabbitMQConnector;
 import io.smallrye.reactive.messaging.rabbitmq.RabbitMQConnectorCommonConfiguration;
 import io.smallrye.reactive.messaging.rabbitmq.internals.RabbitMQClientHelper;
+import io.vertx.mutiny.core.Context;
+import io.vertx.mutiny.core.Vertx;
 
 @Experimental("Experimental API")
 public class RabbitMQRequestReplyImpl<Req, Rep> extends MutinyEmitterImpl<Req>
@@ -124,14 +126,18 @@ public class RabbitMQRequestReplyImpl<Req, Rep> extends MutinyEmitterImpl<Req>
         CorrelationId correlationId = correlationIdHandler.generate(request);
         builder.withCorrelationId(correlationId.toString()).withReplyTo(REPLY_TO);
         OutgoingRabbitMQMetadata outMetadata = builder.build();
-        return sendMessage(request.addMetadata(outMetadata))
-                .invoke(() -> subscription.get().request(1))
-                .onItem()
-                .transformToMulti(unused -> Multi.createFrom().<Message<Rep>> emitter(emitter -> {
-                    pendingReplies.put(correlationId,
-                            new PendingReplyImpl<>(outMetadata,
-                                    (MultiEmitter<Message<Rep>>) emitter));
-                }))
+        // capture the caller context and emit replies on the same context
+        Context callerCtx = Vertx.currentContext();
+        // Register pending reply before sending to avoid race where a fast reply
+        // arrives before the pending reply is registered and gets silently dropped
+        return Multi.createFrom().<Message<Rep>> emitter(emitter -> {
+            pendingReplies.put(correlationId,
+                    new PendingReplyImpl<>(outMetadata,
+                            (MultiEmitter<Message<Rep>>) emitter));
+            sendMessage(request.addMetadata(outMetadata))
+                    .subscribe().with(unused -> subscription.get().request(1), emitter::fail);
+        })
+                .plug(m -> callerCtx != null ? m.emitOn(callerCtx::runOnContext) : m)
                 .ifNoItem().after(replyTimeout)
                 .failWith(() -> new RabbitMQRequestReplyTimeoutException(correlationId))
                 .onItem().transformToUniAndConcatenate(m -> {

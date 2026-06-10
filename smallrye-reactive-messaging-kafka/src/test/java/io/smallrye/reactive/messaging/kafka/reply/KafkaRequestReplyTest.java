@@ -10,6 +10,9 @@ import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -47,6 +50,8 @@ import io.smallrye.reactive.messaging.kafka.api.OutgoingKafkaRecordMetadata;
 import io.smallrye.reactive.messaging.kafka.base.KafkaCompanionTestBase;
 import io.smallrye.reactive.messaging.kafka.base.KafkaMapBasedConfig;
 import io.smallrye.reactive.messaging.kafka.converters.ConsumerRecordConverter;
+import io.vertx.mutiny.core.Context;
+import io.vertx.mutiny.core.Vertx;
 
 public class KafkaRequestReplyTest extends KafkaCompanionTestBase {
 
@@ -94,6 +99,35 @@ public class KafkaRequestReplyTest extends KafkaCompanionTestBase {
         assertThat(companion.consumeStrings().fromTopics(replyTopic, 10).awaitCompletion())
                 .extracting(ConsumerRecord::value).containsExactly("0", "1", "2", "3", "4", "5", "6", "7", "8", "9");
         assertThat(app.requestReply().getPendingReplies()).isEmpty();
+    }
+
+    @Test
+    void testReplyCallerContextPropagation() throws InterruptedException {
+        addBeans(ReplyServer.class);
+        topic = companion.topics().createAndWait(topic, 3);
+        String replyTopic = topic + "-replies";
+        companion.topics().createAndWait(replyTopic, 3);
+
+        RequestReplyProducer app = runApplication(config(), RequestReplyProducer.class);
+
+        AtomicReference<Context> replyContext = new AtomicReference<>();
+        AtomicReference<String> replyLocalValue = new AtomicReference<>();
+        CountDownLatch latch = new CountDownLatch(1);
+        String expectedValue = "test-context-value";
+
+        vertx.getDelegate().getOrCreateContext().runOnContext(v -> {
+            Vertx.currentContext().putLocal("test-key", expectedValue);
+            app.requestReply().request(42)
+                    .subscribe().with(reply -> {
+                        replyContext.set(Vertx.currentContext());
+                        replyLocalValue.set(Vertx.currentContext().getLocal("test-key"));
+                        latch.countDown();
+                    });
+        });
+
+        assertThat(latch.await(10, TimeUnit.SECONDS)).isTrue();
+        assertThat(replyLocalValue.get()).isEqualTo(expectedValue);
+        assertThat(replyContext.get()).isNotNull();
     }
 
     @Test

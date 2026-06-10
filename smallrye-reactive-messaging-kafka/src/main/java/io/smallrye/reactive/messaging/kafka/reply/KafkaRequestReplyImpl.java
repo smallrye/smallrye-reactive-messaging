@@ -53,6 +53,7 @@ import io.smallrye.reactive.messaging.providers.extension.MutinyEmitterImpl;
 import io.smallrye.reactive.messaging.providers.helpers.CDIUtils;
 import io.smallrye.reactive.messaging.providers.impl.Configs;
 import io.smallrye.reactive.messaging.providers.locals.ContextAwareMessage;
+import io.vertx.mutiny.core.Context;
 import io.vertx.mutiny.core.Vertx;
 
 @TechPreview("Tech Preview API")
@@ -227,16 +228,20 @@ public class KafkaRequestReplyImpl<Req, Rep> extends MutinyEmitterImpl<Req>
             builder.addHeaders(new RecordHeader(replyPartitionHeader, partition));
         }
         OutgoingMessageMetadata<RecordMetadata> outMetadata = new OutgoingMessageMetadata<>();
-        return sendMessage(request.addMetadata(builder.build()).addMetadata(outMetadata))
-                .invoke(() -> subscription.get().request(1))
-                .onItem()
-                .transformToMulti(unused -> Multi.createFrom().<Message<Rep>> emitter(emitter -> {
-                    pendingReplies.put(correlationId,
-                            new PendingReplyImpl<>(outMetadata.getResult(),
-                                    replyTopic,
-                                    replyPartition,
-                                    (MultiEmitter<Message<Rep>>) emitter));
-                }))
+        // capture the caller context and emit replies on the same context
+        Context callerCtx = Vertx.currentContext();
+        // Register pending reply before sending to avoid race where a fast reply
+        // arrives before the pending reply is registered and gets silently dropped
+        return Multi.createFrom().<Message<Rep>> emitter(emitter -> {
+            pendingReplies.put(correlationId,
+                    new PendingReplyImpl<>(outMetadata.getResult(),
+                            replyTopic,
+                            replyPartition,
+                            (MultiEmitter<Message<Rep>>) emitter));
+            sendMessage(request.addMetadata(builder.build()).addMetadata(outMetadata))
+                    .subscribe().with(unused -> subscription.get().request(1), emitter::fail);
+        })
+                .plug(m -> callerCtx != null ? m.emitOn(callerCtx::runOnContext) : m)
                 .ifNoItem().after(replyTimeout).failWith(() -> new KafkaRequestReplyTimeoutException(correlationId))
                 .onItem().transformToUniAndConcatenate(m -> {
                     if (replyFailureHandler != null) {
