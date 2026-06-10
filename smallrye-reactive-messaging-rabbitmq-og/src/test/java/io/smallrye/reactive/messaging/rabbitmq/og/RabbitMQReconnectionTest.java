@@ -19,6 +19,7 @@ import org.testcontainers.utility.DockerImageName;
 import eu.rekawek.toxiproxy.Proxy;
 import eu.rekawek.toxiproxy.ToxiproxyClient;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
+import io.smallrye.reactive.messaging.test.common.config.SmallRyeConfigTestUtil;
 
 public class RabbitMQReconnectionTest extends WeldTestBase {
 
@@ -68,6 +69,7 @@ public class RabbitMQReconnectionTest extends WeldTestBase {
                     .put("rabbitmq-reconnect-interval", 1)
                     .write();
 
+            SmallRyeConfigTestUtil.installConfig();
             container = weld.initialize();
 
             await().pollDelay(3, SECONDS).until(() -> !isRabbitMQConnectorAlive(container));
@@ -114,6 +116,7 @@ public class RabbitMQReconnectionTest extends WeldTestBase {
                     .put("rabbitmq-reconnect-interval", 1)
                     .write();
 
+            SmallRyeConfigTestUtil.installConfig();
             container = weld.initialize();
 
             await().until(() -> isRabbitMQConnectorAvailable(container));
@@ -163,6 +166,7 @@ public class RabbitMQReconnectionTest extends WeldTestBase {
 
             weld.addBeanClass(ConsumptionBean.class);
 
+            SmallRyeConfigTestUtil.installConfig();
             container = weld.initialize();
             ConsumptionBean bean = get(container, ConsumptionBean.class);
 
@@ -228,6 +232,7 @@ public class RabbitMQReconnectionTest extends WeldTestBase {
                     .put("rabbitmq-reconnect-interval", 1)
                     .write();
 
+            SmallRyeConfigTestUtil.installConfig();
             container = weld.initialize();
             await().until(() -> isRabbitMQConnectorAvailable(container));
 
