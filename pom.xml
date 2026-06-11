@@ -69,7 +69,7 @@
     <microprofile-reactive-messaging.version>3.0.1</microprofile-reactive-messaging.version>
     <microprofile-reactive-streams.version>3.0.1</microprofile-reactive-streams.version>
     <microprofile-config.version>3.1.1</microprofile-config.version>
-    <microprofile-metrics-api.version>4.0.1</microprofile-metrics-api.version>
+    <microprofile-metrics-api.version>5.0.0</microprofile-metrics-api.version>
     <microprofile-health-api.version>4.0.1</microprofile-health-api.version>
 
     <smallrye-config.version>3.17.2</smallrye-config.version>
