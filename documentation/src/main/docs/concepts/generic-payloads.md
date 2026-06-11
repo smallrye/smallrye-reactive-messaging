@@ -26,9 +26,17 @@ You can combine generic payloads with [metadata injection](incoming-metadata-inj
 
 Note that the metadata provided with the outgoing generic payload is merged with the incoming message metadata.
 
+`GenericPayload` can also be used with emitters to attach metadata without dealing with `Message` directly:
+
+``` java
+{{ insert('genericpayload/GenericPayloadExample.java', 'emitter') }}
+```
+
+The inner payload is extracted and the metadata from the `GenericPayload` is merged into the outgoing message.
+Note that existing metadata entries are not overwritten by the `GenericPayload` metadata.
+If a metadata entry of the same type already exists, it is preserved unless the metadata class implements `MergeableMetadata`.
+
 !!! warning "Limitations"
-    There are several limitations for the use of `GenericPayload`:
-    `GenericPayload` is not supported in emitters, as normal outgoing `Message` can be used for that purpose.
     While `GenericPayload<T>` can be used as an incoming payload type,
     [message converters](converters.md) are not applied to the payload type `T`.
 
