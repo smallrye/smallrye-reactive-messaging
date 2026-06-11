@@ -126,16 +126,15 @@ class RabbitMQRequestReplyTest extends RabbitMQBrokerTestBase {
 
     @Test
     public void testReplyWithTopicExchange() {
-        String exchange = "test-topic-exchange";
         String routingKey = "rpc.requests";
         weld.addBeanClasses(RequestReplyProducer.class, ReplyServer.class);
         commonConfig()
                 .with("mp.messaging.outgoing.request-reply.connector", "smallrye-rabbitmq")
-                .with("mp.messaging.outgoing.request-reply.exchange.name", exchange)
+                .with("mp.messaging.outgoing.request-reply.exchange.name", exchangeName)
                 .with("mp.messaging.outgoing.request-reply.exchange.type", "topic")
                 .with("mp.messaging.outgoing.request-reply.default-routing-key", routingKey)
                 .with("mp.messaging.incoming.req.connector", "smallrye-rabbitmq")
-                .with("mp.messaging.incoming.req.exchange.name", exchange)
+                .with("mp.messaging.incoming.req.exchange.name", exchangeName)
                 .with("mp.messaging.incoming.req.exchange.type", "topic")
                 .with("mp.messaging.incoming.req.routing-keys", "rpc.*")
                 .with("mp.messaging.outgoing.rep.connector", "smallrye-rabbitmq")

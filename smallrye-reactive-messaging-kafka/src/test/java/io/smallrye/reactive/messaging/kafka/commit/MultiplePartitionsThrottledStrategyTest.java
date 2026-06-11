@@ -87,6 +87,8 @@ public class MultiplePartitionsThrottledStrategyTest extends KafkaCompanionTestB
 
         BlockingUnorderedBean application = runApplication(config, BlockingUnorderedBean.class);
 
+        await().until(() -> isReady() && isAlive());
+
         int expected = 3000;
         Random random = new Random();
         companion.produceIntegers().usingGenerator(i -> {

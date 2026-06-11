@@ -120,6 +120,8 @@ public class ShareGroupSourceHealthCheckTest extends KafkaCompanionTestBase {
                 .with("health-topic-verification-startup-disabled", true),
                 ShareGroupLazyConsumingBean.class);
 
+        await().until(() -> isStarted() && isReady());
+
         List<Integer> received = new CopyOnWriteArrayList<>();
         Multi<Integer> channel = bean.getChannel();
         channel.subscribe().with(received::add);

@@ -76,7 +76,7 @@ public class JmsSinkTest extends JmsTestBase {
                 () -> CompletableFuture.runAsync(() -> acked.set(true))));
 
         await().until(() -> client.messages.size() >= 1);
-        assertThat(acked).isTrue();
+        await().untilTrue(acked);
         assertThat(client.messages.get(0).getBody(String.class)).isEqualTo("hello");
     }
 
@@ -100,7 +100,7 @@ public class JmsSinkTest extends JmsTestBase {
 
         await().until(() -> client1.messages.size() >= 1);
         await().until(() -> client2.messages.size() >= 1);
-        assertThat(acked).isTrue();
+        await().untilTrue(acked);
         assertThat(client1.messages.get(0).getBody(String.class)).isEqualTo("hello");
         assertThat(client2.messages.get(0).getBody(String.class)).isEqualTo("hello");
     }
@@ -126,7 +126,7 @@ public class JmsSinkTest extends JmsTestBase {
         await()
                 .atLeast(1, TimeUnit.SECONDS)
                 .until(() -> client.messages.size() >= 1);
-        assertThat(acked).isTrue();
+        await().untilTrue(acked);
         assertThat(client.messages.get(0).getBody(String.class)).isEqualTo("hello");
         assertThat(client.messages.get(0).getJMSMessageID()).isNotNull();
         assertThat(client.messages.get(0).getJMSTimestamp()).isPositive();
@@ -152,7 +152,7 @@ public class JmsSinkTest extends JmsTestBase {
 
         await()
                 .until(() -> client.messages.size() >= 1);
-        assertThat(acked).isTrue();
+        await().untilTrue(acked);
         assertThat(client.messages.get(0).getBody(String.class)).isEqualTo("hello");
         assertThat(client.messages.get(0).getJMSMessageID()).isNull();
         assertThat(client.messages.get(0).getJMSTimestamp()).isEqualTo(0L);
@@ -179,7 +179,7 @@ public class JmsSinkTest extends JmsTestBase {
 
         await()
                 .until(() -> client.messages.size() >= 1);
-        assertThat(acked).isTrue();
+        await().untilTrue(acked);
         assertThat(client.messages.get(0).getBody(String.class)).isEqualTo("hello");
         assertThat(client.messages.get(0).getJMSPriority()).isEqualTo(5);
         assertThat(client.messages.get(0).getJMSCorrelationID()).isEqualTo("my-correlation");
@@ -204,7 +204,7 @@ public class JmsSinkTest extends JmsTestBase {
 
         await()
                 .until(() -> client.messages.size() >= 1);
-        assertThat(acked).isTrue();
+        await().untilTrue(acked);
         assertThat(client.messages.get(0).getBody(String.class)).isEqualTo("hello");
         assertThat(client.messages.get(0).getJMSReplyTo())
                 .isInstanceOf(Queue.class);
@@ -231,7 +231,7 @@ public class JmsSinkTest extends JmsTestBase {
 
         await()
                 .until(() -> client.messages.size() >= 1);
-        assertThat(acked).isTrue();
+        await().untilTrue(acked);
         assertThat(client.messages.get(0).getBody(String.class)).isEqualTo("hello");
         assertThat(client.messages.get(0).getJMSReplyTo())
                 .isInstanceOf(Topic.class);
@@ -470,7 +470,7 @@ public class JmsSinkTest extends JmsTestBase {
         subscriber.onNext(hello);
 
         await().until(() -> client.messages.size() >= 1);
-        assertThat(acked).isTrue();
+        await().untilTrue(acked);
         jakarta.jms.Message message = client.messages.get(0);
         assertThat(message.getBody(String.class)).isEqualTo("hello");
         assertThat(message.getJMSCorrelationID()).isEqualTo("my-correlation-id");

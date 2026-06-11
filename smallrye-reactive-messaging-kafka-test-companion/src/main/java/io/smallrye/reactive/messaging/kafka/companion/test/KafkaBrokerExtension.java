@@ -103,7 +103,7 @@ public class KafkaBrokerExtension implements BeforeAllCallback, BeforeEachCallba
                 //                "KAFKA_SHARE_COORDINATOR_APPEND_LINGER_MS", "-1",
                 // a single node topic needs to have 1 as replication factor
                 "KAFKA_SHARE_COORDINATOR_STATE_TOPIC_REPLICATION_FACTOR", "1");
-        return container.withEnv(envVars);
+        return container.withEnv(envVars).withStartupAttempts(3);
     }
 
     public static StrimziKafkaContainer configureStrimziContainer(StrimziKafkaContainer container) {

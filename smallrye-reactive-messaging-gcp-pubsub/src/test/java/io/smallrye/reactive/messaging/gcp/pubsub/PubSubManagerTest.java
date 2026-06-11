@@ -48,7 +48,7 @@ public class PubSubManagerTest extends PubSubTestBase {
         try {
             manager.topicAdminClient(config)
                     .createTopic(TopicName.of(PROJECT_ID, TOPIC));
-        } catch (io.grpc.StatusRuntimeException e) {
+        } catch (com.google.api.gax.rpc.AlreadyExistsException e) {
             // already existing, ignore
         }
 

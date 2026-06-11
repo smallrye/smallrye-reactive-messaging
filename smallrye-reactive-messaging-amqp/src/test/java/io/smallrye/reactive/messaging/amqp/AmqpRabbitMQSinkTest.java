@@ -100,8 +100,10 @@ public class AmqpRabbitMQSinkTest extends RabbitMQBrokerTestBase {
         await().pollDelay(2, TimeUnit.SECONDS).until(() -> true);
 
         restartBroker();
+        await().untilAsserted(() -> createQueue(topic));
 
-        await().untilAsserted(() -> assertThat(messagesReceived).hasSizeGreaterThanOrEqualTo(msgCount));
+        await().atMost(30, TimeUnit.SECONDS)
+                .untilAsserted(() -> assertThat(messagesReceived).hasSizeGreaterThanOrEqualTo(msgCount));
 
         assertThat(messagesReceived).allSatisfy(msg -> {
             assertThat(msg.getBody()).isInstanceOf(AmqpValue.class);
