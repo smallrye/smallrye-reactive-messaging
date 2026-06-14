@@ -67,8 +67,10 @@ public class RabbitMQBrokerExtension implements BeforeAllCallback, ParameterReso
                 .withNetworkAliases("rabbitmq")
                 .withNetwork(Network.SHARED)
                 .withLogConsumer(of -> LOGGER.debug(of.getUtf8String()))
-                .waitingFor(Wait.forLogMessage(".*Server startup complete.*\\n", 1)
+                .waitingFor(Wait.forHttp("/api/overview").forPort(15672)
+                        .withBasicCredentials("guest", "guest")
                         .withStartupTimeout(Duration.ofSeconds(30)))
+                .withStartupAttempts(3)
                 .withCopyFileToContainer(MountableFile.forClasspathResource("rabbitmq/enabled_plugins"),
                         "/etc/rabbitmq/enabled_plugins");
         rabbit.start();

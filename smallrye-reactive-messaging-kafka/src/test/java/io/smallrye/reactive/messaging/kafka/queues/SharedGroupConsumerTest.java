@@ -158,13 +158,15 @@ public class SharedGroupConsumerTest extends KafkaCompanionTestBase {
 
         ShareGroupBroadcastApp app = runApplication(config, ShareGroupBroadcastApp.class);
 
+        await().until(() -> isStarted() && isReady());
+
         // Subscribe twice to the broadcast channel
         app.subscribe();
 
-        await().until(this::isReady);
-
         companion.consumerGroups().waitForShareGroupAssignment(groupId)
                 .await().atMost(Duration.ofSeconds(20));
+
+        await().until(this::isReady);
 
         companion.produceIntegers()
                 .usingGenerator(i -> new ProducerRecord<>(topic, "" + i % 2, i), 10)
