@@ -14,6 +14,7 @@ import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.subscription.BackPressureStrategy;
 import io.smallrye.mutiny.subscription.MultiEmitter;
 import io.smallrye.reactive.messaging.EmitterConfiguration;
+import io.smallrye.reactive.messaging.GenericPayload;
 import io.smallrye.reactive.messaging.MessagePublisherProvider;
 import io.smallrye.reactive.messaging.providers.helpers.BroadcastHelper;
 import io.smallrye.reactive.messaging.providers.helpers.NoStackTraceException;
@@ -152,9 +153,13 @@ public abstract class AbstractEmitter<T> implements MessagePublisherProvider<T> 
         return publisher;
     }
 
+    @SuppressWarnings("unchecked")
     protected void emit(Message<? extends T> message) {
         if (message == null) {
             throw ex.illegalArgumentForNullValue();
+        }
+        if (message.getPayload() instanceof GenericPayload<?> gp) {
+            message = (Message<? extends T>) gp.toMessage(message);
         }
         lock.lock();
         try {

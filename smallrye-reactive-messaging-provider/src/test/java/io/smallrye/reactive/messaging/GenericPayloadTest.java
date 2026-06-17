@@ -188,10 +188,9 @@ public class GenericPayloadTest extends WeldTestBaseWithoutTails {
     }
 
     @Test
-    public void testEmitterGenericPayloadNotSupported() {
+    public void testEmitterGenericPayload() {
         addBeanClass(MyCollector.class);
         addBeanClass(GenericPayloadEmitter.class);
-        addBeanClass(GenericPayloadConverter.class);
 
         initialize();
 
@@ -202,9 +201,9 @@ public class GenericPayloadTest extends WeldTestBaseWithoutTails {
 
         await().untilAsserted(() -> assertThat(collector.messages())
                 .hasSize(10)
-                .allSatisfy(m -> assertThat(m.getMetadata(Object.class)).isEmpty())
-                .extracting(m -> (GenericPayload) (Object) m.getPayload())
-                .allSatisfy(p -> assertThat(p).isInstanceOf(GenericPayload.class)));
+                .allSatisfy(m -> assertThat(m.getMetadata(Object.class)).hasValue(emitter.metadata()))
+                .extracting(Message::getPayload)
+                .containsExactly("0", "1", "2", "3", "4", "5", "6", "7", "8", "9"));
     }
 
     @ApplicationScoped
@@ -219,6 +218,84 @@ public class GenericPayloadTest extends WeldTestBaseWithoutTails {
         void send10() {
             for (int i = 0; i < 10; i++) {
                 emitter.send(GenericPayload.of("" + i, Metadata.of(metadata)));
+            }
+        }
+
+        public Object metadata() {
+            return metadata;
+        }
+    }
+
+    @Test
+    public void testEmitterMessageOfGenericPayload() {
+        addBeanClass(MyCollector.class);
+        addBeanClass(MessageOfGenericPayloadEmitter.class);
+
+        initialize();
+
+        MessageOfGenericPayloadEmitter emitter = get(MessageOfGenericPayloadEmitter.class);
+        MyCollector collector = get(MyCollector.class);
+
+        emitter.send10();
+
+        await().untilAsserted(() -> assertThat(collector.messages())
+                .hasSize(10)
+                .allSatisfy(m -> assertThat(m.getMetadata(Object.class)).hasValue(emitter.metadata()))
+                .extracting(Message::getPayload)
+                .containsExactly("0", "1", "2", "3", "4", "5", "6", "7", "8", "9"));
+    }
+
+    @ApplicationScoped
+    private static class MessageOfGenericPayloadEmitter {
+
+        Object metadata = new Object();
+
+        @Inject
+        @Channel("sink")
+        Emitter<GenericPayload<String>> emitter;
+
+        void send10() {
+            for (int i = 0; i < 10; i++) {
+                emitter.send(Message.of(GenericPayload.of("" + i, Metadata.of(metadata))));
+            }
+        }
+
+        public Object metadata() {
+            return metadata;
+        }
+    }
+
+    @Test
+    public void testMutinyEmitterGenericPayload() {
+        addBeanClass(MyCollector.class);
+        addBeanClass(GenericPayloadMutinyEmitter.class);
+
+        initialize();
+
+        GenericPayloadMutinyEmitter emitter = get(GenericPayloadMutinyEmitter.class);
+        MyCollector collector = get(MyCollector.class);
+
+        emitter.send10();
+
+        await().untilAsserted(() -> assertThat(collector.messages())
+                .hasSize(10)
+                .allSatisfy(m -> assertThat(m.getMetadata(Object.class)).hasValue(emitter.metadata()))
+                .extracting(Message::getPayload)
+                .containsExactly("0", "1", "2", "3", "4", "5", "6", "7", "8", "9"));
+    }
+
+    @ApplicationScoped
+    private static class GenericPayloadMutinyEmitter {
+
+        Object metadata = new Object();
+
+        @Inject
+        @Channel("sink")
+        MutinyEmitter<GenericPayload<String>> emitter;
+
+        void send10() {
+            for (int i = 0; i < 10; i++) {
+                emitter.sendAndForget(GenericPayload.of("" + i, Metadata.of(metadata)));
             }
         }
 
