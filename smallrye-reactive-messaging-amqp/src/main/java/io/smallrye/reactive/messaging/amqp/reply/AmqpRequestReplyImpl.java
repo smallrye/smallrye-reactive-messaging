@@ -32,6 +32,8 @@ import io.smallrye.reactive.messaging.providers.helpers.CDIUtils;
 import io.smallrye.reactive.messaging.providers.impl.Configs;
 import io.smallrye.reactive.messaging.providers.impl.OverrideConfig;
 import io.smallrye.reactive.messaging.providers.locals.ContextAwareMessage;
+import io.vertx.mutiny.core.Context;
+import io.vertx.mutiny.core.Vertx;
 
 @Experimental("Experimental API")
 public class AmqpRequestReplyImpl<Req, Rep> extends MutinyEmitterImpl<Req>
@@ -128,6 +130,8 @@ public class AmqpRequestReplyImpl<Req, Rep> extends MutinyEmitterImpl<Req>
                 : replyToAddress;
         builder.withMessageId(correlationId.toString()).withReplyTo(replyTo);
         OutgoingAmqpMetadata outMetadata = builder.build();
+        // capture the caller context and emit replies on the same context
+        Context callerCtx = Vertx.currentContext();
         // Register pending reply before sending to avoid race where a fast reply
         // arrives before the pending reply is registered and gets silently dropped
         return Multi.createFrom().<Message<Rep>> emitter(emitter -> {
@@ -135,13 +139,9 @@ public class AmqpRequestReplyImpl<Req, Rep> extends MutinyEmitterImpl<Req>
                     new PendingReplyImpl<>(outMetadata,
                             (MultiEmitter<Message<Rep>>) emitter));
             sendMessage(request.addMetadata(outMetadata))
-                    .subscribe().with(
-                            unused -> subscription.get().request(1),
-                            failure -> {
-                                pendingReplies.remove(correlationId);
-                                emitter.fail(failure);
-                            });
+                    .subscribe().with(unused -> subscription.get().request(1), emitter::fail);
         })
+                .plug(m -> callerCtx != null ? m.emitOn(callerCtx::runOnContext) : m)
                 .ifNoItem().after(replyTimeout)
                 .failWith(() -> new AmqpRequestReplyTimeoutException(correlationId))
                 .onItem().transformToUniAndConcatenate(m -> {
