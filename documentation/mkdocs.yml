@@ -56,6 +56,7 @@ nav:
         - 'Receiving messages': amqp/receiving-amqp-messages.md
         - 'Sending messages': amqp/sending-amqp-messages.md
         - 'AMQP Request/Reply': amqp/request-reply.md
+        - 'CBS Authentication': amqp/cbs-authentication.md
         - 'Health Checks': amqp/health.md
         - 'Client Customization': amqp/client-customization.md
         - 'Using RabbitMQ': amqp/rabbitmq.md

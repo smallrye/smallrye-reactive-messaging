@@ -193,7 +193,7 @@ public class AmqpCreditBasedSender implements Processor<Message<?>, Message<?>>,
         try {
             send(message, durable, ttl, configuredAddress, isAnonymous)
                     .subscribe().with(tuple -> {
-                        if (tuple != null) { // No serialization issue
+                        if (tuple != null) { // null when serialization failed or send was nacked
                             subscriber.onNext(tuple.getItem1());
                             long remainingCredits = tuple.getItem3();
                             if (remainingCredits <= 0) { // no more credit, request more
@@ -294,11 +294,14 @@ public class AmqpCreditBasedSender implements Processor<Message<?>, Message<?>>,
                 // We are on Vert.x context that created the client, we can access the remaining credits and update it.
                 .replaceWith(() -> Tuple3.<Message<?>, AmqpSender, Long> of(msg, s, s.remainingCredits())))
                 .onFailure().retry().withBackOff(ofSeconds(1), ofSeconds(retryInterval)).atMost(retryAttempts)
-                .onItemOrFailure().call((s, failure) -> {
+                .onItemOrFailure().transformToUni((s, failure) -> {
                     if (failure != null) {
-                        return Uni.createFrom().completionStage(msg.nack(failure));
+                        log.sendFailure(configuration.getChannel(), failure);
+                        return Uni.createFrom().completionStage(msg.nack(failure))
+                                .replaceWith((Tuple3<Message<?>, AmqpSender, Long>) null);
                     } else {
-                        return Uni.createFrom().completionStage(msg.ack());
+                        return Uni.createFrom().completionStage(msg.ack())
+                                .replaceWith(s);
                     }
                 });
     }

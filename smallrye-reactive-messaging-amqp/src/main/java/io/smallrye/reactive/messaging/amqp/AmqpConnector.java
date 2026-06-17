@@ -26,12 +26,14 @@ import org.eclipse.microprofile.reactive.messaging.spi.Connector;
 
 import io.opentelemetry.api.OpenTelemetry;
 import io.smallrye.reactive.messaging.ClientCustomizer;
+import io.smallrye.reactive.messaging.amqp.cbs.CbsTokenManager;
 import io.smallrye.reactive.messaging.annotations.ConnectorAttribute;
 import io.smallrye.reactive.messaging.connector.InboundConnector;
 import io.smallrye.reactive.messaging.connector.OutboundConnector;
 import io.smallrye.reactive.messaging.health.HealthReport;
 import io.smallrye.reactive.messaging.health.HealthReporter;
 import io.smallrye.reactive.messaging.providers.connectors.ExecutionHolder;
+import io.smallrye.reactive.messaging.providers.helpers.CDIUtils;
 import io.vertx.amqp.AmqpClientOptions;
 import io.vertx.mutiny.amqp.AmqpClient;
 import io.vertx.mutiny.core.Vertx;
@@ -61,12 +63,19 @@ import io.vertx.mutiny.core.Vertx;
 @ConnectorAttribute(name = "capabilities", type = "string", direction = INCOMING_AND_OUTGOING, description = " A comma-separated list of capabilities proposed by the sender or receiver client.")
 @ConnectorAttribute(name = "retry-on-fail-attempts", direction = INCOMING_AND_OUTGOING, description = "The number of tentative to retry on failure", type = "int", defaultValue = "6")
 @ConnectorAttribute(name = "retry-on-fail-interval", direction = INCOMING_AND_OUTGOING, description = "The interval (in seconds) between two sending attempts", type = "int", defaultValue = "5")
+@ConnectorAttribute(name = "cbs.enabled", direction = INCOMING_AND_OUTGOING, description = "Whether the CBS authorization is enabled. If enabled, the connector will use the claims-based security to authenticate with the broker. If disabled, the connector will not use the CBS exchange and will not authenticate with the broker.", type = "boolean", defaultValue = "false")
+@ConnectorAttribute(name = "cbs.audience", direction = INCOMING_AND_OUTGOING, description = "The audience used to authenticate with the broker using the CBS exchange. If not set, the audience is derived from the address.", type = "string", defaultValue = "")
+@ConnectorAttribute(name = "cbs.scopes", direction = INCOMING_AND_OUTGOING, description = "The scopes used to authenticate with the broker using the CBS exchange. If not set, the scopes are derived from the address.", type = "string", defaultValue = "")
+@ConnectorAttribute(name = "cbs.token-manager", direction = INCOMING_AND_OUTGOING, description = "The name of the CbsTokenManager bean used to manage the CBS tokens.", type = "string", defaultValue = "default-cbs-token-manager")
+@ConnectorAttribute(name = "cbs.exchange", direction = INCOMING_AND_OUTGOING, description = "The name of the CBS exchange used to authenticate with the broker.", type = "string", defaultValue = "set-token")
+
 @ConnectorAttribute(name = "broadcast", direction = INCOMING, description = "Whether the received AMQP messages must be dispatched to multiple _subscribers_", type = "boolean", defaultValue = "false")
 @ConnectorAttribute(name = "durable", direction = INCOMING, description = "Whether AMQP subscription is durable", type = "boolean", defaultValue = "false")
 @ConnectorAttribute(name = "auto-acknowledgement", direction = INCOMING, description = "Whether the received AMQP messages must be acknowledged when received", type = "boolean", defaultValue = "false")
 @ConnectorAttribute(name = "failure-strategy", type = "string", direction = INCOMING, description = "Specify the failure strategy to apply when a message produced from an AMQP message is nacked. Accepted values are `fail` (default), `accept`, `release`, `reject`, `modified-failed`, `modified-failed-undeliverable-here`", defaultValue = "fail")
 @ConnectorAttribute(name = "selector", direction = INCOMING, description = "Sets a message selector. This attribute is used to define an `apache.org:selector-filter:string` filter on the source terminus, using SQL-based syntax to request the server filters which messages are delivered to the receiver (if supported by the server in question). Precise functionality supported and syntax needed can vary depending on the server.", type = "string")
 @ConnectorAttribute(name = "qos", direction = INCOMING, description = "Sets the local QOS config, values can be {@code null}, {@code AT_MOST_ONCE} or {@code AT_LEAST_ONCE}.", type = "string")
+@ConnectorAttribute(name = "initial-credits", direction = INCOMING, description = "The number of credits initially requested for incoming messages. This controls how many messages the receiver can buffer.", type = "int", defaultValue = "1000")
 
 @ConnectorAttribute(name = "durable", direction = OUTGOING, description = "Whether sent AMQP messages are marked durable", type = "boolean", defaultValue = "false")
 @ConnectorAttribute(name = "ttl", direction = OUTGOING, description = "The time-to-live of the send AMQP messages. 0 to disable the TTL", type = "long", defaultValue = "0")
@@ -104,6 +113,10 @@ public class AmqpConnector implements InboundConnector, OutboundConnector, Healt
     @Inject
     private Instance<OpenTelemetry> openTelemetryInstance;
 
+    @Inject
+    @Any
+    private Instance<CbsTokenManager.Factory> cbsTokenManagerInstance;
+
     private final Map<String, AmqpClientHolder> clients = new ConcurrentHashMap<>();
     private final Map<String, String> containerIdFingerprints = new ConcurrentHashMap<>();
 
@@ -131,15 +144,22 @@ public class AmqpConnector implements InboundConnector, OutboundConnector, Healt
     public Flow.Publisher<? extends Message<?>> getPublisher(Config config) {
         AmqpConnectorIncomingConfiguration ic = new AmqpConnectorIncomingConfiguration(config);
         IncomingAmqpChannel incoming = new IncomingAmqpChannel(ic, getClientHolder(ic), executionHolder.vertx(),
-                openTelemetryInstance, this::reportFailure);
+                getCbsTokenManager(ic), openTelemetryInstance, this::reportFailure);
         incomingChannels.put(ic.getChannel(), incoming);
         return incoming.getPublisher();
+    }
+
+    private CbsTokenManager getCbsTokenManager(AmqpConnectorCommonConfiguration config) {
+        return config.getCbsEnabled()
+                ? CDIUtils.getInstanceById(cbsTokenManagerInstance, config.getCbsTokenManager()).get().create(config)
+                : null;
     }
 
     @Override
     public Flow.Subscriber<? extends Message<?>> getSubscriber(Config config) {
         AmqpConnectorOutgoingConfiguration oc = new AmqpConnectorOutgoingConfiguration(config);
         OutgoingAmqpChannel outgoing = new OutgoingAmqpChannel(oc, getClientHolder(oc), executionHolder.vertx(),
+                getCbsTokenManager(oc),
                 openTelemetryInstance, this::reportFailure);
         outgoingChannels.put(oc.getChannel(), outgoing);
         return outgoing.getSubscriber();

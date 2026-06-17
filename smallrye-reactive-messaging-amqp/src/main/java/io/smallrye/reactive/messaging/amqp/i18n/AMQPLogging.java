@@ -147,4 +147,8 @@ public interface AMQPLogging extends BasicLogger {
     @LogMessage(level = Logger.Level.ERROR)
     @Message(id = 16232, value = "Reply consumer failure on channel `%s`")
     void requestReplyConsumerFailure(String channel, @Cause Throwable t);
+
+    @LogMessage(level = Logger.Level.ERROR)
+    @Message(id = 16233, value = "Unable to send message on channel `%s`, message has been nacked")
+    void sendFailure(String channel, @Cause Throwable reason);
 }

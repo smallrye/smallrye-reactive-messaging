@@ -16,6 +16,7 @@ import io.opentelemetry.api.OpenTelemetry;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.operators.multi.processors.BroadcastProcessor;
+import io.smallrye.reactive.messaging.amqp.cbs.CbsTokenManager;
 import io.smallrye.reactive.messaging.amqp.fault.AmqpAccept;
 import io.smallrye.reactive.messaging.amqp.fault.AmqpFailStop;
 import io.smallrye.reactive.messaging.amqp.fault.AmqpFailureHandler;
@@ -42,8 +43,9 @@ public class IncomingAmqpChannel {
     private volatile String resolvedAddress;
 
     public IncomingAmqpChannel(AmqpConnectorIncomingConfiguration ic, AmqpClientHolder clientHolder, Vertx vertx,
+            CbsTokenManager cbsTokenManager,
             Instance<OpenTelemetry> openTelemetryInstance, BiConsumer<String, Throwable> reportFailure) {
-        this(ic, clientHolder.getOrCreateConnectionHolder(ic, vertx,
+        this(ic, clientHolder.getOrCreateConnectionHolder(cbsTokenManager, ic, vertx,
                 Context.newInstance(((VertxInternal) vertx.getDelegate()).createEventLoopContext())),
                 openTelemetryInstance, reportFailure);
     }
@@ -67,6 +69,7 @@ public class IncomingAmqpChannel {
         AmqpReceiverOptions options = new AmqpReceiverOptions()
                 .setAutoAcknowledgement(ic.getAutoAcknowledgement())
                 .setDurable(ic.getDurable())
+                .setMaxBufferedMessages(ic.getInitialCredits())
                 .setLinkName(link)
                 .setCapabilities(getClientCapabilities(ic))
                 .setSelector(ic.getSelector().orElse(null));

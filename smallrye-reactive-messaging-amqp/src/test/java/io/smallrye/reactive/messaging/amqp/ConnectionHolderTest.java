@@ -39,7 +39,7 @@ public class ConnectionHolderTest extends AmqpBrokerTestBase {
                 .with("health-timeout", 3);
         AmqpConnectorCommonConfiguration configuration = new AmqpConnectorCommonConfiguration(config);
 
-        ConnectionHolder holder = new ConnectionHolder(client, configuration, vertx, rootContext);
+        ConnectionHolder holder = new ConnectionHolder(client, null, configuration, vertx, rootContext);
 
         int threadCount = 10;
         ExecutorService executor = Executors.newFixedThreadPool(threadCount);
@@ -91,7 +91,7 @@ public class ConnectionHolderTest extends AmqpBrokerTestBase {
                 .with("health-timeout", 3);
         AmqpConnectorCommonConfiguration configuration = new AmqpConnectorCommonConfiguration(config);
 
-        ConnectionHolder holder = new ConnectionHolder(client, configuration, vertx, rootContext);
+        ConnectionHolder holder = new ConnectionHolder(client, null, configuration, vertx, rootContext);
 
         AmqpConnection first = holder.getOrEstablishConnection()
                 .await().atMost(Duration.ofSeconds(10));
@@ -133,7 +133,7 @@ public class ConnectionHolderTest extends AmqpBrokerTestBase {
                 .with("health-timeout", 3);
         AmqpConnectorCommonConfiguration configuration = new AmqpConnectorCommonConfiguration(config);
 
-        ConnectionHolder holder = new ConnectionHolder(client, configuration, vertx, rootContext);
+        ConnectionHolder holder = new ConnectionHolder(client, null, configuration, vertx, rootContext);
 
         AmqpConnection first = holder.getOrEstablishConnection()
                 .await().atMost(Duration.ofSeconds(10));
