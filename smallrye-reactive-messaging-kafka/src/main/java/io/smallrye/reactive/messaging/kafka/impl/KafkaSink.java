@@ -94,7 +94,7 @@ public class KafkaSink {
         this.key = config.getKey().orElse(null);
         this.channel = config.getChannel();
 
-        if (config.getPooledProducer()) {
+        if (isPooledProducer(config)) {
             this.client = new PooledKafkaProducer<>(config, configCustomizers, serializationFailureHandlers,
                     producerInterceptors,
                     this::reportFailure,
@@ -155,6 +155,17 @@ public class KafkaSink {
         } else {
             kafkaInstrumenter = null;
         }
+    }
+
+    private static boolean isPooledProducer(KafkaConnectorOutgoingConfiguration config) {
+        return config.config().getOptionalValue("pooled-producer.enabled", Boolean.class)
+                .orElseGet(() -> {
+                    boolean pooled = config.getPooledProducer();
+                    if (pooled) {
+                        log.deprecatedConfig("pooled-producer", "pooled-producer.enabled");
+                    }
+                    return pooled;
+                });
     }
 
     private static String getClientId(Map<String, Object> config) {

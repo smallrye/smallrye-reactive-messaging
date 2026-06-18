@@ -840,13 +840,13 @@ This is useful for **queue-like** workloads where you want records to be process
 
 ### Enabling Share Groups
 
-To enable share group consumption on a channel, set the `share-group` attribute to `true`:
+To enable share group consumption on a channel, set the `share-group.enabled` attribute to `true`:
 
 ```properties
 mp.messaging.incoming.queue.connector=smallrye-kafka
 mp.messaging.incoming.queue.topic=prices
 mp.messaging.incoming.queue.value.deserializer=org.apache.kafka.common.serialization.DoubleDeserializer
-mp.messaging.incoming.queue.share-group=true # <1>
+mp.messaging.incoming.queue.share-group.enabled=true # <1>
 ```
 
 1. Enables share group consumption for this channel.
@@ -888,7 +888,7 @@ If no metadata is provided on nack, the default acknowledgement type is `RELEASE
 This can be changed using the `share-group.failure-acknowledgement-type` attribute:
 
 ```properties
-mp.messaging.incoming.queue.share-group=true
+mp.messaging.incoming.queue.share-group.enabled=true
 mp.messaging.incoming.queue.share-group.failure-acknowledgement-type=reject # <1>
 ```
 
@@ -900,7 +900,7 @@ When `fail-on-deserialization-failure` is set to `false`, records that fail dese
 They are automatically nacked using the acknowledgement type configured by `share-group.failure-deserialization-acknowledgement-type` (default: `reject`).
 
 ```properties
-mp.messaging.incoming.queue.share-group=true
+mp.messaging.incoming.queue.share-group.enabled=true
 mp.messaging.incoming.queue.fail-on-deserialization-failure=false # <1>
 mp.messaging.incoming.queue.share-group.failure-deserialization-acknowledgement-type=reject # <2>
 ```
@@ -925,7 +925,7 @@ This is controlled by the `share-group.unprocessed-record-max-age.ms` attribute:
 - When set to `0`, processing timeout monitoring is disabled. No `RENEW` acknowledgements are sent. If processing exceeds the broker's lock duration, the record will be automatically released and re-delivered.
 
 ```properties
-mp.messaging.incoming.queue.share-group=true
+mp.messaging.incoming.queue.share-group.enabled=true
 mp.messaging.incoming.queue.share-group.unprocessed-record-max-age.ms=30000 # <1>
 ```
 
@@ -936,7 +936,7 @@ mp.messaging.incoming.queue.share-group.unprocessed-record-max-age.ms=30000 # <1
 Share groups support batch consumption. Set `batch=true` to receive all records from a single poll as a batch:
 
 ```properties
-mp.messaging.incoming.queue.share-group=true
+mp.messaging.incoming.queue.share-group.enabled=true
 mp.messaging.incoming.queue.batch=true
 ```
 
@@ -964,7 +964,7 @@ The following configuration attributes are not supported with share groups and w
 - `failure-strategy` Share groups use their own failure handling based on `AcknowledgeType`.
 - `consumer-rebalance-listener.name` Share groups do not have traditional partition rebalancing.
 
-If any of these are configured alongside `share-group=true`, a warning is logged at startup.
+If any of these are configured alongside `share-group.enabled=true`, a warning is logged at startup.
 
 ## Configuration Reference
 
