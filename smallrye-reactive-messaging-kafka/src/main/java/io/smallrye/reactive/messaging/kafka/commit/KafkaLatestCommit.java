@@ -75,6 +75,11 @@ public class KafkaLatestCommit extends ContextHolder implements KafkaCommitHandl
     }
 
     @Override
+    public void partitionsSeeked(Collection<TopicPartition> partitions) {
+        partitionsRevoked(partitions);
+    }
+
+    @Override
     public <K, V> Uni<Void> handle(IncomingKafkaRecord<K, V> record) {
         runOnContext(() -> {
             Map<TopicPartition, OffsetAndMetadata> map = new HashMap<>();

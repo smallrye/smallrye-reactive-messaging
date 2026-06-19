@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -16,26 +17,36 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
+import jakarta.enterprise.context.ApplicationScoped;
+
+import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.IntegerDeserializer;
+import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
+import io.smallrye.common.annotation.Identifier;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.health.HealthReport;
 import io.smallrye.reactive.messaging.kafka.IncomingKafkaRecord;
+import io.smallrye.reactive.messaging.kafka.KafkaClientService;
+import io.smallrye.reactive.messaging.kafka.KafkaConsumer;
+import io.smallrye.reactive.messaging.kafka.KafkaConsumerRebalanceListener;
 import io.smallrye.reactive.messaging.kafka.KafkaRecord;
 import io.smallrye.reactive.messaging.kafka.base.KafkaCompanionTestBase;
+import io.smallrye.reactive.messaging.kafka.base.KafkaMapBasedConfig;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 
@@ -434,5 +445,311 @@ public class KafkaCommitHandlerTest extends KafkaCompanionTestBase {
                     assertNotNull(result.get(tp1));
                     assertEquals(200, result.get(tp0).offset() + result.get(tp1).offset());
                 });
+    }
+
+    @Test
+    public void testSourceWithLatestAndSeekToBeginning() {
+        String group = "test-source-with-latest-and-seek";
+
+        MapBasedConfig config = newCommonConfigForSource()
+                .with("client.id", UUID.randomUUID().toString())
+                .with("group.id", group)
+                .with("value.deserializer", IntegerDeserializer.class.getName())
+                .with("commit-strategy", "latest");
+
+        source = createSource(group, config);
+
+        List<Message<?>> messages = new CopyOnWriteArrayList<>();
+        source.getStream()
+                .onItem().call(m -> Uni.createFrom().completionStage(m.ack()))
+                .subscribe().with(messages::add);
+
+        TopicPartition tp = new TopicPartition(topic, 0);
+
+        // Produce and consume 10 records
+        companion.produceIntegers()
+                .usingGenerator(i -> new ProducerRecord<>(topic, i), 10);
+
+        await().atMost(2, TimeUnit.MINUTES).until(() -> messages.size() >= 10);
+
+        await().atMost(2, TimeUnit.MINUTES)
+                .untilAsserted(() -> {
+                    OffsetAndMetadata offset = companion.consumerGroups().offsets(group, tp);
+                    assertNotNull(offset);
+                    assertEquals(10L, offset.offset());
+                });
+
+        int countBeforeSeek = messages.size();
+
+        // Seek to beginning through the consumer API — full path:
+        // ReactiveKafkaConsumer → WrappedConsumerRebalanceListener.onPartitionsSeeked
+        // → buffer clear + commitHandler.partitionsSeeked
+        source.getConsumer().seekToBeginning(Collections.singleton(tp))
+                .await().indefinitely();
+
+        // Records should be re-delivered from offset 0
+        await().atMost(2, TimeUnit.MINUTES)
+                .until(() -> messages.size() >= countBeforeSeek + 10);
+
+        // After seek + replay, committed offset must still be correct
+        await().atMost(2, TimeUnit.MINUTES)
+                .untilAsserted(() -> {
+                    OffsetAndMetadata offset = companion.consumerGroups().offsets(group, tp);
+                    assertNotNull(offset);
+                    assertEquals(10L, offset.offset());
+                });
+
+        // Produce 10 more records (offsets 10-19)
+        companion.produceIntegers()
+                .usingGenerator(i -> new ProducerRecord<>(topic, 10 + i), 10);
+
+        await().atMost(2, TimeUnit.MINUTES)
+                .untilAsserted(() -> {
+                    OffsetAndMetadata offset = companion.consumerGroups().offsets(group, tp);
+                    assertNotNull(offset);
+                    assertEquals(20L, offset.offset());
+                });
+    }
+
+    @Test
+    public void testSourceWithThrottledAndSeek() {
+        String group = "test-source-with-throttled-and-seek";
+
+        MapBasedConfig config = newCommonConfigForSource()
+                .with("client.id", UUID.randomUUID().toString())
+                .with("group.id", group)
+                .with("value.deserializer", IntegerDeserializer.class.getName())
+                .with("commit-strategy", "throttled")
+                .with(ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG, 100);
+
+        source = createSource(group, config);
+
+        List<Message<?>> messages = new CopyOnWriteArrayList<>();
+        source.getStream()
+                .onItem().call(m -> Uni.createFrom().completionStage(m.ack()))
+                .subscribe().with(messages::add);
+
+        TopicPartition tp = new TopicPartition(topic, 0);
+
+        // Produce and consume 10 records
+        companion.produceIntegers()
+                .usingGenerator(i -> new ProducerRecord<>(topic, i), 10);
+
+        await().atMost(2, TimeUnit.MINUTES).until(() -> messages.size() >= 10);
+
+        await().atMost(2, TimeUnit.MINUTES)
+                .untilAsserted(() -> {
+                    OffsetAndMetadata offset = companion.consumerGroups().offsets(group, tp);
+                    assertNotNull(offset);
+                    assertEquals(10L, offset.offset());
+                });
+
+        int countBeforeSeek = messages.size();
+
+        // Seek to offset 0 through the consumer API
+        source.getConsumer().seek(tp, 0).await().indefinitely();
+
+        // Records re-delivered from offset 0
+        await().atMost(2, TimeUnit.MINUTES)
+                .until(() -> messages.size() >= countBeforeSeek + 10);
+
+        // After seek + replay, committed offset must still be correct
+        await().atMost(2, TimeUnit.MINUTES)
+                .untilAsserted(() -> {
+                    OffsetAndMetadata offset = companion.consumerGroups().offsets(group, tp);
+                    assertNotNull(offset);
+                    assertEquals(10L, offset.offset());
+                });
+
+        // Produce 10 more records
+        companion.produceIntegers()
+                .usingGenerator(i -> new ProducerRecord<>(topic, 10 + i), 10);
+
+        await().atMost(2, TimeUnit.MINUTES)
+                .untilAsserted(() -> {
+                    OffsetAndMetadata offset = companion.consumerGroups().offsets(group, tp);
+                    assertNotNull(offset);
+                    assertEquals(20L, offset.offset());
+                });
+    }
+
+    @Test
+    public void testSeekToBeginningWithApplicationScopedBean() {
+        String group = "test-app-seek-to-beginning";
+
+        addBeans(SeekConsumerBean.class, SeekTrackingRebalanceListener.class);
+
+        KafkaMapBasedConfig config = kafkaConfig("mp.messaging.incoming.data");
+        config.put("group.id", group);
+        config.put("topic", topic);
+        config.put("value.deserializer", IntegerDeserializer.class.getName());
+        config.put("auto.offset.reset", "earliest");
+        config.put("commit-strategy", "latest");
+        config.put("consumer-rebalance-listener.name", "seek-tracking-listener");
+
+        companion.produceIntegers()
+                .usingGenerator(i -> new ProducerRecord<>(topic, i), 10);
+
+        runApplication(config);
+
+        SeekConsumerBean bean = get(SeekConsumerBean.class);
+        SeekTrackingRebalanceListener listener = getBeanManager().createInstance()
+                .select(SeekTrackingRebalanceListener.class)
+                .select(Identifier.Literal.of("seek-tracking-listener"))
+                .get();
+
+        await().atMost(2, TimeUnit.MINUTES).until(() -> bean.getCount() >= 10);
+
+        TopicPartition tp = new TopicPartition(topic, 0);
+        await().atMost(2, TimeUnit.MINUTES)
+                .untilAsserted(() -> {
+                    OffsetAndMetadata offset = companion.consumerGroups().offsets(group, tp);
+                    assertNotNull(offset);
+                    assertEquals(10L, offset.offset());
+                });
+
+        // Seek to beginning via KafkaClientService — exercises the full CDI path
+        KafkaClientService clientService = get(KafkaClientService.class);
+        KafkaConsumer<String, Integer> consumer = clientService.getConsumer("data");
+        assertNotNull(consumer);
+
+        int countBeforeSeek = bean.getCount();
+
+        consumer.seekToBeginning(Collections.singleton(tp)).await().indefinitely();
+
+        // Verify onPartitionsSeeked was called on the user's rebalance listener
+        await().atMost(10, TimeUnit.SECONDS)
+                .until(() -> listener.getSeekedPartitions().contains(tp));
+
+        // Records should be re-delivered from offset 0
+        await().atMost(2, TimeUnit.MINUTES)
+                .until(() -> bean.getCount() >= countBeforeSeek + 10);
+
+        // After seek + replay, committed offset must still be correct
+        await().atMost(2, TimeUnit.MINUTES)
+                .untilAsserted(() -> {
+                    OffsetAndMetadata offset = companion.consumerGroups().offsets(group, tp);
+                    assertNotNull(offset);
+                    assertEquals(10L, offset.offset());
+                });
+
+        // Produce more records and verify committed offset covers everything
+        companion.produceIntegers()
+                .usingGenerator(i -> new ProducerRecord<>(topic, 10 + i), 10);
+
+        await().atMost(2, TimeUnit.MINUTES)
+                .untilAsserted(() -> {
+                    OffsetAndMetadata offset = companion.consumerGroups().offsets(group, tp);
+                    assertNotNull(offset);
+                    assertEquals(20L, offset.offset());
+                });
+    }
+
+    @Test
+    public void testSeekWithApplicationScopedBeanAndThrottledStrategy() {
+        String group = "test-app-seek-throttled";
+
+        addBeans(SeekConsumerBean.class, SeekTrackingRebalanceListener.class);
+
+        KafkaMapBasedConfig config = kafkaConfig("mp.messaging.incoming.data");
+        config.put("group.id", group);
+        config.put("topic", topic);
+        config.put("value.deserializer", IntegerDeserializer.class.getName());
+        config.put("auto.offset.reset", "earliest");
+        config.put("commit-strategy", "throttled");
+        config.put("auto.commit.interval.ms", 100);
+        config.put("consumer-rebalance-listener.name", "seek-tracking-listener");
+
+        companion.produceIntegers()
+                .usingGenerator(i -> new ProducerRecord<>(topic, i), 10);
+
+        runApplication(config);
+
+        SeekConsumerBean bean = get(SeekConsumerBean.class);
+        SeekTrackingRebalanceListener listener = getBeanManager().createInstance()
+                .select(SeekTrackingRebalanceListener.class)
+                .select(Identifier.Literal.of("seek-tracking-listener"))
+                .get();
+
+        await().atMost(2, TimeUnit.MINUTES).until(() -> bean.getCount() >= 10);
+
+        TopicPartition tp = new TopicPartition(topic, 0);
+        await().atMost(2, TimeUnit.MINUTES)
+                .untilAsserted(() -> {
+                    OffsetAndMetadata offset = companion.consumerGroups().offsets(group, tp);
+                    assertNotNull(offset);
+                    assertEquals(10L, offset.offset());
+                });
+
+        KafkaClientService clientService = get(KafkaClientService.class);
+        KafkaConsumer<String, Integer> consumer = clientService.getConsumer("data");
+        assertNotNull(consumer);
+
+        int countBeforeSeek = bean.getCount();
+
+        // Seek to offset 0 via consumer API — full path through throttled handler
+        consumer.seek(tp, 0).await().indefinitely();
+
+        // Verify onPartitionsSeeked was called
+        await().atMost(10, TimeUnit.SECONDS)
+                .until(() -> listener.getSeekedPartitions().contains(tp));
+
+        // Records re-delivered from offset 0
+        await().atMost(2, TimeUnit.MINUTES)
+                .until(() -> bean.getCount() >= countBeforeSeek + 10);
+
+        // After seek + replay, committed offset must still be correct
+        await().atMost(2, TimeUnit.MINUTES)
+                .untilAsserted(() -> {
+                    OffsetAndMetadata offset = companion.consumerGroups().offsets(group, tp);
+                    assertNotNull(offset);
+                    assertEquals(10L, offset.offset());
+                });
+
+        // Produce more records and verify committed offset advances
+        companion.produceIntegers()
+                .usingGenerator(i -> new ProducerRecord<>(topic, 10 + i), 10);
+
+        await().atMost(2, TimeUnit.MINUTES)
+                .untilAsserted(() -> {
+                    OffsetAndMetadata offset = companion.consumerGroups().offsets(group, tp);
+                    assertNotNull(offset);
+                    assertEquals(20L, offset.offset());
+                });
+    }
+
+    @ApplicationScoped
+    public static class SeekConsumerBean {
+
+        private final List<Integer> received = new CopyOnWriteArrayList<>();
+
+        @Incoming("data")
+        public void consume(int payload) {
+            received.add(payload);
+        }
+
+        public int getCount() {
+            return received.size();
+        }
+
+        public List<Integer> getReceived() {
+            return received;
+        }
+    }
+
+    @ApplicationScoped
+    @Identifier("seek-tracking-listener")
+    public static class SeekTrackingRebalanceListener implements KafkaConsumerRebalanceListener {
+
+        private final Set<TopicPartition> seekedPartitions = Collections.newSetFromMap(new ConcurrentHashMap<>());
+
+        @Override
+        public void onPartitionsSeeked(Consumer<?, ?> consumer, Collection<TopicPartition> partitions) {
+            seekedPartitions.addAll(partitions);
+        }
+
+        public Set<TopicPartition> getSeekedPartitions() {
+            return seekedPartitions;
+        }
     }
 }
