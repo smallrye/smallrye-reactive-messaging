@@ -34,12 +34,14 @@ import io.vertx.core.impl.cpu.CpuCoreSensor;
 
 public class ConcurrentProcessorTest extends KafkaCompanionTestBase {
 
+    String groupId = UUID.randomUUID().toString();
+    int concurrency = 3;
+
     private MapBasedConfig dataconfig() {
-        String groupId = UUID.randomUUID().toString();
         return kafkaConfig("mp.messaging.incoming.data")
                 .with("group.id", groupId)
                 .with("topic", topic)
-                .with("concurrency", 3)
+                .with("concurrency", concurrency)
                 .with("failure-strategy", "dead-letter-queue")
                 .with("auto.offset.reset", "earliest")
                 .with("value.deserializer", IntegerDeserializer.class.getName());
@@ -48,18 +50,31 @@ public class ConcurrentProcessorTest extends KafkaCompanionTestBase {
     private void produceMessages() {
         int expected = 10;
         companion.produceIntegers().usingGenerator(i -> {
-            int p = i % 3;
+            int p = i % concurrency;
             return new ProducerRecord<>(topic, p, Integer.toString(p), i);
         }, expected).awaitCompletion(Duration.ofMinutes(1));
+    }
+
+    void waitUntilAllMembersHaveAssignments() {
+        await().untilAsserted(() -> {
+            var members = companion.consumerGroups().describe(groupId).members();
+            assertThat(members).hasSize(concurrency);
+            for (var member : members) {
+                var assignment = member.assignment();
+                assertThat(assignment.topicPartitions()).isNotEmpty();
+            }
+        });
     }
 
     @Test
     public void testConcurrentConsumer() {
         addBeans(ConsumerRecordConverter.class);
-        companion.topics().createAndWait(topic, 3);
+        companion.topics().createAndWait(topic, concurrency);
 
-        produceMessages();
         MyConsumerBean bean = runApplication(dataconfig(), MyConsumerBean.class);
+
+        waitUntilAllMembersHaveAssignments();
+        produceMessages();
 
         List<Integer> list = bean.getResults();
         assertThat(list).isEmpty();
@@ -74,10 +89,12 @@ public class ConcurrentProcessorTest extends KafkaCompanionTestBase {
 
     @Test
     public void testConcurrentProcessor() {
-        companion.topics().createAndWait(topic, 3);
+        companion.topics().createAndWait(topic, concurrency);
 
-        produceMessages();
         MyProcessorBean bean = runApplication(dataconfig(), MyProcessorBean.class);
+
+        waitUntilAllMembersHaveAssignments();
+        produceMessages();
 
         List<Integer> list = bean.getResults();
         assertThat(list).isEmpty();
@@ -92,10 +109,12 @@ public class ConcurrentProcessorTest extends KafkaCompanionTestBase {
 
     @Test
     public void testConcurrentStreamTransformer() {
-        companion.topics().createAndWait(topic, 3);
+        companion.topics().createAndWait(topic, concurrency);
 
-        produceMessages();
         MyStreamTransformerBean bean = runApplication(dataconfig(), MyStreamTransformerBean.class);
+
+        waitUntilAllMembersHaveAssignments();
+        produceMessages();
 
         List<Integer> list = bean.getResults();
         assertThat(list).isEmpty();
@@ -110,14 +129,16 @@ public class ConcurrentProcessorTest extends KafkaCompanionTestBase {
 
     @Test
     public void testConcurrentStreamInjectingBean() {
-        companion.topics().createAndWait(topic, 3);
+        companion.topics().createAndWait(topic, concurrency);
 
-        produceMessages();
         MyChannelInjectingBean bean = runApplication(dataconfig(), MyChannelInjectingBean.class);
 
         List<Integer> list = bean.getResults();
         assertThat(list).isEmpty();
         bean.process();
+
+        waitUntilAllMembersHaveAssignments();
+        produceMessages();
 
         await().untilAsserted(() -> {
             assertThat(bean.getResults())
@@ -130,21 +151,23 @@ public class ConcurrentProcessorTest extends KafkaCompanionTestBase {
     @Test
     public void testConcurrentConsumerWithDLQ() {
         addBeans(ConsumerRecordConverter.class);
-        companion.topics().createAndWait(topic, 3);
+        companion.topics().createAndWait(topic, concurrency);
 
         String dlqTopic = topic + "-dlq";
 
         MapBasedConfig config = kafkaConfig("mp.messaging.incoming.data")
-                .with("group.id", UUID.randomUUID().toString())
+                .with("group.id", groupId)
                 .with("topic", topic)
-                .with("concurrency", 3)
+                .with("concurrency", concurrency)
                 .with("failure-strategy", "dead-letter-queue")
                 .with("dead-letter-queue.topic", dlqTopic)
                 .with("auto.offset.reset", "earliest")
                 .with("value.deserializer", IntegerDeserializer.class.getName());
 
-        produceMessages();
         MyConsumerBeanWithFailures bean = runApplication(config, MyConsumerBeanWithFailures.class);
+
+        waitUntilAllMembersHaveAssignments();
+        produceMessages();
 
         await().untilAsserted(() -> {
             assertThat(bean.getResults())
@@ -167,7 +190,7 @@ public class ConcurrentProcessorTest extends KafkaCompanionTestBase {
     @Test
     public void testConcurrentConsumerWithNestedDLQConfig() {
         addBeans(ConsumerRecordConverter.class);
-        companion.topics().createAndWait(topic, 3);
+        companion.topics().createAndWait(topic, concurrency);
 
         String dlqTopicDefault = topic + "-dlq";
         String dlqTopicOverride1 = topic + "-dlq-override-1";
@@ -176,9 +199,9 @@ public class ConcurrentProcessorTest extends KafkaCompanionTestBase {
 
         // Configure DLQ for base channel and override topic for one concurrent channel via nested config
         MapBasedConfig config = kafkaConfig("mp.messaging.incoming.data")
-                .with("group.id", UUID.randomUUID().toString())
+                .with("group.id", groupId)
                 .with("topic", topic)
-                .with("concurrency", 3)
+                .with("concurrency", concurrency)
                 .with("failure-strategy", "dead-letter-queue")
                 .with("dead-letter-queue.topic", dlqTopicDefault)
                 .with("auto.offset.reset", "earliest")
@@ -189,8 +212,10 @@ public class ConcurrentProcessorTest extends KafkaCompanionTestBase {
                 .with("mp.messaging.incoming.data$2.dead-letter-queue.topic", dlqTopicOverride2)
                 .with("mp.messaging.incoming.data$3.dead-letter-queue.topic", dlqTopicOverride3);
 
-        produceMessages();
         MyConsumerBeanWithFailures bean = runApplication(config, MyConsumerBeanWithFailures.class);
+
+        waitUntilAllMembersHaveAssignments();
+        produceMessages();
 
         await().untilAsserted(() -> {
             assertThat(bean.getResults())
@@ -214,7 +239,7 @@ public class ConcurrentProcessorTest extends KafkaCompanionTestBase {
     @Test
     public void testConcurrentConsumerWithDelayedRetryTopic() {
         addBeans(ConsumerRecordConverter.class, KafkaDelayedRetryTopic.Factory.class);
-        companion.topics().createAndWait(topic, 3);
+        companion.topics().createAndWait(topic, concurrency);
 
         String retryTopic1 = KafkaDelayedRetryTopic.getRetryTopic(topic, 1000);
         String retryTopic2 = KafkaDelayedRetryTopic.getRetryTopic(topic, 2000);
@@ -224,17 +249,19 @@ public class ConcurrentProcessorTest extends KafkaCompanionTestBase {
         // This test verifies that the retry topic producer inherits the main channel config
         // which was the issue in #2766
         MapBasedConfig config = kafkaConfig("mp.messaging.incoming.data")
-                .with("group.id", UUID.randomUUID().toString())
+                .with("group.id", groupId)
                 .with("topic", topic)
-                .with("concurrency", 3)
+                .with("concurrency", concurrency)
                 .with("failure-strategy", "delayed-retry-topic")
                 .with("delayed-retry-topic.topics", retryTopic1 + "," + retryTopic2)
                 .with("dead-letter-queue.topic", dlqTopic)
                 .with("auto.offset.reset", "earliest")
                 .with("value.deserializer", IntegerDeserializer.class.getName());
 
-        produceMessages();
         MyConsumerBeanWithFailures bean = runApplication(config, MyConsumerBeanWithFailures.class);
+
+        waitUntilAllMembersHaveAssignments();
+        produceMessages();
 
         // All messages should be processed (successful ones plus retries)
         await().untilAsserted(() -> {
@@ -261,16 +288,16 @@ public class ConcurrentProcessorTest extends KafkaCompanionTestBase {
     @Test
     public void testConcurrentConsumerWithDelayedRetryTopicAndCustomBootstrap() {
         addBeans(ConsumerRecordConverter.class, KafkaDelayedRetryTopic.Factory.class);
-        companion.topics().createAndWait(topic, 3);
+        companion.topics().createAndWait(topic, concurrency);
 
         String retryTopic1 = KafkaDelayedRetryTopic.getRetryTopic(topic, 1000);
         String retryTopic2 = KafkaDelayedRetryTopic.getRetryTopic(topic, 2000);
         String dlqTopic = topic + "-dlq";
 
         MapBasedConfig config = kafkaConfig("mp.messaging.incoming.data")
-                .with("group.id", UUID.randomUUID().toString())
+                .with("group.id", groupId)
                 .with("topic", topic)
-                .with("concurrency", 3)
+                .with("concurrency", concurrency)
                 .with("failure-strategy", "delayed-retry-topic")
                 .with("delayed-retry-topic.topics", retryTopic1 + "," + retryTopic2)
                 .with("dead-letter-queue.topic", dlqTopic)
@@ -280,8 +307,10 @@ public class ConcurrentProcessorTest extends KafkaCompanionTestBase {
                 .with("dead-letter-queue.bootstrap.servers", "localhost:1234")
                 .with("dead-letter-queue.client.id", "dlq-producer-should-not-connect");
 
-        produceMessages();
         MyConsumerBeanWithFailures bean = runApplication(config, MyConsumerBeanWithFailures.class);
+
+        waitUntilAllMembersHaveAssignments();
+        produceMessages();
 
         // All messages should be processed (successful ones plus retries)
         await().untilAsserted(() -> assertThat(bean.getResults()).hasSizeLessThan(10));

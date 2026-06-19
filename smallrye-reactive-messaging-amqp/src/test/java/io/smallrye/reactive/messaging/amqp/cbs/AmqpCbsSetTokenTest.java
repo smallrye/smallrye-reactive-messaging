@@ -172,7 +172,7 @@ public class AmqpCbsSetTokenTest extends AmqpTestBase {
 
         await().atMost(5, TimeUnit.SECONDS).until(() -> !tokenCache.isEmpty());
         assertThat(messageLatch.await(5, TimeUnit.SECONDS)).isTrue();
-        assertThat(messages).hasSize(3);
+        await().untilAsserted(() -> assertThat(messages).hasSize(3));
     }
 
     // ---- Error / rejection tests ----
