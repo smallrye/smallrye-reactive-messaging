@@ -108,13 +108,13 @@ This limits throughput when consuming from multiple partitions concurrently.
 The **pooled producer** mode uses a pool of Kafka producers, each with its own `transactional.id`.
 Each transaction reserves a producer from the pool for the duration of the transaction, enabling concurrent exactly-once processing.
 
-To enable pooled producer mode, set `pooled-producer` to `true` on the outgoing channel.
+To enable pooled producer mode, set `pooled-producer.enabled` to `true` on the outgoing channel.
 Combined with incoming channel `batch` and `concurrency`, multiple partitions can be processed in parallel,
 each with its own independent transaction:
 
 ```properties
 mp.messaging.outgoing.tx-out-example.transactional.id=my-tx-producer
-mp.messaging.outgoing.tx-out-example.pooled-producer=true
+mp.messaging.outgoing.tx-out-example.pooled-producer.enabled=true
 
 mp.messaging.incoming.in-channel.ordered=partition
 mp.messaging.incoming.in-channel.commit-strategy=ignore

@@ -106,7 +106,8 @@ import io.vertx.mutiny.core.Vertx;
 @ConnectorAttribute(name = "pause-if-no-requests", type = "boolean", direction = Direction.INCOMING, description = "Whether the polling must be paused when the application does not request items and resume when it does. This allows implementing back-pressure based on the application capacity. Note that polling is not stopped, but will not retrieve any records when paused.", defaultValue = "true")
 @ConnectorAttribute(name = "batch", type = "boolean", direction = Direction.INCOMING, description = "Whether the Kafka records are consumed in batch. The channel injection point must consume a compatible type, such as `List<Payload>` or `KafkaRecordBatch<Payload>`.", defaultValue = "false")
 @ConnectorAttribute(name = "max-queue-size-factor", type = "int", direction = Direction.INCOMING, description = "Multiplier factor to determine maximum number of records queued for processing, using `max.poll.records` * `max-queue-size-factor`. Defaults to 2. In `batch` mode `max.poll.records` is considered `1`.", defaultValue = "2")
-@ConnectorAttribute(name = "share-group", type = "boolean", direction = Direction.INCOMING, description = "Whether to use Kafka Share Groups for consumption. When enabled, the consumer will use a ShareConsumer which provides cooperative record processing across multiple consumers without explicit partition assignment.", defaultValue = "false")
+@ConnectorAttribute(name = "share-group", type = "boolean", direction = Direction.INCOMING, description = "Deprecated, use 'share-group.enabled' instead", defaultValue = "false", deprecated = true)
+@ConnectorAttribute(name = "share-group.enabled", type = "boolean", direction = Direction.INCOMING, description = "Whether to use Kafka Share Groups for consumption. When enabled, the consumer will use a ShareConsumer which provides cooperative record processing across multiple consumers without explicit partition assignment.", defaultValue = "false")
 @ConnectorAttribute(name = "share-group.unprocessed-record-max-age.ms", type = "int", direction = Direction.INCOMING, description = "While using share groups, specify the max age in milliseconds that an unprocessed record can be before the connector reports a failure. Setting this attribute to 0 disables this monitoring.", defaultValue = "60000")
 @ConnectorAttribute(name = "share-group.failure-acknowledgement-type", type = "string", direction = Direction.INCOMING, description = "Default acknowledgement type to apply to the record, when the message is nacked.", defaultValue = "release")
 @ConnectorAttribute(name = "share-group.failure-deserialization-acknowledgement-type", type = "string", direction = Direction.INCOMING, description = "Default acknowledgement type to apply to the record, when the message is nacked because of failure on deserialization.", defaultValue = "reject")
@@ -134,7 +135,8 @@ import io.vertx.mutiny.core.Vertx;
 @ConnectorAttribute(name = "key-serialization-failure-handler", type = "string", direction = Direction.OUTGOING, description = "The name set in `@Identifier` of a bean that implements `io.smallrye.reactive.messaging.kafka.SerializationFailureHandler`. If set, serialization failure happening when serializing keys are delegated to this handler which may provide a fallback value.")
 @ConnectorAttribute(name = "value-serialization-failure-handler", type = "string", direction = Direction.OUTGOING, description = "The name set in `@Identifier` of a bean that implements `io.smallrye.reactive.messaging.kafka.SerializationFailureHandler`. If set, serialization failure happening when serializing values are delegated to this handler which may provide a fallback value.")
 @ConnectorAttribute(name = "interceptor-bean", type = "string", direction = Direction.OUTGOING, description = "The name set in `@Identifier` of a bean that implements `org.apache.kafka.clients.producer.ProducerInterceptor`. If set, the identified bean will be used as the producer interceptor.")
-@ConnectorAttribute(name = "pooled-producer", type = "boolean", direction = Direction.OUTGOING, description = "Whether to use a pool of Kafka producers for concurrent transactions. Each transaction scope acquires a producer from the pool, enabling concurrent exactly-once processing. Requires transactional.id to be set.", defaultValue = "false")
+@ConnectorAttribute(name = "pooled-producer", type = "boolean", direction = Direction.OUTGOING, description = "Deprecated, use 'pooled-producer.enabled' instead", defaultValue = "false", deprecated = true)
+@ConnectorAttribute(name = "pooled-producer.enabled", type = "boolean", direction = Direction.OUTGOING, description = "Whether to use a pool of Kafka producers for concurrent transactions. Each transaction scope acquires a producer from the pool, enabling concurrent exactly-once processing. Requires transactional.id to be set.", defaultValue = "false")
 @ConnectorAttribute(name = "pooled-producer.initial-pool-size", type = "int", direction = Direction.OUTGOING, description = "Number of Kafka producers to pre-create in the pool at startup. Respects the lazy-client setting. Defaults to 0 (lazy creation).", defaultValue = "0")
 @ConnectorAttribute(name = "pooled-producer.max-pool-size", type = "int", direction = Direction.OUTGOING, description = "Maximum number of Kafka producers in the pool. When all producers are in use and the pool is exhausted, an exception is thrown. Defaults to 10.", defaultValue = "10")
 public class KafkaConnector implements InboundConnector, OutboundConnector, HealthReporter {
@@ -239,7 +241,7 @@ public class KafkaConnector implements InboundConnector, OutboundConnector, Heal
             return s;
         });
 
-        if (ic.getShareGroup()) {
+        if (isShareGroup(ic)) {
             if (partitions > 1) {
                 log.warn("Share group mode does not support multiple partitions. Using single consumer.");
             }
@@ -307,6 +309,17 @@ public class KafkaConnector implements InboundConnector, OutboundConnector, Heal
         } else {
             return multi;
         }
+    }
+
+    static boolean isShareGroup(KafkaConnectorIncomingConfiguration config) {
+        return config.config().getOptionalValue("share-group.enabled", Boolean.class)
+                .orElseGet(() -> {
+                    boolean shareGroup = config.getShareGroup();
+                    if (shareGroup) {
+                        log.deprecatedConfig("share-group", "share-group.enabled");
+                    }
+                    return shareGroup;
+                });
     }
 
     @Override
