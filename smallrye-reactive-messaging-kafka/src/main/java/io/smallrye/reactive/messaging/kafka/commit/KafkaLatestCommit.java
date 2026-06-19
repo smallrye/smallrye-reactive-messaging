@@ -2,6 +2,7 @@ package io.smallrye.reactive.messaging.kafka.commit;
 
 import static io.smallrye.reactive.messaging.kafka.i18n.KafkaLogging.log;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.BiConsumer;
@@ -34,7 +35,7 @@ import io.vertx.mutiny.core.Vertx;
  */
 public class KafkaLatestCommit extends ContextHolder implements KafkaCommitHandler {
 
-    private KafkaConsumer<?, ?> consumer;
+    private final KafkaConsumer<?, ?> consumer;
 
     /**
      * Stores the last offset for each topic/partition.
@@ -61,6 +62,16 @@ public class KafkaLatestCommit extends ContextHolder implements KafkaCommitHandl
         super(vertx, configuration.config()
                 .getOptionalValue(ConsumerConfig.DEFAULT_API_TIMEOUT_MS_CONFIG, Integer.class).orElse(60000));
         this.consumer = consumer;
+    }
+
+    @Override
+    public void partitionsRevoked(Collection<TopicPartition> partitions) {
+        runOnContextAndAwait(() -> {
+            for (TopicPartition partition : partitions) {
+                offsets.remove(partition);
+            }
+            return null;
+        });
     }
 
     @Override
