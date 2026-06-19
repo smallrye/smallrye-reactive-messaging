@@ -16,6 +16,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -30,6 +31,7 @@ import org.eclipse.microprofile.reactive.messaging.Message;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
+import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.health.HealthReport;
 import io.smallrye.reactive.messaging.kafka.IncomingKafkaRecord;
 import io.smallrye.reactive.messaging.kafka.KafkaRecord;
@@ -351,5 +353,86 @@ public class KafkaCommitHandlerTest extends KafkaCompanionTestBase {
 
         await().atMost(2, TimeUnit.MINUTES).until(() -> messages1.size() + messages2.size() >= 20000);
 
+    }
+
+    @Test
+    public void testSourceWithLatestAndRebalance() {
+        String group = "test-source-with-latest-commit-and-rebalance";
+        companion.topics().createAndWait(topic, 2);
+
+        MapBasedConfig config1 = newCommonConfigForSource()
+                .with("client.id", UUID.randomUUID().toString())
+                .with("group.id", group)
+                .with("value.deserializer", IntegerDeserializer.class.getName())
+                .with("commit-strategy", "latest");
+
+        // Source 2 uses "ignore" — receives records but never commits offsets
+        MapBasedConfig config2 = newCommonConfigForSource()
+                .with("client.id", UUID.randomUUID().toString())
+                .with("group.id", group)
+                .with("value.deserializer", IntegerDeserializer.class.getName())
+                .with("commit-strategy", "ignore");
+
+        source = createSource(group, config1);
+
+        List<Message<?>> messages1 = new CopyOnWriteArrayList<>();
+        source.getStream()
+                .onItem().call(m -> Uni.createFrom().completionStage(m.ack()))
+                .subscribe().with(messages1::add);
+
+        // Source 1 gets both partitions
+        await().until(() -> source.getConsumer().getAssignments().await().indefinitely().size() == 2);
+
+        TopicPartition tp0 = new TopicPartition(topic, 0);
+        TopicPartition tp1 = new TopicPartition(topic, 1);
+
+        // Batch 1: 100 records, all processed and committed by source 1
+        companion.produceIntegers()
+                .usingGenerator(i -> new ProducerRecord<>(topic, Integer.toString(i % 2), i), 100);
+
+        await().atMost(2, TimeUnit.MINUTES).until(() -> messages1.size() >= 100);
+
+        await().atMost(2, TimeUnit.MINUTES)
+                .untilAsserted(() -> {
+                    Map<TopicPartition, OffsetAndMetadata> result = companion.consumerGroups().offsets(
+                            group, Arrays.asList(tp0, tp1));
+                    assertNotNull(result.get(tp0));
+                    assertNotNull(result.get(tp1));
+                    assertEquals(100, result.get(tp0).offset() + result.get(tp1).offset());
+                });
+
+        // Source 2 joins with "ignore" strategy — triggers rebalance, partitions split
+        KafkaSource<String, Integer> source2 = createSource(group, config2);
+        List<Message<?>> messages2 = new CopyOnWriteArrayList<>();
+        source2.getStream().subscribe().with(messages2::add);
+
+        await().until(() -> source2.getConsumer().getAssignments().await().indefinitely().size() == 1
+                && source.getConsumer().getAssignments().await().indefinitely().size() == 1);
+
+        // Batch 2: 100 records while source 2 is active
+        // Source 2 receives records on its partition but never commits
+        companion.produceIntegers()
+                .usingGenerator(i -> new ProducerRecord<>(topic, Integer.toString(i % 2), i), 100);
+
+        await().atMost(2, TimeUnit.MINUTES).until(() -> messages2.size() >= 10);
+
+        // Close source 2 — triggers rebalance, source 1 gets both partitions back.
+        // Source 2 never committed, so for its partition the committed offset is still
+        // from batch 1. Source 1 replays batch-2 records on that partition.
+        source2.closeQuietly();
+
+        await().until(() -> source.getConsumer().getAssignments().await().indefinitely().size() == 2);
+
+        // Committed offsets must cover all 200 produced records.
+        // partitionsRevoked clears the stale offsets map so that replayed records
+        // are correctly committed after the partition is reassigned.
+        await().atMost(2, TimeUnit.MINUTES)
+                .untilAsserted(() -> {
+                    Map<TopicPartition, OffsetAndMetadata> result = companion.consumerGroups().offsets(
+                            group, Arrays.asList(tp0, tp1));
+                    assertNotNull(result.get(tp0));
+                    assertNotNull(result.get(tp1));
+                    assertEquals(200, result.get(tp0).offset() + result.get(tp1).offset());
+                });
     }
 }
