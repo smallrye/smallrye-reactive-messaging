@@ -52,7 +52,7 @@ public class ReactiveKafkaConsumer<K, V> implements io.smallrye.reactive.messagi
     private final RuntimeKafkaSourceConfiguration configuration;
     private final Duration pollTimeout;
     private final String consumerGroup;
-    private ConsumerRebalanceListener rebalanceListener;
+    private RebalanceListeners.WrappedConsumerRebalanceListener rebalanceListener;
 
     private final AtomicBoolean paused = new AtomicBoolean();
 
@@ -370,6 +370,7 @@ public class ReactiveKafkaConsumer<K, V> implements io.smallrye.reactive.messagi
                 c.seekToBeginning(Collections.singleton(tp));
             }
         }
+        notifyCommitHandlerOfSeek(partitions);
         removeFromQueueRecordsFromTopicPartitions(partitions);
         c.resume(partitions);
     }
@@ -559,6 +560,7 @@ public class ReactiveKafkaConsumer<K, V> implements io.smallrye.reactive.messagi
     public Uni<Void> seek(TopicPartition partition, long offset) {
         return runOnPollingThread(c -> {
             c.seek(partition, offset);
+            notifyCommitHandlerOfSeek(Collections.singleton(partition));
         });
     }
 
@@ -567,6 +569,7 @@ public class ReactiveKafkaConsumer<K, V> implements io.smallrye.reactive.messagi
     public Uni<Void> seek(TopicPartition partition, OffsetAndMetadata offsetAndMetadata) {
         return runOnPollingThread(c -> {
             c.seek(partition, offsetAndMetadata);
+            notifyCommitHandlerOfSeek(Collections.singleton(partition));
         });
     }
 
@@ -575,6 +578,7 @@ public class ReactiveKafkaConsumer<K, V> implements io.smallrye.reactive.messagi
     public Uni<Void> seekToBeginning(Collection<TopicPartition> partitions) {
         return runOnPollingThread(c -> {
             c.seekToBeginning(partitions);
+            notifyCommitHandlerOfSeek(partitions.isEmpty() ? c.assignment() : partitions);
         });
     }
 
@@ -583,7 +587,14 @@ public class ReactiveKafkaConsumer<K, V> implements io.smallrye.reactive.messagi
     public Uni<Void> seekToEnd(Collection<TopicPartition> partitions) {
         return runOnPollingThread(c -> {
             c.seekToEnd(partitions);
+            notifyCommitHandlerOfSeek(partitions.isEmpty() ? c.assignment() : partitions);
         });
+    }
+
+    private void notifyCommitHandlerOfSeek(Collection<TopicPartition> partitions) {
+        if (rebalanceListener != null) {
+            rebalanceListener.onPartitionsSeeked(partitions);
+        }
     }
 
     @Override
