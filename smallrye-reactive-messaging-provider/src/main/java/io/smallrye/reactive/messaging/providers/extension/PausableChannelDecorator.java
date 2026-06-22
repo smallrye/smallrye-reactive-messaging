@@ -91,6 +91,11 @@ public class PausableChannelDecorator implements PublisherDecorator, SubscriberD
         public void resume() {
             pauser.resume();
         }
+
+        @Override
+        public void clearBuffer() {
+            pauser.clearBuffer();
+        }
     }
 
 }
