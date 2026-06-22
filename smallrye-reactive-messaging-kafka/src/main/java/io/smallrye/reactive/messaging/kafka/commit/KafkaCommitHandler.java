@@ -95,6 +95,17 @@ public interface KafkaCommitHandler {
     }
 
     /**
+     * Called when the consumer position for partitions has been changed by a seek operation.
+     * Implementations should reset any cached offset state for the given partitions so that
+     * commits resume correctly from the new position.
+     *
+     * @param partitions the partitions for which the consumer position was changed
+     */
+    default void partitionsSeeked(Collection<TopicPartition> partitions) {
+        // Do nothing by default.
+    }
+
+    /**
      * Handle message acknowledgment
      *
      * @param record incoming Kafka record

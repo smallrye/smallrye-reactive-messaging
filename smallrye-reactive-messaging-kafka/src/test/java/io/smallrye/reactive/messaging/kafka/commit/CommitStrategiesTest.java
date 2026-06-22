@@ -459,6 +459,122 @@ public class CommitStrategiesTest extends WeldTestBase {
                 });
     }
 
+    @Test
+    void testLatestCommitStrategyAfterSeekToBeginning() {
+        String group = UUID.randomUUID().toString();
+        MapBasedConfig config = commonConfiguration()
+                .with("commit-strategy", "latest")
+                .with("lazy-client", true)
+                .with("client.id", UUID.randomUUID().toString());
+        source = createSource(group, config);
+        injectMockConsumer(source, consumer);
+
+        List<Message<?>> list = new ArrayList<>();
+        source.getStream()
+                .subscribe().with(list::add);
+
+        TopicPartition tp0 = new TopicPartition(TOPIC, 0);
+        Map<TopicPartition, Long> beginning = new HashMap<>();
+        beginning.put(tp0, 0L);
+        consumer.updateBeginningOffsets(beginning);
+
+        consumer.schedulePollTask(() -> {
+            consumer.rebalance(Collections.singletonList(tp0));
+            for (int i = 0; i < 5; i++) {
+                consumer.addRecord(new ConsumerRecord<>(TOPIC, 0, i, "k", "v" + i));
+            }
+        });
+
+        await().until(() -> list.size() == 5);
+        for (Message<?> m : list) {
+            m.ack().toCompletableFuture().join();
+        }
+        await().untilAsserted(() -> {
+            Map<TopicPartition, OffsetAndMetadata> committed = consumer.committed(Collections.singleton(tp0));
+            assertThat(committed.get(tp0).offset()).isEqualTo(5);
+        });
+
+        // Seek to beginning — must reset the commit handler's internal offset state
+        source.getConsumer().seekToBeginning(Collections.singletonList(tp0))
+                .await().atMost(Duration.ofSeconds(5));
+
+        list.clear();
+        consumer.schedulePollTask(() -> {
+            for (int i = 0; i < 5; i++) {
+                consumer.addRecord(new ConsumerRecord<>(TOPIC, 0, i, "k", "v" + i));
+            }
+        });
+
+        await().until(() -> list.size() == 5);
+
+        // Ack record at offset 2 — before the fix, no commit would happen because old watermark was 5
+        list.get(2).ack().toCompletableFuture().join();
+        await().untilAsserted(() -> {
+            Map<TopicPartition, OffsetAndMetadata> committed = consumer.committed(Collections.singleton(tp0));
+            assertThat(committed.get(tp0).offset()).isEqualTo(3);
+        });
+    }
+
+    @Test
+    void testThrottledStrategyAfterSeekToBeginning() {
+        MapBasedConfig config = commonConfiguration()
+                .with("lazy-client", true)
+                .with("commit-strategy", "throttled")
+                .with("auto.commit.interval.ms", 100);
+        String group = UUID.randomUUID().toString();
+        source = createSource(group, config);
+        injectMockConsumer(source, consumer);
+
+        List<Message<?>> list = new ArrayList<>();
+        source.getStream()
+                .subscribe().with(list::add);
+
+        TopicPartition tp = new TopicPartition(TOPIC, 0);
+        consumer.updateBeginningOffsets(Collections.singletonMap(tp, 0L));
+
+        consumer.schedulePollTask(() -> {
+            consumer.rebalance(Collections.singletonList(tp));
+            source.getCommitHandler().partitionsAssigned(Collections.singletonList(tp));
+            for (int i = 0; i < 5; i++) {
+                consumer.addRecord(new ConsumerRecord<>(TOPIC, 0, i, "k", "v" + i));
+            }
+        });
+
+        await().until(() -> list.size() == 5);
+        for (Message<?> m : list) {
+            m.ack().toCompletableFuture().join();
+        }
+        await().untilAsserted(() -> {
+            Map<TopicPartition, OffsetAndMetadata> committed = consumer.committed(Collections.singleton(tp));
+            assertThat(committed.get(tp)).isNotNull();
+            assertThat(committed.get(tp).offset()).isEqualTo(5);
+        });
+
+        // Seek to beginning — must reset the commit handler's internal offset state
+        source.getConsumer().seekToBeginning(Collections.singletonList(tp))
+                .await().atMost(Duration.ofSeconds(5));
+
+        list.clear();
+        consumer.schedulePollTask(() -> {
+            for (int i = 0; i < 5; i++) {
+                consumer.addRecord(new ConsumerRecord<>(TOPIC, 0, i, "k", "v" + i));
+            }
+        });
+
+        await().until(() -> list.size() == 5);
+
+        // Ack all records — before the fix, offsets 0-4 would be discarded as "outdated"
+        for (Message<?> m : list) {
+            m.ack().toCompletableFuture().join();
+        }
+
+        await().untilAsserted(() -> {
+            Map<TopicPartition, OffsetAndMetadata> committed = consumer.committed(Collections.singleton(tp));
+            assertThat(committed.get(tp)).isNotNull();
+            assertThat(committed.get(tp).offset()).isEqualTo(5);
+        });
+    }
+
     @ApplicationScoped
     @Identifier("mine")
     public static class NamedRebalanceListener implements KafkaConsumerRebalanceListener {

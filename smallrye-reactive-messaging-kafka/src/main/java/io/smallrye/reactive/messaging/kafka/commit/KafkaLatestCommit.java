@@ -2,6 +2,7 @@ package io.smallrye.reactive.messaging.kafka.commit;
 
 import static io.smallrye.reactive.messaging.kafka.i18n.KafkaLogging.log;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.BiConsumer;
@@ -79,5 +80,14 @@ public class KafkaLatestCommit extends ContextHolder implements KafkaCommitHandl
             }
         });
         return Uni.createFrom().voidItem().runSubscriptionOn(record::runOnMessageContext);
+    }
+
+    @Override
+    public void partitionsSeeked(Collection<TopicPartition> partitions) {
+        runOnContext(() -> {
+            for (TopicPartition tp : partitions) {
+                offsets.remove(tp);
+            }
+        });
     }
 }

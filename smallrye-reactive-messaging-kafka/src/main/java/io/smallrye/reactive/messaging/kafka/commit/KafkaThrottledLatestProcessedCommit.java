@@ -447,6 +447,18 @@ public class KafkaThrottledLatestProcessedCommit extends ContextHolder implement
         }
     }
 
+    @Override
+    public void partitionsSeeked(Collection<TopicPartition> partitions) {
+        runOnContext(() -> {
+            for (TopicPartition tp : partitions) {
+                OffsetStore existing = offsetStores.remove(tp);
+                if (existing != null) {
+                    offsetStores.put(tp, new OffsetStore(tp, unprocessedRecordMaxAge, -1));
+                }
+            }
+        });
+    }
+
     private void cleanupPartitionOffsetStore() {
         for (TopicPartition partition : new HashSet<>(offsetStores.keySet())) {
             if (!assignments.contains(partition)) {

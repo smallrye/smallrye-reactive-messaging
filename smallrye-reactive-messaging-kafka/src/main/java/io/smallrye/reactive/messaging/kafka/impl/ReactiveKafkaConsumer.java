@@ -53,6 +53,7 @@ public class ReactiveKafkaConsumer<K, V> implements io.smallrye.reactive.messagi
     private final Duration pollTimeout;
     private final String consumerGroup;
     private ConsumerRebalanceListener rebalanceListener;
+    private KafkaCommitHandler commitHandler;
 
     private final AtomicBoolean paused = new AtomicBoolean();
 
@@ -141,6 +142,7 @@ public class ReactiveKafkaConsumer<K, V> implements io.smallrye.reactive.messagi
 
     public void setRebalanceListener(KafkaConsumerRebalanceListener listener, KafkaCommitHandler commitHandler) {
         try {
+            this.commitHandler = commitHandler;
             rebalanceListener = RebalanceListeners.createRebalanceListener(this, consumerGroup,
                     listener, commitHandler);
         } catch (Exception e) {
@@ -559,7 +561,7 @@ public class ReactiveKafkaConsumer<K, V> implements io.smallrye.reactive.messagi
     public Uni<Void> seek(TopicPartition partition, long offset) {
         return runOnPollingThread(c -> {
             c.seek(partition, offset);
-        });
+        }).invoke(() -> notifyCommitHandlerOfSeek(Collections.singleton(partition)));
     }
 
     @Override
@@ -567,7 +569,7 @@ public class ReactiveKafkaConsumer<K, V> implements io.smallrye.reactive.messagi
     public Uni<Void> seek(TopicPartition partition, OffsetAndMetadata offsetAndMetadata) {
         return runOnPollingThread(c -> {
             c.seek(partition, offsetAndMetadata);
-        });
+        }).invoke(() -> notifyCommitHandlerOfSeek(Collections.singleton(partition)));
     }
 
     @Override
@@ -575,7 +577,7 @@ public class ReactiveKafkaConsumer<K, V> implements io.smallrye.reactive.messagi
     public Uni<Void> seekToBeginning(Collection<TopicPartition> partitions) {
         return runOnPollingThread(c -> {
             c.seekToBeginning(partitions);
-        });
+        }).invoke(() -> notifyCommitHandlerOfSeek(partitions));
     }
 
     @Override
@@ -583,7 +585,13 @@ public class ReactiveKafkaConsumer<K, V> implements io.smallrye.reactive.messagi
     public Uni<Void> seekToEnd(Collection<TopicPartition> partitions) {
         return runOnPollingThread(c -> {
             c.seekToEnd(partitions);
-        });
+        }).invoke(() -> notifyCommitHandlerOfSeek(partitions));
+    }
+
+    private void notifyCommitHandlerOfSeek(Collection<TopicPartition> partitions) {
+        if (commitHandler != null && partitions != null && !partitions.isEmpty()) {
+            commitHandler.partitionsSeeked(partitions);
+        }
     }
 
     @Override
