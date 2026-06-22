@@ -24,7 +24,7 @@ import io.vertx.mutiny.core.Vertx;
  * Will commit the record offset received by the Kafka consumer (if higher than the previously committed offset).
  * This offset may be greater than the currently ACKed message.
  * <p>
- * This handler is the default when `enable.auto.commit` is `false`.
+ * This handler is used when `commit-strategy` is set to `latest`.
  * This strategy provides at-least-once delivery if the channel processes the message without performing
  * any asynchronous processing.
  * <p>
