@@ -60,7 +60,7 @@ public class JmsDlqFailure implements JmsFailureHandler {
             UnicastProcessor<Message<?>> processor = UnicastProcessor.create();
             Flow.Subscriber<? extends Message<?>> subscriber = connector.getSubscriber(connectorConfig);
             wireOutgoingConnectorToUpstream(processor, subscriber, subscriberDecorators,
-                    producerConfig.getChannel() + "-" + CHANNEL_DLQ_SUFFIX);
+                    producerConfig.getChannel() + "-" + CHANNEL_DLQ_SUFFIX, connectorConfig);
 
             return new JmsDlqFailure(config, deadQueueDestination, processor);
         }
