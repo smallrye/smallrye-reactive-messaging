@@ -19,7 +19,7 @@ jobs:
                     - '25'
         name: Build (Java ${{ matrix.java }})
         steps:
-            -   uses: actions/checkout@v6
+            -   uses: actions/checkout@v7
             -   uses: actions/setup-java@v5
                 with:
                     java-version: ${{ matrix.java }}
@@ -48,7 +48,7 @@ jobs:
                     - '25'
         name: Core Tests (Java ${{ matrix.java }})
         steps:
-            -   uses: actions/checkout@v6
+            -   uses: actions/checkout@v7
             -   uses: actions/setup-java@v5
                 with:
                     java-version: ${{ matrix.java }}
@@ -82,7 +82,7 @@ jobs:
                     - '25'
         name: Kafka Tests (Java ${{ matrix.java }})
         steps:
-            -   uses: actions/checkout@v6
+            -   uses: actions/checkout@v7
             -   uses: actions/setup-java@v5
                 with:
                     java-version: ${{ matrix.java }}
@@ -137,7 +137,7 @@ jobs:
                     - '25'
         name: ${{ matrix.connector.name }} Tests (Java ${{ matrix.java }})
         steps:
-            -   uses: actions/checkout@v6
+            -   uses: actions/checkout@v7
             -   uses: actions/setup-java@v5
                 with:
                     java-version: ${{ matrix.java }}
@@ -185,7 +185,7 @@ jobs:
                         artifact: smallrye-reactive-messaging-kafka-test-companion
         name: ${{ matrix.connector.name }} Slow/Flaky Tests
         steps:
-            -   uses: actions/checkout@v6
+            -   uses: actions/checkout@v7
             -   uses: actions/setup-java@v5
                 with:
                     java-version: '21'
