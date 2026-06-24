@@ -42,6 +42,7 @@ import io.smallrye.reactive.messaging.providers.connectors.ExecutionHolder;
 import io.smallrye.reactive.messaging.providers.connectors.WorkerPoolRegistry;
 import io.smallrye.reactive.messaging.providers.extension.ChannelProducer;
 import io.smallrye.reactive.messaging.providers.extension.EmitterFactoryImpl;
+import io.smallrye.reactive.messaging.providers.extension.GracefulShutdownController;
 import io.smallrye.reactive.messaging.providers.extension.HealthCenter;
 import io.smallrye.reactive.messaging.providers.extension.LegacyEmitterFactoryImpl;
 import io.smallrye.reactive.messaging.providers.extension.MediatorManager;
@@ -127,6 +128,7 @@ public class WeldTestBase {
         weld.addBeanClass(ObservationDecorator.class);
         weld.addBeanClass(OutgoingObservationDecorator.class);
         weld.addBeanClass(PausableChannelDecorator.class);
+        weld.addBeanClass(GracefulShutdownController.class);
         weld.addBeanClass(KafkaAdminClientRegistry.class);
         weld.disableDiscovery();
     }

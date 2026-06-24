@@ -47,4 +47,8 @@ public interface ChannelRegistry {
 
     PausableChannel getPausable(String name);
 
+    default Map<String, PausableChannel> getPausableChannels() {
+        return Map.of();
+    }
+
 }

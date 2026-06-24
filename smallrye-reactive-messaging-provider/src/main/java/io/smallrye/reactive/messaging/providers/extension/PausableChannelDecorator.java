@@ -1,6 +1,11 @@
 package io.smallrye.reactive.messaging.providers.extension;
 
+import java.time.Duration;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -9,6 +14,7 @@ import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.reactive.messaging.Message;
 
 import io.smallrye.mutiny.Multi;
+import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.groups.MultiDemandPausing;
 import io.smallrye.mutiny.subscription.BackPressureStrategy;
 import io.smallrye.mutiny.subscription.DemandPauser;
@@ -38,7 +44,7 @@ public class PausableChannelDecorator implements PublisherDecorator, SubscriberD
             return publisher;
         }
         boolean pausable = channelConfig.getOptionalValue(PausableChannelConfiguration.PAUSABLE_PROPERTY, Boolean.class)
-                .orElse(false);
+                .orElse(true);
         if (!pausable) {
             return publisher;
         }
@@ -55,10 +61,17 @@ public class PausableChannelDecorator implements PublisherDecorator, SubscriberD
         PausableBufferStrategy bufferStrategy = channelConfig
                 .getOptionalValue(PausableChannelConfiguration.BUFFER_STRATEGY_PROPERTY, PausableBufferStrategy.class)
                 .orElse(null);
+        boolean gracefulShutdown = channelConfig
+                .getOptionalValue("graceful-shutdown", Boolean.class)
+                .orElse(false);
+        int drainTimeoutMs = channelConfig
+                .getOptionalValue("graceful-shutdown.drain-timeout", Integer.class)
+                .orElse(10000);
 
         DemandPauser pauser = new DemandPauser();
+        PauserChannel pauserChannel = new PauserChannel(pauser, drainTimeoutMs);
         for (String name : channelName) {
-            registry.register(name, new PauserChannel(pauser));
+            registry.register(name, pauserChannel);
         }
         MultiDemandPausing<? extends Message<?>> demandPausing = publisher.pauseDemand()
                 .paused(initiallyPaused)
@@ -69,7 +82,11 @@ public class PausableChannelDecorator implements PublisherDecorator, SubscriberD
         if (bufferStrategy != null) {
             demandPausing = demandPausing.bufferStrategy(getBackPressureStrategy(bufferStrategy));
         }
-        return demandPausing.using(pauser);
+        Multi<? extends Message<?>> result = demandPausing.using(pauser);
+        if (gracefulShutdown) {
+            return result.onItem().transform(pauserChannel::trackMessage);
+        }
+        return result;
     }
 
     BackPressureStrategy getBackPressureStrategy(PausableBufferStrategy pausableBufferStrategy) {
@@ -88,9 +105,13 @@ public class PausableChannelDecorator implements PublisherDecorator, SubscriberD
     public static class PauserChannel implements PausableChannel {
 
         private final DemandPauser pauser;
+        private final int drainTimeoutMs;
+        private final AtomicInteger wip = new AtomicInteger();
+        private final AtomicReference<CompletableFuture<Void>> drainFuture = new AtomicReference<>();
 
-        public PauserChannel(DemandPauser pauser) {
+        public PauserChannel(DemandPauser pauser, int drainTimeoutMs) {
             this.pauser = pauser;
+            this.drainTimeoutMs = drainTimeoutMs;
         }
 
         @Override
@@ -111,6 +132,44 @@ public class PausableChannelDecorator implements PublisherDecorator, SubscriberD
         @Override
         public void clearBuffer() {
             pauser.clearBuffer();
+        }
+
+        @Override
+        public Duration getDrainTimeout() {
+            return Duration.ofMillis(drainTimeoutMs);
+        }
+
+        @Override
+        public Uni<Void> pauseAndDrain() {
+            pause();
+            if (wip.get() == 0) {
+                return Uni.createFrom().voidItem();
+            }
+            CompletableFuture<Void> future = drainFuture.updateAndGet(f -> f != null ? f : new CompletableFuture<>());
+            if (wip.get() == 0) {
+                future.complete(null);
+            }
+            return Uni.createFrom().completionStage(future);
+        }
+
+        @SuppressWarnings("unchecked")
+        <T extends Message<?>> T trackMessage(T msg) {
+            wip.incrementAndGet();
+            AtomicBoolean processed = new AtomicBoolean();
+            return (T) msg.withAckWithMetadata(metadata -> msg.ack(metadata).whenComplete((v, t) -> markProcessed(processed)))
+                    .withNackWithMetadata(
+                            (reason, metadata) -> msg.nack(reason, metadata).whenComplete((v, t) -> markProcessed(processed)));
+        }
+
+        private void markProcessed(AtomicBoolean processed) {
+            if (processed.compareAndSet(false, true)) {
+                if (wip.decrementAndGet() == 0) {
+                    CompletableFuture<Void> future = drainFuture.getAndSet(null);
+                    if (future != null) {
+                        future.complete(null);
+                    }
+                }
+            }
         }
     }
 
