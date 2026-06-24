@@ -32,6 +32,7 @@ import io.smallrye.reactive.messaging.providers.connectors.MyDummyConnector;
 import io.smallrye.reactive.messaging.providers.connectors.WorkerPoolRegistry;
 import io.smallrye.reactive.messaging.providers.extension.ChannelProducer;
 import io.smallrye.reactive.messaging.providers.extension.EmitterFactoryImpl;
+import io.smallrye.reactive.messaging.providers.extension.GracefulShutdownController;
 import io.smallrye.reactive.messaging.providers.extension.HealthCenter;
 import io.smallrye.reactive.messaging.providers.extension.LegacyEmitterFactoryImpl;
 import io.smallrye.reactive.messaging.providers.extension.MediatorManager;
@@ -159,6 +160,7 @@ public class WeldTestBaseWithoutTails {
                 OutgoingInterceptorDecorator.class,
                 IncomingInterceptorDecorator.class,
                 PausableChannelDecorator.class,
+                GracefulShutdownController.class,
                 // Observation Decorator
                 ObservationDecorator.class,
                 OutgoingObservationDecorator.class);

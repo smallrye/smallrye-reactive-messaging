@@ -488,39 +488,12 @@ public class KafkaThrottledLatestProcessedCommit extends ContextHolder implement
 
     @Override
     public void terminate(boolean graceful) {
-        if (graceful) {
-            long stillUnprocessed = waitForProcessing();
-            if (stillUnprocessed > 0) {
-                log.messageStillUnprocessedAfterTimeout(stillUnprocessed);
-            }
-        }
-
         commitAllAndAwait();
         runOnContextAndAwait(() -> {
             offsetStores.clear();
             stopFlushAndCheckHealthTimer();
             return null;
         });
-    }
-
-    private long waitForProcessing() {
-        int attempt = autoCommitInterval / 100;
-        for (int i = 0; i < attempt; i++) {
-            long sum = offsetStores.values().stream().map(OffsetStore::getUnprocessedCount).mapToLong(l -> l).sum();
-            if (sum == 0) {
-                return sum;
-            }
-            log.waitingForMessageProcessing(sum);
-            try {
-                Thread.sleep(100);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                break;
-            }
-        }
-
-        return offsetStores.values().stream().map(OffsetStore::getUnprocessedCount).mapToLong(l -> l).sum();
-
     }
 
     private void commitAllAndAwait() {
