@@ -1,17 +1,18 @@
 package io.smallrye.reactive.messaging.kafka;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.serialization.IntegerDeserializer;
 import org.junit.jupiter.api.Test;
 
+import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.kafka.base.KafkaCompanionTestBase;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
@@ -45,27 +46,27 @@ public class SourceCloseTest extends KafkaCompanionTestBase {
                 .with(ConsumerConfig.GROUP_ID_CONFIG, groupId)
                 .with(ConsumerConfig.CLIENT_ID_CONFIG, "B");
 
-        List<Integer> list = new ArrayList<>();
+        List<Integer> list = new CopyOnWriteArrayList<>();
 
         KafkaSource<String, Integer> source1 = createSource(groupId, config1);
         KafkaSource<String, Integer> source2 = createSource(groupId, config2);
 
         source1.getStream()
+                .invoke(l -> list.add(l.getPayload()))
+                .call(l -> Uni.createFrom().completionStage(l::ack))
                 .subscribe().with(l -> {
-                    list.add(l.getPayload());
-                    CompletableFuture.runAsync(l::ack);
                 });
 
         source2.getStream()
+                .invoke(l -> list.add(l.getPayload()))
+                .call(l -> Uni.createFrom().completionStage(l::ack))
                 .subscribe().with(l -> {
-                    list.add(l.getPayload());
-                    CompletableFuture.runAsync(l::ack);
                 });
 
-        await().until(() -> list.size() >= 100);
+        await().untilAsserted(() -> assertThat(list).hasSizeGreaterThanOrEqualTo(100));
         source1.closeQuietly();
 
-        await().until(() -> list.size() == 1000);
+        await().untilAsserted(() -> assertThat(list).hasSizeGreaterThanOrEqualTo(1000));
 
         source2.closeQuietly();
     }

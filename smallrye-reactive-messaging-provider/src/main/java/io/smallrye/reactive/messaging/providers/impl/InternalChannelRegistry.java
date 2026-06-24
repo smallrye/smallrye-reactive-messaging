@@ -151,4 +151,9 @@ public class InternalChannelRegistry implements ChannelRegistry {
         return pausables.get(name);
     }
 
+    @Override
+    public Map<String, PausableChannel> getPausableChannels() {
+        return Collections.unmodifiableMap(pausables);
+    }
+
 }
