@@ -43,6 +43,12 @@
             "annotationType": "io.smallrye.reactive.messaging.annotations.ConnectorAttributes",
             "attribute": "value",
             "justification": "Add share-group.enabled and pooled-producer.enabled YAML-friendly config properties, deprecate share-group and pooled-producer"
+        }, {
+            "code": "java.annotation.removed",
+            "old": "interface io.smallrye.reactive.messaging.kafka.transactions.KafkaTransactions<T>",
+            "new": "interface io.smallrye.reactive.messaging.kafka.transactions.KafkaTransactions<T>",
+            "annotationType": "io.smallrye.common.annotation.TechPreview",
+            "justification": "KafkaTransactions is no longer a tech preview feature"
         } ]
   }
 }, {
