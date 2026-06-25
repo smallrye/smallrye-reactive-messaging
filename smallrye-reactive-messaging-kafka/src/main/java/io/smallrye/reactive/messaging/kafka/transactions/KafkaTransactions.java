@@ -5,7 +5,6 @@ import java.util.function.Function;
 import org.eclipse.microprofile.reactive.messaging.Message;
 
 import io.smallrye.common.annotation.CheckReturnValue;
-import io.smallrye.common.annotation.TechPreview;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.EmitterType;
 import io.smallrye.reactive.messaging.kafka.api.IncomingKafkaRecordBatchMetadata;
@@ -56,7 +55,6 @@ import io.smallrye.reactive.messaging.kafka.api.IncomingKafkaRecordMetadata;
  *
  * @param <T> emitted payload type
  */
-@TechPreview("Tech Preview API")
 public interface KafkaTransactions<T> extends EmitterType {
 
     /**

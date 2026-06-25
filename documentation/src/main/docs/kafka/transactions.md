@@ -1,8 +1,5 @@
 # Kafka Transactions and Exactly-Once Processing
 
-!!!warning "Tech Preview"
-    Kafka Transactions is a tech preview feature.
-
 [Kafka transactions](https://cwiki.apache.org/confluence/display/KAFKA/KIP-98+-+Exactly+Once+Delivery+and+Transactional+Messaging) enable atomic writes to multiple Kafka topics and partitions.
 Inside a transaction, a producer writes records to the Kafka topic partitions as it would normally do.
 If the transaction completes successfully, all the records previously written to the broker inside that transaction will be _committed_, and will be readable for consumers.
