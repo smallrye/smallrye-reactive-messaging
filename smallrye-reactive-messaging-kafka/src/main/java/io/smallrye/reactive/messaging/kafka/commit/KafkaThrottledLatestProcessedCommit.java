@@ -231,6 +231,7 @@ public class KafkaThrottledLatestProcessedCommit extends ContextHolder implement
             } else {
                 uni = consumer.committed(recordsTopicPartition)
                         .emitOn(this::runOnContext) // Switch back to event loop
+                        .onFailure().recoverWithItem(Collections::emptyMap)
                         .onItem().transform(offsets -> {
                             OffsetAndMetadata lastCommitted = offsets.get(recordsTopicPartition);
                             OffsetStore store = new OffsetStore(recordsTopicPartition, unprocessedRecordMaxAge,
