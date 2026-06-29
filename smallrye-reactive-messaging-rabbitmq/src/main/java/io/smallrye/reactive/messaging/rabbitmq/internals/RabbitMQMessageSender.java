@@ -74,7 +74,7 @@ public class RabbitMQMessageSender implements Processor<Message<?>, Message<?>>,
         }
 
         if (oc.getTracingEnabled()) {
-            instrumenter = RabbitMQOpenTelemetryInstrumenter.createForSender(openTelemetryInstance);
+            instrumenter = RabbitMQOpenTelemetryInstrumenter.createForSender(openTelemetryInstance, configuration);
         } else {
             instrumenter = null;
         }

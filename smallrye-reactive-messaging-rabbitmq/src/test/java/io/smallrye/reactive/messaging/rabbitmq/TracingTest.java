@@ -13,6 +13,7 @@ import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
+import io.opentelemetry.api.common.AttributeKey;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -85,12 +86,14 @@ public class TracingTest extends WeldTestBase {
                 .with("mp.messaging.incoming.from-rabbitmq.queue.name", queueName)
                 .with("mp.messaging.incoming.from-rabbitmq.exchange.name", exchangeName)
                 .with("mp.messaging.incoming.from-rabbitmq.exchange.routing-keys", routingKeys)
-                .with("mp.messaging.incoming.from-rabbitmq.tracing.enabled", true),
+                .with("mp.messaging.incoming.from-rabbitmq.tracing.enabled", true)
+                .with("mp.messaging.incoming.from-rabbitmq.tracing.attribute-headers", "foo-header,bar-header"),
                 IncomingTracing.class);
 
         AtomicInteger counter = new AtomicInteger(1);
         usage.produce(exchangeName, queueName, routingKeys, 5, counter::getAndIncrement,
-                new AMQP.BasicProperties().builder().expiration("10000").contentType("text/plain").build());
+                new AMQP.BasicProperties().builder().expiration("10000").contentType("text/plain")
+                        .headers(Map.of("foo-header", "foo-value", "bar-header", "bar-value")).build());
         await().atMost(5, SECONDS).until(() -> tracing.getResults().size() == 5);
 
         CompletableResultCode completableResultCode = tracerProvider.forceFlush();
@@ -104,6 +107,8 @@ public class TracingTest extends WeldTestBase {
             assertEquals("rabbitmq", consumer.getAttributes().get(MESSAGING_SYSTEM));
             assertEquals("receive", consumer.getAttributes().get(MESSAGING_OPERATION));
             assertEquals("normal", consumer.getAttributes().get(MESSAGING_RABBITMQ_DESTINATION_ROUTING_KEY));
+            assertEquals("foo-value", consumer.getAttributes().get(AttributeKey.stringKey("foo-header")));
+            assertEquals("bar-value", consumer.getAttributes().get(AttributeKey.stringKey("bar-header")));
             assertEquals(queueName, consumer.getAttributes().get(MESSAGING_DESTINATION_NAME));
             assertNull(consumer.getAttributes().get(NETWORK_PROTOCOL_NAME));
             assertNull(consumer.getAttributes().get(NETWORK_PROTOCOL_VERSION));
