@@ -154,6 +154,11 @@ public class OrderedStreamHandler extends ContextHolder implements KafkaCommitHa
         delegate.partitionsRevoked(partitions);
     }
 
+    @Override
+    public void partitionsSeeked(Collection<TopicPartition> partitions) {
+        delegate.partitionsSeeked(partitions);
+    }
+
     /**
      * Returns the underlying commit handler.
      */

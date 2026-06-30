@@ -56,6 +56,7 @@ import io.vertx.mutiny.core.Vertx;
 public class KafkaThrottledLatestProcessedCommit extends ContextHolder implements KafkaCommitHandler {
 
     private final Map<TopicPartition, OffsetStore> offsetStores = new HashMap<>();
+    private final Set<TopicPartition> seekedPartitions = new HashSet<>();
 
     private final String groupId;
     private final KafkaConsumer<?, ?> consumer;
@@ -146,6 +147,7 @@ public class KafkaThrottledLatestProcessedCommit extends ContextHolder implement
             Map<TopicPartition, OffsetAndMetadata> toCommit = new HashMap<>();
             for (TopicPartition partition : new HashSet<>(offsetStores.keySet())) {
                 if (!assignments.contains(partition)) { // revoked partition - remove and compute last commit
+                    seekedPartitions.remove(partition);
                     OffsetStore store = offsetStores.remove(partition);
                     if (store != null) {
 
@@ -172,6 +174,17 @@ public class KafkaThrottledLatestProcessedCommit extends ContextHolder implement
         if (result.getItem2()) {
             runOnContext(this::startFlushAndCheckHealthTimer);
         }
+    }
+
+    @Override
+    public void partitionsSeeked(Collection<TopicPartition> partitions) {
+        runOnContextAndAwait(() -> {
+            for (TopicPartition partition : partitions) {
+                offsetStores.remove(partition);
+                seekedPartitions.add(partition);
+            }
+            return null;
+        });
     }
 
     /**
@@ -209,15 +222,24 @@ public class KafkaThrottledLatestProcessedCommit extends ContextHolder implement
         OffsetStore offsetStore = offsetStores.get(recordsTopicPartition);
         Uni<OffsetStore> uni;
         if (offsetStore == null) {
-            uni = consumer.committed(recordsTopicPartition)
-                    .emitOn(this::runOnContext) // Switch back to event loop
-                    .onItem().transform(offsets -> {
-                        OffsetAndMetadata lastCommitted = offsets.get(recordsTopicPartition);
-                        OffsetStore store = new OffsetStore(recordsTopicPartition, unprocessedRecordMaxAge,
-                                lastCommitted == null ? -1 : lastCommitted.offset() - 1);
-                        offsetStores.put(recordsTopicPartition, store);
-                        return store;
-                    });
+            if (seekedPartitions.remove(recordsTopicPartition)) {
+                uni = Uni.createFrom().item(() -> {
+                    OffsetStore store = new OffsetStore(recordsTopicPartition, unprocessedRecordMaxAge, -1);
+                    offsetStores.put(recordsTopicPartition, store);
+                    return store;
+                }).emitOn(this::runOnContext);
+            } else {
+                uni = consumer.committed(recordsTopicPartition)
+                        .emitOn(this::runOnContext) // Switch back to event loop
+                        .onFailure().recoverWithItem(Collections::emptyMap)
+                        .onItem().transform(offsets -> {
+                            OffsetAndMetadata lastCommitted = offsets.get(recordsTopicPartition);
+                            OffsetStore store = new OffsetStore(recordsTopicPartition, unprocessedRecordMaxAge,
+                                    lastCommitted == null ? -1 : lastCommitted.offset() - 1);
+                            offsetStores.put(recordsTopicPartition, store);
+                            return store;
+                        });
+            }
         } else {
             uni = Uni.createFrom().item(offsetStore);
         }
@@ -467,39 +489,12 @@ public class KafkaThrottledLatestProcessedCommit extends ContextHolder implement
 
     @Override
     public void terminate(boolean graceful) {
-        if (graceful) {
-            long stillUnprocessed = waitForProcessing();
-            if (stillUnprocessed > 0) {
-                log.messageStillUnprocessedAfterTimeout(stillUnprocessed);
-            }
-        }
-
         commitAllAndAwait();
         runOnContextAndAwait(() -> {
             offsetStores.clear();
             stopFlushAndCheckHealthTimer();
             return null;
         });
-    }
-
-    private long waitForProcessing() {
-        int attempt = autoCommitInterval / 100;
-        for (int i = 0; i < attempt; i++) {
-            long sum = offsetStores.values().stream().map(OffsetStore::getUnprocessedCount).mapToLong(l -> l).sum();
-            if (sum == 0) {
-                return sum;
-            }
-            log.waitingForMessageProcessing(sum);
-            try {
-                Thread.sleep(100);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                break;
-            }
-        }
-
-        return offsetStores.values().stream().map(OffsetStore::getUnprocessedCount).mapToLong(l -> l).sum();
-
     }
 
     private void commitAllAndAwait() {

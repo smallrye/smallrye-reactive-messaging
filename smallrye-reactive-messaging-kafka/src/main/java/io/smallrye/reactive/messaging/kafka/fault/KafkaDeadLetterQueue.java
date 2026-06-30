@@ -135,7 +135,7 @@ public class KafkaDeadLetterQueue implements KafkaFailureHandler {
             KafkaSink kafkaSink = new KafkaSink(producerConfig, kafkaCDIEvents, adminClientRegistry,
                     openTelemetryInstance, configCustomizers, serializationFailureHandlers, producerInterceptors);
             wireOutgoingConnectorToUpstream(processor, kafkaSink.getSink(), subscriberDecorators,
-                    producerConfig.getChannel() + "-" + CHANNEL_DLQ_SUFFIX);
+                    producerConfig.getChannel() + "-" + CHANNEL_DLQ_SUFFIX, connectorConfig);
             return new KafkaDeadLetterQueue(config.getChannel(), deadQueueTopic, kafkaSink, processor);
         }
     }
