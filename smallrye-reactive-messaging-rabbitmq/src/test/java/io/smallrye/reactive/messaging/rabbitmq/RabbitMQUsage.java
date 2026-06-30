@@ -31,10 +31,10 @@ import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.BasicProperties;
 
 import io.smallrye.common.annotation.CheckReturnValue;
+import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.mutiny.core.Vertx;
-import io.vertx.mutiny.core.buffer.Buffer;
 import io.vertx.mutiny.rabbitmq.RabbitMQClient;
 import io.vertx.rabbitmq.QueueOptions;
 import io.vertx.rabbitmq.RabbitMQOptions;
@@ -196,7 +196,7 @@ public class RabbitMQUsage {
     public io.smallrye.mutiny.Uni<com.rabbitmq.client.AMQP.Queue.DeclareOk> queueDeclare(String queue, boolean durable,
             boolean exclusive, boolean autoDelete, JsonObject config) {
         return io.smallrye.mutiny.vertx.AsyncResultUni.toUni(resultHandler -> {
-            client.getDelegate().queueDeclare(queue, durable, exclusive, autoDelete, config, resultHandler);
+            client.getDelegate().queueDeclare(queue, durable, exclusive, autoDelete, config).onComplete(resultHandler);
         });
     }
 

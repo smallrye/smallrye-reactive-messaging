@@ -29,6 +29,17 @@ public class ExecutionHolder {
     private boolean internalVertxInstance = false;
     final Vertx vertx;
 
+    static {
+        // TODO only here to allow ContextLocals.get/put calls
+        // This is here to ensure ContextLocals defined in VertxContext are properly registered before any Vertx instance is created,
+        // to avoid issues with ContextLocals not being propagated in Vertx contexts.
+        try {
+            Class.forName("io.smallrye.common.vertx.VertxContext");
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     public void terminate(
             @Observes(notifyObserver = Reception.IF_EXISTS) @Priority(200) @BeforeDestroyed(ApplicationScoped.class) Object event) {
         if (internalVertxInstance) {

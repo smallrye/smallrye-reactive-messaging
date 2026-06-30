@@ -114,10 +114,10 @@ jobs:
                 connector:
                     -   name: AMQP
                         artifact: smallrye-reactive-messaging-amqp
-                    -   name: MQTT
-                        artifact: smallrye-reactive-messaging-mqtt
+#                    -   name: MQTT
+#                        artifact: smallrye-reactive-messaging-mqtt
                     -   name: RabbitMQ
-                        artifact: smallrye-reactive-messaging-rabbitmq
+                        artifact: smallrye-reactive-messaging-rabbitmq-og
                     -   name: Pulsar
                         artifact: smallrye-reactive-messaging-pulsar
                     -   name: GCP Pub/Sub
