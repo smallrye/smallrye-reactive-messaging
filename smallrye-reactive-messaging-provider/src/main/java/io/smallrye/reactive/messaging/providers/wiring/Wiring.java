@@ -13,8 +13,10 @@ import jakarta.enterprise.inject.Any;
 import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
 
+import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.reactive.messaging.Message;
+import org.eclipse.microprofile.reactive.messaging.spi.ConnectorFactory;
 
 import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.ChannelRegistry;
@@ -30,6 +32,7 @@ import io.smallrye.reactive.messaging.providers.AbstractMediator;
 import io.smallrye.reactive.messaging.providers.extension.*;
 import io.smallrye.reactive.messaging.providers.helpers.MultiUtils;
 import io.smallrye.reactive.messaging.providers.i18n.ProviderLogging;
+import io.smallrye.reactive.messaging.providers.impl.ConnectorConfig;
 import io.smallrye.reactive.messaging.providers.locals.ContextDecorator;
 
 @ApplicationScoped
@@ -60,6 +63,9 @@ public class Wiring {
     @Any
     @Inject
     Instance<PublisherDecorator> publisherDecorators;
+
+    @Inject
+    Instance<Config> configInstance;
 
     private final List<Component> components;
 
@@ -101,8 +107,9 @@ public class Wiring {
                     .orElseGet(() -> new InboundConnectorComponent(entry.getKey(), entry.getValue())));
         }
 
+        Config mpConfig = configInstance != null && !configInstance.isUnsatisfied() ? configInstance.get() : null;
         for (Map.Entry<String, Boolean> entry : registry.getOutgoingChannels().entrySet()) {
-            components.add(new OutgoingConnectorComponent(entry.getKey(), subscriberDecorators, entry.getValue()));
+            components.add(new OutgoingConnectorComponent(entry.getKey(), subscriberDecorators, entry.getValue(), mpConfig));
         }
     }
 
@@ -388,11 +395,14 @@ public class Wiring {
         private final Set<Component> upstreams = new LinkedHashSet<>();
         private final Instance<SubscriberDecorator> subscriberDecorators;
         private final boolean merge;
+        private final Config mpConfig;
 
-        public OutgoingConnectorComponent(String name, Instance<SubscriberDecorator> subscriberDecorators, boolean merge) {
+        public OutgoingConnectorComponent(String name, Instance<SubscriberDecorator> subscriberDecorators, boolean merge,
+                Config mpConfig) {
             this.name = name;
             this.subscriberDecorators = subscriberDecorators;
             this.merge = merge;
+            this.mpConfig = mpConfig;
         }
 
         @Override
@@ -432,7 +442,10 @@ public class Wiring {
             }
             // TODO Improve this.
             Flow.Subscriber connector = registry.getSubscribers(name).get(0);
-            wireOutgoingConnectorToUpstream(merged, connector, subscriberDecorators, name);
+            Config channelConfig = mpConfig != null
+                    ? ConnectorConfig.create(ConnectorFactory.OUTGOING_PREFIX, mpConfig, name)
+                    : null;
+            wireOutgoingConnectorToUpstream(merged, connector, subscriberDecorators, name, channelConfig);
         }
 
         @Override
@@ -552,7 +565,7 @@ public class Wiring {
             Multi<? extends Message<?>> publisher = Multi.createFrom().publisher(emitter.getPublisher());
             for (PublisherDecorator decorator : getSortedInstances(decorators)) {
                 if (!(decorator instanceof ContextDecorator)) {
-                    publisher = decorator.decorate(publisher, List.of(configuration.name()), false);
+                    publisher = decorator.decorate(publisher, List.of(configuration.name()), null);
                 }
             }
             //noinspection ReactiveStreamsUnusedPublisher
@@ -1094,10 +1107,10 @@ public class Wiring {
 
     public static void wireOutgoingConnectorToUpstream(Multi<? extends Message<?>> multi,
             Flow.Subscriber outgoingConnector,
-            Instance<SubscriberDecorator> subscriberDecorators, String channelName) {
+            Instance<SubscriberDecorator> subscriberDecorators, String channelName, Config channelConfig) {
         List<String> channelNames = Collections.singletonList(channelName);
         for (SubscriberDecorator decorator : getSortedInstances(subscriberDecorators)) {
-            multi = decorator.decorate(multi, channelNames, true);
+            multi = decorator.decorate(multi, channelNames, channelConfig);
         }
         // The connector will cancel the subscription.
         multi.subscribe().withSubscriber(outgoingConnector);

@@ -159,7 +159,7 @@ public class KafkaDelayedRetryTopic extends ContextHolder implements KafkaFailur
             KafkaSink kafkaSink = new KafkaSink(producerConfig, kafkaCDIEvents, adminClientRegistry,
                     openTelemetryInstance, configCustomizers, serializationFailureHandlers, producerInterceptors);
             wireOutgoingConnectorToUpstream(processor, kafkaSink.getSink(), subscriberDecorators,
-                    producerConfig.getChannel() + "-" + CHANNEL_DLQ_SUFFIX);
+                    producerConfig.getChannel() + "-" + CHANNEL_DLQ_SUFFIX, connectorConfig);
 
             Config retryConsumerConfig = Configs.prefixOverride(config.config(), "delayed-retry-topic.consumer",
                     Map.of("lazy-client", c -> true,
