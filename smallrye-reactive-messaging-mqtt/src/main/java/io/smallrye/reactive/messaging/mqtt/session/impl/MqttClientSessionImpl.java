@@ -107,6 +107,21 @@ public class MqttClientSessionImpl implements MqttClientSession {
     }
 
     @Override
+    public boolean isPaused() {
+        return this.client.isPaused();
+    }
+
+    @Override
+    public void pause() {
+        this.client.pause();
+    }
+
+    @Override
+    public void resume() {
+        this.client.resume();
+    }
+
+    @Override
     public SessionState getState() {
         return this.state;
     }

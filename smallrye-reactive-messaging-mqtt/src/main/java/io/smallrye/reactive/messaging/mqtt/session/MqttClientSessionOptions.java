@@ -193,6 +193,12 @@ public class MqttClientSessionOptions extends MqttClientOptions {
     }
 
     @Override
+    public MqttClientSessionOptions setRecvByteBufAllocatorSize(int recvByteBufAllocatorSize) {
+        super.setRecvByteBufAllocatorSize(recvByteBufAllocatorSize);
+        return this;
+    }
+
+    @Override
     public MqttClientSessionOptions setMaxMessageSize(int maxMessageSize) {
         super.setMaxMessageSize(maxMessageSize);
         return this;
@@ -497,7 +503,7 @@ public class MqttClientSessionOptions extends MqttClientOptions {
     }
 
     @Override
-    public ClientOptionsBase setTcpUserTimeout(int tcpUserTimeout) {
+    public MqttClientSessionOptions setTcpUserTimeout(int tcpUserTimeout) {
         super.setTcpUserTimeout(tcpUserTimeout);
         return this;
     }
