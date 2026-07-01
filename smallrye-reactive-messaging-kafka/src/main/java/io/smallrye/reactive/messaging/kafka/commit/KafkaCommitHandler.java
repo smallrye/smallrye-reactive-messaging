@@ -95,6 +95,16 @@ public interface KafkaCommitHandler {
     }
 
     /**
+     * Called when the consumer position is explicitly changed via seek operations,
+     * allowing handlers to reset per-partition tracking state.
+     *
+     * @param partitions seeked partitions
+     */
+    default void partitionsSeeked(Collection<TopicPartition> partitions) {
+        // Do nothing by default.
+    }
+
+    /**
      * Handle message acknowledgment
      *
      * @param record incoming Kafka record
