@@ -274,7 +274,7 @@ public abstract class AbstractMediator {
         }
 
         for (PublisherDecorator decorator : getSortedInstances(decorators)) {
-            input = decorator.decorate(input, getConfiguration().getOutgoings(), false);
+            input = decorator.decorate(input, getConfiguration().getOutgoings(), null);
         }
 
         if (getBroadcast()) {
@@ -309,7 +309,7 @@ public abstract class AbstractMediator {
         }
 
         for (SubscriberDecorator decorator : getSortedInstances(subscriberDecorators)) {
-            input = decorator.decorate(input, configuration.getIncoming(), false);
+            input = decorator.decorate(input, configuration.getIncoming(), null);
         }
         return input;
     }

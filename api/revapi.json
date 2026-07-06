@@ -27,7 +27,39 @@
     "criticality" : "highlight",
     "minSeverity" : "POTENTIALLY_BREAKING",
     "minCriticality" : "documented",
-    "differences" : [ ]
+    "differences" : [ {
+        "code": "java.method.removed",
+        "old": "method java.lang.String io.smallrye.reactive.messaging.PausableChannelConfiguration::name()",
+        "justification": "PausableChannelConfiguration simplified to constants-only holder; config is now read directly from channel Config in decorators"
+    }, {
+        "code": "java.method.removed",
+        "old": "method boolean io.smallrye.reactive.messaging.PausableChannelConfiguration::initiallyPaused()",
+        "justification": "PausableChannelConfiguration simplified to constants-only holder; config is now read directly from channel Config in decorators"
+    }, {
+        "code": "java.method.removed",
+        "old": "method java.lang.Integer io.smallrye.reactive.messaging.PausableChannelConfiguration::bufferSize()",
+        "justification": "PausableChannelConfiguration simplified to constants-only holder; config is now read directly from channel Config in decorators"
+    }, {
+        "code": "java.method.removed",
+        "old": "method boolean io.smallrye.reactive.messaging.PausableChannelConfiguration::lateSubscription()",
+        "justification": "PausableChannelConfiguration simplified to constants-only holder; config is now read directly from channel Config in decorators"
+    }, {
+        "code": "java.method.removed",
+        "old": "method io.smallrye.reactive.messaging.PausableChannelConfiguration.PausableBufferStrategy io.smallrye.reactive.messaging.PausableChannelConfiguration::bufferStrategy()",
+        "justification": "PausableChannelConfiguration simplified to constants-only holder; config is now read directly from channel Config in decorators"
+    }, {
+        "code": "java.annotation.attributeAdded",
+        "old": "method io.smallrye.mutiny.Multi<? extends org.eclipse.microprofile.reactive.messaging.Message<?>> io.smallrye.reactive.messaging.PublisherDecorator::decorate(io.smallrye.mutiny.Multi<? extends org.eclipse.microprofile.reactive.messaging.Message<?>>, java.lang.String, boolean)",
+        "justification": "Marked forRemoval=true on deprecated single-channel-name decorate method"
+    }, {
+        "code": "java.method.abstractMethodAdded",
+        "new": "method io.smallrye.mutiny.Multi<? extends org.eclipse.microprofile.reactive.messaging.Message<?>> io.smallrye.reactive.messaging.SubscriberDecorator::decorate(io.smallrye.mutiny.Multi<? extends org.eclipse.microprofile.reactive.messaging.Message<?>>, java.util.List<java.lang.String>, org.eclipse.microprofile.config.Config)",
+        "justification": "SubscriberDecorator: new decorate overload with Config parameter replaces isConnector boolean"
+    }, {
+        "code": "java.method.addedToInterface",
+        "new": "method io.smallrye.mutiny.Multi<? extends org.eclipse.microprofile.reactive.messaging.Message<?>> io.smallrye.reactive.messaging.PublisherDecorator::decorate(io.smallrye.mutiny.Multi<? extends org.eclipse.microprofile.reactive.messaging.Message<?>>, java.util.List<java.lang.String>, org.eclipse.microprofile.config.Config)",
+        "justification": "PublisherDecorator: new decorate overload with Config parameter replaces isConnector boolean"
+    } ]
   }
 }, {
   "extension" : "revapi.reporter.json",

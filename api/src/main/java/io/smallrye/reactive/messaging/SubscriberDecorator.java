@@ -4,6 +4,7 @@ import java.util.List;
 
 import jakarta.enterprise.inject.spi.Prioritized;
 
+import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.reactive.messaging.Message;
 
 import io.smallrye.common.annotation.Experimental;
@@ -32,9 +33,26 @@ public interface SubscriberDecorator extends Prioritized {
      * @param channelName the list of channel names from which this subscriber consumes
      * @param isConnector {@code true} if decorated channel is connector
      * @return the extended multi
+     * @deprecated replaced with {@link #decorate(Multi, List, Config)}
      */
-    Multi<? extends Message<?>> decorate(Multi<? extends Message<?>> toBeSubscribed, List<String> channelName,
-            boolean isConnector);
+    @Deprecated(since = "4.37.0")
+    default Multi<? extends Message<?>> decorate(Multi<? extends Message<?>> toBeSubscribed, List<String> channelName,
+            boolean isConnector) {
+        return toBeSubscribed;
+    }
+
+    /**
+     * Decorate a Multi
+     *
+     * @param toBeSubscribed the multi to decorate which will be subscribed by this channel
+     * @param channelName the list of channel names from which this subscriber consumes
+     * @param channelConfig the channel configuration, or {@code null} if not a connector channel
+     * @return the extended multi
+     */
+    default Multi<? extends Message<?>> decorate(Multi<? extends Message<?>> toBeSubscribed, List<String> channelName,
+            Config channelConfig) {
+        return decorate(toBeSubscribed, channelName, channelConfig != null);
+    }
 
     @Override
     default int getPriority() {
