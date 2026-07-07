@@ -3,16 +3,23 @@ package io.smallrye.reactive.messaging.kafka;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 
+import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.IntegerDeserializer;
+import org.apache.kafka.common.serialization.IntegerSerializer;
+import org.apache.kafka.common.serialization.StringSerializer;
+import org.eclipse.microprofile.reactive.messaging.Channel;
+import org.eclipse.microprofile.reactive.messaging.Emitter;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.junit.jupiter.api.Test;
 
@@ -51,18 +58,12 @@ public class GracefulShutdownTest extends KafkaCompanionTestBase {
         List<Integer> received = bean.getReceived();
         int countBeforeShutdown = received.size();
 
-        // Close the CDI container — triggers GracefulShutdownController
-        // at Priority 40 (pauseAndDrain) before KafkaConnector at Priority 50.
-        // The drain ensures in-flight @Blocking messages are acked before
-        // the connector shuts down.
+        // Close the CDI container — triggers ConfiguredChannelFactory at Priority 40,
+        // which drains in-flight messages, calls connector preShutdown/shutdown per channel.
         container.close();
         container = null;
 
         // After shutdown, the drain should have let in-flight messages complete.
-        // The committed offset should match the number of processed messages:
-        // - GracefulShutdownController drained in-flight acks (WIP=0)
-        // - handle() Uni resolves only after offsets.put() (emitter-based)
-        // - terminate() does a final commitSync on the Vert.x context (FIFO after handle lambdas)
         int countAfterShutdown = received.size();
         assertThat(countAfterShutdown).isGreaterThanOrEqualTo(countBeforeShutdown);
 
@@ -72,6 +73,46 @@ public class GracefulShutdownTest extends KafkaCompanionTestBase {
             assertThat(offset).isNotNull();
             assertThat(offset.offset()).isEqualTo(countAfterShutdown);
         });
+    }
+
+    @Test
+    public void testGracefulShutdownDrainsEmitterBufferedMessages() {
+        addBeans(EmitterProducerBean.class);
+
+        runApplication(kafkaConfig("mp.messaging.outgoing.out")
+                .with("topic", topic)
+                .with("key.serializer", StringSerializer.class.getName())
+                .with("value.serializer", IntegerSerializer.class.getName())
+                .with("graceful-shutdown", true));
+
+        EmitterProducerBean bean = get(EmitterProducerBean.class);
+        for (int i = 0; i < 10; i++) {
+            bean.send(i);
+        }
+
+        // Shut down immediately — graceful shutdown should drain all buffered messages
+        container.close();
+        container = null;
+
+        List<Integer> received = companion.consumeIntegers().fromTopics(topic, 10)
+                .awaitCompletion(Duration.ofSeconds(10))
+                .getRecords().stream()
+                .map(ConsumerRecord::value)
+                .toList();
+
+        assertThat(received).containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
+    }
+
+    @ApplicationScoped
+    public static class EmitterProducerBean {
+
+        @Inject
+        @Channel("out")
+        Emitter<Integer> emitter;
+
+        public void send(int value) {
+            emitter.send(value);
+        }
     }
 
     @ApplicationScoped

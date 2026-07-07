@@ -8,6 +8,8 @@ import static io.smallrye.reactive.messaging.kafka.i18n.KafkaLogging.log;
 import static io.smallrye.reactive.messaging.kafka.impl.RebalanceListeners.findMatchingListener;
 
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -426,23 +428,31 @@ public class KafkaSource<K, V> {
         return batchStream;
     }
 
-    public void closeQuietly() {
+    public CompletionStage<Void> preShutdown() {
         try {
             this.commitHandler.terminate(configuration.getGracefulShutdown());
             this.failureHandler.terminate();
         } catch (Throwable e) {
             log.exceptionOnClose(e);
         }
+        return CompletableFuture.completedStage(null);
+    }
 
+    public CompletionStage<Void> shutdownSource() {
         try {
             this.client.close();
         } catch (Throwable e) {
             log.exceptionOnClose(e);
         }
-
         if (health != null) {
             health.close();
         }
+        return CompletableFuture.completedStage(null);
+    }
+
+    public void closeQuietly() {
+        preShutdown();
+        shutdownSource();
     }
 
     public void isAlive(HealthReport.HealthReportBuilder builder) {

@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Flow;
 import java.util.stream.Collectors;
 
@@ -213,6 +214,13 @@ public class PulsarOutgoingChannel<T> {
 
     public Producer<T> getProducer() {
         return producer;
+    }
+
+    public CompletableFuture<Void> closeAsync() {
+        if (processor != null) {
+            processor.cancel();
+        }
+        return producer.closeAsync();
     }
 
     public void close() {

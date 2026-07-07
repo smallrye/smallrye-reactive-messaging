@@ -21,7 +21,7 @@ import io.smallrye.reactive.messaging.annotations.Blocking;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 import io.smallrye.reactive.messaging.test.common.config.SmallRyeConfigTestUtil;
 
-public class GracefulShutdownAmqpTest extends AmqpBrokerTestBase {
+public class GracefulShutdownTest extends AmqpBrokerTestBase {
 
     private WeldContainer container;
 
@@ -67,8 +67,8 @@ public class GracefulShutdownAmqpTest extends AmqpBrokerTestBase {
 
         int countBeforeShutdown = received.size();
 
-        // Shutdown triggers GracefulShutdownController at Priority 40,
-        // which drains in-flight messages before AmqpConnector.terminate at Priority 50
+        // Shutdown triggers ConfiguredChannelFactory at Priority 40,
+        // which drains in-flight messages then calls connector preShutdown/shutdown per channel
         container.shutdown();
         container = null;
 
