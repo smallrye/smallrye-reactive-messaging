@@ -27,7 +27,31 @@
     "criticality" : "highlight",
     "minSeverity" : "POTENTIALLY_BREAKING",
     "minCriticality" : "documented",
-    "differences" : [ ]
+    "differences" : [ {
+        "code": "java.method.addedToInterface",
+        "new": "method java.util.concurrent.Flow.Publisher<? extends org.eclipse.microprofile.reactive.messaging.Message<?>> io.smallrye.reactive.messaging.ChannelRegistry::register(java.lang.String, java.lang.String, java.util.concurrent.Flow.Publisher<? extends org.eclipse.microprofile.reactive.messaging.Message<?>>, boolean)",
+        "justification": "ChannelRegistry: register overload with connector name for channel lifecycle management"
+    }, {
+        "code": "java.method.addedToInterface",
+        "new": "method java.util.concurrent.Flow.Subscriber<? extends org.eclipse.microprofile.reactive.messaging.Message<?>> io.smallrye.reactive.messaging.ChannelRegistry::register(java.lang.String, java.lang.String, java.util.concurrent.Flow.Subscriber<? extends org.eclipse.microprofile.reactive.messaging.Message<?>>, boolean)",
+        "justification": "ChannelRegistry: register overload with connector name for channel lifecycle management"
+    }, {
+        "code": "java.method.addedToInterface",
+        "new": "method void io.smallrye.reactive.messaging.ChannelRegistry::register(java.lang.String, java.lang.String, org.eclipse.microprofile.reactive.messaging.Emitter<?>)",
+        "justification": "ChannelRegistry: register overload with connector name for channel lifecycle management"
+    }, {
+        "code": "java.method.addedToInterface",
+        "new": "method void io.smallrye.reactive.messaging.ChannelRegistry::register(java.lang.String, java.lang.String, io.smallrye.reactive.messaging.MutinyEmitter<?>)",
+        "justification": "ChannelRegistry: register overload with connector name for channel lifecycle management"
+    }, {
+        "code": "java.method.addedToInterface",
+        "new": "method <T> void io.smallrye.reactive.messaging.ChannelRegistry::register(java.lang.String, java.lang.String, java.lang.Class<T>, T)",
+        "justification": "ChannelRegistry: register overload with connector name for channel lifecycle management"
+    }, {
+        "code": "java.method.addedToInterface",
+        "new": "method java.util.List<io.smallrye.reactive.messaging.MessagePublisherProvider<?>> io.smallrye.reactive.messaging.ChannelRegistry::getEmitters(java.lang.String)",
+        "justification": "ChannelRegistry: look up all emitters for a channel for graceful shutdown"
+    } ]
   }
 }, {
   "extension" : "revapi.reporter.json",
