@@ -602,7 +602,7 @@ public class RedisCheckpointStateStoreTest extends KafkaCompanionTestBase {
 
         // terminate the connector
         getBeanManager().createInstance()
-                .select(KafkaConnector.class, ConnectorLiteral.of("smallrye-kafka")).get().terminate(new Object());
+                .select(KafkaConnector.class, ConnectorLiteral.of("smallrye-kafka")).get().terminate();
 
         await().atMost(1, TimeUnit.MINUTES).untilAsserted(() -> {
             List<JsonObject> states = getStateFromStore(3);

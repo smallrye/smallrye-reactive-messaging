@@ -9,6 +9,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Flow;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -399,20 +401,28 @@ public class KafkaSink {
         // If health is disabled, do not add anything to the builder.
     }
 
-    public void closeQuietly() {
+    public CompletionStage<Void> preShutdown() {
+        return CompletableFuture.completedStage(null);
+    }
+
+    public CompletionStage<Void> shutdownSink() {
         if (processor != null) {
             processor.cancel();
         }
-
         try {
             this.client.close();
         } catch (Throwable e) {
             log.errorWhileClosingWriteStream(e);
         }
-
         if (health != null) {
             health.close();
         }
+        return CompletableFuture.completedStage(null);
+    }
+
+    public void closeQuietly() {
+        preShutdown();
+        shutdownSink();
     }
 
     public String getChannel() {

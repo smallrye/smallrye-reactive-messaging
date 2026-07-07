@@ -44,7 +44,7 @@ class MessageConvertersTest extends RabbitMQBrokerTestBase {
         if (container != null) {
             get(container, RabbitMQConnector.class,
                     ConnectorLiteral.of(RabbitMQConnector.CONNECTOR_NAME))
-                    .terminate(null);
+                    .terminate();
             container.shutdown();
         }
 

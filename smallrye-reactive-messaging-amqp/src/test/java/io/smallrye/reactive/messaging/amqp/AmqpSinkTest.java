@@ -45,7 +45,7 @@ public class AmqpSinkTest extends AmqpTestBase {
     @AfterEach
     public void cleanup() {
         if (provider != null) {
-            provider.terminate(null);
+            provider.terminate();
         }
 
         if (container != null) {

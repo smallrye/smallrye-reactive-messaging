@@ -51,18 +51,12 @@ public class GracefulShutdownTest extends KafkaCompanionTestBase {
         List<Integer> received = bean.getReceived();
         int countBeforeShutdown = received.size();
 
-        // Close the CDI container — triggers GracefulShutdownController
-        // at Priority 40 (pauseAndDrain) before KafkaConnector at Priority 50.
-        // The drain ensures in-flight @Blocking messages are acked before
-        // the connector shuts down.
+        // Close the CDI container — triggers ConfiguredChannelFactory at Priority 40,
+        // which drains in-flight messages, calls connector preShutdown/shutdown per channel.
         container.close();
         container = null;
 
         // After shutdown, the drain should have let in-flight messages complete.
-        // The committed offset should match the number of processed messages:
-        // - GracefulShutdownController drained in-flight acks (WIP=0)
-        // - handle() Uni resolves only after offsets.put() (emitter-based)
-        // - terminate() does a final commitSync on the Vert.x context (FIFO after handle lambdas)
         int countAfterShutdown = received.size();
         assertThat(countAfterShutdown).isGreaterThanOrEqualTo(countBeforeShutdown);
 
