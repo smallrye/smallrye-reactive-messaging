@@ -80,7 +80,7 @@ import org.eclipse.microprofile.reactive.messaging.spi.ConnectorFactory;
  * {@link org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder}, it returns a
  * {@link Subscriber}.
  */
-public interface OutboundConnector extends ConnectorFactory {
+public interface OutboundConnector extends ConnectorFactory, ConnectorLifecycle {
 
     /**
      * Creates a <em>channel</em> for the given configuration. The channel's configuration is associated with a
