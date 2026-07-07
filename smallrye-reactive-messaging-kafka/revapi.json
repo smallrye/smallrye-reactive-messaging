@@ -36,7 +36,18 @@
     "criticality" : "highlight",
     "minSeverity" : "POTENTIALLY_BREAKING",
     "minCriticality" : "documented",
-    "differences" : [ ]
+    "differences" : [ {
+        "code": "java.method.numberOfParametersChanged",
+        "old": "method void io.smallrye.reactive.messaging.kafka.KafkaConnector::terminate(java.lang.Object)",
+        "new": "method java.util.concurrent.CompletionStage<java.lang.Void> io.smallrye.reactive.messaging.kafka.KafkaConnector::terminate()",
+        "justification": "ConnectorLifecycle: terminate() is now a no-arg method returning CompletionStage"
+    },
+        {
+            "code": "java.method.returnTypeChanged",
+            "old": "method void io.smallrye.reactive.messaging.kafka.KafkaConnector::terminate(java.lang.Object)",
+            "new": "method java.util.concurrent.CompletionStage<java.lang.Void> io.smallrye.reactive.messaging.kafka.KafkaConnector::terminate()",
+            "justification": "KafkaConnector.terminate() no longer a CDI observer — shutdown is now managed by ChannelRegistry lifecycle"
+        } ]
   }
 }, {
   "extension" : "revapi.reporter.json",

@@ -4,17 +4,15 @@ import static io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Dire
 import static io.smallrye.reactive.messaging.kafka.i18n.KafkaLogging.log;
 
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Flow;
 import java.util.concurrent.Flow.Publisher;
 import java.util.stream.Collectors;
 
 import jakarta.annotation.PostConstruct;
-import jakarta.annotation.Priority;
 import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.enterprise.context.BeforeDestroyed;
-import jakarta.enterprise.event.Observes;
-import jakarta.enterprise.event.Reception;
 import jakarta.enterprise.inject.Any;
 import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
@@ -201,13 +199,52 @@ public class KafkaConnector implements InboundConnector, OutboundConnector, Heal
 
     private Vertx vertx;
 
-    public void terminate(
-            @Observes(notifyObserver = Reception.IF_EXISTS) @Priority(50) @BeforeDestroyed(ApplicationScoped.class) Object event) {
+    @Override
+    public CompletionStage<Void> preShutdownIncoming(String channel) {
+        return sources.stream().filter(s -> s.getChannel().equals(channel))
+                .findFirst()
+                .map(KafkaSource::preShutdown)
+                .orElse(CompletableFuture.completedFuture(null));
+    }
+
+    @Override
+    public CompletionStage<Void> preShutdownOutgoing(String channel) {
+        return sinks.stream().filter(s -> s.getChannel().equals(channel))
+                .findFirst()
+                .map(KafkaSink::preShutdown)
+                .orElse(CompletableFuture.completedFuture(null));
+    }
+
+    @Override
+    public CompletionStage<Void> shutdownIncoming(String channel) {
+        return sources.stream().filter(s -> s.getChannel().equals(channel))
+                .findFirst()
+                .map(KafkaSource::shutdownSource)
+                .or(() -> shareGroupSources.stream().filter(s -> s.getChannel().equals(channel))
+                        .findFirst()
+                        .map(s -> {
+                            s.closeQuietly();
+                            return CompletableFuture.completedFuture(null);
+                        }))
+                .orElse(CompletableFuture.completedFuture(null));
+    }
+
+    @Override
+    public CompletionStage<Void> shutdownOutgoing(String channel) {
+        return sinks.stream().filter(s -> s.getChannel().equals(channel))
+                .findFirst()
+                .map(KafkaSink::shutdownSink)
+                .orElse(CompletableFuture.completedFuture(null));
+    }
+
+    @Override
+    public CompletionStage<Void> terminate() {
         sources.forEach(KafkaSource::closeQuietly);
         shareGroupSources.forEach(KafkaShareGroupSource::closeQuietly);
         sinks.forEach(KafkaSink::closeQuietly);
         adminClientRegistry.close();
         TopicPartitions.clearCache();
+        return CompletableFuture.completedStage(null);
     }
 
     @PostConstruct

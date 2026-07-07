@@ -241,7 +241,7 @@ public class ReactiveKafkaConsumer<K, V> implements io.smallrye.reactive.messagi
     public Uni<Map<TopicPartition, OffsetAndMetadata>> committed(TopicPartition... tps) {
         return runOnPollingThread(c -> {
             return c.committed(new LinkedHashSet<>(Arrays.asList(tps)));
-        });
+        }).onFailure(WakeupException.class).recoverWithItem(() -> new HashMap<>());
     }
 
     @CheckReturnValue

@@ -42,7 +42,7 @@ public class AmqpRabbitMQSinkTest extends RabbitMQBrokerTestBase {
     @AfterEach
     public void cleanup() {
         if (provider != null) {
-            provider.terminate(null);
+            provider.terminate();
         }
 
         MapBasedConfig.cleanup();
