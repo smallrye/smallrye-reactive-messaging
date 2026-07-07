@@ -20,6 +20,18 @@ public class DefaultEmitterConfiguration implements EmitterConfiguration {
     public DefaultEmitterConfiguration() {
     }
 
+    public DefaultEmitterConfiguration(String name, EmitterFactoryFor emitterType,
+            OnOverflow.Strategy overflowBufferStrategy,
+            long overflowBufferSize, boolean broadcast,
+            int numberOfSubscriberBeforeConnecting) {
+        this.name = name;
+        this.emitterType = emitterType;
+        this.overflowBufferStrategy = overflowBufferStrategy;
+        this.overflowBufferSize = overflowBufferSize;
+        this.broadcast = broadcast;
+        this.numberOfSubscriberBeforeConnecting = numberOfSubscriberBeforeConnecting;
+    }
+
     public DefaultEmitterConfiguration(String name, EmitterFactoryFor emitterType, OnOverflow onOverflow, Broadcast broadcast) {
         this.name = name;
         this.emitterType = emitterType;
