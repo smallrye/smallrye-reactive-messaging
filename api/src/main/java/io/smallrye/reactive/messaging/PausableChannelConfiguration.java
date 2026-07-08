@@ -2,6 +2,7 @@ package io.smallrye.reactive.messaging;
 
 /**
  * A channel that can be paused and resumed.
+ * Holder for channel config keys used to configure pausable channels.
  */
 public interface PausableChannelConfiguration {
 
@@ -36,34 +37,6 @@ public interface PausableChannelConfiguration {
      * The name of the property to configure the buffer strategy.
      */
     String BUFFER_STRATEGY_PROPERTY = "pausable.buffer-strategy";
-
-    /**
-     * The name of the channel.
-     */
-    String name();
-
-    /**
-     * Whether the channel is paused at subscribe time.
-     * Default is {@code false}.
-     */
-    boolean initiallyPaused();
-
-    /**
-     * The maximum buffer size for buffered items when the channel is paused.
-     */
-    Integer bufferSize();
-
-    /**
-     * Whether the subscription is done after the channel is paused.
-     * Default is {@code false}.
-     */
-    boolean lateSubscription();
-
-    /**
-     * The buffer strategy if previously requested items are received when the channel is paused.
-     * Default is {@link PausableBufferStrategy#BUFFER}.
-     */
-    PausableBufferStrategy bufferStrategy();
 
     /**
      * Strategy for handling already requested items that arrive while the channel is paused.

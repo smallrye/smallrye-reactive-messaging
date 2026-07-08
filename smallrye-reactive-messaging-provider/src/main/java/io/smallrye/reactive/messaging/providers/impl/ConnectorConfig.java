@@ -59,6 +59,10 @@ public class ConnectorConfig implements Config {
         this(prefix, overall, getConnectorAttribute(prefix, overall, channel), channel);
     }
 
+    public static ConnectorConfig create(String prefix, Config overall, String channel) {
+        return new ConnectorConfig(prefix, overall, channel);
+    }
+
     public static String getConnectorAttribute(String prefix, Config overall, String channel) {
         return overall.getOptionalValue(channelPrefix(prefix, channel) + CONNECTOR_ATTRIBUTE, String.class)
                 .orElseGet(() -> overall.getOptionalValue(channelPrefix(prefix, channel) + "type", String.class) // Legacy
