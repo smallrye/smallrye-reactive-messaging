@@ -1,10 +1,10 @@
 package io.smallrye.reactive.messaging.rabbitmq.tracing;
 
-import io.smallrye.reactive.messaging.rabbitmq.RabbitMQConnectorCommonConfiguration;
-import jakarta.enterprise.inject.Instance;
-
 import java.util.Arrays;
 import java.util.stream.Collectors;
+
+import jakarta.enterprise.inject.Instance;
+
 import org.eclipse.microprofile.reactive.messaging.Message;
 
 import io.opentelemetry.api.OpenTelemetry;
@@ -14,6 +14,7 @@ import io.opentelemetry.instrumentation.api.incubator.semconv.messaging.Messagin
 import io.opentelemetry.instrumentation.api.incubator.semconv.messaging.MessagingSpanNameExtractor;
 import io.opentelemetry.instrumentation.api.instrumenter.Instrumenter;
 import io.opentelemetry.instrumentation.api.instrumenter.InstrumenterBuilder;
+import io.smallrye.reactive.messaging.rabbitmq.RabbitMQConnectorCommonConfiguration;
 import io.smallrye.reactive.messaging.tracing.TracingUtils;
 
 public class RabbitMQOpenTelemetryInstrumenter {

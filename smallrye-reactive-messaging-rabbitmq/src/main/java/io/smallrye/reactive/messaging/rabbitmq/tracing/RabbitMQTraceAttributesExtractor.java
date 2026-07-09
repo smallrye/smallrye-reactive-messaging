@@ -4,13 +4,13 @@ import static io.opentelemetry.semconv.incubating.MessagingIncubatingAttributes.
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import io.opentelemetry.api.common.AttributesBuilder;
 import io.opentelemetry.context.Context;
 import io.opentelemetry.instrumentation.api.incubator.semconv.messaging.MessagingAttributesGetter;
 import io.opentelemetry.instrumentation.api.instrumenter.AttributesExtractor;
-import java.util.Map;
-import java.util.Set;
 
 public class RabbitMQTraceAttributesExtractor implements AttributesExtractor<RabbitMQTrace, Void> {
     private final MessagingAttributesGetter<RabbitMQTrace, Void> messagingAttributesGetter;
