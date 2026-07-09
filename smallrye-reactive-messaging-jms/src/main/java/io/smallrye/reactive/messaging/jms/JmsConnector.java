@@ -7,10 +7,13 @@ import static io.smallrye.reactive.messaging.jms.i18n.JmsLogging.log;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Flow;
+import java.util.function.BiConsumer;
+import java.util.function.Supplier;
 
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
@@ -20,9 +23,12 @@ import jakarta.enterprise.inject.Instance;
 import jakarta.enterprise.inject.literal.NamedLiteral;
 import jakarta.inject.Inject;
 import jakarta.jms.ConnectionFactory;
+import jakarta.jms.Destination;
 import jakarta.jms.JMSConsumer;
 import jakarta.jms.JMSContext;
 import jakarta.jms.JMSProducer;
+import jakarta.jms.XAConnectionFactory;
+import jakarta.transaction.TransactionManager;
 
 import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
@@ -31,11 +37,17 @@ import org.eclipse.microprofile.reactive.messaging.spi.Connector;
 
 import io.opentelemetry.api.OpenTelemetry;
 import io.smallrye.common.annotation.Identifier;
+import io.smallrye.mutiny.subscription.DemandPauser;
 import io.smallrye.reactive.messaging.annotations.ConnectorAttribute;
 import io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Direction;
 import io.smallrye.reactive.messaging.connector.InboundConnector;
 import io.smallrye.reactive.messaging.connector.OutboundConnector;
+import io.smallrye.reactive.messaging.jms.commit.JmsAcknowledgeCommit;
+import io.smallrye.reactive.messaging.jms.commit.JmsLocalTransactionCommit;
+import io.smallrye.reactive.messaging.jms.commit.JmsXaTransactionCommit;
 import io.smallrye.reactive.messaging.jms.fault.JmsFailureHandler;
+import io.smallrye.reactive.messaging.jms.fault.JmsLocalTransactionFailure;
+import io.smallrye.reactive.messaging.jms.fault.JmsXaTransactionFailure;
 import io.smallrye.reactive.messaging.json.JsonMapping;
 import io.smallrye.reactive.messaging.providers.connectors.ExecutionHolder;
 import io.smallrye.reactive.messaging.providers.i18n.ProviderLogging;
@@ -72,6 +84,9 @@ import io.smallrye.reactive.messaging.providers.i18n.ProviderLogging;
 @ConnectorAttribute(name = "retry.initial-delay", direction = Direction.INCOMING_AND_OUTGOING, description = "The initial delay for the retry.", type = "string", defaultValue = "PT1S")
 @ConnectorAttribute(name = "retry.max-delay", direction = Direction.INCOMING_AND_OUTGOING, description = "The maximum delay", type = "string", defaultValue = "PT10S")
 @ConnectorAttribute(name = "retry.jitter", direction = Direction.INCOMING_AND_OUTGOING, description = "How much the delay jitters as a multiplier between 0 and 1. The formula is current delay * jitter. For example, with a current delay of 2H, a jitter of 0.5 will result in an actual delay somewhere between 1H and 3H.", type = "double", defaultValue = "0.5")
+@ConnectorAttribute(name = "transaction-mode", type = "string", direction = Direction.INCOMING, description = "Transaction mode: none (default), local (JMS session transaction), or xa (XA distributed transaction). XA mode requires a TransactionManager and a pooled XAConnectionFactory (e.g., quarkus-pooled-jms or a JCA resource adapter).", defaultValue = "none")
+@ConnectorAttribute(name = "receive-timeout", type = "long", direction = Direction.INCOMING, description = "The timeout in milliseconds for the JMS consumer receive call. 0 means blocking indefinitely.", defaultValue = "1000")
+@ConnectorAttribute(name = "message-poller", type = "string", direction = Direction.INCOMING, description = "Identifier of a custom JmsMessagePoller.Factory CDI bean to use for polling messages. When set, overrides the built-in polling behavior for the configured transaction-mode.")
 @ConnectorAttribute(name = "failure-strategy", type = "string", direction = Direction.INCOMING, description = "Specify the failure strategy to apply when a message produced from a record is acknowledged negatively (nack). Values can be `fail` (default), `ignore`, or `dead-letter-queue`", defaultValue = "fail")
 @ConnectorAttribute(name = "dead-letter-queue.destination", type = "string", direction = Direction.INCOMING, description = "When the `failure-strategy` is set to `dead-letter-queue` indicates on which queue the message is sent. Defaults is `dead-letter-topic-$channel`")
 @ConnectorAttribute(name = "dead-letter-queue.producer-client-id", type = "string", direction = Direction.INCOMING, description = "When the `failure-strategy` is set to `dead-letter-queue` indicates what client id the generated producer should use. Defaults is `jms-dead-letter-topic-producer-$client-id`")
@@ -99,11 +114,19 @@ public class JmsConnector implements InboundConnector, OutboundConnector {
     Instance<ConnectionFactory> factories;
 
     @Inject
+    @Any
+    Instance<XAConnectionFactory> xaFactories;
+
+    @Inject
     Instance<JsonMapping> jsonMapper;
 
     @Inject
     @Any
     Instance<JmsFailureHandler.Factory> failureHandlerFactories;
+
+    @Inject
+    @Any
+    Instance<JmsMessagePoller.Factory> messagePollerFactories;
 
     @Inject
     ExecutionHolder executionHolders;
@@ -119,6 +142,9 @@ public class JmsConnector implements InboundConnector, OutboundConnector {
     @Inject
     Instance<OpenTelemetry> openTelemetryInstance;
 
+    @Inject
+    Instance<TransactionManager> transactionManager;
+
     private ExecutorService executor;
     private JsonMapping jsonMapping;
     private final List<JmsSource> sources = new CopyOnWriteArrayList<>();
@@ -129,7 +155,8 @@ public class JmsConnector implements InboundConnector, OutboundConnector {
 
     @PostConstruct
     public void init() {
-        this.executor = Executors.newFixedThreadPool(maxPoolSize);
+        this.executor = Executors.newFixedThreadPool(maxPoolSize,
+                new JmsThreadFactory("smallrye-jms-connector"));
         if (jsonMapper.isUnsatisfied()) {
             log.warn(
                     "Please add one of the additional mapping modules (-jsonb or -jackson) to be able to (de)serialize JSON messages.");
@@ -141,7 +168,6 @@ public class JmsConnector implements InboundConnector, OutboundConnector {
         } else {
             this.jsonMapping = jsonMapper.get();
         }
-
     }
 
     @PreDestroy
@@ -157,22 +183,116 @@ public class JmsConnector implements InboundConnector, OutboundConnector {
     @Override
     public Flow.Publisher<? extends Message<?>> getPublisher(Config config) {
         JmsConnectorIncomingConfiguration ic = new JmsConnectorIncomingConfiguration(config);
-        JmsResourceHolder<JMSConsumer> holder = new JmsResourceHolder<>(ic.getChannel(), () -> createJmsContext(ic));
-        contexts.add(holder);
-        JmsSource source = new JmsSource(this, executionHolders.vertx(), holder, ic, openTelemetryInstance, jsonMapping,
-                executor,
-                failureHandlerFactories);
+        JmsTransactionMode txMode = JmsTransactionMode.parse(ic.getTransactionMode());
+        JmsSource source = switch (txMode) {
+            case XA -> createXATransactionSource(ic);
+            case LOCAL -> createLocalTransactionSource(ic);
+            case NONE -> createNoneTransactionSource(ic);
+        };
         sources.add(source);
         return source.getSource();
     }
 
+    private JmsSource createXATransactionSource(JmsConnectorIncomingConfiguration ic) {
+        if (transactionManager.isUnsatisfied()) {
+            throw new IllegalStateException(
+                    "XA transaction mode requires a TransactionManager (e.g., quarkus-narayana-jta)");
+        }
+        log.xaTransactionModeRequiresPooledFactory(ic.getChannel());
+        XAConnectionFactory xaFactory = pickTheXaFactory(ic.getConnectionFactoryName().orElse(null));
+        TransactionManager tm = transactionManager.get();
+        JmsMessagePoller poller = resolveCustomPoller(ic, null)
+                .orElseGet(() -> new XaMessagePoller(xaFactory, tm, ic));
+        return new JmsSource(executionHolders.vertx(), ic, openTelemetryInstance, jsonMapping, poller,
+                () -> new JmsXaTransactionCommit(executor, tm),
+                reportFailure -> new JmsXaTransactionFailure(executor, tm, createFailureHandler(ic, reportFailure)),
+                null);
+    }
+
+    private JmsSource createLocalTransactionSource(JmsConnectorIncomingConfiguration ic) {
+        JmsResourceHolder<JMSConsumer> holder = createSourceResourceHolder(ic,
+                () -> createStandardJmsContext(ic, "SESSION_TRANSACTED"));
+        DemandPauser demandPauser = new DemandPauser();
+        JmsMessagePoller poller = resolveCustomPoller(ic, holder)
+                .orElseGet(() -> new StandardMessagePoller(holder, ic.getReceiveTimeout(), JmsTransactionMode.LOCAL));
+        return new JmsSource(executionHolders.vertx(), ic, openTelemetryInstance, jsonMapping, poller,
+                () -> new JmsLocalTransactionCommit(executor, demandPauser::resume),
+                reportFailure -> new JmsLocalTransactionFailure(executor,
+                        createFailureHandler(ic, reportFailure), demandPauser::resume),
+                demandPauser);
+    }
+
+    private JmsSource createNoneTransactionSource(JmsConnectorIncomingConfiguration ic) {
+        JmsResourceHolder<JMSConsumer> holder = createSourceResourceHolder(ic, () -> createJmsContext(ic));
+        JmsMessagePoller poller = resolveCustomPoller(ic, holder)
+                .orElseGet(() -> new StandardMessagePoller(holder, ic.getReceiveTimeout(), JmsTransactionMode.NONE));
+        return new JmsSource(executionHolders.vertx(), ic, openTelemetryInstance, jsonMapping, poller,
+                () -> new JmsAcknowledgeCommit(executor),
+                reportFailure -> createFailureHandler(ic, reportFailure),
+                null);
+    }
+
+    private Optional<JmsMessagePoller> resolveCustomPoller(JmsConnectorIncomingConfiguration ic,
+            JmsResourceHolder<JMSConsumer> holder) {
+        if (ic.getMessagePoller().isPresent()) {
+            String name = ic.getMessagePoller().get();
+            Instance<JmsMessagePoller.Factory> instance = messagePollerFactories.select(Identifier.Literal.of(name));
+            if (instance.isResolvable()) {
+                return Optional.of(instance.get().create(ic, holder));
+            }
+            throw ex.illegalArgumentInvalidMessagePoller(name);
+        }
+        return Optional.empty();
+    }
+
+    private JmsResourceHolder<JMSConsumer> createSourceResourceHolder(JmsConnectorIncomingConfiguration ic,
+            Supplier<JMSContext> contextCreator) {
+        JmsResourceHolder<JMSConsumer> holder = new JmsResourceHolder<>(ic.getChannel(), contextCreator);
+        String destinationName = ic.getDestination().orElseGet(ic::getChannel);
+        String type = ic.getDestinationType();
+        String selector = ic.getSelector().orElse(null);
+        boolean nolocal = ic.getNoLocal();
+        boolean durable = ic.getDurable();
+        holder.configure(r -> getDestination(r.getContext(), destinationName, type),
+                r -> {
+                    if (durable) {
+                        if (!(r.getDestination() instanceof jakarta.jms.Topic)) {
+                            throw ex.illegalArgumentInvalidDestination();
+                        }
+                        return r.getContext().createDurableConsumer((jakarta.jms.Topic) r.getDestination(),
+                                destinationName, selector, nolocal);
+                    } else {
+                        return r.getContext().createConsumer(r.getDestination(), selector, nolocal);
+                    }
+                });
+        holder.getClient();
+        contexts.add(holder);
+        return holder;
+    }
+
+    private JmsFailureHandler createFailureHandler(JmsConnectorIncomingConfiguration config,
+            BiConsumer<Throwable, Boolean> reportFailure) {
+        String strategy = config.getFailureStrategy();
+        Instance<JmsFailureHandler.Factory> factory = failureHandlerFactories
+                .select(Identifier.Literal.of(strategy));
+        if (factory.isResolvable()) {
+            return factory.get().create(this, config, reportFailure);
+        } else {
+            throw ex.illegalArgumentInvalidFailureStrategy(strategy);
+        }
+    }
+
     private JMSContext createStandardJmsContext(JmsConnectorCommonConfiguration config) {
+        return createStandardJmsContext(config, config.getSessionMode());
+    }
+
+    private JMSContext createStandardJmsContext(JmsConnectorCommonConfiguration config, String sessionMode) {
         String factoryName = config.getConnectionFactoryName().orElse(null);
         ConnectionFactory factory = pickTheFactory(factoryName);
         JMSContext context = createContext(factory,
                 config.getUsername().orElse(null),
                 config.getPassword().orElse(null),
-                config.getSessionMode());
+                sessionMode);
         config.getClientId().ifPresent(context::setClientID);
         return context;
     }
@@ -190,7 +310,7 @@ public class JmsConnector implements InboundConnector, OutboundConnector {
         JmsConnectorOutgoingConfiguration oc = new JmsConnectorOutgoingConfiguration(config);
         JmsResourceHolder<JMSProducer> holder = new JmsResourceHolder<>(oc.getChannel(), () -> createJmsContext(oc));
         contexts.add(holder);
-        return new JmsSink(holder, oc, openTelemetryInstance, jsonMapping, executor).getSink();
+        return new JmsSink(holder, oc, openTelemetryInstance, jsonMapping, executor, true).getSink();
     }
 
     private ConnectionFactory pickTheFactory(String factoryName) {
@@ -226,6 +346,46 @@ public class JmsConnector implements InboundConnector, OutboundConnector {
         }
 
         return iterator.next();
+    }
+
+    private XAConnectionFactory pickTheXaFactory(String factoryName) {
+        if (xaFactories.isUnsatisfied()) {
+            throw new IllegalStateException(
+                    "XA transaction mode requires an XAConnectionFactory bean, but none was found");
+        }
+
+        Iterator<XAConnectionFactory> iterator;
+        if (factoryName == null) {
+            iterator = xaFactories.iterator();
+        } else {
+            Instance<XAConnectionFactory> matching = xaFactories.select(Identifier.Literal.of(factoryName));
+            if (matching.isUnsatisfied()) {
+                matching = xaFactories.select(NamedLiteral.of(factoryName));
+            }
+            iterator = matching.iterator();
+        }
+
+        if (!iterator.hasNext()) {
+            throw new IllegalStateException(
+                    "XA transaction mode requires an XAConnectionFactory" +
+                            (factoryName != null ? " named '" + factoryName + "'" : "") +
+                            ", but none was found");
+        }
+
+        return iterator.next();
+    }
+
+    static Destination getDestination(JMSContext context, String name, String type) {
+        switch (type.toLowerCase()) {
+            case "queue":
+                log.creatingQueue(name);
+                return context.createQueue(name);
+            case "topic":
+                log.creatingTopic(name);
+                return context.createTopic(name);
+            default:
+                throw ex.illegalArgumentUnknownDestinationType(type);
+        }
     }
 
     private JMSContext createContext(ConnectionFactory factory, String username, String password, String mode) {

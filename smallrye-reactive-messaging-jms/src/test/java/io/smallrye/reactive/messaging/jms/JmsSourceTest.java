@@ -15,16 +15,25 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import jakarta.jms.*;
+import jakarta.jms.JMSConsumer;
+import jakarta.jms.JMSContext;
+import jakarta.jms.JMSException;
+import jakarta.jms.JMSProducer;
 import jakarta.jms.Queue;
+import jakarta.jms.TextMessage;
+import jakarta.jms.Topic;
 
 import org.apache.activemq.artemis.jms.client.ActiveMQJMSConnectionFactory;
+import org.eclipse.microprofile.reactive.messaging.Message;
 import org.jboss.weld.environment.se.WeldContainer;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import io.smallrye.common.annotation.Identifier;
 import io.smallrye.mutiny.Multi;
+import io.smallrye.reactive.messaging.jms.commit.JmsAcknowledgeCommit;
+import io.smallrye.reactive.messaging.jms.fault.JmsFailureHandler;
 import io.smallrye.reactive.messaging.support.JmsTestBase;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 import io.vertx.mutiny.core.Vertx;
@@ -53,6 +62,33 @@ public class JmsSourceTest extends JmsTestBase {
 
     private JmsResourceHolder<JMSConsumer> getResourceHolder(String channelName) {
         return new JmsResourceHolder<>(channelName, () -> jms);
+    }
+
+    private JmsSource createSource(JmsResourceHolder<JMSConsumer> holder, MapBasedConfig mapConfig) {
+        JmsConnectorIncomingConfiguration config = new JmsConnectorIncomingConfiguration(mapConfig);
+        String destinationName = config.getDestination().orElseGet(config::getChannel);
+        String type = config.getDestinationType();
+        String selector = config.getSelector().orElse(null);
+        boolean nolocal = config.getNoLocal();
+        boolean durable = config.getDurable();
+        holder.configure(
+                r -> JmsConnector.getDestination(r.getContext(), destinationName, type),
+                r -> durable
+                        ? r.getContext().createDurableConsumer((jakarta.jms.Topic) r.getDestination(),
+                                destinationName, selector, nolocal)
+                        : r.getContext().createConsumer(r.getDestination(), selector, nolocal));
+        holder.getClient();
+        JmsMessagePoller poller = () -> {
+            jakarta.jms.Message received = holder.getClient().receive();
+            return received != null ? Message.of(received) : null;
+        };
+        JmsFailureHandler.Factory failFactory = failureHandlerFactories
+                .select(Identifier.Literal.of(config.getFailureStrategy())).get();
+        return new JmsSource(vertx, config,
+                UnsatisfiedInstance.instance(), null, poller,
+                () -> new JmsAcknowledgeCommit(Runnable::run),
+                reportFailure -> failFactory.create(null, config, reportFailure),
+                null);
     }
 
     @Test
@@ -188,10 +224,9 @@ public class JmsSourceTest extends JmsTestBase {
 
     @Test
     public void testMultipleRequests() {
-        JmsSource source = new JmsSource(null, vertx, getResourceHolder("queue"),
-                new JmsConnectorIncomingConfiguration(new MapBasedConfig().put("channel-name", "queue")),
-                UnsatisfiedInstance.instance(), null, null, failureHandlerFactories);
-        Publisher<IncomingJmsMessage<?>> publisher = source.getSource();
+        JmsResourceHolder<JMSConsumer> holder = getResourceHolder("queue");
+        JmsSource source = createSource(holder, new MapBasedConfig().put("channel-name", "queue"));
+        Publisher<? extends IncomingJmsMessage<?>> publisher = source.getSource();
 
         new Thread(() -> {
             JMSContext context = factory.createContext();
@@ -241,11 +276,10 @@ public class JmsSourceTest extends JmsTestBase {
 
     @Test
     public void testBroadcast() {
-        JmsSource source = new JmsSource(null, vertx, getResourceHolder("queue"),
-                new JmsConnectorIncomingConfiguration(new MapBasedConfig()
-                        .with("channel-name", "queue").with("broadcast", true)),
-                UnsatisfiedInstance.instance(), null, null, failureHandlerFactories);
-        Flow.Publisher<IncomingJmsMessage<?>> publisher = source.getSource();
+        JmsResourceHolder<JMSConsumer> holder = getResourceHolder("queue");
+        JmsSource source = createSource(holder, new MapBasedConfig()
+                .with("channel-name", "queue").with("broadcast", true));
+        Flow.Publisher<? extends IncomingJmsMessage<?>> publisher = source.getSource();
 
         List<IncomingJmsMessage<?>> list1 = new ArrayList<>();
         List<IncomingJmsMessage<?>> list2 = new ArrayList<>();
