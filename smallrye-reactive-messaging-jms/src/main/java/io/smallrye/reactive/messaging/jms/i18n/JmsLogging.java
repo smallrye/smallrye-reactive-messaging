@@ -59,4 +59,8 @@ public interface JmsLogging extends BasicLogger {
     @LogMessage(level = Logger.Level.INFO)
     @Message(id = 15810, value = "A message sent to channel `%s` has been nacked, sending the message to a dead letter queue %s")
     void messageNackedDeadLetter(String channel, String dlq);
+
+    @LogMessage(level = Logger.Level.WARN)
+    @Message(id = 15811, value = "Channel `%s` is configured with XA transaction mode. Make sure the XAConnectionFactory is pooled (e.g., quarkus-pooled-jms, quarkus-ironjacamar, or a JCA resource adapter). Using a non-pooled factory will cause severe performance degradation.")
+    void xaTransactionModeRequiresPooledFactory(String channel);
 }

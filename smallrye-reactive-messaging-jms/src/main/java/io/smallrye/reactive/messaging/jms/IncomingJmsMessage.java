@@ -4,7 +4,6 @@ import static io.smallrye.reactive.messaging.jms.i18n.JmsExceptions.ex;
 import static io.smallrye.reactive.messaging.providers.locals.ContextAwareMessage.captureContextMetadata;
 
 import java.util.concurrent.CompletionStage;
-import java.util.concurrent.Executor;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
@@ -13,7 +12,7 @@ import jakarta.jms.Message;
 
 import org.eclipse.microprofile.reactive.messaging.Metadata;
 
-import io.smallrye.mutiny.Uni;
+import io.smallrye.reactive.messaging.jms.commit.JmsCommitHandler;
 import io.smallrye.reactive.messaging.jms.fault.JmsFailureHandler;
 import io.smallrye.reactive.messaging.json.JsonMapping;
 import io.smallrye.reactive.messaging.providers.MetadataInjectableMessage;
@@ -21,17 +20,18 @@ import io.smallrye.reactive.messaging.providers.locals.ContextAwareMessage;
 
 public class IncomingJmsMessage<T> implements ContextAwareMessage<T>, MetadataInjectableMessage<T> {
     private final Message delegate;
-    private final Executor executor;
+    private final JmsCommitHandler commitHandler;
     private final JmsFailureHandler failureHandler;
     private final Class<T> clazz;
     private final JsonMapping jsonMapping;
     private final IncomingJmsMessageMetadata jmsMetadata;
     private Metadata metadata;
 
-    IncomingJmsMessage(Message message, Executor executor, JsonMapping jsonMapping, JmsFailureHandler failureHandler) {
+    IncomingJmsMessage(Message message, JsonMapping jsonMapping,
+            JmsCommitHandler commitHandler, JmsFailureHandler failureHandler) {
         this.delegate = message;
         this.jsonMapping = jsonMapping;
-        this.executor = executor;
+        this.commitHandler = commitHandler;
         this.failureHandler = failureHandler;
         String cn = null;
         try {
@@ -117,17 +117,7 @@ public class IncomingJmsMessage<T> implements ContextAwareMessage<T>, MetadataIn
 
     @Override
     public CompletionStage<Void> ack(Metadata metadata) {
-        return Uni.createFrom().voidItem()
-                .onItem().invoke(m -> {
-                    try {
-                        delegate.acknowledge();
-                    } catch (JMSException e) {
-                        throw new IllegalArgumentException("Unable to acknowledge message", e);
-                    }
-                })
-                .runSubscriptionOn(executor)
-                .emitOn(this::runOnMessageContext)
-                .subscribeAsCompletionStage();
+        return commitHandler.handle(this, metadata).subscribeAsCompletionStage();
     }
 
     @Override
