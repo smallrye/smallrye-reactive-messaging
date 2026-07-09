@@ -9,6 +9,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -23,14 +26,19 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.smallrye.common.annotation.Identifier;
+import io.smallrye.common.vertx.ContextLocals;
+import io.smallrye.common.vertx.VertxContext;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.helpers.test.UniAssertSubscriber;
+import io.smallrye.reactive.messaging.providers.connectors.ExecutionHolder;
 import io.smallrye.reactive.messaging.rabbitmq.og.IncomingRabbitMQMessage;
 import io.smallrye.reactive.messaging.rabbitmq.og.OutgoingRabbitMQMetadata;
 import io.smallrye.reactive.messaging.rabbitmq.og.RabbitMQConnector;
 import io.smallrye.reactive.messaging.rabbitmq.og.WeldTestBase;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 import io.smallrye.reactive.messaging.test.common.config.SmallRyeConfigTestUtil;
+import io.vertx.core.Context;
+import io.vertx.core.Vertx;
 
 class RabbitMQRequestReplyTest extends WeldTestBase {
 
@@ -78,17 +86,52 @@ class RabbitMQRequestReplyTest extends WeldTestBase {
     }
 
     @Test
+    public void testReplyCallerContextPropagation() throws InterruptedException {
+        String exchange = "test-exchange";
+        String requestAddress = "requests";
+        weld.addBeanClasses(RequestReplyProducer.class, ReplyServer.class);
+        config(exchange, requestAddress).write();
+        SmallRyeConfigTestUtil.installConfig();
+        container = weld.initialize();
+
+        RequestReplyProducer producer = container.getBeanManager().createInstance()
+                .select(RequestReplyProducer.class).get();
+        await().until(() -> isRabbitMQConnectorAvailable(container));
+
+        AtomicReference<Context> replyContext = new AtomicReference<>();
+        AtomicReference<String> replyLocalValue = new AtomicReference<>();
+        CountDownLatch latch = new CountDownLatch(1);
+        String expectedValue = "test-context-value";
+
+        ExecutionHolder executionHolder = container.getBeanManager()
+                .createInstance().select(ExecutionHolder.class).get();
+        Context rootCtx = executionHolder.vertx().getDelegate().getOrCreateContext();
+        VertxContext.createNewDuplicatedContext(rootCtx).runOnContext(v -> {
+            ContextLocals.put("test-key", expectedValue);
+            producer.requestReply().request(42)
+                    .subscribe().with(reply -> {
+                        replyContext.set(Vertx.currentContext());
+                        replyLocalValue.set(ContextLocals.get("test-key", null));
+                        latch.countDown();
+                    });
+        });
+
+        assertThat(latch.await(10, TimeUnit.SECONDS)).isTrue();
+        assertThat(replyLocalValue.get()).isEqualTo(expectedValue);
+        assertThat(replyContext.get()).isNotNull();
+    }
+
+    @Test
     public void testReplyWithTopicExchange() {
-        String exchange = "test-topic-exchange";
         String routingKey = "rpc.requests";
         weld.addBeanClasses(RequestReplyProducer.class, ReplyServer.class);
         commonConfig()
                 .with("mp.messaging.outgoing.request-reply.connector", RabbitMQConnector.CONNECTOR_NAME)
-                .with("mp.messaging.outgoing.request-reply.exchange.name", exchange)
+                .with("mp.messaging.outgoing.request-reply.exchange.name", exchangeName)
                 .with("mp.messaging.outgoing.request-reply.exchange.type", "topic")
                 .with("mp.messaging.outgoing.request-reply.default-routing-key", routingKey)
                 .with("mp.messaging.incoming.req.connector", RabbitMQConnector.CONNECTOR_NAME)
-                .with("mp.messaging.incoming.req.exchange.name", exchange)
+                .with("mp.messaging.incoming.req.exchange.name", exchangeName)
                 .with("mp.messaging.incoming.req.exchange.type", "topic")
                 .with("mp.messaging.incoming.req.routing-keys", "rpc.*")
                 .with("mp.messaging.outgoing.rep.connector", RabbitMQConnector.CONNECTOR_NAME)

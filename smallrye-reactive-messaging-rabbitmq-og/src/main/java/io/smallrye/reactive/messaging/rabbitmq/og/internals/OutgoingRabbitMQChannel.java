@@ -76,7 +76,7 @@ public class OutgoingRabbitMQChannel implements ConfirmListener, ShutdownListene
 
         // Initialize tracing if enabled
         if (configuration.getTracingEnabled()) {
-            this.instrumenter = RabbitMQOpenTelemetryInstrumenter.createForSender(openTelemetryInstance);
+            this.instrumenter = RabbitMQOpenTelemetryInstrumenter.createForSender(openTelemetryInstance, configuration);
         } else {
             this.instrumenter = null;
         }

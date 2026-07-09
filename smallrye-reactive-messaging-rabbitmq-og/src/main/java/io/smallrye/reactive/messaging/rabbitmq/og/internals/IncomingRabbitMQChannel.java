@@ -74,7 +74,7 @@ public class IncomingRabbitMQChannel {
 
         // Initialize tracing if enabled
         if (configuration.getTracingEnabled()) {
-            this.instrumenter = RabbitMQOpenTelemetryInstrumenter.createForConnector(openTelemetryInstance);
+            this.instrumenter = RabbitMQOpenTelemetryInstrumenter.createForConnector(openTelemetryInstance, configuration);
         } else {
             this.instrumenter = null;
         }

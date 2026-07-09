@@ -4,6 +4,8 @@ import static io.opentelemetry.semconv.incubating.MessagingIncubatingAttributes.
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import io.opentelemetry.api.common.AttributesBuilder;
 import io.opentelemetry.context.Context;
@@ -15,8 +17,10 @@ import io.opentelemetry.instrumentation.api.instrumenter.AttributesExtractor;
  */
 public class RabbitMQTraceAttributesExtractor implements AttributesExtractor<RabbitMQTrace, Void> {
     private final MessagingAttributesGetter<RabbitMQTrace, Void> messagingAttributesGetter;
+    private final Set<String> tracingAttributeHeaders;
 
-    public RabbitMQTraceAttributesExtractor() {
+    public RabbitMQTraceAttributesExtractor(Set<String> tracingAttributeHeaders) {
+        this.tracingAttributeHeaders = tracingAttributeHeaders;
         this.messagingAttributesGetter = new RabbitMQMessagingAttributesGetter();
     }
 
@@ -29,6 +33,24 @@ public class RabbitMQTraceAttributesExtractor implements AttributesExtractor<Rab
             final AttributesBuilder attributes,
             final Context parentContext, final RabbitMQTrace rabbitMQTrace) {
         attributes.put(MESSAGING_RABBITMQ_DESTINATION_ROUTING_KEY, rabbitMQTrace.getRoutingKey());
+        setTracingHeaderAttributes(attributes, rabbitMQTrace.getHeaders());
+    }
+
+    private void setTracingHeaderAttributes(AttributesBuilder attributes, Map<String, Object> traceHeaders) {
+        tracingAttributeHeaders.stream()
+                .filter(traceHeaders::containsKey)
+                .forEach(attributeHeader -> {
+                    Object value = traceHeaders.get(attributeHeader);
+                    if (value instanceof String) {
+                        attributes.put(attributeHeader, (String) value);
+                    } else if (value instanceof Long) {
+                        attributes.put(attributeHeader, (long) value);
+                    } else if (value instanceof Double) {
+                        attributes.put(attributeHeader, (Double) value);
+                    } else if (value instanceof Boolean) {
+                        attributes.put(attributeHeader, (Boolean) value);
+                    }
+                });
     }
 
     @Override

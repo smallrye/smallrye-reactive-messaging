@@ -1,5 +1,8 @@
 package io.smallrye.reactive.messaging.rabbitmq.og.tracing;
 
+import java.util.Arrays;
+import java.util.stream.Collectors;
+
 import jakarta.enterprise.inject.Instance;
 
 import org.eclipse.microprofile.reactive.messaging.Message;
@@ -11,6 +14,7 @@ import io.opentelemetry.instrumentation.api.incubator.semconv.messaging.Messagin
 import io.opentelemetry.instrumentation.api.incubator.semconv.messaging.MessagingSpanNameExtractor;
 import io.opentelemetry.instrumentation.api.instrumenter.Instrumenter;
 import io.opentelemetry.instrumentation.api.instrumenter.InstrumenterBuilder;
+import io.smallrye.reactive.messaging.rabbitmq.og.RabbitMQConnectorCommonConfiguration;
 import io.smallrye.reactive.messaging.tracing.TracingUtils;
 
 /**
@@ -24,18 +28,23 @@ public class RabbitMQOpenTelemetryInstrumenter {
         this.instrumenter = instrumenter;
     }
 
-    public static RabbitMQOpenTelemetryInstrumenter createForSender(Instance<OpenTelemetry> openTelemetryInstance) {
-        return create(TracingUtils.getOpenTelemetry(openTelemetryInstance), true);
+    public static RabbitMQOpenTelemetryInstrumenter createForSender(Instance<OpenTelemetry> openTelemetryInstance,
+            RabbitMQConnectorCommonConfiguration config) {
+        return create(TracingUtils.getOpenTelemetry(openTelemetryInstance), true, config);
     }
 
-    public static RabbitMQOpenTelemetryInstrumenter createForConnector(Instance<OpenTelemetry> openTelemetryInstance) {
-        return create(TracingUtils.getOpenTelemetry(openTelemetryInstance), false);
+    public static RabbitMQOpenTelemetryInstrumenter createForConnector(Instance<OpenTelemetry> openTelemetryInstance,
+            RabbitMQConnectorCommonConfiguration config) {
+        return create(TracingUtils.getOpenTelemetry(openTelemetryInstance), false, config);
     }
 
-    private static RabbitMQOpenTelemetryInstrumenter create(OpenTelemetry openTelemetry, boolean sender) {
+    private static RabbitMQOpenTelemetryInstrumenter create(OpenTelemetry openTelemetry, boolean sender,
+            RabbitMQConnectorCommonConfiguration config) {
         MessageOperation messageOperation = sender ? MessageOperation.PUBLISH : MessageOperation.RECEIVE;
 
-        RabbitMQTraceAttributesExtractor rabbitMQAttributesExtractor = new RabbitMQTraceAttributesExtractor();
+        RabbitMQTraceAttributesExtractor rabbitMQAttributesExtractor = new RabbitMQTraceAttributesExtractor(
+                Arrays.stream(config.getTracingAttributeHeaders().split(","))
+                        .map(String::trim).collect(Collectors.toSet()));
         MessagingAttributesGetter<RabbitMQTrace, Void> messagingAttributesGetter = rabbitMQAttributesExtractor
                 .getMessagingAttributesGetter();
         InstrumenterBuilder<RabbitMQTrace, Void> builder = Instrumenter.builder(openTelemetry,

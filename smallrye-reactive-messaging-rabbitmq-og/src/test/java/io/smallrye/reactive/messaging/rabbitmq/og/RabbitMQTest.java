@@ -237,7 +237,7 @@ class RabbitMQTest extends WeldTestBase {
         await().until(() -> isRabbitMQConnectorAvailable(container));
 
         IncomingContextBean bean = get(container, IncomingContextBean.class);
-        await().atMost(1, TimeUnit.MINUTES).untilAsserted(() -> {
+        await().untilAsserted(() -> {
             JsonArray connections = usage.getConnections();
             assertThat(connections).isNotNull();
 
@@ -252,7 +252,7 @@ class RabbitMQTest extends WeldTestBase {
 
         usage.produce(exchangeName, queueName, routingKey, 1, () -> 1);
 
-        assertThat(bean.awaitMessage(1, TimeUnit.MINUTES)).isTrue();
+        assertThat(bean.awaitMessage(10, TimeUnit.SECONDS)).isTrue();
         assertThat(bean.getMessageContext()).isNotNull();
         assertThat(bean.isEventLoopContext()).isTrue();
     }
@@ -291,7 +291,7 @@ class RabbitMQTest extends WeldTestBase {
         container = weld.initialize();
         await().until(() -> isRabbitMQConnectorAvailable(container));
 
-        await().atMost(1, TimeUnit.MINUTES).untilAsserted(() -> {
+        await().untilAsserted(() -> {
             JsonArray connections = usage.getConnections();
             assertThat(connections).isNotNull();
 
@@ -330,7 +330,7 @@ class RabbitMQTest extends WeldTestBase {
         container = weld.initialize();
         await().until(() -> isRabbitMQConnectorAvailable(container));
 
-        await().atMost(1, TimeUnit.MINUTES).untilAsserted(() -> {
+        await().untilAsserted(() -> {
             JsonArray connections = usage.getConnections();
             assertThat(connections).isNotNull();
 
@@ -801,7 +801,7 @@ class RabbitMQTest extends WeldTestBase {
         AtomicInteger counter = new AtomicInteger();
         usage.produceTenIntegers(exchangeName, queueName, routingKey, counter::getAndIncrement);
 
-        await().atMost(1, TimeUnit.MINUTES).until(() -> list.size() >= 10);
+        await().until(() -> list.size() >= 10);
         assertThat(list).containsExactly(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
     }
 
@@ -840,7 +840,7 @@ class RabbitMQTest extends WeldTestBase {
 
         AtomicInteger counter = new AtomicInteger();
         usage.produce(exchangeName, queueName, routingKey, 10, counter::getAndIncrement, "application/invalid");
-        await().atMost(1, TimeUnit.MINUTES).until(() -> list.size() >= 10);
+        await().until(() -> list.size() >= 10);
         assertThat(bean.getTypeCasts()).isEqualTo(10);
         assertThat(list).containsOnly(0);
     }
@@ -881,7 +881,7 @@ class RabbitMQTest extends WeldTestBase {
 
         AtomicInteger counter = new AtomicInteger();
         usage.produce(exchangeName, queueName, routingKey, 10, counter::getAndIncrement, "application/invalid");
-        await().atMost(1, TimeUnit.MINUTES).until(() -> list.size() >= 10);
+        await().until(() -> list.size() >= 10);
         assertThat(bean.getTypeCasts()).isEqualTo(0);
         assertThat(list).containsExactly(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
     }
@@ -920,7 +920,7 @@ class RabbitMQTest extends WeldTestBase {
 
         AtomicInteger counter = new AtomicInteger();
         usage.produce("", queueName, queueName, 10, counter::getAndIncrement, "application/invalid");
-        await().atMost(1, TimeUnit.MINUTES).until(() -> list.size() >= 10);
+        await().until(() -> list.size() >= 10);
         assertThat(bean.getTypeCasts()).isEqualTo(0);
         assertThat(list).containsExactly(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
     }
@@ -1030,7 +1030,7 @@ class RabbitMQTest extends WeldTestBase {
 
         AtomicInteger counter = new AtomicInteger();
         usage.produceTenIntegers(exchangeName, queueName, routingKey, counter::getAndIncrement);
-        await().atMost(1, TimeUnit.MINUTES).until(() -> list.size() >= 10);
+        await().until(() -> list.size() >= 10);
         assertThat(bean.getTypeCasts()).isEqualTo(0);
         assertThat(list).containsExactly(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
         await().untilAsserted(() -> {
@@ -1078,20 +1078,27 @@ class RabbitMQTest extends WeldTestBase {
 
         SmallRyeConfigTestUtil.installConfig();
         container = weld.initialize();
-        await().atMost(1, TimeUnit.MINUTES).until(() -> isRabbitMQConnectorAvailable(container));
+        await().until(() -> isRabbitMQConnectorAvailable(container));
 
         DualIncomingContextBean bean = get(container, DualIncomingContextBean.class);
+
+        await().until(() -> {
+            JsonObject queue1 = usage.getQueue(queueName);
+            JsonObject queue2 = usage.getQueue(queueName2);
+            return queue1 != null && queue1.getInteger("consumers", 0) > 0
+                    && queue2 != null && queue2.getInteger("consumers", 0) > 0;
+        });
 
         usage.produce(exchangeName, queueName, routingKey1, 1, () -> 1);
         usage.produce(exchangeName, queueName2, routingKey2, 1, () -> 2);
 
-        assertThat(bean.awaitMessages(1, TimeUnit.MINUTES)).isTrue();
+        assertThat(bean.awaitMessages(10, TimeUnit.SECONDS)).isTrue();
 
         assertThat(bean.isEventLoop1()).isTrue();
         assertThat(bean.isEventLoop2()).isTrue();
         assertThat(bean.getContext1()).isNotSameAs(bean.getContext2());
 
-        await().atMost(1, TimeUnit.MINUTES).untilAsserted(() -> {
+        await().untilAsserted(() -> {
             JsonArray connections = usage.getConnections();
             assertThat(connections).isNotNull();
 
@@ -1132,9 +1139,14 @@ class RabbitMQTest extends WeldTestBase {
 
         IncomingContextBean bean = get(container, IncomingContextBean.class);
 
+        await().until(() -> {
+            JsonObject queue = usage.getQueue(queueName);
+            return queue != null && queue.getInteger("consumers", 0) > 0;
+        });
+
         usage.produce(exchangeName, queueName, routingKey, 1, () -> 1);
 
-        assertThat(bean.awaitMessage(1, TimeUnit.MINUTES)).isTrue();
+        assertThat(bean.awaitMessage(10, TimeUnit.SECONDS)).isTrue();
         assertThat(bean.getMessageContext()).isNotNull();
         assertThat(bean.isEventLoopContext()).isTrue();
     }
