@@ -1,5 +1,6 @@
 package io.smallrye.reactive.messaging.jms;
 
+import static io.smallrye.reactive.messaging.jms.JmsConnector.getDestination;
 import static io.smallrye.reactive.messaging.jms.i18n.JmsExceptions.ex;
 import static io.smallrye.reactive.messaging.jms.i18n.JmsLogging.log;
 
@@ -36,14 +37,26 @@ class JmsSink {
     private final Executor executor;
     private final JmsOpenTelemetryInstrumenter jmsInstrumenter;
     private final boolean isTracingEnabled;
+    private final boolean sessionSharingEnabled;
+    private final String destinationName;
+    private final String destinationType;
 
     JmsSink(JmsResourceHolder<JMSProducer> resourceHolder, JmsConnectorOutgoingConfiguration config,
             Instance<OpenTelemetry> openTelemetryInstance, JsonMapping jsonMapping,
             Executor executor) {
+        this(resourceHolder, config, openTelemetryInstance, jsonMapping, executor, false);
+    }
+
+    JmsSink(JmsResourceHolder<JMSProducer> resourceHolder, JmsConnectorOutgoingConfiguration config,
+            Instance<OpenTelemetry> openTelemetryInstance, JsonMapping jsonMapping,
+            Executor executor, boolean sessionSharingEnabled) {
+        this.sessionSharingEnabled = sessionSharingEnabled;
         this.isTracingEnabled = config.getTracingEnabled();
 
         String name = config.getDestination().orElseGet(config::getChannel);
         String type = config.getDestinationType();
+        this.destinationName = name;
+        this.destinationType = type;
         boolean retry = config.getRetry();
         int retryMaxRetries = config.getRetryMaxRetries();
         Duration retryInitialDelay = Duration.parse(config.getRetryInitialDelay());
@@ -110,13 +123,31 @@ class JmsSink {
     private Uni<? extends Message<?>> send(JmsResourceHolder<JMSProducer> resourceHolder, Message<?> message) {
         Object payload = message.getPayload();
 
-        Destination destination = resourceHolder.getDestination();
-        JMSContext context = resourceHolder.getContext();
+        // Check for shared transactional session context from incoming message
+        JMSContext sharedContext = null;
+        if (sessionSharingEnabled) {
+            sharedContext = message.getMetadata(JmsSessionContext.class)
+                    .map(JmsSessionContext::jmsContext)
+                    .orElse(null);
+        }
+
+        Destination destination;
+        JMSContext context;
+        JMSProducer producer;
+        if (sharedContext != null) {
+            context = sharedContext;
+            destination = getDestination(context, destinationName, destinationType);
+            producer = context.createProducer();
+        } else {
+            destination = resourceHolder.getDestination();
+            context = resourceHolder.getContext();
+            producer = resourceHolder.getClient();
+        }
         // If the payload is a JMS Message, send it as it is, ignoring metadata.
         if (payload instanceof jakarta.jms.Message) {
             outgoingTrace(destination, message, (jakarta.jms.Message) payload);
             return dispatch(message,
-                    () -> resourceHolder.getClient().send(destination, (jakarta.jms.Message) payload));
+                    () -> producer.send(destination, (jakarta.jms.Message) payload));
         }
 
         try {
@@ -176,7 +207,7 @@ class JmsSink {
             }
 
             outgoingTrace(actualDestination, message, outgoing);
-            return dispatch(message, () -> resourceHolder.getClient().send(actualDestination, outgoing));
+            return dispatch(message, () -> producer.send(actualDestination, outgoing));
         } catch (JMSException e) {
             return Uni.createFrom().failure(new IllegalStateException(e));
         }
@@ -220,18 +251,6 @@ class JmsSink {
                 .invoke(action)
                 .call(message -> Uni.createFrom().completionStage(incoming::ack))
                 .runSubscriptionOn(executor);
-    }
-
-    private Destination getDestination(JMSContext context, String name, String type) {
-        switch (type.toLowerCase()) {
-            case "queue":
-                return context.createQueue(name);
-            case "topic":
-                return context.createTopic(name);
-            default:
-                throw ex.illegalStateUnknownDestinationType(type);
-        }
-
     }
 
     Flow.Subscriber<Message<?>> getSink() {
