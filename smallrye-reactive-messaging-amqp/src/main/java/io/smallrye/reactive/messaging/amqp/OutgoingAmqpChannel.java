@@ -17,7 +17,7 @@ import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.amqp.cbs.CbsTokenManager;
 import io.smallrye.reactive.messaging.providers.helpers.MultiUtils;
 import io.vertx.amqp.AmqpSenderOptions;
-import io.vertx.core.impl.VertxInternal;
+import io.vertx.core.internal.VertxInternal;
 import io.vertx.mutiny.amqp.AmqpSender;
 import io.vertx.mutiny.core.Context;
 import io.vertx.mutiny.core.Vertx;

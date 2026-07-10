@@ -29,6 +29,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.smallrye.common.annotation.Identifier;
+import io.smallrye.common.vertx.ContextLocals;
+import io.smallrye.common.vertx.VertxContext;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.helpers.test.UniAssertSubscriber;
 import io.smallrye.reactive.messaging.providers.connectors.ExecutionHolder;
@@ -118,12 +120,13 @@ class RabbitMQRequestReplyTest extends RabbitMQBrokerTestBase {
 
         ExecutionHolder executionHolder = container.getBeanManager()
                 .createInstance().select(ExecutionHolder.class).get();
-        executionHolder.vertx().getDelegate().getOrCreateContext().runOnContext(v -> {
-            Vertx.currentContext().putLocal("test-key", expectedValue);
+        io.vertx.core.Context rootCtx = executionHolder.vertx().getDelegate().getOrCreateContext();
+        VertxContext.createNewDuplicatedContext(rootCtx).runOnContext(v -> {
+            ContextLocals.put("test-key", expectedValue);
             producer.requestReply().request(42)
                     .subscribe().with(reply -> {
                         replyContext.set(Vertx.currentContext());
-                        replyLocalValue.set(Vertx.currentContext().getLocal("test-key"));
+                        replyLocalValue.set(ContextLocals.get("test-key", null));
                         latch.countDown();
                     });
         });

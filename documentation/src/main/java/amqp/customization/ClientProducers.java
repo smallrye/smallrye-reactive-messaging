@@ -21,8 +21,8 @@ public class ClientProducers {
 
         return new AmqpClientOptions()
                 .setSsl(true)
-                .setPemKeyCertOptions(keycert)
-                .setPemTrustOptions(trust)
+                .setKeyCertOptions(keycert)
+                .setTrustOptions(trust)
                 .addEnabledSaslMechanism("EXTERNAL")
                 .setHostnameVerificationAlgorithm("") // Disable hostname verification
                 .setConnectTimeout(30000)

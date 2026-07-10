@@ -38,7 +38,7 @@ import io.smallrye.reactive.messaging.providers.DefaultEmitterConfiguration;
 import io.smallrye.reactive.messaging.providers.extension.MutinyEmitterImpl;
 import io.vertx.core.Context;
 import io.vertx.core.Vertx;
-import io.vertx.core.impl.VertxInternal;
+import io.vertx.core.internal.VertxInternal;
 import mutiny.zero.flow.adapters.AdaptersToFlow;
 
 public class MutinyEmitterInjectionTest extends WeldTestBaseWithoutTails {
