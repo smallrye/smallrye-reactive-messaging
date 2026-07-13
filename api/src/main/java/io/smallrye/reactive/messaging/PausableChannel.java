@@ -21,4 +21,11 @@ public interface PausableChannel {
      * Resumes the channel.
      */
     void resume();
+
+    /**
+     * Clears the buffer of the channel, discarding any items that have been
+     * requested from upstream but not yet delivered to the consumer.
+     */
+    default void clearBuffer() {
+    }
 }
