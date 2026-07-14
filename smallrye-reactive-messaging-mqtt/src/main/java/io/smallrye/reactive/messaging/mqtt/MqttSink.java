@@ -11,6 +11,7 @@ import jakarta.enterprise.inject.Instance;
 
 import org.eclipse.microprofile.reactive.messaging.Message;
 
+import io.netty.handler.codec.mqtt.MqttProperties;
 import io.netty.handler.codec.mqtt.MqttQoS;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.vertx.AsyncResultUni;
@@ -86,6 +87,7 @@ public class MqttSink {
         final String actualTopicToBeUsed;
         final MqttQoS actualQoS;
         final boolean isRetain;
+        final MqttProperties properties;
 
         Optional<SendingMqttMessageMetadata> metadata = msg.getMetadata(SendingMqttMessageMetadata.class);
         if (metadata.isPresent()) {
@@ -93,10 +95,12 @@ public class MqttSink {
             actualTopicToBeUsed = mm.getTopic() == null ? this.topic : mm.getTopic();
             actualQoS = mm.getQosLevel() == null ? MqttQoS.valueOf(this.qos) : mm.getQosLevel();
             isRetain = mm.isRetain();
+            properties = mm.getProperties();
         } else {
             actualTopicToBeUsed = this.topic;
             isRetain = this.retain;
             actualQoS = MqttQoS.valueOf(this.qos);
+            properties = MqttProperties.NO_PROPERTIES;
         }
 
         if (actualTopicToBeUsed == null) {
@@ -106,7 +110,8 @@ public class MqttSink {
 
         return AsyncResultUni
                 .<Integer> toUni(h -> client
-                        .publish(actualTopicToBeUsed, convert(msg.getPayload()).getDelegate(), actualQoS, false, isRetain)
+                        .publish(actualTopicToBeUsed, convert(msg.getPayload()).getDelegate(), actualQoS, false, isRetain,
+                                properties)
                         .onComplete(h))
                 .onItemOrFailure().transformToUni((s, f) -> {
                     if (f != null) {

@@ -139,12 +139,6 @@ public class MqttClientSessionOptions extends MqttClientOptions {
     }
 
     @Override
-    public MqttClientSessionOptions setWillFlag(boolean willFlag) {
-        super.setWillFlag(willFlag);
-        return this;
-    }
-
-    @Override
     public MqttClientSessionOptions setWillQoS(int willQoS) {
         super.setWillQoS(willQoS);
         return this;
@@ -501,4 +495,8 @@ public class MqttClientSessionOptions extends MqttClientOptions {
         super.setTcpUserTimeout(tcpUserTimeout);
         return this;
     }
+
+    // Note: setVersion, setSessionExpireInterval, setReceiveMaximum, setTopicAliasMaximum
+    // are inherited from MqttClientOptions and return void. We don't override them
+    // to avoid return type incompatibility issues.
 }
