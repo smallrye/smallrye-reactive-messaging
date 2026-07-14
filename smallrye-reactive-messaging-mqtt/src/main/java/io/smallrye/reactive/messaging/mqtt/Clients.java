@@ -74,7 +74,7 @@ public class Clients {
             int count = messagesInBuffer.get(channel).incrementAndGet();
             // Only pause/resume while the client is connected: acting on a disconnected
             // session has no effect, and the paused state could otherwise leak across reconnects.
-            if (count > ninetiethThreshold && !client.isPaused() && client.isConnected()) {
+            if (count > ninetiethThreshold && client.isConnected() && !client.isPaused()) {
                 log.infof("[%s] Buffer almost full, pausing MQTT message consumption.", channel);
                 client.pause();
             }
@@ -82,7 +82,7 @@ public class Clients {
 
         public void messageExitBuffer(String channel) {
             messagesInBuffer.get(channel).decrementAndGet();
-            if (client.isPaused() && client.isConnected() && allChannelsBelowHalf()) {
+            if (client.isConnected() && client.isPaused() && allChannelsBelowHalf()) {
                 log.info("All channels below resume threshold, resuming MQTT message consumption.");
                 client.resume();
             }
