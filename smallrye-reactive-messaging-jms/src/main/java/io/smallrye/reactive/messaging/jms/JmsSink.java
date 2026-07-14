@@ -5,9 +5,6 @@ import static io.smallrye.reactive.messaging.jms.i18n.JmsExceptions.ex;
 import static io.smallrye.reactive.messaging.jms.i18n.JmsLogging.log;
 
 import java.time.Duration;
-import java.util.Enumeration;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Flow;
 
@@ -215,21 +212,9 @@ class JmsSink {
 
     private void outgoingTrace(Destination actualDestination, Message<?> message, jakarta.jms.Message payload) {
         if (isTracingEnabled) {
-            jakarta.jms.Message jmsPayload = payload;
-            Map<String, Object> messageProperties = new HashMap<>();
-            try {
-                Enumeration<?> propertyNames = jmsPayload.getPropertyNames();
-
-                while (propertyNames.hasMoreElements()) {
-                    String propertyName = (String) propertyNames.nextElement();
-                    messageProperties.put(propertyName, jmsPayload.getObjectProperty(propertyName));
-                }
-            } catch (JMSException e) {
-                throw new RuntimeException(e);
-            }
             JmsTrace jmsTrace = new JmsTrace.Builder()
                     .withQueue(actualDestination.toString())
-                    .withMessage(jmsPayload)
+                    .withMessage(payload)
                     .build();
             jmsInstrumenter.traceOutgoing(message, jmsTrace);
         }

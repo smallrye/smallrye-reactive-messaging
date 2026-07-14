@@ -5,10 +5,7 @@ import static io.smallrye.reactive.messaging.jms.i18n.JmsLogging.log;
 
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.Enumeration;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -244,18 +241,6 @@ class JmsSource {
                 return null;
             });
             jakarta.jms.Message unwrapped = jmsMessage.unwrap(jakarta.jms.Message.class);
-
-            Map<String, Object> properties = new HashMap<>();
-            try {
-                Enumeration<?> propertyNames = unwrapped.getPropertyNames();
-                while (propertyNames.hasMoreElements()) {
-                    String name = (String) propertyNames.nextElement();
-                    Object value = unwrapped.getObjectProperty(name);
-                    properties.put(name, value);
-                }
-            } catch (JMSException e) {
-                throw new RuntimeException(e);
-            }
 
             JmsTrace jmsTrace = new JmsTrace.Builder()
                     .withQueue(queueName.orElse(null))
