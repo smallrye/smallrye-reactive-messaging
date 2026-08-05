@@ -1,5 +1,7 @@
 package io.smallrye.reactive.messaging.gcp.pubsub.i18n;
 
+import java.lang.invoke.MethodHandles;
+
 import org.jboss.logging.BasicLogger;
 import org.jboss.logging.Logger;
 import org.jboss.logging.annotations.Cause;
@@ -17,7 +19,8 @@ import com.google.pubsub.v1.TopicName;
 @MessageLogger(projectCode = "SRMSG", length = 5)
 public interface PubSubLogging extends BasicLogger {
 
-    PubSubLogging log = Logger.getMessageLogger(PubSubLogging.class, "io.smallrye.reactive.messaging.gcp.pubsub");
+    PubSubLogging log = Logger.getMessageLogger(MethodHandles.lookup(), PubSubLogging.class,
+            "io.smallrye.reactive.messaging.gcp.pubsub");
 
     @LogMessage(level = Logger.Level.TRACE)
     @Message(id = 14800, value = "Topic %s already exists")
