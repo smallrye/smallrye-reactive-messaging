@@ -156,6 +156,16 @@ public class OrderedStreamHandler extends ContextHolder implements KafkaCommitHa
 
     @Override
     public void partitionsSeeked(Collection<TopicPartition> partitions) {
+        if (orderedByGroups != null) {
+            orderedByGroups.entrySet().removeIf(entry -> {
+                TopicPartitionKey key = entry.getKey();
+                if (partitions.contains(key.topicPartition()) && key.key() != null) {
+                    entry.getValue().cancel();
+                    return true;
+                }
+                return false;
+            });
+        }
         delegate.partitionsSeeked(partitions);
     }
 
