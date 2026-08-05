@@ -88,7 +88,7 @@ public class AmqpDirectRequestReply {
                 .id(correlationId)
                 .replyTo(replyToAddress)
                 .build();
-        return Uni.createFrom().<AmqpMessage> emitter(em -> {
+        return replyReceiver.chain(() -> Uni.createFrom().<AmqpMessage> emitter(em -> {
             pendingRequests.put(correlationId, (UniEmitter<AmqpMessage>) em);
             requestSender.flatMap(s -> s.sendWithAck(toSend))
                     .subscribe().with(
@@ -98,7 +98,7 @@ public class AmqpDirectRequestReply {
                                 pendingRequests.remove(correlationId);
                                 em.fail(failure);
                             });
-        })
+        }))
                 .ifNoItem().after(timeout)
                 .failWith(() -> new AmqpRequestReplyTimeoutException(correlationId))
                 .onTermination().invoke(() -> pendingRequests.remove(correlationId));

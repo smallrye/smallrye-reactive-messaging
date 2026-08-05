@@ -24,8 +24,8 @@ public class AmqpRabbitMQDirectRequestReplyTest extends RabbitMQBrokerTestBase {
 
         AmqpConnection amqpConnection = usage.client.connectAndAwait();
         AmqpSender replySender = usage.client.createSender(replyAddress).await().indefinitely();
-        usage.client.createReceiver(requestAddress)
-                .onItem().transformToMulti(AmqpReceiver::toMulti)
+        AmqpReceiver requestReceiver = usage.client.createReceiver(requestAddress).await().indefinitely();
+        requestReceiver.toMulti()
                 .onItem().transformToUniAndConcatenate(request -> replySender.sendWithAck(AmqpMessage.create()
                         .correlationId(request.id())
                         .address(request.replyTo())
