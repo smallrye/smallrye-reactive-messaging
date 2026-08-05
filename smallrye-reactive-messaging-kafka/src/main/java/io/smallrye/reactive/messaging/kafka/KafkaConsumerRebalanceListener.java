@@ -142,4 +142,23 @@ public interface KafkaConsumerRebalanceListener {
         onPartitionsRevoked(consumer, partitions);
     }
 
+    /**
+     * Called after the consumer position is explicitly changed via seek operations
+     * ({@link Consumer#seek}, {@link Consumer#seekToBeginning}, {@link Consumer#seekToEnd}).
+     * <p>
+     * This callback is invoked after the seek has taken effect. Calling
+     * {@link Consumer#position(org.apache.kafka.common.TopicPartition)} on the provided consumer
+     * will return the new position.
+     * <p>
+     * This allows listeners to reset any per-partition state that depends on the consumer's position.
+     * <p>
+     * <strong>IMPORTANT</strong>: The behavior must be blocking. Callback invoked from the polling thread.
+     *
+     * @param consumer the underlying Kafka consumer
+     * @param partitions the partitions that were seeked
+     */
+    default void onPartitionsSeeked(Consumer<?, ?> consumer, Collection<org.apache.kafka.common.TopicPartition> partitions) {
+
+    }
+
 }

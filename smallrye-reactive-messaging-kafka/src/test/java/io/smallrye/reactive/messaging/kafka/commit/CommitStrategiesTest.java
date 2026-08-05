@@ -158,6 +158,182 @@ public class CommitStrategiesTest extends WeldTestBase {
     }
 
     @Test
+    void testLatestCommitStrategyWithPartitionsRevoked() {
+        String group = UUID.randomUUID().toString();
+        MapBasedConfig config = commonConfiguration()
+                .with("commit-strategy", "latest")
+                .with("lazy-client", true)
+                .with("client.id", UUID.randomUUID().toString());
+        source = createSource(group, config);
+        injectMockConsumer(source, consumer);
+
+        List<Message<?>> list = new ArrayList<>();
+        source.getStream().subscribe().with(list::add);
+
+        TopicPartition tp0 = new TopicPartition(TOPIC, 0);
+        TopicPartition tp1 = new TopicPartition(TOPIC, 1);
+        Map<TopicPartition, Long> beginning = new HashMap<>();
+        beginning.put(tp0, 0L);
+        beginning.put(tp1, 0L);
+        consumer.updateBeginningOffsets(beginning);
+
+        // Assign both partitions, process records on each
+        consumer.schedulePollTask(() -> {
+            consumer.rebalance(Arrays.asList(tp0, tp1));
+            for (int i = 0; i < 5; i++) {
+                consumer.addRecord(new ConsumerRecord<>(TOPIC, 0, i, "k", "v0-" + i));
+                consumer.addRecord(new ConsumerRecord<>(TOPIC, 1, i, "k", "v1-" + i));
+            }
+        });
+
+        await().until(() -> list.size() == 10);
+        list.forEach(m -> m.ack().toCompletableFuture().join());
+
+        await().untilAsserted(() -> {
+            Map<TopicPartition, OffsetAndMetadata> committed = consumer
+                    .committed(new HashSet<>(Arrays.asList(tp0, tp1)));
+            assertThat(committed.get(tp0).offset()).isEqualTo(5);
+            assertThat(committed.get(tp1).offset()).isEqualTo(5);
+        });
+
+        // Simulate partition revoke/re-assign: clear the commit handler's offsets map
+        // for tp1, then seek tp1 back to simulate resuming from a lower offset
+        // (e.g. after a consumer group offset reset or another consumer that committed
+        // a lower offset while it owned the partition).
+        source.getCommitHandler().partitionsRevoked(Collections.singletonList(tp1));
+        consumer.schedulePollTask(() -> {
+            consumer.seek(tp1, 0);
+            for (int i = 0; i < 3; i++) {
+                consumer.addRecord(new ConsumerRecord<>(TOPIC, 1, i, "k", "v1-replay-" + i));
+            }
+        });
+
+        await().until(() -> list.size() == 13);
+        for (int i = 10; i < 13; i++) {
+            list.get(i).ack().toCompletableFuture().join();
+        }
+
+        // With partitionsRevoked clearing the offsets map, the replayed records
+        // at offsets 0-2 trigger new commits and committed offset becomes 3.
+        // Without the fix, the stale offset (5) causes record.offset+1 <= 5
+        // for all replayed records, so no commits occur and offset stays at 5.
+        await().untilAsserted(() -> {
+            Map<TopicPartition, OffsetAndMetadata> committed = consumer
+                    .committed(new HashSet<>(Arrays.asList(tp0, tp1)));
+            assertThat(committed.get(tp0).offset()).isEqualTo(5);
+            assertThat(committed.get(tp1).offset()).isEqualTo(3);
+        });
+    }
+
+    @Test
+    void testLatestCommitStrategyWithSeek() {
+        String group = UUID.randomUUID().toString();
+        MapBasedConfig config = commonConfiguration()
+                .with("commit-strategy", "latest")
+                .with("lazy-client", true)
+                .with("client.id", UUID.randomUUID().toString());
+        source = createSource(group, config);
+        injectMockConsumer(source, consumer);
+
+        List<Message<?>> list = new ArrayList<>();
+        source.getStream().subscribe().with(list::add);
+
+        TopicPartition tp0 = new TopicPartition(TOPIC, 0);
+        Map<TopicPartition, Long> beginning = new HashMap<>();
+        beginning.put(tp0, 0L);
+        consumer.updateBeginningOffsets(beginning);
+
+        consumer.schedulePollTask(() -> {
+            consumer.rebalance(Collections.singletonList(tp0));
+            for (int i = 0; i < 5; i++) {
+                consumer.addRecord(new ConsumerRecord<>(TOPIC, 0, i, "k", "v-" + i));
+            }
+        });
+
+        await().until(() -> list.size() == 5);
+        list.forEach(m -> m.ack().toCompletableFuture().join());
+
+        await().untilAsserted(() -> {
+            Map<TopicPartition, OffsetAndMetadata> committed = consumer.committed(Collections.singleton(tp0));
+            assertThat(committed.get(tp0).offset()).isEqualTo(5);
+        });
+
+        // Simulate seek via partitionsSeeked (as called by ReactiveKafkaConsumer.seek)
+        source.getCommitHandler().partitionsSeeked(Collections.singletonList(tp0));
+        consumer.schedulePollTask(() -> {
+            consumer.seek(tp0, 0);
+            for (int i = 0; i < 3; i++) {
+                consumer.addRecord(new ConsumerRecord<>(TOPIC, 0, i, "k", "v-seek-" + i));
+            }
+        });
+
+        await().until(() -> list.size() == 8);
+        for (int i = 5; i < 8; i++) {
+            list.get(i).ack().toCompletableFuture().join();
+        }
+
+        await().untilAsserted(() -> {
+            Map<TopicPartition, OffsetAndMetadata> committed = consumer.committed(Collections.singleton(tp0));
+            assertThat(committed.get(tp0).offset()).isEqualTo(3);
+        });
+    }
+
+    @Test
+    void testThrottledStrategyWithSeek() {
+        MapBasedConfig config = commonConfiguration()
+                .with("lazy-client", true)
+                .with("commit-strategy", "throttled")
+                .with("auto.commit.interval.ms", 100);
+        String group = UUID.randomUUID().toString();
+        source = createSource(group, config);
+        injectMockConsumer(source, consumer);
+
+        List<Message<?>> list = new ArrayList<>();
+        source.getStream().subscribe().with(list::add);
+
+        TopicPartition tp0 = new TopicPartition(TOPIC, 0);
+        consumer.updateBeginningOffsets(Collections.singletonMap(tp0, 0L));
+
+        consumer.schedulePollTask(() -> {
+            consumer.rebalance(Collections.singletonList(tp0));
+            source.getCommitHandler().partitionsAssigned(Collections.singletonList(tp0));
+            for (int i = 0; i < 5; i++) {
+                consumer.addRecord(new ConsumerRecord<>(TOPIC, 0, i, "k", "v-" + i));
+            }
+        });
+
+        await().until(() -> list.size() == 5);
+        list.forEach(m -> m.ack().toCompletableFuture().join());
+
+        await().untilAsserted(() -> {
+            Map<TopicPartition, OffsetAndMetadata> committed = consumer.committed(Collections.singleton(tp0));
+            assertThat(committed.get(tp0)).isNotNull();
+            assertThat(committed.get(tp0).offset()).isEqualTo(5);
+        });
+
+        // Simulate seek via partitionsSeeked — must reset the OffsetStore
+        // so that records below the old lastProcessedOffset are tracked
+        source.getCommitHandler().partitionsSeeked(Collections.singletonList(tp0));
+        consumer.schedulePollTask(() -> {
+            consumer.seek(tp0, 0);
+            for (int i = 0; i < 3; i++) {
+                consumer.addRecord(new ConsumerRecord<>(TOPIC, 0, i, "k", "v-seek-" + i));
+            }
+        });
+
+        await().until(() -> list.size() == 8);
+        for (int i = 5; i < 8; i++) {
+            list.get(i).ack().toCompletableFuture().join();
+        }
+
+        await().untilAsserted(() -> {
+            Map<TopicPartition, OffsetAndMetadata> committed = consumer.committed(Collections.singleton(tp0));
+            assertThat(committed.get(tp0)).isNotNull();
+            assertThat(committed.get(tp0).offset()).isEqualTo(3);
+        });
+    }
+
+    @Test
     void testThrottledStrategy() {
         MapBasedConfig config = commonConfiguration()
                 .with("lazy-client", true)

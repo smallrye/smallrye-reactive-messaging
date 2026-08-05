@@ -19,7 +19,7 @@ import io.smallrye.reactive.messaging.providers.i18n.ProviderLogging;
 
 public class RebalanceListeners {
 
-    static ConsumerRebalanceListener createRebalanceListener(
+    static WrappedConsumerRebalanceListener createRebalanceListener(
             ReactiveKafkaConsumer<?, ?> reactiveKafkaConsumer,
             String consumerGroup,
             KafkaConsumerRebalanceListener listener,
@@ -76,6 +76,14 @@ public class RebalanceListeners {
             } catch (RuntimeException e) {
                 log.reEnablingConsumerForGroup(consumerGroup);
                 throw e;
+            }
+        }
+
+        public void onPartitionsSeeked(Collection<TopicPartition> partitions) {
+            reactiveKafkaConsumer.removeFromQueueRecordsFromTopicPartitions(partitions);
+            commitHandler.partitionsSeeked(partitions);
+            if (listener != null) {
+                listener.onPartitionsSeeked(reactiveKafkaConsumer.unwrap(), partitions);
             }
         }
     }
