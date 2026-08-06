@@ -32,47 +32,81 @@ public class InternalChannelRegistry implements ChannelRegistry {
 
     private final Map<Class<?>, Map<String, Object>> emitters = new ConcurrentHashMap<>();
     private final Map<String, PausableChannel> pausables = new ConcurrentHashMap<>();
+    private final Map<String, String> incomingConnectors = new ConcurrentHashMap<>();
+    private final Map<String, String> outgoingConnectors = new ConcurrentHashMap<>();
 
     @Override
     public Flow.Publisher<? extends Message<?>> register(String name,
+            Flow.Publisher<? extends Message<?>> stream, boolean broadcast) {
+        return register(name, null, stream, broadcast);
+    }
+
+    @Override
+    public Flow.Publisher<? extends Message<?>> register(String name, String connector,
             Flow.Publisher<? extends Message<?>> stream, boolean broadcast) {
         Objects.requireNonNull(name, msg.nameMustBeSet());
         Objects.requireNonNull(stream, msg.streamMustBeSet());
         register(publishers, name, stream);
         outgoing.put(name, broadcast);
+        if (connector != null) {
+            incomingConnectors.put(name, connector);
+        }
         return stream;
     }
 
     @Override
     public Flow.Subscriber<? extends Message<?>> register(String name,
             Flow.Subscriber<? extends Message<?>> subscriber, boolean merge) {
+        return register(name, null, subscriber, merge);
+    }
+
+    @Override
+    public Flow.Subscriber<? extends Message<?>> register(String name, String connector,
+            Flow.Subscriber<? extends Message<?>> subscriber, boolean merge) {
         Objects.requireNonNull(name, msg.nameMustBeSet());
         Objects.requireNonNull(subscriber, msg.subscriberMustBeSet());
         register(subscribers, name, subscriber);
         incoming.put(name, merge);
+        if (connector != null) {
+            outgoingConnectors.put(name, connector);
+        }
         return subscriber;
     }
 
     @Override
     public void register(String name, Emitter<?> emitter) {
+        register(name, (String) null, emitter);
+    }
+
+    @Override
+    public void register(String name, String connector, Emitter<?> emitter) {
         Objects.requireNonNull(name, msg.nameMustBeSet());
         Objects.requireNonNull(emitter, msg.emitterMustBeSet());
-        register(name, Emitter.class, emitter);
+        register(name, connector, Emitter.class, emitter);
     }
 
     @Override
     public void register(String name, MutinyEmitter<?> emitter) {
+        register(name, (String) null, emitter);
+    }
+
+    @Override
+    public void register(String name, String connector, MutinyEmitter<?> emitter) {
         Objects.requireNonNull(name, msg.nameMustBeSet());
         Objects.requireNonNull(emitter, msg.emitterMustBeSet());
-        register(name, MutinyEmitter.class, emitter);
+        register(name, connector, MutinyEmitter.class, emitter);
     }
 
     @Override
     public <T> void register(String name, Class<T> emitterType, T emitter) {
+        register(name, null, emitterType, emitter);
+    }
+
+    @Override
+    public <T> void register(String name, String connector, Class<T> emitterType, T emitter) {
         Objects.requireNonNull(name, msg.nameMustBeSet());
         Objects.requireNonNull(emitter, msg.emitterMustBeSet());
-        Map<String, Object> map = emitters.computeIfAbsent(emitterType, key -> new ConcurrentHashMap<>());
-        map.put(name, emitter);
+        emitters.computeIfAbsent(emitterType, key -> new ConcurrentHashMap<>()).put(name, emitter);
     }
 
     @Override
@@ -149,6 +183,28 @@ public class InternalChannelRegistry implements ChannelRegistry {
     @Override
     public PausableChannel getPausable(String name) {
         return pausables.get(name);
+    }
+
+    @Override
+    public Map<String, PausableChannel> getPausableChannels() {
+        return Collections.unmodifiableMap(pausables);
+    }
+
+    @Override
+    public String getIncomingConnectorName(String channel) {
+        return incomingConnectors.get(channel);
+    }
+
+    @Override
+    public String getOutgoingConnectorName(String channel) {
+        return outgoingConnectors.get(channel);
+    }
+
+    @Override
+    public Map<String, String> getConnectorNames() {
+        Map<String, String> all = new ConcurrentHashMap<>(incomingConnectors);
+        all.putAll(outgoingConnectors);
+        return Collections.unmodifiableMap(all);
     }
 
 }

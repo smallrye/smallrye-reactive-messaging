@@ -127,7 +127,7 @@ public class RabbitMQReconnectionTest {
     void cleanup() {
         if (container != null) {
             container.select(RabbitMQConnector.class, ConnectorLiteral.of(RabbitMQConnector.CONNECTOR_NAME)).get()
-                    .terminate(null);
+                    .terminate();
             container.shutdown();
         }
 

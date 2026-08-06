@@ -19,7 +19,9 @@ import io.smallrye.reactive.messaging.providers.extension.HealthCenter;
 import io.smallrye.reactive.messaging.providers.extension.LegacyEmitterFactoryImpl;
 import io.smallrye.reactive.messaging.providers.extension.MediatorManager;
 import io.smallrye.reactive.messaging.providers.extension.MutinyEmitterFactoryImpl;
+import io.smallrye.reactive.messaging.providers.extension.PausableChannelDecorator;
 import io.smallrye.reactive.messaging.providers.extension.ReactiveMessagingExtension;
+import io.smallrye.reactive.messaging.providers.impl.ChannelLifecycleManagerImpl;
 import io.smallrye.reactive.messaging.providers.impl.ConfiguredChannelFactory;
 import io.smallrye.reactive.messaging.providers.impl.ConnectorFactories;
 import io.smallrye.reactive.messaging.providers.impl.InternalChannelRegistry;
@@ -53,6 +55,7 @@ public class WeldTestBase {
         weld.addBeanClass(InternalChannelRegistry.class);
         weld.addBeanClass(ConnectorFactories.class);
         weld.addBeanClass(ConfiguredChannelFactory.class);
+        weld.addBeanClass(ChannelLifecycleManagerImpl.class);
         weld.addBeanClass(ChannelProducer.class);
         weld.addBeanClass(ExecutionHolder.class);
         weld.addBeanClass(WorkerPoolRegistry.class);
@@ -69,6 +72,7 @@ public class WeldTestBase {
         weld.addBeanClass(SnsConnector.class);
         weld.addBeanClass(MetricDecorator.class);
         weld.addBeanClass(MicrometerDecorator.class);
+        weld.addBeanClass(PausableChannelDecorator.class);
         weld.addBeanClass(SnsManager.class);
         weld.disableDiscovery();
     }

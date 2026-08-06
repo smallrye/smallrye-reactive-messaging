@@ -25,7 +25,9 @@ import io.smallrye.reactive.messaging.providers.connectors.WorkerPoolRegistry;
 import io.smallrye.reactive.messaging.providers.extension.ChannelProducer;
 import io.smallrye.reactive.messaging.providers.extension.HealthCenter;
 import io.smallrye.reactive.messaging.providers.extension.MediatorManager;
+import io.smallrye.reactive.messaging.providers.extension.PausableChannelDecorator;
 import io.smallrye.reactive.messaging.providers.extension.ReactiveMessagingExtension;
+import io.smallrye.reactive.messaging.providers.impl.ChannelLifecycleManagerImpl;
 import io.smallrye.reactive.messaging.providers.impl.ConfiguredChannelFactory;
 import io.smallrye.reactive.messaging.providers.impl.ConnectorFactories;
 import io.smallrye.reactive.messaging.providers.impl.InternalChannelRegistry;
@@ -54,8 +56,10 @@ public class BlockingWithoutExecutionHolderTest extends WeldTestBaseWithoutTails
                 ChannelProducer.class,
                 ConnectorFactories.class,
                 ConfiguredChannelFactory.class,
+                ChannelLifecycleManagerImpl.class,
                 MicrometerDecorator.class,
                 MetricDecorator.class,
+                PausableChannelDecorator.class,
                 HealthCenter.class,
                 // Messaging provider
                 MyDummyConnector.class);

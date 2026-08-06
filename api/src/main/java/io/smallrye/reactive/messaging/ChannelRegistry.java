@@ -14,14 +14,26 @@ public interface ChannelRegistry {
     Publisher<? extends Message<?>> register(String name, Publisher<? extends Message<?>> stream,
             boolean broadcast);
 
+    Publisher<? extends Message<?>> register(String name, String connector, Publisher<? extends Message<?>> stream,
+            boolean broadcast);
+
     Subscriber<? extends Message<?>> register(String name,
             Subscriber<? extends Message<?>> subscriber, boolean merge);
 
+    Subscriber<? extends Message<?>> register(String name, String connector, Subscriber<? extends Message<?>> subscriber,
+            boolean merge);
+
     void register(String name, Emitter<?> emitter);
+
+    void register(String name, String connector, Emitter<?> emitter);
 
     void register(String name, MutinyEmitter<?> emitter);
 
+    void register(String name, String connector, MutinyEmitter<?> emitter);
+
     <T> void register(String name, Class<T> emitterType, T emitter);
+
+    <T> void register(String name, String connector, Class<T> emitterType, T emitter);
 
     List<Publisher<? extends Message<?>>> getPublishers(String name);
 
@@ -46,5 +58,21 @@ public interface ChannelRegistry {
     void register(String name, PausableChannel pausable);
 
     PausableChannel getPausable(String name);
+
+    default Map<String, PausableChannel> getPausableChannels() {
+        return Map.of();
+    }
+
+    default String getIncomingConnectorName(String channel) {
+        return null;
+    }
+
+    default String getOutgoingConnectorName(String channel) {
+        return null;
+    }
+
+    default Map<String, String> getConnectorNames() {
+        return Map.of();
+    }
 
 }

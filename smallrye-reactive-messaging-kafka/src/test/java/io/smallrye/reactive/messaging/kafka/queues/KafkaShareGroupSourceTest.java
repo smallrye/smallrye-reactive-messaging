@@ -65,7 +65,7 @@ public class KafkaShareGroupSourceTest extends KafkaCompanionTestBase {
             source = null;
         }
         if (connector != null) {
-            connector.terminate(new Object());
+            connector.terminate();
             connector = null;
         }
     }

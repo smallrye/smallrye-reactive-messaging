@@ -7,7 +7,6 @@ import jakarta.enterprise.inject.Instance;
 import jakarta.enterprise.inject.spi.BeanManager;
 
 import org.eclipse.microprofile.config.ConfigProvider;
-import org.eclipse.microprofile.reactive.messaging.spi.ConnectorLiteral;
 import org.jboss.weld.environment.se.Weld;
 import org.jboss.weld.environment.se.WeldContainer;
 import org.junit.jupiter.api.AfterEach;
@@ -50,6 +49,7 @@ import io.smallrye.reactive.messaging.providers.extension.ObservationDecorator;
 import io.smallrye.reactive.messaging.providers.extension.OutgoingObservationDecorator;
 import io.smallrye.reactive.messaging.providers.extension.PausableChannelDecorator;
 import io.smallrye.reactive.messaging.providers.extension.ReactiveMessagingExtension;
+import io.smallrye.reactive.messaging.providers.impl.ChannelLifecycleManagerImpl;
 import io.smallrye.reactive.messaging.providers.impl.ConfiguredChannelFactory;
 import io.smallrye.reactive.messaging.providers.impl.ConnectorFactories;
 import io.smallrye.reactive.messaging.providers.impl.InternalChannelRegistry;
@@ -95,6 +95,7 @@ public class WeldTestBase {
         weld.addBeanClass(InternalChannelRegistry.class);
         weld.addBeanClass(ConnectorFactories.class);
         weld.addBeanClass(ConfiguredChannelFactory.class);
+        weld.addBeanClass(ChannelLifecycleManagerImpl.class);
         weld.addBeanClass(ChannelProducer.class);
         weld.addBeanClass(ExecutionHolder.class);
         weld.addBeanClass(WorkerPoolRegistry.class);
@@ -134,9 +135,6 @@ public class WeldTestBase {
     @AfterEach
     public void stopContainer() {
         if (container != null) {
-            // Explicitly close the connector
-            getBeanManager().createInstance()
-                    .select(KafkaConnector.class, ConnectorLiteral.of("smallrye-kafka")).get().terminate(new Object());
             container.close();
         }
         // Release the config objects

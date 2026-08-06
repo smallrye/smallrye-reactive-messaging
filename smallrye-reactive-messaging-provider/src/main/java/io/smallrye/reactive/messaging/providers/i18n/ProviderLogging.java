@@ -151,4 +151,8 @@ public interface ProviderLogging extends BasicLogger {
     @LogMessage(level = Logger.Level.DEBUG)
     @Message(id = 244, value = "Trying to get Vertx instance using Identifier qualifier: %s.")
     void vertxFromCDIQualifier(String cdiQualifier);
+
+    @LogMessage(level = Logger.Level.ERROR)
+    @Message(id = 245, value = "Error in channel binding subscription")
+    void channelBindingSubscriptionError(@Cause Throwable t);
 }

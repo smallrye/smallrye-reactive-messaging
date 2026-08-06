@@ -87,7 +87,7 @@ import org.eclipse.microprofile.reactive.messaging.spi.ConnectorFactory;
  * Instead of a {@link org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder}, it returns a
  * {@link Flow.Publisher}.
  */
-public interface InboundConnector extends ConnectorFactory {
+public interface InboundConnector extends ConnectorFactory, ConnectorLifecycle {
 
     /**
      * Creates a <em>channel</em> for the given configuration. The channel's configuration is associated with a

@@ -7,15 +7,15 @@ import static io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Dire
 import static io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Direction.OUTGOING;
 
 import java.time.Duration;
+import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Flow;
+import java.util.concurrent.atomic.AtomicReference;
 
-import jakarta.annotation.Priority;
 import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.enterprise.context.BeforeDestroyed;
-import jakarta.enterprise.event.Observes;
-import jakarta.enterprise.event.Reception;
 import jakarta.enterprise.inject.Any;
 import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
@@ -25,6 +25,7 @@ import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.spi.Connector;
 
 import io.opentelemetry.api.OpenTelemetry;
+import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.ClientCustomizer;
 import io.smallrye.reactive.messaging.amqp.cbs.CbsTokenManager;
 import io.smallrye.reactive.messaging.annotations.ConnectorAttribute;
@@ -68,6 +69,8 @@ import io.vertx.mutiny.core.Vertx;
 @ConnectorAttribute(name = "cbs.scopes", direction = INCOMING_AND_OUTGOING, description = "The scopes used to authenticate with the broker using the CBS exchange. If not set, the scopes are derived from the address.", type = "string", defaultValue = "")
 @ConnectorAttribute(name = "cbs.token-manager", direction = INCOMING_AND_OUTGOING, description = "The name of the CbsTokenManager bean used to manage the CBS tokens.", type = "string", defaultValue = "default-cbs-token-manager")
 @ConnectorAttribute(name = "cbs.exchange", direction = INCOMING_AND_OUTGOING, description = "The name of the CBS exchange used to authenticate with the broker.", type = "string", defaultValue = "set-token")
+
+@ConnectorAttribute(name = "graceful-shutdown", direction = INCOMING, description = "Whether a graceful shutdown should be attempted when the application terminates.", type = "boolean", defaultValue = "false")
 
 @ConnectorAttribute(name = "broadcast", direction = INCOMING, description = "Whether the received AMQP messages must be dispatched to multiple _subscribers_", type = "boolean", defaultValue = "false")
 @ConnectorAttribute(name = "durable", direction = INCOMING, description = "Whether AMQP subscription is durable", type = "boolean", defaultValue = "false")
@@ -118,6 +121,7 @@ public class AmqpConnector implements InboundConnector, OutboundConnector, Healt
     private Instance<CbsTokenManager.Factory> cbsTokenManagerInstance;
 
     private final Map<String, AmqpClientHolder> clients = new ConcurrentHashMap<>();
+    private final Map<String, String> channelFingerprints = new ConcurrentHashMap<>();
     private final Map<String, String> containerIdFingerprints = new ConcurrentHashMap<>();
 
     /**
@@ -174,6 +178,7 @@ public class AmqpConnector implements InboundConnector, OutboundConnector, Healt
         if (existing != null && !existing.equals(fingerprint)) {
             throw ex.illegalStateContainerIdConfigMismatch(containerId);
         }
+        channelFingerprints.put(channel, fingerprint);
         return clients.compute(fingerprint, (key, current) -> {
             if (current == null)
                 return new AmqpClientHolder(AmqpClient.create(executionHolder.vertx(), options)).retain(channel);
@@ -181,15 +186,63 @@ public class AmqpConnector implements InboundConnector, OutboundConnector, Healt
         });
     }
 
-    public void terminate(
-            @Observes(notifyObserver = Reception.IF_EXISTS) @Priority(50) @BeforeDestroyed(ApplicationScoped.class) Object event) {
+    @Override
+    public CompletionStage<Void> shutdownIncoming(String channel) {
+        IncomingAmqpChannel incoming = incomingChannels.remove(channel);
+        if (incoming != null) {
+            incoming.close();
+        }
+        return releaseClient(channel);
+    }
+
+    @Override
+    public CompletionStage<Void> shutdownOutgoing(String channel) {
+        OutgoingAmqpChannel outgoing = outgoingChannels.remove(channel);
+        if (outgoing != null) {
+            outgoing.close();
+        }
+        return releaseClient(channel);
+    }
+
+    private CompletionStage<Void> releaseClient(String channel) {
+        String fingerprint = channelFingerprints.remove(channel);
+        if (fingerprint == null) {
+            return CompletableFuture.completedStage(null);
+        }
+        AtomicReference<AmqpClient> toClose = new AtomicReference<>();
+        clients.compute(fingerprint, (key, holder) -> {
+            if (holder == null) {
+                return null;
+            }
+            if (holder.release(channel)) {
+                toClose.compareAndSet(null, holder.client());
+                return null;
+            }
+            return holder;
+        });
+        AmqpClient clientToClose = toClose.get();
+        if (clientToClose != null) {
+            return clientToClose.close().subscribeAsCompletionStage();
+        }
+        return CompletableFuture.completedStage(null);
+    }
+
+    @Override
+    public CompletionStage<Void> terminate() {
         outgoingChannels.values().forEach(OutgoingAmqpChannel::close);
         incomingChannels.values().forEach(IncomingAmqpChannel::close);
-        clients.values().forEach(holder -> {
-            //noinspection ResultOfMethodCallIgnored
-            holder.client().close().subscribeAsCompletionStage();
-        });
+        clients.values().forEach(AmqpClientHolder::closeConnectionHolder);
+        List<Uni<Void>> list = clients.values().stream()
+                .map(holder -> holder.client().close())
+                .toList();
         clients.clear();
+        if (list.isEmpty()) {
+            return CompletableFuture.completedStage(null);
+        }
+        return Uni.combine().all().unis(list)
+                .collectFailures()
+                .discardItems()
+                .subscribeAsCompletionStage();
     }
 
     public Vertx getVertx() {
@@ -272,7 +325,7 @@ public class AmqpConnector implements InboundConnector, OutboundConnector, Healt
 
     public void reportFailure(String channel, Throwable reason) {
         log.failureReported(channel, reason);
-        terminate(null);
+        terminate();
     }
 
     public String getIncomingAddress(String channel) {
