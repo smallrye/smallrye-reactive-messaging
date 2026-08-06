@@ -7,6 +7,7 @@ import static java.time.Duration.ofSeconds;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -28,6 +29,7 @@ public class ConnectionHolder {
 
     private final AmqpConnectorCommonConfiguration configuration;
     private final AtomicReference<CurrentConnection> holder = new AtomicReference<>();
+    private final AtomicBoolean closed = new AtomicBoolean(false);
 
     private final Vertx vertx;
     private final Context root;
@@ -47,52 +49,58 @@ public class ConnectionHolder {
         Integer retryInterval = configuration.getReconnectInterval();
         Integer retryAttempts = configuration.getReconnectAttempts();
 
-        this.connection = Uni.createFrom().deferred(() -> client.connect()
-                .runSubscriptionOn(root::runOnContext)
-                .onSubscription().invoke(s -> log.establishingConnection())
-                .onFailure().invoke(log::unableToConnectToBroker)
-                .onItem().invoke(log::connectionEstablished)
-                .onItem().transform(conn -> {
-                    CbsExchange cbsExchange = tokenManager == null ? null : tokenManager.exchange(conn);
-                    return new CurrentConnection(conn, cbsExchange);
-                })
-                .onItem().transformToUni(currentConnection -> {
-                    if (tokenManager != null && currentConnection.exchange() != null) {
-                        return tokenManager.authorize(currentConnection.exchange())
-                                .onFailure().invoke(t -> currentConnection.close())
-                                .replaceWith(currentConnection);
-                    } else {
-                        return Uni.createFrom().item(currentConnection);
-                    }
-                })
-                .onItem().transform(currentConn -> {
-                    holder.set(currentConn);
-                    AmqpConnection conn = currentConn.connection;
-                    conn
-                            .exceptionHandler(t -> {
-                                closeCurrent();
-                                log.connectionFailure(t);
+        this.connection = Uni.createFrom().deferred(() -> {
+            if (closed.get()) {
+                return Uni.createFrom().failure(new IllegalStateException("Connection closed"));
+            }
+            return client.connect()
+                    .runSubscriptionOn(root::runOnContext)
+                    .onSubscription().invoke(s -> log.establishingConnection())
+                    .onFailure().invoke(log::unableToConnectToBroker)
+                    .onItem().invoke(log::connectionEstablished)
+                    .onItem().transform(conn -> {
+                        CbsExchange cbsExchange = tokenManager == null ? null : tokenManager.exchange(conn);
+                        return new CurrentConnection(conn, cbsExchange);
+                    })
+                    .onItem().transformToUni(currentConnection -> {
+                        if (tokenManager != null && currentConnection.exchange() != null) {
+                            return tokenManager.authorize(currentConnection.exchange())
+                                    .onFailure().invoke(t -> currentConnection.close())
+                                    .replaceWith(currentConnection);
+                        } else {
+                            return Uni.createFrom().item(currentConnection);
+                        }
+                    })
+                    .onItem().transform(currentConn -> {
+                        holder.set(currentConn);
+                        AmqpConnection conn = currentConn.connection;
+                        conn
+                                .exceptionHandler(t -> {
+                                    closeCurrent();
+                                    log.connectionFailure(t);
 
-                                Consumer<Throwable> c;
-                                synchronized (this) {
-                                    c = onFailure;
-                                }
-                                if (c != null) {
-                                    c.accept(t);
-                                }
-                            });
-                    if (conn.isDisconnected() || holder.get() == null) {
-                        closeCurrent();
-                        throw ex.illegalStateConnectionDisconnected();
-                    }
-                    return conn;
-                })
-                .onFailure().invoke(log::unableToConnectToBroker)
-                .onFailure().retry().withBackOff(ofSeconds(1), ofSeconds(retryInterval)).atMost(retryAttempts)
-                .onFailure().invoke(t -> {
-                    holder.set(null);
-                    log.unableToRecoverFromConnectionDisruption(t);
-                }))
+                                    Consumer<Throwable> c;
+                                    synchronized (this) {
+                                        c = onFailure;
+                                    }
+                                    if (c != null) {
+                                        c.accept(t);
+                                    }
+                                });
+                        if (conn.isDisconnected() || holder.get() == null) {
+                            closeCurrent();
+                            throw ex.illegalStateConnectionDisconnected();
+                        }
+                        return conn;
+                    })
+                    .onFailure(t -> !closed.get()).invoke(log::unableToConnectToBroker)
+                    .onFailure(t -> !closed.get()).retry().withBackOff(ofSeconds(1), ofSeconds(retryInterval))
+                    .atMost(retryAttempts)
+                    .onFailure().invoke(t -> {
+                        holder.set(null);
+                        log.unableToRecoverFromConnectionDisruption(t);
+                    });
+        })
                 .memoize().until(() -> {
                     CurrentConnection current = holder.get();
                     return current == null || current.connection == null || current.connection.isDisconnected();
@@ -104,6 +112,11 @@ public class ConnectionHolder {
         if (current != null) {
             current.close();
         }
+    }
+
+    void close() {
+        closed.set(true);
+        closeCurrent();
     }
 
     public Context getContext() {

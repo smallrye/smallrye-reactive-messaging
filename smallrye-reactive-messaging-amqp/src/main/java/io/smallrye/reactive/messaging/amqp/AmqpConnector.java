@@ -185,6 +185,7 @@ public class AmqpConnector implements InboundConnector, OutboundConnector, Healt
             @Observes(notifyObserver = Reception.IF_EXISTS) @Priority(50) @BeforeDestroyed(ApplicationScoped.class) Object event) {
         outgoingChannels.values().forEach(OutgoingAmqpChannel::close);
         incomingChannels.values().forEach(IncomingAmqpChannel::close);
+        clients.values().forEach(AmqpClientHolder::closeConnectionHolder);
         clients.values().forEach(holder -> {
             //noinspection ResultOfMethodCallIgnored
             holder.client().close().subscribeAsCompletionStage();

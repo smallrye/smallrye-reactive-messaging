@@ -27,6 +27,12 @@ public class AmqpClientHolder {
         return this;
     }
 
+    void closeConnectionHolder() {
+        if (connectionHolder != null) {
+            connectionHolder.close();
+        }
+    }
+
     /**
      * Called during channel initialization which happens sequentially on a single thread.
      */
