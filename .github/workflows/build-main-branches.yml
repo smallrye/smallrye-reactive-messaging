@@ -66,7 +66,7 @@ jobs:
                       -B verify -Dtest-containers=true \
                       -Drevapi.skip=true -Dformat.skip=true \
                       ${{ matrix.java == '25' && '-Pcoverage' || '' }} \
-                      -pl :smallrye-reactive-messaging-api,:smallrye-reactive-messaging-provider,:smallrye-reactive-messaging-otel,:smallrye-reactive-messaging-health,:smallrye-reactive-messaging-jackson,:smallrye-reactive-messaging-jsonb,:test-common,:smallrye-connector-attribute-processor,:smallrye-reactive-messaging-kafka-api,:smallrye-reactive-messaging-kafka-test-companion
+                      -pl :smallrye-reactive-messaging-api,:smallrye-reactive-messaging-provider,:smallrye-reactive-messaging-otel,:smallrye-reactive-messaging-health,:smallrye-reactive-messaging-jackson,:smallrye-reactive-messaging-jsonb,:test-common,:smallrye-connector-attribute-processor,:smallrye-reactive-messaging-kafka-api,:smallrye-reactive-messaging-kafka-test-companion,:tck
             -   name: Codecov
                 if: matrix.java == '25'
                 uses: codecov/codecov-action@v7

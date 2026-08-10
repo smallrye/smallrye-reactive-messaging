@@ -20,6 +20,13 @@
   <dependencyManagement>
     <dependencies>
       <dependency>
+        <groupId>org.junit</groupId>
+        <artifactId>junit-bom</artifactId>
+        <version>${version.junit}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
         <groupId>io.smallrye.testing</groupId>
         <artifactId>smallrye-testing-bom-tck</artifactId>
         <version>${smallrye-testing.version}</version>
