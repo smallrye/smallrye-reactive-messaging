@@ -17,7 +17,9 @@ public class SmallRyeReactiveMessagingExtender implements ArchiveExtender {
         System.setProperty(STRICT_MODE_PROPERTY, "true");
         archive
                 .addPackages(true, ChannelRegistry.class.getPackage())
-                .addAsServiceProvider(Extension.class, ReactiveMessagingExtension.class)
+                .addAsServiceProvider(Extension.class,
+                        ReactiveMessagingExtension.class,
+                        SmallRyeConfigRegistrationExtension.class)
                 .addAsManifestResource(EmptyAsset.INSTANCE, "beans.xml");
     }
 }
