@@ -112,6 +112,16 @@
       <scope>test</scope>
     </dependency>
     <dependency>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>testcontainers</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>testcontainers-toxiproxy</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
       <groupId>io.opentelemetry</groupId>
       <artifactId>opentelemetry-sdk-trace</artifactId>
       <scope>test</scope>
