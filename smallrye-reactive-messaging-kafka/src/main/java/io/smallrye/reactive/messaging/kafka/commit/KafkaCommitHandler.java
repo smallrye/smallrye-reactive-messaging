@@ -26,6 +26,7 @@ public interface KafkaCommitHandler {
         String LATEST = "latest";
         String IGNORE = "ignore";
         String THROTTLED = "throttled";
+        @Deprecated(forRemoval = true)
         String CHECKPOINT = "checkpoint";
 
     }

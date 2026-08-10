@@ -28,6 +28,7 @@ import io.smallrye.reactive.messaging.providers.helpers.CDIUtils;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.mutiny.core.Vertx;
 
+@Deprecated(forRemoval = true)
 public class FileCheckpointStateStore implements CheckpointStateStore {
 
     public static final String STATE_STORE_NAME = "file";
