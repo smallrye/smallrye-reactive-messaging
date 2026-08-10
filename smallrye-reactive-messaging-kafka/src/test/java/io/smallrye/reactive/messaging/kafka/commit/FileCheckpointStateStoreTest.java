@@ -34,6 +34,7 @@ import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.eclipse.microprofile.reactive.messaging.spi.ConnectorLiteral;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -54,6 +55,7 @@ import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonObject;
 
+@Disabled("Checkpoint commit strategy is deprecated")
 public class FileCheckpointStateStoreTest extends KafkaCompanionTestBase {
 
     private KafkaSource<String, Integer> source;

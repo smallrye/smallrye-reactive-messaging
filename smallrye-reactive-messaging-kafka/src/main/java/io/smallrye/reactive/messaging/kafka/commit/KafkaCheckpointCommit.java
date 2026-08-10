@@ -46,6 +46,7 @@ import io.vertx.mutiny.core.Vertx;
  * and ensures it is accessed on the captured Vert.x context.
  * <p>
  */
+@Deprecated(forRemoval = true)
 @Experimental("Experimental API")
 public class KafkaCheckpointCommit extends ContextHolder implements KafkaCommitHandler {
 

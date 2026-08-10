@@ -749,9 +749,8 @@ The topic, partition, and offset in each triplet can have the following variatio
 
 ## Stateful processing with Checkpointing
 
-!!!warning "Experimental"
-    Checkpointing is experimental, and APIs and features are subject
-    to change in the future.
+!!!danger "Deprecated"
+    Checkpointing is deprecated and will be removed in a future version.
 
 The `checkpoint` commit strategy allows for a Kafka incoming channel to
 manage topic-partition offsets, not by committing on the Kafka broker,

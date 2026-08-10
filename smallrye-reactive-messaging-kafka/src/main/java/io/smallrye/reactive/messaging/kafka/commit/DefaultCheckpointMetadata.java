@@ -11,6 +11,7 @@ import org.eclipse.microprofile.reactive.messaging.Message;
  *
  * @param <T> type of the processing state
  */
+@Deprecated(forRemoval = true)
 public class DefaultCheckpointMetadata<T> implements CheckpointMetadata<T> {
 
     private final TopicPartition topicPartition;
