@@ -13,6 +13,7 @@ import io.vertx.mutiny.core.Vertx;
 /**
  * Remote state store for checkpointing Kafka processing state
  */
+@Deprecated(forRemoval = true)
 public interface CheckpointStateStore {
 
     /**

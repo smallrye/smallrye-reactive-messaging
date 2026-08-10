@@ -63,7 +63,7 @@ import io.vertx.redis.client.RedisOptions;
 import io.vertx.redis.client.Request;
 import io.vertx.redis.client.Response;
 
-@Disabled("Failing with Vertx 5")
+@Disabled("Checkpoint commit strategy is deprecated")
 public class RedisCheckpointStateStoreTest extends KafkaCompanionTestBase {
 
     private KafkaSource<String, Integer> source;
