@@ -16,6 +16,7 @@ import io.smallrye.reactive.messaging.kafka.commit.CheckpointStateStore;
 import io.smallrye.reactive.messaging.kafka.commit.ProcessingState;
 import io.vertx.mutiny.core.Vertx;
 
+@Deprecated(forRemoval = true)
 public class MyCheckpointStateStore implements CheckpointStateStore {
 
     private final String consumerGroupId;
