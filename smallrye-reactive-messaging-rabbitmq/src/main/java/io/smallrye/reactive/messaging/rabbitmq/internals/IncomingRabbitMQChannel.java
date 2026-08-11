@@ -149,7 +149,7 @@ public class IncomingRabbitMQChannel {
             java.util.function.Consumer<Throwable> onError,
             Runnable onComplete) {
 
-        connectionHolder.onConnectionEstablished(conn -> {
+        connectionHolder.addConnectionEstablishedCallback(conn -> {
             try {
                 setupConsumerOnConnection(onMessage, onError, onComplete);
             } catch (Exception e) {

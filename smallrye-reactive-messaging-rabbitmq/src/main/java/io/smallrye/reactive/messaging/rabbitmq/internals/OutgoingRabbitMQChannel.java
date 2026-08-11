@@ -87,6 +87,15 @@ public class OutgoingRabbitMQChannel implements ConfirmListener, ShutdownListene
         this.retryAttempts = configuration.getRetryOnFailAttempts();
         this.retryInterval = configuration.getRetryOnFailInterval();
 
+        connectionHolder.addConnectionEstablishedCallback(conn -> {
+            try {
+                Channel ch = connectionHolder.getOrCreateSharedChannel(configuration.getChannel());
+                RabbitMQClientHelper.declareExchangeIfNeeded(ch, configuration, configMaps);
+            } catch (IOException e) {
+                log.unableToCreatePublisher(configuration.getChannel(), e);
+            }
+        });
+
         long requests = configuration.getMaxInflightMessages();
         if (requests <= 0) {
             requests = Long.MAX_VALUE;

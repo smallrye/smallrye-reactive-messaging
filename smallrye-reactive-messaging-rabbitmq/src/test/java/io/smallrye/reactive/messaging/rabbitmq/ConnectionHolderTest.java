@@ -2,6 +2,7 @@ package io.smallrye.reactive.messaging.rabbitmq;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.awaitility.Awaitility.await;
 
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -62,7 +63,7 @@ public class ConnectionHolderTest extends RabbitMQBrokerTestBase {
             AtomicBoolean callbackInvoked = new AtomicBoolean(false);
             AtomicInteger callbackCount = new AtomicInteger(0);
 
-            holder.onConnectionEstablished(conn -> {
+            holder.addConnectionEstablishedCallback(conn -> {
                 assertThat(conn).isNotNull();
                 assertThat(conn.isOpen()).isTrue();
                 callbackInvoked.set(true);
@@ -279,6 +280,39 @@ public class ConnectionHolderTest extends RabbitMQBrokerTestBase {
             // Closing again should not throw
             holder.close();
             assertThat(holder.isConnected()).isFalse();
+        } finally {
+            vertx.closeAndAwait();
+        }
+    }
+
+    @Test
+    public void testMultipleCallbacksAccumulate() {
+        Vertx vertx = Vertx.vertx();
+        try {
+            ConnectionFactory factory = new ConnectionFactory();
+            factory.setHost(host);
+            factory.setPort(port);
+            factory.setUsername(username);
+            factory.setPassword(password);
+
+            ConnectionHolder holder = new ConnectionHolder(factory, "test-channel", vertx);
+
+            AtomicInteger callback1Count = new AtomicInteger(0);
+            AtomicInteger callback2Count = new AtomicInteger(0);
+            AtomicInteger callback3Count = new AtomicInteger(0);
+
+            holder.addConnectionEstablishedCallback(conn -> callback1Count.incrementAndGet());
+            holder.addConnectionEstablishedCallback(conn -> callback2Count.incrementAndGet());
+            holder.addConnectionEstablishedCallback(conn -> callback3Count.incrementAndGet());
+
+            holder.connect().await().indefinitely();
+
+            // Callbacks should not fire on initial connection (only on recovery)
+            assertThat(callback1Count.get()).isEqualTo(0);
+            assertThat(callback2Count.get()).isEqualTo(0);
+            assertThat(callback3Count.get()).isEqualTo(0);
+
+            holder.close();
         } finally {
             vertx.closeAndAwait();
         }
