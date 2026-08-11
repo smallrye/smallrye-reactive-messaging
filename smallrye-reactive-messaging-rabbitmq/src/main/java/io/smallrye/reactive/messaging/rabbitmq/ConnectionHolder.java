@@ -5,8 +5,10 @@ import static io.smallrye.reactive.messaging.rabbitmq.i18n.RabbitMQLogging.log;
 
 import java.io.IOException;
 import java.time.Duration;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
@@ -39,7 +41,7 @@ public class ConnectionHolder {
     private final ConcurrentHashMap<String, Channel> sharedChannels = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, Context> sharedChannelContexts = new ConcurrentHashMap<>();
     private volatile Uni<Connection> connectionUni;
-    private Consumer<Connection> onConnectionEstablished;
+    private final List<Consumer<Connection>> onConnectionEstablishedCallbacks = new CopyOnWriteArrayList<>();
 
     public ConnectionHolder(
             ConnectionFactory factory,
@@ -65,11 +67,11 @@ public class ConnectionHolder {
     }
 
     /**
-     * Sets a callback to be invoked when the connection is established.
-     * This is where topology (queues, exchanges) should be set up.
+     * Adds a callback to be invoked when the connection is recovered after a disruption.
+     * Multiple callbacks can be registered (e.g. one per channel sharing this connection).
      */
-    public void onConnectionEstablished(Consumer<Connection> callback) {
-        this.onConnectionEstablished = callback;
+    public void addConnectionEstablishedCallback(Consumer<Connection> callback) {
+        this.onConnectionEstablishedCallbacks.add(callback);
     }
 
     /**
@@ -129,18 +131,14 @@ public class ConnectionHolder {
 
                 @Override
                 public void handleRecovery(Recoverable recoverable) {
-                    // Connection has been re-established
-                    // Run topology setup before consumers are restarted
-                    if (onConnectionEstablished != null) {
+                    for (Consumer<Connection> callback : onConnectionEstablishedCallbacks) {
                         try {
-                            onConnectionEstablished.accept((Connection) recoverable);
-                            log.connectionRecovered(channelName);
+                            callback.accept((Connection) recoverable);
                         } catch (Exception e) {
                             log.unableToRecoverFromConnectionDisruption(e);
                         }
-                    } else {
-                        log.connectionRecovered(channelName);
                     }
+                    log.connectionRecovered(channelName);
                 }
             });
         }
