@@ -89,6 +89,12 @@
       <artifactId>slf4j-simple</artifactId>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>io.smallrye.reactive</groupId>
+      <artifactId>smallrye-reactive-messaging-in-memory</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 
   <build>
