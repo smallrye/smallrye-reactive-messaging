@@ -96,8 +96,8 @@ public class Wiring {
         }
 
         for (EmitterConfiguration emitter : emitters) {
-            components.add(new EmitterComponent(emitter, publisherDecorators, emitterFactories, defaultBufferSize,
-                    defaultBufferSizeLegacy));
+            components.add(new EmitterComponent(emitter, publisherDecorators, emitterFactories, configInstance,
+                    defaultBufferSize, defaultBufferSizeLegacy));
         }
 
         // At that point, the registry only contains connectors or managed channels
@@ -505,6 +505,7 @@ public class Wiring {
         private final EmitterConfiguration configuration;
         private final Instance<PublisherDecorator> decorators;
         private final Instance<EmitterFactory<?>> emitterFactories;
+        private final Instance<Config> configInstance;
         private final Set<Component> downstreams = new LinkedHashSet<>();
         private final int defaultBufferSize;
         private final int defaultBufferSizeLegacy;
@@ -512,6 +513,7 @@ public class Wiring {
         public EmitterComponent(EmitterConfiguration configuration,
                 Instance<PublisherDecorator> decorators,
                 Instance<EmitterFactory<?>> emitterFactories,
+                Instance<Config> configInstance,
                 int defaultBufferSize,
                 int defaultBufferSizeLegacy) {
             this.configuration = configuration;
@@ -519,6 +521,7 @@ public class Wiring {
             this.emitterFactories = emitterFactories;
             this.defaultBufferSize = defaultBufferSize;
             this.defaultBufferSizeLegacy = defaultBufferSizeLegacy;
+            this.configInstance = configInstance;
         }
 
         @Override
@@ -557,19 +560,35 @@ public class Wiring {
             registerEmitter(registry, def);
         }
 
+        @SuppressWarnings("unchecked")
         private <T extends MessagePublisherProvider<?>> void registerEmitter(ChannelRegistry registry, int def) {
             EmitterFactory<?> emitterFactory = getEmitterFactory(configuration.emitterType());
-            T emitter = (T) emitterFactory.createEmitter(configuration, def);
+            Config channelConfig = resolveChannelConfig();
+            T emitter = (T) emitterFactory.createEmitter(configuration, def, channelConfig);
             Class<T> type = (Class<T>) configuration.emitterType().value();
             registry.register(configuration.name(), type, emitter);
             Multi<? extends Message<?>> publisher = Multi.createFrom().publisher(emitter.getPublisher());
             for (PublisherDecorator decorator : getSortedInstances(decorators)) {
                 if (!(decorator instanceof ContextDecorator)) {
+                    // Pass null config: emitter channels are not connector channels,
+                    // passing the config would cause decorators to treat them as connectors
                     publisher = decorator.decorate(publisher, List.of(configuration.name()), null);
                 }
             }
             //noinspection ReactiveStreamsUnusedPublisher
             registry.register(configuration.name(), publisher, broadcast());
+        }
+
+        private Config resolveChannelConfig() {
+            if (configInstance == null || configInstance.isUnsatisfied()) {
+                return null;
+            }
+            try {
+                return ConnectorConfig.create(
+                        ConnectorFactory.OUTGOING_PREFIX, configInstance.get(), configuration.name());
+            } catch (IllegalArgumentException e) {
+                return null;
+            }
         }
 
         private EmitterFactory<?> getEmitterFactory(EmitterFactoryFor emitterType) {

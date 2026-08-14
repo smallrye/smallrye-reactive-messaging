@@ -6,14 +6,17 @@ import jakarta.enterprise.inject.Typed;
 import jakarta.enterprise.inject.spi.InjectionPoint;
 import jakarta.inject.Inject;
 
+import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.reactive.messaging.Channel;
 
 import io.smallrye.reactive.messaging.ChannelRegistry;
 import io.smallrye.reactive.messaging.EmitterConfiguration;
 import io.smallrye.reactive.messaging.EmitterFactory;
+import io.smallrye.reactive.messaging.MessagePublisherProvider;
 import io.smallrye.reactive.messaging.annotations.EmitterFactoryFor;
 import io.smallrye.reactive.messaging.providers.extension.ChannelProducer;
 import io.smallrye.reactive.messaging.pulsar.PulsarClientService;
+import io.smallrye.reactive.messaging.pulsar.PulsarConnector;
 
 @EmitterFactoryFor(PulsarTransactions.class)
 @ApplicationScoped
@@ -28,6 +31,15 @@ public class PulsarTransactionsFactory implements EmitterFactory<PulsarTransacti
     @Override
     public PulsarTransactionsImpl<Object> createEmitter(EmitterConfiguration configuration, long defaultBufferSize) {
         return new PulsarTransactionsImpl<>(configuration, defaultBufferSize, pulsarClientService);
+    }
+
+    @Override
+    public MessagePublisherProvider<?> createEmitter(EmitterConfiguration configuration, long defaultBufferSize,
+            Config channelConfig) {
+        if (EmitterFactory.isConnector(channelConfig, PulsarConnector.CONNECTOR_NAME)) {
+            return createEmitter(configuration, defaultBufferSize);
+        }
+        return new NoOpPulsarTransactionsImpl<>(configuration, defaultBufferSize);
     }
 
     @Produces
