@@ -10,7 +10,7 @@ Add the following dependency to your project:
 ``` xml
 <dependency>
   <groupId>io.smallrye.reactive</groupId>
-  <artifactId>smallrye-reactive-messaging-in-memory</artifactId>
+  <artifactId>smallrye-reactive-messaging-testing</artifactId>
   <version>{{ attributes['project-version'] }}</version>
   <scope>test</scope>
 </dependency>
@@ -114,3 +114,4 @@ the new ones.
 | `InMemoryConnector.switchIncomingChannelsToInMemory(...)` | `TestingConnector.switchIncomingChannelsToTesting(...)` |
 | `InMemoryConnector.switchOutgoingChannelsToInMemory(...)` | `TestingConnector.switchOutgoingChannelsToTesting(...)` |
 | `"smallrye-in-memory"` | `"smallrye-testing"` |
+| `smallrye-reactive-messaging-in-memory` (Maven) | `smallrye-reactive-messaging-testing` |
