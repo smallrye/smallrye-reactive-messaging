@@ -45,9 +45,10 @@ import io.vertx.mutiny.core.Vertx;
 @ConnectorAttribute(name = "keep-alive-seconds", type = "int", description = "Set the keep alive timeout in seconds", defaultValue = "30", direction = INCOMING_AND_OUTGOING)
 @ConnectorAttribute(name = "max-inflight-queue", type = "int", direction = INCOMING_AND_OUTGOING, description = "Set max count of unacknowledged messages", defaultValue = "10")
 @ConnectorAttribute(name = "auto-clean-session", type = "boolean", direction = INCOMING_AND_OUTGOING, description = "Set to start with a clean session (`true` by default)", defaultValue = "true")
-@ConnectorAttribute(name = "will-flag", type = "boolean", direction = INCOMING_AND_OUTGOING, description = "Set if will information are provided on connection", defaultValue = "false")
 @ConnectorAttribute(name = "will-retain", type = "boolean", direction = INCOMING_AND_OUTGOING, description = "Set if the will message must be retained", defaultValue = "false")
 @ConnectorAttribute(name = "will-qos", type = "int", direction = INCOMING_AND_OUTGOING, description = "Set the QoS level for the will message", defaultValue = "0")
+@ConnectorAttribute(name = "will-topic", type = "string", direction = INCOMING_AND_OUTGOING, description = "Set the will message's topic", defaultValue = "")
+@ConnectorAttribute(name = "will-payload", type = "string", direction = INCOMING_AND_OUTGOING, description = "Set the will message's payload", defaultValue = "")
 @ConnectorAttribute(name = "max-message-size", type = "int", direction = INCOMING_AND_OUTGOING, description = "Set max MQTT message size in bytes", defaultValue = "8092")
 @ConnectorAttribute(name = "reconnect-interval-seconds", type = "int", direction = INCOMING_AND_OUTGOING, description = "Set the reconnect interval in seconds", defaultValue = "1")
 @ConnectorAttribute(name = "username", type = "string", direction = INCOMING_AND_OUTGOING, description = "Set the username to connect to the server")
@@ -66,6 +67,16 @@ import io.vertx.mutiny.core.Vertx;
 @ConnectorAttribute(name = "buffer-size", direction = INCOMING, description = "The size buffer of incoming messages waiting to be processed", type = "int", defaultValue = "128")
 @ConnectorAttribute(name = "unsubscribe-on-disconnection", direction = INCOMING_AND_OUTGOING, description = "This flag restore the old behavior to unsubscribe from the broken on disconnection", type = "boolean", defaultValue = "false")
 @ConnectorAttribute(name = "retain", direction = OUTGOING, description = "Whether the published message should be retained", type = "boolean", defaultValue = "false")
+@ConnectorAttribute(name = "version", type = "int", direction = INCOMING_AND_OUTGOING, description = "MQTT protocol version: 4 for MQTT 3.1.1 (default), 5 for MQTT 5.0", defaultValue = "4")
+@ConnectorAttribute(name = "session-expiry-interval", type = "long", direction = INCOMING_AND_OUTGOING, description = "MQTT 5.0: Session Expiry Interval in seconds")
+@ConnectorAttribute(name = "receive-maximum", type = "int", direction = INCOMING_AND_OUTGOING, description = "MQTT 5.0: Receive Maximum - flow control window")
+@ConnectorAttribute(name = "topic-alias-maximum", type = "int", direction = INCOMING_AND_OUTGOING, description = "MQTT 5.0: Topic Alias Maximum advertised to broker", defaultValue = "255")
+@ConnectorAttribute(name = "will-content-type", type = "string", direction = INCOMING_AND_OUTGOING, description = "MQTT 5.0: Content-Type of the will payload")
+@ConnectorAttribute(name = "will-response-topic", type = "string", direction = INCOMING_AND_OUTGOING, description = "MQTT 5.0: Response Topic for the will message")
+@ConnectorAttribute(name = "will-delay-interval", type = "long", direction = INCOMING_AND_OUTGOING, description = "MQTT 5.0: Will Delay Interval in seconds")
+@ConnectorAttribute(name = "no-local", type = "boolean", direction = INCOMING, description = "MQTT 5.0: No-Local subscription option", defaultValue = "false")
+@ConnectorAttribute(name = "retain-as-published", type = "boolean", direction = INCOMING, description = "MQTT 5.0: Retain-As-Published subscription option", defaultValue = "false")
+@ConnectorAttribute(name = "retain-handling", type = "int", direction = INCOMING, description = "MQTT 5.0: Retain Handling (0=send on subscribe, 1=send if not yet, 2=never send)", defaultValue = "0")
 public class MqttConnector implements InboundConnector, OutboundConnector, HealthReporter {
 
     static final String CONNECTOR_NAME = "smallrye-mqtt";

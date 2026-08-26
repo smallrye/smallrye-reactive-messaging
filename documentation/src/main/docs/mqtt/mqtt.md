@@ -38,3 +38,36 @@ mp.messaging.incoming.[channel-name].connector=smallrye-mqtt
 mp.messaging.outgoing.[channel-name].connector=smallrye-mqtt
 ```
 
+## Protocol version
+
+The connector supports both MQTT 3.1.1 and MQTT 5.0. The protocol
+version is selected per channel through the `version` attribute:
+
+```properties
+# MQTT 3.1.1 (default)
+mp.messaging.incoming.prices.version=4
+
+# MQTT 5.0
+mp.messaging.incoming.prices.version=5
+```
+
+When `version=5` is used, the connector exposes the additional MQTT 5.0
+features described in the rest of this section:
+
+- Connect-time properties: `session-expiry-interval`, `receive-maximum`,
+  `topic-alias-maximum`.
+- Last Will properties: `will-topic`, `will-payload`, `will-qos`,
+  `will-retain`, plus the MQTT 5.0 specific
+  `will-content-type`, `will-response-topic` and `will-delay-interval`.
+  Both `will-topic` and `will-payload` must be set together, otherwise
+  the connector fails to start.
+- Subscription options: `no-local`, `retain-as-published`,
+  `retain-handling`.
+- Per-message properties (User Properties, Content-Type, Response Topic,
+  Correlation Data, Message Expiry Interval, Payload Format Indicator)
+  available on inbound and outbound messages.
+
+!!!note
+    These options are accepted but ignored by the broker when
+    `version=4` is used.
+
