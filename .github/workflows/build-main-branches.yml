@@ -21,7 +21,7 @@ jobs:
         name: Build (Java ${{ matrix.java }})
         steps:
             -   uses: actions/checkout@v7
-            -   uses: actions/setup-java@v5
+            -   uses: actions/setup-java@v6
                 with:
                     java-version: ${{ matrix.java }}
                     distribution: temurin
@@ -50,7 +50,7 @@ jobs:
         name: Core Tests (Java ${{ matrix.java }})
         steps:
             -   uses: actions/checkout@v7
-            -   uses: actions/setup-java@v5
+            -   uses: actions/setup-java@v6
                 with:
                     java-version: ${{ matrix.java }}
                     distribution: temurin
@@ -84,7 +84,7 @@ jobs:
         name: Kafka Tests (Java ${{ matrix.java }})
         steps:
             -   uses: actions/checkout@v7
-            -   uses: actions/setup-java@v5
+            -   uses: actions/setup-java@v6
                 with:
                     java-version: ${{ matrix.java }}
                     distribution: temurin
@@ -139,7 +139,7 @@ jobs:
         name: ${{ matrix.connector.name }} Tests (Java ${{ matrix.java }})
         steps:
             -   uses: actions/checkout@v7
-            -   uses: actions/setup-java@v5
+            -   uses: actions/setup-java@v6
                 with:
                     java-version: ${{ matrix.java }}
                     distribution: temurin
@@ -177,7 +177,7 @@ jobs:
         name: ${{ matrix.connector.name }} Slow/Flaky Tests
         steps:
             -   uses: actions/checkout@v7
-            -   uses: actions/setup-java@v5
+            -   uses: actions/setup-java@v6
                 with:
                     java-version: '21'
                     distribution: temurin
