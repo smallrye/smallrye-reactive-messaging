@@ -6,7 +6,6 @@ import static io.opentelemetry.semconv.incubating.MessagingIncubatingAttributes.
 import static io.opentelemetry.semconv.incubating.MessagingIncubatingAttributes.MESSAGING_OPERATION;
 import static io.opentelemetry.semconv.incubating.MessagingIncubatingAttributes.MESSAGING_RABBITMQ_DESTINATION_ROUTING_KEY;
 import static io.opentelemetry.semconv.incubating.MessagingIncubatingAttributes.MESSAGING_SYSTEM;
-import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
 import static org.awaitility.Awaitility.await;
@@ -94,7 +93,7 @@ public class TracingTest extends WeldTestBase {
         usage.produce(exchangeName, queueName, routingKeys, 5, counter::getAndIncrement,
                 new AMQP.BasicProperties().builder().expiration("10000").contentType("text/plain")
                         .headers(Map.of("foo-header", "foo-value", "bar-header", "bar-value")).build());
-        await().atMost(5, SECONDS).until(() -> tracing.getResults().size() == 5);
+        await().until(() -> tracing.getResults().size() == 5);
 
         CompletableResultCode completableResultCode = tracerProvider.forceFlush();
         completableResultCode.whenComplete(() -> {
@@ -143,7 +142,7 @@ public class TracingTest extends WeldTestBase {
 
         AtomicInteger counter = new AtomicInteger(1);
         usage.produce(exchangeName, queueName, routingKeys, 5, counter::getAndIncrement, properties);
-        await().atMost(5, SECONDS).until(() -> tracing.getResults().size() == 5);
+        await().until(() -> tracing.getResults().size() == 5);
 
         CompletableResultCode completableResultCode = tracerProvider.forceFlush();
         completableResultCode.whenComplete(() -> {
@@ -174,7 +173,7 @@ public class TracingTest extends WeldTestBase {
         for (int i = 1; i <= 5; i++) {
             generator.send(i);
         }
-        await().atMost(5, SECONDS).until(() -> tracing.getResults().size() == 5);
+        await().until(() -> tracing.getResults().size() == 5);
 
         CompletableResultCode completableResultCode = tracerProvider.forceFlush();
         completableResultCode.whenComplete(() -> {
@@ -205,7 +204,7 @@ public class TracingTest extends WeldTestBase {
         AtomicInteger counter = new AtomicInteger(1);
         usage.produce(exchangeName, queueName, routingKeys, 5, counter::getAndIncrement,
                 new AMQP.BasicProperties().builder().expiration("10000").contentType("text/plain").build());
-        await().atMost(5, SECONDS).until(() -> tracing.getResults().size() == 5);
+        await().until(() -> tracing.getResults().size() == 5);
 
         CompletableResultCode completableResultCode = tracerProvider.forceFlush();
         completableResultCode.whenComplete(() -> {
