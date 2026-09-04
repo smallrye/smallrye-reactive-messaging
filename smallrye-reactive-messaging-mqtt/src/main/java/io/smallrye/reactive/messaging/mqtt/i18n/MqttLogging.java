@@ -1,5 +1,7 @@
 package io.smallrye.reactive.messaging.mqtt.i18n;
 
+import java.lang.invoke.MethodHandles;
+
 import org.jboss.logging.BasicLogger;
 import org.jboss.logging.Logger;
 import org.jboss.logging.annotations.Cause;
@@ -16,7 +18,7 @@ public interface MqttLogging extends BasicLogger {
 
     // 17100-17199 (logging)
 
-    MqttLogging log = Logger.getMessageLogger(MqttLogging.class, "io.smallrye.reactive.messaging.mqtt");
+    MqttLogging log = Logger.getMessageLogger(MethodHandles.lookup(), MqttLogging.class, "io.smallrye.reactive.messaging.mqtt");
 
     @LogMessage(level = Logger.Level.ERROR)
     @Message(id = 17100, value = "A message sent to channel `%s` has been nacked, fail-stop")

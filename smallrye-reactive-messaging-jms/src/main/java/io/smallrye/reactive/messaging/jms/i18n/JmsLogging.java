@@ -1,5 +1,7 @@
 package io.smallrye.reactive.messaging.jms.i18n;
 
+import java.lang.invoke.MethodHandles;
+
 import org.jboss.logging.BasicLogger;
 import org.jboss.logging.Logger;
 import org.jboss.logging.annotations.Cause;
@@ -14,7 +16,8 @@ import org.jboss.logging.annotations.MessageLogger;
 @MessageLogger(projectCode = "SRMSG", length = 5)
 public interface JmsLogging extends BasicLogger {
 
-    JmsLogging log = Logger.getMessageLogger(JmsLogging.class, "io.smallrye.reactive.messaging.jms");
+    JmsLogging log = Logger.getMessageLogger(MethodHandles.lookup(), JmsLogging.class,
+            "io.smallrye.reactive.messaging.jms");
 
     @LogMessage(level = Logger.Level.ERROR)
     @Message(id = 15800, value = "Unable to send message to JMS")

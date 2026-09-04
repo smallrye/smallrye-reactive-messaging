@@ -1,5 +1,6 @@
 package io.smallrye.reactive.messaging.providers.i18n;
 
+import java.lang.invoke.MethodHandles;
 import java.util.Set;
 
 import jakarta.enterprise.inject.spi.Bean;
@@ -19,7 +20,8 @@ public interface ProviderLogging extends BasicLogger {
 
     // 00200-00299 (logging)
 
-    ProviderLogging log = Logger.getMessageLogger(ProviderLogging.class, "io.smallrye.reactive.messaging.provider");
+    ProviderLogging log = Logger.getMessageLogger(MethodHandles.lookup(), ProviderLogging.class,
+            "io.smallrye.reactive.messaging.provider");
 
     @LogMessage(level = Logger.Level.ERROR)
     @Message(id = 200, value = "The method %s has thrown an exception")

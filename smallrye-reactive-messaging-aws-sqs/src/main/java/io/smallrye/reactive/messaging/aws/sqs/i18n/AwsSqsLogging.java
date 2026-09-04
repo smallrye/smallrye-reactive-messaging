@@ -1,5 +1,7 @@
 package io.smallrye.reactive.messaging.aws.sqs.i18n;
 
+import java.lang.invoke.MethodHandles;
+
 import org.jboss.logging.BasicLogger;
 import org.jboss.logging.Logger;
 import org.jboss.logging.Logger.Level;
@@ -14,7 +16,9 @@ import org.jboss.logging.annotations.MessageLogger;
  */
 @MessageLogger(projectCode = "SRMSG", length = 5)
 public interface AwsSqsLogging extends BasicLogger {
-    AwsSqsLogging log = Logger.getMessageLogger(AwsSqsLogging.class, "io.smallrye.reactive.messaging.aws.sqs");
+
+    AwsSqsLogging log = Logger.getMessageLogger(MethodHandles.lookup(), AwsSqsLogging.class,
+            "io.smallrye.reactive.messaging.aws.sqs");
 
     @LogMessage(level = Level.TRACE)
     @Message(id = 19300, value = "Received Aws Sqs message %s")
