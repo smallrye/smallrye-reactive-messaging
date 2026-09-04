@@ -37,56 +37,31 @@ import io.vertx.mutiny.core.Context;
 import io.vertx.mutiny.core.Vertx;
 
 /**
- * An implementation of connector used for testing applications without having to use external broker.
- * The idea is to substitute the `connector` of a specific channel to use `smallrye-in-memory`.
- * Then, your test can send message and checked the received messages.
+ * A connector for testing applications without an external broker.
+ * Substitute the {@code connector} of a specific channel to use {@code smallrye-testing},
+ * then send and receive messages programmatically.
  */
 @ApplicationScoped
-@Connector(InMemoryConnector.CONNECTOR)
+@Connector(TestingConnector.CONNECTOR)
 @ConnectorAttribute(name = "run-on-vertx-context", type = "boolean", direction = INCOMING, description = "Whether messages are dispatched on the Vert.x context or not.", defaultValue = "false")
 @ConnectorAttribute(name = "broadcast", type = "boolean", direction = INCOMING, description = "Whether the messages are dispatched to multiple consumer", defaultValue = "false")
-public class InMemoryConnector implements InboundConnector, OutboundConnector {
+public class TestingConnector implements InboundConnector, OutboundConnector {
 
-    public static final String CONNECTOR = "smallrye-in-memory";
+    public static final String CONNECTOR = "smallrye-testing";
 
-    private final Map<String, InMemorySourceImpl<?>> sources = new HashMap<>();
-    private final Map<String, InMemorySinkImpl<?>> sinks = new HashMap<>();
+    private final Map<String, TestSourceImpl<?>> sources = new HashMap<>();
+    private final Map<String, TestSinkImpl<?>> sinks = new HashMap<>();
 
     @Inject
     ExecutionHolder executionHolder;
 
     /**
-     * Switch the given <em>incoming</em> channel to in-memory. It replaces the previously used connector with the
-     * in-memory connector.
-     * <p>
-     * This method is generally used before tests to avoid using an external broker for a specific channel. You can then
-     * retrieve the {@link InMemorySource} using:
-     * <code><pre>
-     *     &#64;Inject @Any
-     *     InMemoryConnector connector;
+     * Switch the given <em>incoming</em> channels to the test connector.
      *
-     *     //...
-     *
-     *     &#64;Before
-     *     public void setup() {
-     *         InMemoryConnector.switchIncomingChannelsToInMemory("my-channel");
-     *     }
-     *
-     *     // ..
-     *
-     *     InMemorySource&lt;Integer&gt; channel = connector.source("my-channel");
-     *     channel.send(1);
-     *     channel.send(2);
-     *
-     * </pre></code>
-     * <p>
-     *
-     * @param channels the channels to switch, must not be {@code null}, must not contain {@code null}, must not contain
-     *        a blank value
-     * @return The map of properties that have been defined. The method sets the system properties, but give
-     *         you this map to pass the properties around if needed.
+     * @param channels the channels to switch, must not be {@code null}
+     * @return The map of properties that have been set.
      */
-    public static Map<String, String> switchIncomingChannelsToInMemory(String... channels) {
+    public static Map<String, String> switchIncomingChannelsToTesting(String... channels) {
         Map<String, String> properties = new LinkedHashMap<>();
         for (String channel : channels) {
             if (channel == null || channel.trim().isEmpty()) {
@@ -100,36 +75,12 @@ public class InMemoryConnector implements InboundConnector, OutboundConnector {
     }
 
     /**
-     * Switch the given <em>outgoing</em> channel to in-memory. It replaces the previously used connector with the
-     * in-memory connector.
-     * <p>
-     * This method is generally used before tests to avoid using an external broker for a specific channel. You can then
-     * retrieve the {@link InMemorySink} using:
-     * <code><pre>
-     *     &#64;Inject @Any
-     *     InMemoryConnector connector;
+     * Switch the given <em>outgoing</em> channels to the test connector.
      *
-     *     //...
-     *
-     *     &#64;Before
-     *     public void setup() {
-     *         InMemoryConnector.switchOutgoingChannelsToInMemory("my-channel");
-     *     }
-     *
-     *     // ..
-     *
-     *     InMemorySink&lt;Integer&gt; channel = connector.sink("my-channel");
-     *     assertThat(channel.received()).hasSize(3).extracting(Message::getPayload).containsExactly(1, 2);
-     *
-     * </pre></code>
-     * <p>
-     *
-     * @param channels the channels to switch, must not be {@code null}, must not contain {@code null}, must not contain
-     *        a blank value
-     * @return The map of properties that have been defined. The method sets the system properties, but give
-     *         you this map to pass these properties around if needed.
+     * @param channels the channels to switch, must not be {@code null}
+     * @return The map of properties that have been set.
      */
-    public static Map<String, String> switchOutgoingChannelsToInMemory(String... channels) {
+    public static Map<String, String> switchOutgoingChannelsToTesting(String... channels) {
         Map<String, String> properties = new LinkedHashMap<>();
         for (String channel : channels) {
             if (channel == null || channel.trim().isEmpty()) {
@@ -144,12 +95,12 @@ public class InMemoryConnector implements InboundConnector, OutboundConnector {
 
     /**
      * Switch back the channel to their original connector.
-     * <p>
-     * This method is generally used after tests to reset the original configuration.
+     * Clears properties for both {@code smallrye-testing} and {@code smallrye-in-memory} connectors.
      */
     public static void clear() {
         List<String> list = System.getProperties().entrySet().stream()
-                .filter(entry -> CONNECTOR.equals(entry.getValue()))
+                .filter(entry -> CONNECTOR.equals(entry.getValue())
+                        || InMemoryConnector.CONNECTOR.equals(entry.getValue()))
                 .map(entry -> (String) entry.getKey())
                 .collect(Collectors.toList());
         list.forEach(System::clearProperty);
@@ -157,80 +108,87 @@ public class InMemoryConnector implements InboundConnector, OutboundConnector {
 
     @Override
     public Flow.Publisher<? extends Message<?>> getPublisher(Config config) {
-        InMemoryConnectorIncomingConfiguration ic = new InMemoryConnectorIncomingConfiguration(config);
+        TestingConnectorIncomingConfiguration ic = new TestingConnectorIncomingConfiguration(config);
         String name = ic.getChannel();
         boolean broadcast = ic.getBroadcast();
         Vertx vertx = executionHolder.vertx();
         boolean runOnVertxContext = ic.getRunOnVertxContext();
-        return sources.computeIfAbsent(name, n -> new InMemorySourceImpl<>(n, vertx, runOnVertxContext, broadcast)).source;
+        return sources.computeIfAbsent(name, n -> new TestSourceImpl<>(n, vertx, runOnVertxContext, broadcast)).source;
     }
 
     @Override
     public Flow.Subscriber<? extends Message<?>> getSubscriber(Config config) {
-        InMemoryConnectorOutgoingConfiguration ic = new InMemoryConnectorOutgoingConfiguration(config);
+        TestingConnectorOutgoingConfiguration ic = new TestingConnectorOutgoingConfiguration(config);
         String name = ic.getChannel();
-        return sinks.computeIfAbsent(name, InMemorySinkImpl::new).sink;
+        return sinks.computeIfAbsent(name, TestSinkImpl::new).sink;
     }
 
     /**
-     * Retrieves an {@link InMemorySource} associated to the channel named {@code channel}.
-     * This channel must use the in-memory connected.
-     * <p>
-     * The returned {@link InMemorySource} lets you send messages or payloads to the channel, mocking the real
-     * interactions.
+     * Retrieves the {@link TestIncoming} associated to the given channel, allowing
+     * the test to send messages into the application.
      *
      * @param channel the name of the channel, must not be {@code null}
      * @param <T> the type of message or payload sent to the channel
-     * @return the source
-     * @throws IllegalArgumentException if the channel name is {@code null} or if the channel is not associated with the
-     *         in-memory connector.
-     * @see #switchIncomingChannelsToInMemory(String...)
+     * @return the incoming channel handle
+     * @throws IllegalArgumentException if the channel is not found
      */
-    public <T> InMemorySource<T> source(String channel) {
+    public <T> TestIncoming<T> incoming(String channel) {
         if (channel == null) {
             throw InMemoryExceptions.ex.illegalArgumentChannelMustNotBeNull();
         }
-        InMemorySourceImpl<?> source = sources.get(channel);
+        TestSourceImpl<?> source = sources.get(channel);
         if (source == null) {
             throw InMemoryExceptions.ex.illegalArgumentUnknownChannel(channel);
         }
         //noinspection unchecked
-        return (InMemorySource<T>) source;
+        return (TestIncoming<T>) source;
     }
 
     /**
-     * Retrieves an {@link InMemorySink} associated to the channel named {@code channel}.
-     * This channel must use the in-memory connected.
-     * <p>
-     * The returned {@link InMemorySink} lets you checks the messages sent to the channel.
+     * Retrieves the {@link TestOutgoing} associated to the given channel, allowing
+     * the test to verify messages sent by the application.
      *
      * @param channel the name of the channel, must not be {@code null}
      * @param <T> the type of payload received by the channel
-     * @return the sink
-     * @throws IllegalArgumentException if the channel name is {@code null} or if the channel is not associated with the
-     *         in-memory connector.
-     * @see #switchOutgoingChannelsToInMemory(String...)
+     * @return the outgoing channel handle
+     * @throws IllegalArgumentException if the channel is not found
      */
-    public <T> InMemorySink<T> sink(String channel) {
+    public <T> TestOutgoing<T> outgoing(String channel) {
         if (channel == null) {
             throw InMemoryExceptions.ex.illegalArgumentChannelMustNotBeNull();
         }
-        InMemorySink<?> sink = sinks.get(channel);
+        TestSinkImpl<?> sink = sinks.get(channel);
         if (sink == null) {
             throw InMemoryExceptions.ex.illegalArgumentUnknownChannel(channel);
         }
         //noinspection unchecked
-        return (InMemorySink<T>) sink;
+        return (TestOutgoing<T>) sink;
     }
 
-    private static class InMemorySourceImpl<T> implements InMemorySource<T> {
-        private final Processor<Message<T>, Message<T>> processor;
-        private final Flow.Publisher<? extends Message<T>> source;
+    /**
+     * @deprecated Use {@link #incoming(String)} instead.
+     */
+    @Deprecated(forRemoval = true)
+    public <T> TestIncoming<T> source(String channel) {
+        return incoming(channel);
+    }
+
+    /**
+     * @deprecated Use {@link #outgoing(String)} instead.
+     */
+    @Deprecated(forRemoval = true)
+    public <T> TestOutgoing<T> sink(String channel) {
+        return outgoing(channel);
+    }
+
+    static class TestSourceImpl<T> implements InMemorySource<T> {
+        final Processor<Message<T>, Message<T>> processor;
+        final Flow.Publisher<? extends Message<T>> source;
         private final String name;
         private final Context context;
         private boolean runOnVertxContext;
 
-        private InMemorySourceImpl(String name, Vertx vertx, boolean runOnVertxContext, boolean broadcast) {
+        TestSourceImpl(String name, Vertx vertx, boolean runOnVertxContext, boolean broadcast) {
             this.name = name;
             this.context = vertx.getOrCreateContext();
             this.runOnVertxContext = runOnVertxContext;
@@ -248,7 +206,7 @@ public class InMemoryConnector implements InboundConnector, OutboundConnector {
         }
 
         @Override
-        public InMemorySource<T> send(T messageOrPayload) {
+        public InMemorySource<T> deliver(T messageOrPayload) {
             if (messageOrPayload instanceof Message) {
                 //noinspection unchecked
                 if (runOnVertxContext) {
@@ -263,6 +221,26 @@ public class InMemoryConnector implements InboundConnector, OutboundConnector {
                 } else {
                     processor.onNext(ContextAwareMessage.of(messageOrPayload));
                 }
+            }
+            return this;
+        }
+
+        @Override
+        public InMemorySource<T> send(T messageOrPayload) {
+            return deliver(messageOrPayload);
+        }
+
+        @Override
+        public InMemorySource<T> deliver(T payload, Object... metadata) {
+            Message<T> message = Message.of(payload);
+            for (Object m : metadata) {
+                message = message.addMetadata(m);
+            }
+            Message<T> contextAware = ContextAwareMessage.withContextMetadata(message);
+            if (runOnVertxContext) {
+                context.runOnContext(() -> processor.onNext(contextAware));
+            } else {
+                processor.onNext(contextAware);
             }
             return this;
         }
@@ -292,14 +270,14 @@ public class InMemoryConnector implements InboundConnector, OutboundConnector {
         }
     }
 
-    private static class InMemorySinkImpl<T> implements InMemorySink<T> {
-        private final Flow.Subscriber<? extends Message<T>> sink;
+    static class TestSinkImpl<T> implements InMemorySink<T> {
+        final Flow.Subscriber<? extends Message<T>> sink;
         private final List<Message<T>> list = new CopyOnWriteArrayList<>();
         private final AtomicReference<Throwable> failure = new AtomicReference<>();
         private final AtomicBoolean completed = new AtomicBoolean();
         private final String name;
 
-        private InMemorySinkImpl(String name) {
+        TestSinkImpl(String name) {
             this.name = name;
             this.sink = MultiUtils.via(multi -> multi.call(m -> {
                 list.add(m);
@@ -319,8 +297,13 @@ public class InMemoryConnector implements InboundConnector, OutboundConnector {
         }
 
         @Override
-        public List<? extends Message<T>> received() {
+        public List<? extends Message<T>> sent() {
             return new ArrayList<>(list);
+        }
+
+        @Override
+        public List<? extends Message<T>> received() {
+            return sent();
         }
 
         @Override

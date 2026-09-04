@@ -18,6 +18,7 @@ import io.smallrye.reactive.messaging.ChannelRegistry;
 import io.smallrye.reactive.messaging.EmitterConfiguration;
 import io.smallrye.reactive.messaging.EmitterFactory;
 import io.smallrye.reactive.messaging.MessageConverter;
+import io.smallrye.reactive.messaging.MessagePublisherProvider;
 import io.smallrye.reactive.messaging.amqp.AmqpConnector;
 import io.smallrye.reactive.messaging.annotations.EmitterFactoryFor;
 import io.smallrye.reactive.messaging.providers.extension.ChannelProducer;
@@ -54,6 +55,15 @@ public class AmqpRequestReplyFactory implements EmitterFactory<AmqpRequestReplyI
                 replyFailureHandlers);
     }
 
+    @Override
+    public MessagePublisherProvider<?> createEmitter(EmitterConfiguration configuration, long defaultBufferSize,
+            Config channelConfig) {
+        if (EmitterFactory.isConnector(channelConfig, AmqpConnector.CONNECTOR_NAME)) {
+            return createEmitter(configuration, defaultBufferSize);
+        }
+        return new NoOpAmqpRequestReplyImpl<>(configuration, defaultBufferSize);
+    }
+
     @Produces
     @Typed(AmqpRequestReply.class)
     @Channel("")
@@ -61,7 +71,7 @@ public class AmqpRequestReplyFactory implements EmitterFactory<AmqpRequestReplyI
         String channelName = ChannelProducer.getChannelName(injectionPoint);
         AmqpRequestReply<Req, Rep> emitter = channelRegistry.getEmitter(channelName, AmqpRequestReply.class);
         Type replyType = getReplyPayloadType(injectionPoint);
-        if (replyType != null) {
+        if (replyType != null && emitter instanceof AmqpRequestReplyImpl) {
             ((AmqpRequestReplyImpl) emitter).setReplyConverter(ConverterUtils.convertFunction(converters, replyType));
         }
         return emitter;

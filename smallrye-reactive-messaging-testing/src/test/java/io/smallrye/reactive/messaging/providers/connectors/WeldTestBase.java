@@ -17,6 +17,7 @@ import io.smallrye.config.SmallRyeConfigProviderResolver;
 import io.smallrye.config.inject.ConfigExtension;
 import io.smallrye.reactive.messaging.ChannelRegistry;
 import io.smallrye.reactive.messaging.memory.InMemoryConnector;
+import io.smallrye.reactive.messaging.memory.TestingConnector;
 import io.smallrye.reactive.messaging.providers.MediatorFactory;
 import io.smallrye.reactive.messaging.providers.extension.ChannelProducer;
 import io.smallrye.reactive.messaging.providers.extension.HealthCenter;
@@ -86,7 +87,8 @@ public class WeldTestBase {
                 Wiring.class,
 
                 // In memory connector
-                InMemoryConnector.class);
+                InMemoryConnector.class,
+                TestingConnector.class);
 
         List<Class<?>> beans = getBeans();
         initializer.addBeanClasses(beans.toArray(new Class<?>[0]));
