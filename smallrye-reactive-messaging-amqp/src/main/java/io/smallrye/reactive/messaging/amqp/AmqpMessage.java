@@ -22,9 +22,9 @@ import io.smallrye.reactive.messaging.ce.CloudEventMetadata;
 import io.smallrye.reactive.messaging.providers.MetadataInjectableMessage;
 import io.smallrye.reactive.messaging.providers.helpers.VertxContext;
 import io.smallrye.reactive.messaging.providers.locals.ContextAwareMessage;
+import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonObject;
 import io.vertx.mutiny.core.Context;
-import io.vertx.mutiny.core.buffer.Buffer;
 
 public class AmqpMessage<T> implements ContextAwareMessage<T>, MetadataInjectableMessage<T> {
 
@@ -125,8 +125,7 @@ public class AmqpMessage<T> implements ContextAwareMessage<T>, MetadataInjectabl
         Object body = msg.unwrap().getBody();
         if (body instanceof AmqpValue) {
             Object value = ((AmqpValue) body).getValue();
-            if (value instanceof Binary) {
-                Binary bin = (Binary) value;
+            if (value instanceof Binary bin) {
                 byte[] bytes = new byte[bin.getLength()];
                 System.arraycopy(bin.getArray(), bin.getArrayOffset(), bytes, 0, bin.getLength());
                 return bytes;
@@ -144,7 +143,7 @@ public class AmqpMessage<T> implements ContextAwareMessage<T>, MetadataInjectabl
             System.arraycopy(bin.getArray(), bin.getArrayOffset(), bytes, 0, bin.getLength());
 
             if (APPLICATION_JSON.equalsIgnoreCase(msg.contentType())) {
-                return Buffer.buffer(bytes).toJson();
+                return Buffer.buffer(bytes).toJsonValue();
             }
             return bytes;
         }

@@ -33,8 +33,8 @@ import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.infrastructure.Infrastructure;
 import io.smallrye.reactive.messaging.annotations.Blocking;
 import io.smallrye.reactive.messaging.providers.helpers.Validation;
-import io.vertx.core.impl.ContextInternal;
-import io.vertx.core.impl.WorkerExecutorInternal;
+import io.vertx.core.internal.ContextInternal;
+import io.vertx.core.internal.WorkerExecutorInternal;
 import io.vertx.mutiny.core.Context;
 import io.vertx.mutiny.core.Vertx;
 import io.vertx.mutiny.core.WorkerExecutor;
@@ -73,7 +73,7 @@ public class WorkerPoolRegistry {
             }
             // Shutdown all worker executors
             for (Map.Entry<String, WorkerExecutor> entry : workerExecutors.entrySet()) {
-                ((WorkerExecutorInternal) entry.getValue().getDelegate()).getPool().executor().shutdown();
+                ((WorkerExecutorInternal) entry.getValue().getDelegate()).pool().executor().shutdown();
             }
             long start = System.nanoTime();
             boolean terminated = false;
@@ -83,7 +83,7 @@ public class WorkerPoolRegistry {
                 terminated = true;
                 for (Map.Entry<String, WorkerExecutor> entry : workerExecutors.entrySet()) {
                     WorkerExecutor workerExecutor = entry.getValue();
-                    ExecutorService innerExecutor = ((WorkerExecutorInternal) workerExecutor.getDelegate()).getPool()
+                    ExecutorService innerExecutor = ((WorkerExecutorInternal) workerExecutor.getDelegate()).pool()
                             .executor();
                     WorkerPoolConfig poolConfig = workerConfig.get(entry.getKey());
                     long timeout = poolConfig.shutdownTimeout().toNanos();
@@ -126,14 +126,14 @@ public class WorkerPoolRegistry {
         Objects.requireNonNull(uni, msg.actionNotProvided());
         if (workerName == null) {
             if (msgContext != null) {
-                return msgContext.executeBlocking(uni, ordered);
+                return msgContext.executeBlocking(() -> uni.await().indefinitely(), ordered);
             }
             // No current context, use the Vert.x instance.
-            return holder.vertx().executeBlocking(uni, ordered);
+            return holder.vertx().executeBlocking(() -> uni.await().indefinitely(), ordered);
         } else {
             WorkerExecutor worker = getWorker(workerName);
             if (msgContext != null) {
-                return uniOnMessageContext(worker.executeBlocking(uni, ordered), msgContext)
+                return uniOnMessageContext(worker.executeBlocking(() -> uni.await().indefinitely(), ordered), msgContext)
                         .onItemOrFailure().transformToUni((item, failure) -> {
                             return Uni.createFrom().emitter(emitter -> {
                                 if (failure != null) {
@@ -144,7 +144,7 @@ public class WorkerPoolRegistry {
                             });
                         });
             }
-            return worker.executeBlocking(uni, ordered);
+            return worker.executeBlocking(() -> uni.await().indefinitely(), ordered);
         }
     }
 

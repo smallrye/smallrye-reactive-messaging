@@ -58,14 +58,21 @@ import io.vertx.mutiny.core.Vertx;
 @ConnectorAttribute(name = "port", type = "int", description = "Set the MQTT server port. Default to 8883 if ssl is enabled, or 1883 without ssl", direction = INCOMING_AND_OUTGOING)
 @ConnectorAttribute(name = "server-name", type = "string", direction = INCOMING_AND_OUTGOING, description = "Set the SNI server name")
 @ConnectorAttribute(name = "topic", type = "string", direction = INCOMING_AND_OUTGOING, description = "Set the MQTT topic. If not set, the channel name is used")
-@ConnectorAttribute(name = "qos", type = "int", defaultValue = "0", direction = INCOMING_AND_OUTGOING, description = "Set the QoS level when subscribing to the topic or when sending a message")
+@ConnectorAttribute(name = "qos", type = "int", defaultValue = "0", direction = INCOMING_AND_OUTGOING, description = "Set the QoS level when subscribing to the topic or when sending a message (0, 1, or 2)")
+@ConnectorAttribute(name = "mqtt-version", type = "int", defaultValue = "4", direction = INCOMING_AND_OUTGOING, description = "Set the MQTT protocol version (4 for 3.1.1 or 5 for 5.0)")
+@ConnectorAttribute(name = "session-expiry-interval", type = "int", direction = INCOMING_AND_OUTGOING, description = "Set the session expiry interval in seconds (MQTT 5.0 only)")
 @ConnectorAttribute(name = "client-options-name", direction = INCOMING_AND_OUTGOING, description = "The name of the MQTT Client Option bean (`io.smallrye.reactive.messaging.mqtt.session.MqttClientSessionOptions`) used to customize the MQTT client configuration", type = "string", alias = "mqtt-client-options-name")
+@ConnectorAttribute(name = "no-local", type = "boolean", direction = INCOMING, description = "MQTT 5.0: if true, the server will not forward messages published by this client back to this client", defaultValue = "false")
+@ConnectorAttribute(name = "retain-as-published", type = "boolean", direction = INCOMING, description = "MQTT 5.0: if true, the server keeps the retain flag as set by the publishing client", defaultValue = "false")
+@ConnectorAttribute(name = "retain-handling", type = "int", direction = INCOMING, description = "MQTT 5.0: retain handling option (0=send on subscribe, 1=send if new subscription, 2=do not send)", defaultValue = "0")
+@ConnectorAttribute(name = "subscription-identifier", type = "int", direction = INCOMING, description = "MQTT 5.0: subscription identifier to include in the SUBSCRIBE packet")
 @ConnectorAttribute(name = "broadcast", description = "Whether or not the messages should be dispatched to multiple consumers", type = "boolean", direction = INCOMING, defaultValue = "false")
 @ConnectorAttribute(name = "failure-strategy", type = "string", direction = INCOMING, description = "Specify the failure strategy to apply when a message produced from a MQTT message is nacked. Values can be `fail` (default), or `ignore`", defaultValue = "fail")
 @ConnectorAttribute(name = "merge", direction = OUTGOING, description = "Whether the connector should allow multiple upstreams", type = "boolean", defaultValue = "false")
 @ConnectorAttribute(name = "buffer-size", direction = INCOMING, description = "The size buffer of incoming messages waiting to be processed", type = "int", defaultValue = "128")
 @ConnectorAttribute(name = "unsubscribe-on-disconnection", direction = INCOMING_AND_OUTGOING, description = "This flag restore the old behavior to unsubscribe from the broken on disconnection", type = "boolean", defaultValue = "false")
 @ConnectorAttribute(name = "retain", direction = OUTGOING, description = "Whether the published message should be retained", type = "boolean", defaultValue = "false")
+@ConnectorAttribute(name = "authentication-method", type = "string", direction = INCOMING_AND_OUTGOING, description = "MQTT 5.0: the authentication method for enhanced authentication")
 public class MqttConnector implements InboundConnector, OutboundConnector, HealthReporter {
 
     static final String CONNECTOR_NAME = "smallrye-mqtt";
@@ -81,6 +88,10 @@ public class MqttConnector implements InboundConnector, OutboundConnector, Healt
     @Any
     Instance<ClientCustomizer<MqttClientSessionOptions>> configCustomizers;
 
+    @Inject
+    @Any
+    Instance<MqttClientSessionCustomizer> sessionCustomizers;
+
     private Vertx vertx;
     private final List<MqttSource> sources = new CopyOnWriteArrayList<>();
     private final List<MqttSink> sinks = new CopyOnWriteArrayList<>();
@@ -93,14 +104,15 @@ public class MqttConnector implements InboundConnector, OutboundConnector, Healt
     @Override
     public Flow.Publisher<? extends Message<?>> getPublisher(Config config) {
         MqttSource source = new MqttSource(vertx, new MqttConnectorIncomingConfiguration(config), configCustomizers,
-                instances);
+                instances, sessionCustomizers);
         sources.add(source);
         return source.getSource();
     }
 
     @Override
     public Flow.Subscriber<? extends Message<?>> getSubscriber(Config config) {
-        MqttSink sink = new MqttSink(vertx, new MqttConnectorOutgoingConfiguration(config), configCustomizers, instances);
+        MqttSink sink = new MqttSink(vertx, new MqttConnectorOutgoingConfiguration(config), configCustomizers, instances,
+                sessionCustomizers);
         sinks.add(sink);
         return sink.getSink();
     }

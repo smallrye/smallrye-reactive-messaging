@@ -9,6 +9,7 @@ import java.util.Objects;
  *
  * @param <T> type of the processing state
  */
+@Deprecated(forRemoval = true)
 public class ProcessingState<T> {
 
     private long offset;

@@ -31,7 +31,7 @@ public class LocalPropagationAckTest extends WeldTestBase {
                 .with("mp.messaging.incoming.data.connector", RabbitMQConnector.CONNECTOR_NAME)
                 .with("mp.messaging.incoming.data.queue.name", queueName)
                 .with("mp.messaging.incoming.data.exchange.name", exchangeName)
-                .with("mp.messaging.incoming.data.exchange.routing-keys", routingKeys)
+                .with("mp.messaging.incoming.data.routing-keys", routingKeys)
                 .with("mp.messaging.incoming.data.tracing.enabled", false);
     }
 

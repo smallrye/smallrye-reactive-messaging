@@ -4,96 +4,102 @@ import static io.smallrye.reactive.messaging.jms.i18n.JmsExceptions.ex;
 import static io.smallrye.reactive.messaging.jms.i18n.JmsLogging.log;
 
 import java.time.Duration;
-import java.util.*;
-import java.util.concurrent.Executor;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Flow;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BiConsumer;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 import jakarta.enterprise.inject.Instance;
 import jakarta.jms.Destination;
-import jakarta.jms.JMSConsumer;
-import jakarta.jms.JMSContext;
 import jakarta.jms.JMSException;
-import jakarta.jms.JMSRuntimeException;
-import jakarta.jms.Message;
 import jakarta.jms.Queue;
-import jakarta.jms.Topic;
+
+import org.eclipse.microprofile.reactive.messaging.Message;
 
 import io.opentelemetry.api.OpenTelemetry;
-import io.smallrye.common.annotation.Identifier;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.helpers.Subscriptions;
+import io.smallrye.mutiny.subscription.DemandPauser;
+import io.smallrye.reactive.messaging.jms.commit.JmsCommitHandler;
 import io.smallrye.reactive.messaging.jms.fault.JmsFailureHandler;
 import io.smallrye.reactive.messaging.jms.tracing.JmsOpenTelemetryInstrumenter;
 import io.smallrye.reactive.messaging.jms.tracing.JmsTrace;
 import io.smallrye.reactive.messaging.json.JsonMapping;
-import io.vertx.core.impl.VertxInternal;
+import io.vertx.core.internal.VertxInternal;
 import io.vertx.mutiny.core.Context;
 import io.vertx.mutiny.core.Vertx;
 
 class JmsSource {
 
-    private final Multi<IncomingJmsMessage<?>> source;
-    private final JmsResourceHolder<JMSConsumer> resourceHolder;
+    private final Multi<? extends IncomingJmsMessage<?>> source;
+    private final JmsMessagePoller poller;
 
     private final JmsPublisher publisher;
     private final boolean isTracingEnabled;
     private final JmsOpenTelemetryInstrumenter jmsInstrumenter;
-    private final Context context;
-    private final JmsConnector jmsConnector;
 
-    private final Instance<JmsFailureHandler.Factory> failureHandlerFactories;
-    private final JmsConnectorIncomingConfiguration config;
+    private final JmsCommitHandler commitHandler;
     private final JmsFailureHandler failureHandler;
     private final List<Throwable> failures = new ArrayList<>();
 
-    JmsSource(JmsConnector jmsConnector, Vertx vertx, JmsResourceHolder<JMSConsumer> resourceHolder,
+    JmsSource(Vertx vertx,
             JmsConnectorIncomingConfiguration config,
-            Instance<OpenTelemetry> openTelemetryInstance, JsonMapping jsonMapping,
-            Executor executor, Instance<JmsFailureHandler.Factory> failureHandlerFactories) {
-        this.jmsConnector = jmsConnector;
+            Instance<OpenTelemetry> openTelemetryInstance,
+            JsonMapping jsonMapping,
+            JmsMessagePoller poller,
+            Supplier<JmsCommitHandler> commitHandlerSupplier,
+            Function<BiConsumer<Throwable, Boolean>, JmsFailureHandler> failureHandlerFunction,
+            DemandPauser demandPauser) {
         this.isTracingEnabled = config.getTracingEnabled();
         String channel = config.getChannel();
-        final String destinationName = config.getDestination().orElseGet(config::getChannel);
-        String selector = config.getSelector().orElse(null);
-        boolean nolocal = config.getNoLocal();
-        boolean durable = config.getDurable();
-        String type = config.getDestinationType();
         boolean retry = config.getRetry();
-        this.config = config;
-        this.resourceHolder = resourceHolder.configure(r -> getDestination(r.getContext(), destinationName, type),
-                r -> {
-                    if (durable) {
-                        if (!(r.getDestination() instanceof Topic)) {
-                            throw ex.illegalArgumentInvalidDestination();
-                        }
-                        return r.getContext().createDurableConsumer((Topic) r.getDestination(), destinationName, selector,
-                                nolocal);
-                    } else {
-                        return r.getContext().createConsumer(r.getDestination(), selector, nolocal);
-                    }
-                });
-        resourceHolder.getClient();
+        this.poller = poller;
+        this.commitHandler = commitHandlerSupplier.get();
+        this.failureHandler = failureHandlerFunction.apply(this::reportFailure);
         if (isTracingEnabled) {
             jmsInstrumenter = JmsOpenTelemetryInstrumenter.createForSource(openTelemetryInstance);
         } else {
             jmsInstrumenter = null;
         }
 
-        this.failureHandlerFactories = failureHandlerFactories;
-        this.failureHandler = createFailureHandler();
-        this.publisher = new JmsPublisher(resourceHolder, failureHandler);
-        this.context = Context.newInstance(((VertxInternal) vertx.getDelegate()).createEventLoopContext());
-        source = Multi.createFrom().publisher(publisher)
-                .emitOn(context::runOnContext)
-                .<IncomingJmsMessage<?>> map(m -> new IncomingJmsMessage<>(m, executor, jsonMapping, failureHandler))
+        Context rootCtx = Context.newInstance(((VertxInternal) vertx.getDelegate()).createEventLoopContext());
+        this.publisher = new JmsPublisher(channel, poller);
+
+        Multi<? extends Message<jakarta.jms.Message>> pipeline;
+        if (demandPauser != null) {
+            pipeline = Multi.createFrom().publisher(publisher)
+                    .pauseDemand().using(demandPauser)
+                    .emitOn(rootCtx::runOnContext, 1);
+        } else {
+            pipeline = Multi.createFrom().publisher(publisher)
+                    .emitOn(rootCtx::runOnContext);
+        }
+        this.source = pipeline
+                .onItem().invoke(m -> {
+                    if (demandPauser != null) {
+                        demandPauser.pause();
+                    }
+                })
+                .onItem().transform(m -> {
+                    IncomingJmsMessage<?> msg = new IncomingJmsMessage<>(m.getPayload(), jsonMapping, commitHandler,
+                            failureHandler);
+                    for (Object meta : m.getMetadata()) {
+                        msg.injectMetadata(meta);
+                    }
+                    return msg;
+                })
                 .onItem().invoke(this::incomingTrace)
                 .onFailure(t -> {
                     log.terminalErrorOnChannel(channel);
-                    this.resourceHolder.close();
+                    this.poller.close();
                     return retry;
                 })
                 .retry()
@@ -103,23 +109,7 @@ class JmsSource {
                 .atMost(config.getRetryMaxRetries())
                 .onFailure()
                 .invoke(throwable -> log.terminalErrorRetriesExhausted(config.getChannel(), throwable))
-                .plug(m -> {
-                    if (config.getBroadcast()) {
-                        return m.broadcast().toAllSubscribers();
-                    }
-                    return m;
-                });
-    }
-
-    private JmsFailureHandler createFailureHandler() {
-        String strategy = config.getFailureStrategy();
-        Instance<JmsFailureHandler.Factory> failureHandlerFactory = failureHandlerFactories
-                .select(Identifier.Literal.of(strategy));
-        if (failureHandlerFactory.isResolvable()) {
-            return failureHandlerFactory.get().create(jmsConnector, config, this::reportFailure);
-        } else {
-            throw ex.illegalArgumentInvalidFailureStrategy(strategy);
-        }
+                .plug(m -> config.getBroadcast() ? m.broadcast().toAllSubscribers() : m);
     }
 
     public synchronized void reportFailure(Throwable failure, boolean fatal) {
@@ -137,56 +127,39 @@ class JmsSource {
 
     void close() {
         publisher.close();
-        resourceHolder.close();
+        poller.close();
+        commitHandler.close();
+        failureHandler.close();
     }
 
-    private Destination getDestination(JMSContext context, String name, String type) {
-        switch (type.toLowerCase()) {
-            case "queue":
-                log.creatingQueue(name);
-                return context.createQueue(name);
-            case "topic":
-                log.creatingTopic(name);
-                return context.createTopic(name);
-            default:
-                throw ex.illegalArgumentUnknownDestinationType(type);
-        }
-
-    }
-
-    Multi<IncomingJmsMessage<?>> getSource() {
+    Multi<? extends IncomingJmsMessage<?>> getSource() {
         return source;
     }
 
     @SuppressWarnings("PublisherImplementation")
-    private static class JmsPublisher implements Flow.Publisher<Message>, Flow.Subscription {
+    private static class JmsPublisher implements Flow.Publisher<Message<jakarta.jms.Message>>, Flow.Subscription {
 
         private final AtomicLong requests = new AtomicLong();
-        private final AtomicReference<Flow.Subscriber<? super Message>> downstream = new AtomicReference<>();
-        private final JmsResourceHolder<JMSConsumer> consumerHolder;
-        private final JmsFailureHandler failureHandler;
+        private final AtomicReference<Flow.Subscriber<? super Message<jakarta.jms.Message>>> downstream = new AtomicReference<>();
         private final ExecutorService executor;
-        private boolean unbounded;
+        private final JmsMessagePoller poller;
+        private final AtomicBoolean polling = new AtomicBoolean();
 
-        private JmsPublisher(JmsResourceHolder<JMSConsumer> resourceHolder, JmsFailureHandler failureHandler) {
-            this.consumerHolder = resourceHolder;
-            this.failureHandler = failureHandler;
-            this.executor = Executors.newSingleThreadExecutor();
+        private JmsPublisher(String channel, JmsMessagePoller poller) {
+            this.poller = poller;
+            this.executor = Executors.newSingleThreadExecutor(new JmsThreadFactory("smallrye-jms-" + channel));
         }
 
         void close() {
-            Flow.Subscriber<? super Message> subscriber = downstream.getAndSet(null);
+            Flow.Subscriber<? super Message<jakarta.jms.Message>> subscriber = downstream.getAndSet(null);
             if (subscriber != null) {
                 subscriber.onComplete();
-            }
-            if (failureHandler != null) {
-                failureHandler.close();
             }
             executor.shutdown();
         }
 
         @Override
-        public void subscribe(Flow.Subscriber<? super Message> s) {
+        public void subscribe(Flow.Subscriber<? super Message<jakarta.jms.Message>> s) {
             if (downstream.compareAndSet(null, s)) {
                 s.onSubscribe(this);
             } else {
@@ -197,44 +170,39 @@ class JmsSource {
         @Override
         public void request(long n) {
             if (n > 0) {
-                boolean u = unbounded;
-                if (!u) {
-                    long v = add(n);
-                    if (v == Long.MAX_VALUE) {
-                        unbounded = true;
-                        startUnboundedReception();
-                    } else {
-                        enqueue(n);
+                add(n);
+                ensurePolling();
+            }
+        }
+
+        private void ensurePolling() {
+            if (polling.compareAndSet(false, true)) {
+                executor.execute(this::pollLoop);
+            }
+        }
+
+        private void pollLoop() {
+            try {
+                Flow.Subscriber<? super Message<jakarta.jms.Message>> sub;
+                while (requests.get() > 0 && (sub = downstream.get()) != null) {
+                    Message<jakarta.jms.Message> message = poller.poll();
+                    if (message != null) {
+                        requests.decrementAndGet();
+                        sub.onNext(message);
                     }
                 }
+            } catch (Exception e) {
+                log.clientClosed();
+                Flow.Subscriber<? super Message<jakarta.jms.Message>> subscriber = downstream.getAndSet(null);
+                if (subscriber != null) {
+                    subscriber.onError(e);
+                }
+            } finally {
+                polling.set(false);
             }
-        }
-
-        private void enqueue(long n) {
-            for (int i = 0; i < n; i++) {
-                executor.execute(() -> {
-                    try {
-                        Message message = null;
-                        while (message == null && downstream.get() != null) {
-                            message = consumerHolder.getClient().receive();
-                            if (message != null) { // null means closed.
-                                requests.decrementAndGet();
-                                downstream.get().onNext(message);
-                            }
-                        }
-                    } catch (JMSRuntimeException e) {
-                        log.clientClosed();
-                        Flow.Subscriber<? super Message> subscriber = downstream.getAndSet(null);
-                        if (subscriber != null) {
-                            subscriber.onError(e);
-                        }
-                    }
-                });
+            if (requests.get() > 0 && downstream.get() != null) {
+                ensurePolling();
             }
-        }
-
-        private void startUnboundedReception() {
-            consumerHolder.getClient().setMessageListener(m -> downstream.get().onNext(m));
         }
 
         @Override
@@ -267,8 +235,7 @@ class JmsSource {
             Optional<IncomingJmsMessageMetadata> metadata = jmsMessage.getMetadata(IncomingJmsMessageMetadata.class);
             Optional<String> queueName = metadata.map(a -> {
                 Destination destination = a.getDestination();
-                if (destination instanceof Queue) {
-                    Queue queue = (Queue) destination;
+                if (destination instanceof Queue queue) {
                     try {
                         return queue.getQueueName();
                     } catch (JMSException e) {
@@ -277,19 +244,7 @@ class JmsSource {
                 }
                 return null;
             });
-            Message unwrapped = jmsMessage.unwrap(Message.class);
-
-            Map<String, Object> properties = new HashMap<>();
-            try {
-                Enumeration<?> propertyNames = unwrapped.getPropertyNames();
-                while (propertyNames.hasMoreElements()) {
-                    String name = (String) propertyNames.nextElement();
-                    Object value = unwrapped.getObjectProperty(name);
-                    properties.put(name, value);
-                }
-            } catch (JMSException e) {
-                throw new RuntimeException(e);
-            }
+            jakarta.jms.Message unwrapped = jmsMessage.unwrap(jakarta.jms.Message.class);
 
             JmsTrace jmsTrace = new JmsTrace.Builder()
                     .withQueue(queueName.orElse(null))
@@ -299,4 +254,5 @@ class JmsSource {
             jmsInstrumenter.traceIncoming(jmsMessage, jmsTrace);
         }
     }
+
 }

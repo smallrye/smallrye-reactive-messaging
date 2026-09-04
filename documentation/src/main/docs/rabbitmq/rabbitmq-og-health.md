@@ -1,6 +1,6 @@
 # Health reporting
 
-The RabbitMQ connector reports the readiness and liveness of each
+The RabbitMQ OG connector reports the readiness and liveness of each
 channel managed by the connector.
 
 On the inbound side (receiving messages from RabbitMQ), the check
@@ -23,4 +23,3 @@ The default health check will fail in this case.
 
 To handle this use case, you need to configure the `health-lazy-subscription` attribute of the channel to `true`.
 It configures the health check to not fail if there are no subscription yet.
-

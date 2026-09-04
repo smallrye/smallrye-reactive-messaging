@@ -8,7 +8,6 @@ import org.eclipse.microprofile.reactive.messaging.Message;
 
 import io.smallrye.reactive.messaging.MessageConverter;
 import io.smallrye.reactive.messaging.rabbitmq.IncomingRabbitMQMetadata;
-import io.vertx.rabbitmq.RabbitMQMessage;
 
 @ApplicationScoped
 public class ByteArrayMessageConverter implements MessageConverter {
@@ -23,8 +22,6 @@ public class ByteArrayMessageConverter implements MessageConverter {
     public Message<?> convert(Message<?> in, Type target) {
         IncomingRabbitMQMetadata metadata = in.getMetadata(IncomingRabbitMQMetadata.class)
                 .orElseThrow(() -> new IllegalStateException("No RabbitMQ metadata"));
-        RabbitMQMessage message = metadata.getMessage()
-                .orElseThrow(() -> new IllegalStateException("No RabbitMQ message"));
-        return in.withPayload(message.body().getBytes());
+        return in.withPayload(metadata.getBody());
     }
 }

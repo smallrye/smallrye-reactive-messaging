@@ -13,23 +13,33 @@ import org.testcontainers.shaded.org.awaitility.Awaitility;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 
 /**
- * Reproduce <a href="https://github.com/smallrye/smallrye-reactive-messaging/issues/1966">#1966</a>
+ * Tests acknowledgement chaining from incoming to outgoing channels.
+ * Verifies that ack/nack propagates correctly through the message pipeline.
  */
 public class AckChainTest extends WeldTestBase {
 
     @Test
-    void test() {
+    void testAckPropagation() {
         addBeans(MyApp.class);
         runApplication(new MapBasedConfig()
-                .with("mp.messaging.outgoing.outgoing-no-ack.connector", "smallrye-rabbitmq")
+                .with("mp.messaging.outgoing.outgoing-no-ack.connector", RabbitMQConnector.CONNECTOR_NAME)
                 .with("mp.messaging.outgoing.outgoing-no-ack.exchange.name", "DemoNoAck")
-                .with("mp.messaging.outgoing.outgoing-no-ack.type", "topic")
-                .with("mp.messaging.outgoing.outgoing-no-ack.declare", "true")
-                .with("mp.messaging.incoming.incoming-no-ack.connector", "smallrye-rabbitmq")
+                .with("mp.messaging.outgoing.outgoing-no-ack.exchange.type", "topic")
+                .with("mp.messaging.outgoing.outgoing-no-ack.exchange.declare", "true")
+                .with("mp.messaging.outgoing.outgoing-no-ack.host", host)
+                .with("mp.messaging.outgoing.outgoing-no-ack.port", port)
+                .with("mp.messaging.outgoing.outgoing-no-ack.tracing.enabled", false)
+                .with("mp.messaging.incoming.incoming-no-ack.connector", RabbitMQConnector.CONNECTOR_NAME)
                 .with("mp.messaging.incoming.incoming-no-ack.exchange.name", "DemoNoAck")
                 .with("mp.messaging.incoming.incoming-no-ack.queue.name", "queue.no.ack")
                 .with("mp.messaging.incoming.incoming-no-ack.queue.declare", "true")
-                .with("mp.messaging.incoming.incoming-no-ack.routing.keys", "no.ack"));
+                .with("mp.messaging.incoming.incoming-no-ack.routing-keys", "no.ack")
+                .with("mp.messaging.incoming.incoming-no-ack.host", host)
+                .with("mp.messaging.incoming.incoming-no-ack.port", port)
+                .with("mp.messaging.incoming.incoming-no-ack.tracing.enabled", false)
+                .with("rabbitmq-username", username)
+                .with("rabbitmq-password", password)
+                .with("rabbitmq-reconnect-attempts", 0));
 
         usage.produce("DemoNoAck", "queue.no.ack", "no.ack", 1, () -> "payload");
         MyApp app = container.select(MyApp.class).get();
@@ -46,13 +56,13 @@ public class AckChainTest extends WeldTestBase {
         AtomicBoolean acked = new AtomicBoolean(false);
 
         @Incoming("incoming-no-ack")
-        CompletableFuture<Void> consume(String msg) {
+        CompletableFuture<Void> consume(Message<byte[]> msg) {
             CompletableFuture<Void> future = new CompletableFuture<>();
             Metadata metadata = Metadata.of(OutgoingRabbitMQMetadata.builder()
                     .withRoutingKey("other.queue")
                     .withContentType("text/plain")
                     .build());
-            Message<String> output = Message.of("payload").withMetadata(metadata)
+            Message<String> output = Message.of(new String(msg.getPayload())).withMetadata(metadata)
                     .withAck(() -> {
                         future.complete(null);
                         acked.set(true);

@@ -6,6 +6,7 @@ import io.vertx.core.json.Json;
 /**
  * Default codec for Json serialization, which use Vert.x Json support (uses Jackson underneath).
  */
+@Deprecated(forRemoval = true)
 public class VertxJsonProcessingStateCodec implements ProcessingStateCodec {
 
     public static VertxJsonProcessingStateCodec INSTANCE = new VertxJsonProcessingStateCodec();

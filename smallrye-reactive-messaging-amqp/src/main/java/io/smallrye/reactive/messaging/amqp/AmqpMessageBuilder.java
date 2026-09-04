@@ -3,9 +3,9 @@ package io.smallrye.reactive.messaging.amqp;
 import java.time.Instant;
 import java.util.UUID;
 
+import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
-import io.vertx.mutiny.core.buffer.Buffer;
 
 /**
  * @param <T>

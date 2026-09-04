@@ -10,14 +10,17 @@ import jakarta.enterprise.context.ApplicationScoped;
 import org.eclipse.microprofile.reactive.messaging.Metadata;
 
 import io.smallrye.common.annotation.Identifier;
-import io.smallrye.reactive.messaging.rabbitmq.ClientHolder;
 import io.smallrye.reactive.messaging.rabbitmq.IncomingRabbitMQMessage;
 import io.smallrye.reactive.messaging.rabbitmq.RabbitMQConnector;
 import io.smallrye.reactive.messaging.rabbitmq.RabbitMQConnectorIncomingConfiguration;
 import io.smallrye.reactive.messaging.rabbitmq.RabbitMQRejectMetadata;
 import io.vertx.mutiny.core.Context;
 
+/**
+ * Failure handler that requeues the message.
+ */
 public class RabbitMQRequeue implements RabbitMQFailureHandler {
+
     private final String channel;
 
     @ApplicationScoped
@@ -42,12 +45,20 @@ public class RabbitMQRequeue implements RabbitMQFailureHandler {
     @Override
     public <V> CompletionStage<Void> handle(IncomingRabbitMQMessage<V> msg, Metadata metadata, Context context,
             Throwable reason) {
-        // We mark the message as requeued and fail.
+        // We mark the message as requeued.
         log.nackedIgnoreMessage(channel);
         log.fullIgnoredFailure(reason);
+
+        // Check if requeue flag is explicitly set in metadata, default to true
         boolean requeue = Optional.ofNullable(metadata)
                 .flatMap(md -> md.get(RabbitMQRejectMetadata.class))
                 .map(RabbitMQRejectMetadata::isRequeue).orElse(true);
-        return ClientHolder.runOnContext(context, msg, m -> m.rejectMessage(reason, requeue));
+
+        // Create metadata with requeue flag
+        Metadata nackMetadata = metadata != null
+                ? metadata.with(new RabbitMQRejectMetadata(requeue))
+                : Metadata.of(new RabbitMQRejectMetadata(requeue));
+
+        return msg.nack(reason, nackMetadata);
     }
 }

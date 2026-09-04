@@ -20,7 +20,10 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.Base64;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -28,48 +31,61 @@ import java.util.function.Supplier;
 import org.jboss.logging.Logger;
 
 import com.rabbitmq.client.AMQP;
-import com.rabbitmq.client.BasicProperties;
+import com.rabbitmq.client.Channel;
+import com.rabbitmq.client.Connection;
+import com.rabbitmq.client.ConnectionFactory;
+import com.rabbitmq.client.DefaultConsumer;
+import com.rabbitmq.client.Envelope;
 
-import io.smallrye.common.annotation.CheckReturnValue;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
-import io.vertx.mutiny.core.Vertx;
-import io.vertx.mutiny.core.buffer.Buffer;
-import io.vertx.mutiny.rabbitmq.RabbitMQClient;
-import io.vertx.rabbitmq.QueueOptions;
-import io.vertx.rabbitmq.RabbitMQOptions;
 
 /**
- * Provides methods to interact directly with a RabbitMQ instance.
+ * Provides methods to interact directly with a RabbitMQ instance using the original RabbitMQ Java client.
  */
 public class RabbitMQUsage {
 
     private final static Logger LOGGER = Logger.getLogger(RabbitMQUsage.class);
-    private final RabbitMQClient client;
-    private final RabbitMQOptions options;
+    private final ConnectionFactory factory;
+    private final String host;
+    private final String username;
+    private final String password;
     private final int managementPort;
+    private Connection connection;
+    private Channel channel;
 
     /**
      * Constructor.
      *
-     * @param vertx the {@link Vertx} instance
+     * @param vertx the {@link io.vertx.mutiny.core.Vertx} instance (not used, kept for compatibility)
      * @param host the rabbitmq hostname
      * @param port the mapped rabbitmq port
      * @param managementPort the mapped rabbitmq management port
      * @param user user credential for accessing rabbitmq
      * @param pwd password credential for accessing rabbitmq
      */
-    public RabbitMQUsage(final Vertx vertx, final String host, final int port, final int managementPort, final String user,
-            final String pwd) {
+    public RabbitMQUsage(final io.vertx.mutiny.core.Vertx vertx, final String host, final int port,
+            final int managementPort, final String user, final String pwd) {
+        this.host = host;
+        this.username = user;
+        this.password = pwd;
         this.managementPort = managementPort;
-        this.options = new RabbitMQOptions()
-                .setHost(host)
-                .setPort(port)
-                .setUser(user)
-                .setPassword(pwd)
-                .setAutomaticRecoveryOnInitialConnection(false)
-                .setReconnectAttempts(1);
-        this.client = RabbitMQClient.create(new Vertx(vertx.getDelegate()), options);
+
+        this.factory = new ConnectionFactory();
+        factory.setHost(host);
+        factory.setPort(port);
+        factory.setUsername(user);
+        factory.setPassword(pwd);
+        factory.setAutomaticRecoveryEnabled(false);
+    }
+
+    private void ensureConnected() throws IOException, java.util.concurrent.TimeoutException {
+        if (connection == null || !connection.isOpen()) {
+            connection = factory.newConnection();
+        }
+        if (channel == null || !channel.isOpen()) {
+            channel = connection.createChannel();
+        }
     }
 
     /**
@@ -98,31 +114,20 @@ public class RabbitMQUsage {
     }
 
     public void produce(String exchange, String queue, String routingKey, int messageCount, Supplier<Object> messageSupplier,
-            BasicProperties properties) {
+            AMQP.BasicProperties properties) {
         CountDownLatch done = new CountDownLatch(messageCount);
-        // Start the machinery to receive the messages
-        client.startAndAwait();
 
         Thread t = new Thread(() -> {
             LOGGER.debugf("Starting RabbitMQ sender to write %s messages with routing key %s", messageCount, routingKey);
             try {
+                ensureConnected();
+
                 for (int i = 0; i != messageCount; ++i) {
                     Object payload = messageSupplier.get();
-                    Buffer body;
-                    if (payload instanceof byte[]) {
-                        body = Buffer.buffer((byte[]) payload);
-                    } else if (payload instanceof Buffer) {
-                        body = (Buffer) payload;
-                    } else {
-                        body = Buffer.buffer(payload.toString());
-                    }
-                    client.basicPublish(exchange, routingKey, properties, body)
-                            .subscribe().with(
-                                    v -> {
-                                        LOGGER.debugf("Producer sent message %s", payload);
-                                        done.countDown();
-                                    },
-                                    Throwable::printStackTrace);
+                    byte[] body = payload.toString().getBytes(StandardCharsets.UTF_8);
+                    channel.basicPublish(exchange, routingKey, properties, body);
+                    LOGGER.debugf("Producer sent message %s", payload);
+                    done.countDown();
                 }
             } catch (Exception e) {
                 LOGGER.error("Unable to send message", e);
@@ -130,14 +135,13 @@ public class RabbitMQUsage {
             LOGGER.debugf("Finished sending %s messages with routing key %s", messageCount, routingKey);
         });
 
-        t.setName(exchange + "-thread");
+        t.setName(exchange + "-producer-thread");
         t.start();
 
         try {
             done.await();
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            // Ignore me
         }
     }
 
@@ -148,21 +152,26 @@ public class RabbitMQUsage {
      * @param routingKey the routing key
      * @param consumerFunction the function to consume the messages; may not be null
      */
-    public void consume(String exchange, String routingKey,
-            Consumer<io.vertx.mutiny.rabbitmq.RabbitMQMessage> consumerFunction) {
+    public void consume(String exchange, String routingKey, Consumer<RabbitMQMessage> consumerFunction) {
         final String queue = "tempConsumeMessages";
-        // Start by the machinery to receive the messages
-        client.startAndAwait();
-        client.exchangeDeclareAndAwait(exchange, "topic", false, true);
-        client.queueDeclareAndAwait(queue, false, false, true);
-        client.queueBindAndAwait(queue, exchange, routingKey);
+        try {
+            ensureConnected();
+            channel.exchangeDeclare(exchange, "topic", false, true, null);
+            channel.queueDeclare(queue, false, false, true, null);
+            channel.queueBind(queue, exchange, routingKey);
 
-        // Now set up a consumer
-        client.basicConsumerAndAwait(queue, new QueueOptions()).handler(
-                msg -> {
+            channel.basicConsume(queue, true, new DefaultConsumer(channel) {
+                @Override
+                public void handleDelivery(String consumerTag, Envelope envelope,
+                        AMQP.BasicProperties properties, byte[] body) throws IOException {
                     LOGGER.debugf("Consumer %s: consuming message", exchange);
+                    RabbitMQMessage msg = new RabbitMQMessage(envelope, properties, body);
                     consumerFunction.accept(msg);
-                });
+                }
+            });
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to set up consumer", e);
+        }
     }
 
     /**
@@ -173,58 +182,75 @@ public class RabbitMQUsage {
      */
     public void prepareNackQueue(String exchange, String routingKey) {
         final String queue = "tempConsumeMessagesNack";
-        // Start by the machinery to receive the messages
-        client.startAndAwait();
-        client.exchangeDeclareAndAwait(exchange, "topic", false, true);
+        try {
+            ensureConnected();
+            channel.exchangeDeclare(exchange, "topic", false, true, null);
 
-        JsonObject config = new JsonObject();
-        config.put("x-max-length", 1);
-        config.put("x-overflow", "reject-publish");
+            Map<String, Object> config = new HashMap<>();
+            config.put("x-max-length", 1);
+            config.put("x-overflow", "reject-publish");
 
-        queueDeclareAndAwait(queue, false, false, true, config);
-
-        client.queueBindAndAwait(queue, exchange, routingKey);
-
+            channel.queueDeclare(queue, false, false, true, config);
+            channel.queueBind(queue, exchange, routingKey);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to prepare nack queue", e);
+        }
     }
 
-    public com.rabbitmq.client.AMQP.Queue.DeclareOk queueDeclareAndAwait(String queue, boolean durable, boolean exclusive,
+    public AMQP.Queue.DeclareOk queueDeclareAndAwait(String queue, boolean durable, boolean exclusive,
             boolean autoDelete, JsonObject config) {
-        return queueDeclare(queue, durable, exclusive, autoDelete, config).await().indefinitely();
-    }
-
-    @CheckReturnValue
-    public io.smallrye.mutiny.Uni<com.rabbitmq.client.AMQP.Queue.DeclareOk> queueDeclare(String queue, boolean durable,
-            boolean exclusive, boolean autoDelete, JsonObject config) {
-        return io.smallrye.mutiny.vertx.AsyncResultUni.toUni(resultHandler -> {
-            client.getDelegate().queueDeclare(queue, durable, exclusive, autoDelete, config, resultHandler);
-        });
+        try {
+            ensureConnected();
+            Map<String, Object> arguments = config != null ? config.getMap() : null;
+            return channel.queueDeclare(queue, durable, exclusive, autoDelete, arguments);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to declare queue", e);
+        }
     }
 
     public void consumeIntegers(String exchange, String routingKey, Consumer<Integer> consumer) {
         final String queue = "tempConsumeIntegers";
-        // Start by the machinery to receive the messages
-        client.startAndAwait();
-        LOGGER.debugf("RabbitMQ client now started");
-        client.exchangeDeclareAndAwait(exchange, "topic", false, true);
-        LOGGER.debugf("RabbitMQ exchange declared %s", exchange);
-        client.queueDeclareAndAwait(queue, false, false, true);
-        LOGGER.debugf("RabbitMQ queue declared %s", queue);
-        LOGGER.debugf("About to bind RabbitMQ queue % to exchange %s via routing key %s", queue, exchange, routingKey);
-        client.queueBindAndAwait(queue, exchange, routingKey);
-        LOGGER.debugf("RabbitMQ queue % bound to exchange %s via routing key %s", queue, exchange, routingKey);
+        try {
+            ensureConnected();
+            LOGGER.debugf("RabbitMQ client now started");
+            channel.exchangeDeclare(exchange, "topic", false, true, null);
+            LOGGER.debugf("RabbitMQ exchange declared %s", exchange);
+            channel.queueDeclare(queue, false, false, true, null);
+            LOGGER.debugf("RabbitMQ queue declared %s", queue);
+            LOGGER.debugf("About to bind RabbitMQ queue %s to exchange %s via routing key %s", queue, exchange, routingKey);
+            channel.queueBind(queue, exchange, routingKey);
+            LOGGER.debugf("RabbitMQ queue %s bound to exchange %s via routing key %s", queue, exchange, routingKey);
 
-        // Now set up a consumer
-        client.basicConsumerAndAwait(queue, new QueueOptions()).handler(
-                msg -> {
-                    final String payload = msg.body().toString();
+            channel.basicConsume(queue, true, new DefaultConsumer(channel) {
+                @Override
+                public void handleDelivery(String consumerTag, Envelope envelope,
+                        AMQP.BasicProperties properties, byte[] body) throws IOException {
+                    final String payload = new String(body, StandardCharsets.UTF_8);
                     LOGGER.debugf("Consumer %s: consuming message %s", exchange, payload);
                     consumer.accept(Integer.parseInt(payload));
-                });
-        LOGGER.debugf("Created consumer");
+                }
+            });
+            LOGGER.debugf("Created consumer");
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to consume integers", e);
+        }
     }
 
     public void close() {
-        client.stopAndAwait();
+        try {
+            if (channel != null && channel.isOpen()) {
+                channel.close();
+            }
+        } catch (Exception e) {
+            // Ignore
+        }
+        try {
+            if (connection != null && connection.isOpen()) {
+                connection.close();
+            }
+        } catch (Exception e) {
+            // Ignore
+        }
     }
 
     void produceTenIntegers(String exchange, String queue, String routingKey, Supplier<Integer> messageSupplier) {
@@ -255,7 +281,7 @@ public class RabbitMQUsage {
 
     /**
      * Returns the RabbitMQ JSON representation of the bindings between the
-     * named exchange and queue..
+     * named exchange and queue.
      *
      * @param exchangeName the name of the exchange
      * @param queueName the name of the queue
@@ -264,27 +290,7 @@ public class RabbitMQUsage {
      */
     public JsonArray getBindings(final String exchangeName, final String queueName) throws IOException {
         final URL url = new URL(String.format("http://%s:%d/api/bindings/%%2F/e/%s/q/%s",
-                options.getHost(), managementPort, exchangeName, queueName));
-        final HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-        conn.setRequestProperty("Authorization", "Basic " + getBasicAuth());
-        conn.connect();
-
-        if (conn.getResponseCode() == 200) {
-            final String jsonString = getResponseString(conn);
-            return new JsonArray(jsonString);
-        } else {
-            return null;
-        }
-    }
-
-    /**
-     * Returns the list of active connections.
-     *
-     * @return a {@link JsonArray} of connection descriptions
-     * @throws IOException if an error occurs
-     */
-    public JsonArray getConnections() throws IOException {
-        final URL url = new URL(String.format("http://%s:%d/api/connections", options.getHost(), managementPort));
+                host, managementPort, exchangeName, queueName));
         final HttpURLConnection conn = (HttpURLConnection) url.openConnection();
         conn.setRequestProperty("Authorization", "Basic " + getBasicAuth());
         conn.connect();
@@ -298,7 +304,7 @@ public class RabbitMQUsage {
     }
 
     private JsonObject getObjectByTypeAndName(final String objectType, final String objectName) throws IOException {
-        final URL url = new URL(String.format("http://%s:%d/api/%s/%%2F/%s", options.getHost(), managementPort,
+        final URL url = new URL(String.format("http://%s:%d/api/%s/%%2F/%s", host, managementPort,
                 objectType, objectName));
         final HttpURLConnection conn = (HttpURLConnection) url.openConnection();
         conn.setRequestProperty("Authorization", "Basic " + getBasicAuth());
@@ -311,8 +317,21 @@ public class RabbitMQUsage {
         }
     }
 
+    public JsonArray getConnections() throws IOException {
+        final URL url = new URL(String.format("http://%s:%d/api/connections", host, managementPort));
+        final HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+        conn.setRequestProperty("Authorization", "Basic " + getBasicAuth());
+        conn.connect();
+        if (conn.getResponseCode() == 200) {
+            final String jsonString = getResponseString(conn);
+            return new JsonArray(jsonString);
+        } else {
+            return null;
+        }
+    }
+
     private String getBasicAuth() {
-        final String loginPassword = this.options.getUser() + ":" + this.options.getPassword();
+        final String loginPassword = username + ":" + password;
         return Base64.getEncoder().encodeToString(loginPassword.getBytes());
     }
 
@@ -325,5 +344,36 @@ public class RabbitMQUsage {
         }
 
         return sb.toString();
+    }
+
+    /**
+     * Simple wrapper for RabbitMQ message
+     */
+    public static class RabbitMQMessage {
+        private final Envelope envelope;
+        private final AMQP.BasicProperties properties;
+        private final byte[] body;
+
+        public RabbitMQMessage(Envelope envelope, AMQP.BasicProperties properties, byte[] body) {
+            this.envelope = envelope;
+            this.properties = properties;
+            this.body = body;
+        }
+
+        public String bodyAsString() {
+            return new String(body, StandardCharsets.UTF_8);
+        }
+
+        public byte[] body() {
+            return body;
+        }
+
+        public Envelope envelope() {
+            return envelope;
+        }
+
+        public AMQP.BasicProperties properties() {
+            return properties;
+        }
     }
 }

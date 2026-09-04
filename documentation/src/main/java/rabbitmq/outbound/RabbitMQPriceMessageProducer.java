@@ -1,7 +1,7 @@
 package rabbitmq.outbound;
 
 import java.time.Duration;
-import java.time.ZonedDateTime;
+import java.util.Date;
 import java.util.Random;
 
 import jakarta.enterprise.context.ApplicationScoped;
@@ -24,9 +24,9 @@ public class RabbitMQPriceMessageProducer {
         // It emits a price every second
         return Multi.createFrom().ticks().every(Duration.ofSeconds(1))
                 .map(x -> Message.of(random.nextDouble(),
-                        Metadata.of(new OutgoingRabbitMQMetadata.Builder()
+                        Metadata.of(OutgoingRabbitMQMetadata.builder()
                                 .withRoutingKey("normal")
-                                .withTimestamp(ZonedDateTime.now())
+                                .withTimestamp(new Date())
                                 .build())));
     }
 

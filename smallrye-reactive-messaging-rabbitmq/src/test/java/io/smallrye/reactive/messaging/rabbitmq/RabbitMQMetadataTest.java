@@ -1,9 +1,7 @@
 package io.smallrye.reactive.messaging.rabbitmq;
 
-import static java.time.temporal.ChronoUnit.MILLIS;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
-import java.time.ZonedDateTime;
 import java.util.Date;
 import java.util.Optional;
 
@@ -14,78 +12,49 @@ import org.junit.jupiter.api.Test;
 import com.rabbitmq.client.AMQP.BasicProperties;
 import com.rabbitmq.client.Envelope;
 
-import io.opentelemetry.api.OpenTelemetry;
-import io.opentelemetry.instrumentation.api.instrumenter.Instrumenter;
 import io.smallrye.reactive.messaging.rabbitmq.RabbitMQMessageConverter.OutgoingRabbitMQMessage;
-import io.smallrye.reactive.messaging.rabbitmq.tracing.RabbitMQOpenTelemetryInstrumenter;
-import io.smallrye.reactive.messaging.rabbitmq.tracing.RabbitMQTrace;
-import io.vertx.core.buffer.Buffer;
-import io.vertx.rabbitmq.RabbitMQMessage;
 
 public class RabbitMQMetadataTest {
 
     @Test
     void testIncomingMetadata() {
-        ZonedDateTime timestamp = ZonedDateTime.now().truncatedTo(MILLIS);
+        Date timestamp = new Date();
 
-        RabbitMQMessage message = new RabbitMQMessage() {
-            @Override
-            public Buffer body() {
-                return Buffer.buffer(new byte[] { 1, 2, 3, 4, 5 });
-            }
+        Envelope envelope = new Envelope(1, false, "test-exchange", "test-key");
+        BasicProperties properties = new BasicProperties.Builder()
+                .userId("test-user")
+                .appId("tests")
+                .contentType("text/plain")
+                .contentEncoding("utf8")
+                .correlationId("req-123")
+                .deliveryMode(11)
+                .expiration("1000")
+                .priority(100)
+                .messageId("12345")
+                .replyTo("test-source")
+                .timestamp(timestamp)
+                .type("test-type")
+                .build();
+        byte[] body = new byte[] { 1, 2, 3, 4, 5 };
 
-            @Override
-            public String consumerTag() {
-                return "123";
-            }
-
-            @Override
-            public Envelope envelope() {
-                return new Envelope(1, false, "test-exchange", "test-key");
-            }
-
-            @Override
-            public com.rabbitmq.client.BasicProperties properties() {
-                return new BasicProperties.Builder()
-                        .userId("test-user")
-                        .appId("tests")
-                        .contentType("text/plain")
-                        .contentEncoding("utf8")
-                        .correlationId("req-123")
-                        .deliveryMode(11)
-                        .expiration("1000")
-                        .priority(100)
-                        .messageId("12345")
-                        .replyTo("test-source")
-                        .timestamp(Date.from(timestamp.toInstant()))
-                        .type("test-type")
-                        .build();
-            }
-
-            @Override
-            public Integer messageCount() {
-                return 5;
-            }
-        };
-
-        IncomingRabbitMQMetadata incoming = new IncomingRabbitMQMetadata(message);
-        assertThat(incoming.getUserId()).isEqualTo(Optional.of("test-user"));
-        assertThat(incoming.getAppId()).isEqualTo(Optional.of("tests"));
-        assertThat(incoming.getContentType()).isEqualTo(Optional.of("text/plain"));
-        assertThat(incoming.getContentEncoding()).isEqualTo(Optional.of("utf8"));
-        assertThat(incoming.getCorrelationId()).isEqualTo(Optional.of("req-123"));
-        assertThat(incoming.getDeliveryMode()).isEqualTo(Optional.of(11));
-        assertThat(incoming.getExpiration()).isEqualTo(Optional.of("1000"));
-        assertThat(incoming.getPriority()).isEqualTo(Optional.of(100));
-        assertThat(incoming.getMessageId()).isEqualTo(Optional.of("12345"));
-        assertThat(incoming.getReplyTo()).isEqualTo(Optional.of("test-source"));
-        assertThat(incoming.getTimestamp(timestamp.getZone())).isEqualTo(Optional.of(timestamp));
-        assertThat(incoming.getType()).isEqualTo(Optional.of("test-type"));
+        IncomingRabbitMQMetadata incoming = new IncomingRabbitMQMetadata(envelope, properties, body, null);
+        assertThat(incoming.getUserId()).isEqualTo("test-user");
+        assertThat(incoming.getAppId()).isEqualTo("tests");
+        assertThat(incoming.getContentType()).isEqualTo("text/plain");
+        assertThat(incoming.getContentEncoding()).isEqualTo("utf8");
+        assertThat(incoming.getCorrelationId()).isEqualTo("req-123");
+        assertThat(incoming.getDeliveryMode()).isEqualTo(11);
+        assertThat(incoming.getExpiration()).isEqualTo("1000");
+        assertThat(incoming.getPriority()).isEqualTo(100);
+        assertThat(incoming.getMessageId()).isEqualTo("12345");
+        assertThat(incoming.getReplyTo()).isEqualTo("test-source");
+        assertThat(incoming.getTimestamp()).isEqualTo(timestamp);
+        assertThat(incoming.getType()).isEqualTo("test-type");
     }
 
     @Test
     void testOutgoingMetadata() {
-        ZonedDateTime timestamp = ZonedDateTime.now().truncatedTo(MILLIS);
+        Date timestamp = new Date();
 
         OutgoingRabbitMQMetadata metadata = OutgoingRabbitMQMetadata.builder()
                 .withUserId("test-user")
@@ -103,12 +72,9 @@ public class RabbitMQMetadataTest {
                 .build();
 
         OutgoingRabbitMQMessage message = RabbitMQMessageConverter.convert(
-                TestInstrumenter.create(),
                 Message.of("", Metadata.of(metadata)),
-                "test",
                 "#",
-                Optional.empty(),
-                false);
+                Optional.empty());
 
         com.rabbitmq.client.BasicProperties props = message.getProperties();
 
@@ -122,13 +88,13 @@ public class RabbitMQMetadataTest {
         assertThat(props.getPriority()).isEqualTo(100);
         assertThat(props.getMessageId()).isEqualTo("12345");
         assertThat(props.getReplyTo()).isEqualTo("test-source");
-        assertThat(props.getTimestamp()).isEqualTo(Date.from(timestamp.toInstant()));
+        assertThat(props.getTimestamp()).isEqualTo(timestamp);
         assertThat(props.getType()).isEqualTo("test-type");
     }
 
     @Test
     void testOutgoingToIncomingMetadata() {
-        ZonedDateTime timestamp = ZonedDateTime.now().truncatedTo(MILLIS);
+        Date timestamp = new Date();
 
         OutgoingRabbitMQMetadata outgoingMetadata = OutgoingRabbitMQMetadata.builder()
                 .withUserId("test-user")
@@ -143,34 +109,26 @@ public class RabbitMQMetadataTest {
                 .withReplyTo("test-source")
                 .withTimestamp(timestamp)
                 .withType("test-type")
+                .withRoutingKey("test-routing-key")
                 .build();
 
-        IncomingRabbitMQMetadata incomingRabbitMQMetadata = outgoingMetadata.toIncomingMetadata("exchange", true);
+        IncomingRabbitMQMetadata incoming = outgoingMetadata.toIncomingMetadata("exchange", true);
 
-        assertThat(incomingRabbitMQMetadata.getUserId()).isEqualTo(Optional.of("test-user"));
-        assertThat(incomingRabbitMQMetadata.getAppId()).isEqualTo(Optional.of("tests"));
-        assertThat(incomingRabbitMQMetadata.getContentType()).isEqualTo(Optional.of("text/plain"));
-        assertThat(incomingRabbitMQMetadata.getContentEncoding()).isEqualTo(Optional.of("utf8"));
-        assertThat(incomingRabbitMQMetadata.getCorrelationId()).isEqualTo(Optional.of("req-123"));
-        assertThat(incomingRabbitMQMetadata.getDeliveryMode()).isEqualTo(Optional.of(11));
-        assertThat(incomingRabbitMQMetadata.getExpiration()).isEqualTo(Optional.of("1000"));
-        assertThat(incomingRabbitMQMetadata.getPriority()).isEqualTo(Optional.of(100));
-        assertThat(incomingRabbitMQMetadata.getMessageId()).isEqualTo(Optional.of("12345"));
-        assertThat(incomingRabbitMQMetadata.getReplyTo()).isEqualTo(Optional.of("test-source"));
-        assertThat(incomingRabbitMQMetadata.getTimestamp(timestamp.getZone())).isEqualTo(Optional.of(timestamp));
-        assertThat(incomingRabbitMQMetadata.getType()).isEqualTo(Optional.of("test-type"));
-    }
-
-    private static class TestInstrumenter extends RabbitMQOpenTelemetryInstrumenter {
-
-        public TestInstrumenter(Instrumenter<RabbitMQTrace, Void> instrumenter) {
-            super(instrumenter);
-        }
-
-        static RabbitMQOpenTelemetryInstrumenter create() {
-            return new TestInstrumenter(
-                    (Instrumenter) Instrumenter.builder(OpenTelemetry.noop(), "noop", o -> "noop").buildInstrumenter());
-        }
+        assertThat(incoming.getUserId()).isEqualTo("test-user");
+        assertThat(incoming.getAppId()).isEqualTo("tests");
+        assertThat(incoming.getContentType()).isEqualTo("text/plain");
+        assertThat(incoming.getContentEncoding()).isEqualTo("utf8");
+        assertThat(incoming.getCorrelationId()).isEqualTo("req-123");
+        assertThat(incoming.getDeliveryMode()).isEqualTo(11);
+        assertThat(incoming.getExpiration()).isEqualTo("1000");
+        assertThat(incoming.getPriority()).isEqualTo(100);
+        assertThat(incoming.getMessageId()).isEqualTo("12345");
+        assertThat(incoming.getReplyTo()).isEqualTo("test-source");
+        assertThat(incoming.getTimestamp()).isEqualTo(timestamp);
+        assertThat(incoming.getType()).isEqualTo("test-type");
+        assertThat(incoming.getExchange()).isEqualTo("exchange");
+        assertThat(incoming.getRoutingKey()).isEqualTo("test-routing-key");
+        assertThat(incoming.isRedeliver()).isTrue();
     }
 
 }

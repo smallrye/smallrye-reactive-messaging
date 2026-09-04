@@ -17,11 +17,11 @@ import org.apache.qpid.proton.amqp.messaging.MessageAnnotations;
 import org.eclipse.microprofile.reactive.messaging.Message;
 
 import io.vertx.amqp.impl.AmqpMessageImpl;
+import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.mutiny.amqp.AmqpMessage;
-import io.vertx.mutiny.core.buffer.Buffer;
 
 public class AmqpMessageConverter {
     private static final String JSON_CONTENT_TYPE = "application/json";

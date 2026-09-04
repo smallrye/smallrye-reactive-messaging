@@ -7,12 +7,12 @@ import jakarta.enterprise.context.ApplicationScoped;
 
 import org.eclipse.microprofile.reactive.messaging.Message;
 
-import io.netty.handler.codec.http.HttpHeaderValues;
 import io.smallrye.reactive.messaging.MessageConverter;
 import io.smallrye.reactive.messaging.rabbitmq.IncomingRabbitMQMetadata;
+import io.vertx.core.buffer.Buffer;
+import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
-import io.vertx.rabbitmq.RabbitMQMessage;
 
 @ApplicationScoped
 public class JsonValueMessageConverter implements MessageConverter {
@@ -27,9 +27,10 @@ public class JsonValueMessageConverter implements MessageConverter {
             return false;
         }
         IncomingRabbitMQMetadata metadata = maybe.get();
-        return metadata.getContentEncoding().isEmpty()
+        String encoding = metadata.getContentEncoding();
+        return (encoding == null || encoding.isEmpty())
                 && metadata.getEffectiveContentType()
-                        .map(contentType -> HttpHeaderValues.APPLICATION_JSON.toString().equalsIgnoreCase(contentType))
+                        .map(contentType -> "application/json".equalsIgnoreCase(contentType))
                         .orElse(false);
     }
 
@@ -37,8 +38,7 @@ public class JsonValueMessageConverter implements MessageConverter {
     public Message<?> convert(Message<?> in, Type target) {
         IncomingRabbitMQMetadata metadata = in.getMetadata(IncomingRabbitMQMetadata.class)
                 .orElseThrow(() -> new IllegalStateException("No RabbitMQ metadata"));
-        RabbitMQMessage message = metadata.getMessage()
-                .orElseThrow(() -> new IllegalStateException("No RabbitMQ message"));
-        return in.withPayload(message.body().toJsonValue());
+        byte[] body = metadata.getBody();
+        return in.withPayload(Json.decodeValue(Buffer.buffer(body)));
     }
 }

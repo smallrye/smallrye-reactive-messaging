@@ -1,7 +1,5 @@
 package io.smallrye.reactive.messaging.rabbitmq;
 
-import static io.opentelemetry.semconv.NetworkAttributes.NETWORK_PROTOCOL_NAME;
-import static io.opentelemetry.semconv.NetworkAttributes.NETWORK_PROTOCOL_VERSION;
 import static io.opentelemetry.semconv.incubating.MessagingIncubatingAttributes.MESSAGING_DESTINATION_NAME;
 import static io.opentelemetry.semconv.incubating.MessagingIncubatingAttributes.MESSAGING_OPERATION;
 import static io.opentelemetry.semconv.incubating.MessagingIncubatingAttributes.MESSAGING_RABBITMQ_DESTINATION_ROUTING_KEY;
@@ -10,7 +8,6 @@ import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
 import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -84,7 +81,7 @@ public class TracingTest extends WeldTestBase {
                 .with("mp.messaging.incoming.from-rabbitmq.connector", RabbitMQConnector.CONNECTOR_NAME)
                 .with("mp.messaging.incoming.from-rabbitmq.queue.name", queueName)
                 .with("mp.messaging.incoming.from-rabbitmq.exchange.name", exchangeName)
-                .with("mp.messaging.incoming.from-rabbitmq.exchange.routing-keys", routingKeys)
+                .with("mp.messaging.incoming.from-rabbitmq.routing-keys", routingKeys)
                 .with("mp.messaging.incoming.from-rabbitmq.tracing.enabled", true)
                 .with("mp.messaging.incoming.from-rabbitmq.tracing.attribute-headers", "foo-header,bar-header"),
                 IncomingTracing.class);
@@ -109,8 +106,6 @@ public class TracingTest extends WeldTestBase {
             assertEquals("foo-value", consumer.getAttributes().get(AttributeKey.stringKey("foo-header")));
             assertEquals("bar-value", consumer.getAttributes().get(AttributeKey.stringKey("bar-header")));
             assertEquals(queueName, consumer.getAttributes().get(MESSAGING_DESTINATION_NAME));
-            assertNull(consumer.getAttributes().get(NETWORK_PROTOCOL_NAME));
-            assertNull(consumer.getAttributes().get(NETWORK_PROTOCOL_VERSION));
             assertEquals(queueName + " receive", consumer.getName());
         });
     }
@@ -121,7 +116,7 @@ public class TracingTest extends WeldTestBase {
                 .with("mp.messaging.incoming.from-rabbitmq.connector", RabbitMQConnector.CONNECTOR_NAME)
                 .with("mp.messaging.incoming.from-rabbitmq.queue.name", queueName)
                 .with("mp.messaging.incoming.from-rabbitmq.exchange.name", exchangeName)
-                .with("mp.messaging.incoming.from-rabbitmq.exchange.routing-keys", routingKeys)
+                .with("mp.messaging.incoming.from-rabbitmq.routing-keys", routingKeys)
                 .with("mp.messaging.incoming.from-rabbitmq.tracing.enabled", true),
                 IncomingTracing.class);
 
@@ -160,12 +155,12 @@ public class TracingTest extends WeldTestBase {
                 .with("mp.messaging.outgoing.to-rabbitmq.connector", RabbitMQConnector.CONNECTOR_NAME)
                 .with("mp.messaging.outgoing.to-rabbitmq.queue.name", queueName)
                 .with("mp.messaging.outgoing.to-rabbitmq.exchange.name", exchangeName)
-                .with("mp.messaging.outgoing.to-rabbitmq.exchange.routing-keys", routingKeys)
+                .with("mp.messaging.outgoing.to-rabbitmq.default-routing-key", routingKeys)
                 .with("mp.messaging.outgoing.to-rabbitmq.tracing.enabled", true)
                 .with("mp.messaging.incoming.from-rabbitmq.connector", RabbitMQConnector.CONNECTOR_NAME)
                 .with("mp.messaging.incoming.from-rabbitmq.queue.name", queueName)
                 .with("mp.messaging.incoming.from-rabbitmq.exchange.name", exchangeName)
-                .with("mp.messaging.incoming.from-rabbitmq.exchange.routing-keys", routingKeys)
+                .with("mp.messaging.incoming.from-rabbitmq.routing-keys", routingKeys)
                 .with("mp.messaging.incoming.from-rabbitmq.tracing.enabled", true),
                 IncomingOutgoingTracing.class);
 
@@ -197,7 +192,7 @@ public class TracingTest extends WeldTestBase {
                 .with("mp.messaging.incoming.from-rabbitmq.connector", RabbitMQConnector.CONNECTOR_NAME)
                 .with("mp.messaging.incoming.from-rabbitmq.queue.name", queueName)
                 .with("mp.messaging.incoming.from-rabbitmq.exchange.name", exchangeName)
-                .with("mp.messaging.incoming.from-rabbitmq.exchange.routing-keys", routingKeys)
+                .with("mp.messaging.incoming.from-rabbitmq.routing-keys", routingKeys)
                 .with("mp.messaging.incoming.from-rabbitmq.tracing.enabled", true),
                 IncomingOutgoingSinkTracing.class);
 
@@ -266,7 +261,6 @@ public class TracingTest extends WeldTestBase {
             return input;
         }
 
-        // TODO - Should we generate spans between the internal sink?
         @Incoming("sink")
         public void sink(String input) {
             results.add(input);

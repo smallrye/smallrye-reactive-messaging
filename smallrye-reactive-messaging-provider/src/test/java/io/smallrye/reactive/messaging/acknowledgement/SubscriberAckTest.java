@@ -7,6 +7,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.*;
+import java.util.concurrent.CopyOnWriteArraySet;
 
 import jakarta.enterprise.context.ApplicationScoped;
 
@@ -20,7 +21,6 @@ import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.WeldTestBaseWithoutTails;
 import io.smallrye.reactive.messaging.annotations.Blocking;
 import io.smallrye.reactive.messaging.providers.ProcessingException;
-import io.vertx.core.impl.ConcurrentHashSet;
 
 public class SubscriberAckTest extends WeldTestBaseWithoutTails {
 
@@ -30,8 +30,8 @@ public class SubscriberAckTest extends WeldTestBaseWithoutTails {
         addBeanClass(SuccessfulPayloadConsumer.class);
         initialize();
 
-        Set<String> acked = new ConcurrentHashSet<>();
-        Set<String> nacked = new ConcurrentHashSet<>();
+        Set<String> acked = new CopyOnWriteArraySet<>();
+        Set<String> nacked = new CopyOnWriteArraySet<>();
 
         Emitter<String> emitter = container.getBeanManager().createInstance().select(EmitterBean.class).get().emitter();
         SuccessfulPayloadConsumer consumer = container.getBeanManager().createInstance().select(
@@ -49,8 +49,8 @@ public class SubscriberAckTest extends WeldTestBaseWithoutTails {
         addBeanClass(FailingPayloadConsumer.class);
         initialize();
 
-        Set<String> acked = new ConcurrentHashSet<>();
-        Set<String> nacked = new ConcurrentHashSet<>();
+        Set<String> acked = new CopyOnWriteArraySet<>();
+        Set<String> nacked = new CopyOnWriteArraySet<>();
 
         Emitter<String> emitter = container.getBeanManager().createInstance().select(EmitterBean.class).get().emitter();
         FailingPayloadConsumer consumer = container.getBeanManager().createInstance().select(
@@ -69,8 +69,8 @@ public class SubscriberAckTest extends WeldTestBaseWithoutTails {
         addBeanClass(BlockingSuccessfulPayloadConsumer.class);
         initialize();
 
-        Set<String> acked = new ConcurrentHashSet<>();
-        Set<String> nacked = new ConcurrentHashSet<>();
+        Set<String> acked = new CopyOnWriteArraySet<>();
+        Set<String> nacked = new CopyOnWriteArraySet<>();
 
         Emitter<String> emitter = container.getBeanManager().createInstance().select(EmitterBean.class).get().emitter();
         BlockingSuccessfulPayloadConsumer consumer = container.getBeanManager().createInstance().select(
@@ -88,8 +88,8 @@ public class SubscriberAckTest extends WeldTestBaseWithoutTails {
         addBeanClass(BlockingFailingPayloadConsumer.class);
         initialize();
 
-        Set<String> acked = new ConcurrentHashSet<>();
-        Set<String> nacked = new ConcurrentHashSet<>();
+        Set<String> acked = new CopyOnWriteArraySet<>();
+        Set<String> nacked = new CopyOnWriteArraySet<>();
 
         Emitter<String> emitter = container.getBeanManager().createInstance().select(EmitterBean.class).get().emitter();
         BlockingFailingPayloadConsumer consumer = container.getBeanManager().createInstance().select(
@@ -110,8 +110,8 @@ public class SubscriberAckTest extends WeldTestBaseWithoutTails {
         addBeanClass(SuccessfulPayloadAsyncConsumer.class);
         initialize();
 
-        Set<String> acked = new ConcurrentHashSet<>();
-        Set<String> nacked = new ConcurrentHashSet<>();
+        Set<String> acked = new CopyOnWriteArraySet<>();
+        Set<String> nacked = new CopyOnWriteArraySet<>();
 
         Emitter<String> emitter = container.getBeanManager().createInstance().select(EmitterBean.class).get().emitter();
         SuccessfulPayloadAsyncConsumer consumer = container.getBeanManager().createInstance().select(
@@ -129,8 +129,8 @@ public class SubscriberAckTest extends WeldTestBaseWithoutTails {
         addBeanClass(FailingPayloadAsyncConsumer.class);
         initialize();
 
-        Set<String> acked = new ConcurrentHashSet<>();
-        Set<String> nacked = new ConcurrentHashSet<>();
+        Set<String> acked = new CopyOnWriteArraySet<>();
+        Set<String> nacked = new CopyOnWriteArraySet<>();
 
         Emitter<String> emitter = container.getBeanManager().createInstance().select(EmitterBean.class).get().emitter();
         FailingPayloadAsyncConsumer consumer = container.getBeanManager().createInstance().select(
@@ -154,8 +154,8 @@ public class SubscriberAckTest extends WeldTestBaseWithoutTails {
         addBeanClass(SuccessfulMessageAsyncConsumer.class);
         initialize();
 
-        Set<String> acked = new ConcurrentHashSet<>();
-        Set<String> nacked = new ConcurrentHashSet<>();
+        Set<String> acked = new CopyOnWriteArraySet<>();
+        Set<String> nacked = new CopyOnWriteArraySet<>();
 
         Emitter<String> emitter = container.getBeanManager().createInstance().select(EmitterBean.class).get().emitter();
         SuccessfulMessageAsyncConsumer consumer = container.getBeanManager().createInstance().select(
@@ -173,8 +173,8 @@ public class SubscriberAckTest extends WeldTestBaseWithoutTails {
         addBeanClass(FailingMessageAsyncConsumer.class);
         initialize();
 
-        Set<String> acked = new ConcurrentHashSet<>();
-        Set<String> nacked = new ConcurrentHashSet<>();
+        Set<String> acked = new CopyOnWriteArraySet<>();
+        Set<String> nacked = new CopyOnWriteArraySet<>();
 
         Emitter<String> emitter = container.getBeanManager().createInstance().select(EmitterBean.class).get().emitter();
         FailingMessageAsyncConsumer consumer = container.getBeanManager().createInstance().select(
@@ -199,8 +199,8 @@ public class SubscriberAckTest extends WeldTestBaseWithoutTails {
         addBeanClass(SuccessfulPayloadSubscriber.class);
         initialize();
 
-        Set<String> acked = new ConcurrentHashSet<>();
-        Set<String> nacked = new ConcurrentHashSet<>();
+        Set<String> acked = new CopyOnWriteArraySet<>();
+        Set<String> nacked = new CopyOnWriteArraySet<>();
 
         Emitter<String> emitter = container.getBeanManager().createInstance().select(EmitterBean.class).get().emitter();
         SuccessfulPayloadSubscriber consumer = container.getBeanManager().createInstance().select(

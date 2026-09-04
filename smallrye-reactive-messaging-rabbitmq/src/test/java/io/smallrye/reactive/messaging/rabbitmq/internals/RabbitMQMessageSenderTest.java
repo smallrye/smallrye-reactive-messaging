@@ -92,8 +92,6 @@ public class RabbitMQMessageSenderTest extends WeldTestBase {
         assertThat(received).containsExactlyInAnyOrder(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
     }
 
-    // --- Inner beans ---
-
     @ApplicationScoped
     public static class SenderBean {
         @Inject

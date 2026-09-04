@@ -27,6 +27,7 @@ import org.eclipse.microprofile.reactive.messaging.Message;
  *
  * @param <T> type of the processing state
  */
+@Deprecated(forRemoval = true)
 public interface CheckpointMetadata<T> {
 
     @SuppressWarnings("unchecked")

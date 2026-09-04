@@ -10,10 +10,16 @@ public class SessionEventImpl implements SessionEvent {
 
     private final SessionState sessionState;
     private final Throwable cause;
+    private final Integer reasonCode;
 
     public SessionEventImpl(final SessionState sessionState, final Throwable reason) {
+        this(sessionState, reason, null);
+    }
+
+    public SessionEventImpl(final SessionState sessionState, final Throwable reason, final Integer reasonCode) {
         this.sessionState = sessionState;
         this.cause = reason;
+        this.reasonCode = reasonCode;
     }
 
     /**
@@ -34,5 +40,15 @@ public class SessionEventImpl implements SessionEvent {
     @Override
     public Throwable getCause() {
         return this.cause;
+    }
+
+    /**
+     * The reason code from the CONNACK (MQTT 5.0).
+     *
+     * @return The reason code, or {@code null} if not available.
+     */
+    @Override
+    public Integer getReasonCode() {
+        return this.reasonCode;
     }
 }

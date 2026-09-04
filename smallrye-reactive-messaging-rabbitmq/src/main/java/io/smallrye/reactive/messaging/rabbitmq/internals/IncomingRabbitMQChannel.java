@@ -2,278 +2,498 @@ package io.smallrye.reactive.messaging.rabbitmq.internals;
 
 import static io.smallrye.reactive.messaging.rabbitmq.i18n.RabbitMQExceptions.ex;
 import static io.smallrye.reactive.messaging.rabbitmq.i18n.RabbitMQLogging.log;
-import static io.smallrye.reactive.messaging.rabbitmq.internals.RabbitMQClientHelper.parseArguments;
-import static io.smallrye.reactive.messaging.rabbitmq.internals.RabbitMQClientHelper.serverQueueName;
 
+import java.io.IOException;
 import java.time.Duration;
-import java.util.Map;
-import java.util.concurrent.Flow;
+import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import jakarta.enterprise.inject.Instance;
 
 import org.eclipse.microprofile.reactive.messaging.Message;
+import org.eclipse.microprofile.reactive.messaging.Metadata;
 
 import com.rabbitmq.client.AMQP;
+import com.rabbitmq.client.Channel;
+import com.rabbitmq.client.DefaultConsumer;
+import com.rabbitmq.client.Envelope;
 
 import io.opentelemetry.api.OpenTelemetry;
 import io.smallrye.mutiny.Multi;
-import io.smallrye.mutiny.Uni;
-import io.smallrye.reactive.messaging.health.HealthReport;
-import io.smallrye.reactive.messaging.providers.helpers.CDIUtils;
-import io.smallrye.reactive.messaging.providers.helpers.VertxContext;
-import io.smallrye.reactive.messaging.rabbitmq.ClientHolder;
+import io.smallrye.mutiny.operators.multi.processors.BroadcastProcessor;
+import io.smallrye.mutiny.subscription.BackPressureStrategy;
+import io.smallrye.reactive.messaging.rabbitmq.ConnectionHolder;
 import io.smallrye.reactive.messaging.rabbitmq.IncomingRabbitMQMessage;
-import io.smallrye.reactive.messaging.rabbitmq.RabbitMQConnector;
 import io.smallrye.reactive.messaging.rabbitmq.RabbitMQConnectorIncomingConfiguration;
+import io.smallrye.reactive.messaging.rabbitmq.RabbitMQRejectMetadata;
 import io.smallrye.reactive.messaging.rabbitmq.ack.RabbitMQAck;
 import io.smallrye.reactive.messaging.rabbitmq.ack.RabbitMQAckHandler;
 import io.smallrye.reactive.messaging.rabbitmq.ack.RabbitMQAutoAck;
+import io.smallrye.reactive.messaging.rabbitmq.ack.RabbitMQNack;
+import io.smallrye.reactive.messaging.rabbitmq.ack.RabbitMQNackHandler;
 import io.smallrye.reactive.messaging.rabbitmq.fault.RabbitMQFailureHandler;
 import io.smallrye.reactive.messaging.rabbitmq.tracing.RabbitMQOpenTelemetryInstrumenter;
 import io.smallrye.reactive.messaging.rabbitmq.tracing.RabbitMQTrace;
-import io.vertx.core.impl.VertxInternal;
-import io.vertx.core.json.JsonObject;
-import io.vertx.mutiny.core.Context;
-import io.vertx.mutiny.rabbitmq.RabbitMQClient;
-import io.vertx.mutiny.rabbitmq.RabbitMQConsumer;
-import io.vertx.rabbitmq.QueueOptions;
+import io.vertx.core.Context;
 
+/**
+ * Incoming RabbitMQ channel that consumes messages from a queue.
+ * Handles topology setup, message consumption, acknowledgement, and backpressure.
+ */
 public class IncomingRabbitMQChannel {
 
+    private final RabbitMQConnectorIncomingConfiguration configuration;
+    private final ConnectionHolder connectionHolder;
+    private final Instance<java.util.Map<String, ?>> configMaps;
     private final RabbitMQOpenTelemetryInstrumenter instrumenter;
-    private final AtomicReference<Flow.Subscription> subscription = new AtomicReference<>();
-    private final RabbitMQConnectorIncomingConfiguration config;
-    private final Multi<? extends Message<?>> stream;
-    private final RabbitMQConnector connector;
+
     private final Context incomingContext;
-    private volatile RabbitMQClient client;
+    private final AtomicBoolean subscribed = new AtomicBoolean(false);
+    private final AtomicInteger outstandingMessages = new AtomicInteger(0);
+    private final AtomicReference<Channel> channelRef = new AtomicReference<>();
+    private final AtomicReference<String> consumerTagRef = new AtomicReference<>();
 
-    public IncomingRabbitMQChannel(RabbitMQConnector connector,
-            RabbitMQConnectorIncomingConfiguration ic, Instance<OpenTelemetry> openTelemetryInstance) {
-        if (ic.getTracingEnabled()) {
-            instrumenter = RabbitMQOpenTelemetryInstrumenter
-                    .createForConnector(openTelemetryInstance, ic);
+    private final boolean autoAck;
+    private final int maxOutstandingMessages;
+
+    private Multi<? extends Message<?>> stream;
+
+    public IncomingRabbitMQChannel(
+            ConnectionHolder connectionHolder,
+            RabbitMQConnectorIncomingConfiguration configuration,
+            Instance<java.util.Map<String, ?>> configMaps,
+            Instance<OpenTelemetry> openTelemetryInstance) {
+
+        this.connectionHolder = connectionHolder;
+        this.configuration = configuration;
+        this.configMaps = configMaps;
+        this.incomingContext = connectionHolder.getOrCreateSharedChannelContext(configuration.getChannel());
+
+        // Initialize tracing if enabled
+        if (configuration.getTracingEnabled()) {
+            this.instrumenter = RabbitMQOpenTelemetryInstrumenter.createForConnector(openTelemetryInstance, configuration);
         } else {
-            instrumenter = null;
-        }
-        this.config = ic;
-        this.connector = connector;
-        this.incomingContext = Context
-                .newInstance(((VertxInternal) connector.vertx().getDelegate()).createEventLoopContext());
-
-        final RabbitMQFailureHandler onNack = createFailureHandler(connector.failureHandlerFactories(), ic);
-        final RabbitMQAckHandler onAck = createAckHandler(ic);
-
-        ClientHolder holder = connector.getClientHolder(ic);
-        this.client = holder.client();
-        registerInfrastructureCallback(holder.client(), ic, connector);
-
-        Uni<RabbitMQClient> connectionUni = holder.getOrEstablishConnection();
-        if (ic.getSharedConnectionName().isPresent()) {
-            connectionUni = connectionUni.call(() -> declareInfrastructure(holder.client(), ic, connector));
+            this.instrumenter = null;
         }
 
-        if (!ic.getLazyClient()) {
-            connectionUni.await().atMost(Duration.ofMillis(config.getConnectionTimeout()));
+        this.autoAck = configuration.getAutoAcknowledgement();
+        this.maxOutstandingMessages = configuration.getMaxOutstandingMessages().orElse(256);
+
+        if (!configuration.getLazyClient()) {
+            connectionHolder.connect()
+                    .await().atMost(Duration.ofMillis(configuration.getConnectionTimeout()));
         }
-
-        Multi<? extends Message<?>> multi = connectionUni
-                .flatMap(connection -> createConsumer(ic, connection))
-                .onItem().transformToMulti(
-                        consumer -> getStreamOfMessages(consumer, holder, incomingContext, ic, onNack, onAck));
-
-        if (ic.getBroadcast()) {
-            multi = multi.broadcast().toAllSubscribers();
-        }
-
-        this.stream = multi.onSubscription().invoke(subscription::set);
-    }
-
-    public Multi<? extends Message<?>> getStream() {
-        return stream;
-    }
-
-    public HealthReport.HealthReportBuilder isAlive(HealthReport.HealthReportBuilder builder) {
-        if (!config.getHealthEnabled()) {
-            return builder;
-        }
-
-        return computeHealthReport(builder);
-    }
-
-    private HealthReport.HealthReportBuilder computeHealthReport(HealthReport.HealthReportBuilder builder) {
-        if (config.getHealthLazySubscription()) {
-            if (subscription.get() == null) {
-                return builder.add(new HealthReport.ChannelInfo(config.getChannel(), true));
-            }
-        }
-
-        if (client == null) {
-            return builder.add(new HealthReport.ChannelInfo(config.getChannel(), false));
-        }
-
-        boolean alive = client.isConnected() && client.isOpenChannel();
-        return builder.add(new HealthReport.ChannelInfo(config.getChannel(), alive));
-    }
-
-    public HealthReport.HealthReportBuilder isReady(HealthReport.HealthReportBuilder builder) {
-        if (!config.getHealthEnabled() || !config.getHealthReadinessEnabled()) {
-            return builder;
-        }
-
-        return computeHealthReport(builder);
-    }
-
-    private Uni<Void> declareInfrastructure(RabbitMQClient client,
-            RabbitMQConnectorIncomingConfiguration ic, RabbitMQConnector connector) {
-        Uni<Void> uni;
-        if (ic.getMaxOutstandingMessages().isPresent()) {
-            uni = client.basicQos(ic.getMaxOutstandingMessages().get(), false);
-        } else {
-            uni = Uni.createFrom().voidItem();
-        }
-
-        Instance<Map<String, ?>> maps = connector.configMaps();
-        return uni
-                .call(() -> declareQueue(client, ic, maps))
-                .call(() -> RabbitMQClientHelper.configureDLQorDLX(client, ic, maps));
-    }
-
-    private void registerInfrastructureCallback(RabbitMQClient client,
-            RabbitMQConnectorIncomingConfiguration ic, RabbitMQConnector connector) {
-        client.getDelegate().addConnectionEstablishedCallback(promise -> {
-            declareInfrastructure(client, ic, connector)
-                    .subscribe().with(ignored -> promise.complete(), promise::fail);
-        });
-    }
-
-    private RabbitMQFailureHandler createFailureHandler(Instance<RabbitMQFailureHandler.Factory> failureHandlerFactories,
-            RabbitMQConnectorIncomingConfiguration config) {
-        String strategy = config.getFailureStrategy();
-        Instance<RabbitMQFailureHandler.Factory> failureHandlerFactory = CDIUtils.getInstanceById(failureHandlerFactories,
-                strategy);
-        if (failureHandlerFactory.isResolvable()) {
-            return failureHandlerFactory.get().create(config, connector);
-        } else {
-            throw ex.illegalArgumentInvalidFailureStrategy(strategy);
-        }
-    }
-
-    public RabbitMQAckHandler createAckHandler(RabbitMQConnectorIncomingConfiguration ic) {
-        return (Boolean.TRUE.equals(ic.getAutoAcknowledgement())) ? new RabbitMQAutoAck(ic.getChannel())
-                : new RabbitMQAck(ic.getChannel());
     }
 
     /**
-     * Uses a {@link RabbitMQClient} to ensure the required queue-exchange bindings are created.
-     *
-     * @param client the RabbitMQ client
-     * @param ic the incoming channel configuration
-     * @return a {@link Uni<String>} which yields the queue name
+     * Get the message stream.
      */
-    private Uni<String> declareQueue(
-            final RabbitMQClient client,
-            final RabbitMQConnectorIncomingConfiguration ic,
-            final Instance<Map<String, ?>> configMaps) {
-        final String queueName = RabbitMQClientHelper.getQueueName(ic);
+    public Multi<? extends Message<?>> getStream() {
+        if (stream == null) {
+            stream = createStream();
+        }
+        return stream;
+    }
 
-        // Declare the queue (and its binding(s) to the exchange, and TTL) if we have been asked to do so
-        final JsonObject queueArgs = new JsonObject();
-        Instance<Map<String, ?>> queueArguments = CDIUtils.getInstanceById(configMaps, ic.getQueueArguments());
-        if (queueArguments.isResolvable()) {
-            Map<String, ?> argsMap = queueArguments.get();
-            argsMap.forEach(queueArgs::put);
+    private Multi<? extends Message<?>> createStream() {
+        // Determine if broadcast mode is needed
+        boolean broadcast = configuration.getBroadcast();
+        Context context = incomingContext;
+
+        Multi<Message<?>> messageStream;
+
+        if (broadcast) {
+            // Use BroadcastProcessor for broadcast mode
+            BroadcastProcessor<Message<?>> processor = BroadcastProcessor.create();
+            // Set up consumer immediately
+            setupConsumer(processor::onNext, processor::onError, processor::onComplete);
+            messageStream = processor;
+        } else {
+            // Use emitter with buffer for unicast mode to handle backpressure properly
+            messageStream = Multi.createFrom().emitter(emitter -> {
+                // Set up consumer immediately (not lazily)
+                setupConsumer(
+                        message -> {
+                            // Emit message to subscriber
+                            if (!emitter.isCancelled()) {
+                                emitter.emit(message);
+                            }
+                        },
+                        error -> {
+                            if (!emitter.isCancelled()) {
+                                emitter.fail(error);
+                            }
+                        },
+                        () -> {
+                            if (!emitter.isCancelled()) {
+                                emitter.complete();
+                            }
+                        });
+            }, BackPressureStrategy.BUFFER);
         }
-        if (ic.getAutoBindDlq()) {
-            queueArgs.put("x-dead-letter-exchange", ic.getDeadLetterExchange());
-            queueArgs.put("x-dead-letter-routing-key", ic.getDeadLetterRoutingKey().orElse(queueName));
-        }
-        ic.getQueueSingleActiveConsumer().ifPresent(sac -> queueArgs.put("x-single-active-consumer", sac));
-        ic.getQueueXQueueType().ifPresent(queueType -> queueArgs.put("x-queue-type", queueType));
-        ic.getQueueXQueueMode().ifPresent(queueMode -> queueArgs.put("x-queue-mode", queueMode));
-        ic.getQueueTtl().ifPresent(queueTtl -> {
-            if (queueTtl >= 0) {
-                queueArgs.put("x-message-ttl", queueTtl);
-            } else {
-                throw ex.illegalArgumentInvalidQueueTtl();
+
+        return messageStream
+                // Ensure items are always dispatched on the Vert.x event loop thread
+                // associated with this channel's context, regardless of where demand originates
+                .emitOn(cmd -> context.runOnContext(v -> cmd.run()))
+                .onItem().invoke(() -> log.messageReceived(configuration.getChannel()))
+                .onFailure().invoke(t -> log.messageProcessingFailed(configuration.getChannel(), t))
+                .onTermination().invoke(() -> cleanup());
+    }
+
+    private void setupConsumer(
+            java.util.function.Consumer<Message<?>> onMessage,
+            java.util.function.Consumer<Throwable> onError,
+            Runnable onComplete) {
+
+        connectionHolder.addConnectionEstablishedCallback(conn -> {
+            try {
+                setupConsumerOnConnection(onMessage, onError, onComplete);
+            } catch (Exception e) {
+                log.unableToCreateConsumer(configuration.getChannel(), e);
             }
         });
-        //x-max-priority
-        ic.getQueueXMaxPriority().ifPresent(maxPriority -> queueArgs.put("x-max-priority", maxPriority));
-        //x-delivery-limit
-        ic.getQueueXDeliveryLimit().ifPresent(deliveryLimit -> queueArgs.put("x-delivery-limit", deliveryLimit));
 
-        return RabbitMQClientHelper.declareExchangeIfNeeded(client, ic, configMaps)
-                .flatMap(v -> {
-                    if (ic.getQueueDeclare()) {
-                        // Declare the queue.
-                        String serverQueueName = serverQueueName(queueName);
-
-                        Uni<AMQP.Queue.DeclareOk> declare;
-                        if (serverQueueName.isEmpty()) {
-                            declare = client.queueDeclare(serverQueueName, false, true, true);
-                        } else {
-                            declare = client.queueDeclare(serverQueueName, ic.getQueueDurable(),
-                                    ic.getQueueExclusive(), ic.getQueueAutoDelete(), queueArgs);
-                        }
-
-                        return declare
-                                .invoke(() -> log.queueEstablished(queueName))
-                                .onFailure().invoke(ex -> log.unableToEstablishQueue(queueName, ex))
-                                .flatMap(x -> RabbitMQClientHelper.establishBindings(client, ic))
-                                .replaceWith(queueName);
-                    } else {
-                        // Not declaring the queue, so validate its existence...
-                        // Ensures RabbitMQClient is notified of invalid queues during connection cycle.
-                        return client.messageCount(queueName)
-                                .onFailure().invoke(log::unableToConnectToBroker)
-                                .replaceWith(queueName);
-                    }
-                });
+        connectionHolder.connect()
+                .subscribe().with(
+                        conn -> {
+                            try {
+                                setupConsumerOnConnection(onMessage, onError, onComplete);
+                            } catch (Exception e) {
+                                log.unableToCreateConsumer(configuration.getChannel(), e);
+                                onError.accept(e);
+                            }
+                        },
+                        error -> {
+                            log.unableToCreateConsumer(configuration.getChannel(), error);
+                            onError.accept(error);
+                        });
     }
 
-    private Uni<RabbitMQConsumer> createConsumer(RabbitMQConnectorIncomingConfiguration ic, RabbitMQClient client) {
-        QueueOptions queueOptions = new QueueOptions();
-        queueOptions.setConsumerArguments(parseArguments(ic.getConsumerArguments()));
-        ic.getConsumerTag().ifPresent(queueOptions::setConsumerTag);
-        ic.getConsumerExclusive().ifPresent(queueOptions::setConsumerExclusive);
-        return client.basicConsumer(serverQueueName(RabbitMQClientHelper.getQueueName(ic)), queueOptions
-                .setAutoAck(ic.getAutoAcknowledgement())
-                .setMaxInternalQueueSize(ic.getMaxIncomingInternalQueueSize())
-                .setKeepMostRecent(ic.getKeepMostRecent()));
-    }
+    private void setupConsumerOnConnection(
+            java.util.function.Consumer<Message<?>> onMessage,
+            java.util.function.Consumer<Throwable> onError,
+            Runnable onComplete) throws Exception {
 
-    private Multi<? extends Message<?>> getStreamOfMessages(
-            RabbitMQConsumer receiver,
-            ClientHolder holder,
-            Context context,
-            RabbitMQConnectorIncomingConfiguration ic,
-            RabbitMQFailureHandler onNack,
-            RabbitMQAckHandler onAck) {
+        // Create channel for consuming
+        Channel channel = connectionHolder.getOrCreateSharedChannel(configuration.getChannel());
+        channelRef.set(channel);
 
-        final String queueName = RabbitMQClientHelper.getQueueName(ic);
-        final String contentTypeOverride = ic.getContentTypeOverride().orElse(null);
-        log.receiverListeningAddress(queueName);
+        Context context = incomingContext;
 
-        Multi<IncomingRabbitMQMessage<?>> multi = receiver.toMulti()
-                // close the consumer on stream termination
-                .onTermination().call(receiver::cancel)
-                .emitOn(c -> VertxContext.runOnContext(context.getDelegate(), c))
-                .map(m -> new IncomingRabbitMQMessage<>(m, holder, context, onNack, onAck, contentTypeOverride));
-        if (ic.getTracingEnabled()) {
-            return multi.map(msg -> instrumenter.traceIncoming(msg,
-                    RabbitMQTrace.traceQueue(queueName, msg.message.envelope().getRoutingKey(), msg.getHeaders())));
+        // Set up QoS for backpressure (prefetch count)
+        // Note: In auto-ack mode, messages are immediately acknowledged upon delivery,
+        // but prefetch still controls how many messages are sent to the consumer at once
+        if (maxOutstandingMessages > 0) {
+            channel.basicQos(maxOutstandingMessages);
+            log.qosSet(maxOutstandingMessages, configuration.getChannel());
+        }
+
+        // Declare topology
+        setupTopology(channel);
+
+        // Get queue name
+        final String queueName = RabbitMQClientHelper.getQueueName(configuration);
+        final String serverQueueName = RabbitMQClientHelper.serverQueueName(queueName);
+
+        // Create acknowledgement handlers with outstanding message tracking built in
+        RabbitMQAckHandler ackHandler;
+        RabbitMQNackHandler nackHandler;
+
+        if (autoAck) {
+            ackHandler = RabbitMQAutoAck.INSTANCE;
+            nackHandler = RabbitMQAutoAck.INSTANCE;
         } else {
-            return multi;
+            RabbitMQAck baseAck = new RabbitMQAck(channel, context);
+            RabbitMQNack baseNack = new RabbitMQNack(channel, context, false);
+            RabbitMQNackHandler failureNackHandler = createFailureNackHandler(baseAck, baseNack);
+            ackHandler = new RabbitMQAckHandler() {
+                @Override
+                public <V> java.util.concurrent.CompletionStage<Void> handle(IncomingRabbitMQMessage<V> message) {
+                    return baseAck.handle(message)
+                            .thenRun(outstandingMessages::decrementAndGet);
+                }
+            };
+            nackHandler = new RabbitMQNackHandler() {
+                @Override
+                public <V> java.util.concurrent.CompletionStage<Void> handle(IncomingRabbitMQMessage<V> message,
+                        Metadata metadata, Throwable reason) {
+                    return failureNackHandler.handle(message, metadata, reason)
+                            .whenComplete((v, t) -> outstandingMessages.decrementAndGet());
+                }
+            };
+        }
+
+        // Create consumer
+        DefaultConsumer consumer = new DefaultConsumer(channel) {
+            @Override
+            public void handleDelivery(String consumerTag, Envelope envelope,
+                    AMQP.BasicProperties properties, byte[] body) throws IOException {
+
+                // Track outstanding messages for backpressure
+                if (!autoAck) {
+                    outstandingMessages.incrementAndGet();
+                }
+
+                // Emit message (dispatch to Vert.x context is handled by emitOn in createStream)
+                try {
+                    // Convert to message - ack/nack handlers already include
+                    // outstanding message counter tracking
+                    String contentTypeOverride = configuration.getContentTypeOverride().orElse(null);
+                    IncomingRabbitMQMessage<byte[]> message = IncomingRabbitMQMessage.create(
+                            envelope,
+                            properties,
+                            body,
+                            IncomingRabbitMQMessage.BYTE_ARRAY_CONVERTER,
+                            ackHandler,
+                            nackHandler,
+                            context,
+                            contentTypeOverride);
+
+                    // Apply tracing if enabled
+                    Message<?> tracedMessage = message;
+                    if (configuration.getTracingEnabled() && instrumenter != null) {
+                        tracedMessage = instrumenter.traceIncoming(message,
+                                RabbitMQTrace.traceQueue(serverQueueName, envelope.getRoutingKey(),
+                                        message.getRabbitMQMetadata().getHeaders()));
+                    }
+
+                    onMessage.accept(tracedMessage);
+                } catch (Exception e) {
+                    log.messageConversionFailed(configuration.getChannel(), e);
+                    onError.accept(e);
+                }
+            }
+
+            @Override
+            public void handleCancel(String consumerTag) throws IOException {
+                log.consumerCancelled(configuration.getChannel(), consumerTag);
+                context.runOnContext(v -> onComplete.run());
+            }
+
+            @Override
+            public void handleShutdownSignal(String consumerTag, com.rabbitmq.client.ShutdownSignalException sig) {
+                if (!sig.isInitiatedByApplication()) {
+                    // Log but don't terminate the stream - automatic recovery will handle reconnection
+                    log.consumerShutdown(configuration.getChannel(), consumerTag, sig);
+                }
+            }
+        };
+
+        // Parse consumer arguments from config
+        java.util.Map<String, Object> consumerArguments = parseConsumerArguments();
+        String configuredConsumerTag = configuration.getConsumerTag().orElse("");
+        boolean exclusive = configuration.getConsumerExclusive().orElse(false);
+
+        // Start consuming
+        String consumerTag;
+        if (!consumerArguments.isEmpty() || !configuredConsumerTag.isEmpty() || exclusive) {
+            consumerTag = channel.basicConsume(serverQueueName, autoAck,
+                    configuredConsumerTag, false, exclusive, consumerArguments, consumer);
+        } else {
+            consumerTag = channel.basicConsume(serverQueueName, autoAck, consumer);
+        }
+        consumerTagRef.set(consumerTag);
+        subscribed.set(true);
+
+        log.consumerStarted(configuration.getChannel(), queueName, consumerTag);
+    }
+
+    private RabbitMQNackHandler createFailureNackHandler(RabbitMQAck baseAck, RabbitMQNack baseNack) {
+        String failureStrategy = configuration.getFailureStrategy();
+        String channelName = configuration.getChannel();
+
+        switch (failureStrategy) {
+            case RabbitMQFailureHandler.Strategy.ACCEPT:
+                return new RabbitMQNackHandler() {
+                    @Override
+                    public <V> java.util.concurrent.CompletionStage<Void> handle(
+                            IncomingRabbitMQMessage<V> message, Metadata metadata, Throwable reason) {
+                        log.nackedAcceptMessage(channelName);
+                        log.fullIgnoredFailure(reason);
+                        return baseAck.handle(message);
+                    }
+                };
+            case RabbitMQFailureHandler.Strategy.REJECT:
+                return new RabbitMQNackHandler() {
+                    @Override
+                    public <V> java.util.concurrent.CompletionStage<Void> handle(
+                            IncomingRabbitMQMessage<V> message, Metadata metadata, Throwable reason) {
+                        log.nackedIgnoreMessage(channelName);
+                        log.fullIgnoredFailure(reason);
+                        // baseNack has defaultRequeue=false, so without RabbitMQRejectMetadata
+                        // in the metadata it will reject without requeue. If the bean explicitly
+                        // passes RabbitMQRejectMetadata, that override is respected.
+                        return baseNack.handle(message, metadata, reason);
+                    }
+                };
+            case RabbitMQFailureHandler.Strategy.REQUEUE:
+                return new RabbitMQNackHandler() {
+                    @Override
+                    public <V> java.util.concurrent.CompletionStage<Void> handle(
+                            IncomingRabbitMQMessage<V> message, Metadata metadata, Throwable reason) {
+                        log.nackedIgnoreMessage(channelName);
+                        log.fullIgnoredFailure(reason);
+                        boolean requeue = Optional.ofNullable(metadata)
+                                .flatMap(md -> md.get(RabbitMQRejectMetadata.class))
+                                .map(RabbitMQRejectMetadata::isRequeue).orElse(true);
+                        Metadata nackMetadata = metadata != null
+                                ? metadata.with(new RabbitMQRejectMetadata(requeue))
+                                : Metadata.of(new RabbitMQRejectMetadata(requeue));
+                        return baseNack.handle(message, nackMetadata, reason);
+                    }
+                };
+            case RabbitMQFailureHandler.Strategy.FAIL:
+                return new RabbitMQNackHandler() {
+                    @Override
+                    public <V> java.util.concurrent.CompletionStage<Void> handle(
+                            IncomingRabbitMQMessage<V> message, Metadata metadata, Throwable reason) {
+                        log.nackedFailMessage(channelName);
+                        return baseNack.handle(message, metadata, reason)
+                                .thenCompose(v -> {
+                                    CompletableFuture<Void> failed = new CompletableFuture<>();
+                                    failed.completeExceptionally(reason);
+                                    return failed;
+                                });
+                    }
+                };
+            default:
+                throw ex.illegalArgumentUnknownFailureStrategy(failureStrategy);
         }
     }
 
-    public void terminate() {
-        Flow.Subscription sub = subscription.getAndSet(null);
-        if (sub != null) {
-            sub.cancel();
-        }
+    private void setupTopology(Channel channel) throws IOException {
+        // Declare exchange if needed
+        RabbitMQClientHelper.declareExchangeIfNeeded(channel, configuration, configMaps);
+
+        // Declare queue if needed
+        String queueName = RabbitMQClientHelper.declareQueueIfNeeded(channel, configuration, configMaps);
+
+        // Establish bindings
+        RabbitMQClientHelper.establishBindings(channel, configuration);
+
+        // Configure DLQ/DLX if needed
+        RabbitMQClientHelper.configureDLQorDLX(channel, configuration, configMaps);
+
+        log.topologyEstablished(configuration.getChannel(), queueName);
     }
 
+    /**
+     * Parse consumer-arguments config into a Map.
+     * Format: "key1:value1,key2:value2,..."
+     * Values that look like integers are converted to Integer.
+     */
+    private java.util.Map<String, Object> parseConsumerArguments() {
+        java.util.Map<String, Object> args = new java.util.HashMap<>();
+        String consumerArgs = configuration.getConsumerArguments().orElse(null);
+        if (consumerArgs != null && !consumerArgs.isEmpty()) {
+            for (String pair : consumerArgs.split(",")) {
+                String[] kv = pair.trim().split(":", 2);
+                if (kv.length == 2) {
+                    String key = kv[0].trim();
+                    String value = kv[1].trim();
+                    try {
+                        args.put(key, Integer.parseInt(value));
+                    } catch (NumberFormatException e) {
+                        args.put(key, value);
+                    }
+                }
+            }
+        }
+        return args;
+    }
+
+    /**
+     * Check if the consumer is subscribed.
+     */
+    public boolean isSubscribed() {
+        return subscribed.get();
+    }
+
+    /**
+     * Get the number of outstanding (unacknowledged) messages.
+     */
+    public int getOutstandingMessages() {
+        return outstandingMessages.get();
+    }
+
+    /**
+     * Check if the channel is healthy.
+     * Requires the consumer to be fully subscribed (topology declared and consumer registered).
+     */
+    public boolean isHealthy() {
+        Channel channel = channelRef.get();
+        return connectionHolder.isConnected() && channel != null && channel.isOpen() && subscribed.get();
+    }
+
+    /**
+     * Health check for liveness.
+     */
+    public io.smallrye.reactive.messaging.health.HealthReport.HealthReportBuilder isAlive(
+            io.smallrye.reactive.messaging.health.HealthReport.HealthReportBuilder builder) {
+        if (!configuration.getHealthEnabled()) {
+            return builder;
+        }
+
+        return computeHealthReport(builder);
+    }
+
+    /**
+     * Health check for readiness.
+     */
+    public io.smallrye.reactive.messaging.health.HealthReport.HealthReportBuilder isReady(
+            io.smallrye.reactive.messaging.health.HealthReport.HealthReportBuilder builder) {
+        if (!configuration.getHealthEnabled() || !configuration.getHealthReadinessEnabled()) {
+            return builder;
+        }
+
+        return computeHealthReport(builder);
+    }
+
+    private io.smallrye.reactive.messaging.health.HealthReport.HealthReportBuilder computeHealthReport(
+            io.smallrye.reactive.messaging.health.HealthReport.HealthReportBuilder builder) {
+        // If health-lazy-subscription is enabled and there's no subscription yet, report as healthy
+        if (configuration.getHealthLazySubscription() && !subscribed.get()) {
+            return builder.add(new io.smallrye.reactive.messaging.health.HealthReport.ChannelInfo(
+                    configuration.getChannel(), true));
+        }
+
+        // Check if connection and channel are open
+        boolean alive = isHealthy();
+        return builder.add(new io.smallrye.reactive.messaging.health.HealthReport.ChannelInfo(
+                configuration.getChannel(), alive));
+    }
+
+    /**
+     * Cancel the consumer and clean up resources.
+     */
+    public void cancel() {
+        subscribed.set(false);
+        cleanup();
+    }
+
+    /**
+     * Clean up resources.
+     */
+    private void cleanup() {
+        try {
+            Channel channel = channelRef.get();
+            String consumerTag = consumerTagRef.get();
+
+            if (channel != null && channel.isOpen() && consumerTag != null) {
+                try {
+                    channel.basicCancel(consumerTag);
+                } catch (IOException e) {
+                    log.unableToCancelConsumer(configuration.getChannel(), e);
+                }
+            }
+
+            subscribed.set(false);
+        } catch (Exception e) {
+            log.cleanupFailed(configuration.getChannel(), e);
+        }
+    }
 }

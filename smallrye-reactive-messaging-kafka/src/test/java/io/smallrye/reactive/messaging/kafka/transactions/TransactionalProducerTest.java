@@ -97,15 +97,12 @@ public class TransactionalProducerTest extends KafkaCompanionTestBase {
         int numberOfRecords = 100;
         TransactionalProducerBlocking application = runApplication(config(), TransactionalProducerBlocking.class);
 
-        vertx.executeBlocking(Uni.createFrom().emitter(e -> {
-            application.produceInTransaction(numberOfRecords)
-                    .invoke(() -> {
-                        assertThat(Vertx.currentContext()).isNotNull();
-                        assertThat(Context.isOnWorkerThread()).isTrue();
-                    })
-                    .subscribe().with(unused -> e.complete(null), e::fail);
-        }))
-                .await().indefinitely();
+        vertx.executeBlocking(() -> {
+            application.produceInTransaction(numberOfRecords);
+            assertThat(Vertx.currentContext()).isNotNull();
+            assertThat(Context.isOnWorkerThread()).isTrue();
+            return null;
+        }).await().atMost(Duration.ofSeconds(4));
 
         companion.consumeIntegers()
                 .withProp(ConsumerConfig.ISOLATION_LEVEL_CONFIG, "read_committed")
@@ -182,10 +179,10 @@ public class TransactionalProducerTest extends KafkaCompanionTestBase {
         @Channel("transactional-producer")
         KafkaTransactions<Integer> transaction;
 
-        Uni<Void> produceInTransaction(final int numberOfRecords) {
+        void produceInTransaction(final int numberOfRecords) {
             assertThat(Vertx.currentContext()).isNotNull();
             assertThat(Context.isOnWorkerThread()).isTrue();
-            return transaction.withTransaction(emitter -> {
+            transaction.withTransactionAndAwait(emitter -> {
                 assertThat(Vertx.currentContext()).isNotNull();
                 assertThat(Context.isOnWorkerThread()).isTrue();
                 for (int i = 0; i < numberOfRecords; i++) {
@@ -374,6 +371,7 @@ public class TransactionalProducerTest extends KafkaCompanionTestBase {
     }
 
     @Test
+    // this used to pass in its reactive form on Vert.x 4
     void testTransactionalConsumerBlocking() {
         String inTopic = companion.topics().createAndWait(UUID.randomUUID().toString(), 1);
 
@@ -425,8 +423,8 @@ public class TransactionalProducerTest extends KafkaCompanionTestBase {
 
         @Incoming("in")
         @Blocking
-        Uni<Void> produceInTransaction(String msg) {
-            return transaction.withTransaction(emitter -> {
+        void produceInTransaction(String msg) {
+            transaction.withTransactionAndAwait(emitter -> {
                 assertThat(Vertx.currentContext()).isNotNull();
                 assertThat(Context.isOnWorkerThread()).isTrue();
                 emitter.send(KafkaRecord.of(msg, 1));
