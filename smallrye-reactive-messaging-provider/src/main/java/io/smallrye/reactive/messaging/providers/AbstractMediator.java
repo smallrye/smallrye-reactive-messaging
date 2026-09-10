@@ -25,14 +25,22 @@ import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.infrastructure.Infrastructure;
 import io.smallrye.mutiny.operators.uni.builders.UniCreateFromDeferredSupplier;
-import io.smallrye.reactive.messaging.*;
+import io.smallrye.reactive.messaging.GenericPayload;
+import io.smallrye.reactive.messaging.Invoker;
+import io.smallrye.reactive.messaging.MediatorConfiguration;
+import io.smallrye.reactive.messaging.MessageConverter;
+import io.smallrye.reactive.messaging.Messages;
 import io.smallrye.reactive.messaging.PublisherDecorator;
+import io.smallrye.reactive.messaging.SubscriberDecorator;
+import io.smallrye.reactive.messaging.Targeted;
+import io.smallrye.reactive.messaging.TargetedMessages;
 import io.smallrye.reactive.messaging.keyed.KeyValueExtractor;
 import io.smallrye.reactive.messaging.providers.connectors.WorkerPoolRegistry;
 import io.smallrye.reactive.messaging.providers.extension.HealthCenter;
 import io.smallrye.reactive.messaging.providers.helpers.BroadcastHelper;
 import io.smallrye.reactive.messaging.providers.helpers.ConverterUtils;
 import io.smallrye.reactive.messaging.providers.locals.LocalContextMetadata;
+import io.vertx.core.internal.ContextInternal;
 import io.vertx.mutiny.core.Context;
 import io.vertx.mutiny.core.Vertx;
 
@@ -343,12 +351,34 @@ public abstract class AbstractMediator {
     }
 
     protected Message<Object> payloadToMessage(Object payload) {
-        return (payload instanceof GenericPayload) ? ((GenericPayload<Object>) payload).toMessage() : Message.of(payload);
+        return (payload instanceof GenericPayload) ? ((GenericPayload<Object>) payload).toMessage()
+                : Message.of(payload);
     }
 
     protected Message<Object> payloadToMessage(Object payload, Metadata metadata) {
         return (payload instanceof GenericPayload) ? ((GenericPayload<Object>) payload).toMessage()
                 : Message.of(payload, metadata);
+    }
+
+    protected static Context getMessageContext(Message<?> message) {
+        return message.getMetadata().get(LocalContextMetadata.class)
+                .map(m -> Context.newInstance(m.context()))
+                .orElse(null);
+    }
+
+    protected Object invokeWithContext(Message<?> message) {
+        var localCtx = message.getMetadata().get(LocalContextMetadata.class);
+        if (localCtx.isPresent()) {
+            ContextInternal ctx = (ContextInternal) localCtx.get().context();
+            final var previousContext = ctx.beginDispatch();
+            try {
+                return invoke(getArguments(message));
+            } finally {
+                ctx.endDispatch(previousContext);
+            }
+        } else {
+            return invoke(getArguments(message));
+        }
     }
 
 }
