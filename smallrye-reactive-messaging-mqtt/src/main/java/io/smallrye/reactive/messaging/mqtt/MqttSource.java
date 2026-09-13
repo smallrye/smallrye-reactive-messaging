@@ -8,6 +8,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import jakarta.enterprise.inject.Instance;
 
+import io.netty.handler.codec.mqtt.MqttQoS;
+import io.netty.handler.codec.mqtt.MqttSubscriptionOption;
+import io.netty.handler.codec.mqtt.MqttSubscriptionOption.RetainedHandlingPolicy;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.ClientCustomizer;
 import io.smallrye.reactive.messaging.health.HealthReport.HealthReportBuilder;
@@ -15,7 +18,6 @@ import io.smallrye.reactive.messaging.mqtt.internal.ActualTopicFilter;
 import io.smallrye.reactive.messaging.mqtt.internal.MqttHelpers;
 import io.smallrye.reactive.messaging.mqtt.internal.MqttTopicHelper;
 import io.smallrye.reactive.messaging.mqtt.session.MqttClientSessionOptions;
-import io.smallrye.reactive.messaging.mqtt.session.RequestedQoS;
 import io.smallrye.reactive.messaging.providers.helpers.ConfigUtils;
 import io.smallrye.reactive.messaging.providers.helpers.VertxContext;
 import io.vertx.core.impl.VertxInternal;
@@ -54,8 +56,21 @@ public class MqttSource {
         final Context root = Context.newInstance(((VertxInternal) vertx.getDelegate()).createEventLoopContext());
         holder = Clients.getHolder(vertx, options);
         holder.start().onSuccess(ignore -> started.set(true));
+
+        boolean noLocal = config.getNoLocal();
+        boolean retainAsPublished = config.getRetainAsPublished();
+        int retainHandlingValue = config.getRetainHandling();
+        RetainedHandlingPolicy retainHandling;
+        try {
+            retainHandling = RetainedHandlingPolicy.valueOf(retainHandlingValue);
+        } catch (IllegalArgumentException e) {
+            throw ex.illegalArgumentInvalidRetainHandling(retainHandlingValue);
+        }
+        MqttSubscriptionOption subscriptionOption = new MqttSubscriptionOption(
+                MqttQoS.valueOf(qos), noLocal, retainAsPublished, retainHandling);
+
         holder.getClient()
-                .subscribe(topic, RequestedQoS.valueOf(qos))
+                .subscribe(topic, subscriptionOption)
                 .onFailure(outcome -> log.info("Subscription failed!"))
                 .onSuccess(outcome -> {
                     log.info("Subscription success on topic " + topic + ", Max QoS " + outcome + ".");
