@@ -1,5 +1,7 @@
 package io.smallrye.reactive.messaging.camel.i18n;
 
+import java.lang.invoke.MethodHandles;
+
 import org.jboss.logging.BasicLogger;
 import org.jboss.logging.Logger;
 import org.jboss.logging.annotations.Cause;
@@ -14,7 +16,8 @@ import org.jboss.logging.annotations.MessageLogger;
 @MessageLogger(projectCode = "SRMSG", length = 5)
 public interface CamelLogging extends BasicLogger {
 
-    CamelLogging log = Logger.getMessageLogger(CamelLogging.class, "io.smallrye.reactive.messaging.camel");
+    CamelLogging log = Logger.getMessageLogger(MethodHandles.lookup(), CamelLogging.class,
+            "io.smallrye.reactive.messaging.camel");
 
     @LogMessage(level = Logger.Level.INFO)
     @Message(id = 17800, value = "Creating publisher from Camel stream named %s")

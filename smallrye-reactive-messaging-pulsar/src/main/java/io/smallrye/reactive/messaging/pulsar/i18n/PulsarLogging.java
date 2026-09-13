@@ -1,5 +1,7 @@
 package io.smallrye.reactive.messaging.pulsar.i18n;
 
+import java.lang.invoke.MethodHandles;
+
 import org.jboss.logging.BasicLogger;
 import org.jboss.logging.Logger;
 import org.jboss.logging.annotations.Cause;
@@ -14,7 +16,8 @@ import org.jboss.logging.annotations.MessageLogger;
 @MessageLogger(projectCode = "SRMSG", length = 5)
 public interface PulsarLogging extends BasicLogger {
 
-    PulsarLogging log = Logger.getMessageLogger(PulsarLogging.class, "io.smallrye.reactive.messaging.pulsar");
+    PulsarLogging log = Logger.getMessageLogger(MethodHandles.lookup(), PulsarLogging.class,
+            "io.smallrye.reactive.messaging.pulsar");
 
     @LogMessage(level = Logger.Level.WARN)
     @Message(id = 19000, value = "Unable to close Pulsar consumer")

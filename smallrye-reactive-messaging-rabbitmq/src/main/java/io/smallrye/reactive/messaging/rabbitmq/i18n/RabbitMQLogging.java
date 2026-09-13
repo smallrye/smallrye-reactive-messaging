@@ -1,5 +1,7 @@
 package io.smallrye.reactive.messaging.rabbitmq.i18n;
 
+import java.lang.invoke.MethodHandles;
+
 import org.jboss.logging.BasicLogger;
 import org.jboss.logging.Logger;
 import org.jboss.logging.Logger.Level;
@@ -8,7 +10,8 @@ import org.jboss.logging.annotations.*;
 @MessageLogger(projectCode = "SRMSG", length = 5)
 public interface RabbitMQLogging extends BasicLogger {
 
-    RabbitMQLogging log = Logger.getMessageLogger(RabbitMQLogging.class, "io.smallrye.reactive.messaging.rabbitmq");
+    RabbitMQLogging log = Logger.getMessageLogger(MethodHandles.lookup(), RabbitMQLogging.class,
+            "io.smallrye.reactive.messaging.rabbitmq");
 
     @LogMessage(level = Logger.Level.INFO)
     @Message(id = 17000, value = "RabbitMQ Receiver listening address %s")
