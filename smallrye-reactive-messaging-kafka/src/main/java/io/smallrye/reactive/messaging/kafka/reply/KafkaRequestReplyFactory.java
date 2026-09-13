@@ -21,9 +21,11 @@ import io.smallrye.reactive.messaging.ClientCustomizer;
 import io.smallrye.reactive.messaging.EmitterConfiguration;
 import io.smallrye.reactive.messaging.EmitterFactory;
 import io.smallrye.reactive.messaging.MessageConverter;
+import io.smallrye.reactive.messaging.MessagePublisherProvider;
 import io.smallrye.reactive.messaging.annotations.EmitterFactoryFor;
 import io.smallrye.reactive.messaging.kafka.DeserializationFailureHandler;
 import io.smallrye.reactive.messaging.kafka.KafkaCDIEvents;
+import io.smallrye.reactive.messaging.kafka.KafkaConnector;
 import io.smallrye.reactive.messaging.kafka.KafkaConsumerRebalanceListener;
 import io.smallrye.reactive.messaging.kafka.commit.KafkaCommitHandler;
 import io.smallrye.reactive.messaging.kafka.fault.KafkaFailureHandler;
@@ -95,6 +97,15 @@ public class KafkaRequestReplyFactory implements EmitterFactory<KafkaRequestRepl
                 configCustomizers, failureHandlers, correlationIdHandlers, replyFailureHandlers, rebalanceListeners);
     }
 
+    @Override
+    public MessagePublisherProvider<?> createEmitter(EmitterConfiguration configuration, long defaultBufferSize,
+            Config channelConfig) {
+        if (EmitterFactory.isConnector(channelConfig, KafkaConnector.CONNECTOR_NAME)) {
+            return createEmitter(configuration, defaultBufferSize);
+        }
+        return new NoOpKafkaRequestReplyImpl<>(configuration, defaultBufferSize);
+    }
+
     @Produces
     @Typed(KafkaRequestReply.class)
     @Channel("")
@@ -103,7 +114,7 @@ public class KafkaRequestReplyFactory implements EmitterFactory<KafkaRequestRepl
         String channelName = ChannelProducer.getChannelName(injectionPoint);
         KafkaRequestReply<Req, Rep> emitter = channelRegistry.getEmitter(channelName, KafkaRequestReply.class);
         Type replyType = getReplyPayloadType(injectionPoint);
-        if (replyType != null) {
+        if (replyType != null && emitter instanceof KafkaRequestReplyImpl) {
             ((KafkaRequestReplyImpl) emitter).setReplyConverter(ConverterUtils.convertFunction(converters, replyType));
         }
         return emitter;
