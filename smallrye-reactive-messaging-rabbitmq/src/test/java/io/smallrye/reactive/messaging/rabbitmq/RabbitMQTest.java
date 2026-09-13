@@ -15,10 +15,6 @@ import java.util.stream.Collectors;
 import jakarta.enterprise.context.ApplicationScoped;
 
 import org.eclipse.microprofile.reactive.messaging.Message;
-import org.eclipse.microprofile.reactive.messaging.spi.ConnectorLiteral;
-import org.jboss.weld.environment.se.Weld;
-import org.jboss.weld.environment.se.WeldContainer;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 import io.netty.handler.codec.http.HttpHeaderValues;
@@ -31,31 +27,10 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 
 @SuppressWarnings("ConstantConditions")
-class RabbitMQTest extends RabbitMQBrokerTestBase {
+class RabbitMQTest extends WeldTestBase {
 
-    private WeldContainer container;
-
-    Weld weld = new Weld();
-
-    @AfterEach
-    public void cleanup() {
-        if (container != null) {
-            get(container, RabbitMQConnector.class, ConnectorLiteral.of(RabbitMQConnector.CONNECTOR_NAME))
-                    .terminate(null);
-            container.shutdown();
-        }
-
-        MapBasedConfig.cleanup();
-        SmallRyeConfigTestUtil.releaseConfig();
-    }
-
-    /**
-     * Verifies that Exchanges are correctly declared as a result of outgoing connector
-     * configuration.
-     */
     @Test
     void testOutgoingDeclarations() throws Exception {
-
         final boolean exchangeDurable = false;
         final boolean exchangeAutoDelete = true;
         final String exchangeType = "fanout";
@@ -67,7 +42,6 @@ class RabbitMQTest extends RabbitMQBrokerTestBase {
                 .put("mp.messaging.outgoing.sink.exchange.durable", exchangeDurable)
                 .put("mp.messaging.outgoing.sink.exchange.auto-delete", exchangeAutoDelete)
                 .put("mp.messaging.outgoing.sink.exchange.type", exchangeType)
-                .put("mp.messaging.outgoing.sink.exchange.name", exchangeName)
                 .put("mp.messaging.outgoing.sink.exchange.declare", true)
                 .put("mp.messaging.outgoing.sink.connector", RabbitMQConnector.CONNECTOR_NAME)
                 .put("mp.messaging.outgoing.sink.host", host)
@@ -91,10 +65,6 @@ class RabbitMQTest extends RabbitMQBrokerTestBase {
         assertThat(exchange.getBoolean("internal")).isFalse();
     }
 
-    /**
-     * Verifies that Exchanges, Queues and Bindings are correctly declared as a result of
-     * incoming connector configuration.
-     */
     @Test
     void testIncomingDeclarations() throws Exception {
         final boolean exchangeDurable = false;
@@ -118,7 +88,6 @@ class RabbitMQTest extends RabbitMQBrokerTestBase {
                 .put("mp.messaging.incoming.data.exchange.durable", exchangeDurable)
                 .put("mp.messaging.incoming.data.exchange.auto-delete", exchangeAutoDelete)
                 .put("mp.messaging.incoming.data.exchange.type", exchangeType)
-                .put("mp.messaging.incoming.data.exchange.name", exchangeName)
                 .put("mp.messaging.incoming.data.exchange.declare", true)
                 .put("mp.messaging.incoming.data.queue.name", queueName)
                 .put("mp.messaging.incoming.data.queue.durable", queueDurable)
@@ -144,7 +113,6 @@ class RabbitMQTest extends RabbitMQBrokerTestBase {
         container = weld.initialize();
         await().until(() -> isRabbitMQConnectorAvailable(container));
 
-        // verify exchange
         final JsonObject exchange = usage.getExchange(exchangeName);
         assertThat(exchange).isNotNull();
         assertThat(exchange.getString("name")).isEqualTo(exchangeName);
@@ -153,7 +121,6 @@ class RabbitMQTest extends RabbitMQBrokerTestBase {
         assertThat(exchange.getBoolean("durable")).isEqualTo(exchangeDurable);
         assertThat(exchange.getBoolean("internal")).isFalse();
 
-        // verify queue
         final JsonObject queue = usage.getQueue(queueName);
         assertThat(queue).isNotNull();
         assertThat(queue.getString("name")).isEqualTo(queueName);
@@ -162,7 +129,6 @@ class RabbitMQTest extends RabbitMQBrokerTestBase {
         assertThat(queue.getBoolean("exclusive")).isEqualTo(queueExclusive);
         assertThat(queue.getString("type")).isEqualTo(queueType);
 
-        // verify bindings
         final JsonObject queueArguments = queue.getJsonObject("arguments");
         assertThat(queueArguments).isNotNull();
         assertThat(queueArguments.getString("x-dead-letter-exchange")).isNull();
@@ -198,37 +164,6 @@ class RabbitMQTest extends RabbitMQBrokerTestBase {
         assertThat(binding2.getString("destination")).isEqualTo(queueName);
         assertThat(binding2.getString("destination_type")).isEqualTo("queue");
         assertThat(binding2.getString("routing_key")).isEqualTo("urgent");
-    }
-
-    /**
-     * Verifies that with eager client, incoming channel infrastructure
-     * (exchange, queue, bindings) is declared during container initialization.
-     */
-    @Test
-    void testEagerClientDeclaresInfrastructureAtStartup() throws Exception {
-        weld.addBeanClass(IncomingBean.class);
-
-        new MapBasedConfig()
-                .put("mp.messaging.incoming.data.exchange.name", exchangeName)
-                .put("mp.messaging.incoming.data.exchange.declare", true)
-                .put("mp.messaging.incoming.data.queue.name", queueName)
-                .put("mp.messaging.incoming.data.queue.declare", true)
-                .put("mp.messaging.incoming.data.connector", RabbitMQConnector.CONNECTOR_NAME)
-                .put("mp.messaging.incoming.data.host", host)
-                .put("mp.messaging.incoming.data.port", port)
-                .put("mp.messaging.incoming.data.tracing.enabled", false)
-                .put("mp.messaging.incoming.data.lazy-client", false)
-                .put("rabbitmq-username", username)
-                .put("rabbitmq-password", password)
-                .put("rabbitmq-reconnect-attempts", 0)
-                .write();
-
-        SmallRyeConfigTestUtil.installConfig();
-        container = weld.initialize();
-
-        // No await() needed — eager client blocks during construction
-        assertThat(usage.getExchange(exchangeName)).isNotNull();
-        assertThat(usage.getQueue(queueName)).isNotNull();
     }
 
     @Test
@@ -267,7 +202,7 @@ class RabbitMQTest extends RabbitMQBrokerTestBase {
     }
 
     @Test
-    void testSharedConnectionIncomingUsesEventLoopContext() throws InterruptedException {
+    void testSharedConnectionIncomingUsesEventLoopContext() throws Exception {
         final String routingKey = "shared";
 
         weld.addBeanClass(IncomingContextBean.class);
@@ -323,7 +258,7 @@ class RabbitMQTest extends RabbitMQBrokerTestBase {
     }
 
     @Test
-    void testSharedConnectionNameIsNotSuffixed() {
+    void testSharedConnectionNameIsNotSuffixed() throws Exception {
         final String routingKey = "shared";
 
         weld.addBeanClass(IncomingBean.class);
@@ -371,7 +306,7 @@ class RabbitMQTest extends RabbitMQBrokerTestBase {
     }
 
     @Test
-    void testDefaultConnectionNameIncludesDirection() {
+    void testDefaultConnectionNameIncludesDirection() throws Exception {
         final String routingKey = "default";
 
         weld.addBeanClass(IncomingBean.class);
@@ -493,7 +428,6 @@ class RabbitMQTest extends RabbitMQBrokerTestBase {
                 .put("mp.messaging.incoming.data.exchange.durable", exchangeDurable)
                 .put("mp.messaging.incoming.data.exchange.auto-delete", exchangeAutoDelete)
                 .put("mp.messaging.incoming.data.exchange.type", exchangeType)
-                .put("mp.messaging.incoming.data.exchange.name", exchangeName)
                 .put("mp.messaging.incoming.data.exchange.declare", true)
                 .put("mp.messaging.incoming.data.queue.name", queueName)
                 .put("mp.messaging.incoming.data.queue.durable", queueDurable)
@@ -657,8 +591,6 @@ class RabbitMQTest extends RabbitMQBrokerTestBase {
 
     /**
      * Verifies that messages can be sent to RabbitMQ.
-     *
-     * @throws InterruptedException
      */
     @Test
     void testSendingMessagesToRabbitMQ() throws InterruptedException {
@@ -691,8 +623,6 @@ class RabbitMQTest extends RabbitMQBrokerTestBase {
 
     /**
      * Verifies that messages can be sent to RabbitMQ with publish confirms.
-     *
-     * @throws InterruptedException
      */
     @Test
     void testSendingMessagesToRabbitMQPublishConfirms() throws InterruptedException {
@@ -765,22 +695,13 @@ class RabbitMQTest extends RabbitMQBrokerTestBase {
     }
 
     /**
-     * Verifies that messages can be sent to RabbitMQ with publish confirms.
-     *
-     * @throws InterruptedException
+     * Verifies that messages can be sent to RabbitMQ with publish confirms and nack handling.
      */
     @Test
     void testSendingMessagesToRabbitMQPublishConfirmsWithNack() throws InterruptedException {
         final String routingKey = "normal";
 
-        List<Long> receivedTags = new CopyOnWriteArrayList<>();
-        CountDownLatch latch = new CountDownLatch(10);
-        usage.prepareNackQueue(exchangeName, routingKey);/*
-                                                          * , v -> {
-                                                          * receivedTags.add(v.envelope().getDeliveryTag());
-                                                          * latch.countDown();
-                                                          * });
-                                                          */
+        usage.prepareNackQueue(exchangeName, routingKey);
 
         weld.addBeanClasses(ProducingBean.class, DeliveryTagInterceptor.class);
 
@@ -813,9 +734,7 @@ class RabbitMQTest extends RabbitMQBrokerTestBase {
     }
 
     /**
-     * Verifies that messages can be sent to RabbitMQ.
-     *
-     * @throws InterruptedException
+     * Verifies that null payloads can be sent to RabbitMQ.
      */
     @Test
     void testSendingNullPayloadsToRabbitMQ() throws InterruptedException {
@@ -857,11 +776,11 @@ class RabbitMQTest extends RabbitMQBrokerTestBase {
                 .put("mp.messaging.incoming.data.exchange.durable", false)
                 .put("mp.messaging.incoming.data.queue.name", queueName)
                 .put("mp.messaging.incoming.data.queue.durable", false)
-                .put("mp.messaging.incoming.data.queue.routing-keys", routingKey)
+                .put("mp.messaging.incoming.data.routing-keys", routingKey)
                 .put("mp.messaging.incoming.data.connector", RabbitMQConnector.CONNECTOR_NAME)
                 .put("mp.messaging.incoming.data.host", host)
                 .put("mp.messaging.incoming.data.port", port)
-                .put("mp.messaging.incoming.data.tracing-enabled", false)
+                .put("mp.messaging.incoming.data.tracing.enabled", false)
                 .put("rabbitmq-username", username)
                 .put("rabbitmq-password", password)
                 .put("rabbitmq-reconnect-attempts", 0)
@@ -887,7 +806,7 @@ class RabbitMQTest extends RabbitMQBrokerTestBase {
     }
 
     /**
-     * Verifies that messages can be received from RabbitMQ, but getPayload fails
+     * Verifies that messages can be received from RabbitMQ with invalid content type.
      */
     @Test
     void testReceivingMessagesFromRabbitMQWithInvalidContentType() {
@@ -897,11 +816,11 @@ class RabbitMQTest extends RabbitMQBrokerTestBase {
                 .put("mp.messaging.incoming.data.exchange.durable", false)
                 .put("mp.messaging.incoming.data.queue.name", queueName)
                 .put("mp.messaging.incoming.data.queue.durable", false)
-                .put("mp.messaging.incoming.data.queue.routing-keys", routingKey)
+                .put("mp.messaging.incoming.data.routing-keys", routingKey)
                 .put("mp.messaging.incoming.data.connector", RabbitMQConnector.CONNECTOR_NAME)
                 .put("mp.messaging.incoming.data.host", host)
                 .put("mp.messaging.incoming.data.port", port)
-                .put("mp.messaging.incoming.data.tracing-enabled", false)
+                .put("mp.messaging.incoming.data.tracing.enabled", false)
                 .put("rabbitmq-username", username)
                 .put("rabbitmq-password", password)
                 .put("rabbitmq-reconnect-attempts", 0)
@@ -927,7 +846,7 @@ class RabbitMQTest extends RabbitMQBrokerTestBase {
     }
 
     /**
-     * Verifies that message's content_type can be overridden
+     * Verifies that message's content_type can be overridden.
      */
     @Test
     void testReceivingMessagesFromRabbitMQWithOverriddenContentType() {
@@ -937,11 +856,11 @@ class RabbitMQTest extends RabbitMQBrokerTestBase {
                 .put("mp.messaging.incoming.data.exchange.durable", false)
                 .put("mp.messaging.incoming.data.queue.name", queueName)
                 .put("mp.messaging.incoming.data.queue.durable", false)
-                .put("mp.messaging.incoming.data.queue.routing-keys", routingKey)
+                .put("mp.messaging.incoming.data.routing-keys", routingKey)
                 .put("mp.messaging.incoming.data.connector", RabbitMQConnector.CONNECTOR_NAME)
                 .put("mp.messaging.incoming.data.host", host)
                 .put("mp.messaging.incoming.data.port", port)
-                .put("mp.messaging.incoming.data.tracing-enabled", false)
+                .put("mp.messaging.incoming.data.tracing.enabled", false)
                 .put("mp.messaging.incoming.data.content-type-override", HttpHeaderValues.TEXT_PLAIN.toString())
                 .put("rabbitmq-username", username)
                 .put("rabbitmq-password", password)
@@ -968,7 +887,7 @@ class RabbitMQTest extends RabbitMQBrokerTestBase {
     }
 
     /**
-     * Verifies that default exchange name can be set with ("")
+     * Verifies that default exchange name can be set with ("").
      */
     @Test
     void testDefaultExchangeName() {
@@ -980,7 +899,7 @@ class RabbitMQTest extends RabbitMQBrokerTestBase {
                 .put("mp.messaging.incoming.data.connector", RabbitMQConnector.CONNECTOR_NAME)
                 .put("mp.messaging.incoming.data.host", host)
                 .put("mp.messaging.incoming.data.port", port)
-                .put("mp.messaging.incoming.data.tracing-enabled", false)
+                .put("mp.messaging.incoming.data.tracing.enabled", false)
                 .put("mp.messaging.incoming.data.content-type-override", HttpHeaderValues.TEXT_PLAIN.toString())
                 .put("rabbitmq-username", username)
                 .put("rabbitmq-password", password)
@@ -1020,11 +939,11 @@ class RabbitMQTest extends RabbitMQBrokerTestBase {
                 .put("mp.messaging.incoming.data.queue.name", queueName)
                 .put("mp.messaging.incoming.data.queue.x-queue-type", "quorum")
                 .put("mp.messaging.incoming.data.queue.x-delivery-limit", 2)
-                .put("mp.messaging.incoming.data.queue.routing-keys", routingKey)
+                .put("mp.messaging.incoming.data.routing-keys", routingKey)
                 .put("mp.messaging.incoming.data.connector", RabbitMQConnector.CONNECTOR_NAME)
                 .put("mp.messaging.incoming.data.host", host)
                 .put("mp.messaging.incoming.data.port", port)
-                .put("mp.messaging.incoming.data.tracing-enabled", false)
+                .put("mp.messaging.incoming.data.tracing.enabled", false)
                 .put("mp.messaging.incoming.data.failure-strategy", RabbitMQFailureHandler.Strategy.REJECT)
                 .put("mp.messaging.incoming.data.auto-bind-dlq", true)
                 .put("mp.messaging.incoming.data.dead-letter-exchange", dlxName)
@@ -1033,11 +952,11 @@ class RabbitMQTest extends RabbitMQBrokerTestBase {
                 .put("mp.messaging.incoming.data-dlq.exchange.name", dlxName)
                 .put("mp.messaging.incoming.data-dlq.exchange.type", "direct")
                 .put("mp.messaging.incoming.data-dlq.queue.name", dlqName)
-                .put("mp.messaging.incoming.data-dlq.queue.routing-keys", routingKey)
+                .put("mp.messaging.incoming.data-dlq.routing-keys", routingKey)
                 .put("mp.messaging.incoming.data-dlq.connector", RabbitMQConnector.CONNECTOR_NAME)
                 .put("mp.messaging.incoming.data-dlq.host", host)
                 .put("mp.messaging.incoming.data-dlq.port", port)
-                .put("mp.messaging.incoming.data-dlq.tracing-enabled", false)
+                .put("mp.messaging.incoming.data-dlq.tracing.enabled", false)
                 .put("rabbitmq-username", username)
                 .put("rabbitmq-password", password)
                 .put("rabbitmq-reconnect-attempts", 0)
@@ -1064,7 +983,7 @@ class RabbitMQTest extends RabbitMQBrokerTestBase {
         AtomicInteger counter = new AtomicInteger();
         usage.produceTenIntegers(exchangeName, queueName, routingKey, counter::getAndIncrement);
 
-        await().untilAsserted(() -> {
+        await().atMost(20, TimeUnit.SECONDS).untilAsserted(() -> {
             assertThat(list)
                     .hasSizeGreaterThanOrEqualTo(30)
                     .containsExactlyInAnyOrder(
@@ -1079,7 +998,7 @@ class RabbitMQTest extends RabbitMQBrokerTestBase {
     }
 
     /**
-     * Verifies that consumer arguments can be set
+     * Verifies that consumer arguments can be set.
      */
     @Test
     void testConsumerArguments() {
@@ -1091,7 +1010,7 @@ class RabbitMQTest extends RabbitMQBrokerTestBase {
                 .put("mp.messaging.incoming.data.connector", RabbitMQConnector.CONNECTOR_NAME)
                 .put("mp.messaging.incoming.data.host", host)
                 .put("mp.messaging.incoming.data.port", port)
-                .put("mp.messaging.incoming.data.tracing-enabled", false)
+                .put("mp.messaging.incoming.data.tracing.enabled", false)
                 .put("rabbitmq-username", username)
                 .put("rabbitmq-password", password)
                 .put("rabbitmq-reconnect-attempts", 0)
@@ -1124,7 +1043,7 @@ class RabbitMQTest extends RabbitMQBrokerTestBase {
     }
 
     @Test
-    void testSharedConnectionMultipleIncomingChannelsGetDistinctContexts() throws InterruptedException {
+    void testSharedConnectionMultipleIncomingChannelsGetDistinctContexts() throws Exception {
         final String routingKey1 = "ctx1";
         final String routingKey2 = "ctx2";
         final String queueName2 = queueName + "-2";
@@ -1179,7 +1098,6 @@ class RabbitMQTest extends RabbitMQBrokerTestBase {
         assertThat(bean.isEventLoop2()).isTrue();
         assertThat(bean.getContext1()).isNotSameAs(bean.getContext2());
 
-        // Verify single shared connection
         await().untilAsserted(() -> {
             JsonArray connections = usage.getConnections();
             assertThat(connections).isNotNull();

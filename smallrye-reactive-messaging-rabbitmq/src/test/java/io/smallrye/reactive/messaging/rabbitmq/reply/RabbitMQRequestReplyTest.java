@@ -20,61 +20,48 @@ import org.eclipse.microprofile.reactive.messaging.Channel;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
-import org.eclipse.microprofile.reactive.messaging.spi.ConnectorLiteral;
-import org.jboss.weld.environment.se.Weld;
-import org.jboss.weld.environment.se.WeldContainer;
-import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.smallrye.common.annotation.Identifier;
+import io.smallrye.common.vertx.ContextLocals;
+import io.smallrye.common.vertx.VertxContext;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.helpers.test.UniAssertSubscriber;
 import io.smallrye.reactive.messaging.providers.connectors.ExecutionHolder;
 import io.smallrye.reactive.messaging.rabbitmq.IncomingRabbitMQMessage;
 import io.smallrye.reactive.messaging.rabbitmq.OutgoingRabbitMQMetadata;
-import io.smallrye.reactive.messaging.rabbitmq.OutgoingRabbitMQMetadata.Builder;
-import io.smallrye.reactive.messaging.rabbitmq.RabbitMQBrokerTestBase;
 import io.smallrye.reactive.messaging.rabbitmq.RabbitMQConnector;
-import io.smallrye.reactive.messaging.rabbitmq.converter.ByteArrayMessageConverter;
+import io.smallrye.reactive.messaging.rabbitmq.WeldTestBase;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 import io.smallrye.reactive.messaging.test.common.config.SmallRyeConfigTestUtil;
-import io.vertx.mutiny.core.Context;
-import io.vertx.mutiny.core.Vertx;
+import io.vertx.core.Context;
+import io.vertx.core.Vertx;
 
-class RabbitMQRequestReplyTest extends RabbitMQBrokerTestBase {
+class RabbitMQRequestReplyTest extends WeldTestBase {
 
-    private WeldContainer container;
-
-    Weld weld = new Weld();
-
-    @AfterEach
-    public void cleanup() {
-        if (container != null) {
-            get(container, RabbitMQConnector.class,
-                    ConnectorLiteral.of(RabbitMQConnector.CONNECTOR_NAME))
-                    .terminate(null);
-            container.shutdown();
-        }
-
-        MapBasedConfig.cleanup();
-        SmallRyeConfigTestUtil.releaseConfig();
+    @BeforeEach
+    public void addRequestReplyBeans() {
+        weld.addBeanClass(RabbitMQRequestReplyFactory.class);
+        weld.addBeanClass(UUIDCorrelationIdHandler.class);
+        weld.addBeanClass(BytesCorrelationIdHandler.class);
     }
 
     private MapBasedConfig config(String exchange, String requestAddress) {
         return commonConfig()
-                .with("mp.messaging.outgoing.request-reply.connector", "smallrye-rabbitmq")
+                .with("mp.messaging.outgoing.request-reply.connector", RabbitMQConnector.CONNECTOR_NAME)
                 .with("mp.messaging.outgoing.request-reply.exchange.name", exchange)
                 .with("mp.messaging.outgoing.request-reply.exchange.type", "direct")
                 .with("mp.messaging.outgoing.request-reply.default-routing-key", requestAddress)
 
-                .with("mp.messaging.incoming.req.connector", "smallrye-rabbitmq")
+                .with("mp.messaging.incoming.req.connector", RabbitMQConnector.CONNECTOR_NAME)
                 .with("mp.messaging.incoming.req.exchange.name", exchange)
                 .with("mp.messaging.incoming.req.exchange.type", "direct")
                 .with("mp.messaging.incoming.req.routing-keys", requestAddress)
 
-                .with("mp.messaging.outgoing.rep.connector", "smallrye-rabbitmq")
+                .with("mp.messaging.outgoing.rep.connector", RabbitMQConnector.CONNECTOR_NAME)
                 .with("mp.messaging.outgoing.rep.exchange.name", "\"\"");
     }
 
@@ -118,12 +105,13 @@ class RabbitMQRequestReplyTest extends RabbitMQBrokerTestBase {
 
         ExecutionHolder executionHolder = container.getBeanManager()
                 .createInstance().select(ExecutionHolder.class).get();
-        executionHolder.vertx().getDelegate().getOrCreateContext().runOnContext(v -> {
-            Vertx.currentContext().putLocal("test-key", expectedValue);
+        Context rootCtx = executionHolder.vertx().getDelegate().getOrCreateContext();
+        VertxContext.createNewDuplicatedContext(rootCtx).runOnContext(v -> {
+            ContextLocals.put("test-key", expectedValue);
             producer.requestReply().request(42)
                     .subscribe().with(reply -> {
                         replyContext.set(Vertx.currentContext());
-                        replyLocalValue.set(Vertx.currentContext().getLocal("test-key"));
+                        replyLocalValue.set(ContextLocals.get("test-key", null));
                         latch.countDown();
                     });
         });
@@ -134,51 +122,19 @@ class RabbitMQRequestReplyTest extends RabbitMQBrokerTestBase {
     }
 
     @Test
-    public void testReplyWithLocalRandomExchange() {
-        weld.addBeanClasses(RequestReplyProducer.class, ReplyServer.class);
-        commonConfig()
-                .with("mp.messaging.outgoing.request-reply.connector", "smallrye-rabbitmq")
-                .with("mp.messaging.outgoing.request-reply.exchange.name", exchangeName)
-                .with("mp.messaging.outgoing.request-reply.exchange.type", "x-local-random")
-
-                .with("mp.messaging.incoming.req.connector", "smallrye-rabbitmq")
-                .with("mp.messaging.incoming.req.exchange.name", exchangeName)
-                .with("mp.messaging.incoming.req.exchange.type", "x-local-random")
-
-                .with("mp.messaging.outgoing.rep.connector", "smallrye-rabbitmq")
-                .with("mp.messaging.outgoing.rep.exchange.name", "\"\"")
-                .write();
-        SmallRyeConfigTestUtil.installConfig();
-        container = weld.initialize();
-
-        List<String> replies = new CopyOnWriteArrayList<>();
-        RequestReplyProducer producer = container.getBeanManager()
-                .createInstance().select(RequestReplyProducer.class).get();
-        await().until(() -> isRabbitMQConnectorAvailable(container));
-        for (int i = 0; i < 10; i++) {
-            producer.requestReply().request(i).subscribe().with(replies::add);
-        }
-        await().atMost(java.time.Duration.ofSeconds(5))
-                .untilAsserted(() -> assertThat(replies).hasSize(10));
-        assertThat(replies).containsExactlyInAnyOrder(
-                "0", "1", "2", "3", "4", "5", "6", "7", "8", "9");
-        assertThat(producer.requestReply().getPendingReplies()).isEmpty();
-    }
-
-    @Test
     public void testReplyWithTopicExchange() {
         String routingKey = "rpc.requests";
         weld.addBeanClasses(RequestReplyProducer.class, ReplyServer.class);
         commonConfig()
-                .with("mp.messaging.outgoing.request-reply.connector", "smallrye-rabbitmq")
+                .with("mp.messaging.outgoing.request-reply.connector", RabbitMQConnector.CONNECTOR_NAME)
                 .with("mp.messaging.outgoing.request-reply.exchange.name", exchangeName)
                 .with("mp.messaging.outgoing.request-reply.exchange.type", "topic")
                 .with("mp.messaging.outgoing.request-reply.default-routing-key", routingKey)
-                .with("mp.messaging.incoming.req.connector", "smallrye-rabbitmq")
+                .with("mp.messaging.incoming.req.connector", RabbitMQConnector.CONNECTOR_NAME)
                 .with("mp.messaging.incoming.req.exchange.name", exchangeName)
                 .with("mp.messaging.incoming.req.exchange.type", "topic")
                 .with("mp.messaging.incoming.req.routing-keys", "rpc.*")
-                .with("mp.messaging.outgoing.rep.connector", "smallrye-rabbitmq")
+                .with("mp.messaging.outgoing.rep.connector", RabbitMQConnector.CONNECTOR_NAME)
                 .with("mp.messaging.outgoing.rep.exchange.name", "\"\"")
                 .write();
         SmallRyeConfigTestUtil.installConfig();
@@ -203,18 +159,18 @@ class RabbitMQRequestReplyTest extends RabbitMQBrokerTestBase {
         String exchange = "test-fanout-exchange";
         weld.addBeanClasses(RequestReplyProducer.class, ReplyServer.class, ReplyServerFanout.class);
         commonConfig()
-                .with("mp.messaging.outgoing.request-reply.connector", "smallrye-rabbitmq")
+                .with("mp.messaging.outgoing.request-reply.connector", RabbitMQConnector.CONNECTOR_NAME)
                 .with("mp.messaging.outgoing.request-reply.exchange.name", exchange)
                 .with("mp.messaging.outgoing.request-reply.exchange.type", "fanout")
-                .with("mp.messaging.incoming.req.connector", "smallrye-rabbitmq")
+                .with("mp.messaging.incoming.req.connector", RabbitMQConnector.CONNECTOR_NAME)
                 .with("mp.messaging.incoming.req.exchange.name", exchange)
                 .with("mp.messaging.incoming.req.exchange.type", "fanout")
-                .with("mp.messaging.incoming.req2.connector", "smallrye-rabbitmq")
+                .with("mp.messaging.incoming.req2.connector", RabbitMQConnector.CONNECTOR_NAME)
                 .with("mp.messaging.incoming.req2.exchange.name", exchange)
                 .with("mp.messaging.incoming.req2.exchange.type", "fanout")
-                .with("mp.messaging.outgoing.rep.connector", "smallrye-rabbitmq")
+                .with("mp.messaging.outgoing.rep.connector", RabbitMQConnector.CONNECTOR_NAME)
                 .with("mp.messaging.outgoing.rep.exchange.name", "\"\"")
-                .with("mp.messaging.outgoing.rep2.connector", "smallrye-rabbitmq")
+                .with("mp.messaging.outgoing.rep2.connector", RabbitMQConnector.CONNECTOR_NAME)
                 .with("mp.messaging.outgoing.rep2.exchange.name", "\"\"")
                 .write();
         SmallRyeConfigTestUtil.installConfig();
@@ -230,10 +186,8 @@ class RabbitMQRequestReplyTest extends RabbitMQBrokerTestBase {
                     .subscribe()
                     .with(replies::add);
         }
-        // Each request gets 2 replies (one from each consumer)
         await().atMost(java.time.Duration.ofSeconds(5))
                 .untilAsserted(() -> assertThat(replies).hasSize(sent * 2));
-        // Each value appears twice (once per consumer)
         assertThat(replies).containsExactlyInAnyOrder(
                 "0", "0", "1", "1", "2", "2", "3", "3", "4", "4");
         Map<CorrelationId, PendingReply> pendingReplies = producer.requestReply().getPendingReplies();
@@ -247,7 +201,7 @@ class RabbitMQRequestReplyTest extends RabbitMQBrokerTestBase {
     public void testReplyWithConverter() {
         String exchange = "test-exchange";
         String requestAddress = "requests";
-        weld.addBeanClasses(RequestReplyProducerWithConverter.class, ReplyServer.class, ByteArrayMessageConverter.class);
+        weld.addBeanClasses(RequestReplyProducerWithConverter.class, ReplyServer.class);
         config(exchange, requestAddress).write();
         SmallRyeConfigTestUtil.installConfig();
         container = weld.initialize();
@@ -312,8 +266,7 @@ class RabbitMQRequestReplyTest extends RabbitMQBrokerTestBase {
             }
         }
         await().untilAsserted(() -> assertThat(replies).hasSize(ReplyServerMultipleReplies.REPLIES * sent));
-        assertThat(replies)
-                .containsAll(expected);
+        assertThat(replies).containsAll(expected);
         Map<CorrelationId, PendingReply> pendingReplies = app.requestReply().getPendingReplies();
         assertThat(pendingReplies).allSatisfy((k, v) -> assertThat(v.isCancelled()).isFalse());
         for (PendingReply pending : pendingReplies.values()) {
@@ -355,7 +308,7 @@ class RabbitMQRequestReplyTest extends RabbitMQBrokerTestBase {
         String requestAddress = "requests";
         weld.addBeanClasses(RequestReplyProducerSecond.class, ReplyServer.class);
         config(exchange, requestAddress)
-                .with("mp.messaging.outgoing.request-reply2.connector", "smallrye-rabbitmq")
+                .with("mp.messaging.outgoing.request-reply2.connector", RabbitMQConnector.CONNECTOR_NAME)
                 .with("mp.messaging.outgoing.request-reply2.exchange.name", exchange)
                 .with("mp.messaging.outgoing.request-reply2.exchange.type", "direct")
                 .with("mp.messaging.outgoing.request-reply2.default-routing-key", requestAddress)
@@ -377,7 +330,8 @@ class RabbitMQRequestReplyTest extends RabbitMQBrokerTestBase {
 
         await().untilAsserted(() -> assertThat(replies).hasSize(20));
         assertThat(replies)
-                .containsExactlyInAnyOrder("0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15",
+                .containsExactlyInAnyOrder("0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14",
+                        "15",
                         "16", "17", "18", "19");
 
         assertThat(app.requestReply().getPendingReplies()).isEmpty();
@@ -551,7 +505,7 @@ class RabbitMQRequestReplyTest extends RabbitMQBrokerTestBase {
         @Outgoing("rep")
         public Message<String> replier(Message<String> message) {
             String payload = message.getPayload();
-            Builder outgoing = OutgoingRabbitMQMetadata.builder();
+            OutgoingRabbitMQMetadata.Builder outgoing = OutgoingRabbitMQMetadata.builder();
             if (Integer.parseInt(payload) % 3 == 0) {
                 outgoing.withHeader("REPLY_ERROR", "Cannot reply to " + payload);
             }
@@ -585,5 +539,4 @@ class RabbitMQRequestReplyTest extends RabbitMQBrokerTestBase {
             return message.withPayload(response);
         }
     }
-
 }

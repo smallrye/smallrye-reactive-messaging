@@ -1,92 +1,150 @@
 package io.smallrye.reactive.messaging.rabbitmq;
 
-import static io.smallrye.reactive.messaging.providers.locals.ContextAwareMessage.captureContextMetadata;
-import static io.smallrye.reactive.messaging.rabbitmq.i18n.RabbitMQLogging.log;
-
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
-import java.util.Map;
-import java.util.Optional;
+import java.nio.charset.StandardCharsets;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
-import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Metadata;
 
-import io.netty.handler.codec.http.HttpHeaderValues;
+import com.rabbitmq.client.AMQP;
+import com.rabbitmq.client.Envelope;
+
 import io.smallrye.reactive.messaging.providers.MetadataInjectableMessage;
 import io.smallrye.reactive.messaging.providers.locals.ContextAwareMessage;
+import io.smallrye.reactive.messaging.providers.locals.LocalContextMetadata;
 import io.smallrye.reactive.messaging.rabbitmq.ack.RabbitMQAckHandler;
-import io.smallrye.reactive.messaging.rabbitmq.fault.RabbitMQFailureHandler;
-import io.vertx.mutiny.core.Context;
-import io.vertx.mutiny.rabbitmq.RabbitMQMessage;
+import io.smallrye.reactive.messaging.rabbitmq.ack.RabbitMQAutoAck;
+import io.smallrye.reactive.messaging.rabbitmq.ack.RabbitMQNackHandler;
+import io.vertx.core.Context;
+import io.vertx.core.internal.ContextInternal;
 
 /**
- * An implementation of {@link Message} suitable for incoming RabbitMQ messages.
- *
- * @param <T> the message body type
+ * Incoming RabbitMQ message implementation.
+ * Wraps a RabbitMQ delivery and provides access to payload, metadata, and acknowledgement.
  */
 public class IncomingRabbitMQMessage<T> implements ContextAwareMessage<T>, MetadataInjectableMessage<T> {
 
-    /**
-     * Used to ignore duplicate attempts to ack/nack because RabbitMQ considers this a connection level error.
-     */
-    private static class AlreadyAcknowledgedHandler implements RabbitMQAckHandler, RabbitMQFailureHandler {
+    private final AtomicBoolean acknowledged = new AtomicBoolean(false);
 
-        static final AlreadyAcknowledgedHandler INSTANCE = new AlreadyAcknowledgedHandler();
-
-        @Override
-        public <V> CompletionStage<Void> handle(IncomingRabbitMQMessage<V> message, Context context) {
-            return CompletableFuture.completedFuture(null);
-        }
-
-        @Override
-        public <V> CompletionStage<Void> handle(IncomingRabbitMQMessage<V> message, Metadata metadata, Context context,
-                Throwable reason) {
-            return CompletableFuture.completedFuture(null);
-        }
-    }
-
-    public final io.vertx.rabbitmq.RabbitMQMessage message;
-    protected Metadata metadata;
-    protected final IncomingRabbitMQMetadata rabbitMQMetadata;
-    private final ClientHolder holder;
-    private final Context context;
-    private final long deliveryTag;
-    private RabbitMQFailureHandler onNack;
-    private RabbitMQAckHandler onAck;
-    private final String contentTypeOverride;
     private final T payload;
+    private Metadata metadata;
+    private final RabbitMQAckHandler ackHandler;
+    private final RabbitMQNackHandler nackHandler;
+    private final IncomingRabbitMQMetadata rabbitMQMetadata;
 
-    public IncomingRabbitMQMessage(RabbitMQMessage delegate, ClientHolder holder, Context context,
-            RabbitMQFailureHandler onNack,
-            RabbitMQAckHandler onAck, String contentTypeOverride) {
-        this(delegate.getDelegate(), holder, context, onNack, onAck, contentTypeOverride);
+    public IncomingRabbitMQMessage(
+            Envelope envelope,
+            AMQP.BasicProperties properties,
+            byte[] body,
+            Function<byte[], T> converter,
+            RabbitMQAckHandler ackHandler,
+            RabbitMQNackHandler nackHandler,
+            Context vertxContext,
+            String contentTypeOverride) {
+
+        this.rabbitMQMetadata = new IncomingRabbitMQMetadata(envelope, properties, body, contentTypeOverride);
+        this.payload = converter.apply(body);
+        this.ackHandler = ackHandler;
+        this.nackHandler = nackHandler;
+
+        // Create a duplicated context for per-message context propagation.
+        // This is needed because messages are created on the RabbitMQ consumer thread
+        // (not a Vert.x thread), so captureContextMetadata() would return null.
+        if (vertxContext instanceof ContextInternal) {
+            Context duplicated = ((ContextInternal) vertxContext).duplicate();
+            this.metadata = Metadata.of(rabbitMQMetadata, new LocalContextMetadata(duplicated));
+        } else {
+            this.metadata = Metadata.of(rabbitMQMetadata);
+        }
     }
 
-    IncomingRabbitMQMessage(io.vertx.rabbitmq.RabbitMQMessage msg, ClientHolder holder, Context context,
-            RabbitMQFailureHandler onNack, RabbitMQAckHandler onAck, String contentTypeOverride) {
-        this.message = msg;
-        this.deliveryTag = msg.envelope().getDeliveryTag();
-        this.holder = holder;
-        this.context = context;
-        this.contentTypeOverride = contentTypeOverride;
-        this.rabbitMQMetadata = new IncomingRabbitMQMetadata(this.message, contentTypeOverride);
-        this.onNack = onNack;
-        this.onAck = onAck;
-        this.metadata = captureContextMetadata(rabbitMQMetadata);
-        final String contentType = getEffectiveContentType().orElse(null);
-        final String contentEncoding = msg.properties().getContentEncoding();
-        if (contentEncoding != null) {
-            // Just silence the warning if we have a binary message
-            if (!HttpHeaderValues.APPLICATION_OCTET_STREAM.toString().equalsIgnoreCase(contentType)) {
-                log.typeConversionFallback();
-            }
-        }
-        //noinspection unchecked
-        this.payload = (T) msg.body();
+    /**
+     * Create a message with auto-ack (no explicit acknowledgement needed).
+     */
+    public static <T> IncomingRabbitMQMessage<T> create(
+            Envelope envelope,
+            AMQP.BasicProperties properties,
+            byte[] body,
+            Function<byte[], T> converter) {
+        return create(envelope, properties, body, converter, (Context) null, null);
+    }
+
+    /**
+     * Create a message with auto-ack and a Vert.x context for context propagation.
+     */
+    public static <T> IncomingRabbitMQMessage<T> create(
+            Envelope envelope,
+            AMQP.BasicProperties properties,
+            byte[] body,
+            Function<byte[], T> converter,
+            Context vertxContext,
+            String contentTypeOverride) {
+        return new IncomingRabbitMQMessage<>(
+                envelope,
+                properties,
+                body,
+                converter,
+                RabbitMQAutoAck.INSTANCE,
+                RabbitMQAutoAck.INSTANCE,
+                vertxContext,
+                contentTypeOverride);
+    }
+
+    /**
+     * Create a message with manual acknowledgement.
+     */
+    public static <T> IncomingRabbitMQMessage<T> create(
+            Envelope envelope,
+            AMQP.BasicProperties properties,
+            byte[] body,
+            Function<byte[], T> converter,
+            RabbitMQAckHandler ackHandler,
+            RabbitMQNackHandler nackHandler) {
+        return create(envelope, properties, body, converter, ackHandler, nackHandler, null, null);
+    }
+
+    /**
+     * Create a message with manual acknowledgement and a Vert.x context for context propagation.
+     */
+    public static <T> IncomingRabbitMQMessage<T> create(
+            Envelope envelope,
+            AMQP.BasicProperties properties,
+            byte[] body,
+            Function<byte[], T> converter,
+            RabbitMQAckHandler ackHandler,
+            RabbitMQNackHandler nackHandler,
+            Context vertxContext,
+            String contentTypeOverride) {
+        return new IncomingRabbitMQMessage<>(envelope, properties, body, converter, ackHandler, nackHandler,
+                vertxContext, contentTypeOverride);
+    }
+
+    @Override
+    public T getPayload() {
+        return payload;
+    }
+
+    @Override
+    public Metadata getMetadata() {
+        return metadata;
+    }
+
+    /**
+     * Get the RabbitMQ-specific metadata.
+     */
+    public IncomingRabbitMQMetadata getRabbitMQMetadata() {
+        return rabbitMQMetadata;
+    }
+
+    public java.util.Optional<String> getCorrelationId() {
+        return java.util.Optional.ofNullable(rabbitMQMetadata.getCorrelationId());
+    }
+
+    public java.util.Map<String, Object> getHeaders() {
+        return rabbitMQMetadata.getHeaders();
     }
 
     @Override
@@ -101,131 +159,27 @@ public class IncomingRabbitMQMessage<T> implements ContextAwareMessage<T>, Metad
 
     @Override
     public CompletionStage<Void> ack(Metadata metadata) {
-        try {
-            // We must switch to the context having created the message.
-            // This context is passed when this instance of message is created.
-            // It's more a Vert.x RabbitMQ client issue which should ensure calling `accepted` on the right context.
-            return onAck.handle(this, context);
-        } finally {
-            // Ensure ack/nack are only called once
-            onAck = AlreadyAcknowledgedHandler.INSTANCE;
-            onNack = AlreadyAcknowledgedHandler.INSTANCE;
+        if (acknowledged.compareAndSet(false, true)) {
+            return ackHandler.handle(this)
+                    .whenComplete((v, t) -> {
+                        if (t != null) {
+                            acknowledged.set(false);
+                        }
+                    });
         }
+        return CompletableFuture.completedFuture(null);
     }
 
-    @Override
     public CompletionStage<Void> nack(Throwable reason, Metadata metadata) {
-        try {
-            // We must switch to the context having created the message.
-            // This context is passed when this instance of message is created.
-            // It's more a Vert.x RabbitMQ client issue which should ensure calling `not accepted` on the right context.
-            return onNack.handle(this, metadata, context, reason);
-        } finally {
-            // Ensure ack/nack are only called once
-            onAck = AlreadyAcknowledgedHandler.INSTANCE;
-            onNack = AlreadyAcknowledgedHandler.INSTANCE;
+        if (acknowledged.compareAndSet(false, true)) {
+            return nackHandler.handle(this, metadata, reason)
+                    .whenComplete((v, t) -> {
+                        if (t != null) {
+                            acknowledged.set(false);
+                        }
+                    });
         }
-    }
-
-    /**
-     * Acknowledges the message.
-     */
-    public void acknowledgeMessage() {
-        holder.getAck(this.deliveryTag).subscribeAsCompletionStage();
-    }
-
-    /**
-     * Rejects the message by nack'ing it.
-     * <p>
-     * This will either discard the message for good, requeue (if requeue=true is set)
-     * or (if a DLQ has been set up) send it to the DLQ.
-     * <p>
-     * Please note that requeue is potentially dangerous as it can lead to
-     * very high load if all consumers reject and requeue a message repeatedly.
-     *
-     * @param reason the cause of the rejection, which must not be null
-     * @param requeue the requeue flag
-     */
-    public void rejectMessage(Throwable reason, boolean requeue) {
-        holder.getNack(this.deliveryTag, requeue).apply(reason).subscribeAsCompletionStage();
-    }
-
-    @Override
-    public T getPayload() {
-        return payload;
-    }
-
-    @Override
-    public Metadata getMetadata() {
-        return metadata;
-    }
-
-    public Map<String, Object> getHeaders() {
-        return rabbitMQMetadata.getHeaders();
-    }
-
-    public Optional<String> getContentType() {
-        return rabbitMQMetadata.getContentType();
-    }
-
-    public Optional<String> getEffectiveContentType() {
-        return Optional.ofNullable(contentTypeOverride).or(rabbitMQMetadata::getContentType);
-    }
-
-    public Optional<String> getContentEncoding() {
-        return rabbitMQMetadata.getContentEncoding();
-    }
-
-    public Optional<Integer> getDeliveryMode() {
-        return rabbitMQMetadata.getDeliveryMode();
-    }
-
-    public Optional<Integer> getPriority() {
-        return rabbitMQMetadata.getPriority();
-    }
-
-    public Optional<String> getCorrelationId() {
-        return rabbitMQMetadata.getCorrelationId();
-    }
-
-    public Optional<String> getReplyTo() {
-        return rabbitMQMetadata.getReplyTo();
-    }
-
-    public Optional<String> getExpiration() {
-        return rabbitMQMetadata.getExpiration();
-    }
-
-    public Optional<String> getMessageId() {
-        return rabbitMQMetadata.getMessageId();
-    }
-
-    public Optional<ZonedDateTime> getTimestamp(final ZoneId zoneId) {
-        return rabbitMQMetadata.getTimestamp(zoneId);
-    }
-
-    public Optional<String> getType() {
-        return rabbitMQMetadata.getType();
-    }
-
-    public Optional<String> getUserId() {
-        return rabbitMQMetadata.getUserId();
-    }
-
-    public Optional<String> getAppId() {
-        return rabbitMQMetadata.getAppId();
-    }
-
-    /**
-     * @deprecated Use getTimestamp()
-     */
-    @Deprecated
-    public Optional<ZonedDateTime> getCreationTime(final ZoneId zoneId) {
-        return rabbitMQMetadata.getTimestamp(zoneId);
-    }
-
-    public io.vertx.mutiny.rabbitmq.RabbitMQMessage getRabbitMQMessage() {
-        return new io.vertx.mutiny.rabbitmq.RabbitMQMessage(message);
+        return CompletableFuture.completedFuture(null);
     }
 
     @Override
@@ -233,4 +187,13 @@ public class IncomingRabbitMQMessage<T> implements ContextAwareMessage<T>, Metad
         this.metadata = this.metadata.with(metadataObject);
     }
 
+    /**
+     * Default converter from byte array to String using UTF-8.
+     */
+    public static final Function<byte[], String> STRING_CONVERTER = body -> new String(body, StandardCharsets.UTF_8);
+
+    /**
+     * Converter that returns the raw byte array.
+     */
+    public static final Function<byte[], byte[]> BYTE_ARRAY_CONVERTER = body -> body;
 }

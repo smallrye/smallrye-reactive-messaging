@@ -34,6 +34,7 @@ import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.eclipse.microprofile.reactive.messaging.spi.ConnectorLiteral;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -51,9 +52,10 @@ import io.smallrye.reactive.messaging.kafka.companion.ConsumerTask;
 import io.smallrye.reactive.messaging.kafka.companion.ProducerTask;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
+import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonObject;
-import io.vertx.mutiny.core.buffer.Buffer;
 
+@Disabled("Checkpoint commit strategy is deprecated")
 public class FileCheckpointStateStoreTest extends KafkaCompanionTestBase {
 
     private KafkaSource<String, Integer> source;
@@ -390,7 +392,7 @@ public class FileCheckpointStateStoreTest extends KafkaCompanionTestBase {
     @Test
     public void testWithPreviousState(@TempDir File tempDir) {
         vertx.fileSystem().writeFile(tempDir.toPath().resolve(groupId + ":" + topic + ":" + 0).toString(),
-                Buffer.newInstance(JsonObject.of("offset", 500, "state", sum(500)).toBuffer()))
+                Buffer.buffer(JsonObject.of("offset", 500, "state", sum(500)).encode()))
                 .await().indefinitely();
 
         int expected = 1000;

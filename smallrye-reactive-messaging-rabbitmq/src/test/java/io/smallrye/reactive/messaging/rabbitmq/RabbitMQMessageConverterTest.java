@@ -2,70 +2,132 @@ package io.smallrye.reactive.messaging.rabbitmq;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.time.ZoneOffset;
-import java.time.ZonedDateTime;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionStage;
 
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Metadata;
 import org.junit.jupiter.api.Test;
 
 import com.rabbitmq.client.AMQP;
-import com.rabbitmq.client.BasicProperties;
 
-import io.netty.handler.codec.http.HttpHeaderValues;
-import io.smallrye.reactive.messaging.rabbitmq.ack.RabbitMQAckHandler;
-import io.smallrye.reactive.messaging.rabbitmq.fault.RabbitMQFailureHandler;
-import io.vertx.core.json.JsonArray;
-import io.vertx.core.json.JsonObject;
-import io.vertx.mutiny.core.Context;
-import io.vertx.mutiny.core.buffer.Buffer;
-
-class RabbitMQMessageConverterTest {
-
-    RabbitMQAckHandler doNothingAck = new RabbitMQAckHandler() {
-        @Override
-        public <V> CompletionStage<Void> handle(IncomingRabbitMQMessage<V> message, Context context) {
-            return CompletableFuture.completedFuture(null);
-        }
-    };
-
-    RabbitMQFailureHandler doNothingNack = new RabbitMQFailureHandler() {
-        @Override
-        public <V> CompletionStage<Void> handle(IncomingRabbitMQMessage<V> message, Metadata metadata, Context context,
-                Throwable reason) {
-            return CompletableFuture.completedFuture(null);
-        }
-    };
-
-    // --- convert: plain message (no RabbitMQMessage), various payload types ---
+/**
+ * Tests for RabbitMQMessageConverter
+ */
+public class RabbitMQMessageConverterTest {
 
     @Test
-    void convertWithStringPayload() {
-        Message<String> message = Message.of("hello");
-        RabbitMQMessageConverter.OutgoingRabbitMQMessage result = RabbitMQMessageConverter.convert(
-                null, message, "exchange", "default-key", Optional.empty(), false);
+    public void testConvertStringPayload() {
+        Message<String> message = Message.of("Hello RabbitMQ");
 
-        assertThat(result.getBody().toString()).isEqualTo("hello");
-        assertThat(result.getRoutingKey()).isEqualTo("default-key");
-        assertThat(result.getProperties().getContentType())
-                .isEqualTo(HttpHeaderValues.TEXT_PLAIN.toString());
+        RabbitMQMessageConverter.OutgoingRabbitMQMessage converted = RabbitMQMessageConverter.convert(
+                message, "default.key", Optional.empty());
+
+        assertThat(converted.getRoutingKey()).isEqualTo("default.key");
+        assertThat(converted.getExchange()).isEmpty();
+        assertThat(new String(converted.getBody(), StandardCharsets.UTF_8)).isEqualTo("Hello RabbitMQ");
+        assertThat(converted.getProperties().getContentType()).isEqualTo("text/plain");
+        assertThat(converted.getProperties().getDeliveryMode()).isEqualTo(2);
     }
 
     @Test
-    void convertWithNullPayload() {
-        Message<Object> message = Message.of(null);
-        RabbitMQMessageConverter.OutgoingRabbitMQMessage result = RabbitMQMessageConverter.convert(
-                null, message, "exchange", "key", Optional.empty(), false);
+    public void testConvertByteArrayPayload() {
+        byte[] data = "Binary data".getBytes(StandardCharsets.UTF_8);
+        Message<byte[]> message = Message.of(data);
 
-        assertThat(result.getBody().length()).isZero();
-        assertThat(result.getProperties().getContentType())
-                .isEqualTo(HttpHeaderValues.APPLICATION_OCTET_STREAM.toString());
+        RabbitMQMessageConverter.OutgoingRabbitMQMessage converted = RabbitMQMessageConverter.convert(
+                message, "default.key", Optional.empty());
+
+        assertThat(converted.getRoutingKey()).isEqualTo("default.key");
+        assertThat(converted.getBody()).isEqualTo(data);
+        assertThat(converted.getProperties().getContentType()).isEqualTo("application/octet-stream");
+    }
+
+    @Test
+    public void testConvertWithMetadata() {
+        OutgoingRabbitMQMetadata metadata = OutgoingRabbitMQMetadata.builder()
+                .withRoutingKey("custom.routing.key")
+                .withExchange("custom-exchange")
+                .withContentType("application/json")
+                .withPriority(5)
+                .withTtl(60000)
+                .withPersistent(true)
+                .build();
+
+        Message<String> message = Message.of("{\"test\":\"data\"}")
+                .addMetadata(metadata);
+
+        RabbitMQMessageConverter.OutgoingRabbitMQMessage converted = RabbitMQMessageConverter.convert(
+                message, "default.key", Optional.empty());
+
+        assertThat(converted.getRoutingKey()).isEqualTo("custom.routing.key");
+        assertThat(converted.getExchange()).hasValue("custom-exchange");
+        assertThat(converted.getProperties().getContentType()).isEqualTo("application/json");
+        assertThat(converted.getProperties().getPriority()).isEqualTo(5);
+        assertThat(converted.getProperties().getExpiration()).isEqualTo("60000");
+        assertThat(converted.getProperties().getDeliveryMode()).isEqualTo(2);
+    }
+
+    @Test
+    public void testConvertWithDefaultTtl() {
+        Message<String> message = Message.of("Test message");
+
+        RabbitMQMessageConverter.OutgoingRabbitMQMessage converted = RabbitMQMessageConverter.convert(
+                message, "default.key", Optional.of(30000L));
+
+        assertThat(converted.getProperties().getExpiration()).isEqualTo("30000");
+    }
+
+    @Test
+    public void testConvertIntegerPayload() {
+        Message<Integer> message = Message.of(42);
+
+        RabbitMQMessageConverter.OutgoingRabbitMQMessage converted = RabbitMQMessageConverter.convert(
+                message, "default.key", Optional.empty());
+
+        assertThat(new String(converted.getBody(), StandardCharsets.UTF_8)).isEqualTo("42");
+        assertThat(converted.getProperties().getContentType()).isEqualTo("text/plain");
+    }
+
+    @Test
+    public void testConvertNullPayload() {
+        Message<Object> message = Message.of(null);
+
+        RabbitMQMessageConverter.OutgoingRabbitMQMessage converted = RabbitMQMessageConverter.convert(
+                message, "default.key", Optional.empty());
+
+        assertThat(converted.getBody()).isEmpty();
+        assertThat(converted.getProperties().getContentType()).isEqualTo("application/octet-stream");
+    }
+
+    @Test
+    public void testConvertFromIncomingMessage() {
+        com.rabbitmq.client.Envelope envelope = new com.rabbitmq.client.Envelope(
+                1L, false, "test-exchange", "test.key");
+
+        AMQP.BasicProperties props = new AMQP.BasicProperties.Builder()
+                .contentType("text/plain")
+                .deliveryMode(2)
+                .build();
+
+        byte[] body = "Forwarded message".getBytes(StandardCharsets.UTF_8);
+
+        IncomingRabbitMQMessage<byte[]> incomingMessage = IncomingRabbitMQMessage.create(
+                envelope,
+                props,
+                body,
+                IncomingRabbitMQMessage.BYTE_ARRAY_CONVERTER);
+
+        RabbitMQMessageConverter.OutgoingRabbitMQMessage converted = RabbitMQMessageConverter.convert(
+                incomingMessage, "default.key", Optional.empty());
+
+        assertThat(converted.getRoutingKey()).isEqualTo("test.key");
+        assertThat(converted.getExchange()).hasValue("test-exchange");
+        assertThat(converted.getBody()).isEqualTo(body);
+        assertThat(converted.getProperties().getContentType()).isEqualTo("text/plain");
     }
 
     @Test
@@ -73,326 +135,138 @@ class RabbitMQMessageConverterTest {
         UUID uuid = UUID.randomUUID();
         Message<UUID> message = Message.of(uuid);
         RabbitMQMessageConverter.OutgoingRabbitMQMessage result = RabbitMQMessageConverter.convert(
-                null, message, "exchange", "key", Optional.empty(), false);
+                message, "key", Optional.empty());
 
-        assertThat(result.getBody().toString()).isEqualTo(uuid.toString());
-        assertThat(result.getProperties().getContentType())
-                .isEqualTo(HttpHeaderValues.TEXT_PLAIN.toString());
-    }
-
-    @Test
-    void convertWithIntegerPayload() {
-        Message<Integer> message = Message.of(42);
-        RabbitMQMessageConverter.OutgoingRabbitMQMessage result = RabbitMQMessageConverter.convert(
-                null, message, "exchange", "key", Optional.empty(), false);
-
-        assertThat(result.getBody().toString()).isEqualTo("42");
-        assertThat(result.getProperties().getContentType())
-                .isEqualTo(HttpHeaderValues.TEXT_PLAIN.toString());
+        assertThat(new String(result.getBody(), StandardCharsets.UTF_8)).isEqualTo(uuid.toString());
+        assertThat(result.getProperties().getContentType()).isEqualTo("text/plain");
     }
 
     @Test
     void convertWithBooleanPayload() {
         Message<Boolean> message = Message.of(true);
         RabbitMQMessageConverter.OutgoingRabbitMQMessage result = RabbitMQMessageConverter.convert(
-                null, message, "exchange", "key", Optional.empty(), false);
+                message, "key", Optional.empty());
 
-        assertThat(result.getBody().toString()).isEqualTo("true");
-        assertThat(result.getProperties().getContentType())
-                .isEqualTo(HttpHeaderValues.TEXT_PLAIN.toString());
+        assertThat(new String(result.getBody(), StandardCharsets.UTF_8)).isEqualTo("true");
+        assertThat(result.getProperties().getContentType()).isEqualTo("text/plain");
     }
 
     @Test
-    void convertWithMutinyBufferPayload() {
-        Buffer buffer = Buffer.buffer("buffer-content");
-        Message<Buffer> message = Message.of(buffer);
+    void convertWithLongPayload() {
+        Message<Long> message = Message.of(123456789L);
         RabbitMQMessageConverter.OutgoingRabbitMQMessage result = RabbitMQMessageConverter.convert(
-                null, message, "exchange", "key", Optional.empty(), false);
+                message, "key", Optional.empty());
 
-        assertThat(result.getBody().toString()).isEqualTo("buffer-content");
-        assertThat(result.getProperties().getContentType())
-                .isEqualTo(HttpHeaderValues.APPLICATION_OCTET_STREAM.toString());
+        assertThat(new String(result.getBody(), StandardCharsets.UTF_8)).isEqualTo("123456789");
+        assertThat(result.getProperties().getContentType()).isEqualTo("text/plain");
     }
 
     @Test
-    void convertWithVertxCoreBufferPayload() {
-        io.vertx.core.buffer.Buffer coreBuffer = io.vertx.core.buffer.Buffer.buffer("core-buffer");
-        Message<io.vertx.core.buffer.Buffer> message = Message.of(coreBuffer);
+    void convertWithDoublePayload() {
+        Message<Double> message = Message.of(3.14);
         RabbitMQMessageConverter.OutgoingRabbitMQMessage result = RabbitMQMessageConverter.convert(
-                null, message, "exchange", "key", Optional.empty(), false);
+                message, "key", Optional.empty());
 
-        assertThat(result.getBody().toString()).isEqualTo("core-buffer");
-        assertThat(result.getProperties().getContentType())
-                .isEqualTo(HttpHeaderValues.APPLICATION_OCTET_STREAM.toString());
+        assertThat(new String(result.getBody(), StandardCharsets.UTF_8)).isEqualTo("3.14");
+        assertThat(result.getProperties().getContentType()).isEqualTo("text/plain");
     }
 
     @Test
-    void convertWithByteArrayPayload() {
-        byte[] bytes = "bytes".getBytes();
-        Message<byte[]> message = Message.of(bytes);
+    void convertWithCharacterPayload() {
+        Message<Character> message = Message.of('A');
         RabbitMQMessageConverter.OutgoingRabbitMQMessage result = RabbitMQMessageConverter.convert(
-                null, message, "exchange", "key", Optional.empty(), false);
+                message, "key", Optional.empty());
 
-        assertThat(result.getBody().toString()).isEqualTo("bytes");
-        assertThat(result.getProperties().getContentType())
-                .isEqualTo(HttpHeaderValues.APPLICATION_OCTET_STREAM.toString());
-    }
-
-    @Test
-    void convertWithJsonObjectPayload() {
-        JsonObject json = new JsonObject().put("key", "value");
-        Message<JsonObject> message = Message.of(json);
-        RabbitMQMessageConverter.OutgoingRabbitMQMessage result = RabbitMQMessageConverter.convert(
-                null, message, "exchange", "key", Optional.empty(), false);
-
-        assertThat(result.getBody().toString()).isEqualTo(json.encode());
-        assertThat(result.getProperties().getContentType())
-                .isEqualTo(HttpHeaderValues.APPLICATION_JSON.toString());
-    }
-
-    @Test
-    void convertWithJsonArrayPayload() {
-        JsonArray array = new JsonArray().add("a").add("b");
-        Message<JsonArray> message = Message.of(array);
-        RabbitMQMessageConverter.OutgoingRabbitMQMessage result = RabbitMQMessageConverter.convert(
-                null, message, "exchange", "key", Optional.empty(), false);
-
-        assertThat(result.getBody().toString()).isEqualTo(array.encode());
-        assertThat(result.getProperties().getContentType())
-                .isEqualTo(HttpHeaderValues.APPLICATION_JSON.toString());
+        assertThat(new String(result.getBody(), StandardCharsets.UTF_8)).isEqualTo("A");
+        assertThat(result.getProperties().getContentType()).isEqualTo("text/plain");
     }
 
     @Test
     void convertWithPojoPayload() {
-        // A plain object should be JSON-serialized
         Map<String, String> pojo = Map.of("foo", "bar");
         Message<Map<String, String>> message = Message.of(pojo);
         RabbitMQMessageConverter.OutgoingRabbitMQMessage result = RabbitMQMessageConverter.convert(
-                null, message, "exchange", "key", Optional.empty(), false);
+                message, "key", Optional.empty());
 
-        assertThat(result.getBody().toString()).contains("foo").contains("bar");
-        assertThat(result.getProperties().getContentType())
-                .isEqualTo(HttpHeaderValues.APPLICATION_JSON.toString());
-    }
-
-    // --- convert: with OutgoingRabbitMQMetadata ---
-
-    @Test
-    void convertWithOutgoingMetadataAndTimestamp() {
-        ZonedDateTime ts = ZonedDateTime.of(2024, 1, 15, 12, 0, 0, 0, ZoneOffset.UTC);
-        OutgoingRabbitMQMetadata metadata = new OutgoingRabbitMQMetadata.Builder()
-                .withTimestamp(ts)
-                .withContentType("text/plain")
-                .withCorrelationId("corr-123")
-                .withRoutingKey("meta-key")
-                .build();
-
-        Message<String> message = Message.of("payload", Metadata.of(metadata));
-        RabbitMQMessageConverter.OutgoingRabbitMQMessage result = RabbitMQMessageConverter.convert(
-                null, message, "exchange", "default-key", Optional.empty(), false);
-
-        assertThat(result.getRoutingKey()).isEqualTo("meta-key");
-        assertThat(result.getProperties().getContentType()).isEqualTo("text/plain");
-        assertThat(result.getProperties().getCorrelationId()).isEqualTo("corr-123");
-        assertThat(result.getProperties().getTimestamp()).isNotNull();
+        assertThat(new String(result.getBody(), StandardCharsets.UTF_8)).contains("foo").contains("bar");
+        assertThat(result.getProperties().getContentType()).isEqualTo("application/json");
     }
 
     @Test
-    void convertWithOutgoingMetadataWithoutTimestamp() {
-        OutgoingRabbitMQMetadata metadata = new OutgoingRabbitMQMetadata.Builder()
-                .withContentType("application/xml")
-                .build();
-
-        Message<String> message = Message.of("payload", Metadata.of(metadata));
+    void convertWithComplexObjectProducesValidJson() {
+        TestPojo pojo = new TestPojo("alice", 30);
+        Message<TestPojo> message = Message.of(pojo);
         RabbitMQMessageConverter.OutgoingRabbitMQMessage result = RabbitMQMessageConverter.convert(
-                null, message, "exchange", "default-key", Optional.empty(), false);
+                message, "key", Optional.empty());
 
-        assertThat(result.getProperties().getTimestamp()).isNull();
-        assertThat(result.getProperties().getContentType()).isEqualTo("application/xml");
+        String body = new String(result.getBody(), StandardCharsets.UTF_8);
+        assertThat(result.getProperties().getContentType()).isEqualTo("application/json");
+        io.vertx.core.json.JsonObject json = new io.vertx.core.json.JsonObject(body);
+        assertThat(json.getString("name")).isEqualTo("alice");
+        assertThat(json.getInteger("age")).isEqualTo(30);
     }
 
     @Test
-    void convertWithoutOutgoingMetadataFallsBackToDefaults() {
-        Message<String> message = Message.of("hello");
+    void convertWithNestedObjectProducesValidJson() {
+        Map<String, Object> nested = new HashMap<>();
+        nested.put("person", Map.of("name", "bob", "age", 25));
+        nested.put("active", true);
+        Message<Map<String, Object>> message = Message.of(nested);
         RabbitMQMessageConverter.OutgoingRabbitMQMessage result = RabbitMQMessageConverter.convert(
-                null, message, "exchange", "default-key", Optional.of(5000L), false);
+                message, "key", Optional.empty());
 
-        // No OutgoingRabbitMQMetadata → creates default with defaultTtl
-        assertThat(result.getProperties().getContentType())
-                .isEqualTo(HttpHeaderValues.TEXT_PLAIN.toString());
-        assertThat(result.getProperties().getExpiration()).isEqualTo("5000");
+        String body = new String(result.getBody(), StandardCharsets.UTF_8);
+        io.vertx.core.json.JsonObject json = new io.vertx.core.json.JsonObject(body);
+        assertThat(json.getBoolean("active")).isTrue();
+        assertThat(json.getJsonObject("person").getString("name")).isEqualTo("bob");
+    }
+
+    public static class TestPojo {
+        private String name;
+        private int age;
+
+        public TestPojo() {
+        }
+
+        public TestPojo(String name, int age) {
+            this.name = name;
+            this.age = age;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public void setName(String name) {
+            this.name = name;
+        }
+
+        public int getAge() {
+            return age;
+        }
+
+        public void setAge(int age) {
+            this.age = age;
+        }
     }
 
     @Test
     void convertWithoutMetadataAndNoDefaultTtl() {
         Message<String> message = Message.of("hello");
         RabbitMQMessageConverter.OutgoingRabbitMQMessage result = RabbitMQMessageConverter.convert(
-                null, message, "exchange", "default-key", Optional.empty(), false);
+                message, "default-key", Optional.empty());
 
         assertThat(result.getProperties().getExpiration()).isNull();
     }
 
     @Test
-    void convertMetadataContentTypeFallsBackToDefault() {
-        // Metadata with null contentType → falls back to default for payload type
-        OutgoingRabbitMQMetadata metadata = new OutgoingRabbitMQMetadata.Builder().build();
-        Message<String> message = Message.of("hello", Metadata.of(metadata));
-
-        RabbitMQMessageConverter.OutgoingRabbitMQMessage result = RabbitMQMessageConverter.convert(
-                null, message, "exchange", "default-key", Optional.empty(), false);
-
-        assertThat(result.getProperties().getContentType())
-                .isEqualTo(HttpHeaderValues.TEXT_PLAIN.toString());
-    }
-
-    // --- convert: with IncomingRabbitMQMessage (RabbitMQMessage present) ---
-
-    @Test
-    void convertWithIncomingRabbitMQMessage() {
-        Map<String, Object> headers = new HashMap<>();
-        headers.put("x-custom", "val");
-        BasicProperties props = new AMQP.BasicProperties.Builder()
-                .contentType("text/plain")
-                .contentEncoding("UTF-8")
-                .headers(headers)
-                .correlationId("corr-1")
-                .expiration("3000")
-                .build();
-        io.vertx.rabbitmq.RabbitMQMessage testMsg = TestRabbitMQMessage.builder()
-                .body("incoming-body")
-                .properties(props)
-                .envelope(1L, false, "exchange", "incoming-key")
-                .build();
-
-        IncomingRabbitMQMessage<io.vertx.core.buffer.Buffer> incoming = new IncomingRabbitMQMessage<>(testMsg,
-                null, null,
-                doNothingNack,
-                doNothingAck,
-                null);
-
-        RabbitMQMessageConverter.OutgoingRabbitMQMessage result = RabbitMQMessageConverter.convert(
-                null, incoming, "exchange", "default-key", Optional.of(9999L), false);
-
-        // Routing key comes from the envelope
-        assertThat(result.getRoutingKey()).isEqualTo("incoming-key");
-        // Content type from source properties
-        assertThat(result.getProperties().getContentType()).isEqualTo("text/plain");
-        // Expiration from source properties (not overridden by default TTL since it's already set)
-        assertThat(result.getProperties().getExpiration()).isEqualTo("3000");
-        assertThat(result.getProperties().getCorrelationId()).isEqualTo("corr-1");
-    }
-
-    @Test
-    void convertWithIncomingRabbitMQMessageNoExpirationUsesDefaultTtl() {
-        Map<String, Object> headers = new HashMap<>();
-        BasicProperties props = new AMQP.BasicProperties.Builder()
-                .headers(headers)
-                .build();
-        io.vertx.rabbitmq.RabbitMQMessage testMsg = TestRabbitMQMessage.builder()
-                .body("body")
-                .properties(props)
-                .envelope(1L, false, "exchange", "rk")
-                .build();
-
-        IncomingRabbitMQMessage<io.vertx.core.buffer.Buffer> incoming = new IncomingRabbitMQMessage<>(testMsg,
-                null, null,
-                doNothingNack,
-                doNothingAck,
-                null);
-
-        RabbitMQMessageConverter.OutgoingRabbitMQMessage result = RabbitMQMessageConverter.convert(
-                null, incoming, "exchange", "default-key", Optional.of(7000L), false);
-
-        // No expiration on source → should use default TTL
-        assertThat(result.getProperties().getExpiration()).isEqualTo("7000");
-    }
-
-    @Test
-    void convertWithIncomingRabbitMQMessageNoContentTypeFallsBackToDefault() {
-        Map<String, Object> headers = new HashMap<>();
-        BasicProperties props = new AMQP.BasicProperties.Builder()
-                .headers(headers)
-                .build();
-        io.vertx.rabbitmq.RabbitMQMessage testMsg = TestRabbitMQMessage.builder()
-                .body("body")
-                .properties(props)
-                .envelope(1L, false, "exchange", "rk")
-                .build();
-
-        IncomingRabbitMQMessage<io.vertx.core.buffer.Buffer> incoming = new IncomingRabbitMQMessage<>(testMsg,
-                null, null,
-                doNothingNack,
-                doNothingAck,
-                null);
-
-        RabbitMQMessageConverter.OutgoingRabbitMQMessage result = RabbitMQMessageConverter.convert(
-                null, incoming, "exchange", "default-key", Optional.empty(), false);
-
-        // No content type on source → falls back to default for payload type
-        assertThat(result.getProperties().getContentType()).isNotNull();
-    }
-
-    // --- convert: with mutiny RabbitMQMessage payload ---
-
-    @Test
-    void convertWithMutinyRabbitMQMessagePayload() {
-        Map<String, Object> headers = new HashMap<>();
-        BasicProperties props = new AMQP.BasicProperties.Builder()
-                .contentType("application/json")
-                .headers(headers)
-                .build();
-        io.vertx.rabbitmq.RabbitMQMessage testMsg = TestRabbitMQMessage.builder()
-                .body("mutiny-payload")
-                .properties(props)
-                .envelope(1L, false, "ex", "mutiny-rk")
-                .build();
-
-        io.vertx.mutiny.rabbitmq.RabbitMQMessage mutinyMsg = io.vertx.mutiny.rabbitmq.RabbitMQMessage
-                .newInstance(testMsg);
-
-        // Message wrapping a mutiny RabbitMQMessage as payload (not IncomingRabbitMQMessage)
-        Message<io.vertx.mutiny.rabbitmq.RabbitMQMessage> message = Message.of(mutinyMsg);
-        RabbitMQMessageConverter.OutgoingRabbitMQMessage result = RabbitMQMessageConverter.convert(
-                null, message, "exchange", "default-key", Optional.empty(), false);
-
-        assertThat(result.getRoutingKey()).isEqualTo("mutiny-rk");
-        assertThat(result.getProperties().getContentType()).isEqualTo("application/json");
-    }
-
-    // --- convert: with core RabbitMQMessage payload ---
-
-    @Test
-    void convertWithCoreRabbitMQMessagePayload() {
-        Map<String, Object> headers = new HashMap<>();
-        BasicProperties props = new AMQP.BasicProperties.Builder()
-                .contentType("text/xml")
-                .headers(headers)
-                .build();
-        io.vertx.rabbitmq.RabbitMQMessage testMsg = TestRabbitMQMessage.builder()
-                .body("core-payload")
-                .properties(props)
-                .envelope(2L, false, "ex", "core-rk")
-                .build();
-
-        // Message wrapping a core (non-mutiny) RabbitMQMessage as payload
-        Message<io.vertx.rabbitmq.RabbitMQMessage> message = Message.of(testMsg);
-        RabbitMQMessageConverter.OutgoingRabbitMQMessage result = RabbitMQMessageConverter.convert(
-                null, message, "exchange", "default-key", Optional.empty(), false);
-
-        assertThat(result.getRoutingKey()).isEqualTo("core-rk");
-        assertThat(result.getProperties().getContentType()).isEqualTo("text/xml");
-    }
-
-    // --- getRoutingKey: from OutgoingRabbitMQMetadata ---
-
-    @Test
     void convertUsesRoutingKeyFromOutgoingMetadata() {
-        OutgoingRabbitMQMetadata metadata = new OutgoingRabbitMQMetadata.Builder()
+        OutgoingRabbitMQMetadata metadata = OutgoingRabbitMQMetadata.builder()
                 .withRoutingKey("meta-routing-key")
                 .build();
         Message<String> message = Message.of("data", Metadata.of(metadata));
         RabbitMQMessageConverter.OutgoingRabbitMQMessage result = RabbitMQMessageConverter.convert(
-                null, message, "exchange", "default-key", Optional.empty(), false);
+                message, "default-key", Optional.empty());
 
         assertThat(result.getRoutingKey()).isEqualTo("meta-routing-key");
     }
@@ -401,52 +275,41 @@ class RabbitMQMessageConverterTest {
     void convertFallsBackToDefaultRoutingKey() {
         Message<String> message = Message.of("data");
         RabbitMQMessageConverter.OutgoingRabbitMQMessage result = RabbitMQMessageConverter.convert(
-                null, message, "exchange", "fallback-key", Optional.empty(), false);
+                message, "fallback-key", Optional.empty());
 
         assertThat(result.getRoutingKey()).isEqualTo("fallback-key");
     }
 
-    // --- convert: Long and other primitive types ---
-
     @Test
-    void convertWithLongPayload() {
-        Message<Long> message = Message.of(123456789L);
+    void convertWithIncomingRabbitMQMessagePreservesProperties() {
+        Map<String, Object> headers = new HashMap<>();
+        headers.put("x-custom", "val");
+        AMQP.BasicProperties props = new AMQP.BasicProperties.Builder()
+                .contentType("text/plain")
+                .contentEncoding("UTF-8")
+                .headers(headers)
+                .correlationId("corr-1")
+                .expiration("3000")
+                .build();
+        com.rabbitmq.client.Envelope envelope = new com.rabbitmq.client.Envelope(
+                1L, false, "exchange", "incoming-key");
+
+        IncomingRabbitMQMessage<byte[]> incoming = IncomingRabbitMQMessage.create(
+                envelope, props, "incoming-body".getBytes(StandardCharsets.UTF_8),
+                IncomingRabbitMQMessage.BYTE_ARRAY_CONVERTER);
+
         RabbitMQMessageConverter.OutgoingRabbitMQMessage result = RabbitMQMessageConverter.convert(
-                null, message, "exchange", "key", Optional.empty(), false);
+                incoming, "default-key", Optional.of(9999L));
 
-        assertThat(result.getBody().toString()).isEqualTo("123456789");
-        assertThat(result.getProperties().getContentType())
-                .isEqualTo(HttpHeaderValues.TEXT_PLAIN.toString());
+        assertThat(result.getRoutingKey()).isEqualTo("incoming-key");
+        assertThat(result.getProperties().getContentType()).isEqualTo("text/plain");
+        assertThat(result.getProperties().getExpiration()).isEqualTo("3000");
+        assertThat(result.getProperties().getCorrelationId()).isEqualTo("corr-1");
     }
-
-    @Test
-    void convertWithDoublePayload() {
-        Message<Double> message = Message.of(3.14);
-        RabbitMQMessageConverter.OutgoingRabbitMQMessage result = RabbitMQMessageConverter.convert(
-                null, message, "exchange", "key", Optional.empty(), false);
-
-        assertThat(result.getBody().toString()).isEqualTo("3.14");
-        assertThat(result.getProperties().getContentType())
-                .isEqualTo(HttpHeaderValues.TEXT_PLAIN.toString());
-    }
-
-    @Test
-    void convertWithCharacterPayload() {
-        Message<Character> message = Message.of('A');
-        RabbitMQMessageConverter.OutgoingRabbitMQMessage result = RabbitMQMessageConverter.convert(
-                null, message, "exchange", "key", Optional.empty(), false);
-
-        assertThat(result.getBody().toString()).isEqualTo("A");
-        assertThat(result.getProperties().getContentType())
-                .isEqualTo(HttpHeaderValues.TEXT_PLAIN.toString());
-    }
-
-    // --- Metadata properties preservation ---
 
     @Test
     void convertPreservesAllOutgoingMetadataProperties() {
-        ZonedDateTime ts = ZonedDateTime.of(2024, 6, 1, 10, 30, 0, 0, ZoneOffset.UTC);
-        OutgoingRabbitMQMetadata metadata = new OutgoingRabbitMQMetadata.Builder()
+        OutgoingRabbitMQMetadata metadata = OutgoingRabbitMQMetadata.builder()
                 .withContentType("application/xml")
                 .withContentEncoding("gzip")
                 .withDeliveryMode(2)
@@ -455,18 +318,16 @@ class RabbitMQMessageConverterTest {
                 .withReplyTo("reply-queue")
                 .withExpiration("10000")
                 .withMessageId("msg-id")
-                .withTimestamp(ts)
                 .withType("my-type")
                 .withUserId("user")
                 .withAppId("app")
-                .withClusterId("cluster")
                 .build();
 
         Message<String> message = Message.of("data", Metadata.of(metadata));
         RabbitMQMessageConverter.OutgoingRabbitMQMessage result = RabbitMQMessageConverter.convert(
-                null, message, "exchange", "key", Optional.empty(), false);
+                message, "key", Optional.empty());
 
-        BasicProperties props = result.getProperties();
+        AMQP.BasicProperties props = result.getProperties();
         assertThat(props.getContentType()).isEqualTo("application/xml");
         assertThat(props.getContentEncoding()).isEqualTo("gzip");
         assertThat(props.getDeliveryMode()).isEqualTo(2);
@@ -475,10 +336,8 @@ class RabbitMQMessageConverterTest {
         assertThat(props.getReplyTo()).isEqualTo("reply-queue");
         assertThat(props.getExpiration()).isEqualTo("10000");
         assertThat(props.getMessageId()).isEqualTo("msg-id");
-        assertThat(props.getTimestamp()).isNotNull();
         assertThat(props.getType()).isEqualTo("my-type");
         assertThat(props.getUserId()).isEqualTo("user");
         assertThat(props.getAppId()).isEqualTo("app");
-        // clusterId is set in OutgoingRabbitMQMetadata but not exposed by BasicProperties interface
     }
 }
