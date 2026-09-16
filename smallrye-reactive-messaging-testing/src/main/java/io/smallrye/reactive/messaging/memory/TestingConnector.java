@@ -186,7 +186,7 @@ public class TestingConnector implements InboundConnector, OutboundConnector {
         final Flow.Publisher<? extends Message<T>> source;
         private final String name;
         private final Context context;
-        private boolean runOnVertxContext;
+        private volatile boolean runOnVertxContext;
 
         TestSourceImpl(String name, Vertx vertx, boolean runOnVertxContext, boolean broadcast) {
             this.name = name;

@@ -13,6 +13,7 @@ import io.smallrye.common.annotation.CheckReturnValue;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.EmitterConfiguration;
 import io.smallrye.reactive.messaging.providers.extension.MutinyEmitterImpl;
+import io.smallrye.reactive.messaging.pulsar.i18n.PulsarLogging;
 
 /**
  * A no-op implementation of {@link PulsarTransactions} used when the channel is not backed by the Pulsar connector
@@ -39,6 +40,12 @@ public class NoOpPulsarTransactionsImpl<T> extends MutinyEmitterImpl<T> implemen
             NoOpTransactionalEmitter emitter = new NoOpTransactionalEmitter();
             return work.apply(emitter)
                     .call(() -> emitter.waitOnSends())
+                    .chain(result -> {
+                        if (emitter.isMarkedForAbort()) {
+                            return Uni.createFrom().failure(new RuntimeException("Transaction aborted"));
+                        }
+                        return Uni.createFrom().item(result);
+                    })
                     .eventually(activeTransactions::decrementAndGet);
         } catch (Exception e) {
             activeTransactions.decrementAndGet();
@@ -66,8 +73,7 @@ public class NoOpPulsarTransactionsImpl<T> extends MutinyEmitterImpl<T> implemen
     @Override
     public <M extends Message<? extends T>> void send(TransactionalEmitter<?> emitter, M msg) {
         sendMessage(msg).subscribe().with(unused -> {
-        }, throwable -> {
-        });
+        }, PulsarLogging.log::unableToDispatch);
     }
 
     @Override

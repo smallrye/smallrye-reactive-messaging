@@ -583,12 +583,14 @@ public class Wiring {
             if (configInstance == null || configInstance.isUnsatisfied()) {
                 return null;
             }
-            try {
-                return ConnectorConfig.create(
-                        ConnectorFactory.OUTGOING_PREFIX, configInstance.get(), configuration.name());
-            } catch (IllegalArgumentException e) {
+            Config config = configInstance.get();
+            String prefix = ConnectorConfig.channelPrefix(ConnectorFactory.OUTGOING_PREFIX, configuration.name());
+            boolean hasConnector = config.getOptionalValue(prefix + "connector", String.class).isPresent()
+                    || config.getOptionalValue(prefix + "type", String.class).isPresent();
+            if (!hasConnector) {
                 return null;
             }
+            return ConnectorConfig.create(ConnectorFactory.OUTGOING_PREFIX, config, configuration.name());
         }
 
         private EmitterFactory<?> getEmitterFactory(EmitterFactoryFor emitterType) {

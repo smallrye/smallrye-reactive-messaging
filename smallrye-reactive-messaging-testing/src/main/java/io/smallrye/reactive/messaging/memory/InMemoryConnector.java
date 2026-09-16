@@ -1,9 +1,7 @@
 package io.smallrye.reactive.messaging.memory;
 
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import jakarta.enterprise.context.ApplicationScoped;
 
@@ -80,12 +78,7 @@ public class InMemoryConnector extends TestingConnector {
      */
     @Deprecated(forRemoval = true)
     public static void clear() {
-        List<String> list = System.getProperties().entrySet().stream()
-                .filter(entry -> CONNECTOR.equals(entry.getValue())
-                        || TestingConnector.CONNECTOR.equals(entry.getValue()))
-                .map(entry -> (String) entry.getKey())
-                .collect(Collectors.toList());
-        list.forEach(System::clearProperty);
+        TestingConnector.clear();
     }
 
     /**
