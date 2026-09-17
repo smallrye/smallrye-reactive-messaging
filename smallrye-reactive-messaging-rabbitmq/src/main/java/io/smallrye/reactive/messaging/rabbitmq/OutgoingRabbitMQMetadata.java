@@ -1,93 +1,44 @@
 package io.smallrye.reactive.messaging.rabbitmq;
 
-import java.time.ZonedDateTime;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 import com.rabbitmq.client.AMQP;
-import com.rabbitmq.client.BasicProperties;
 import com.rabbitmq.client.Envelope;
 
 /**
- * Used to represent RabbitMQ metadata in on outgoing message.
+ * Metadata for outgoing RabbitMQ messages.
+ * Allows customization of routing, properties, and message attributes.
  */
 public class OutgoingRabbitMQMetadata {
 
-    private Integer priority;
-    private String contentType;
-    private String contentEncoding;
-    private final Map<String, Object> headers = new HashMap<>();
-    private Integer deliveryMode;
-    private String correlationId;
-    private String replyTo;
-    private String expiration;
-    private String messageId;
-    private ZonedDateTime timestamp;
-    private String type;
-    private String userId;
-    private String appId;
-    private String clusterId;
-    private String routingKey;
+    private final String routingKey;
+    private final String exchange;
+    private final AMQP.BasicProperties properties;
 
-    public Map<String, Object> getHeaders() {
-        return headers;
-    }
-
-    public String getContentType() {
-        return contentType;
-    }
-
-    public String getContentEncoding() {
-        return contentEncoding;
-    }
-
-    public Integer getDeliveryMode() {
-        return deliveryMode;
-    }
-
-    public Integer getPriority() {
-        return priority;
-    }
-
-    public String getCorrelationId() {
-        return correlationId;
-    }
-
-    public String getReplyTo() {
-        return replyTo;
-    }
-
-    public String getExpiration() {
-        return expiration;
-    }
-
-    public String getMessageId() {
-        return messageId;
-    }
-
-    public ZonedDateTime getTimestamp() {
-        return timestamp;
-    }
-
-    public String getType() {
-        return type;
-    }
-
-    public String getUserId() {
-        return userId;
-    }
-
-    public String getAppId() {
-        return appId;
-    }
-
-    public String getClusterId() {
-        return clusterId;
+    private OutgoingRabbitMQMetadata(String routingKey, String exchange, AMQP.BasicProperties properties) {
+        this.routingKey = routingKey;
+        this.exchange = exchange;
+        this.properties = properties;
     }
 
     public String getRoutingKey() {
         return routingKey;
+    }
+
+    public Optional<String> getExchange() {
+        return Optional.ofNullable(exchange);
+    }
+
+    public AMQP.BasicProperties getProperties() {
+        return properties;
+    }
+
+    public IncomingRabbitMQMetadata toIncomingMetadata(String exchange, boolean isRedeliver) {
+        Envelope envelope = new Envelope(0, isRedeliver, exchange, routingKey);
+        return new IncomingRabbitMQMetadata(envelope, properties);
     }
 
     public static Builder builder() {
@@ -95,277 +46,198 @@ public class OutgoingRabbitMQMetadata {
     }
 
     public static Builder from(OutgoingRabbitMQMetadata other) {
-        return builder()
-                .withHeaders(other.headers)
-                .withAppId(other.appId)
-                .withClusterId(other.clusterId)
-                .withContentEncoding(other.contentEncoding)
-                .withContentType(other.contentType)
-                .withCorrelationId(other.correlationId)
-                .withDeliveryMode(other.deliveryMode)
-                .withExpiration(other.expiration)
-                .withMessageId(other.messageId)
-                .withRoutingKey(other.routingKey)
-                .withPriority(other.priority)
-                .withReplyTo(other.replyTo)
-                .withTimestamp(other.timestamp)
-                .withType(other.type)
-                .withUserId(other.userId);
+        Builder b = builder();
+        b.routingKey = other.routingKey;
+        b.exchange = other.exchange;
+        if (other.properties != null) {
+            AMQP.BasicProperties p = other.properties;
+            b.contentType = p.getContentType();
+            b.contentEncoding = p.getContentEncoding();
+            if (p.getHeaders() != null) {
+                b.headers.putAll(p.getHeaders());
+            }
+            b.deliveryMode = p.getDeliveryMode();
+            b.priority = p.getPriority();
+            b.correlationId = p.getCorrelationId();
+            b.replyTo = p.getReplyTo();
+            b.expiration = p.getExpiration();
+            b.messageId = p.getMessageId();
+            b.timestamp = p.getTimestamp();
+            b.type = p.getType();
+            b.userId = p.getUserId();
+            b.appId = p.getAppId();
+        }
+        return b;
     }
 
-    /**
-     * Allows the builder-style construction of {@link OutgoingRabbitMQMetadata}
-     */
     public static class Builder {
-        private Integer priority;
+        private String routingKey;
+        private String exchange;
         private String contentType;
         private String contentEncoding;
         private Map<String, Object> headers = new HashMap<>();
         private Integer deliveryMode;
+        private Integer priority;
         private String correlationId;
         private String replyTo;
         private String expiration;
         private String messageId;
-        private ZonedDateTime timestamp;
+        private Date timestamp;
         private String type;
         private String userId;
         private String appId;
-        private String clusterId;
-        private String routingKey;
 
-        /**
-         * Adds a message header.
-         *
-         * @param header the header name
-         * @param value the header value
-         * @return this {@link Builder}
-         */
-        public Builder withHeader(final String header, final Object value) {
-            headers.put(header, value);
+        public Builder withRoutingKey(String routingKey) {
+            this.routingKey = routingKey;
             return this;
         }
 
-        /**
-         * Adds the message headers to the metadata.
-         *
-         * @param header the message headers
-         * @return this {@link Builder}
-         */
-        public Builder withHeaders(final Map<String, Object> header) {
-            headers.putAll(header);
+        public Builder withExchange(String exchange) {
+            this.exchange = exchange;
             return this;
         }
 
-        /**
-         * Adds an application id property to the metadata
-         *
-         * @param appId the application id
-         * @return this {@link Builder}
-         */
-        public Builder withAppId(final String appId) {
-            this.appId = appId;
-            return this;
-        }
-
-        /**
-         * Adds a content encoding property to the metadata
-         *
-         * @param contentEncoding the MIME content encoding
-         * @return this {@link Builder}
-         */
-        public Builder withContentEncoding(final String contentEncoding) {
-            this.contentEncoding = contentEncoding;
-            return this;
-        }
-
-        /**
-         * Adds a cluster id property to the metadata
-         *
-         * @param clusterId the cluster id
-         * @return this {@link Builder}
-         */
-        public Builder withClusterId(final String clusterId) {
-            this.clusterId = clusterId;
-            return this;
-        }
-
-        /**
-         * Adds a content type property to the metadata
-         *
-         * @param contentType the MIME content type
-         * @return this {@link Builder}
-         */
-        public Builder withContentType(final String contentType) {
+        public Builder withContentType(String contentType) {
             this.contentType = contentType;
             return this;
         }
 
-        /**
-         * Adds a correlation id property to the metadata
-         *
-         * @param correlationId the correlation id
-         * @return this {@link Builder}
-         */
-        public Builder withCorrelationId(final String correlationId) {
-            this.correlationId = correlationId;
+        public Builder withContentEncoding(String contentEncoding) {
+            this.contentEncoding = contentEncoding;
+            return this;
+        }
+
+        public Builder withHeader(String key, Object value) {
+            this.headers.put(key, value);
+            return this;
+        }
+
+        public Builder withHeaders(Map<String, Object> headers) {
+            if (headers != null) {
+                this.headers.putAll(headers);
+            }
             return this;
         }
 
         /**
-         * Adds a delivery mode property to the metadata
-         *
-         * @param deliveryMode the delivery mode; use 1 for non-persistent
-         *        and 2 for persistent
-         * @return this {@link Builder}
+         * Set delivery mode: 1 for transient, 2 for persistent.
          */
-        public Builder withDeliveryMode(final Integer deliveryMode) {
+        public Builder withDeliveryMode(Integer deliveryMode) {
             this.deliveryMode = deliveryMode;
             return this;
         }
 
         /**
-         * Adds an expiration property to the metadata
-         *
-         * @param expiration a string-valued representation of a time (ms)
-         * @return this {@link Builder}
+         * Set as persistent message (delivery mode 2).
          */
-        public Builder withExpiration(final String expiration) {
-            this.expiration = expiration;
+        public Builder withPersistent(boolean persistent) {
+            this.deliveryMode = persistent ? 2 : 1;
             return this;
         }
 
         /**
-         * Adds a message id property to the metadata
-         *
-         * @param messageId the message id
-         * @return this {@link Builder}
+         * Set message priority (0-9, higher is more priority).
          */
-        public Builder withMessageId(final String messageId) {
-            this.messageId = messageId;
-            return this;
-        }
-
-        /**
-         * Adds a priority property to the metadata
-         *
-         * @param priority the priority (value between 0 and 9 inclusive)
-         * @return this {@link Builder}
-         */
-        public Builder withPriority(final Integer priority) {
+        public Builder withPriority(Integer priority) {
             this.priority = priority;
             return this;
         }
 
-        /**
-         * Adds a reply to property to the metadata
-         *
-         * @param replyTo the address to reply to the message
-         * @return this {@link Builder}
-         */
-        public Builder withReplyTo(final String replyTo) {
+        public Builder withCorrelationId(String correlationId) {
+            this.correlationId = correlationId;
+            return this;
+        }
+
+        public Builder withReplyTo(String replyTo) {
             this.replyTo = replyTo;
             return this;
         }
 
         /**
-         * Adds a routing key property to the metadata
-         *
-         * @param routingKey the routing key
-         * @return this {@link Builder}
+         * Set per-message TTL in milliseconds as a string.
          */
-        public Builder withRoutingKey(final String routingKey) {
-            this.routingKey = routingKey;
+        public Builder withExpiration(String expiration) {
+            this.expiration = expiration;
             return this;
         }
 
         /**
-         * Adds a timestamp property to the metadata
-         *
-         * @param timestamp a {@link ZonedDateTime} representing the timestamp
-         * @return this {@link Builder}
+         * Set per-message TTL in milliseconds.
          */
-        public Builder withTimestamp(final ZonedDateTime timestamp) {
+        public Builder withTtl(long ttlMs) {
+            this.expiration = String.valueOf(ttlMs);
+            return this;
+        }
+
+        public Builder withMessageId(String messageId) {
+            this.messageId = messageId;
+            return this;
+        }
+
+        public Builder withTimestamp(Date timestamp) {
             this.timestamp = timestamp;
             return this;
         }
 
-        /**
-         * Adds a type property to the metadata
-         *
-         * @param type the type
-         * @return this {@link Builder}
-         */
-        public Builder withType(final String type) {
+        public Builder withType(String type) {
             this.type = type;
             return this;
         }
 
-        /**
-         * Adds a user id property to the metadata
-         *
-         * @param userId the user id
-         * @return this {@link Builder}
-         */
-        public Builder withUserId(final String userId) {
+        public Builder withUserId(String userId) {
             this.userId = userId;
             return this;
         }
 
-        /**
-         * Returns the built {@link OutgoingRabbitMQMetadata}.
-         *
-         * @return the outgoing metadata
-         */
+        public Builder withAppId(String appId) {
+            this.appId = appId;
+            return this;
+        }
+
         public OutgoingRabbitMQMetadata build() {
-            final OutgoingRabbitMQMetadata metadata = new OutgoingRabbitMQMetadata();
-            metadata.appId = appId;
-            metadata.contentEncoding = contentEncoding;
-            metadata.clusterId = clusterId;
-            metadata.correlationId = correlationId;
-            metadata.headers.putAll(headers);
-            metadata.contentType = contentType;
-            metadata.correlationId = correlationId;
-            metadata.deliveryMode = deliveryMode;
-            metadata.expiration = expiration;
-            metadata.messageId = messageId;
-            metadata.priority = priority;
-            metadata.replyTo = replyTo;
-            metadata.routingKey = routingKey;
-            metadata.timestamp = timestamp;
-            metadata.type = type;
-            metadata.userId = userId;
-            return metadata;
+            AMQP.BasicProperties.Builder propsBuilder = new AMQP.BasicProperties.Builder();
+
+            if (contentType != null) {
+                propsBuilder.contentType(contentType);
+            }
+            if (contentEncoding != null) {
+                propsBuilder.contentEncoding(contentEncoding);
+            }
+            if (!headers.isEmpty()) {
+                propsBuilder.headers(headers);
+            }
+            if (deliveryMode != null) {
+                propsBuilder.deliveryMode(deliveryMode);
+            }
+            if (priority != null) {
+                propsBuilder.priority(priority);
+            }
+            if (correlationId != null) {
+                propsBuilder.correlationId(correlationId);
+            }
+            if (replyTo != null) {
+                propsBuilder.replyTo(replyTo);
+            }
+            if (expiration != null) {
+                propsBuilder.expiration(expiration);
+            }
+            if (messageId != null) {
+                propsBuilder.messageId(messageId);
+            }
+            if (timestamp != null) {
+                propsBuilder.timestamp(timestamp);
+            }
+            if (type != null) {
+                propsBuilder.type(type);
+            }
+            if (userId != null) {
+                propsBuilder.userId(userId);
+            }
+            if (appId != null) {
+                propsBuilder.appId(appId);
+            }
+
+            return new OutgoingRabbitMQMetadata(routingKey, exchange, propsBuilder.build());
         }
     }
-
-    /**
-     * Converts this OutgoingRabbitMQMetadata to an IncomingRabbitMQMetadata.
-     * This is mainly intended for use in unit tests that rely on incoming metadata.
-     *
-     * @param exchange the exchange
-     * @param isRedeliver if it was a redelivery
-     * @return this OutgoingRabbitMQMetadata converted to an IncomingRabbitMQMetadata
-     */
-    public IncomingRabbitMQMetadata toIncomingMetadata(String exchange, boolean isRedeliver) {
-        BasicProperties basicProperties = new AMQP.BasicProperties.Builder()
-                .userId(userId)
-                .appId(appId)
-                .headers(headers)
-                .contentType(contentType)
-                .contentEncoding(contentEncoding)
-                .correlationId(correlationId)
-                .deliveryMode(deliveryMode)
-                .expiration(expiration)
-                .priority(priority)
-                .messageId(messageId)
-                .replyTo(replyTo)
-                .timestamp(Date.from(timestamp.toInstant()))
-                .type(type)
-                .build();
-        // delivery tag is not accessed by IncomingRabbitMQMetadata, so just hardcode it to 0
-        Envelope envelope = new Envelope(0, isRedeliver, exchange, routingKey);
-
-        return new IncomingRabbitMQMetadata(basicProperties, envelope, null);
-    }
-
 }

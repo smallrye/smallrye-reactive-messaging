@@ -5,7 +5,7 @@ import org.jboss.logging.annotations.MessageBundle;
 
 /**
  * Messages for RabbitMQ Connector
- * Assigned ID range is 16100-16199
+ * Assigned ID range is 19100-19199
  */
 @MessageBundle(projectCode = "SRMSG", length = 5)
 public interface RabbitMQMessages {

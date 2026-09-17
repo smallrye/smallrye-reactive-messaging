@@ -8,7 +8,7 @@ import java.util.function.Consumer;
 
 import io.vertx.core.Context;
 import io.vertx.core.Vertx;
-import io.vertx.core.impl.ContextInternal;
+import io.vertx.core.internal.ContextInternal;
 
 // TODO move to smallrye-common-vertx-context
 public class VertxContext {

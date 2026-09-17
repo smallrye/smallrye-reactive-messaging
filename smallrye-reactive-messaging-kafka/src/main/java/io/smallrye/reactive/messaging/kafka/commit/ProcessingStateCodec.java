@@ -3,6 +3,7 @@ package io.smallrye.reactive.messaging.kafka.commit;
 /**
  * General purpose custom serializer/deserializer interface for state type encapsulated inside the {@link ProcessingState}
  */
+@Deprecated(forRemoval = true)
 public interface ProcessingStateCodec {
 
     ProcessingState<?> decode(byte[] bytes);
