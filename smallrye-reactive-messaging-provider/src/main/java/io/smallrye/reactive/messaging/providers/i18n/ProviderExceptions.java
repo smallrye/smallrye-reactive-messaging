@@ -227,7 +227,7 @@ public interface ProviderExceptions {
     @Message(id = 68, value = "The operation %s has returned null")
     NullPointerException nullPointerOnInvokeBlocking(String methodAsString);
 
-    @Message(id = 71, value = "Invalid channel configuration -  the `connector` attribute must be set for channel `%s`")
+    @Message(id = 71, value = "Invalid channel configuration - the `connector` attribute must be set for channel `%s`")
     IllegalArgumentException illegalArgumentChannelConnectorConfiguration(String name);
 
     @Message(id = 72, value = "Unknown connector for `%s`.")
