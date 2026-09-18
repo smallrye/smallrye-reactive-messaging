@@ -1,5 +1,6 @@
 package io.smallrye.reactive.messaging.kafka.i18n;
 
+import java.lang.invoke.MethodHandles;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
@@ -20,7 +21,8 @@ import org.jboss.logging.annotations.MessageLogger;
 @MessageLogger(projectCode = "SRMSG", length = 5)
 public interface KafkaLogging extends BasicLogger {
 
-    KafkaLogging log = Logger.getMessageLogger(KafkaLogging.class, "io.smallrye.reactive.messaging.kafka");
+    KafkaLogging log = Logger.getMessageLogger(MethodHandles.lookup(), KafkaLogging.class,
+            "io.smallrye.reactive.messaging.kafka");
 
     @LogMessage(level = Logger.Level.DEBUG)
     @Message(id = 18201, value = "Dead queue letter configured with: topic: `%s`, key serializer: `%s`, value serializer: `%s`")

@@ -1,5 +1,7 @@
 package io.smallrye.reactive.messaging.amqp.i18n;
 
+import java.lang.invoke.MethodHandles;
+
 import org.jboss.logging.BasicLogger;
 import org.jboss.logging.Logger;
 import org.jboss.logging.annotations.Cause;
@@ -14,7 +16,8 @@ import org.jboss.logging.annotations.MessageLogger;
 @MessageLogger(projectCode = "SRMSG", length = 5)
 public interface AMQPLogging extends BasicLogger {
 
-    AMQPLogging log = Logger.getMessageLogger(AMQPLogging.class, "io.smallrye.reactive.messaging.amqp");
+    AMQPLogging log = Logger.getMessageLogger(MethodHandles.lookup(), AMQPLogging.class,
+            "io.smallrye.reactive.messaging.amqp");
 
     @LogMessage(level = Logger.Level.DEBUG)
     @Message(id = 16200, value = "Creating AMQP client from bean named '%s'")

@@ -1,5 +1,7 @@
 package io.smallrye.reactive.messaging.memory.i18n;
 
+import java.lang.invoke.MethodHandles;
+
 import org.jboss.logging.BasicLogger;
 import org.jboss.logging.Logger;
 import org.jboss.logging.annotations.MessageLogger;
@@ -11,5 +13,6 @@ import org.jboss.logging.annotations.MessageLogger;
 @MessageLogger(projectCode = "SRMSG", length = 5)
 public interface InMemoryLogging extends BasicLogger {
 
-    InMemoryLogging log = Logger.getMessageLogger(InMemoryLogging.class, "io.smallrye.reactive.messaging.in-memory");
+    InMemoryLogging log = Logger.getMessageLogger(MethodHandles.lookup(), InMemoryLogging.class,
+            "io.smallrye.reactive.messaging.in-memory");
 }
