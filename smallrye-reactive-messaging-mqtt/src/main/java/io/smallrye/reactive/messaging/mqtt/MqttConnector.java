@@ -63,7 +63,11 @@ import io.vertx.mutiny.core.Vertx;
 @ConnectorAttribute(name = "broadcast", description = "Whether or not the messages should be dispatched to multiple consumers", type = "boolean", direction = INCOMING, defaultValue = "false")
 @ConnectorAttribute(name = "failure-strategy", type = "string", direction = INCOMING, description = "Specify the failure strategy to apply when a message produced from a MQTT message is nacked. Values can be `fail` (default), or `ignore`", defaultValue = "fail")
 @ConnectorAttribute(name = "merge", direction = OUTGOING, description = "Whether the connector should allow multiple upstreams", type = "boolean", defaultValue = "false")
-@ConnectorAttribute(name = "buffer-size", direction = INCOMING, description = "The size buffer of incoming messages waiting to be processed", type = "int", defaultValue = "128")
+@ConnectorAttribute(name = "buffer-size", direction = INCOMING, description = "The size buffer of incoming messages waiting to be processed (in messages)", type = "int", defaultValue = "128")
+@ConnectorAttribute(name = "buffer-pause-threshold", direction = INCOMING, description = "Percentage of (any channel) buffer fill (0-100) at which MQTT consumption is paused", type = "int", defaultValue = "70")
+@ConnectorAttribute(name = "buffer-resume-threshold", direction = INCOMING, description = "Percentage of (any channel) buffer fill (0-100) at which MQTT consumption is resumed", type = "int", defaultValue = "40")
+@ConnectorAttribute(name = "receive-buffer-size", direction = INCOMING_AND_OUTGOING, description = "The TCP receiver size buffer", type = "int", defaultValue = "-1")
+@ConnectorAttribute(name = "recv-bytebuf-allocator-size", direction = INCOMING_AND_OUTGOING, description = "Netty internal receiver buffer", type = "int", defaultValue = "-1")
 @ConnectorAttribute(name = "unsubscribe-on-disconnection", direction = INCOMING_AND_OUTGOING, description = "This flag restore the old behavior to unsubscribe from the broken on disconnection", type = "boolean", defaultValue = "false")
 @ConnectorAttribute(name = "retain", direction = OUTGOING, description = "Whether the published message should be retained", type = "boolean", defaultValue = "false")
 public class MqttConnector implements InboundConnector, OutboundConnector, HealthReporter {

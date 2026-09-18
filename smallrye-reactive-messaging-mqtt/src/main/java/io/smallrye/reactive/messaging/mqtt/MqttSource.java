@@ -56,17 +56,30 @@ public class MqttSource {
         holder.start().onSuccess(ignore -> started.set(true));
         holder.getClient()
                 .subscribe(topic, RequestedQoS.valueOf(qos))
-                .onFailure(outcome -> log.info("Subscription failed!"))
+                .onFailure(outcome -> log.info("[" + channel + "] Subscription failed!"))
                 .onSuccess(outcome -> {
-                    log.info("Subscription success on topic " + topic + ", Max QoS " + outcome + ".");
+                    log.info("[" + channel + "] Subscription success on topic " + topic + ", Max QoS " + outcome + ".");
                     alive.set(true);
                 });
 
+        holder.registerChannelBuffer(channel, config.getBufferSize(), config.getBufferPauseThreshold(),
+                config.getBufferResumeThreshold());
+
         this.source = holder.stream()
-                .select().where(m -> MqttTopicHelper.matches(actualTopicFilter, m.topicName()))
+                .select().where(m -> {
+                    if (MqttTopicHelper.matches(actualTopicFilter, m.topicName())) {
+                        holder.messageEnterBuffer(channel);
+                        return true;
+                    }
+                    return false;
+                })
                 .onOverflow().buffer(config.getBufferSize())
                 .emitOn(c -> VertxContext.runOnContext(root.getDelegate(), c))
                 .onItem().transform(m -> new ReceivingMqttMessage(m, onNack))
+                .onItem().call(m -> {
+                    holder.messageExitBuffer(channel);
+                    return Uni.createFrom().voidItem();
+                })
                 .stage(multi -> {
                     if (broadcast)
                         return multi.broadcast().toAllSubscribers();
