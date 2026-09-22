@@ -70,9 +70,25 @@ public interface KafkaConsumer<K, V> {
      * set {@code mp.messaging.incoming.[channel].pause-if-no-requests} to {@code false}.
      *
      * @return the Uni emitting when the action completes, the set of topic/partition paused by this call.
+     * @see #pause(Collection)
      */
     @CheckReturnValue
     Uni<Set<TopicPartition>> pause();
+
+    /**
+     * Pauses the consumption of records from the specified partitions.
+     * Unlike {@link #pause()}, these partitions will remain paused even when
+     * {@code pause-if-no-requests} is enabled. The backpressure mechanism will
+     * not resume manually paused partitions.
+     * <p>
+     * Only partitions currently assigned to this consumer are affected.
+     * If an empty collection is provided, all currently assigned partitions are paused.
+     *
+     * @param partitions the partitions to pause, must not be {@code null}; if empty, all assigned partitions are paused
+     * @return the Uni emitting when the action completes
+     */
+    @CheckReturnValue
+    Uni<Void> pause(Collection<TopicPartition> partitions);
 
     /**
      * Retrieves the set of paused topic/partition
@@ -81,6 +97,14 @@ public interface KafkaConsumer<K, V> {
      */
     @CheckReturnValue
     Uni<Set<TopicPartition>> paused();
+
+    /**
+     * Returns the set of partitions that have been manually paused via
+     * {@link #pause(Collection)}.
+     *
+     * @return an unmodifiable snapshot of the manually paused partitions
+     */
+    Set<TopicPartition> manuallyPaused();
 
     /**
      * Retrieved the last committed offset for each topic/partition
@@ -94,15 +118,28 @@ public interface KafkaConsumer<K, V> {
     /**
      * Resumes the consumption of record.
      * It resumes the consumption of all the paused topic/partition.
+     * Partitions that were manually paused via {@link #pause(Collection)} will not be resumed.
      *
      * <strong>IMPORTANT:</strong> To use this method, you need to disable the auto-pause/resume feature from the connector.
      * Otherwise, the client will be paused automatically when there are no requests. To disable the auto-pause/resume,
      * set {@code mp.messaging.incoming.[channel].pause-if-no-requests} to {@code false}.
      *
      * @return the Uni indicating when the resume action completes.
+     * @see #resume(Collection)
      */
     @CheckReturnValue
     Uni<Void> resume();
+
+    /**
+     * Resumes the consumption of records from the specified partitions.
+     * Only partitions that were previously manually paused via
+     * {@link #pause(Collection)} are affected.
+     *
+     * @param partitions the partitions to resume, must not be {@code null}
+     * @return the Uni emitting when the action completes
+     */
+    @CheckReturnValue
+    Uni<Void> resume(Collection<TopicPartition> partitions);
 
     /**
      * @return the underlying consumer. Be aware that to use it you needs to be on the polling thread.

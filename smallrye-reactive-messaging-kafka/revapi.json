@@ -36,7 +36,19 @@
     "criticality" : "highlight",
     "minSeverity" : "POTENTIALLY_BREAKING",
     "minCriticality" : "documented",
-    "differences" : [ ]
+    "differences" : [ {
+        "code": "java.method.addedToInterface",
+        "new": "method io.smallrye.mutiny.Uni<java.lang.Void> io.smallrye.reactive.messaging.kafka.KafkaConsumer<K, V>::pause(java.util.Collection<org.apache.kafka.common.TopicPartition>)",
+        "justification": "Add manual per-partition pause support alongside pause-if-no-requests backpressure"
+    }, {
+        "code": "java.method.addedToInterface",
+        "new": "method java.util.Set<org.apache.kafka.common.TopicPartition> io.smallrye.reactive.messaging.kafka.KafkaConsumer<K, V>::manuallyPaused()",
+        "justification": "Add manual per-partition pause support alongside pause-if-no-requests backpressure"
+    }, {
+        "code": "java.method.addedToInterface",
+        "new": "method io.smallrye.mutiny.Uni<java.lang.Void> io.smallrye.reactive.messaging.kafka.KafkaConsumer<K, V>::resume(java.util.Collection<org.apache.kafka.common.TopicPartition>)",
+        "justification": "Add manual per-partition pause support alongside pause-if-no-requests backpressure"
+    } ]
   }
 }, {
   "extension" : "revapi.reporter.json",

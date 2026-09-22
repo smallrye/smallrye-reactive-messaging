@@ -7,6 +7,7 @@ import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.time.Duration;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -55,6 +56,7 @@ public class ReactiveKafkaConsumer<K, V> implements io.smallrye.reactive.messagi
     private RebalanceListeners.WrappedConsumerRebalanceListener rebalanceListener;
 
     private final AtomicBoolean paused = new AtomicBoolean();
+    private final Set<TopicPartition> manuallyPausedPartitions = ConcurrentHashMap.newKeySet();
 
     private final ScheduledExecutorService kafkaWorker;
     private final KafkaRecordStream<K, V> stream;
@@ -232,8 +234,29 @@ public class ReactiveKafkaConsumer<K, V> implements io.smallrye.reactive.messagi
 
     @Override
     @CheckReturnValue
+    public Uni<Void> pause(Collection<TopicPartition> partitions) {
+        return runOnPollingThread(c -> {
+            Set<TopicPartition> toPause = partitions.isEmpty()
+                    ? new HashSet<>(c.assignment())
+                    : new HashSet<>(partitions);
+            toPause.retainAll(c.assignment());
+            if (!toPause.isEmpty()) {
+                manuallyPausedPartitions.addAll(toPause);
+                c.pause(toPause);
+                log.manuallyPausingPartitions(toPause);
+            }
+        });
+    }
+
+    @Override
+    @CheckReturnValue
     public Uni<Set<TopicPartition>> paused() {
         return runOnPollingThread((Function<Consumer<K, V>, Set<TopicPartition>>) Consumer::paused);
+    }
+
+    @Override
+    public Set<TopicPartition> manuallyPaused() {
+        return Set.copyOf(manuallyPausedPartitions);
     }
 
     @Override
@@ -320,12 +343,31 @@ public class ReactiveKafkaConsumer<K, V> implements io.smallrye.reactive.messagi
     public Uni<Void> resume() {
         if (paused.get()) {
             return runOnPollingThread(c -> {
-                Set<TopicPartition> assignment = c.assignment();
-                c.resume(assignment);
+                Set<TopicPartition> assignment = new HashSet<>(c.assignment());
+                assignment.removeAll(manuallyPausedPartitions);
+                if (!assignment.isEmpty()) {
+                    c.resume(assignment);
+                }
             }).invoke(() -> paused.set(false));
         } else {
             return Uni.createFrom().voidItem();
         }
+    }
+
+    @Override
+    @CheckReturnValue
+    public Uni<Void> resume(Collection<TopicPartition> partitions) {
+        return runOnPollingThread(c -> {
+            Set<TopicPartition> toResume = new HashSet<>(partitions);
+            toResume.retainAll(manuallyPausedPartitions);
+            if (!toResume.isEmpty()) {
+                manuallyPausedPartitions.removeAll(toResume);
+                if (!paused.get()) {
+                    c.resume(toResume);
+                }
+                log.manuallyResumingPartitions(toResume);
+            }
+        });
     }
 
     @Override
@@ -372,7 +414,11 @@ public class ReactiveKafkaConsumer<K, V> implements io.smallrye.reactive.messagi
         }
         notifyCommitHandlerOfSeek(partitions);
         removeFromQueueRecordsFromTopicPartitions(partitions);
-        c.resume(partitions);
+        Set<TopicPartition> toResume = new HashSet<>(partitions);
+        toResume.removeAll(manuallyPausedPartitions);
+        if (!toResume.isEmpty()) {
+            c.resume(toResume);
+        }
     }
 
     private static Map<String, Object> getKafkaConsumerConfiguration(KafkaConnectorIncomingConfiguration configuration,
@@ -632,5 +678,11 @@ public class ReactiveKafkaConsumer<K, V> implements io.smallrye.reactive.messagi
     void removeFromQueueRecordsFromTopicPartitions(Collection<TopicPartition> revokedPartitions) {
         this.stream.removeFromQueueRecordsFromTopicPartitions(revokedPartitions);
         this.batchStream.removeFromQueueRecordsFromTopicPartitions(revokedPartitions);
+    }
+
+    void removeManuallyPausedPartitions(Collection<TopicPartition> partitions) {
+        if (manuallyPausedPartitions.removeAll(partitions)) {
+            log.cleaningUpManuallyPausedPartitions(partitions);
+        }
     }
 }

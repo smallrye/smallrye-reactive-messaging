@@ -34,3 +34,25 @@ methods are always invoked on the polling thread, so they give you
 direct access to `Consumer`. In such case, you should use the
 `Producer`/`Consumer` API directly, instead of the
 `KafkaProducer`/`KafkaConsumer` API.
+
+## Manual Partition Pause/Resume
+
+The `KafkaConsumer` API provides per-partition pause and resume methods
+that work alongside the `pause-if-no-requests` backpressure mechanism
+(enabled by default).
+
+When you manually pause partitions using `pause(Collection<TopicPartition>)`,
+those partitions remain paused even when the backpressure system resumes
+consumption. This is useful for scenarios like pausing a partition during
+failure handling while keeping other partitions flowing:
+
+{{ insert('kafka/inbound/KafkaManualPartitionPauseResume.java', 'code') }}
+
+If a partition is revoked during a rebalance, it is automatically
+removed from the manually paused set.
+
+Note that the no-arg `pause()` and `resume()` methods control the
+global pause state and are independent: calling `resume()` will not
+resume manually paused partitions.
+Passing an empty collection to `pause(Collections.emptySet())` pauses all
+currently assigned partitions.
