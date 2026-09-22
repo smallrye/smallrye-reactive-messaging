@@ -402,4 +402,16 @@ public interface KafkaLogging extends BasicLogger {
     @LogMessage(level = Logger.Level.WARN)
     @Message(id = 18295, value = "Evicting broken pooled producer from channel %s with transactional.id %s")
     void pooledProducerEvicted(String channel, Object transactionalId);
+
+    @LogMessage(level = Logger.Level.DEBUG)
+    @Message(id = 18296, value = "Pausing partitions %s")
+    void pausingPartitions(Set<TopicPartition> partitions);
+
+    @LogMessage(level = Logger.Level.DEBUG)
+    @Message(id = 18297, value = "Resuming partitions %s")
+    void resumingPartitions(Set<TopicPartition> partitions);
+
+    @LogMessage(level = Logger.Level.DEBUG)
+    @Message(id = 18298, value = "Remaining manually paused partitions %s after revocation of %s")
+    void remainingPausedPartitionsAfterRevocation(Set<TopicPartition> manuallyPaused, Collection<TopicPartition> revoked);
 }
