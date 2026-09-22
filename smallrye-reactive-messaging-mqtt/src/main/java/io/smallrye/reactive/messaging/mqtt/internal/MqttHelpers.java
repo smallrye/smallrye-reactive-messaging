@@ -15,12 +15,14 @@ import io.smallrye.reactive.messaging.mqtt.MqttConnectorCommonConfiguration;
 import io.smallrye.reactive.messaging.mqtt.session.ConstantReconnectDelayOptions;
 import io.smallrye.reactive.messaging.mqtt.session.MqttClientSessionOptions;
 import io.smallrye.reactive.messaging.mqtt.session.ReconnectDelayOptions;
+import io.vertx.core.buffer.Buffer;
 import io.vertx.core.net.JksOptions;
 import io.vertx.core.net.KeyCertOptions;
 import io.vertx.core.net.PemKeyCertOptions;
 import io.vertx.core.net.PemTrustOptions;
 import io.vertx.core.net.PfxOptions;
 import io.vertx.core.net.TrustOptions;
+import io.vertx.mqtt.MqttClientWillOptions;
 
 public class MqttHelpers {
 
@@ -56,11 +58,27 @@ public class MqttHelpers {
         options.setTrustOptions(getTrustOptions(config));
         options.setTrustAll(config.getTrustAll());
         options.setUsername(config.getUsername().orElse(null));
-        options.setWillQoS(config.getWillQos());
-        options.setWillFlag(config.getWillFlag());
-        options.setWillRetain(config.getWillRetain());
         options.setUnsubscribeOnDisconnect(config.getUnsubscribeOnDisconnection());
         options.setMetricsName("mqtt|" + config.getChannel());
+
+        options.setVersion(config.getVersion());
+        config.getSessionExpiryInterval().ifPresent(options::setSessionExpireInterval);
+        config.getReceiveMaximum().ifPresent(options::setReceiveMaximum);
+        options.setTopicAliasMaximum(config.getTopicAliasMaximum());
+
+        if (!config.getWillTopic().isEmpty() || !config.getWillPayload().isEmpty()) {
+            if (config.getWillTopic().isEmpty() || config.getWillPayload().isEmpty()) {
+                throw ex.illegalArgumentMissingWillTopicOrPayload(config.getChannel());
+            }
+            options.setWillTopic(config.getWillTopic());
+            options.setWillQoS(config.getWillQos());
+            options.setWillRetain(config.getWillRetain());
+            options.setWillMessageBytes(Buffer.buffer(config.getWillPayload()));
+            MqttClientWillOptions willOptions = options.getWillOptions();
+            config.getWillContentType().ifPresent(willOptions::setContentType);
+            config.getWillResponseTopic().ifPresent(willOptions::setResponseTopic);
+            config.getWillDelayInterval().ifPresent(willOptions::setWillDelayInterval);
+        }
 
         return options;
     }
@@ -203,23 +221,59 @@ public class MqttHelpers {
             custom.setTrustAll(config.getTrustAll());
         }
 
-        if (isSetInChannelConfiguration("will-qus", config)) {
-            custom.setWillQoS(config.getWillQos());
+        if (isSetInChannelConfiguration("unsubscribe-on-disconnection", config)) {
+            custom.setUnsubscribeOnDisconnect(config.getUnsubscribeOnDisconnection());
         }
 
-        if (isSetInChannelConfiguration("will-flag", config)) {
-            custom.setWillFlag(config.getWillFlag());
+        if (DEFAULT_METRICS_NAME.equals(custom.getMetricsName())) {
+            custom.setMetricsName("mqtt|" + config.getChannel());
+        }
+
+        if (isSetInChannelConfiguration("version", config)) {
+            custom.setVersion(config.getVersion());
+        }
+
+        if (isSetInChannelConfiguration("session-expiry-interval", config)) {
+            config.getSessionExpiryInterval().ifPresent(custom::setSessionExpireInterval);
+        }
+
+        if (isSetInChannelConfiguration("receive-maximum", config)) {
+            config.getReceiveMaximum().ifPresent(custom::setReceiveMaximum);
+        }
+
+        if (isSetInChannelConfiguration("topic-alias-maximum", config)) {
+            custom.setTopicAliasMaximum(config.getTopicAliasMaximum());
+        }
+
+        if (isSetInChannelConfiguration("will-qos", config)) {
+            custom.setWillQoS(config.getWillQos());
         }
 
         if (isSetInChannelConfiguration("will-retain", config)) {
             custom.setWillRetain(config.getWillRetain());
         }
-        if (isSetInChannelConfiguration("unsubscribe-on-disconnection", config)) {
-            custom.setUnsubscribeOnDisconnect(config.getUnsubscribeOnDisconnection());
+
+        if (isSetInChannelConfiguration("will-topic", config)) {
+            custom.setWillTopic(config.getWillTopic());
         }
-        if (DEFAULT_METRICS_NAME.equals(custom.getMetricsName())) {
-            custom.setMetricsName("mqtt|" + config.getChannel());
+
+        if (isSetInChannelConfiguration("will-payload", config)) {
+            custom.setWillMessageBytes(Buffer.buffer(config.getWillPayload()));
         }
+
+        MqttClientWillOptions willOpts = custom.getWillOptions();
+        if (isSetInChannelConfiguration("will-content-type", config)) {
+            config.getWillContentType().ifPresent(willOpts::setContentType);
+        }
+
+        if (isSetInChannelConfiguration("will-response-topic", config)) {
+            config.getWillResponseTopic().ifPresent(willOpts::setResponseTopic);
+        }
+
+        if (isSetInChannelConfiguration("will-delay-interval", config)) {
+            config.getWillDelayInterval().ifPresent(willOpts::setWillDelayInterval);
+        }
+
     }
 
     /**
