@@ -26,6 +26,7 @@ import io.smallrye.reactive.messaging.providers.MediatorFactory;
 import io.smallrye.reactive.messaging.providers.connectors.ExecutionHolder;
 import io.smallrye.reactive.messaging.providers.connectors.MyDummyConnector;
 import io.smallrye.reactive.messaging.providers.connectors.WorkerPoolRegistry;
+import io.smallrye.reactive.messaging.providers.impl.ChannelLifecycleManagerImpl;
 import io.smallrye.reactive.messaging.providers.impl.ConfiguredChannelFactory;
 import io.smallrye.reactive.messaging.providers.impl.ConnectorFactories;
 import io.smallrye.reactive.messaging.providers.impl.InternalChannelRegistry;
@@ -60,9 +61,11 @@ public class AlternativeAnalysisTest {
                 InternalChannelRegistry.class,
                 ChannelProducer.class,
                 ConfiguredChannelFactory.class,
+                ChannelLifecycleManagerImpl.class,
                 ConnectorFactories.class,
                 HealthCenter.class,
                 ContextDecorator.class,
+                PausableChannelDecorator.class,
                 // Messaging provider
                 MyDummyConnector.class);
         initializer.addBeanClasses(MyApplicationWithIncomingAndOutgoing.class, Empty.class);

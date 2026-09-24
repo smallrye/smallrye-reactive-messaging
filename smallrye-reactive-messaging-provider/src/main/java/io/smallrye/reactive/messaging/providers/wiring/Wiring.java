@@ -95,9 +95,10 @@ public class Wiring {
             components.add(new InjectedChannelComponent(channel, strictMode));
         }
 
+        Config config = configInstance != null && !configInstance.isUnsatisfied() ? configInstance.get() : null;
         for (EmitterConfiguration emitter : emitters) {
             components.add(new EmitterComponent(emitter, publisherDecorators, emitterFactories, defaultBufferSize,
-                    defaultBufferSizeLegacy));
+                    defaultBufferSizeLegacy, config));
         }
 
         // At that point, the registry only contains connectors or managed channels
@@ -508,17 +509,20 @@ public class Wiring {
         private final Set<Component> downstreams = new LinkedHashSet<>();
         private final int defaultBufferSize;
         private final int defaultBufferSizeLegacy;
+        private final Config config;
 
         public EmitterComponent(EmitterConfiguration configuration,
                 Instance<PublisherDecorator> decorators,
                 Instance<EmitterFactory<?>> emitterFactories,
                 int defaultBufferSize,
-                int defaultBufferSizeLegacy) {
+                int defaultBufferSizeLegacy,
+                Config config) {
             this.configuration = configuration;
             this.decorators = decorators;
             this.emitterFactories = emitterFactories;
             this.defaultBufferSize = defaultBufferSize;
             this.defaultBufferSizeLegacy = defaultBufferSizeLegacy;
+            this.config = config;
         }
 
         @Override
@@ -562,14 +566,28 @@ public class Wiring {
             T emitter = (T) emitterFactory.createEmitter(configuration, def);
             Class<T> type = (Class<T>) configuration.emitterType().value();
             registry.register(configuration.name(), type, emitter);
+            Config channelConfig = resolveChannelConfig();
             Multi<? extends Message<?>> publisher = Multi.createFrom().publisher(emitter.getPublisher());
             for (PublisherDecorator decorator : getSortedInstances(decorators)) {
                 if (!(decorator instanceof ContextDecorator)) {
-                    publisher = decorator.decorate(publisher, List.of(configuration.name()), null);
+                    publisher = decorator.decorate(publisher, List.of(configuration.name()), channelConfig);
                 }
             }
             //noinspection ReactiveStreamsUnusedPublisher
             registry.register(configuration.name(), publisher, broadcast());
+        }
+
+        private Config resolveChannelConfig() {
+            if (config == null) {
+                return null;
+            }
+            String prefix = ConnectorConfig.channelPrefix(ConnectorFactory.OUTGOING_PREFIX, configuration.name());
+            boolean hasConnector = config.getOptionalValue(prefix + "connector", String.class).isPresent()
+                    || config.getOptionalValue(prefix + "type", String.class).isPresent();
+            if (!hasConnector) {
+                return null;
+            }
+            return ConnectorConfig.create(ConnectorFactory.OUTGOING_PREFIX, config, configuration.name());
         }
 
         private EmitterFactory<?> getEmitterFactory(EmitterFactoryFor emitterType) {

@@ -6,18 +6,17 @@ import static io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Dire
 import static io.smallrye.reactive.messaging.rabbitmq.i18n.RabbitMQExceptions.ex;
 import static io.smallrye.reactive.messaging.rabbitmq.i18n.RabbitMQLogging.log;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Flow;
+import java.util.concurrent.atomic.AtomicReference;
 
-import jakarta.annotation.Priority;
 import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.enterprise.context.BeforeDestroyed;
-import jakarta.enterprise.event.Observes;
-import jakarta.enterprise.event.Reception;
 import jakarta.enterprise.inject.Any;
 import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
@@ -31,6 +30,7 @@ import org.eclipse.microprofile.reactive.streams.operators.SubscriberBuilder;
 import com.rabbitmq.client.impl.CredentialsProvider;
 
 import io.opentelemetry.api.OpenTelemetry;
+import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.ClientCustomizer;
 import io.smallrye.reactive.messaging.annotations.ConnectorAttribute;
 import io.smallrye.reactive.messaging.connector.InboundConnector;
@@ -145,6 +145,9 @@ import io.vertx.rabbitmq.RabbitMQOptions;
 @ConnectorAttribute(name = "retry-on-fail-attempts", direction = OUTGOING, description = "The number of tentative to retry on failure", type = "int", defaultValue = "6")
 @ConnectorAttribute(name = "retry-on-fail-interval", direction = OUTGOING, description = "The interval (in seconds) between two sending attempts", type = "int", defaultValue = "5")
 
+// Graceful shutdown
+@ConnectorAttribute(name = "graceful-shutdown", type = "boolean", direction = INCOMING, description = "Whether a graceful shutdown should be attempted when the application terminates.", defaultValue = "false")
+
 // Tracing
 @ConnectorAttribute(name = "tracing.enabled", direction = INCOMING_AND_OUTGOING, description = "Whether tracing is enabled (default) or disabled", type = "boolean", defaultValue = "true")
 @ConnectorAttribute(name = "tracing.attribute-headers", direction = INCOMING_AND_OUTGOING, description = "A comma-separated list of headers that should be recorded as span attributes. Relevant only if tracing.enabled=true", type = "string", defaultValue = "")
@@ -170,9 +173,10 @@ public class RabbitMQConnector implements InboundConnector, OutboundConnector, H
     @Inject
     @Any
     Instance<RabbitMQFailureHandler.Factory> failureHandlerFactories;
-    private final List<IncomingRabbitMQChannel> incomings = new CopyOnWriteArrayList<>();
-    private final List<OutgoingRabbitMQChannel> outgoings = new CopyOnWriteArrayList<>();
+    private final Map<String, IncomingRabbitMQChannel> incomingChannels = new ConcurrentHashMap<>();
+    private final Map<String, OutgoingRabbitMQChannel> outgoingChannels = new ConcurrentHashMap<>();
     private final Map<String, ClientHolder> clients = new ConcurrentHashMap<>();
+    private final Map<String, String> channelFingerprints = new ConcurrentHashMap<>();
     // connection-name to fingerprint map to check against same connection-name but different options
     private final Map<String, String> connectionFingerprints = new ConcurrentHashMap<>();
 
@@ -206,7 +210,7 @@ public class RabbitMQConnector implements InboundConnector, OutboundConnector, H
     public Flow.Publisher<? extends Message<?>> getPublisher(final Config config) {
         final RabbitMQConnectorIncomingConfiguration ic = new RabbitMQConnectorIncomingConfiguration(config);
         IncomingRabbitMQChannel incoming = new IncomingRabbitMQChannel(this, ic, openTelemetryInstance);
-        this.incomings.add(incoming);
+        incomingChannels.put(ic.getChannel(), incoming);
         return incoming.getStream();
     }
 
@@ -228,18 +232,18 @@ public class RabbitMQConnector implements InboundConnector, OutboundConnector, H
     public Flow.Subscriber<? extends Message<?>> getSubscriber(final Config config) {
         final RabbitMQConnectorOutgoingConfiguration oc = new RabbitMQConnectorOutgoingConfiguration(config);
         OutgoingRabbitMQChannel outgoing = new OutgoingRabbitMQChannel(this, oc, openTelemetryInstance);
-        outgoings.add(outgoing);
+        outgoingChannels.put(oc.getChannel(), outgoing);
         return outgoing.getSubscriber();
     }
 
     @Override
     public HealthReport getReadiness() {
         HealthReport.HealthReportBuilder builder = HealthReport.builder();
-        for (IncomingRabbitMQChannel incoming : incomings) {
+        for (IncomingRabbitMQChannel incoming : incomingChannels.values()) {
             builder = incoming.isReady(builder);
         }
 
-        for (OutgoingRabbitMQChannel outgoing : outgoings) {
+        for (OutgoingRabbitMQChannel outgoing : outgoingChannels.values()) {
             builder = outgoing.isReady(builder);
         }
         return builder.build();
@@ -248,36 +252,54 @@ public class RabbitMQConnector implements InboundConnector, OutboundConnector, H
     @Override
     public HealthReport getLiveness() {
         HealthReport.HealthReportBuilder builder = HealthReport.builder();
-        for (IncomingRabbitMQChannel incoming : incomings) {
+        for (IncomingRabbitMQChannel incoming : incomingChannels.values()) {
             builder = incoming.isAlive(builder);
         }
 
-        for (OutgoingRabbitMQChannel outgoing : outgoings) {
+        for (OutgoingRabbitMQChannel outgoing : outgoingChannels.values()) {
             builder = outgoing.isAlive(builder);
         }
         return builder.build();
     }
 
-    /**
-     * Application shutdown tidy up; cancels all subscriptions and stops clients.
-     *
-     * @param ignored the incoming event, ignored
-     */
-    public void terminate(
-            @SuppressWarnings("unused") @Observes(notifyObserver = Reception.IF_EXISTS) @Priority(50) @BeforeDestroyed(ApplicationScoped.class) Object ignored) {
-        for (IncomingRabbitMQChannel incoming : incomings) {
+    @Override
+    public CompletionStage<Void> shutdownIncoming(String channel) {
+        IncomingRabbitMQChannel incoming = incomingChannels.remove(channel);
+        if (incoming != null) {
             incoming.terminate();
         }
+        return releaseClient(channel);
+    }
 
-        for (OutgoingRabbitMQChannel outgoing : outgoings) {
+    @Override
+    public CompletionStage<Void> shutdownOutgoing(String channel) {
+        OutgoingRabbitMQChannel outgoing = outgoingChannels.remove(channel);
+        if (outgoing != null) {
             outgoing.terminate();
         }
+        return releaseClient(channel);
+    }
 
-        for (Map.Entry<String, ClientHolder> entry : clients.entrySet()) {
-            stopClient(entry.getValue().client(), true);
+    @Override
+    public CompletionStage<Void> terminate() {
+        incomingChannels.values().forEach(IncomingRabbitMQChannel::terminate);
+        outgoingChannels.values().forEach(OutgoingRabbitMQChannel::terminate);
+        List<Uni<Void>> futures = new ArrayList<>();
+        for (ClientHolder holder : clients.values()) {
+            futures.add(holder.client().stop());
         }
+        incomingChannels.clear();
+        outgoingChannels.clear();
         clients.clear();
+        channelFingerprints.clear();
         connectionFingerprints.clear();
+        if (futures.isEmpty()) {
+            return CompletableFuture.completedStage(null);
+        }
+        return Uni.combine().all().unis(futures)
+                .collectFailures()
+                .discardItems()
+                .subscribeAsCompletionStage();
     }
 
     public Vertx vertx() {
@@ -286,7 +308,7 @@ public class RabbitMQConnector implements InboundConnector, OutboundConnector, H
 
     public void reportIncomingFailure(String channel, Throwable reason) {
         log.failureReported(channel, reason);
-        releaseClient(channel, false);
+        releaseClient(channel);
     }
 
     public Instance<RabbitMQFailureHandler.Factory> failureHandlerFactories() {
@@ -318,33 +340,34 @@ public class RabbitMQConnector implements InboundConnector, OutboundConnector, H
         if (existing != null && !existing.equals(fingerprint)) {
             throw ex.illegalStateSharedConnectionConfigMismatch(connectionName);
         }
+        channelFingerprints.put(channel, fingerprint);
         return clients.compute(fingerprint,
                 (key, current) -> (current == null ? new ClientHolder(RabbitMQClient.create(vertx(), options)) : current)
                         .retain(channel));
     }
 
-    public void releaseClient(String channel, boolean await) {
-        for (var e : clients.entrySet()) {
-            ClientHolder shared = e.getValue();
-            if (shared.channels().contains(channel)) {
-                if (clients.computeIfPresent(e.getKey(), (k, c) -> c.release(channel) ? null : c) == null) {
-                    connectionFingerprints.values().remove(e.getKey());
-                    stopClient(shared.client(), await);
-                }
-                return;
+    private CompletionStage<Void> releaseClient(String channel) {
+        String fingerprint = channelFingerprints.remove(channel);
+        if (fingerprint == null) {
+            return CompletableFuture.completedStage(null);
+        }
+        AtomicReference<RabbitMQClient> toClose = new AtomicReference<>();
+        clients.compute(fingerprint, (key, holder) -> {
+            if (holder == null) {
+                return null;
             }
+            if (holder.release(channel)) {
+                toClose.compareAndSet(null, holder.client());
+                connectionFingerprints.values().remove(key);
+                return null;
+            }
+            return holder;
+        });
+        RabbitMQClient clientToClose = toClose.get();
+        if (clientToClose != null) {
+            return clientToClose.stop().subscribeAsCompletionStage();
         }
-    }
-
-    private void stopClient(RabbitMQClient client, boolean await) {
-        if (client == null) {
-            return;
-        }
-        if (await) {
-            client.stopAndAwait();
-        } else {
-            client.stopAndForget();
-        }
+        return CompletableFuture.completedStage(null);
     }
 
 }

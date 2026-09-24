@@ -27,6 +27,15 @@ public class AmqpClientHolder {
         return this;
     }
 
+    public boolean release(String channel) {
+        channels.remove(channel);
+        if (channels.isEmpty()) {
+            closeConnectionHolder();
+            return true;
+        }
+        return false;
+    }
+
     void closeConnectionHolder() {
         if (connectionHolder != null) {
             connectionHolder.close();
