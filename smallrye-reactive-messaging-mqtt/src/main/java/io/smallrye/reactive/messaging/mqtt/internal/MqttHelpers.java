@@ -10,6 +10,7 @@ import java.util.regex.Pattern;
 
 import jakarta.enterprise.inject.Instance;
 
+import io.netty.handler.codec.mqtt.MqttSubscriptionOption.RetainedHandlingPolicy;
 import io.smallrye.common.annotation.Identifier;
 import io.smallrye.reactive.messaging.mqtt.MqttConnectorCommonConfiguration;
 import io.smallrye.reactive.messaging.mqtt.session.ConstantReconnectDelayOptions;
@@ -28,6 +29,21 @@ public class MqttHelpers {
 
     private MqttHelpers() {
         // avoid direct instantiation.
+    }
+
+    /**
+     * Convert the `retain-handling` attribute of a channel into the policy to request to the broker.
+     *
+     * @param value the configured value
+     * @param channel the channel, used in the error message
+     * @return the policy
+     * @throws IllegalArgumentException if the value is not 0, 1 or 2
+     */
+    public static RetainedHandlingPolicy retainedHandlingPolicy(int value, String channel) {
+        if (value < 0 || value > 2) {
+            throw ex.illegalArgumentInvalidRetainHandling(channel, value);
+        }
+        return RetainedHandlingPolicy.valueOf(value);
     }
 
     private static MqttClientSessionOptions createMqttClientOptions(MqttConnectorCommonConfiguration config) {

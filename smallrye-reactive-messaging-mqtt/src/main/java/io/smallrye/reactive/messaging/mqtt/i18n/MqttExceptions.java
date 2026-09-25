@@ -28,4 +28,7 @@ public interface MqttExceptions {
     @Message(id = 17004, value = "Cannot build a response message: the incoming message has no MQTT 5.0 'Response Topic' property")
     IllegalArgumentException illegalArgumentMissingResponseTopic();
 
+    @Message(id = 17005, value = "Invalid 'retain-handling' value on channel '%s': %d. It must be 0 (send the retained messages at subscribe), 1 (send them only if the subscription does not exist yet) or 2 (never send them)")
+    IllegalArgumentException illegalArgumentInvalidRetainHandling(String channel, int value);
+
 }
