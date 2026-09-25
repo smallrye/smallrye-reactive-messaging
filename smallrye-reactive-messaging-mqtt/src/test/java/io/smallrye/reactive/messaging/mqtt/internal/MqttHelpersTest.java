@@ -1,6 +1,7 @@
 package io.smallrye.reactive.messaging.mqtt.internal;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -10,6 +11,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
+import io.netty.handler.codec.mqtt.MqttSubscriptionOption.RetainedHandlingPolicy;
 import io.smallrye.config.SmallRyeConfigProviderResolver;
 import io.smallrye.reactive.messaging.mqtt.MqttConnectorCommonConfiguration;
 import io.smallrye.reactive.messaging.mqtt.session.MqttClientSessionOptions;
@@ -157,6 +159,35 @@ class MqttHelpersTest {
         void sharedSubscriptionWithMultipleLevels() {
             assertThat(MqttHelpers.rebuildMatchesWithSharedSubscription("$share/consumer-group/a/b/c/d"))
                     .isEqualTo("a/b/c/d");
+        }
+    }
+
+    @Nested
+    class RetainedHandlingPolicyTests {
+
+        @Test
+        void supportedValues() {
+            assertThat(MqttHelpers.retainedHandlingPolicy(0, "prices"))
+                    .isEqualTo(RetainedHandlingPolicy.SEND_AT_SUBSCRIBE);
+            assertThat(MqttHelpers.retainedHandlingPolicy(1, "prices"))
+                    .isEqualTo(RetainedHandlingPolicy.SEND_AT_SUBSCRIBE_IF_NOT_YET_EXISTS);
+            assertThat(MqttHelpers.retainedHandlingPolicy(2, "prices"))
+                    .isEqualTo(RetainedHandlingPolicy.DONT_SEND_AT_SUBSCRIBE);
+        }
+
+        @Test
+        void valueOutOfRange() {
+            assertThatThrownBy(() -> MqttHelpers.retainedHandlingPolicy(3, "prices"))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("retain-handling")
+                    .hasMessageContaining("prices");
+        }
+
+        @Test
+        void negativeValue() {
+            assertThatThrownBy(() -> MqttHelpers.retainedHandlingPolicy(-1, "prices"))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("retain-handling");
         }
     }
 }

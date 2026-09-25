@@ -38,3 +38,46 @@ mp.messaging.incoming.[channel-name].connector=smallrye-mqtt
 mp.messaging.outgoing.[channel-name].connector=smallrye-mqtt
 ```
 
+
+## Protocol version
+
+The connector speaks MQTT 3.1.1 by default, and MQTT 5.0 when the
+channel sets `mqtt-version=5`:
+
+```properties
+mp.messaging.incoming.prices.mqtt-version=5
+```
+
+MQTT 5.0 enables the connect properties `session-expiry-interval`,
+`receive-maximum`, `topic-alias-maximum` and `authentication-method`,
+the subscription options `no-local`, `retain-as-published`,
+`retain-handling` and `subscription-identifier`, and the per-message
+properties described in the inbound and outbound metadata sections.
+These attributes are accepted but ignored by the broker when the channel
+stays on MQTT 3.1.1.
+
+## Last Will and Testament
+
+The broker publishes the will message when the client disconnects
+without a proper DISCONNECT packet. It is configured on the channel:
+
+```properties
+mp.messaging.incoming.prices.will-topic=status/prices
+mp.messaging.incoming.prices.will-payload=offline
+mp.messaging.incoming.prices.will-qos=1
+mp.messaging.incoming.prices.will-retain=true
+```
+
+The will message is sent by the broker as soon as `will-topic` and
+`will-payload` are set. They must be set together: the connector fails
+to start otherwise, since the broker never sends a will message missing
+one of them.
+
+The `will-flag` attribute is ignored: the MQTT client sets the flag
+itself from the will message it has been given. It is still accepted, so
+that existing configurations keep working.
+
+With `mqtt-version=5`, the will message also accepts
+`will-content-type`, `will-response-topic` and `will-delay-interval`,
+the latter being the number of seconds the broker waits before
+publishing it.
