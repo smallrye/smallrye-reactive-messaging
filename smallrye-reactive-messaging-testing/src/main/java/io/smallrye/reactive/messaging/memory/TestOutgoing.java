@@ -5,12 +5,12 @@ import java.util.List;
 import org.eclipse.microprofile.reactive.messaging.Message;
 
 /**
- * Allows interacting with an in-memory sink.
- * An in-memory sink is a channel in which you can observes the received messages and events.
+ * Allows interacting with a test outgoing channel.
+ * Use this API to verify messages sent by the application during tests.
  *
  * @param <T> the type payload expected in the received messages.
  */
-public interface InMemorySink<T> {
+public interface TestOutgoing<T> {
 
     /**
      * @return the channel name.
@@ -18,10 +18,11 @@ public interface InMemorySink<T> {
     String name();
 
     /**
-     * @return the list, potentially empty, of the received messages. The implementation must return a copy of the list.
+     * @return the list, potentially empty, of messages sent by the application to this channel.
+     *         The implementation must return a copy of the list.
      *         The {@link #clear()} method allows flushing the list.
      */
-    List<? extends Message<T>> received();
+    List<? extends Message<T>> sent();
 
     /**
      * Clears the list of received messages. It also reset the received failure (if any) and the received completion
@@ -43,5 +44,4 @@ public interface InMemorySink<T> {
      * @return the failure if {@link #hasFailed()} returned {@code true}.
      */
     Throwable getFailure();
-
 }
