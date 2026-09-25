@@ -2,92 +2,130 @@ package io.smallrye.reactive.messaging.rabbitmq.internals;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
 import org.junit.jupiter.api.Test;
 
-import com.rabbitmq.client.Address;
-
-import io.vertx.rabbitmq.RabbitMQOptions;
+import com.rabbitmq.client.ConnectionFactory;
 
 class RabbitMQClientHelperTest {
 
+    // --- computeConnectionFingerprint ---
+
     @Test
     void testIdenticalOptionsProduceSameFingerprint() {
-        RabbitMQOptions options1 = new RabbitMQOptions()
-                .setHost("localhost")
-                .setPort(5672)
-                .setUser("guest")
-                .setPassword("guest")
-                .setVirtualHost("/");
+        ConnectionFactory factory1 = new ConnectionFactory();
+        factory1.setHost("localhost");
+        factory1.setPort(5672);
+        factory1.setUsername("guest");
+        factory1.setPassword("guest");
+        factory1.setVirtualHost("/");
 
-        RabbitMQOptions options2 = new RabbitMQOptions()
-                .setHost("localhost")
-                .setPort(5672)
-                .setUser("guest")
-                .setPassword("guest")
-                .setVirtualHost("/");
+        ConnectionFactory factory2 = new ConnectionFactory();
+        factory2.setHost("localhost");
+        factory2.setPort(5672);
+        factory2.setUsername("guest");
+        factory2.setPassword("guest");
+        factory2.setVirtualHost("/");
 
-        String fingerprint1 = RabbitMQClientHelper.computeConnectionFingerprint(options1);
-        String fingerprint2 = RabbitMQClientHelper.computeConnectionFingerprint(options2);
+        String fingerprint1 = RabbitMQClientHelper.computeConnectionFingerprint(factory1);
+        String fingerprint2 = RabbitMQClientHelper.computeConnectionFingerprint(factory2);
 
         assertThat(fingerprint1).isEqualTo(fingerprint2);
     }
 
     @Test
     void testDifferentHostsProduceDifferentFingerprints() {
-        RabbitMQOptions options1 = new RabbitMQOptions().setHost("host-a").setPort(5672);
-        RabbitMQOptions options2 = new RabbitMQOptions().setHost("host-b").setPort(5672);
+        ConnectionFactory factory1 = new ConnectionFactory();
+        factory1.setHost("host-a");
+        factory1.setPort(5672);
 
-        assertThat(RabbitMQClientHelper.computeConnectionFingerprint(options1))
-                .isNotEqualTo(RabbitMQClientHelper.computeConnectionFingerprint(options2));
-    }
+        ConnectionFactory factory2 = new ConnectionFactory();
+        factory2.setHost("host-b");
+        factory2.setPort(5672);
 
-    @Test
-    void testDifferentAddressesProduceDifferentFingerprints() {
-        RabbitMQOptions options1 = new RabbitMQOptions().setAddresses(List.of(new Address("host-a", 5672)));
-        RabbitMQOptions options2 = new RabbitMQOptions().setAddresses(List.of(new Address("host-a", 5673)));
-
-        assertThat(RabbitMQClientHelper.computeConnectionFingerprint(options1))
-                .isNotEqualTo(RabbitMQClientHelper.computeConnectionFingerprint(options2));
+        assertThat(RabbitMQClientHelper.computeConnectionFingerprint(factory1))
+                .isNotEqualTo(RabbitMQClientHelper.computeConnectionFingerprint(factory2));
     }
 
     @Test
     void testDifferentPortsProduceDifferentFingerprints() {
-        RabbitMQOptions options1 = new RabbitMQOptions().setHost("localhost").setPort(5672);
-        RabbitMQOptions options2 = new RabbitMQOptions().setHost("localhost").setPort(5673);
+        ConnectionFactory factory1 = new ConnectionFactory();
+        factory1.setHost("localhost");
+        factory1.setPort(5672);
 
-        assertThat(RabbitMQClientHelper.computeConnectionFingerprint(options1))
-                .isNotEqualTo(RabbitMQClientHelper.computeConnectionFingerprint(options2));
+        ConnectionFactory factory2 = new ConnectionFactory();
+        factory2.setHost("localhost");
+        factory2.setPort(5673);
+
+        assertThat(RabbitMQClientHelper.computeConnectionFingerprint(factory1))
+                .isNotEqualTo(RabbitMQClientHelper.computeConnectionFingerprint(factory2));
     }
 
     @Test
     void testDifferentUsersProduceDifferentFingerprints() {
-        RabbitMQOptions options1 = new RabbitMQOptions().setHost("localhost").setUser("alice");
-        RabbitMQOptions options2 = new RabbitMQOptions().setHost("localhost").setUser("bob");
+        ConnectionFactory factory1 = new ConnectionFactory();
+        factory1.setHost("localhost");
+        factory1.setUsername("alice");
 
-        assertThat(RabbitMQClientHelper.computeConnectionFingerprint(options1))
-                .isNotEqualTo(RabbitMQClientHelper.computeConnectionFingerprint(options2));
+        ConnectionFactory factory2 = new ConnectionFactory();
+        factory2.setHost("localhost");
+        factory2.setUsername("bob");
+
+        assertThat(RabbitMQClientHelper.computeConnectionFingerprint(factory1))
+                .isNotEqualTo(RabbitMQClientHelper.computeConnectionFingerprint(factory2));
     }
 
     @Test
     void testDifferentVirtualHostsProduceDifferentFingerprints() {
-        RabbitMQOptions options1 = new RabbitMQOptions().setHost("localhost").setVirtualHost("/");
-        RabbitMQOptions options2 = new RabbitMQOptions().setHost("localhost").setVirtualHost("/staging");
+        ConnectionFactory factory1 = new ConnectionFactory();
+        factory1.setHost("localhost");
+        factory1.setVirtualHost("/");
 
-        assertThat(RabbitMQClientHelper.computeConnectionFingerprint(options1))
-                .isNotEqualTo(RabbitMQClientHelper.computeConnectionFingerprint(options2));
+        ConnectionFactory factory2 = new ConnectionFactory();
+        factory2.setHost("localhost");
+        factory2.setVirtualHost("/staging");
+
+        assertThat(RabbitMQClientHelper.computeConnectionFingerprint(factory1))
+                .isNotEqualTo(RabbitMQClientHelper.computeConnectionFingerprint(factory2));
     }
 
     @Test
-    void testDifferentSslProduceDifferentFingerprints() {
-        RabbitMQOptions options1 = new RabbitMQOptions().setHost("localhost").setSsl(false);
-        RabbitMQOptions options2 = new RabbitMQOptions().setHost("localhost").setSsl(true);
+    void testDifferentSslProduceDifferentFingerprints() throws Exception {
+        ConnectionFactory factory1 = new ConnectionFactory();
+        factory1.setHost("localhost");
 
-        assertThat(RabbitMQClientHelper.computeConnectionFingerprint(options1))
-                .isNotEqualTo(RabbitMQClientHelper.computeConnectionFingerprint(options2));
+        ConnectionFactory factory2 = new ConnectionFactory();
+        factory2.setHost("localhost");
+        factory2.useSslProtocol();
+
+        assertThat(RabbitMQClientHelper.computeConnectionFingerprint(factory1))
+                .isNotEqualTo(RabbitMQClientHelper.computeConnectionFingerprint(factory2));
+    }
+
+    @Test
+    void testFingerprintIsDeterministic() {
+        ConnectionFactory factory = new ConnectionFactory();
+        factory.setHost("localhost");
+        factory.setPort(5672);
+        factory.setUsername("guest");
+
+        String first = RabbitMQClientHelper.computeConnectionFingerprint(factory);
+        String second = RabbitMQClientHelper.computeConnectionFingerprint(factory);
+
+        assertThat(first).isEqualTo(second);
+    }
+
+    @Test
+    void testFingerprintIsHexSha256() {
+        ConnectionFactory factory = new ConnectionFactory();
+        factory.setHost("localhost");
+
+        String fingerprint = RabbitMQClientHelper.computeConnectionFingerprint(factory);
+
+        assertThat(fingerprint).hasSize(64);
+        assertThat(fingerprint).matches("[0-9a-f]+");
     }
 
     // --- serverQueueName ---
@@ -154,39 +192,6 @@ class RabbitMQClientHelperTest {
         assertThat(result)
                 .containsEntry("valid-key", "valid-value")
                 .hasSize(1);
-    }
-
-    // --- computeConnectionFingerprint determinism ---
-
-    @Test
-    void testFingerprintIsDeterministic() {
-        RabbitMQOptions options = new RabbitMQOptions()
-                .setHost("localhost")
-                .setPort(5672)
-                .setUser("guest");
-
-        String first = RabbitMQClientHelper.computeConnectionFingerprint(options);
-        String second = RabbitMQClientHelper.computeConnectionFingerprint(options);
-
-        assertThat(first).isEqualTo(second);
-    }
-
-    @Test
-    void testFingerprintWithNullAddresses() {
-        RabbitMQOptions options = new RabbitMQOptions().setHost("localhost");
-        // No addresses set → should still compute fingerprint without errors
-        String fingerprint = RabbitMQClientHelper.computeConnectionFingerprint(options);
-        assertThat(fingerprint).isNotEmpty();
-    }
-
-    @Test
-    void testFingerprintIsHexSha256() {
-        RabbitMQOptions options = new RabbitMQOptions().setHost("localhost");
-        String fingerprint = RabbitMQClientHelper.computeConnectionFingerprint(options);
-
-        // SHA-256 produces 64-character hex string
-        assertThat(fingerprint).hasSize(64);
-        assertThat(fingerprint).matches("[0-9a-f]+");
     }
 
 }

@@ -1,30 +1,20 @@
 package io.smallrye.reactive.messaging.rabbitmq;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
-import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
 import org.eclipse.microprofile.reactive.messaging.Message;
 
 import com.rabbitmq.client.AMQP;
-import com.rabbitmq.client.BasicProperties;
 
-import io.netty.handler.codec.http.HttpHeaderValues;
-import io.smallrye.reactive.messaging.rabbitmq.tracing.RabbitMQOpenTelemetryInstrumenter;
-import io.smallrye.reactive.messaging.rabbitmq.tracing.RabbitMQTrace;
-import io.vertx.core.json.Json;
-import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
-import io.vertx.mutiny.core.buffer.Buffer;
-import io.vertx.mutiny.rabbitmq.RabbitMQMessage;
 
 /**
- * Utility class which can handle the transformation of a {@link Message}
- * to an {@link OutgoingRabbitMQMessage}.
+ * Utility class for converting between Reactive Messaging Message and RabbitMQ message format.
+ * Handles different payload types and content-type determination.
  */
 public class RabbitMQMessageConverter {
 
@@ -40,211 +30,175 @@ public class RabbitMQMessageConverter {
             Float.class,
             Long.class);
 
+    private static final String CONTENT_TYPE_TEXT_PLAIN = "text/plain";
+    private static final String CONTENT_TYPE_APPLICATION_JSON = "application/json";
+    private static final String CONTENT_TYPE_APPLICATION_OCTET_STREAM = "application/octet-stream";
+
     private RabbitMQMessageConverter() {
-        // Avoid direct instantiation.
+        // Utility class - no instantiation
     }
 
     /**
-     * Converts the supplied {@link Message} to an {@link OutgoingRabbitMQMessage}.
+     * Converts the supplied Message to RabbitMQ message components.
      *
      * @param message the source message
-     * @param exchange the destination exchange
-     * @param defaultRoutingKey the fallback routing key to use
-     * @param isTracingEnabled whether tracing is enabled
-     * @return an {@link OutgoingRabbitMQMessage}
+     * @param defaultRoutingKey the fallback routing key
+     * @param defaultTtl optional default TTL
+     * @return the converted message components
      */
     public static OutgoingRabbitMQMessage convert(
-            final RabbitMQOpenTelemetryInstrumenter instrumenter,
             final Message<?> message,
-            final String exchange,
             final String defaultRoutingKey,
-            final Optional<Long> defaultTtl,
-            final boolean isTracingEnabled) {
-        final Optional<io.vertx.mutiny.rabbitmq.RabbitMQMessage> rabbitMQMessage = getRabbitMQMessage(message);
-        final String routingKey = getRoutingKey(message).orElse(defaultRoutingKey);
+            final Optional<Long> defaultTtl) {
 
-        // Figure out the body and properties
-        Buffer body;
-        BasicProperties properties;
-
-        if (rabbitMQMessage.isPresent()) {
-            // If we already have a RabbitMQMessage present, use it as the basis for the outgoing one
-            body = rabbitMQMessage.get().body();
-            final BasicProperties sourceProperties = rabbitMQMessage.get().properties();
-            // Make a copy of the source headers as the original is probably immutable
-            final Map<String, Object> sourceHeaders = new HashMap<>(sourceProperties.getHeaders());
-
-            if (isTracingEnabled) {
-                // Create a new span for the outbound message and record updated tracing information in
-                // the headers; this has to be done before we build the properties below
-                instrumenter.traceOutgoing(message, RabbitMQTrace.traceExchange(exchange, routingKey, sourceHeaders));
-            }
-
-            // Reconstruct the properties from the source, except with the (possibly) modified headers;
-            // only override the existing expiration if not already set and a non-negative default TTL
-            // has been specified.
-            final String expiration = (null != sourceProperties.getExpiration()) ? sourceProperties.getExpiration()
-                    : defaultTtl.map(String::valueOf).orElse(null);
-
-            // If not already specified, figure out the content type from the message payload
-            final String contentType = (sourceProperties.getContentType() != null) ? sourceProperties.getContentType()
-                    : getDefaultContentTypeForPayload(message.getPayload());
-
-            properties = new AMQP.BasicProperties.Builder()
-                    .contentType(contentType)
-                    .contentEncoding(sourceProperties.getContentEncoding())
-                    .headers(sourceHeaders)
-                    .deliveryMode(sourceProperties.getDeliveryMode())
-                    .priority(sourceProperties.getPriority())
-                    .correlationId(sourceProperties.getCorrelationId())
-                    .replyTo(sourceProperties.getReplyTo())
-                    .expiration(expiration)
-                    .messageId(sourceProperties.getMessageId())
-                    .timestamp(sourceProperties.getTimestamp())
-                    .type(sourceProperties.getType())
-                    .userId(sourceProperties.getUserId())
-                    .appId(sourceProperties.getAppId())
-                    .build();
-        } else {
-            // Getting here means we have to work a little harder
-            final String defaultContentType = getDefaultContentTypeForPayload(message.getPayload());
-            body = getBodyFromPayload(message.getPayload());
-
-            Optional<OutgoingRabbitMQMetadata> outgoing = message.getMetadata(OutgoingRabbitMQMetadata.class);
-            OutgoingRabbitMQMetadata.Builder builder = outgoing.map(OutgoingRabbitMQMetadata::from)
-                    .orElseGet(() -> new OutgoingRabbitMQMetadata.Builder()
-                            .withContentType(defaultContentType)
-                            .withExpiration(defaultTtl.map(String::valueOf).orElse(null)));
-
-            Optional<IncomingRabbitMQMetadata> incoming = message.getMetadata(IncomingRabbitMQMetadata.class);
-            incoming.ifPresent(in -> {
-                if (outgoing.map(OutgoingRabbitMQMetadata::getCorrelationId).isEmpty()) {
-                    in.getCorrelationId().ifPresent(builder::withCorrelationId);
-                }
-            });
-
-            final OutgoingRabbitMQMetadata metadata = builder.build();
-
-            if (isTracingEnabled) {
-                // Create a new span for the outbound message and record updated tracing information in
-                // the message headers; this has to be done before we build the properties below
-                instrumenter.traceOutgoing(message, RabbitMQTrace.traceExchange(exchange, routingKey, metadata.getHeaders()));
-            }
-
-            final Date timestamp = (metadata.getTimestamp() != null) ? Date.from(metadata.getTimestamp().toInstant()) : null;
-
-            // If not already specified, use the default content type for the message payload
-            final String contentType = (metadata.getContentType() != null) ? metadata.getContentType()
-                    : defaultContentType;
-
-            properties = new AMQP.BasicProperties.Builder()
-                    .contentType(contentType)
-                    .contentEncoding(metadata.getContentEncoding())
-                    .headers(metadata.getHeaders())
-                    .deliveryMode(metadata.getDeliveryMode())
-                    .priority(metadata.getPriority())
-                    .correlationId(metadata.getCorrelationId())
-                    .replyTo(metadata.getReplyTo())
-                    .expiration(metadata.getExpiration())
-                    .messageId(metadata.getMessageId())
-                    .timestamp(timestamp)
-                    .type(metadata.getType())
-                    .userId(metadata.getUserId())
-                    .appId(metadata.getAppId())
-                    .clusterId(metadata.getClusterId())
-                    .build();
-        }
-
-        return new OutgoingRabbitMQMessage(routingKey, body, properties);
-    }
-
-    /**
-     * Returns a {@link Buffer} containing the supplied payload.
-     *
-     * @param payload the payload
-     * @return a buffer encapsulation of the payload
-     */
-    private static Buffer getBodyFromPayload(final Object payload) {
-        if (payload == null) {
-            return Buffer.buffer();
-        }
-        if (isPrimitive(payload.getClass())) {
-            // Anything representable as a string is rendered as a String
-            return Buffer.buffer(payload.toString());
-        } else if (payload instanceof Buffer) {
-            return (Buffer) payload;
-        } else if (payload instanceof io.vertx.core.buffer.Buffer) {
-            return Buffer.buffer(((io.vertx.core.buffer.Buffer) payload).getBytes());
-        } else if (payload instanceof byte[]) {
-            return Buffer.buffer((byte[]) payload);
-        } else if (payload instanceof JsonObject) {
-            return Buffer.buffer(((JsonObject) payload).encode());
-        } else if (payload instanceof JsonArray) {
-            return Buffer.buffer(((JsonArray) payload).encode());
-        } else {
-            // Other objects are serialized to JSON
-            return Buffer.buffer(Json.encode(payload));
-        }
-    }
-
-    /**
-     * Returns the default content type based on the class of the payload.
-     *
-     * @param payload the payload
-     * @return the default content typ
-     */
-    private static String getDefaultContentTypeForPayload(final Object payload) {
-        if (payload == null) {
-            return HttpHeaderValues.APPLICATION_OCTET_STREAM.toString();
-        }
-        if (isPrimitive(payload.getClass())) {
-            // Anything representable a string is rendered as a String
-            return HttpHeaderValues.TEXT_PLAIN.toString();
-        } else if (payload instanceof Buffer) {
-            return HttpHeaderValues.APPLICATION_OCTET_STREAM.toString();
-        } else if (payload instanceof io.vertx.core.buffer.Buffer) {
-            return HttpHeaderValues.APPLICATION_OCTET_STREAM.toString();
-        } else if (payload instanceof byte[]) {
-            return HttpHeaderValues.APPLICATION_OCTET_STREAM.toString();
-        } else if (payload instanceof JsonObject) {
-            return HttpHeaderValues.APPLICATION_JSON.toString();
-        } else if (payload instanceof JsonArray) {
-            return HttpHeaderValues.APPLICATION_JSON.toString();
-        } else {
-            // Other objects are serialized to JSON
-            return HttpHeaderValues.APPLICATION_JSON.toString();
-        }
-    }
-
-    private static Optional<RabbitMQMessage> getRabbitMQMessage(final Message<?> message) {
+        // Check if message is already an IncomingRabbitMQMessage
         if (message instanceof IncomingRabbitMQMessage) {
-            return Optional.of(((IncomingRabbitMQMessage<?>) message)
-                    .getRabbitMQMessage());
-        } else if (message.getPayload() instanceof io.vertx.mutiny.rabbitmq.RabbitMQMessage) {
-            return Optional.of((io.vertx.mutiny.rabbitmq.RabbitMQMessage) message.getPayload());
-        } else if (message.getPayload() instanceof io.vertx.rabbitmq.RabbitMQMessage) {
-            return Optional.of(new io.vertx.mutiny.rabbitmq.RabbitMQMessage(
-                    (io.vertx.rabbitmq.RabbitMQMessage) message.getPayload()));
+            return convertFromIncoming((IncomingRabbitMQMessage<?>) message, defaultRoutingKey);
+        }
+
+        // Convert payload to bytes
+        byte[] body = getBodyFromPayload(message.getPayload());
+        String defaultContentType = getDefaultContentTypeForPayload(message.getPayload());
+
+        Optional<OutgoingRabbitMQMetadata> outgoing = message.getMetadata(OutgoingRabbitMQMetadata.class);
+        OutgoingRabbitMQMetadata.Builder builder = outgoing.map(out -> {
+            OutgoingRabbitMQMetadata.Builder b = OutgoingRabbitMQMetadata.from(out);
+            if (out.getProperties().getContentType() == null) {
+                b.withContentType(defaultContentType);
+            }
+            if (out.getProperties().getDeliveryMode() == null) {
+                b.withDeliveryMode(2);
+            }
+            return b;
+        }).orElseGet(() -> OutgoingRabbitMQMetadata.builder()
+                .withContentType(defaultContentType)
+                .withDeliveryMode(2)
+                .withExpiration(defaultTtl.map(String::valueOf).orElse(null)));
+
+        Optional<IncomingRabbitMQMetadata> incoming = message.getMetadata(IncomingRabbitMQMetadata.class);
+        incoming.ifPresent(in -> {
+            if (outgoing.map(m -> m.getProperties().getCorrelationId()).isEmpty()) {
+                String cid = in.getCorrelationId();
+                if (cid != null) {
+                    builder.withCorrelationId(cid);
+                }
+            }
+        });
+
+        OutgoingRabbitMQMetadata metadata = builder.build();
+
+        // Get routing key: outgoing metadata > replyTo from incoming > default
+        String routingKey = metadata.getRoutingKey();
+        if (routingKey == null) {
+            routingKey = incoming.map(IncomingRabbitMQMetadata::getReplyTo).orElse(null);
+        }
+        if (routingKey == null) {
+            routingKey = defaultRoutingKey;
+        }
+
+        // Get exchange from metadata (optional override)
+        Optional<String> exchange = metadata.getExchange();
+
+        return new OutgoingRabbitMQMessage(routingKey, exchange, body, metadata.getProperties());
+    }
+
+    /**
+     * Convert from an IncomingRabbitMQMessage (forwarding scenario).
+     */
+    private static OutgoingRabbitMQMessage convertFromIncoming(
+            IncomingRabbitMQMessage<?> incomingMessage,
+            String defaultRoutingKey) {
+
+        IncomingRabbitMQMetadata metadata = incomingMessage.getRabbitMQMetadata();
+
+        // Use original routing key or default
+        String routingKey = metadata.getRoutingKey() != null ? metadata.getRoutingKey() : defaultRoutingKey;
+
+        // Use original exchange
+        Optional<String> exchange = Optional.ofNullable(metadata.getExchange());
+
+        // Get payload as bytes
+        byte[] body;
+        Object payload = incomingMessage.getPayload();
+        if (payload instanceof byte[]) {
+            body = (byte[]) payload;
+        } else if (payload instanceof String) {
+            body = ((String) payload).getBytes(StandardCharsets.UTF_8);
         } else {
-            return Optional.empty();
+            body = getBodyFromPayload(payload);
         }
+
+        // Copy properties from incoming message
+        AMQP.BasicProperties properties = new AMQP.BasicProperties.Builder()
+                .contentType(metadata.getContentType())
+                .contentEncoding(metadata.getContentEncoding())
+                .headers(metadata.getHeaders())
+                .deliveryMode(metadata.getDeliveryMode())
+                .priority(metadata.getPriority())
+                .correlationId(metadata.getCorrelationId())
+                .replyTo(metadata.getReplyTo())
+                .expiration(metadata.getExpiration())
+                .messageId(metadata.getMessageId())
+                .timestamp(metadata.getTimestamp())
+                .type(metadata.getType())
+                .userId(metadata.getUserId())
+                .appId(metadata.getAppId())
+                .build();
+
+        return new OutgoingRabbitMQMessage(routingKey, exchange, body, properties);
     }
 
-    private static Optional<String> getRoutingKey(final Message<?> message) {
-        final Optional<io.vertx.mutiny.rabbitmq.RabbitMQMessage> rabbitMQMessage = getRabbitMQMessage(message);
-
-        if (rabbitMQMessage.isPresent()) {
-            return Optional.of(rabbitMQMessage.get().envelope().getRoutingKey());
+    /**
+     * Convert payload to byte array.
+     */
+    private static byte[] getBodyFromPayload(Object payload) {
+        if (payload == null) {
+            return new byte[0];
         }
-        String routing = message.getMetadata(IncomingRabbitMQMetadata.class)
-                .flatMap(IncomingRabbitMQMetadata::getReplyTo)
-                .orElse(null);
-        // Getting here means we have to work a little harder
-        final OutgoingRabbitMQMetadata metadata = message.getMetadata(OutgoingRabbitMQMetadata.class)
-                .orElse(new OutgoingRabbitMQMetadata());
-        return Optional.ofNullable(metadata.getRoutingKey()).or(() -> Optional.ofNullable(routing));
+
+        if (payload instanceof byte[]) {
+            return (byte[]) payload;
+        }
+
+        if (payload instanceof String) {
+            return ((String) payload).getBytes(StandardCharsets.UTF_8);
+        }
+
+        if (isPrimitive(payload.getClass())) {
+            return payload.toString().getBytes(StandardCharsets.UTF_8);
+        }
+
+        // For complex objects, serialize to JSON
+        return JsonObject.mapFrom(payload).encode().getBytes(StandardCharsets.UTF_8);
     }
 
+    /**
+     * Determine default content-type based on payload type.
+     */
+    private static String getDefaultContentTypeForPayload(Object payload) {
+        if (payload == null) {
+            return CONTENT_TYPE_APPLICATION_OCTET_STREAM;
+        }
+
+        if (payload instanceof byte[]) {
+            return CONTENT_TYPE_APPLICATION_OCTET_STREAM;
+        }
+
+        if (payload instanceof String) {
+            return CONTENT_TYPE_TEXT_PLAIN;
+        }
+
+        if (isPrimitive(payload.getClass())) {
+            return CONTENT_TYPE_TEXT_PLAIN;
+        }
+
+        // Default to JSON for complex objects
+        return CONTENT_TYPE_APPLICATION_JSON;
+    }
+
+    /**
+     * Check if class is a primitive or wrapper type.
+     */
     private static boolean isPrimitive(Class<?> clazz) {
         return clazz.isPrimitive() || PRIMITIVES.contains(clazz);
     }
@@ -254,51 +208,35 @@ public class RabbitMQMessageConverter {
      */
     public static final class OutgoingRabbitMQMessage {
         private final String routingKey;
-        private final Buffer body;
-        private final BasicProperties properties;
+        private final Optional<String> exchange;
+        private final byte[] body;
+        private final AMQP.BasicProperties properties;
 
-        /**
-         * Constructor.
-         *
-         * @param routingKey the routing key for the message
-         * @param body the message body
-         * @param properties the message properties
-         */
         private OutgoingRabbitMQMessage(
-                final String routingKey,
-                final Buffer body,
-                final BasicProperties properties) {
+                String routingKey,
+                Optional<String> exchange,
+                byte[] body,
+                AMQP.BasicProperties properties) {
             this.routingKey = routingKey;
+            this.exchange = exchange;
             this.body = body;
             this.properties = properties;
         }
 
-        /**
-         * The body of this message.
-         *
-         * @return the body
-         */
-        public Buffer getBody() {
-            return this.body;
-        }
-
-        /**
-         * The routing key for this message.
-         *
-         * @return the routing key
-         */
         public String getRoutingKey() {
-            return this.routingKey;
+            return routingKey;
         }
 
-        /**
-         * The properties for this message.
-         *
-         * @return the properties
-         */
-        public BasicProperties getProperties() {
+        public Optional<String> getExchange() {
+            return exchange;
+        }
+
+        public byte[] getBody() {
+            return body;
+        }
+
+        public AMQP.BasicProperties getProperties() {
             return properties;
         }
     }
-
 }

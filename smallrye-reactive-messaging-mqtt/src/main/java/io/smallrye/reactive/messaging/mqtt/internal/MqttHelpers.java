@@ -57,10 +57,14 @@ public class MqttHelpers {
         options.setTrustAll(config.getTrustAll());
         options.setUsername(config.getUsername().orElse(null));
         options.setWillQoS(config.getWillQos());
-        options.setWillFlag(config.getWillFlag());
         options.setWillRetain(config.getWillRetain());
         options.setUnsubscribeOnDisconnect(config.getUnsubscribeOnDisconnection());
         options.setMetricsName("mqtt|" + config.getChannel());
+
+        // MQTT v5 options
+        options.setVersion(config.getMqttVersion());
+        config.getSessionExpiryInterval().ifPresent(sei -> options.setSessionExpireInterval((long) sei));
+        config.getAuthenticationMethod().ifPresent(options::setAuthenticationMethod);
 
         return options;
     }
@@ -207,15 +211,20 @@ public class MqttHelpers {
             custom.setWillQoS(config.getWillQos());
         }
 
-        if (isSetInChannelConfiguration("will-flag", config)) {
-            custom.setWillFlag(config.getWillFlag());
-        }
-
         if (isSetInChannelConfiguration("will-retain", config)) {
             custom.setWillRetain(config.getWillRetain());
         }
         if (isSetInChannelConfiguration("unsubscribe-on-disconnection", config)) {
             custom.setUnsubscribeOnDisconnect(config.getUnsubscribeOnDisconnection());
+        }
+        if (isSetInChannelConfiguration("mqtt-version", config)) {
+            custom.setVersion(config.getMqttVersion());
+        }
+        if (isSetInChannelConfiguration("session-expiry-interval", config)) {
+            config.getSessionExpiryInterval().ifPresent(sei -> custom.setSessionExpireInterval((long) sei));
+        }
+        if (isSetInChannelConfiguration("authentication-method", config)) {
+            config.getAuthenticationMethod().ifPresent(custom::setAuthenticationMethod);
         }
         if (DEFAULT_METRICS_NAME.equals(custom.getMetricsName())) {
             custom.setMetricsName("mqtt|" + config.getChannel());

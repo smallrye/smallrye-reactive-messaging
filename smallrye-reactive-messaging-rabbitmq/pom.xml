@@ -12,31 +12,52 @@
 
   <name>SmallRye Reactive Messaging : Connector :: RabbitMQ</name>
 
+  <properties>
+    <revapi.skip>true</revapi.skip>
+  </properties>
+
   <dependencies>
+    <!-- SmallRye Reactive Messaging Provider -->
     <dependency>
       <groupId>io.smallrye.reactive</groupId>
       <artifactId>smallrye-reactive-messaging-provider</artifactId>
       <version>${project.version}</version>
     </dependency>
+
+    <!-- Original RabbitMQ AMQP Client (not Vert.x client) -->
     <dependency>
-      <groupId>io.smallrye.reactive</groupId>
-      <artifactId>smallrye-mutiny-vertx-rabbitmq-client</artifactId>
-      <version>${smallrye-vertx-mutiny-clients.version}</version>
+      <groupId>com.rabbitmq</groupId>
+      <artifactId>amqp-client</artifactId>
+      <version>5.20.0</version>
+      <exclusions>
+        <exclusion>
+          <groupId>org.slf4j</groupId>
+          <artifactId>slf4j-api</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
+
+    <!-- Vert.x Core for duplicated context support -->
+    <dependency>
+      <groupId>io.vertx</groupId>
+      <artifactId>vertx-core</artifactId>
+    </dependency>
+
+    <!-- OpenTelemetry support -->
     <dependency>
       <groupId>io.smallrye.reactive</groupId>
       <artifactId>smallrye-reactive-messaging-otel</artifactId>
       <version>${project.version}</version>
     </dependency>
-    <dependency>
-      <groupId>io.vertx</groupId>
-      <artifactId>vertx-rabbitmq-client</artifactId>
-    </dependency>
+
+    <!-- Configuration -->
     <dependency>
       <groupId>io.smallrye.config</groupId>
       <artifactId>smallrye-config</artifactId>
       <scope>test</scope>
     </dependency>
+
+    <!-- Test dependencies -->
     <dependency>
       <groupId>io.smallrye.reactive</groupId>
       <artifactId>test-common</artifactId>
@@ -44,6 +65,7 @@
       <scope>test</scope>
     </dependency>
 
+    <!-- Connector Attribute Processor for configuration generation -->
     <dependency>
       <groupId>io.smallrye.reactive</groupId>
       <artifactId>smallrye-connector-attribute-processor</artifactId>
@@ -51,47 +73,42 @@
       <scope>provided</scope>
     </dependency>
 
+    <!-- TestContainers for integration tests -->
     <dependency>
       <groupId>org.testcontainers</groupId>
       <artifactId>testcontainers</artifactId>
       <scope>test</scope>
     </dependency>
+
     <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-reload4j</artifactId>
       <scope>test</scope>
     </dependency>
+
     <dependency>
       <groupId>io.opentelemetry</groupId>
       <artifactId>opentelemetry-sdk-testing</artifactId>
       <scope>test</scope>
     </dependency>
+
+    <!-- Jackson Databind for JSON serialization of complex payloads -->
+    <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-databind</artifactId>
+      <scope>test</scope>
+    </dependency>
+
     <dependency>
       <groupId>io.smallrye.reactive</groupId>
       <artifactId>smallrye-reactive-messaging-in-memory</artifactId>
       <version>${project.version}</version>
       <scope>test</scope>
     </dependency>
+
     <dependency>
       <groupId>org.testcontainers</groupId>
       <artifactId>testcontainers-toxiproxy</artifactId>
-      <scope>test</scope>
-    </dependency>
-
-    <dependency>
-      <groupId>jakarta.json</groupId>
-      <artifactId>jakarta.json-api</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>jakarta.json.bind</groupId>
-      <artifactId>jakarta.json.bind-api</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.eclipse</groupId>
-      <artifactId>yasson</artifactId>
-      <version>${yasson.version}</version>
       <scope>test</scope>
     </dependency>
   </dependencies>
@@ -128,7 +145,6 @@
       </plugin>
     </plugins>
   </build>
-
 
   <profiles>
     <profile>

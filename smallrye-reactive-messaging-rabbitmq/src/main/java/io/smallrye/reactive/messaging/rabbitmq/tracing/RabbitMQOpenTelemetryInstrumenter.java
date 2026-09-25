@@ -17,6 +17,10 @@ import io.opentelemetry.instrumentation.api.instrumenter.InstrumenterBuilder;
 import io.smallrye.reactive.messaging.rabbitmq.RabbitMQConnectorCommonConfiguration;
 import io.smallrye.reactive.messaging.tracing.TracingUtils;
 
+/**
+ * OpenTelemetry instrumenter for RabbitMQ connector.
+ * Creates spans for incoming and outgoing messages with proper context propagation.
+ */
 public class RabbitMQOpenTelemetryInstrumenter {
     private final Instrumenter<RabbitMQTrace, Void> instrumenter;
 

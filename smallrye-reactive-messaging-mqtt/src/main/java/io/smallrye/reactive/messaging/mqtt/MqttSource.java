@@ -18,7 +18,7 @@ import io.smallrye.reactive.messaging.mqtt.session.MqttClientSessionOptions;
 import io.smallrye.reactive.messaging.mqtt.session.RequestedQoS;
 import io.smallrye.reactive.messaging.providers.helpers.ConfigUtils;
 import io.smallrye.reactive.messaging.providers.helpers.VertxContext;
-import io.vertx.core.impl.VertxInternal;
+import io.vertx.core.internal.VertxInternal;
 import io.vertx.mutiny.core.Context;
 import io.vertx.mutiny.core.Vertx;
 
@@ -36,6 +36,13 @@ public class MqttSource {
     public MqttSource(Vertx vertx, MqttConnectorIncomingConfiguration config,
             Instance<ClientCustomizer<MqttClientSessionOptions>> configCustomizers,
             Instance<MqttClientSessionOptions> instances) {
+        this(vertx, config, configCustomizers, instances, null);
+    }
+
+    public MqttSource(Vertx vertx, MqttConnectorIncomingConfiguration config,
+            Instance<ClientCustomizer<MqttClientSessionOptions>> configCustomizers,
+            Instance<MqttClientSessionOptions> instances,
+            Instance<MqttClientSessionCustomizer> sessionCustomizers) {
         MqttClientSessionOptions options = ConfigUtils.customize(config.config(), configCustomizers,
                 MqttHelpers.createClientOptions(config, instances));
 
@@ -51,16 +58,34 @@ public class MqttSource {
         MqttTopicHelper.validateTopicFilter(topic);
         ActualTopicFilter actualTopicFilter = MqttTopicHelper.topicFilterToPattern(topic);
 
+        boolean noLocal = config.getNoLocal();
+        boolean retainAsPublished = config.getRetainAsPublished();
+        int retainHandling = config.getRetainHandling();
+        Integer subscriptionIdentifier = config.getSubscriptionIdentifier().orElse(null);
+        boolean hasV5SubOptions = noLocal || retainAsPublished || retainHandling != 0 || subscriptionIdentifier != null;
+
         final Context root = Context.newInstance(((VertxInternal) vertx.getDelegate()).createEventLoopContext());
-        holder = Clients.getHolder(vertx, options);
+        holder = Clients.getHolder(vertx, options, sessionCustomizers).retain(channel);
         holder.start().onSuccess(ignore -> started.set(true));
-        holder.getClient()
-                .subscribe(topic, RequestedQoS.valueOf(qos))
-                .onFailure(outcome -> log.info("Subscription failed!"))
-                .onSuccess(outcome -> {
-                    log.info("Subscription success on topic " + topic + ", Max QoS " + outcome + ".");
-                    alive.set(true);
-                });
+
+        if (hasV5SubOptions) {
+            holder.getClient()
+                    .subscribe(topic, RequestedQoS.valueOf(qos), noLocal, retainAsPublished, retainHandling,
+                            subscriptionIdentifier)
+                    .onFailure(outcome -> log.info("Subscription failed!"))
+                    .onSuccess(outcome -> {
+                        log.info("Subscription success on topic " + topic + ", Max QoS " + outcome + ".");
+                        alive.set(true);
+                    });
+        } else {
+            holder.getClient()
+                    .subscribe(topic, RequestedQoS.valueOf(qos))
+                    .onFailure(outcome -> log.info("Subscription failed!"))
+                    .onSuccess(outcome -> {
+                        log.info("Subscription success on topic " + topic + ", Max QoS " + outcome + ".");
+                        alive.set(true);
+                    });
+        }
 
         this.source = holder.stream()
                 .select().where(m -> MqttTopicHelper.matches(actualTopicFilter, m.topicName()))

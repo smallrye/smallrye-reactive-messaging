@@ -12,42 +12,20 @@ import java.util.concurrent.atomic.AtomicInteger;
 import jakarta.enterprise.context.ApplicationScoped;
 
 import org.eclipse.microprofile.config.Config;
-import org.jboss.weld.environment.se.Weld;
-import org.jboss.weld.environment.se.WeldContainer;
 import org.jboss.weld.exceptions.DeploymentException;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
+import com.rabbitmq.client.ConnectionFactory;
+
 import io.smallrye.reactive.messaging.ClientCustomizer;
-import io.smallrye.reactive.messaging.providers.connectors.ExecutionHolder;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 import io.smallrye.reactive.messaging.test.common.config.SmallRyeConfigTestUtil;
-import io.vertx.rabbitmq.RabbitMQOptions;
 
-public class RabbitMQSourceCDIConfigTest extends RabbitMQBrokerTestBase {
-
-    private WeldContainer container;
-
-    @AfterEach
-    public void cleanup() {
-        if (container != null) {
-            container.shutdown();
-        }
-
-        MapBasedConfig.cleanup();
-        SmallRyeConfigTestUtil.releaseConfig();
-
-        System.clearProperty("mp-config");
-        System.clearProperty("client-options-name");
-        System.clearProperty("rabbitmq-client-options-name");
-    }
+public class RabbitMQSourceCDIConfigTest extends WeldTestBase {
 
     @Test
     public void testConfigByCDIMissingBean() {
-        Weld weld = new Weld();
-
         weld.addBeanClass(ConsumptionBean.class);
-        weld.addBeanClass(ExecutionHolder.class);
 
         new MapBasedConfig()
                 .with("mp.messaging.incoming.data.queue.name", "data")
@@ -57,7 +35,7 @@ public class RabbitMQSourceCDIConfigTest extends RabbitMQBrokerTestBase {
                 .with("rabbitmq-username", username)
                 .with("rabbitmq-password", password)
                 .with("mp.messaging.incoming.data.client-options-name", "myclientoptions")
-                .with("mp.messaging.incoming.data.tracing-enabled", false)
+                .with("mp.messaging.incoming.data.tracing.enabled", false)
                 .write();
 
         assertThatThrownBy(() -> {
@@ -69,11 +47,8 @@ public class RabbitMQSourceCDIConfigTest extends RabbitMQBrokerTestBase {
 
     @Test
     public void testConfigByCDIIncorrectBean() {
-        Weld weld = new Weld();
-
         weld.addBeanClass(ConsumptionBean.class);
         weld.addBeanClass(ClientConfigurationBean.class);
-        weld.addBeanClass(ExecutionHolder.class);
 
         new MapBasedConfig()
                 .with("mp.messaging.incoming.data.queue.name", "data")
@@ -83,7 +58,7 @@ public class RabbitMQSourceCDIConfigTest extends RabbitMQBrokerTestBase {
                 .with("rabbitmq-username", username)
                 .with("rabbitmq-password", password)
                 .with("mp.messaging.incoming.data.client-options-name", "dummyoptionsnonexistent")
-                .with("mp.messaging.incoming.data.tracing-enabled", false)
+                .with("mp.messaging.incoming.data.tracing.enabled", false)
                 .write();
 
         assertThatThrownBy(() -> {
@@ -95,8 +70,6 @@ public class RabbitMQSourceCDIConfigTest extends RabbitMQBrokerTestBase {
 
     @Test
     public void testConfigByCDICorrect() {
-        Weld weld = new Weld();
-
         weld.addBeanClass(ClientConfigurationBean.class);
         weld.addBeanClass(ConsumptionBean.class);
 
@@ -108,7 +81,7 @@ public class RabbitMQSourceCDIConfigTest extends RabbitMQBrokerTestBase {
                 .with("rabbitmq-username", username)
                 .with("rabbitmq-password", password)
                 .with("mp.messaging.incoming.data.client-options-name", "myclientoptions")
-                .with("mp.messaging.incoming.data.tracing-enabled", false)
+                .with("mp.messaging.incoming.data.tracing.enabled", false)
                 .write();
 
         SmallRyeConfigTestUtil.installConfig();
@@ -127,8 +100,6 @@ public class RabbitMQSourceCDIConfigTest extends RabbitMQBrokerTestBase {
 
     @Test
     public void testConfigGlobalOptionsByCDICorrect() {
-        Weld weld = new Weld();
-
         String queueName = UUID.randomUUID().toString();
         weld.addBeanClass(ClientConfigurationBean.class);
         weld.addBeanClass(ConsumptionBean.class);
@@ -139,7 +110,7 @@ public class RabbitMQSourceCDIConfigTest extends RabbitMQBrokerTestBase {
                 .with("mp.messaging.incoming.data.connector", RabbitMQConnector.CONNECTOR_NAME)
                 .with("mp.messaging.incoming.data.host", host)
                 .with("mp.messaging.incoming.data.port", port)
-                .with("mp.messaging.incoming.data.tracing-enabled", false)
+                .with("mp.messaging.incoming.data.tracing.enabled", false)
                 .with("rabbitmq-username", username)
                 .with("rabbitmq-password", password)
                 .with("rabbitmq-client-options-name", "myclientoptions")
@@ -161,17 +132,14 @@ public class RabbitMQSourceCDIConfigTest extends RabbitMQBrokerTestBase {
 
     @Test
     public void testConfigGlobalOptionsByCDIMissingBean() {
-        Weld weld = new Weld();
-
         weld.addBeanClass(ConsumptionBean.class);
-        weld.addBeanClass(ExecutionHolder.class);
 
         new MapBasedConfig()
                 .with("mp.messaging.incoming.data.queue.name", "data")
                 .with("mp.messaging.incoming.data.connector", RabbitMQConnector.CONNECTOR_NAME)
                 .with("mp.messaging.incoming.data.host", host)
                 .with("mp.messaging.incoming.data.port", port)
-                .with("mp.messaging.incoming.data.tracing-enabled", false)
+                .with("mp.messaging.incoming.data.tracing.enabled", false)
                 .with("rabbitmq-username", username)
                 .with("rabbitmq-password", password)
                 .with("rabbitmq-client-options-name", "myclientoptions")
@@ -186,18 +154,15 @@ public class RabbitMQSourceCDIConfigTest extends RabbitMQBrokerTestBase {
 
     @Test
     public void testConfigGlobalOptionsByCDIIncorrectBean() {
-        Weld weld = new Weld();
-
         weld.addBeanClass(ConsumptionBean.class);
         weld.addBeanClass(ClientConfigurationBean.class);
-        weld.addBeanClass(ExecutionHolder.class);
 
         new MapBasedConfig()
                 .with("mp.messaging.incoming.data.queue.name", "data")
                 .with("mp.messaging.incoming.data.connector", RabbitMQConnector.CONNECTOR_NAME)
                 .with("mp.messaging.incoming.data.host", host)
                 .with("mp.messaging.incoming.data.port", port)
-                .with("mp.messaging.incoming.data.tracing-enabled", false)
+                .with("mp.messaging.incoming.data.tracing.enabled", false)
                 .with("rabbitmq-username", username)
                 .with("rabbitmq-password", password)
                 .with("rabbitmq-client-options-name", "dummyoptionsnonexistent")
@@ -212,8 +177,6 @@ public class RabbitMQSourceCDIConfigTest extends RabbitMQBrokerTestBase {
 
     @Test
     public void testConfigInterceptor() {
-        Weld weld = new Weld();
-
         weld.addBeanClass(ConsumptionBean.class);
         weld.addBeanClass(MyClientCustomizer.class);
         weld.addBeanClass(ClientConfigurationBean.class);
@@ -221,7 +184,7 @@ public class RabbitMQSourceCDIConfigTest extends RabbitMQBrokerTestBase {
         new MapBasedConfig()
                 .with("mp.messaging.incoming.data.queue.name", "data")
                 .with("mp.messaging.incoming.data.connector", RabbitMQConnector.CONNECTOR_NAME)
-                .with("mp.messaging.incoming.data.tracing-enabled", false)
+                .with("mp.messaging.incoming.data.tracing.enabled", false)
                 .with("rabbitmq-username", username)
                 .with("rabbitmq-password", password)
                 .with("rabbitmq-client-options-name", "myclientoptions")
@@ -242,13 +205,14 @@ public class RabbitMQSourceCDIConfigTest extends RabbitMQBrokerTestBase {
     }
 
     @ApplicationScoped
-    public static class MyClientCustomizer implements ClientCustomizer<RabbitMQOptions> {
+    public static class MyClientCustomizer implements ClientCustomizer<ConnectionFactory> {
 
         @Override
-        public RabbitMQOptions customize(String channel, Config channelConfig, RabbitMQOptions config) {
+        public ConnectionFactory customize(String channel, Config channelConfig, ConnectionFactory config) {
             assertThat(config.getHost()).isEqualTo(System.getProperty("rabbitmq-host"));
             assertThat(config.getPort()).isEqualTo(Integer.parseInt(System.getProperty("rabbitmq-port")));
             return config;
         }
     }
+
 }

@@ -9,7 +9,6 @@ import jakarta.enterprise.context.ApplicationScoped;
 import org.eclipse.microprofile.reactive.messaging.Metadata;
 
 import io.smallrye.common.annotation.Identifier;
-import io.smallrye.reactive.messaging.rabbitmq.ClientHolder;
 import io.smallrye.reactive.messaging.rabbitmq.IncomingRabbitMQMessage;
 import io.smallrye.reactive.messaging.rabbitmq.RabbitMQConnector;
 import io.smallrye.reactive.messaging.rabbitmq.RabbitMQConnectorIncomingConfiguration;
@@ -43,9 +42,9 @@ public class RabbitMQAccept implements RabbitMQFailureHandler {
     @Override
     public <V> CompletionStage<Void> handle(IncomingRabbitMQMessage<V> msg, Metadata metadata, Context context,
             Throwable reason) {
-        // We mark the message as rejected and fail.
+        // We mark the message as accepted (acked) despite the failure.
         log.nackedAcceptMessage(channel);
         log.fullIgnoredFailure(reason);
-        return ClientHolder.runOnContext(context, msg, IncomingRabbitMQMessage::acknowledgeMessage);
+        return msg.ack();
     }
 }

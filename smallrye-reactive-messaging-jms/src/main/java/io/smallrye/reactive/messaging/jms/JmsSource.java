@@ -30,7 +30,7 @@ import io.smallrye.reactive.messaging.jms.fault.JmsFailureHandler;
 import io.smallrye.reactive.messaging.jms.tracing.JmsOpenTelemetryInstrumenter;
 import io.smallrye.reactive.messaging.jms.tracing.JmsTrace;
 import io.smallrye.reactive.messaging.json.JsonMapping;
-import io.vertx.core.impl.VertxInternal;
+import io.vertx.core.internal.VertxInternal;
 import io.vertx.mutiny.core.Context;
 import io.vertx.mutiny.core.Vertx;
 

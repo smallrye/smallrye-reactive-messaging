@@ -1,6 +1,6 @@
 package rabbitmq.outbound;
 
-import java.time.ZonedDateTime;
+import java.util.Date;
 
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Metadata;
@@ -12,10 +12,10 @@ public class RabbitMQOutboundMetadataExample {
     public Message<String> metadata(Message<String> incoming) {
 
         // <code>
-        final OutgoingRabbitMQMetadata metadata = new OutgoingRabbitMQMetadata.Builder()
+        final OutgoingRabbitMQMetadata metadata = OutgoingRabbitMQMetadata.builder()
                 .withHeader("my-header", "xyzzy")
                 .withRoutingKey("urgent")
-                .withTimestamp(ZonedDateTime.now())
+                .withTimestamp(new Date())
                 .build();
 
         // Add `metadata` to the metadata of the outgoing message.

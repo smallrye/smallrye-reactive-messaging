@@ -9,6 +9,7 @@ import org.eclipse.microprofile.reactive.messaging.Message;
 
 import io.smallrye.reactive.messaging.kafka.commit.CheckpointMetadata;
 
+@Deprecated(forRemoval = true)
 @ApplicationScoped
 public class KafkaCheckpointExample {
 

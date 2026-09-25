@@ -1,20 +1,15 @@
 package io.smallrye.reactive.messaging.mqtt.session;
 
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import io.netty.handler.logging.ByteBufFormat;
 import io.vertx.core.buffer.Buffer;
-import io.vertx.core.net.ClientOptionsBase;
-import io.vertx.core.net.JdkSSLEngineOptions;
-import io.vertx.core.net.JksOptions;
 import io.vertx.core.net.KeyCertOptions;
-import io.vertx.core.net.OpenSSLEngineOptions;
-import io.vertx.core.net.PemKeyCertOptions;
-import io.vertx.core.net.PemTrustOptions;
-import io.vertx.core.net.PfxOptions;
 import io.vertx.core.net.ProxyOptions;
 import io.vertx.core.net.SSLEngineOptions;
 import io.vertx.core.net.TrustOptions;
@@ -24,12 +19,15 @@ public class MqttClientSessionOptions extends MqttClientOptions {
 
     private static final ReconnectDelayOptions DEFAULT_RECONNECT_DELAY = new ConstantReconnectDelayOptions();
     private static final Optional<String> DEFAULT_SERVER_NAME = Optional.empty();
+    public static final int DEFAULT_PUBLISH_MAX_RETRIES = 3;
 
     private String hostname = MqttClientOptions.DEFAULT_HOST;
     private Optional<String> serverName = DEFAULT_SERVER_NAME;
     private int port = MqttClientOptions.DEFAULT_PORT;
     private ReconnectDelayOptions reconnectDelay = DEFAULT_RECONNECT_DELAY;
     private boolean unsubscribeOnDisconnect = false;
+    private Map<String, String> connectUserProperties;
+    private int publishMaxRetries = DEFAULT_PUBLISH_MAX_RETRIES;
 
     /**
      * Default constructor
@@ -49,6 +47,10 @@ public class MqttClientSessionOptions extends MqttClientOptions {
         this.port = other.port;
         this.serverName = other.serverName;
         this.reconnectDelay = other.reconnectDelay.copy();
+        this.connectUserProperties = other.connectUserProperties != null
+                ? new LinkedHashMap<>(other.connectUserProperties)
+                : null;
+        this.publishMaxRetries = other.publishMaxRetries;
     }
 
     public int getPort() {
@@ -95,6 +97,41 @@ public class MqttClientSessionOptions extends MqttClientOptions {
         this.unsubscribeOnDisconnect = unsubscribeOnDisconnect;
     }
 
+    /**
+     * @return the user properties to send in the CONNECT packet (MQTT 5.0), or {@code null} if not set
+     */
+    public Map<String, String> getConnectUserProperties() {
+        return connectUserProperties;
+    }
+
+    /**
+     * Set user properties to include in the CONNECT packet (MQTT 5.0).
+     *
+     * @param connectUserProperties the user properties map
+     */
+    public void setConnectUserProperties(Map<String, String> connectUserProperties) {
+        this.connectUserProperties = connectUserProperties;
+    }
+
+    /**
+     * @return the maximum number of retries for failed QoS 1/2 publishes (expiration or transient errors)
+     */
+    public int getPublishMaxRetries() {
+        return publishMaxRetries;
+    }
+
+    /**
+     * Set the maximum number of retries for failed QoS 1/2 publishes.
+     * Applies to publish completion expiration (PUBACK/PUBCOMP timeout) and
+     * transient send failures (e.g. inflight queue full). Set to 0 to disable retries.
+     *
+     * @param publishMaxRetries the maximum number of retries (default {@value DEFAULT_PUBLISH_MAX_RETRIES})
+     */
+    public MqttClientSessionOptions setPublishMaxRetries(int publishMaxRetries) {
+        this.publishMaxRetries = publishMaxRetries;
+        return this;
+    }
+
     @Override
     public MqttClientSessionOptions setClientId(String clientId) {
         super.setClientId(clientId);
@@ -120,13 +157,6 @@ public class MqttClientSessionOptions extends MqttClientOptions {
     }
 
     @Override
-    @Deprecated
-    public MqttClientSessionOptions setWillMessage(String willMessage) {
-        super.setWillMessage(willMessage);
-        return this;
-    }
-
-    @Override
     public MqttClientOptions setWillMessageBytes(Buffer willMessage) {
         super.setWillMessageBytes(willMessage);
         return this;
@@ -135,12 +165,6 @@ public class MqttClientSessionOptions extends MqttClientOptions {
     @Override
     public MqttClientSessionOptions setCleanSession(boolean cleanSession) {
         super.setCleanSession(cleanSession);
-        return this;
-    }
-
-    @Override
-    public MqttClientSessionOptions setWillFlag(boolean willFlag) {
-        super.setWillFlag(willFlag);
         return this;
     }
 
@@ -211,12 +235,6 @@ public class MqttClientSessionOptions extends MqttClientOptions {
     }
 
     @Override
-    public MqttClientSessionOptions setTrustStoreOptions(JksOptions options) {
-        super.setTrustStoreOptions(options);
-        return this;
-    }
-
-    @Override
     public MqttClientSessionOptions setTrustAll(boolean trustAll) {
         super.setTrustAll(trustAll);
         return this;
@@ -229,38 +247,8 @@ public class MqttClientSessionOptions extends MqttClientOptions {
     }
 
     @Override
-    public MqttClientSessionOptions setKeyStoreOptions(JksOptions options) {
-        super.setKeyStoreOptions(options);
-        return this;
-    }
-
-    @Override
-    public MqttClientSessionOptions setPfxKeyCertOptions(PfxOptions options) {
-        super.setPfxKeyCertOptions(options);
-        return this;
-    }
-
-    @Override
-    public MqttClientSessionOptions setPemKeyCertOptions(PemKeyCertOptions options) {
-        super.setPemKeyCertOptions(options);
-        return this;
-    }
-
-    @Override
     public MqttClientSessionOptions setTrustOptions(TrustOptions options) {
         super.setTrustOptions(options);
-        return this;
-    }
-
-    @Override
-    public MqttClientSessionOptions setPemTrustOptions(PemTrustOptions options) {
-        super.setPemTrustOptions(options);
-        return this;
-    }
-
-    @Override
-    public MqttClientSessionOptions setPfxTrustOptions(PfxOptions options) {
-        super.setPfxTrustOptions(options);
         return this;
     }
 
@@ -373,12 +361,6 @@ public class MqttClientSessionOptions extends MqttClientOptions {
     }
 
     @Override
-    public MqttClientSessionOptions setJdkSslEngineOptions(JdkSSLEngineOptions sslEngineOptions) {
-        super.setJdkSslEngineOptions(sslEngineOptions);
-        return this;
-    }
-
-    @Override
     public MqttClientSessionOptions setTcpFastOpen(boolean tcpFastOpen) {
         super.setTcpFastOpen(tcpFastOpen);
         return this;
@@ -393,12 +375,6 @@ public class MqttClientSessionOptions extends MqttClientOptions {
     @Override
     public MqttClientSessionOptions setTcpQuickAck(boolean tcpQuickAck) {
         super.setTcpQuickAck(tcpQuickAck);
-        return this;
-    }
-
-    @Override
-    public ClientOptionsBase setOpenSslEngineOptions(OpenSSLEngineOptions sslEngineOptions) {
-        super.setOpenSslEngineOptions(sslEngineOptions);
         return this;
     }
 
@@ -497,7 +473,7 @@ public class MqttClientSessionOptions extends MqttClientOptions {
     }
 
     @Override
-    public ClientOptionsBase setTcpUserTimeout(int tcpUserTimeout) {
+    public MqttClientSessionOptions setTcpUserTimeout(int tcpUserTimeout) {
         super.setTcpUserTimeout(tcpUserTimeout);
         return this;
     }

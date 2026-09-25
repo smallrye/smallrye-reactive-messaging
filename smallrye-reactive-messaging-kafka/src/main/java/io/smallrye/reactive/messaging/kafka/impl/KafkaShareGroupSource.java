@@ -45,8 +45,8 @@ import io.smallrye.reactive.messaging.kafka.health.KafkaShareGroupSourceHealth;
 import io.smallrye.reactive.messaging.kafka.queues.ShareGroupAcknowledgement;
 import io.smallrye.reactive.messaging.kafka.tracing.KafkaOpenTelemetryInstrumenter;
 import io.smallrye.reactive.messaging.kafka.tracing.KafkaTrace;
-import io.vertx.core.impl.ContextInternal;
-import io.vertx.core.impl.VertxInternal;
+import io.vertx.core.internal.ContextInternal;
+import io.vertx.core.internal.VertxInternal;
 import io.vertx.mutiny.core.Vertx;
 
 public class KafkaShareGroupSource<K, V> {
