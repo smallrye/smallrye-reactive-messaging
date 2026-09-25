@@ -15,7 +15,7 @@
     <description>OpenRewrite recipes for migrating to Vert.x 5 and SmallRye Reactive Messaging</description>
 
     <properties>
-        <rewrite.version>8.73.0</rewrite.version>
+        <rewrite.version>8.90.4</rewrite.version>
         <rewrite-maven-plugin.version>6.26.0</rewrite-maven-plugin.version>
         <revapi.skip>true</revapi.skip>
         <sonar.skip>true</sonar.skip>
