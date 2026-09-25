@@ -115,6 +115,7 @@ public class MqttSource {
                 })
                 .onCancellation().call(() -> {
                     alive.set(false);
+                    holder.forgetChannelBuffer(channel);
                     if (config.getUnsubscribeOnDisconnection())
                         return Uni
                                 .createFrom()

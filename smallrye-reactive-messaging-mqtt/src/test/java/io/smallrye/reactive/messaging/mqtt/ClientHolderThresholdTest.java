@@ -79,6 +79,68 @@ public class ClientHolderThresholdTest {
     }
 
     /**
+     * A channel that is released must not be taken into account any more: its last known buffer usage would otherwise
+     * block the resume of the channels still running on the same client.
+     */
+    @Test
+    public void testReleasedChannelDoesNotBlockTheResume() {
+        Clients.ClientHolder holder = holderOfAConnectedClient();
+        holder.retain("stopped").retain("running");
+        holder.registerChannelBuffer("stopped", 100, 70, 40);
+        holder.registerChannelBuffer("running", 100, 70, 40);
+
+        // The first channel fills its buffer, pausing the reading, and is then released.
+        for (int i = 0; i < 71; i++) {
+            holder.messageEnterBuffer("stopped");
+        }
+        assertThat(pauseCount.get()).isEqualTo(1);
+        holder.release("stopped");
+
+        // The channel still running consumes its messages: the reading must be resumed.
+        holder.messageEnterBuffer("running");
+        holder.messageExitBuffer("running");
+
+        assertThat(resumeCount.get()).isEqualTo(1);
+    }
+
+    /**
+     * A channel cancelled while the reading is paused because of it must not leave it paused: the other channels can
+     * only consume what is already in their buffer, so there may be no message left to trigger the resume.
+     */
+    @Test
+    public void testForgettingTheChannelThatPausedResumesTheReading() {
+        Clients.ClientHolder holder = holderOfAConnectedClient();
+        holder.registerChannelBuffer("cancelled", 100, 70, 40);
+        holder.registerChannelBuffer("running", 100, 70, 40);
+
+        for (int i = 0; i < 71; i++) {
+            holder.messageEnterBuffer("cancelled");
+        }
+        assertThat(pauseCount.get()).isEqualTo(1);
+
+        holder.forgetChannelBuffer("cancelled");
+
+        assertThat(resumeCount.get()).isEqualTo(1);
+    }
+
+    /**
+     * A message can still reach the buffer bookkeeping of a channel that has just been forgotten.
+     */
+    @Test
+    public void testMessagesOfAForgottenChannelAreIgnored() {
+        Clients.ClientHolder holder = holderOfAConnectedClient();
+        holder.registerChannelBuffer("cancelled", 100, 70, 40);
+        holder.forgetChannelBuffer("cancelled");
+
+        for (int i = 0; i < 200; i++) {
+            holder.messageEnterBuffer("cancelled");
+            holder.messageExitBuffer("cancelled");
+        }
+
+        assertThat(pauseCount.get()).isZero();
+    }
+
+    /**
      * Once paused because of the channel with the largest buffer, the reading must be resumed when that channel goes
      * below its own resume threshold (400), no matter the thresholds of the other channels of the same client.
      */
