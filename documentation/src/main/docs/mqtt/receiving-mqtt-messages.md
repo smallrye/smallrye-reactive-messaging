@@ -53,7 +53,59 @@ The MQTT Connector does not handle the deserialization and creates a
 
 ## Inbound Metadata
 
-The MQTT connector does not provide inbound metadata.
+Each incoming `Message` carries a
+`io.smallrye.reactive.messaging.mqtt.ReceivingMqttMessageMetadata`
+instance describing the MQTT publish frame it comes from:
+
+```java
+ReceivingMqttMessageMetadata metadata = message
+        .getMetadata(ReceivingMqttMessageMetadata.class)
+        .orElseThrow();
+
+String topic      = metadata.getTopic();
+MqttQoS qos       = metadata.getQosLevel();
+boolean retain    = metadata.isRetain();
+boolean duplicate = metadata.isDuplicate();
+int messageId     = metadata.getMessageId();
+```
+
+When the channel is configured with `mqtt-version=5`, the metadata also
+exposes the MQTT 5.0 message properties:
+
+| Accessor                      | Returns                                               |
+|-------------------------------|-------------------------------------------------------|
+| `getProperties()`             | The full `io.netty.handler.codec.mqtt.MqttProperties` |
+| `getUserProperties()`         | The user properties, as a `Map<String, String>`       |
+| `getContentType()`            | The `Content-Type` property, or `null`                |
+| `getResponseTopic()`          | The `Response Topic` property, or `null`              |
+| `getCorrelationData()`        | The `Correlation Data` bytes, or `null`               |
+| `getMessageExpiryInterval()`  | The message expiry interval in seconds, or `null`     |
+| `getPayloadFormatIndicator()` | The payload format indicator (0=binary, 1=UTF-8)      |
+| `getSubscriptionIdentifier()` | The subscription identifier, or `null`                |
+
+The `MqttMessage` interface exposes `getResponseTopic()` and
+`getCorrelationData()` directly, so that replying to a request does not
+require digging into the metadata. See
+[Sending messages to MQTT](sending-messages-to-mqtt.md) for an example.
+
+## MQTT 5.0 subscription options
+
+Besides `qos`, three MQTT 5.0 subscription options can be set on an
+inbound channel:
+
+```properties
+mp.messaging.incoming.prices.mqtt-version=5
+mp.messaging.incoming.prices.no-local=true
+mp.messaging.incoming.prices.retain-as-published=true
+mp.messaging.incoming.prices.retain-handling=1
+mp.messaging.incoming.prices.subscription-identifier=42
+```
+
+`no-local` asks the broker not to send back the messages published by
+this same client, `retain-as-published` keeps the retain flag as set by
+the publisher, and `retain-handling` decides whether the retained
+messages are sent on subscription (0), only if the subscription did not
+already exist (1), or never (2).
 
 ## Failure Management
 

@@ -22,4 +22,10 @@ public interface MqttExceptions {
     @Message(id = 17002, value = "Cannot find a %s bean identified with %s")
     IllegalStateException illegalStateFindingBean(String className, String beanName);
 
+    @Message(id = 17003, value = "When the will message is configured on channel '%s', both 'will-topic' and 'will-payload' must be set")
+    IllegalArgumentException illegalArgumentMissingWillTopicOrPayload(String channel);
+
+    @Message(id = 17004, value = "Cannot build a response message: the incoming message has no MQTT 5.0 'Response Topic' property")
+    IllegalArgumentException illegalArgumentMissingResponseTopic();
+
 }
