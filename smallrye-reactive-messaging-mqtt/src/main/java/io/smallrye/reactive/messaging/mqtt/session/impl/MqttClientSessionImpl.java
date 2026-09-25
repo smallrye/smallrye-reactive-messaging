@@ -69,6 +69,9 @@ public class MqttClientSessionImpl implements MqttClientSession {
 
     // holds the actual MQTT client connection
     private MqttClient client;
+    // tracks whether the reading of incoming messages is paused: the Vert.x MqttClient
+    // does not expose its paused state, so we have to keep track of it ourselves
+    private volatile boolean paused;
     // an optional reconnect timer
     private Long reconnectTimer;
     // stores the last CONNACK message for v5 properties
@@ -134,6 +137,29 @@ public class MqttClientSessionImpl implements MqttClientSession {
             // Vert.x has been shutdown, ignore it.
         }
         return promise.future();
+    }
+
+    @Override
+    public boolean isPaused() {
+        return this.paused;
+    }
+
+    @Override
+    public void pause() {
+        this.paused = true;
+        MqttClient client = this.client;
+        if (client != null && client.isConnected()) {
+            client.pause();
+        }
+    }
+
+    @Override
+    public void resume() {
+        this.paused = false;
+        MqttClient client = this.client;
+        if (client != null && client.isConnected()) {
+            client.resume();
+        }
     }
 
     @Override
@@ -495,8 +521,9 @@ public class MqttClientSessionImpl implements MqttClientSession {
         // clear reconnect timer
         this.reconnectTimer = null;
 
-        // create client
+        // create client, a fresh connection always starts reading
         this.client = MqttClient.create(this.vertx, this.options);
+        this.paused = false;
         this.client.exceptionHandler(this::exceptionCaught);
         this.client.closeHandler(x -> connectionClosed());
         this.client.publishHandler(this::serverPublished);
@@ -701,6 +728,7 @@ public class MqttClientSessionImpl implements MqttClientSession {
             this.client.publishCompletionExpirationHandler(null);
             this.client.publishCompletionUnknownPacketIdHandler(null);
             this.client = null;
+            this.paused = false;
         }
         setState(SessionState.DISCONNECTED, cause);
     }
