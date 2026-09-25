@@ -73,6 +73,10 @@ The will message is sent by the broker as soon as `will-topic` and
 to start otherwise, since the broker never sends a will message missing
 one of them.
 
+The `will-flag` attribute is ignored: the MQTT client sets the flag
+itself from the will message it has been given. It is still accepted, so
+that existing configurations keep working.
+
 With `mqtt-version=5`, the will message also accepts
 `will-content-type`, `will-response-topic` and `will-delay-interval`,
 the latter being the number of seconds the broker waits before
