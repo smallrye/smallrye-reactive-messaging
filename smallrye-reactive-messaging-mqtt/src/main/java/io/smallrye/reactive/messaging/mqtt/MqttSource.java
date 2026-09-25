@@ -8,6 +8,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import jakarta.enterprise.inject.Instance;
 
+import io.netty.handler.codec.mqtt.MqttSubscriptionOption.RetainedHandlingPolicy;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.ClientCustomizer;
 import io.smallrye.reactive.messaging.health.HealthReport.HealthReportBuilder;
@@ -60,9 +61,10 @@ public class MqttSource {
 
         boolean noLocal = config.getNoLocal();
         boolean retainAsPublished = config.getRetainAsPublished();
-        int retainHandling = config.getRetainHandling();
+        RetainedHandlingPolicy retainHandling = MqttHelpers.retainedHandlingPolicy(config.getRetainHandling(), channel);
         Integer subscriptionIdentifier = config.getSubscriptionIdentifier().orElse(null);
-        boolean hasV5SubOptions = noLocal || retainAsPublished || retainHandling != 0 || subscriptionIdentifier != null;
+        boolean hasV5SubOptions = noLocal || retainAsPublished
+                || retainHandling != RetainedHandlingPolicy.SEND_AT_SUBSCRIBE || subscriptionIdentifier != null;
 
         final Context root = Context.newInstance(((VertxInternal) vertx.getDelegate()).createEventLoopContext());
         holder = Clients.getHolder(vertx, options, sessionCustomizers).retain(channel);
