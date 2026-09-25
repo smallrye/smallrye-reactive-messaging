@@ -59,12 +59,7 @@ public class MqttSourceTest extends MqttTestBase {
                 .containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
     }
 
-    /**
-     * Verifies that when the downstream consumer is slower than the broker producer,
-     * messages are NOT lost due to buffer overflow on the TCP read task.
-     * Without backpressure (pause/resume on the MQTT client) this test fails by timeout,
-     * because the incoming buffer overflows and messages are dropped.
-     */
+    /* Test that verifies that when the buffer is full, messages are not lost becouse of backpressure on TCP Read Task */
     @Test
     public void testTryOverflowTheBuffer() {
         String topic = UUID.randomUUID().toString();
@@ -74,7 +69,7 @@ public class MqttSourceTest extends MqttTestBase {
         config.put("port", port);
         config.put("buffer-size", 1000);
         config.put("max-message-size", 256);
-        config.put("receive-buffer-size", 512);
+        config.put("recv-bytebuf-allocator-size", 512);
         config.put("channel-name", topic);
         MqttSource source = new MqttSource(vertx, new MqttConnectorIncomingConfiguration(new MapBasedConfig(config)),
                 null, null);

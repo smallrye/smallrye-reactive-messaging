@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import jakarta.enterprise.inject.Instance;
 
@@ -70,6 +71,9 @@ public class Clients {
         private final MqttClientSession client;
         private final BroadcastProcessor<MqttPublishMessage> messages;
         private final Set<String> channels = ConcurrentHashMap.newKeySet();
+        private final ConcurrentHashMap<String, AtomicInteger> messagesInBuffer = new ConcurrentHashMap<>();
+        private int ninetiethThreshold;
+        private int halfThreshold;
 
         public ClientHolder(MqttClientSession client) {
             this.client = client;
@@ -85,6 +89,38 @@ public class Clients {
         public boolean release(String channel) {
             channels.remove(channel);
             return channels.isEmpty();
+        }
+
+        public void registerChannelBuffer(String channel, int bufferSize, int pauseThresholdPercent,
+                int resumeThresholdPercent) {
+            messagesInBuffer.put(channel, new AtomicInteger(0));
+            ninetiethThreshold = bufferSize * pauseThresholdPercent / 100;
+            halfThreshold = bufferSize * resumeThresholdPercent / 100;
+            log.infof("[%s] Buffer size set to %d, pausing at %d (%d%%), resuming at %d (%d%%).",
+                    channel, bufferSize, ninetiethThreshold, pauseThresholdPercent, halfThreshold, resumeThresholdPercent);
+        }
+
+        public void messageEnterBuffer(String channel) {
+            int count = messagesInBuffer.get(channel).incrementAndGet();
+            // Only pause/resume while the client is connected: acting on a disconnected
+            // session has no effect, and the paused state could otherwise leak across reconnects.
+            if (count > ninetiethThreshold && client.isConnected() && !client.isPaused()) {
+                log.infof("[%s] Buffer almost full, pausing MQTT message consumption.", channel);
+                client.pause();
+            }
+        }
+
+        public void messageExitBuffer(String channel) {
+            messagesInBuffer.get(channel).decrementAndGet();
+            if (client.isConnected() && client.isPaused() && allChannelsBelowHalf()) {
+                log.info("All channels below resume threshold, resuming MQTT message consumption.");
+                client.resume();
+            }
+        }
+
+        private boolean allChannelsBelowHalf() {
+            return messagesInBuffer.values().stream()
+                    .allMatch(c -> c.get() <= halfThreshold);
         }
 
         public Future<Void> start() {
