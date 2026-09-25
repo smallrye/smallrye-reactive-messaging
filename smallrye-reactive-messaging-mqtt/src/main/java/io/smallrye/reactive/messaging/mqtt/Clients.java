@@ -71,9 +71,7 @@ public class Clients {
         private final MqttClientSession client;
         private final BroadcastProcessor<MqttPublishMessage> messages;
         private final Set<String> channels = ConcurrentHashMap.newKeySet();
-        private final ConcurrentHashMap<String, AtomicInteger> messagesInBuffer = new ConcurrentHashMap<>();
-        private int ninetiethThreshold;
-        private int halfThreshold;
+        private final ConcurrentHashMap<String, ChannelBuffer> buffers = new ConcurrentHashMap<>();
 
         public ClientHolder(MqttClientSession client) {
             this.client = client;
@@ -93,34 +91,35 @@ public class Clients {
 
         public void registerChannelBuffer(String channel, int bufferSize, int pauseThresholdPercent,
                 int resumeThresholdPercent) {
-            messagesInBuffer.put(channel, new AtomicInteger(0));
-            ninetiethThreshold = bufferSize * pauseThresholdPercent / 100;
-            halfThreshold = bufferSize * resumeThresholdPercent / 100;
+            ChannelBuffer buffer = new ChannelBuffer(bufferSize, pauseThresholdPercent, resumeThresholdPercent);
+            buffers.put(channel, buffer);
             log.infof("[%s] Buffer size set to %d, pausing at %d (%d%%), resuming at %d (%d%%).",
-                    channel, bufferSize, ninetiethThreshold, pauseThresholdPercent, halfThreshold, resumeThresholdPercent);
+                    channel, bufferSize, buffer.pauseThreshold, pauseThresholdPercent, buffer.resumeThreshold,
+                    resumeThresholdPercent);
         }
 
         public void messageEnterBuffer(String channel) {
-            int count = messagesInBuffer.get(channel).incrementAndGet();
+            ChannelBuffer buffer = buffers.get(channel);
+            int count = buffer.messages.incrementAndGet();
             // Only pause/resume while the client is connected: acting on a disconnected
             // session has no effect, and the paused state could otherwise leak across reconnects.
-            if (count > ninetiethThreshold && client.isConnected() && !client.isPaused()) {
-                log.infof("[%s] Buffer almost full, pausing MQTT message consumption.", channel);
+            if (count > buffer.pauseThreshold && client.isConnected() && !client.isPaused()) {
+                log.infof("[%s] Buffer almost full (%d messages), pausing MQTT message consumption.", channel, count);
                 client.pause();
             }
         }
 
         public void messageExitBuffer(String channel) {
-            messagesInBuffer.get(channel).decrementAndGet();
-            if (client.isConnected() && client.isPaused() && allChannelsBelowHalf()) {
+            buffers.get(channel).messages.decrementAndGet();
+            if (client.isConnected() && client.isPaused() && allChannelsBelowResumeThreshold()) {
                 log.info("All channels below resume threshold, resuming MQTT message consumption.");
                 client.resume();
             }
         }
 
-        private boolean allChannelsBelowHalf() {
-            return messagesInBuffer.values().stream()
-                    .allMatch(c -> c.get() <= halfThreshold);
+        private boolean allChannelsBelowResumeThreshold() {
+            return buffers.values().stream()
+                    .allMatch(ChannelBuffer::isBelowResumeThreshold);
         }
 
         public Future<Void> start() {
@@ -137,6 +136,26 @@ public class Clients {
 
         public MqttClientSession getClient() {
             return client;
+        }
+
+        /**
+         * The message buffer of a single channel. Channels connected to the same broker share the client, and so the
+         * connection being paused, but each one has its own buffer and so its own thresholds.
+         */
+        private static class ChannelBuffer {
+
+            private final AtomicInteger messages = new AtomicInteger();
+            private final int pauseThreshold;
+            private final int resumeThreshold;
+
+            ChannelBuffer(int bufferSize, int pauseThresholdPercent, int resumeThresholdPercent) {
+                this.pauseThreshold = bufferSize * pauseThresholdPercent / 100;
+                this.resumeThreshold = bufferSize * resumeThresholdPercent / 100;
+            }
+
+            boolean isBelowResumeThreshold() {
+                return messages.get() <= resumeThreshold;
+            }
         }
     }
 
