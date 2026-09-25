@@ -86,6 +86,7 @@ public class Clients {
 
         public boolean release(String channel) {
             channels.remove(channel);
+            forgetChannelBuffer(channel);
             return channels.isEmpty();
         }
 
@@ -98,8 +99,23 @@ public class Clients {
                     resumeThresholdPercent);
         }
 
+        /**
+         * Drop the buffer of a channel that is not consuming any more, so that its last known usage does not hold the
+         * reading paused. The resume is re-evaluated here because no message of the remaining channels may come to
+         * trigger it: while the reading is paused, the only messages they can consume are the ones already buffered.
+         */
+        public void forgetChannelBuffer(String channel) {
+            if (buffers.remove(channel) != null) {
+                resumeIfAllChannelsBelowResumeThreshold();
+            }
+        }
+
         public void messageEnterBuffer(String channel) {
             ChannelBuffer buffer = buffers.get(channel);
+            if (buffer == null) {
+                // The channel is gone, its messages are not buffered any more.
+                return;
+            }
             int count = buffer.messages.incrementAndGet();
             // Only pause/resume while the client is connected: acting on a disconnected
             // session has no effect, and the paused state could otherwise leak across reconnects.
@@ -110,7 +126,15 @@ public class Clients {
         }
 
         public void messageExitBuffer(String channel) {
-            buffers.get(channel).messages.decrementAndGet();
+            ChannelBuffer buffer = buffers.get(channel);
+            if (buffer == null) {
+                return;
+            }
+            buffer.messages.decrementAndGet();
+            resumeIfAllChannelsBelowResumeThreshold();
+        }
+
+        private void resumeIfAllChannelsBelowResumeThreshold() {
             if (client.isConnected() && client.isPaused() && allChannelsBelowResumeThreshold()) {
                 log.info("All channels below resume threshold, resuming MQTT message consumption.");
                 client.resume();
