@@ -153,11 +153,10 @@ public class RabbitMQUsage {
      * @param consumerFunction the function to consume the messages; may not be null
      */
     public void consume(String exchange, String routingKey, Consumer<RabbitMQMessage> consumerFunction) {
-        final String queue = "tempConsumeMessages";
         try {
             ensureConnected();
             channel.exchangeDeclare(exchange, "topic", false, true, null);
-            channel.queueDeclare(queue, false, false, true, null);
+            String queue = channel.queueDeclare("", false, true, true, null).getQueue();
             channel.queueBind(queue, exchange, routingKey);
 
             channel.basicConsume(queue, true, new DefaultConsumer(channel) {
@@ -209,17 +208,11 @@ public class RabbitMQUsage {
     }
 
     public void consumeIntegers(String exchange, String routingKey, Consumer<Integer> consumer) {
-        final String queue = "tempConsumeIntegers";
         try {
             ensureConnected();
-            LOGGER.debugf("RabbitMQ client now started");
             channel.exchangeDeclare(exchange, "topic", false, true, null);
-            LOGGER.debugf("RabbitMQ exchange declared %s", exchange);
-            channel.queueDeclare(queue, false, false, true, null);
-            LOGGER.debugf("RabbitMQ queue declared %s", queue);
-            LOGGER.debugf("About to bind RabbitMQ queue %s to exchange %s via routing key %s", queue, exchange, routingKey);
+            String queue = channel.queueDeclare("", false, true, true, null).getQueue();
             channel.queueBind(queue, exchange, routingKey);
-            LOGGER.debugf("RabbitMQ queue %s bound to exchange %s via routing key %s", queue, exchange, routingKey);
 
             channel.basicConsume(queue, true, new DefaultConsumer(channel) {
                 @Override

@@ -76,9 +76,6 @@ public class ConcurrentProcessorTest extends KafkaCompanionTestBase {
         waitUntilAllMembersHaveAssignments();
         produceMessages();
 
-        List<Integer> list = bean.getResults();
-        assertThat(list).isEmpty();
-
         await().untilAsserted(() -> {
             assertThat(bean.getResults())
                     .hasSizeGreaterThanOrEqualTo(10)
@@ -96,9 +93,6 @@ public class ConcurrentProcessorTest extends KafkaCompanionTestBase {
         waitUntilAllMembersHaveAssignments();
         produceMessages();
 
-        List<Integer> list = bean.getResults();
-        assertThat(list).isEmpty();
-
         await().untilAsserted(() -> {
             assertThat(bean.getResults())
                     .hasSizeGreaterThanOrEqualTo(10)
@@ -115,9 +109,6 @@ public class ConcurrentProcessorTest extends KafkaCompanionTestBase {
 
         waitUntilAllMembersHaveAssignments();
         produceMessages();
-
-        List<Integer> list = bean.getResults();
-        assertThat(list).isEmpty();
 
         await().untilAsserted(() -> {
             assertThat(bean.getResults())

@@ -123,37 +123,39 @@ public class OutgoingRabbitMQChannel implements ConfirmListener, ShutdownListene
     private Uni<Void> initialize() {
         if (initialized.compareAndSet(false, true)) {
             return connectionHolder.connect()
-                    .chain(conn -> Uni.createFrom().<Void> item(() -> {
+                    .emitOn(command -> outgoingContext.runOnContext(v -> command.run()))
+                    .invoke(conn -> {
                         try {
-                            channel = connectionHolder.getOrCreateSharedChannel(configuration.getChannel());
+                            Channel ch = connectionHolder.getOrCreateSharedChannel(configuration.getChannel());
 
                             // Set up topology
-                            setupTopology();
+                            setupTopology(ch);
 
                             // Enable publisher confirms if configured
                             if (publisherConfirms) {
-                                channel.confirmSelect();
-                                channel.addConfirmListener(this);
-                                channel.addShutdownListener(this);
+                                ch.confirmSelect();
+                                ch.addConfirmListener(this);
+                                ch.addShutdownListener(this);
                                 log.publisherConfirmsEnabled(configuration.getChannel());
                             }
 
                             log.publisherReady(configuration.getChannel());
-                            return null;
+                            // Set volatile field last so health checks see a fully initialized channel
+                            channel = ch;
                         } catch (Exception e) {
                             channel = null;
                             initialized.set(false);
                             throw new RuntimeException("Failed to initialize outgoing channel", e);
                         }
-                    }).runSubscriptionOn(command -> outgoingContext.runOnContext(x -> command.run())));
+                    }).replaceWithVoid();
         } else {
             return Uni.createFrom().voidItem();
         }
+
     }
 
-    private void setupTopology() throws IOException {
-        // Declare exchange if needed
-        RabbitMQClientHelper.declareExchangeIfNeeded(channel, configuration, configMaps);
+    private void setupTopology(Channel ch) throws IOException {
+        RabbitMQClientHelper.declareExchangeIfNeeded(ch, configuration, configMaps);
         log.topologyEstablished(configuration.getChannel(),
                 RabbitMQClientHelper.getExchangeName(configuration));
     }
