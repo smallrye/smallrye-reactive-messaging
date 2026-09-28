@@ -6,13 +6,16 @@ import jakarta.enterprise.inject.Typed;
 import jakarta.enterprise.inject.spi.InjectionPoint;
 import jakarta.inject.Inject;
 
+import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.reactive.messaging.Channel;
 
 import io.smallrye.reactive.messaging.ChannelRegistry;
 import io.smallrye.reactive.messaging.EmitterConfiguration;
 import io.smallrye.reactive.messaging.EmitterFactory;
+import io.smallrye.reactive.messaging.MessagePublisherProvider;
 import io.smallrye.reactive.messaging.annotations.EmitterFactoryFor;
 import io.smallrye.reactive.messaging.kafka.KafkaClientService;
+import io.smallrye.reactive.messaging.kafka.KafkaConnector;
 import io.smallrye.reactive.messaging.providers.extension.ChannelProducer;
 
 @EmitterFactoryFor(KafkaTransactions.class)
@@ -29,6 +32,15 @@ public class KafkaTransactionsFactory implements EmitterFactory<KafkaTransaction
     @Override
     public KafkaTransactionsImpl<Object> createEmitter(EmitterConfiguration configuration, long defaultBufferSize) {
         return new KafkaTransactionsImpl<>(configuration, defaultBufferSize, kafkaClientService);
+    }
+
+    @Override
+    public MessagePublisherProvider<?> createEmitter(EmitterConfiguration configuration, long defaultBufferSize,
+            Config channelConfig) {
+        if (EmitterFactory.isConnector(channelConfig, KafkaConnector.CONNECTOR_NAME)) {
+            return createEmitter(configuration, defaultBufferSize);
+        }
+        return new NoOpKafkaTransactionsImpl<>(configuration, defaultBufferSize);
     }
 
     @Produces

@@ -18,6 +18,7 @@ import io.smallrye.reactive.messaging.ChannelRegistry;
 import io.smallrye.reactive.messaging.EmitterConfiguration;
 import io.smallrye.reactive.messaging.EmitterFactory;
 import io.smallrye.reactive.messaging.MessageConverter;
+import io.smallrye.reactive.messaging.MessagePublisherProvider;
 import io.smallrye.reactive.messaging.annotations.EmitterFactoryFor;
 import io.smallrye.reactive.messaging.providers.extension.ChannelProducer;
 import io.smallrye.reactive.messaging.providers.helpers.ConverterUtils;
@@ -56,6 +57,15 @@ public class RabbitMQRequestReplyFactory implements EmitterFactory<RabbitMQReque
                 replyFailureHandlers);
     }
 
+    @Override
+    public MessagePublisherProvider<?> createEmitter(EmitterConfiguration configuration, long defaultBufferSize,
+            Config channelConfig) {
+        if (EmitterFactory.isConnector(channelConfig, RabbitMQConnector.CONNECTOR_NAME)) {
+            return createEmitter(configuration, defaultBufferSize);
+        }
+        return new NoOpRabbitMQRequestReplyImpl<>(configuration, defaultBufferSize);
+    }
+
     @Produces
     @Typed(RabbitMQRequestReply.class)
     @Channel("")
@@ -64,7 +74,7 @@ public class RabbitMQRequestReplyFactory implements EmitterFactory<RabbitMQReque
         String channelName = ChannelProducer.getChannelName(injectionPoint);
         RabbitMQRequestReply<Req, Rep> emitter = channelRegistry.getEmitter(channelName, RabbitMQRequestReply.class);
         Type replyType = getReplyPayloadType(injectionPoint);
-        if (replyType != null) {
+        if (replyType != null && emitter instanceof RabbitMQRequestReplyImpl) {
             ((RabbitMQRequestReplyImpl) emitter).setReplyConverter(ConverterUtils.convertFunction(converters, replyType));
         }
         return emitter;

@@ -12,8 +12,23 @@
   "configuration" : {
     "elements" : {
       "include" : [ {
-        "matcher" : "java-package",
-        "match" : "/io\\.smallrye\\.reactive\\.messaging\\.providers\\.connectors(\\..+)?/"
+        "matcher" : "java",
+        "match" : "type ^io.smallrye.reactive.messaging.memory.TestingConnector {}"
+      }, {
+        "matcher" : "java",
+        "match" : "type ^io.smallrye.reactive.messaging.memory.InMemoryConnector {}"
+      }, {
+        "matcher" : "java",
+        "match" : "interface ^io.smallrye.reactive.messaging.memory.InMemorySource {}"
+      }, {
+        "matcher" : "java",
+        "match" : "interface ^io.smallrye.reactive.messaging.memory.InMemorySink {}"
+      }, {
+        "matcher" : "java",
+        "match" : "interface ^io.smallrye.reactive.messaging.memory.TestIncoming {}"
+      }, {
+        "matcher" : "java",
+        "match" : "interface ^io.smallrye.reactive.messaging.memory.TestOutgoing {}"
       } ]
     }
   }
