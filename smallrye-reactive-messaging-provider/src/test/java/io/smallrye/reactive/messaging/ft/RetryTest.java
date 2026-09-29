@@ -19,7 +19,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import io.smallrye.faulttolerance.FaultToleranceExtension;
-import io.smallrye.metrics.MetricRegistries;
+import io.smallrye.faulttolerance.metrics.MetricsIntegration;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.WeldTestBaseWithoutTails;
 
@@ -27,8 +27,7 @@ public class RetryTest extends WeldTestBaseWithoutTails {
 
     @BeforeEach
     public void initFaultTolerance() {
-        addExtensionClass(FaultToleranceExtension.class);
-        addBeanClass(MetricRegistries.class);
+        initializer.addExtensions(new FaultToleranceExtension(MetricsIntegration.NOOP));
     }
 
     @Test

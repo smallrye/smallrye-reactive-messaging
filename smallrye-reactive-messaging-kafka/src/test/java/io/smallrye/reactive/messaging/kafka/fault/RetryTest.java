@@ -22,7 +22,7 @@ import org.junit.jupiter.api.Test;
 
 import io.smallrye.common.annotation.NonBlocking;
 import io.smallrye.faulttolerance.FaultToleranceExtension;
-import io.smallrye.metrics.MetricRegistries;
+import io.smallrye.faulttolerance.metrics.MetricsIntegration;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.kafka.base.KafkaCompanionTestBase;
 import io.smallrye.reactive.messaging.kafka.base.KafkaMapBasedConfig;
@@ -31,8 +31,7 @@ public class RetryTest extends KafkaCompanionTestBase {
 
     @Test
     public void testRetry() {
-        weld.addExtensions(FaultToleranceExtension.class);
-        weld.addBeanClass(MetricRegistries.class);
+        weld.addExtension(new FaultToleranceExtension(MetricsIntegration.NOOP));
 
         MyHalfBrokenConsumer bean = runApplication(getConfig(topic), MyHalfBrokenConsumer.class);
         await().until(this::isReady);
@@ -47,8 +46,7 @@ public class RetryTest extends KafkaCompanionTestBase {
 
     @Test
     public void testRetryProcessor() {
-        weld.addExtensions(FaultToleranceExtension.class);
-        weld.addBeanClass(MetricRegistries.class);
+        weld.addExtension(new FaultToleranceExtension(MetricsIntegration.NOOP));
 
         MyHalfBrokenProcessor bean = runApplication(getConfig(topic), MyHalfBrokenProcessor.class);
         await().until(this::isReady);
@@ -63,8 +61,7 @@ public class RetryTest extends KafkaCompanionTestBase {
 
     @Test
     public void testRetryUni() {
-        weld.addExtensions(FaultToleranceExtension.class);
-        weld.addBeanClass(MetricRegistries.class);
+        weld.addExtension(new FaultToleranceExtension(MetricsIntegration.NOOP));
 
         MyHalfBrokenConsumerUni bean = runApplication(getConfig(topic), MyHalfBrokenConsumerUni.class);
         await().until(this::isReady);
@@ -79,8 +76,7 @@ public class RetryTest extends KafkaCompanionTestBase {
 
     @Test
     public void testFailingRetries() {
-        weld.addExtensions(FaultToleranceExtension.class);
-        weld.addBeanClass(MetricRegistries.class);
+        weld.addExtension(new FaultToleranceExtension(MetricsIntegration.NOOP));
 
         MyBrokenConsumer bean = runApplication(getConfig(topic), MyBrokenConsumer.class);
         await().until(this::isReady);
@@ -93,8 +89,7 @@ public class RetryTest extends KafkaCompanionTestBase {
 
     @Test
     public void testFailingRetriesProcessor() {
-        weld.addExtensions(FaultToleranceExtension.class);
-        weld.addBeanClass(MetricRegistries.class);
+        weld.addExtension(new FaultToleranceExtension(MetricsIntegration.NOOP));
 
         MyBrokenProcessor bean = runApplication(getConfig(topic), MyBrokenProcessor.class);
         await().until(this::isReady);
