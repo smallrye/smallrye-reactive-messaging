@@ -161,6 +161,12 @@
   <dependencyManagement>
     <dependencies>
       <dependency>
+        <groupId>jakarta.cdi</groupId>
+        <artifactId>jakarta.cdi-api</artifactId>
+        <version>5.0.0</version>
+      </dependency>
+
+      <dependency>
         <groupId>io.vertx</groupId>
         <artifactId>vertx-stack-depchain</artifactId>
         <version>${vertx.version}</version>
