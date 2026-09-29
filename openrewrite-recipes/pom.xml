@@ -14,7 +14,7 @@
 
     <properties>
         <rewrite.version>8.90.4</rewrite.version>
-        <rewrite-maven-plugin.version>6.26.0</rewrite-maven-plugin.version>
+        <rewrite-maven-plugin.version>6.46.1</rewrite-maven-plugin.version>
         <revapi.skip>true</revapi.skip>
         <sonar.skip>true</sonar.skip>
         <jandex.skip>true</jandex.skip>
