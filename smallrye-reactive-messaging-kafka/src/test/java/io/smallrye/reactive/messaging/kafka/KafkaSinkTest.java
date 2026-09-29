@@ -227,8 +227,7 @@ public class KafkaSinkTest extends KafkaCompanionTestBase {
                 .with("value.serializer", IntegerSerializer.class.getName())
                 .with("partition", 0)
                 .with("max-inflight-messages", 1L)
-                .with("channel-name", "my-channel")
-                .with("retries", 0L); // disable retry.
+                .with("channel-name", "my-channel");
         CountKafkaCdiEvents testCdiEvents = new CountKafkaCdiEvents();
         sink = createSink(config, testCdiEvents);
 
@@ -276,7 +275,6 @@ public class KafkaSinkTest extends KafkaCompanionTestBase {
                 .with("topic", topic)
                 .with("value.serializer", IntegerSerializer.class.getName())
                 .with("partition", 0)
-                .with("retries", 0L)
                 .with("channel-name", "testInvalidTypeWithDefaultInflightMessages");
         sink = createSink(config);
 
