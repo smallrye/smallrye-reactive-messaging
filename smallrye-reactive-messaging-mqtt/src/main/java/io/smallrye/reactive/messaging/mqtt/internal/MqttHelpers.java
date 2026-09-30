@@ -10,22 +10,40 @@ import java.util.regex.Pattern;
 
 import jakarta.enterprise.inject.Instance;
 
+import io.netty.handler.codec.mqtt.MqttSubscriptionOption.RetainedHandlingPolicy;
 import io.smallrye.common.annotation.Identifier;
 import io.smallrye.reactive.messaging.mqtt.MqttConnectorCommonConfiguration;
 import io.smallrye.reactive.messaging.mqtt.session.ConstantReconnectDelayOptions;
 import io.smallrye.reactive.messaging.mqtt.session.MqttClientSessionOptions;
 import io.smallrye.reactive.messaging.mqtt.session.ReconnectDelayOptions;
+import io.vertx.core.buffer.Buffer;
 import io.vertx.core.net.JksOptions;
 import io.vertx.core.net.KeyCertOptions;
 import io.vertx.core.net.PemKeyCertOptions;
 import io.vertx.core.net.PemTrustOptions;
 import io.vertx.core.net.PfxOptions;
 import io.vertx.core.net.TrustOptions;
+import io.vertx.mqtt.MqttClientWillOptions;
 
 public class MqttHelpers {
 
     private MqttHelpers() {
         // avoid direct instantiation.
+    }
+
+    /**
+     * Convert the `retain-handling` attribute of a channel into the policy to request to the broker.
+     *
+     * @param value the configured value
+     * @param channel the channel, used in the error message
+     * @return the policy
+     * @throws IllegalArgumentException if the value is not 0, 1 or 2
+     */
+    public static RetainedHandlingPolicy retainedHandlingPolicy(int value, String channel) {
+        if (value < 0 || value > 2) {
+            throw ex.illegalArgumentInvalidRetainHandling(channel, value);
+        }
+        return RetainedHandlingPolicy.valueOf(value);
     }
 
     private static MqttClientSessionOptions createMqttClientOptions(MqttConnectorCommonConfiguration config) {
@@ -65,6 +83,20 @@ public class MqttHelpers {
         options.setVersion(config.getMqttVersion());
         config.getSessionExpiryInterval().ifPresent(sei -> options.setSessionExpireInterval((long) sei));
         config.getAuthenticationMethod().ifPresent(options::setAuthenticationMethod);
+        config.getReceiveMaximum().ifPresent(options::setReceiveMaximum);
+        config.getTopicAliasMaximum().ifPresent(options::setTopicAliasMaximum);
+
+        if (config.getWillTopic().isPresent() || config.getWillPayload().isPresent()) {
+            // The will message is only sent by the broker if it has both a topic and a payload.
+            options.setWillTopic(config.getWillTopic()
+                    .orElseThrow(() -> ex.illegalArgumentMissingWillTopicOrPayload(config.getChannel())));
+            options.setWillMessageBytes(Buffer.buffer(config.getWillPayload()
+                    .orElseThrow(() -> ex.illegalArgumentMissingWillTopicOrPayload(config.getChannel()))));
+            MqttClientWillOptions will = options.getWillOptions();
+            config.getWillContentType().ifPresent(will::setContentType);
+            config.getWillResponseTopic().ifPresent(will::setResponseTopic);
+            config.getWillDelayInterval().ifPresent(will::setWillDelayInterval);
+        }
 
         return options;
     }
@@ -207,12 +239,32 @@ public class MqttHelpers {
             custom.setTrustAll(config.getTrustAll());
         }
 
-        if (isSetInChannelConfiguration("will-qus", config)) {
+        if (isSetInChannelConfiguration("will-qos", config)) {
             custom.setWillQoS(config.getWillQos());
         }
 
         if (isSetInChannelConfiguration("will-retain", config)) {
             custom.setWillRetain(config.getWillRetain());
+        }
+
+        if (isSetInChannelConfiguration("will-topic", config)) {
+            config.getWillTopic().ifPresent(custom::setWillTopic);
+        }
+
+        if (isSetInChannelConfiguration("will-payload", config)) {
+            config.getWillPayload().ifPresent(payload -> custom.setWillMessageBytes(Buffer.buffer(payload)));
+        }
+
+        if (isSetInChannelConfiguration("will-content-type", config)) {
+            config.getWillContentType().ifPresent(custom.getWillOptions()::setContentType);
+        }
+
+        if (isSetInChannelConfiguration("will-response-topic", config)) {
+            config.getWillResponseTopic().ifPresent(custom.getWillOptions()::setResponseTopic);
+        }
+
+        if (isSetInChannelConfiguration("will-delay-interval", config)) {
+            config.getWillDelayInterval().ifPresent(custom.getWillOptions()::setWillDelayInterval);
         }
         if (isSetInChannelConfiguration("unsubscribe-on-disconnection", config)) {
             custom.setUnsubscribeOnDisconnect(config.getUnsubscribeOnDisconnection());
@@ -225,6 +277,12 @@ public class MqttHelpers {
         }
         if (isSetInChannelConfiguration("authentication-method", config)) {
             config.getAuthenticationMethod().ifPresent(custom::setAuthenticationMethod);
+        }
+        if (isSetInChannelConfiguration("receive-maximum", config)) {
+            config.getReceiveMaximum().ifPresent(custom::setReceiveMaximum);
+        }
+        if (isSetInChannelConfiguration("topic-alias-maximum", config)) {
+            config.getTopicAliasMaximum().ifPresent(custom::setTopicAliasMaximum);
         }
         if (DEFAULT_METRICS_NAME.equals(custom.getMetricsName())) {
             custom.setMetricsName("mqtt|" + config.getChannel());

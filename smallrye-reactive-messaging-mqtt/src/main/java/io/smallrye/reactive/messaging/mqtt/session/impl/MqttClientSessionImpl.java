@@ -17,6 +17,7 @@ import org.jboss.logging.Logger;
 import io.netty.handler.codec.mqtt.MqttProperties;
 import io.netty.handler.codec.mqtt.MqttQoS;
 import io.netty.handler.codec.mqtt.MqttSubscriptionOption;
+import io.netty.handler.codec.mqtt.MqttSubscriptionOption.RetainedHandlingPolicy;
 import io.netty.handler.codec.mqtt.MqttTopicSubscription;
 import io.smallrye.reactive.messaging.mqtt.session.MqttClientSession;
 import io.smallrye.reactive.messaging.mqtt.session.MqttClientSessionOptions;
@@ -154,13 +155,13 @@ public class MqttClientSessionImpl implements MqttClientSession {
 
     @Override
     public Future<Integer> subscribe(String topic, RequestedQoS qos, boolean noLocal, boolean retainAsPublished,
-            int retainHandling) {
+            RetainedHandlingPolicy retainHandling) {
         return subscribe(topic, qos, noLocal, retainAsPublished, retainHandling, null);
     }
 
     @Override
     public Future<Integer> subscribe(String topic, RequestedQoS qos, boolean noLocal, boolean retainAsPublished,
-            int retainHandling, Integer subscriptionIdentifier) {
+            RetainedHandlingPolicy retainHandling, Integer subscriptionIdentifier) {
         Promise<Integer> result = Promise.promise();
         SubscriptionOptions opts = new SubscriptionOptions(qos, noLocal, retainAsPublished, retainHandling,
                 subscriptionIdentifier);
@@ -811,7 +812,7 @@ public class MqttClientSessionImpl implements MqttClientSession {
                             MqttQoS.valueOf(opts.getQos().toInteger()),
                             opts.isNoLocal(),
                             opts.isRetainAsPublished(),
-                            MqttSubscriptionOption.RetainedHandlingPolicy.valueOf(opts.getRetainHandling()));
+                            opts.getRetainHandling());
                 }
                 subscriptionList.add(new MqttTopicSubscription(entry.getKey(), option));
             }
