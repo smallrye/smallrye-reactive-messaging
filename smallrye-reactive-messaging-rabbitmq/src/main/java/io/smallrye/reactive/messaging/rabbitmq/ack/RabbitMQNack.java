@@ -1,5 +1,7 @@
 package io.smallrye.reactive.messaging.rabbitmq.ack;
 
+import static io.smallrye.reactive.messaging.rabbitmq.i18n.RabbitMQLogging.log;
+
 import java.io.IOException;
 import java.util.Optional;
 import java.util.concurrent.CompletionStage;
@@ -7,6 +9,7 @@ import java.util.concurrent.CompletionStage;
 import org.eclipse.microprofile.reactive.messaging.Metadata;
 
 import com.rabbitmq.client.Channel;
+import com.rabbitmq.client.ShutdownSignalException;
 
 import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.rabbitmq.IncomingRabbitMQMessage;
@@ -44,6 +47,9 @@ public class RabbitMQNack implements RabbitMQNackHandler {
             try {
                 channel.basicNack(rabbitMetadata.getDeliveryTag(), false, requeue);
                 return null;
+            } catch (ShutdownSignalException e) {
+                log.ackFailedChannelClosed(e);
+                return null;
             } catch (IOException e) {
                 throw new RuntimeException("Failed to nack message", e);
             }
@@ -60,6 +66,9 @@ public class RabbitMQNack implements RabbitMQNackHandler {
         return Uni.createFrom().item(() -> {
             try {
                 channel.basicNack(deliveryTag, multiple, requeue);
+                return null;
+            } catch (ShutdownSignalException e) {
+                log.ackFailedChannelClosed(e);
                 return null;
             } catch (IOException e) {
                 throw new RuntimeException("Failed to nack message", e);

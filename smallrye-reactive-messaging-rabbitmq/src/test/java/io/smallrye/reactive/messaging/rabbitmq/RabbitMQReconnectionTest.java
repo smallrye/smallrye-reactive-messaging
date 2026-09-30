@@ -6,11 +6,18 @@ import static org.awaitility.Awaitility.await;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.junit.jupiter.api.Disabled;
+import jakarta.enterprise.context.ApplicationScoped;
+
+import org.eclipse.microprofile.reactive.messaging.Acknowledgment;
+import org.eclipse.microprofile.reactive.messaging.Incoming;
+import org.eclipse.microprofile.reactive.messaging.Message;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.Network;
 import org.testcontainers.containers.ToxiproxyContainer;
@@ -136,7 +143,6 @@ public class RabbitMQReconnectionTest extends WeldTestBase {
      * Verifies that messages can be received from RabbitMQ.
      */
     @Test
-    @Disabled("receiving retry doesn't reconnect when trying")
     void testReceivingMessagesFromRabbitMQ_connection_fails() {
         final String routingKey = "xyzzy";
         try (ToxiproxyContainer toxiproxy = new ToxiproxyContainer(DockerImageName.parse("ghcr.io/shopify/toxiproxy:latest")
@@ -350,6 +356,123 @@ public class RabbitMQReconnectionTest extends WeldTestBase {
                     .until(() -> bean.getContexts().size() > preDisconnectCount);
         } catch (IOException e) {
             throw new RuntimeException(e);
+        }
+    }
+
+    /**
+     * Verifies that QoS (prefetch/credits) is properly re-established after reconnection.
+     * This is the core concern of issue #2424: after reconnection, backpressure must be
+     * respected (not reset to Long.MAX_VALUE).
+     */
+    @Test
+    void testBackpressurePreservedAfterReconnection() {
+        final String routingKey = "bp-test";
+        final int prefetch = 5;
+
+        try (ToxiproxyContainer toxiproxy = new ToxiproxyContainer(DockerImageName.parse("ghcr.io/shopify/toxiproxy:latest")
+                .asCompatibleSubstituteFor("shopify/toxiproxy"))
+                .withNetworkAliases("toxiproxy")
+                .withStartupAttempts(3)) {
+            toxiproxy.withNetwork(Network.SHARED);
+            toxiproxy.start();
+            await().until(toxiproxy::isRunning);
+
+            List<Integer> exposedPorts = toxiproxy.getExposedPorts();
+            int toxiPort = exposedPorts.get(exposedPorts.size() - 1);
+            Proxy proxy = createContainerProxy(toxiproxy, toxiPort);
+            int exposedPort = toxiproxy.getMappedPort(toxiPort);
+
+            weld.addBeanClass(BackpressureTrackingBean.class);
+
+            new MapBasedConfig()
+                    .put("mp.messaging.incoming.data.exchange.name", exchangeName)
+                    .put("mp.messaging.incoming.data.exchange.declare", true)
+                    .put("mp.messaging.incoming.data.queue.name", queueName)
+                    .put("mp.messaging.incoming.data.queue.declare", true)
+                    .put("mp.messaging.incoming.data.queue.durable", true)
+                    .put("mp.messaging.incoming.data.routing-keys", routingKey)
+                    .put("mp.messaging.incoming.data.connector", RabbitMQConnector.CONNECTOR_NAME)
+                    .put("mp.messaging.incoming.data.host", toxiproxy.getHost())
+                    .put("mp.messaging.incoming.data.port", exposedPort)
+                    .put("mp.messaging.incoming.data.tracing.enabled", false)
+                    .put("mp.messaging.incoming.data.auto-acknowledgement", false)
+                    .put("mp.messaging.incoming.data.max-outstanding-messages", prefetch)
+                    .put("rabbitmq-username", username)
+                    .put("rabbitmq-password", password)
+                    .put("rabbitmq-reconnect-interval", 1)
+                    .write();
+
+            SmallRyeConfigTestUtil.installConfig();
+            container = weld.initialize();
+            await().until(() -> isRabbitMQConnectorAvailable(container));
+
+            BackpressureTrackingBean bean = get(container, BackpressureTrackingBean.class);
+
+            // Phase 1: verify messages flow with acking enabled
+            AtomicInteger counter = new AtomicInteger();
+            usage.produce(exchangeName, queueName, routingKey, 3, counter::getAndIncrement);
+            await().atMost(30, SECONDS).until(() -> bean.getReceivedCount() >= 3);
+
+            // Disconnect
+            proxy.disable();
+            await().pollDelay(3, SECONDS).until(() -> !isRabbitMQConnectorAvailable(container));
+
+            // Stop acking so we can observe QoS-limited delivery after reconnection
+            bean.stopAcking();
+            int preReconnectCount = bean.getReceivedCount();
+
+            // Reconnect
+            proxy.enable();
+            await().atMost(1, TimeUnit.MINUTES).until(() -> isRabbitMQConnectorAvailable(container));
+
+            // Produce many more messages than the prefetch count
+            counter.set(0);
+            usage.produce(exchangeName, queueName, routingKey, 20, counter::getAndIncrement);
+
+            // Wait for broker to deliver what QoS allows
+            await().atMost(30, SECONDS).until(() -> bean.getReceivedCount() > preReconnectCount);
+            Thread.sleep(2000);
+
+            // After reconnection, QoS should be re-set to prefetch.
+            // Without acking, the broker must not deliver more than prefetch messages.
+            int postReconnectReceived = bean.getReceivedCount() - preReconnectCount;
+            assertThat(postReconnectReceived)
+                    .as("QoS prefetch should limit delivery to %d unacked messages after reconnection", prefetch)
+                    .isLessThanOrEqualTo(prefetch);
+            assertThat(postReconnectReceived)
+                    .as("Some messages should arrive after reconnection")
+                    .isGreaterThan(0);
+        } catch (IOException | InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @ApplicationScoped
+    public static class BackpressureTrackingBean {
+
+        private final List<Message<?>> received = new CopyOnWriteArrayList<>();
+        private final AtomicBoolean shouldAck = new AtomicBoolean(true);
+
+        @Incoming("data")
+        @Acknowledgment(Acknowledgment.Strategy.MANUAL)
+        public CompletionStage<Void> consume(Message<?> message) {
+            received.add(message);
+            if (shouldAck.get()) {
+                return message.ack();
+            }
+            return CompletableFuture.completedFuture(null);
+        }
+
+        public List<Message<?>> getReceived() {
+            return received;
+        }
+
+        public int getReceivedCount() {
+            return received.size();
+        }
+
+        public void stopAcking() {
+            shouldAck.set(false);
         }
     }
 
