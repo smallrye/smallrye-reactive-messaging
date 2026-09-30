@@ -699,7 +699,7 @@
       <plugin>
         <groupId>org.openrewrite.maven</groupId>
         <artifactId>rewrite-maven-plugin</artifactId>
-        <version>6.29.0</version>
+        <version>6.46.1</version>
         <configuration>
           <activeRecipes>
             <recipe>io.smallrye.reactive.messaging.recipes.VertxMigration</recipe>
