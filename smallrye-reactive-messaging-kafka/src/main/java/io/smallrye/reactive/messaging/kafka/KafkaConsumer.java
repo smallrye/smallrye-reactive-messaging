@@ -70,9 +70,37 @@ public interface KafkaConsumer<K, V> {
      * set {@code mp.messaging.incoming.[channel].pause-if-no-requests} to {@code false}.
      *
      * @return the Uni emitting when the action completes, the set of topic/partition paused by this call.
+     * @see #pausePartitions(Collection)
      */
     @CheckReturnValue
     Uni<Set<TopicPartition>> pause();
+
+    /**
+     * Pauses the consumption of records from the specified partitions.
+     * Unlike {@link #pause()}, these partitions will remain paused even when
+     * {@code pause-if-no-requests} is enabled. The backpressure mechanism will
+     * not resume manually paused partitions.
+     * <p>
+     * Only partitions currently assigned to this consumer are affected.
+     * If an empty collection is provided, no partitions are paused.
+     *
+     * @param partitions the partitions to pause, must not be {@code null}
+     * @return the Uni emitting when the action completes
+     * @see #pauseAssignedPartitions()
+     */
+    @CheckReturnValue
+    Uni<Void> pausePartitions(Collection<TopicPartition> partitions);
+
+    /**
+     * Pauses the consumption of records from all currently assigned partitions.
+     * These partitions will remain paused even when {@code pause-if-no-requests}
+     * is enabled. The backpressure mechanism will not resume manually paused partitions.
+     *
+     * @return the Uni emitting when the action completes
+     * @see #pausePartitions(Collection)
+     */
+    @CheckReturnValue
+    Uni<Void> pauseAssignedPartitions();
 
     /**
      * Retrieves the set of paused topic/partition
@@ -81,6 +109,14 @@ public interface KafkaConsumer<K, V> {
      */
     @CheckReturnValue
     Uni<Set<TopicPartition>> paused();
+
+    /**
+     * Returns the set of partitions that have been manually paused via
+     * {@link #pausePartitions(Collection)}.
+     *
+     * @return an unmodifiable snapshot of the manually paused partitions
+     */
+    Set<TopicPartition> pausedPartitions();
 
     /**
      * Retrieved the last committed offset for each topic/partition
@@ -94,15 +130,28 @@ public interface KafkaConsumer<K, V> {
     /**
      * Resumes the consumption of record.
      * It resumes the consumption of all the paused topic/partition.
+     * Partitions that were manually paused via {@link #pausePartitions(Collection)} will not be resumed.
      *
      * <strong>IMPORTANT:</strong> To use this method, you need to disable the auto-pause/resume feature from the connector.
      * Otherwise, the client will be paused automatically when there are no requests. To disable the auto-pause/resume,
      * set {@code mp.messaging.incoming.[channel].pause-if-no-requests} to {@code false}.
      *
      * @return the Uni indicating when the resume action completes.
+     * @see #resumePartitions(Collection)
      */
     @CheckReturnValue
     Uni<Void> resume();
+
+    /**
+     * Resumes the consumption of records from the specified partitions.
+     * Only partitions that were previously manually paused via
+     * {@link #pausePartitions(Collection)} are affected.
+     *
+     * @param partitions the partitions to resume, must not be {@code null}
+     * @return the Uni emitting when the action completes
+     */
+    @CheckReturnValue
+    Uni<Void> resumePartitions(Collection<TopicPartition> partitions);
 
     /**
      * @return the underlying consumer. Be aware that to use it you needs to be on the polling thread.
