@@ -1,9 +1,12 @@
 package io.smallrye.reactive.messaging.rabbitmq.ack;
 
+import static io.smallrye.reactive.messaging.rabbitmq.i18n.RabbitMQLogging.log;
+
 import java.io.IOException;
 import java.util.concurrent.CompletionStage;
 
 import com.rabbitmq.client.Channel;
+import com.rabbitmq.client.ShutdownSignalException;
 
 import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.rabbitmq.IncomingRabbitMQMessage;
@@ -31,6 +34,9 @@ public class RabbitMQAck implements RabbitMQAckHandler {
             try {
                 channel.basicAck(metadata.getDeliveryTag(), false);
                 return null;
+            } catch (ShutdownSignalException e) {
+                log.ackFailedChannelClosed(e);
+                return null;
             } catch (IOException e) {
                 throw new RuntimeException("Failed to acknowledge message", e);
             }
@@ -47,6 +53,9 @@ public class RabbitMQAck implements RabbitMQAckHandler {
         return Uni.createFrom().item(() -> {
             try {
                 channel.basicAck(deliveryTag, multiple);
+                return null;
+            } catch (ShutdownSignalException e) {
+                log.ackFailedChannelClosed(e);
                 return null;
             } catch (IOException e) {
                 throw new RuntimeException("Failed to acknowledge message", e);
