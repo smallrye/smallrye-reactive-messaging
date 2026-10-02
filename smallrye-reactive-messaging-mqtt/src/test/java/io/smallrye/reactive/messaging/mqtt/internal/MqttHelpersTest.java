@@ -118,6 +118,92 @@ class MqttHelpersTest {
 
             assertThat(options.getMetricsName()).isEqualTo("mqtt|my-mqtt-channel");
         }
+
+        @Test
+        void automaticKeepAliveEnabledAndKeepsConfiguredInterval() {
+            Map<String, Object> config = new HashMap<>();
+            config.put("keep-alive-seconds", 45);
+
+            MqttClientSessionOptions options = MqttHelpers.createClientOptions(
+                    createConfig(config), null);
+
+            assertThat(options.isAutoKeepAlive()).isTrue();
+            assertThat(options.getKeepAliveInterval()).isEqualTo(45);
+        }
+
+        @Test
+        void legacyAutoKeepAliveFalseCannotDisableAutomaticKeepAlive() {
+            Map<String, Object> config = new HashMap<>();
+            config.put("auto-keep-alive", false);
+            config.put("keep-alive-seconds", 15);
+
+            MqttClientSessionOptions options = MqttHelpers.createClientOptions(
+                    createConfig(config), null);
+
+            assertThat(options.isAutoKeepAlive()).isTrue();
+            assertThat(options.getKeepAliveInterval()).isEqualTo(15);
+        }
+
+        @Test
+        void legacyAutoKeepAliveTrueLeavesAutomaticKeepAliveEnabled() {
+            Map<String, Object> config = new HashMap<>();
+            config.put("auto-keep-alive", true);
+            config.put("keep-alive-seconds", 90);
+
+            MqttClientSessionOptions options = MqttHelpers.createClientOptions(
+                    createConfig(config), null);
+
+            assertThat(options.isAutoKeepAlive()).isTrue();
+            assertThat(options.getKeepAliveInterval()).isEqualTo(90);
+        }
+
+        @Test
+        void omittedAutoKeepAliveLeavesAutomaticKeepAliveEnabled() {
+            Map<String, Object> config = new HashMap<>();
+            config.put("keep-alive-seconds", 30);
+
+            MqttClientSessionOptions options = MqttHelpers.createClientOptions(
+                    createConfig(config), null);
+
+            assertThat(options.isAutoKeepAlive()).isTrue();
+            assertThat(options.getKeepAliveInterval()).isEqualTo(30);
+        }
+    }
+
+    @Nested
+    class MergeTests {
+
+        @Test
+        void falseChannelValueDoesNotOverrideTrueBean() {
+            MqttClientSessionOptions custom = new MqttClientSessionOptions();
+            custom.setAutoKeepAlive(true);
+            custom.setHostname("bean-host");
+
+            Map<String, Object> config = new HashMap<>();
+            config.put("auto-keep-alive", false);
+            config.put("host", "channel-host");
+
+            MqttHelpers.merge(custom, createConfig(config));
+
+            assertThat(custom.isAutoKeepAlive()).isTrue();
+            assertThat(custom.getHostname()).isEqualTo("channel-host");
+        }
+
+        @Test
+        void trueChannelValueDoesNotOverrideFalseBean() {
+            MqttClientSessionOptions custom = new MqttClientSessionOptions();
+            custom.setAutoKeepAlive(false);
+            custom.setClientId("bean-client");
+
+            Map<String, Object> config = new HashMap<>();
+            config.put("auto-keep-alive", true);
+            config.put("client-id", "channel-client");
+
+            MqttHelpers.merge(custom, createConfig(config));
+
+            assertThat(custom.isAutoKeepAlive()).isFalse();
+            assertThat(custom.getClientId()).isEqualTo("channel-client");
+        }
     }
 
     @Nested
