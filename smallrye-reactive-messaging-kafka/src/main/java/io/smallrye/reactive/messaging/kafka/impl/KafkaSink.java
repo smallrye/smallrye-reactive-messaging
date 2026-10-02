@@ -4,11 +4,8 @@ import static io.smallrye.reactive.messaging.kafka.i18n.KafkaLogging.log;
 
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.Flow;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -20,13 +17,7 @@ import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerInterceptor;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
-import org.apache.kafka.common.errors.InvalidTopicException;
-import org.apache.kafka.common.errors.OffsetMetadataTooLarge;
-import org.apache.kafka.common.errors.RecordBatchTooLargeException;
-import org.apache.kafka.common.errors.RecordTooLargeException;
-import org.apache.kafka.common.errors.SerializationException;
-import org.apache.kafka.common.errors.TransactionAbortedException;
-import org.apache.kafka.common.errors.UnknownServerException;
+import org.apache.kafka.common.errors.RetriableException;
 import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.common.serialization.StringSerializer;
@@ -89,7 +80,7 @@ public class KafkaSink {
             Instance<ProducerInterceptor<?, ?>> producerInterceptors) {
         this.isTracingEnabled = config.getTracingEnabled();
         this.partition = config.getPartition();
-        this.retries = config.getRetries();
+        this.retries = config.getSendRetries();
         this.topic = config.getTopic().orElseGet(config::getChannel);
         this.key = config.getKey().orElse(null);
         this.channel = config.getChannel();
@@ -187,21 +178,6 @@ public class KafkaSink {
         failures.add(failure);
     }
 
-    /**
-     * List exception for which we should not retry - they are fatal.
-     * The list comes from https://kafka.apache.org/25/javadoc/org/apache/kafka/clients/producer/Callback.html.
-     * <p>
-     * Also included: SerializationException (as the chances to serialize the payload correctly one retry are almost 0).
-     */
-    private static final Set<Class<? extends Throwable>> NOT_RECOVERABLE = new HashSet<>(Arrays.asList(
-            InvalidTopicException.class,
-            OffsetMetadataTooLarge.class,
-            RecordBatchTooLargeException.class,
-            RecordTooLargeException.class,
-            UnknownServerException.class,
-            SerializationException.class,
-            TransactionAbortedException.class));
-
     private Function<Message<?>, Uni<Void>> writeMessageToKafka() {
         return message -> {
             try {
@@ -296,7 +272,7 @@ public class KafkaSink {
     }
 
     private boolean isRecoverable(Throwable f) {
-        return !NOT_RECOVERABLE.contains(f.getClass()) && !client.isClosed();
+        return f instanceof RetriableException && !client.isClosed();
     }
 
     @SuppressWarnings("rawtypes")

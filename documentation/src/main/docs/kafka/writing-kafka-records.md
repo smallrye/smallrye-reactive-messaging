@@ -200,11 +200,11 @@ The bean must be exposed with the `@Identifier` qualifier specifying the
 name of the bean. Then, in the connector configuration, specify the
 following attribute:
 
--   `mp.messaging.incoming.$channel.key-serialization-failure-handler`:
+-   `mp.messaging.outgoing.$channel.key-serialization-failure-handler`:
     name of the bean handling serialization failures happening for the
     record’s key
 
--   `mp.messaging.incoming.$channel.value-serialization-failure-handler`:
+-   `mp.messaging.outgoing.$channel.value-serialization-failure-handler`:
     name of the bean handling serialization failures happening for the
     record’s value,
 
