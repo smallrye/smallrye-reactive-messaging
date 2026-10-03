@@ -119,13 +119,14 @@ public class TracingPropagationTest extends KafkaCompanionTestBase {
 
             SpanData span = spans.get(0);
             assertEquals(SpanKind.PRODUCER, span.getKind());
-            assertEquals(5, span.getAttributes().size());
             assertEquals("kafka", span.getAttributes().get(MESSAGING_SYSTEM));
             assertEquals("publish", span.getAttributes().get(MESSAGING_OPERATION));
             assertEquals(topic, span.getAttributes().get(MESSAGING_DESTINATION_NAME));
             checkAttribute(span.getAttributes(), "kafka-producer-kafka",
                     stringKey("messaging.client_id"), MessagingIncubatingAttributes.MESSAGING_CLIENT_ID);
-            assertEquals(0, span.getAttributes().get(MESSAGING_KAFKA_OFFSET));
+            assertThat(span.getAttributes().get(MESSAGING_KAFKA_OFFSET)).isNotNull();
+            assertThat(span.getAttributes().get(MessagingIncubatingAttributes.MESSAGING_DESTINATION_PARTITION_ID))
+                    .isNotNull();
 
             assertEquals(topic + " publish", span.getName());
         });
@@ -158,13 +159,14 @@ public class TracingPropagationTest extends KafkaCompanionTestBase {
 
             SpanData span = spans.get(0);
             assertEquals(SpanKind.PRODUCER, span.getKind());
-            assertEquals(5, span.getAttributes().size());
             assertEquals("kafka", span.getAttributes().get(MESSAGING_SYSTEM));
             assertEquals("publish", span.getAttributes().get(MESSAGING_OPERATION));
             assertEquals(topic, span.getAttributes().get(MESSAGING_DESTINATION_NAME));
             checkAttribute(span.getAttributes(), "kafka-producer-kafka",
                     stringKey("messaging.client_id"), MessagingIncubatingAttributes.MESSAGING_CLIENT_ID);
-            assertEquals(0, span.getAttributes().get(MESSAGING_KAFKA_OFFSET));
+            assertThat(span.getAttributes().get(MESSAGING_KAFKA_OFFSET)).isNotNull();
+            assertThat(span.getAttributes().get(MessagingIncubatingAttributes.MESSAGING_DESTINATION_PARTITION_ID))
+                    .isNotNull();
             assertEquals(topic + " publish", span.getName());
         });
     }
@@ -196,13 +198,14 @@ public class TracingPropagationTest extends KafkaCompanionTestBase {
 
             SpanData span = spans.get(0);
             assertEquals(SpanKind.PRODUCER, span.getKind());
-            assertEquals(5, span.getAttributes().size());
             assertEquals("kafka", span.getAttributes().get(MESSAGING_SYSTEM));
             assertEquals("publish", span.getAttributes().get(MESSAGING_OPERATION));
             assertEquals(topic, span.getAttributes().get(MESSAGING_DESTINATION_NAME));
             checkAttribute(span.getAttributes(), "kafka-producer-kafka",
                     stringKey("messaging.client_id"), MessagingIncubatingAttributes.MESSAGING_CLIENT_ID);
-            assertEquals(0, span.getAttributes().get(MESSAGING_KAFKA_OFFSET));
+            assertThat(span.getAttributes().get(MESSAGING_KAFKA_OFFSET)).isNotNull();
+            assertThat(span.getAttributes().get(MessagingIncubatingAttributes.MESSAGING_DESTINATION_PARTITION_ID))
+                    .isNotNull();
             assertEquals(topic + " publish", span.getName());
         });
     }
@@ -255,14 +258,14 @@ public class TracingPropagationTest extends KafkaCompanionTestBase {
             SpanData producer = spans.stream().filter(spanData -> spanData.getParentSpanId().equals(consumer.getSpanId()))
                     .findFirst().get();
             assertEquals(SpanKind.PRODUCER, producer.getKind());
-            assertEquals(5, producer.getAttributes().size());
             assertEquals("kafka", producer.getAttributes().get(MESSAGING_SYSTEM));
             assertEquals("publish", producer.getAttributes().get(MESSAGING_OPERATION));
             assertEquals(resultTopic, producer.getAttributes().get(MESSAGING_DESTINATION_NAME));
-            assertEquals("publish", producer.getAttributes().get(MESSAGING_OPERATION));
             checkAttribute(producer.getAttributes(), "kafka-producer-kafka",
                     stringKey("messaging.client_id"), MessagingIncubatingAttributes.MESSAGING_CLIENT_ID);
-            assertEquals(0, producer.getAttributes().get(MESSAGING_KAFKA_OFFSET));
+            assertThat(producer.getAttributes().get(MESSAGING_KAFKA_OFFSET)).isNotNull();
+            assertThat(producer.getAttributes().get(MessagingIncubatingAttributes.MESSAGING_DESTINATION_PARTITION_ID))
+                    .isNotNull();
             assertEquals(resultTopic + " publish", producer.getName());
         });
     }
@@ -319,6 +322,74 @@ public class TracingPropagationTest extends KafkaCompanionTestBase {
                     stringKey("messaging.client_id"), MessagingIncubatingAttributes.MESSAGING_CLIENT_ID);
             assertEquals(0, consumer.getAttributes().get(MESSAGING_KAFKA_OFFSET));
             assertEquals(parentTopic + " receive", consumer.getName());
+        });
+    }
+
+    @Test
+    public void testProducerSpanCoversAsyncSend() {
+        ConsumerTask<String, Integer> consumed = companion.consumeIntegers().fromTopics(topic,
+                m -> m.plug(until(10L, Duration.ofMinutes(1), null)));
+        runApplication(getKafkaSinkConfigForMyAppGeneratingData(), MyAppGeneratingData.class);
+
+        await().until(() -> consumed.getRecords().size() >= 10);
+
+        CompletableResultCode completableResultCode = tracerProvider.forceFlush();
+        completableResultCode.whenComplete(() -> {
+            List<SpanData> spans = spanExporter.getFinishedSpanItems();
+            assertEquals(10, spans.size());
+
+            for (SpanData span : spans) {
+                assertEquals(SpanKind.PRODUCER, span.getKind());
+                long durationNanos = span.getEndEpochNanos() - span.getStartEpochNanos();
+                assertThat(durationNanos).as("Producer span should have non-trivial duration").isGreaterThan(0);
+            }
+        });
+    }
+
+    @Test
+    public void testProducerSpanHasActualOffsetAndPartition() {
+        ConsumerTask<String, Integer> consumed = companion.consumeIntegers().fromTopics(topic,
+                m -> m.plug(until(10L, Duration.ofMinutes(1), null)));
+        runApplication(getKafkaSinkConfigForMyAppGeneratingData(), MyAppGeneratingData.class);
+
+        await().until(() -> consumed.getRecords().size() >= 10);
+
+        CompletableResultCode completableResultCode = tracerProvider.forceFlush();
+        completableResultCode.whenComplete(() -> {
+            List<SpanData> spans = spanExporter.getFinishedSpanItems();
+            assertEquals(10, spans.size());
+
+            for (SpanData span : spans) {
+                assertEquals(SpanKind.PRODUCER, span.getKind());
+                Long offset = span.getAttributes().get(MESSAGING_KAFKA_OFFSET);
+                assertThat(offset).isNotNull().isGreaterThanOrEqualTo(0);
+                String partitionId = span.getAttributes()
+                        .get(MessagingIncubatingAttributes.MESSAGING_DESTINATION_PARTITION_ID);
+                assertThat(partitionId).isNotNull();
+                assertThat(Integer.parseInt(partitionId)).isGreaterThanOrEqualTo(0);
+            }
+        });
+    }
+
+    @Test
+    public void testProducerSpanHasNoConsumerGroupAttribute() {
+        ConsumerTask<String, Integer> consumed = companion.consumeIntegers().fromTopics(topic,
+                m -> m.plug(until(10L, Duration.ofMinutes(1), null)));
+        runApplication(getKafkaSinkConfigForMyAppGeneratingData(), MyAppGeneratingData.class);
+
+        await().until(() -> consumed.getRecords().size() >= 10);
+
+        CompletableResultCode completableResultCode = tracerProvider.forceFlush();
+        completableResultCode.whenComplete(() -> {
+            List<SpanData> spans = spanExporter.getFinishedSpanItems();
+            assertEquals(10, spans.size());
+
+            for (SpanData span : spans) {
+                assertEquals(SpanKind.PRODUCER, span.getKind());
+                assertThat(span.getAttributes().get(MessagingIncubatingAttributes.MESSAGING_CONSUMER_GROUP_NAME))
+                        .as("Producer spans should not have consumer group attribute")
+                        .isNull();
+            }
         });
     }
 
