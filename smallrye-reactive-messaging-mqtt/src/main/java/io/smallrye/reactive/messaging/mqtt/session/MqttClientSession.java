@@ -18,6 +18,7 @@ package io.smallrye.reactive.messaging.mqtt.session;
 
 import io.netty.handler.codec.mqtt.MqttProperties;
 import io.netty.handler.codec.mqtt.MqttQoS;
+import io.netty.handler.codec.mqtt.MqttSubscriptionOption.RetainedHandlingPolicy;
 import io.smallrye.reactive.messaging.mqtt.session.impl.MqttClientSessionImpl;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
@@ -162,11 +163,11 @@ public interface MqttClientSession {
      * @param qos The QoS to request from the server.
      * @param noLocal If true, the server will not forward messages published by this client.
      * @param retainAsPublished If true, the server keeps the retain flag as set by the publishing client.
-     * @param retainHandling Retain handling option (0, 1, or 2).
+     * @param retainHandling The retained messages handling policy.
      * @return a future completed with the granted QoS
      */
     default Future<Integer> subscribe(String topic, RequestedQoS qos, boolean noLocal, boolean retainAsPublished,
-            int retainHandling) {
+            RetainedHandlingPolicy retainHandling) {
         return subscribe(topic, qos, noLocal, retainAsPublished, retainHandling, null);
     }
 
@@ -177,12 +178,12 @@ public interface MqttClientSession {
      * @param qos The QoS to request from the server.
      * @param noLocal If true, the server will not forward messages published by this client.
      * @param retainAsPublished If true, the server keeps the retain flag as set by the publishing client.
-     * @param retainHandling Retain handling option (0, 1, or 2).
+     * @param retainHandling The retained messages handling policy.
      * @param subscriptionIdentifier The subscription identifier (MQTT 5.0), or {@code null} to omit.
      * @return a future completed with the granted QoS
      */
     default Future<Integer> subscribe(String topic, RequestedQoS qos, boolean noLocal, boolean retainAsPublished,
-            int retainHandling, Integer subscriptionIdentifier) {
+            RetainedHandlingPolicy retainHandling, Integer subscriptionIdentifier) {
         return subscribe(topic, qos);
     }
 
