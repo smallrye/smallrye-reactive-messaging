@@ -21,8 +21,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.Network;
-import org.testcontainers.containers.ToxiproxyContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
+import org.testcontainers.toxiproxy.ToxiproxyContainer;
 import org.testcontainers.utility.DockerImageName;
 
 import eu.rekawek.toxiproxy.Proxy;
