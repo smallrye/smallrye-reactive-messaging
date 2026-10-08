@@ -305,6 +305,29 @@ Then, in the channel configuration, specify the following attribute:
     The `onSend` method will be called on the producer *sending thread* and `onAcknowledgement` will be called on the *Kafka producer I/O thread*.
     In both cases if implementations are not fast, sending of messages could be delayed.
 
+## Send Retries
+
+Previous versions of the Kafka outgoing connector retried sending records that failed with transient errors, configured with the `retries` attribute (defaulting to `2147483647`).
+This application-level retry mechanism is now **deprecated** and disabled by default in favor of the built-in Kafka producer retries, controlled by the `retries` and `delivery.timeout.ms` producer configuration properties.
+
+If you previously relied on the connector-level retries, note that the Kafka producer already retries transient failures internally.
+Application-level retries on top of the Kafka producer retries can cause message duplication and out-of-order delivery.
+
+If you still need the connector-level retry behavior, you can re-enable it by setting the `send.retries` attribute to a positive number:
+
+```properties
+mp.messaging.outgoing.[channel].send.retries=2147483647
+```
+
+!!!note "Behavior change"
+The retry logic has also changed. Previously, the connector retried all errors except a hardcoded list of non-recoverable exceptions.
+Now, it retries only Kafka `RetriableException` instances.
+As before, non-recoverable errors (like `RecordTooLargeException`, `SerializationException`) are never retried, even with `send.retries` configured.
+
+!!!warning "Deprecated"
+    The `send.retries` attribute is deprecated and will be removed in a future version.
+    Configure the Kafka producer `retries` and `delivery.timeout.ms` properties directly instead.
+
 ## Configuration Reference
 
 {{ insert('../../../target/connectors/smallrye-kafka-outgoing.md') }}
