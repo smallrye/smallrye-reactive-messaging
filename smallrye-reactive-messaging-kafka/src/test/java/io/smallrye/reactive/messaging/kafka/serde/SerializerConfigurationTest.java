@@ -69,8 +69,7 @@ public class SerializerConfigurationTest extends KafkaCompanionTestBase {
     public void testKeySerializationFailure() {
         MapBasedConfig config = commonConsumerConfiguration()
                 .with("value.serializer", JsonObjectSerde.JsonObjectSerializer.class.getName())
-                .with("key.serializer", JsonObjectSerde.JsonObjectSerializer.class.getName())
-                .with("retries", 0L);
+                .with("key.serializer", JsonObjectSerde.JsonObjectSerializer.class.getName());
         sink = createSink(config);
         Flow.Subscriber<? extends Message<?>> subscriber = sink.getSink();
         AtomicBoolean nacked = new AtomicBoolean();
@@ -87,8 +86,7 @@ public class SerializerConfigurationTest extends KafkaCompanionTestBase {
     public void testValueSerializationFailure() {
         MapBasedConfig config = commonConsumerConfiguration()
                 .with("value.serializer", JsonObjectSerde.JsonObjectSerializer.class.getName())
-                .with("key.serializer", JsonObjectSerde.JsonObjectSerializer.class.getName())
-                .with("retries", 0L);
+                .with("key.serializer", JsonObjectSerde.JsonObjectSerializer.class.getName());
         sink = createSink(config);
         Flow.Subscriber<? extends Message<?>> subscriber = sink.getSink();
         AtomicBoolean nacked = new AtomicBoolean();

@@ -4,35 +4,26 @@ import static io.smallrye.reactive.messaging.kafka.i18n.KafkaLogging.log;
 
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.Flow;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import jakarta.enterprise.inject.Instance;
 
-import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerInterceptor;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
-import org.apache.kafka.common.errors.InvalidTopicException;
-import org.apache.kafka.common.errors.OffsetMetadataTooLarge;
-import org.apache.kafka.common.errors.RecordBatchTooLargeException;
-import org.apache.kafka.common.errors.RecordTooLargeException;
-import org.apache.kafka.common.errors.SerializationException;
-import org.apache.kafka.common.errors.TransactionAbortedException;
-import org.apache.kafka.common.errors.UnknownServerException;
+import org.apache.kafka.common.errors.RetriableException;
 import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.eclipse.microprofile.reactive.messaging.Message;
 
 import io.opentelemetry.api.OpenTelemetry;
+import io.opentelemetry.context.Context;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.ClientCustomizer;
 import io.smallrye.reactive.messaging.OutgoingMessageMetadata;
@@ -89,7 +80,7 @@ public class KafkaSink {
             Instance<ProducerInterceptor<?, ?>> producerInterceptors) {
         this.isTracingEnabled = config.getTracingEnabled();
         this.partition = config.getPartition();
-        this.retries = config.getRetries();
+        this.retries = config.getSendRetries();
         this.topic = config.getTopic().orElseGet(config::getChannel);
         this.key = config.getKey().orElse(null);
         this.channel = config.getChannel();
@@ -187,23 +178,10 @@ public class KafkaSink {
         failures.add(failure);
     }
 
-    /**
-     * List exception for which we should not retry - they are fatal.
-     * The list comes from https://kafka.apache.org/25/javadoc/org/apache/kafka/clients/producer/Callback.html.
-     * <p>
-     * Also included: SerializationException (as the chances to serialize the payload correctly one retry are almost 0).
-     */
-    private static final Set<Class<? extends Throwable>> NOT_RECOVERABLE = new HashSet<>(Arrays.asList(
-            InvalidTopicException.class,
-            OffsetMetadataTooLarge.class,
-            RecordBatchTooLargeException.class,
-            RecordTooLargeException.class,
-            UnknownServerException.class,
-            SerializationException.class,
-            TransactionAbortedException.class));
-
     private Function<Message<?>, Uni<Void>> writeMessageToKafka() {
         return message -> {
+            Context spanContext = null;
+            KafkaTrace kafkaTrace = null;
             try {
                 OutgoingKafkaRecordMetadata<?> outgoingMetadata = message.getMetadata(OutgoingKafkaRecordMetadata.class)
                         .orElse(null);
@@ -237,14 +215,13 @@ public class KafkaSink {
                 }
 
                 if (isTracingEnabled) {
-                    KafkaTrace kafkaTrace = new KafkaTrace.Builder()
+                    kafkaTrace = new KafkaTrace.Builder()
                             .withPartition(record.partition() != null ? record.partition() : -1)
                             .withTopic(record.topic())
                             .withHeaders(record.headers())
-                            .withGroupId((String) client.configuration().get(ConsumerConfig.GROUP_ID_CONFIG))
-                            .withClientId((String) client.configuration().get(ConsumerConfig.CLIENT_ID_CONFIG))
+                            .withClientId((String) client.configuration().get(ProducerConfig.CLIENT_ID_CONFIG))
                             .build();
-                    kafkaInstrumenter.traceOutgoing(message, kafkaTrace);
+                    spanContext = kafkaInstrumenter.startOutgoing(message, kafkaTrace);
                 }
 
                 String actualTopic = topic;
@@ -257,28 +234,34 @@ public class KafkaSink {
                         ? scopeMeta.getScope().send((ProducerRecord) record)
                         : client.send((ProducerRecord) record);
 
-                Uni<Void> uni = sendUni.onItem().transformToUni(recordMetadata -> {
-                    OutgoingMessageMetadata.setResultOnMessage(message, recordMetadata);
-                    log.successfullyToTopic(message, channel, recordMetadata.topic(), recordMetadata.partition(),
-                            recordMetadata.offset());
-                    return Uni.createFrom().completionStage(message.ack());
-                });
-
                 if (this.retries == Integer.MAX_VALUE) {
-                    uni = uni.onFailure(this::isRecoverable).retry()
+                    sendUni = sendUni.onFailure(this::isRecoverable).retry()
                             .withBackOff(Duration.ofSeconds(1), Duration.ofSeconds(20)).expireIn(deliveryTimeoutMs);
                 } else if (this.retries > 0) {
-                    uni = uni.onFailure(this::isRecoverable).retry()
+                    sendUni = sendUni.onFailure(this::isRecoverable).retry()
                             .withBackOff(Duration.ofSeconds(1), Duration.ofSeconds(20)).atMost(this.retries);
                 }
 
-                return uni
-                        .onFailure().recoverWithUni(t -> {
-                            // Log and nack the messages on failure.
-                            log.nackingMessage(message, channel, actualTopic, t);
-                            return Uni.createFrom().completionStage(message.nack(t));
-                        });
+                final Context finalSpanContext = spanContext;
+                final KafkaTrace finalKafkaTrace = kafkaTrace;
+                return sendUni.onItemOrFailure().transformToUni((recordMetadata, t) -> {
+                    if (isTracingEnabled) {
+                        kafkaInstrumenter.endOutgoing(finalSpanContext, finalKafkaTrace, recordMetadata, t);
+                    }
+                    if (t != null) {
+                        log.nackingMessage(message, channel, actualTopic, t);
+                        return Uni.createFrom().completionStage(message.nack(t));
+                    } else {
+                        OutgoingMessageMetadata.setResultOnMessage(message, recordMetadata);
+                        log.successfullyToTopic(message, channel, recordMetadata.topic(), recordMetadata.partition(),
+                                recordMetadata.offset());
+                        return Uni.createFrom().completionStage(message.ack());
+                    }
+                });
             } catch (RuntimeException e) {
+                if (isTracingEnabled && spanContext != null) {
+                    kafkaInstrumenter.endOutgoing(spanContext, kafkaTrace, null, e);
+                }
                 log.unableToSendRecord(e);
                 return Uni.createFrom().failure(e);
             }
@@ -296,7 +279,7 @@ public class KafkaSink {
     }
 
     private boolean isRecoverable(Throwable f) {
-        return !NOT_RECOVERABLE.contains(f.getClass()) && !client.isClosed();
+        return f instanceof RetriableException && !client.isClosed();
     }
 
     @SuppressWarnings("rawtypes")
