@@ -229,4 +229,8 @@ public interface RabbitMQLogging extends BasicLogger {
     @LogMessage(level = Logger.Level.ERROR)
     @Message(id = 18064, value = "Request-reply consumer failure on channel `%s`")
     void requestReplyConsumerFailure(String channel, @Cause Throwable t);
+
+    @LogMessage(level = Logger.Level.WARN)
+    @Message(id = 18065, value = "Channel closed during message acknowledgement, message will be redelivered after reconnection")
+    void ackFailedChannelClosed(@Cause Throwable t);
 }
