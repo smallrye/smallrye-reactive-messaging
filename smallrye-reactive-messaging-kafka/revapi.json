@@ -36,7 +36,16 @@
     "criticality" : "highlight",
     "minSeverity" : "POTENTIALLY_BREAKING",
     "minCriticality" : "documented",
-    "differences" : [ ]
+    "differences" : [ {
+      "code" : "java.method.removed",
+      "old" : "method java.lang.Long io.smallrye.reactive.messaging.kafka.KafkaConnectorOutgoingConfiguration::getRetries()",
+      "justification" : "Outgoing `retries` renamed to `send.retries` to avoid collision with Kafka producer `retries` config"
+    }, {
+      "code" : "java.annotation.attributeValueChanged",
+      "old" : "class io.smallrye.reactive.messaging.kafka.KafkaConnector",
+      "new" : "class io.smallrye.reactive.messaging.kafka.KafkaConnector",
+      "justification" : "Outgoing `retries` renamed to `send.retries` to avoid collision with Kafka producer `retries` config"
+    }]
   }
 }, {
   "extension" : "revapi.reporter.json",
