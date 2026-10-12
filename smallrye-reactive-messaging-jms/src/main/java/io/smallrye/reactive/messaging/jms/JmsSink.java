@@ -128,10 +128,21 @@ class JmsSink {
                     .orElse(null);
         }
 
+        JmsXaTransactionMetadata xaMeta = null;
+        if (sharedContext != null) {
+            xaMeta = message.getMetadata(JmsXaTransactionMetadata.class).orElse(null);
+            if (message.getMetadata(JmsSessionContext.class).get().transactionMode() == JmsTransactionMode.XA
+                    && xaMeta == null) {
+                return Uni.createFrom().failure(new IllegalStateException(
+                        "Message carries an XA JmsSessionContext but no JmsXaTransactionMetadata"));
+            }
+        }
+
         Destination destination;
         JMSContext context;
         JMSProducer producer;
         if (sharedContext != null) {
+            log.usingSharedSessionContextForSending(destinationName);
             context = sharedContext;
             destination = getDestination(context, destinationName, destinationType);
             producer = context.createProducer();
@@ -143,8 +154,7 @@ class JmsSink {
         // If the payload is a JMS Message, send it as it is, ignoring metadata.
         if (payload instanceof jakarta.jms.Message) {
             outgoingTrace(destination, message, (jakarta.jms.Message) payload);
-            return dispatch(message,
-                    () -> producer.send(destination, (jakarta.jms.Message) payload));
+            return dispatch(message, xaMeta, producer, destination, (jakarta.jms.Message) payload);
         }
 
         try {
@@ -187,9 +197,6 @@ class JmsSink {
                 if (type != null) {
                     outgoing.setJMSType(type);
                 }
-                if (type != null) {
-                    outgoing.setJMSType(type);
-                }
 
                 if (properties != null) {
                     if (!(properties instanceof JmsPropertiesBuilder.OutgoingJmsProperties)) {
@@ -204,7 +211,7 @@ class JmsSink {
             }
 
             outgoingTrace(actualDestination, message, outgoing);
-            return dispatch(message, () -> producer.send(actualDestination, outgoing));
+            return dispatch(message, xaMeta, producer, actualDestination, outgoing);
         } catch (JMSException e) {
             return Uni.createFrom().failure(new IllegalStateException(e));
         }
@@ -231,9 +238,18 @@ class JmsSink {
                 || c.equals(Long.class);
     }
 
-    private Uni<? extends Message<?>> dispatch(Message<?> incoming, Runnable action) {
+    private Uni<? extends Message<?>> dispatch(Message<?> incoming, JmsXaTransactionMetadata xaMeta,
+            JMSProducer producer, Destination destination, jakarta.jms.Message outgoing) {
         return Uni.createFrom().item(incoming)
-                .invoke(action)
+                .invoke(() -> {
+                    if (xaMeta != null) {
+                        try (var scope = xaMeta.withTransaction()) {
+                            producer.send(destination, outgoing);
+                        }
+                    } else {
+                        producer.send(destination, outgoing);
+                    }
+                })
                 .call(message -> Uni.createFrom().completionStage(incoming::ack))
                 .runSubscriptionOn(executor);
     }

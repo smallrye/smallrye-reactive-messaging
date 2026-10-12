@@ -1,6 +1,6 @@
 package io.smallrye.reactive.messaging.jms.fault;
 
-import static io.smallrye.reactive.messaging.jms.i18n.JmsExceptions.ex;
+import static io.smallrye.reactive.messaging.jms.i18n.JmsLogging.log;
 
 import java.util.concurrent.Executor;
 
@@ -31,7 +31,8 @@ public class JmsLocalTransactionFailure implements JmsFailureHandler {
                                 .orElseThrow(() -> new IllegalStateException("No JmsSessionContext on message"))
                                 .jmsContext().rollback();
                     } catch (Exception e) {
-                        throw ex.jmsTransactionFailure("rollback", e);
+                        e.addSuppressed(reason);
+                        log.warnf(e, "Local JMS transaction rollback failed");
                     } finally {
                         onProcessed.run();
                     }

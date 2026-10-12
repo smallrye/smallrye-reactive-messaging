@@ -17,8 +17,8 @@ import io.smallrye.common.annotation.Experimental;
 public interface JmsMessagePoller {
 
     /**
-     * Poll for a message. Implementations may block up to a provider-specific
-     * timeout. Returning {@code null} signals that no message was available.
+     * Poll for a message. Implementations should block (e.g. via {@link JMSConsumer#receive(long)})
+     * before returning {@code null} to avoid spin-waiting in the polling loop.
      *
      * @return a message wrapper, or {@code null} if no message is available
      * @throws Exception if polling fails

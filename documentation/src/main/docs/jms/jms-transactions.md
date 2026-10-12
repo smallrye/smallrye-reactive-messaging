@@ -72,8 +72,8 @@ mp.messaging.incoming.orders.transaction-mode=xa
 The XA transaction is **suspended** after receive so it can be resumed on the processing thread.
 Container integrations such as Quarkus typically provide a custom invoker that handles resume/suspend automatically.
 
-Without a container invoker, the application must manage the lifecycle manually
-using the `JmsXaTransactionMetadata` available on the message metadata:
+Without a container invoker, the application can use `JmsXaTransactionMetadata.withTransaction()`
+to associate the XA transaction with the current thread for the duration of a try-with-resources block:
 
 ```java
 @ApplicationScoped
@@ -83,18 +83,12 @@ public class OrderProcessor {
     EntityManager entityManager;
 
     @Incoming("orders")
-    public CompletionStage<Void> process(IncomingJmsMessage<?> message) {
-        JmsXaTransactionMetadata xa = message.getMetadata(JmsXaTransactionMetadata.class)
-                .orElseThrow();
-        xa.resume();
-        try {
+    public void process(int payload, JmsXaTransactionMetadata xa) {
+        try (var scope = xa.withTransaction()) {
             // Database and JMS participate in the same XA transaction
-            entityManager.persist(toEntity(message.getPayload()));
-        } finally {
-            xa.suspend();
+            entityManager.persist(toEntity(payload));
         }
-        // On ack, the XA transaction is committed
-        return message.ack();
+        // On return, the framework acks and the XA transaction is committed
     }
 }
 ```
@@ -104,6 +98,11 @@ public class OrderProcessor {
 The `receive-timeout` property controls how long (in milliseconds) the JMS consumer `receive` call blocks before returning `null`.
 The default is `1000` ms.
 Setting it to `0` blocks indefinitely until a message arrives.
+
+!!!warning
+    With `transaction-mode=xa` the receive happens inside the XA transaction, so `0` is rejected:
+    it would exceed the transaction timeout while the channel is idle.
+    Keep `receive-timeout` well below the transaction timeout.
 
 ```properties
 mp.messaging.incoming.orders.receive-timeout=2000

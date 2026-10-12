@@ -6,42 +6,53 @@ import static io.smallrye.reactive.messaging.jms.i18n.JmsLogging.log;
 import java.util.concurrent.Executor;
 
 import jakarta.transaction.Status;
-import jakarta.transaction.TransactionManager;
 
 import org.eclipse.microprofile.reactive.messaging.Metadata;
 
 import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.jms.IncomingJmsMessage;
-import io.smallrye.reactive.messaging.jms.JmsSessionContext;
 import io.smallrye.reactive.messaging.jms.JmsXaTransactionMetadata;
 
 public class JmsXaTransactionCommit implements JmsCommitHandler {
 
     private final Executor executor;
-    private final TransactionManager tm;
 
-    public JmsXaTransactionCommit(Executor executor, TransactionManager tm) {
+    public JmsXaTransactionCommit(Executor executor) {
         this.executor = executor;
-        this.tm = tm;
     }
 
     @Override
     public <T> Uni<Void> handle(IncomingJmsMessage<T> message, Metadata metadata) {
         return Uni.createFrom().voidItem()
                 .invoke(() -> {
-                    try {
-                        JmsXaTransactionMetadata txMeta = message.getMetadata(JmsXaTransactionMetadata.class)
-                                .orElseThrow(() -> new IllegalStateException("No XA transaction metadata on message"));
-                        if (tm.getStatus() != Status.STATUS_ACTIVE) {
-                            txMeta.resume();
+                    JmsXaTransactionMetadata txMeta = message.getMetadata(JmsXaTransactionMetadata.class)
+                            .orElseThrow(() -> new IllegalStateException("No XA transaction metadata on message"));
+                    // Check the message's own transaction, not the one on the executor thread.
+                    // The JMS context is closed by the Synchronization registered by the poller.
+                    int status = txMeta.status();
+                    switch (status) {
+                        case Status.STATUS_ACTIVE -> {
+                            txMeta.commit();
+                            log.debugf("XA transaction committed: tx=%s", txMeta.transaction());
                         }
-                        tm.commit();
-                        log.debugf("XA transaction committed: tx=%s", txMeta.transaction());
-                    } catch (Exception e) {
-                        throw ex.jmsTransactionFailure("commit", e);
-                    } finally {
-                        message.getMetadata(JmsSessionContext.class)
-                                .ifPresent(ctx -> ctx.jmsContext().close());
+                        case Status.STATUS_COMMITTED ->
+                            log.debugf("XA transaction already committed: tx=%s", txMeta.transaction());
+                        case Status.STATUS_ROLLEDBACK ->
+                            log.debugf("XA transaction already rolled back (nacked?): tx=%s", txMeta.transaction());
+                        case Status.STATUS_MARKED_ROLLBACK -> {
+                            // rollback-only (e.g. set by the application): nothing can be committed
+                            try {
+                                txMeta.rollback();
+                                log.warnf("XA transaction marked rollback-only, rolled back: tx=%s",
+                                        txMeta.transaction());
+                            } catch (RuntimeException e) {
+                                log.warnf(e, "XA transaction rollback failed (was marked rollback-only): tx=%s",
+                                        txMeta.transaction());
+                            }
+                        }
+                        default -> throw ex.jmsTransactionFailure("commit",
+                                new IllegalStateException("XA transaction is no longer active (status=" + status +
+                                        "), it may have timed out"));
                     }
                 })
                 .runSubscriptionOn(executor)

@@ -7,6 +7,7 @@ import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.jms.JMSContext;
@@ -106,6 +107,27 @@ public class JmsLocalTransactionTest extends JmsTestBase {
     }
 
     @Test
+    public void testLocalTransactionNackFirstRedeliversAll() {
+        MapBasedConfig config = new MapBasedConfig()
+                .with("mp.messaging.incoming.jms.connector", JmsConnector.CONNECTOR_NAME)
+                .with("mp.messaging.incoming.jms.destination", "local-tx-prefetch")
+                .with("mp.messaging.incoming.jms.transaction-mode", "local")
+                .with("mp.messaging.incoming.jms.failure-strategy", "ignore");
+        addConfig(config);
+        WeldContainer container = deploy(NackOnceConsumerBean.class);
+
+        NackOnceConsumerBean bean = container.select(NackOnceConsumerBean.class).get();
+
+        // Send more than emitOn prefetch (16).
+        // If session.commit() leaks to prefetched-but-unprocessed messages,
+        // some will be silently acknowledged and never reach the consumer.
+        sendMessages("local-tx-prefetch", 20);
+
+        await().untilAsserted(() -> assertThat(bean.payloads()).contains(
+                0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19));
+    }
+
+    @Test
     public void testLocalTransactionNackRollsBack() {
         MapBasedConfig config = new MapBasedConfig()
                 .with("mp.messaging.incoming.jms.connector", JmsConnector.CONNECTOR_NAME)
@@ -119,13 +141,9 @@ public class JmsLocalTransactionTest extends JmsTestBase {
 
         sendMessages("local-tx-nack", 3);
 
-        // Message 1 was nacked (rolled back), so it should be redelivered
-        await().untilAsserted(() -> {
-            assertThat(bean.payloads().stream().filter(p -> p == 1).count()).isGreaterThanOrEqualTo(2);
-            assertThat(bean.payloads().stream().filter(p -> p == 2).count()).isGreaterThanOrEqualTo(1);
-        });
-
-        assertThat(bean.payloads().get(0)).isEqualTo(0);
+        // Message 1 is nacked once (rolled back) then redelivered and accepted.
+        // All 3 messages must eventually be consumed — the stream continues after the rollback.
+        await().untilAsserted(() -> assertThat(bean.payloads()).contains(0, 1, 2));
     }
 
     @ApplicationScoped
@@ -176,15 +194,16 @@ public class JmsLocalTransactionTest extends JmsTestBase {
 
     @ApplicationScoped
     public static class NackOnceConsumerBean {
+        private final AtomicBoolean nacked = new AtomicBoolean();
         private final List<Integer> payloads = new CopyOnWriteArrayList<>();
 
         @Incoming("jms")
         public CompletionStage<Void> consume(IncomingJmsMessage<?> msg) {
             int payload = (Integer) msg.getPayload();
-            payloads.add(payload);
-            if (payload == 1 && payloads.stream().filter(p -> p == 1).count() == 1) {
+            if (payload == 1 && nacked.compareAndSet(false, true)) {
                 return msg.nack(new RuntimeException("simulated failure"));
             }
+            payloads.add(payload);
             return msg.ack();
         }
 

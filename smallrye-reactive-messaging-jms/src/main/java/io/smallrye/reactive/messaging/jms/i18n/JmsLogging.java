@@ -8,6 +8,7 @@ import org.jboss.logging.annotations.Cause;
 import org.jboss.logging.annotations.LogMessage;
 import org.jboss.logging.annotations.Message;
 import org.jboss.logging.annotations.MessageLogger;
+import org.jboss.logging.annotations.Once;
 
 /**
  * Logging for JMS Connector
@@ -66,4 +67,9 @@ public interface JmsLogging extends BasicLogger {
     @LogMessage(level = Logger.Level.WARN)
     @Message(id = 15811, value = "Channel `%s` is configured with XA transaction mode. Make sure the XAConnectionFactory is pooled (e.g., quarkus-pooled-jms, quarkus-ironjacamar, or a JCA resource adapter). Using a non-pooled factory will cause severe performance degradation.")
     void xaTransactionModeRequiresPooledFactory(String channel);
+
+    @Once
+    @LogMessage(level = Logger.Level.INFO)
+    @Message(id = 15812, value = "Outgoing channel `%s`: incoming message carries a JmsSessionContext, using shared session for sending")
+    void usingSharedSessionContextForSending(String channel);
 }

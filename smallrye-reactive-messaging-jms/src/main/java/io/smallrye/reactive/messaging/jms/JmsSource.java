@@ -73,11 +73,11 @@ class JmsSource {
         Context rootCtx = Context.newInstance(((VertxInternal) vertx.getDelegate()).createEventLoopContext());
         this.publisher = new JmsPublisher(channel, poller);
 
-        Multi<? extends Message<jakarta.jms.Message>> pipeline = Multi.createFrom().publisher(publisher)
-                .emitOn(rootCtx::runOnContext);
+        Multi<? extends Message<jakarta.jms.Message>> pipeline = Multi.createFrom().publisher(publisher);
         if (demandPauser != null) {
             pipeline = pipeline.pauseDemand().using(demandPauser);
         }
+        pipeline = pipeline.emitOn(rootCtx::runOnContext, demandPauser != null ? 1 : 16);
         this.source = pipeline
                 .onItem().invoke(m -> {
                     if (demandPauser != null) {

@@ -78,6 +78,7 @@ import io.smallrye.reactive.messaging.providers.i18n.ProviderLogging;
 @ConnectorAttribute(name = "priority", description = "The JMS Message priority", direction = Direction.OUTGOING, type = "int")
 @ConnectorAttribute(name = "reply-to", description = "The reply to destination if any", direction = Direction.OUTGOING, type = "string")
 @ConnectorAttribute(name = "reply-to-destination-type", description = "The type of destination for the response. It can be either `queue` or `topic`", direction = Direction.OUTGOING, type = "string", defaultValue = "queue")
+@ConnectorAttribute(name = "session-sharing", direction = OUTGOING, description = "Whether to use the JMS session from the incoming message context for sending. When enabled, the outgoing message is sent using the same transactional session as the incoming message.", type = "boolean", defaultValue = "true")
 @ConnectorAttribute(name = "merge", direction = OUTGOING, description = "Whether the connector should allow multiple upstreams", type = "boolean", defaultValue = "false")
 @ConnectorAttribute(name = "retry", direction = Direction.INCOMING_AND_OUTGOING, description = "Whether to retry on terminal stream errors.", type = "boolean", defaultValue = "true")
 @ConnectorAttribute(name = "retry.max-retries", direction = Direction.INCOMING_AND_OUTGOING, description = "Maximum number of retries for terminal stream errors.", type = "int", defaultValue = "3")
@@ -202,10 +203,10 @@ public class JmsConnector implements InboundConnector, OutboundConnector {
         XAConnectionFactory xaFactory = pickTheXaFactory(ic.getConnectionFactoryName().orElse(null));
         TransactionManager tm = transactionManager.get();
         JmsMessagePoller poller = resolveCustomPoller(ic, null)
-                .orElseGet(() -> new XaMessagePoller(xaFactory, tm, ic));
+                .orElseGet(() -> new XaMessagePoller(xaFactory, tm, ic, executor));
         return new JmsSource(executionHolders.vertx(), ic, openTelemetryInstance, jsonMapping, poller,
-                () -> new JmsXaTransactionCommit(executor, tm),
-                reportFailure -> new JmsXaTransactionFailure(executor, tm, createFailureHandler(ic, reportFailure)),
+                () -> new JmsXaTransactionCommit(executor),
+                reportFailure -> new JmsXaTransactionFailure(executor, createFailureHandler(ic, reportFailure)),
                 null);
     }
 
@@ -310,7 +311,7 @@ public class JmsConnector implements InboundConnector, OutboundConnector {
         JmsConnectorOutgoingConfiguration oc = new JmsConnectorOutgoingConfiguration(config);
         JmsResourceHolder<JMSProducer> holder = new JmsResourceHolder<>(oc.getChannel(), () -> createJmsContext(oc));
         contexts.add(holder);
-        return new JmsSink(holder, oc, openTelemetryInstance, jsonMapping, executor, true).getSink();
+        return new JmsSink(holder, oc, openTelemetryInstance, jsonMapping, executor, oc.getSessionSharing()).getSink();
     }
 
     private ConnectionFactory pickTheFactory(String factoryName) {
