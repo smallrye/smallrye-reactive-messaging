@@ -1,5 +1,7 @@
 package io.smallrye.reactive.messaging.mqtt.session;
 
+import io.netty.handler.codec.mqtt.MqttSubscriptionOption.RetainedHandlingPolicy;
+
 /**
  * Holds subscription options including MQTT v5 subscription options.
  */
@@ -8,23 +10,24 @@ public class SubscriptionOptions {
     private final RequestedQoS qos;
     private final boolean noLocal;
     private final boolean retainAsPublished;
-    private final int retainHandling;
+    private final RetainedHandlingPolicy retainHandling;
     private final Integer subscriptionIdentifier;
 
     public SubscriptionOptions(RequestedQoS qos) {
-        this(qos, false, false, 0, null);
+        this(qos, false, false, RetainedHandlingPolicy.SEND_AT_SUBSCRIBE, null);
     }
 
-    public SubscriptionOptions(RequestedQoS qos, boolean noLocal, boolean retainAsPublished, int retainHandling) {
+    public SubscriptionOptions(RequestedQoS qos, boolean noLocal, boolean retainAsPublished,
+            RetainedHandlingPolicy retainHandling) {
         this(qos, noLocal, retainAsPublished, retainHandling, null);
     }
 
-    public SubscriptionOptions(RequestedQoS qos, boolean noLocal, boolean retainAsPublished, int retainHandling,
-            Integer subscriptionIdentifier) {
+    public SubscriptionOptions(RequestedQoS qos, boolean noLocal, boolean retainAsPublished,
+            RetainedHandlingPolicy retainHandling, Integer subscriptionIdentifier) {
         this.qos = qos;
         this.noLocal = noLocal;
         this.retainAsPublished = retainAsPublished;
-        this.retainHandling = retainHandling;
+        this.retainHandling = retainHandling != null ? retainHandling : RetainedHandlingPolicy.SEND_AT_SUBSCRIBE;
         this.subscriptionIdentifier = subscriptionIdentifier;
     }
 
@@ -40,7 +43,7 @@ public class SubscriptionOptions {
         return retainAsPublished;
     }
 
-    public int getRetainHandling() {
+    public RetainedHandlingPolicy getRetainHandling() {
         return retainHandling;
     }
 
@@ -55,6 +58,7 @@ public class SubscriptionOptions {
      * @return {@code true} if any MQTT v5 subscription option is set to a non-default value
      */
     public boolean hasV5Options() {
-        return noLocal || retainAsPublished || retainHandling != 0 || subscriptionIdentifier != null;
+        return noLocal || retainAsPublished || retainHandling != RetainedHandlingPolicy.SEND_AT_SUBSCRIBE
+                || subscriptionIdentifier != null;
     }
 }
