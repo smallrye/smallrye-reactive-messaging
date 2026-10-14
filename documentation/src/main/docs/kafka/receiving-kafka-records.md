@@ -166,6 +166,25 @@ downstream, we recommend to either:
 -   or set `enable.auto.commit` to `true` and annotate the consuming
     method with `@Acknowledgment(Acknowledgment.Strategy.NONE)`
 
+## Backpressure with Pause/Resume
+
+The Kafka connector automatically applies backpressure using the
+`pause-if-no-requests` mechanism (default: `true`).
+The connector buffers records fetched from Kafka and *pauses* the
+consumer when the buffer is full
+(`max.poll.records * max-queue-size-factor`, default: 1000),
+then *resumes* when it drains to `max.poll.records` (default: 500).
+
+When paused, the connector does not stop polling the Kafka consumer.
+Instead, it polls with a zero timeout so that no records are retrieved,
+but the consumer continues to send heartbeats to the broker.
+This prevents the consumer from being considered dead and kicked out
+of the consumer group.
+
+For manual per-partition pause and resume, see the
+[KafkaClientService](client-service.md#manual-partition-pauseresume)
+section.
+
 ## Concurrent Processing with Ordering Guarantees
 
 !!!warning "Experimental"

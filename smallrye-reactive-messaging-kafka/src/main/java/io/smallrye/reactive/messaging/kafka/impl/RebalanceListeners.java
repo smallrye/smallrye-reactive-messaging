@@ -50,6 +50,7 @@ public class RebalanceListeners {
             try {
                 reactiveKafkaConsumer.setCachedConsumerGroupMetadata();
                 reactiveKafkaConsumer.removeFromQueueRecordsFromTopicPartitions(partitions);
+                reactiveKafkaConsumer.removeManuallyPausedPartitions(partitions);
                 commitHandler.partitionsRevoked(partitions);
                 if (listener != null) {
                     listener.onPartitionsRevoked(reactiveKafkaConsumer.unwrap(), partitions);
