@@ -208,7 +208,8 @@ public class KafkaThrottledLatestProcessedCommit extends ContextHolder implement
 
     /**
      * Received a new record from Kafka.
-     * This method is called from a Vert.x event loop.
+     * This method can be called from any thread (e.g. worker threads with ordered=key).
+     * Internally dispatches to the event loop for thread-safe access to offset stores.
      *
      * @param record the record
      * @param <K> the key
@@ -218,33 +219,28 @@ public class KafkaThrottledLatestProcessedCommit extends ContextHolder implement
     @Override
     public <K, V> Uni<IncomingKafkaRecord<K, V>> received(IncomingKafkaRecord<K, V> record) {
         TopicPartition recordsTopicPartition = getTopicPartition(record);
-
-        OffsetStore offsetStore = offsetStores.get(recordsTopicPartition);
-        Uni<OffsetStore> uni;
-        if (offsetStore == null) {
-            if (seekedPartitions.remove(recordsTopicPartition)) {
-                uni = Uni.createFrom().item(() -> {
-                    OffsetStore store = new OffsetStore(recordsTopicPartition, unprocessedRecordMaxAge, -1);
-                    offsetStores.put(recordsTopicPartition, store);
-                    return store;
-                }).emitOn(this::runOnContext);
-            } else {
-                uni = consumer.committed(recordsTopicPartition)
-                        .emitOn(this::runOnContext) // Switch back to event loop
-                        .onFailure().recoverWithItem(Collections::emptyMap)
-                        .onItem().transform(offsets -> {
-                            OffsetAndMetadata lastCommitted = offsets.get(recordsTopicPartition);
-                            OffsetStore store = new OffsetStore(recordsTopicPartition, unprocessedRecordMaxAge,
-                                    lastCommitted == null ? -1 : lastCommitted.offset() - 1);
-                            offsetStores.put(recordsTopicPartition, store);
-                            return store;
-                        });
+        return Uni.createFrom().deferred(() -> {
+            OffsetStore store = offsetStores.get(recordsTopicPartition);
+            if (store != null) {
+                return Uni.createFrom().item(store);
             }
-        } else {
-            uni = Uni.createFrom().item(offsetStore);
-        }
-
-        return uni
+            if (seekedPartitions.remove(recordsTopicPartition)) {
+                store = new OffsetStore(recordsTopicPartition, unprocessedRecordMaxAge, -1);
+                offsetStores.put(recordsTopicPartition, store);
+                return Uni.createFrom().item(store);
+            }
+            return consumer.committed(recordsTopicPartition)
+                    .onFailure().recoverWithItem(Collections::emptyMap)
+                    .emitOn(this::runOnContext)
+                    .onItem().transform(offsets -> {
+                        OffsetAndMetadata lastCommitted = offsets.get(recordsTopicPartition);
+                        OffsetStore newStore = new OffsetStore(recordsTopicPartition, unprocessedRecordMaxAge,
+                                lastCommitted == null ? -1 : lastCommitted.offset() - 1);
+                        offsetStores.put(recordsTopicPartition, newStore);
+                        return newStore;
+                    });
+        })
+                .runSubscriptionOn(this::runOnContext)
                 .onItem().invoke(store -> {
                     store.received(record.getOffset());
                     if (timerId < 0) {
