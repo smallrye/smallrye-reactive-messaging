@@ -1,0 +1,422 @@
+= Development Model
+:version-root: ../
+include::{version-root}_attributes.adoc[]
+
+Reactive Messaging proposes a CDI-based programming model to implement event-driven applications.
+Following the CDI principles, _beans_ are forming the main building block of your application.
+Reactive Messaging provides a set of annotations and types to implement beans that generate, consume or process messages.
+
+== @Incoming and @Outgoing
+
+Reactive Messaging provides two main annotations:
+
+* link:https://javadoc.io/doc/io.smallrye.reactive/smallrye-reactive-messaging-api/{javadoc-version}/org/eclipse/microprofile/reactive/messaging/Incoming.html[`org.eclipse.microprofile.reactive.messaging.Incoming`] - indicates the consumed channel
+* link:https://javadoc.io/doc/io.smallrye.reactive/smallrye-reactive-messaging-api/{javadoc-version}/org/eclipse/microprofile/reactive/messaging/Outgoing.html[`org.eclipse.microprofile.reactive.messaging.Outgoing`] - indicates the populated channel
+
+These annotations are used on _methods_:
+
+[source,java]
+----
+include::{examples-dir}/beans/MessageProcessingBean.java[indent=0]
+----
+
+[NOTE]
+====
+
+Reactive Messaging beans can either be in the _application_ scope (`@ApplicationScoped`) or dependent scope (`@Dependent`).
+
+====
+
+Manipulating messages can be cumbersome.
+When you are only interested in the payload, you can use the following syntax: The following code is equivalent to the snippet from above:
+
+[source,java]
+----
+include::{examples-dir}/beans/PayloadProcessingBean.java[indent=0]
+----
+
+[IMPORTANT]
+====
+
+You should not call methods annotated with `@Incoming` and/or
+`@Outgoing` directly from your code. They are invoked by the framework.
+Having user code invoking them would not have the expected outcome.
+
+====
+
+SmallRye Reactive Messaging automatically binds matching `@Outgoing` to
+`@Incoming` to form a chain:
+
+.A chain of components
+image::images/chain.png[A chain of components]
+
+If we consider the following code:
+
+[source,java]
+----
+include::{examples-dir}/beans/Chain.java[tags=chain,indent=0]
+----
+
+It would generate the following chain:
+
+[source,text]
+----
+generate --> [ source ] --> process --> [ sink ] --> consume
+----
+
+Methods annotated with `@Incoming` or `@Outgoing` don’t have to be in the same _bean_ (_class_).
+You can distribute them among a set of beans.
+Remote interactions are also possible when using connectors.
+
+Methods annotated with:
+
+* only `@Outgoing` are used to generate messages or payloads
+* only `@Incoming` are used to consume messages or payloads
+* both `@Incoming` and `@Outgoing` are used to process messages or payloads; or transform the stream
+
+== Creating messages
+
+Messages are envelopes around payload.
+They are the vehicle.
+While manipulating payload is convenient, messages let you add metadata, handle acknowledgement...
+
+Creating `Messages` is done using the link:https://javadoc.io/doc/io.smallrye.reactive/smallrye-reactive-messaging-api/{javadoc-version}/io/eclipse/microprofile/reactive/messaging/Message.html[`Message`] interface directly:
+
+[source,java]
+----
+include::{examples-dir}/messages/MessageExamples.java[tags=creation,indent=0]
+----
+
+Messages accept `null` as payload.
+Channels connected to outbound connectors interpret messages with `null` payload differently depending on the technology.
+
+[source,java]
+----
+include::{examples-dir}/messages/MessageExamples.java[tags=null-payload,indent=0]
+----
+
+You can also create new instance of `Message` from an existing one:
+
+[source,java]
+----
+include::{examples-dir}/messages/MessageExamples.java[tags=copy,indent=0]
+----
+
+[WARNING]
+.Acknowledgement?
+====
+
+Acknowledgement is an important part of messaging systems. This will be covered in the xref:concepts/acknowledgement.adoc[acknowledgement] section.
+
+====
+
+[NOTE]
+.Connector Metadata
+====
+
+Most connectors are providing metadata to let you extract technical
+details about the message, but also customize the outbound dispatching.
+
+====
+
+== Messages vs. Payloads
+
+Reactive messaging offers flexibility when it comes to handling messages and their acknowledgements.
+The application developer can choose to finely handle acknowledgements per-message basis, by handling the
+`Message`-based signatures. Otherwise, when handling payloads, acknowledgements
+(and negative-acknowledgements) are handled by the framework.
+The following sections in this documentation detail both development models.
+
+While being the easier development model, in the past using payload-based signatures did not allow associating connector-specific metadata,
+making the `Message`-based signatures the de-facto choice even for the most common scenarios.
+This lead to using the connector custom-message implementation types,
+such as `IncomingKafkaRecord`, `KafkaRecord` or `IncomingRabbitMQMessage`,
+as a convenience for accessing connector-specific metadata.
+
+Not only this forces to handle acknowledgements manually,
+it also doesn't allow for incoming or outgoing `Messages` to be xref:concepts/decorators.adoc#intercepting-incoming-and-outgoing-messages[intercepted]
+or xref:concepts/observability.adoc[observed].
+
+[WARNING]
+.Custom `Message` types & Message interception
+====
+
+Custom `Message` types such as `IncomingKafkaRecord`, `KafkaRecord` or `IncomingRabbitMQMessage`
+are not compatible with features intercepting messages.
+Therefore, it is no longer recommended to use custom `Message` implementations in consumptions methods.
+Instead, you can either use the generic `Message` type and access specific metadata,
+or use the payload with xref:concepts/incoming-metadata-injection.adoc[metadata injection]
+
+====
+
+Since xref:concepts/incoming-metadata-injection.adoc[incoming metadata injection] and xref:concepts/generic-payloads.adoc[generic payloads]
+features added to SmallRye Reactive Messaging,
+it is easier to use payload signatures and benefit from acknowledgement handling and still access connector-specific metadata.
+
+== Generating Messages
+
+To produce messages to a channel, you need to use the `@Outgoing`
+annotation. This annotation takes a single parameter: the name of the
+populated channel.
+
+=== Generating messages synchronously
+
+You can generate messages synchronously. In this case, the method is
+called for every _request_ from the downstream:
+
+[source,java]
+----
+include::{examples-dir}/generation/GenerationExamples.java[tags=message-sync,indent=0]
+----
+
+[NOTE]
+.Requests?
+====
+
+Reactive Messaging connects components to build a reactive stream.
+In a reactive stream, the emissions are controlled by the consumer
+(downstream) indicating to the publisher (upstream) how many items it
+can consume. With this protocol, the consumers are never flooded.
+
+====
+
+=== Generating messages using CompletionStage
+
+You can also return a `CompletionStage` / `CompletableFuture`.
+In this case, Reactive Messaging waits until the `CompletionStage` gets completed before calling it again.
+
+For instance, this signature is useful to poll messages from a source using an asynchronous client:
+
+[source,java]
+----
+include::{examples-dir}/generation/GenerationExamples.java[tags=message-cs,indent=0]
+----
+
+=== Generating messages using Uni
+
+You can also return a https://smallrye.io/smallrye-mutiny/#_uni_and_multi[Uni] instance.
+In this case, Reactive Messaging waits until the `Uni` emits its item before calling it again.
+
+This signature is useful when integrating asynchronous clients providing a Mutiny API.
+
+[source,java]
+----
+include::{examples-dir}/generation/GenerationExamples.java[tags=message-uni,indent=0]
+----
+
+=== Generating Reactive Streams of messages
+
+Instead of producing the message one by one, you can return the stream
+directly. If you have a data source producing Reactive Streams
+`Publisher` (or sub-types, such as `Multi`), this is the signature you are looking for:
+
+[source,java]
+----
+include::{examples-dir}/generation/GenerationExamples.java[tags=message-stream,indent=0]
+----
+
+In this case, the method is called once to retrieve the `Publisher`.
+
+== Generating Payloads
+
+Instead of `Message`, you can produce _payloads_. In this case, Reactive
+Messaging produces a simple message from the _payload_ using
+`Message.of`.
+
+=== Generating payload synchronously
+
+You can produce _payloads_ synchronously. The framework calls the method
+upon request and create `Messages` around the produced payloads.
+
+[source,java]
+----
+include::{examples-dir}/generation/GenerationExamples.java[tags=payload-sync,indent=0]
+----
+
+=== Generating payload using CompletionStage
+
+You can also return `CompletionStage` or `CompletableFuture`. For
+example, if you have an asynchronous client returning `CompletionStage`,
+you can use it as follows, to poll the data one by one:
+
+[source,java]
+----
+include::{examples-dir}/generation/GenerationExamples.java[tags=payload-cs,indent=0]
+----
+
+=== Generating payload by producing Unis
+
+You can also return a `Uni` if you have a client using Mutiny types:
+
+[source,java]
+----
+include::{examples-dir}/generation/GenerationExamples.java[tags=payload-uni,indent=0]
+----
+
+=== Generating Reactive Streams of payloads
+
+Finally, you can return a `Publisher` (or a sub-type such as a `Multi`):
+
+[source,java]
+----
+include::{examples-dir}/generation/GenerationExamples.java[tags=payload-stream,indent=0]
+----
+
+In this case, Reactive Messaging calls the method only once to retrieve
+the `Publisher`.
+
+== Consuming Messages
+
+To consume messages from a channel, you need to use the `@Incoming`
+annotation. This annotation takes a single parameter: the name of the
+consumed channel.
+
+Because `Messages` must be acknowledged, consuming messages requires
+returning _asynchronous results_ that would complete when the incoming
+message get acknowledged.
+
+For example, you can receive the `Message`, process it and return the
+acknowledgement as result:
+
+[source,java]
+----
+include::{examples-dir}/consumption/ConsumptionExamples.java[tags=message-cs,indent=0]'
+----
+
+You can also return a `Uni` if you need to implement more complicated
+processing:
+
+[source,java]
+----
+include::{examples-dir}/consumption/ConsumptionExamples.java[tags=message-uni,indent=0]
+----
+
+== Consuming Payloads
+
+Unlike consuming messages, consuming payloads support both synchronous
+and asynchronous consumption.
+
+For example, you can consume a payload as follows:
+
+[source,java]
+----
+include::{examples-dir}/consumption/ConsumptionExamples.java[tags=payload-sync,indent=0]
+----
+
+In this case, you don’t need to deal with the acknowledgement yourself.
+The framework acknowledges the incoming message (that wrapped the
+payload) once your method returns successfully.
+
+If you need to achieve asynchronous actions, you can return a
+`CompletionStage` or a `Uni`:
+
+[source,java]
+----
+include::{examples-dir}/consumption/ConsumptionExamples.java[tags=payload-cs,indent=0]
+----
+
+[source,java]
+----
+include::{examples-dir}/consumption/ConsumptionExamples.java[tags=payload-uni,indent=0]
+----
+
+In these 2 cases, the framework acknowledges the incoming message when
+the returned construct gets _completed_.
+
+== Processing Messages
+
+You can process `Message` both synchronously or asynchronously.
+This later case is useful when you need to execute an asynchronous action during your processing such as invoking a remote service.
+
+Do process `Messages` synchronously uses:
+
+[source,java]
+----
+include::{examples-dir}/processing/ProcessingExamples.java[tags=process-message,indent=0]
+----
+
+This method transforms the `int` payload to a `String`, and wraps it
+into a `Message`.
+
+'''important "Using `Message.withX` methods"
+You may be surprised by the usage of `Message.withX` methods. It allows
+metadata propagation as the metadata would be copied from the incoming
+message and so dispatched to the next method.
+
+You can also process `Messages` asynchronously:
+
+[source,java]
+----
+include::{examples-dir}/processing/ProcessingExamples.java[tags=process-message-cs,indent=0]
+----
+
+Or using Mutiny:
+
+[source,java]
+----
+include::{examples-dir}/processing/ProcessingExamples.java[tags=process-message-uni,indent=0]
+----
+
+In general, you want to create the new `Message` from the incoming one.
+It enables metadata propagation and post-acknowledgement. For this, use
+the `withX` method from the `Message` class returning a new `Message`
+instance but copy the _content_ (metadata, ack/nack...).
+
+== Processing payloads
+
+If you don’t need to manipulate the envelope, you can process payload
+directly either synchronously or asynchronously:
+
+[source,java]
+----
+include::{examples-dir}/processing/ProcessingExamples.java[tags=process-payload,indent=0]
+----
+
+[source,java]
+----
+include::{examples-dir}/processing/ProcessingExamples.java[tags=process-payload-cs,indent=0]
+----
+
+[source,java]
+----
+include::{examples-dir}/processing/ProcessingExamples.java[tags=process-payload-uni,indent=0]
+----
+
+[NOTE]
+.What about metadata?
+====
+
+With these methods, the metadata are automatically propagated.
+
+====
+
+== Processing streams
+
+The previous processing method were taking single `Message` or payload.
+Sometimes you need more advanced manipulation. For this, SmallRye
+Reactive Messaging lets you process the stream of `Message` or the
+stream of payloads directly:
+
+[source,java]
+----
+include::{examples-dir}/processing/StreamExamples.java[tags=processing-stream-message,indent=0]
+----
+
+[source,java]
+----
+include::{examples-dir}/processing/StreamExamples.java[tags=processing-stream-payload,indent=0]
+----
+
+You can receive either a (Reactive Streams) `Publisher`, a
+`PublisherBuilder` or (Mutiny) `Multi`. You can return any subclass of
+`Publisher` or a `Publisher` directly.
+
+[IMPORTANT]
+====
+
+These signatures do not support metadata propagation. In the case of a
+stream of `Message`, you need to propagate the metadata manually. In the
+case of a stream of payload, propagation is not supported, and incoming
+metadata are lost.
+
+====

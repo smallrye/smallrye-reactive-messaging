@@ -1,0 +1,19 @@
+// Attributes shared by every page. smallrye.io overrides the ones it needs when it publishes.
+// Pages in subdirectories set :version-root: (../ per level) before including this file.
+ifndef::version-root[:version-root:]
+:idprefix:
+:idseparator: -
+:sectanchors:
+:examples-dir: {version-root}../java
+:partialsdir: {version-root}_partials
+:project-name: SmallRye Reactive Messaging
+:javadoc-version: latest
+:project-version: 999-SNAPSHOT
+// Versions the pages mention. smallrye.io takes them from the pom.xml properties of the version it
+// publishes (maven-attributes in its data/docs.yml); these values are only for local previews.
+:weld-version: 6.0.4.Final
+:smallrye-config-version: 4.0.0
+:mutiny-version: 3.1.0
+:camel-version: 4.22.1
+:spec-version: 3.0.1
+:generated-dir: {version-root}../../../target/connectors

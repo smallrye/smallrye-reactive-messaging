@@ -20,7 +20,7 @@ import io.smallrye.reactive.messaging.providers.extension.ChannelProducer;
 
 public class EmitterFactoryExamples {
 
-    // <custom-emitter-declaration>
+    // tag::custom-emitter-declaration[]
 
     public interface CustomEmitter<T> extends EmitterType {
 
@@ -46,9 +46,9 @@ public class EmitterFactoryExamples {
             //... send to stream
         }
     }
-    // </custom-emitter-declaration>
+    // end::custom-emitter-declaration[]
 
-    // <custom-emitter-factory>
+    // tag::custom-emitter-factory[]
     @EmitterFactoryFor(CustomEmitter.class)
     @ApplicationScoped
     public static class CustomEmitterFactory implements EmitterFactory<CustomEmitterImpl<Object>> {
@@ -68,9 +68,9 @@ public class EmitterFactoryExamples {
             return channelRegistry.getEmitter(channelName, CustomEmitter.class);
         }
     }
-    // </custom-emitter-factory>
+    // end::custom-emitter-factory[]
 
-    // <custom-emitter-usage>
+    // tag::custom-emitter-usage[]
 
     @Inject
     @Channel("custom-emitter-channel")
@@ -83,6 +83,6 @@ public class EmitterFactoryExamples {
         customEmitter.sendAndForget(Message.of("b"));
         customEmitter.sendAndForget(Message.of("c"));
     }
-    // </custom-emitter-usage>
+    // end::custom-emitter-usage[]
 
 }

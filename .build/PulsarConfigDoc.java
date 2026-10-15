@@ -27,14 +27,14 @@ import java.lang.reflect.Modifier;
 
 /**
  * Script run to write configuration reference for Pulsar client config options.
- * The script loads configuration classes and write a markdown table with the following columns
+ * The script loads configuration classes and writes an AsciiDoc table with the following columns
  * - Attribute
  * - Description
  * - Type
  * - Config file (whether the property is settable from a configuration file
  * - Default value
  * <p>
- * Run with `.build/PulsarConfigDoc.java -d documentation/src/main/docs/pulsar/config`
+ * Run with `.build/PulsarConfigDoc.java -d documentation/src/main/asciidoc/_partials/pulsar/config`
  * <p>
  */
 @CommandLine.Command(name = "pulsar-config-doc", mixinStandardHelpOptions = true, version = "0.1",
@@ -44,10 +44,10 @@ public class PulsarConfigDoc implements Callable<Integer> {
     @CommandLine.Parameters(description = "Pulsar config type", arity = "0..n")
     private ConfigType[] configType = ConfigType.values();
 
-    @CommandLine.Option(names = {"-f", "--file"}, description = { "Whether to write the markdown to file or not" }, required = false, defaultValue = "true")
+    @CommandLine.Option(names = {"-f", "--file"}, description = { "Whether to write the tables to files or not" }, required = false, defaultValue = "true")
     private boolean toFile;
 
-    @CommandLine.Option(names = {"-d", "--directory"}, description = { "Target directory to write the markdown file" }, required = false, defaultValue = "./")
+    @CommandLine.Option(names = {"-d", "--directory"}, description = { "Target directory to write the AsciiDoc files" }, required = false, defaultValue = "./")
     private Path directory;
 
     enum ConfigType {
@@ -84,8 +84,9 @@ public class PulsarConfigDoc implements Callable<Integer> {
         declaredConstructor.setAccessible(true);
         var instance = declaredConstructor.newInstance();
         StringBuilder sb = new StringBuilder();
-        sb.append("|Attribute | Description | Type   | Config file | Default |").append("\n");
-        sb.append("| :---               | :--------------       | :----: | :----:    | :---    |").append("\n");
+        sb.append("[cols=\"<13%,<42%,^17%,^17%,<11%\",options=\"header\"]").append("\n");
+        sb.append("|===").append("\n");
+        sb.append("|Attribute |Description |Type |Config file |Default").append("\n");
         for(Field f : configClass.getDeclaredFields()) {
             if (Modifier.isStatic(f.getModifiers())) {
                 continue;
@@ -97,14 +98,16 @@ public class PulsarConfigDoc implements Callable<Integer> {
             var name = f.getName();
             var type = f.getType().getSimpleName();
             var description = (apiModel == null ? "" : apiModel.value());
-            description = sanitizeMarkdown(description);
+            description = sanitizeAsciiDoc(description);
             var configFile = !(ignore != null && ignore.value());
             var defaultVal = f.get(instance);
             appendLine(sb, name, description, type, Boolean.toString(configFile), (defaultVal == null || !configFile) ? "" : String.valueOf(defaultVal));
         }
 
+        sb.append("|===").append("\n");
+
         if (toFile) {
-            Path path = directory.resolve("smallrye-pulsar-" + configType.name().toLowerCase()+".md");
+            Path path = directory.resolve("smallrye-pulsar-" + configType.name().toLowerCase() + ".adoc");
             System.out.println("Writing " + configType + " documentation to file " + path);
             Files.writeString(path, sb);
         } else {
@@ -113,25 +116,25 @@ public class PulsarConfigDoc implements Callable<Integer> {
         }
     }
 
-    static String sanitizeMarkdown(String description) {
+    static String sanitizeAsciiDoc(String description) {
         Pattern linkPattern = Pattern.compile("\\{@link\\s(.*)}");
         Matcher matcher = linkPattern.matcher(description);
         if (matcher.find()) {
             description = matcher.replaceAll("`" + matcher.group(1) + "`");
         }
-        description = description.replaceAll("(```java)", "<code>");
-        description = description.replaceAll("(```)", "</code>");
-        description = description.replaceAll("[\\\n]", "<br>");
-        return description;
+        description = description.replace("```java", "`").replace("```", "`");
+        return description.replaceAll("\\R", " ");
+    }
+
+    // A '|' would start a new table cell.
+    static String escapeCell(String value) {
+        return value.replace("|", "\\|");
     }
 
     static StringBuilder appendLine(StringBuilder sb, String name, String... line) {
-        sb.append("| *").append(name).append("* |");
+        sb.append("|_").append(name).append("_");
         for (String l : line) {
-            if (l == null) {
-
-            }
-            sb.append(" ").append(l).append(" |");
+            sb.append(" |").append(l == null ? "" : escapeCell(l));
         }
         sb.append("\n");
         return sb;

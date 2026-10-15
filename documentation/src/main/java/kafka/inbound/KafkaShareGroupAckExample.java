@@ -9,7 +9,7 @@ import io.smallrye.reactive.messaging.kafka.queues.ShareGroupAcknowledgement;
 @ApplicationScoped
 public class KafkaShareGroupAckExample {
 
-    // <code>
+    // tag::code[]
     @Incoming("queue")
     public void consume(double price, ShareGroupAcknowledgement ack) {
         if (price < 0) {
@@ -20,7 +20,7 @@ public class KafkaShareGroupAckExample {
             ack.accept(); // Mark as successfully processed
         }
     }
-    // </code>
+    // end::code[]
 
     private boolean needsRetry(double price) {
         return false;

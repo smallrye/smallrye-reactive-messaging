@@ -1,0 +1,21 @@
+= Customizing the underlying MQTT client
+:version-root: ../
+include::{version-root}_attributes.adoc[]
+
+You can customize the underlying MQTT Client configuration by
+_producing_ an instance of
+`io.smallrye.reactive.messaging.mqtt.session.MqttClientSessionOptions`:
+
+[source,java]
+----
+include::{examples-dir}/mqtt/customization/ClientProducers.java[tags=named,indent=0]
+----
+
+This instance is retrieved and used to configure the client used by the
+connector. You need to indicate the name of the client using the
+`client-options-name` attribute:
+
+[source,properties]
+----
+mp.messaging.incoming.prices.client-options-name=my-options
+----
