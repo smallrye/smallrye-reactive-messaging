@@ -9,26 +9,26 @@ public class ProducerTest extends KafkaCompanionTestBase {
 
     @Test
     public void fromRecords() {
-        // <records>
+        // tag::records[]
         companion.produce(byte[].class).fromRecords(
                 new ProducerRecord<>("topic1", "k1", "1".getBytes()),
                 new ProducerRecord<>("topic1", "k2", "2".getBytes()),
                 new ProducerRecord<>("topic1", "k3", "3".getBytes()));
-        // </records>
+        // end::records[]
     }
 
     @Test
     public void fromGenerator() {
-        // <generator>
+        // tag::generator[]
         companion.produceIntegers().usingGenerator(i -> new ProducerRecord<>("topic", i), 10);
-        // </generator>
+        // end::generator[]
     }
 
     @Test
     public void fromCsv() {
-        // <csv>
+        // tag::csv[]
         companion.produceStrings().fromCsv("records.csv");
-        // </csv>
+        // end::csv[]
     }
 
 }

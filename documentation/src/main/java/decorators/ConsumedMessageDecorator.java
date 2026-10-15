@@ -11,7 +11,7 @@ import org.eclipse.microprofile.reactive.messaging.Message;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.PublisherDecorator;
 
-// <code>
+// tag::code[]
 @ApplicationScoped
 public class ConsumedMessageDecorator implements PublisherDecorator {
 
@@ -38,4 +38,4 @@ public class ConsumedMessageDecorator implements PublisherDecorator {
         return counters.get(channel).get();
     }
 }
-// </code>
+// end::code[]

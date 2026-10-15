@@ -12,7 +12,7 @@ public class SqsOutboundMetadataExample {
 
     public Message<String> metadata(Message<String> incoming) {
 
-        // <code>
+        // tag::code[]
         final SqsOutboundMetadata metadata = SqsOutboundMetadata.builder()
                 .messageAttributes(Map.of("my-attribute", MessageAttributeValue.builder()
                         .dataType("String").stringValue("my-value").build()))
@@ -21,7 +21,7 @@ public class SqsOutboundMetadataExample {
 
         // Add `metadata` to the metadata of the outgoing message.
         return Message.of("Hello", Metadata.of(metadata));
-        // </code>
+        // end::code[]
     }
 
 }

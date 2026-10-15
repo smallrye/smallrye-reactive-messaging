@@ -9,7 +9,7 @@ import io.vertx.core.net.PemTrustOptions;
 
 public class ClientProducers {
 
-    // <named>
+    // tag::named[]
     @Produces
     @Identifier("my-options")
     public AmqpClientOptions getNamedOptions() {
@@ -29,6 +29,6 @@ public class ClientProducers {
                 .setReconnectInterval(5000)
                 .setContainerId("my-container");
     }
-    // </named>
+    // end::named[]
 
 }

@@ -1,0 +1,51 @@
+= Using Google Protobuf serializer/deserializer
+:version-root: ../
+include::{version-root}_attributes.adoc[]
+
+If you are using https://developers.google.com/protocol-buffers/[Protocol
+Buffers]
+serializer/deserializer, please note the following configuration
+properties.
+
+== For https://docs.confluent.io/platform/current/schema-registry/serdes-develop/serdes-protobuf.html#serdes-and-formatter-protobuf[Confluent] Schema Registry
+
+Confluent protobuf library is `io.confluent:kafka-protobuf-serializer`.
+Note that this library is not available in Maven Central, you need to
+use the https://docs.confluent.io/clients-kafka-java/current/overview.html[Confluent Maven
+repository].
+
+=== Consumer
+
+[width="100%",cols="49%,51%",options="header",]
+|===
+|Property |Recommended value
+|value.deserializer |io.confluent.kafka.serializers.protobuf.KafkaProtobufDeserializer
+|schema.registry.url |http://%7Byour_host%7D:%7Byour_port%7D/
+|mp.messaging.incoming.++[++channel++]++.specific.protobuf.value.type |your.package.DomainObjectKey$Key
+|mp.messaging.incoming.++[++channel++]++.specific.protobuf.key.type |your.package.DomainObjectValue$Value
+|===
+
+Example:
+
+....
+mp.messaging.incoming.[channel].value.deserializer=io.confluent.kafka.serializers.protobuf.KafkaProtobufDeserializer
+mp.messaging.incoming.[channel].schema.registry.url=http://{your_host}:{your_port}/
+mp.messaging.incoming.[channel].specific.protobuf.value.type=your.package.DomainObjectKey$Key
+mp.messaging.incoming.[channel].specific.protobuf.key.type=your.package.DomainObjectValue$Value
+....
+
+=== Producer
+
+[width="100%",cols="24%,76%",options="header",]
+|===
+|Property |Recommended value
+|value.serializer |io.confluent.kafka.serializers.protobuf.KafkaProtobufSerializer
+|schema.registry.url |http://%7Byour_host%7D:%7Byour_port%7D/
+|===
+
+Example:
+
+....
+mp.messaging.outgoing.[channel].value.serializer=io.confluent.kafka.serializers.protobuf.KafkaProtobufSerializer
+mp.messaging.outgoing.[channel].schema.registry.url=http://{your_host}:{your_port}/
+....

@@ -8,7 +8,7 @@ import org.eclipse.microprofile.reactive.messaging.Outgoing;
 
 public class MessageAckExamples {
 
-    // <with-payload>
+    // tag::with-payload[]
     @Incoming("in")
     @Outgoing("out")
     public Message<Integer> process(Message<Integer> in) {
@@ -16,10 +16,10 @@ public class MessageAckExamples {
         // acknowledges the message, `in` will be acknowledged
         return in.withPayload(in.getPayload() + 1);
     }
-    // </with-payload>
+    // end::with-payload[]
 
     public void creation() {
-        // <message-creation>
+        // tag::message-creation[]
         Message<String> message = Message.of("hello", () -> {
             // called when the consumer acknowledges the message
 
@@ -30,10 +30,10 @@ public class MessageAckExamples {
             return CompletableFuture.completedFuture(null);
 
         });
-        // </message-creation>
+        // end::message-creation[]
     }
 
-    // <process>
+    // tag::process[]
     @Incoming("in")
     @Outgoing("out")
     public Message<Integer> processAndProduceNewMessage(Message<Integer> in) {
@@ -47,6 +47,6 @@ public class MessageAckExamples {
                     return in.ack();
                 });
     }
-    // </process>
+    // end::process[]
 
 }
