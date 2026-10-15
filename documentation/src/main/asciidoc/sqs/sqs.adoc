@@ -1,0 +1,62 @@
+= AWS SQS Connector
+:version-root: ../
+include::{version-root}_attributes.adoc[]
+
+[WARNING]
+.Preview
+====
+
+The AWS SQS Connector is currently in *preview*.
+
+====
+
+The AWS SQS Connector adds support for AWS SQS to Reactive Messaging.
+
+With this connector, your application can:
+
+* receive messages from a RabbitMQ queue
+* send messages to a RabbitMQ exchange
+
+The AWS SQS connector is based on the https://docs.aws.amazon.com/sdk-for-java/latest/developer-guide/home.html[AWS SDK for Java V2].
+
+== Using the AWS SQS connector
+
+To use the AWS SQS Connector, add the following dependency to your project:
+
+[source,xml,subs="attributes+"]
+----
+<dependency>
+  <groupId>io.smallrye.reactive</groupId>
+  <artifactId>smallrye-reactive-messaging-aws-sqs</artifactId>
+  <version>{project-version}</version>
+</dependency>
+----
+
+The connector name is: `smallrye-sqs`.
+
+So, to indicate that a channel is managed by this connector you need:
+
+[source,properties]
+----
+# Inbound
+mp.messaging.incoming.[channel-name].connector=smallrye-sqs
+
+# Outbound
+mp.messaging.outgoing.[channel-name].connector=smallrye-sqs
+----
+
+== Configuration
+
+When available the AWS SQS connector discovers the SQS client as a CDI bean.
+This allows using the connector with the https://docs.quarkiverse.io/quarkus-amazon-services/dev/amazon-sqs.html[Quarkiverse AWS SQS extension].
+If the SQS client is not available as a CDI bean, the connector creates a new client using the provided configuration.
+
+* `queue` - The name of the SQS queue, defaults to channel name if not provided.
+* `region` - The name of the SQS region.
+* `endpoint-override` - The endpoint url override.
+* `credentials-provider` - The fully qualified class name of the credential provider to be used in the client, if not provided the default provider chain is used.
+
+== Additional Resources
+
+* https://docs.aws.amazon.com/sqs/index.html[AWS SQS Documentation]
+* https://docs.quarkiverse.io/quarkus-amazon-services/dev/amazon-sqs.html[Quarkiverse AWS SQS Extension]

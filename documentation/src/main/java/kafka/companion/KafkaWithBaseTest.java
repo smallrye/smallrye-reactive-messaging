@@ -9,7 +9,7 @@ import io.smallrye.reactive.messaging.kafka.companion.ConsumerTask;
 import io.smallrye.reactive.messaging.kafka.companion.ProducerTask;
 import io.smallrye.reactive.messaging.kafka.companion.test.KafkaCompanionTestBase;
 
-// <code>
+// tag::code[]
 public class KafkaWithBaseTest extends KafkaCompanionTestBase {
 
     @Test
@@ -29,4 +29,4 @@ public class KafkaWithBaseTest extends KafkaCompanionTestBase {
         Assertions.assertEquals(lastRecord.value(), 99);
     }
 }
-// </code>
+// end::code[]

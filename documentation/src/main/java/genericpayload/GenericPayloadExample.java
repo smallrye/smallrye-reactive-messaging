@@ -16,15 +16,15 @@ import messages.MyMetadata;
 @ApplicationScoped
 public class GenericPayloadExample {
 
-    // <code>
+    // tag::code[]
     @Outgoing("out")
     Multi<GenericPayload<String>> produce() {
         return Multi.createFrom().range(0, 100)
                 .map(i -> GenericPayload.of(">> " + i, Metadata.of(new MyMetadata())));
     }
-    // </code>
+    // end::code[]
 
-    // <injection>
+    // tag::injection[]
     @Incoming("in")
     @Outgoing("out")
     GenericPayload<String> process(int payload, MyMetadata metadata) {
@@ -33,9 +33,9 @@ public class GenericPayloadExample {
         return GenericPayload.of(">> " + payload + " " + id,
                 Metadata.of(metadata, new MyMetadata("Bob", "Alice")));
     }
-    // </injection>
+    // end::injection[]
 
-    // <emitter>
+    // tag::emitter[]
     @Inject
     @Channel("out")
     MutinyEmitter<GenericPayload<String>> emitter;
@@ -44,6 +44,6 @@ public class GenericPayloadExample {
         emitter.sendAndForget(
                 GenericPayload.of(payload, Metadata.of(new MyMetadata())));
     }
-    // </emitter>
+    // end::emitter[]
 
 }

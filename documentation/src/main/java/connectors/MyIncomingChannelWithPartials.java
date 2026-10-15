@@ -37,7 +37,7 @@ public class MyIncomingChannelWithPartials {
         this.ackHandler = MyAckHandler.create(this.client);
         this.failureHandler = MyFailureHandler.create(this.client);
         this.tracingEnabled = true;
-        // <incoming-tracing>
+        // tag::incoming-tracing[]
         Multi<? extends Message<?>> receiveMulti = Multi.createBy().repeating()
                 .uni(() -> Uni.createFrom().completionStage(this.client.poll()))
                 .until(__ -> closed.get())
@@ -55,7 +55,7 @@ public class MyIncomingChannelWithPartials {
                         .build());
             });
         }
-        // </incoming-tracing>
+        // end::incoming-tracing[]
         this.stream = receiveMulti;
     }
 

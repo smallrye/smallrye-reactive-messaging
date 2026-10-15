@@ -7,7 +7,7 @@ import io.smallrye.mutiny.Multi;
 
 public class Chain {
 
-    // <chain>
+    // tag::chain[]
     @Outgoing("source")
     public Multi<String> generate() {
         return Multi.createFrom().items("Hello", "from", "reactive", "messaging");
@@ -23,5 +23,5 @@ public class Chain {
     public void consume(String processed) {
         System.out.println(processed);
     }
-    // </chain>
+    // end::chain[]
 }
