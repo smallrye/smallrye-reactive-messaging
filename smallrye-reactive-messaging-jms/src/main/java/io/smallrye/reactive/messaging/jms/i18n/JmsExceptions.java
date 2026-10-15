@@ -66,4 +66,10 @@ public interface JmsExceptions {
 
     @Message(id = 15616, value = "Cannot convert property '%s' of type %s to %s")
     NoSuchElementException cannotConvertProperty(String propertyName, Class<?> type, Class<?> targetType);
+
+    @Message(id = 15617, value = "Failed to %s JMS transaction")
+    RuntimeException jmsTransactionFailure(String operation, @Cause Throwable t);
+
+    @Message(id = 15618, value = "Invalid message-poller '%s', no matching JmsMessagePoller.Factory bean found")
+    IllegalArgumentException illegalArgumentInvalidMessagePoller(String name);
 }
