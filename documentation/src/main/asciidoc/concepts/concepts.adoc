@@ -1,0 +1,97 @@
+= Concepts
+:version-root: ../
+include::{version-root}_attributes.adoc[]
+
+When dealing with event-driven or data streaming applications, there are
+a few concepts and vocabulary to introduce.
+
+== Messages, Payload, Metadata
+
+A `Message` is an _envelope_ around a `payload`. Your application is
+going to receive, process, and send `Messages`.
+
+Your application’s logic can generate these `Messages` or receive them
+from a message broker. They can also be consumed by your application or
+sent to a message broker.
+
+.An application can receive a message, process it and send a resulting message
+image::images/messages.png[An application can receive a message, process it and send a resulting message]
+
+In Reactive Messaging, `Message` are represented by the link:https://javadoc.io/doc/io.smallrye.reactive/smallrye-reactive-messaging-api/{javadoc-version}/io/eclipse/microprofile/reactive/messaging/Message.html[`Message`] interface.
+Each `Message++<++T++>++` contains a _payload_ of type `++<++T++>++`. This payload can be retrieved using `message.getPayload()`:
+
+[source,java]
+----
+include::{examples-dir}/messages/MessageExamples.java[tags=message,indent=0]
+----
+
+As you can see in the previous snippet, `Messages` can also have
+_metadata_. _Metadata_ is a way to extend messages with additional data.
+It can be metadata related to the message broker
+(like link:https://javadoc.io/doc/io.smallrye.reactive/smallrye-reactive-messaging-api/{javadoc-version}/io/smallrye/reactive/messaging/kafka/api/KafkaMessageMetadata.html[`KafkaMessageMetadata`]), or contain operational data (such as tracing metadata), or business-related data.
+
+[NOTE]
+====
+
+When retrieving metadata, you get an `Optional` as it may not be present.
+
+====
+
+[TIP]
+====
+
+Metadata is also used to influence the outbound dispatching (how the message will be sent to the broker).
+
+====
+
+== Channels and Streams
+
+Inside your application, `Messages` transit on _channel_. A _channel_ is
+a virtual destination identified by a name.
+
+.The application is a set of channels
+image::images/channels.png[The application is a set of channels]
+
+SmallRye Reactive Messaging connects the component to the channel they read and to the channel they populate.
+The resulting structure is a stream: Messages flow between components through channels.
+
+[NOTE]
+.What about Reactive Streams?
+====
+
+You may wonder why _Reactive Messaging_ has _Reactive_ in the name. The
+Messaging part is kind of obvious. The Reactive part comes from the
+streams that are created by binding components. These streams are
+https://www.reactive-streams.org/[Reactive Streams]. They follow the
+subscription and request protocol and implement back-pressure. It also
+means that xref:#connectors[Connectors] are intended to use non-blocking IO
+to interact with the various message brokers.
+
+====
+
+== Connectors
+
+Your application is interacting with messaging brokers or event backbone using _connectors_.
+A _connector_ is a piece of code that connects to a broker and:
+
+[arabic]
+. subscribe/poll/receive messages from the broker and propagate them to the application
+. send/write/dispatch messages provided by the application to the broker
+
+Connectors are configured to map incoming messages to a specific
+_channel_ (consumed by the application) and collect outgoing messages
+sent to a specific channel. These collected messages are sent to the
+external broker.
+
+.Connectors manages the communication between the application and the brokers
+image::images/connectors.png[Connectors manages the communication between the application and the brokers]
+
+Each connector is dedicated to a specific technology.
+For example, a Kafka Connector only deals with Kafka.
+
+You don’t necessarily need a connector.
+When your application does not use connectors, everything happens _in-memory_, and the streams are created by chaining methods altogether.
+Each chain is still a reactive stream and enforces the back-pressure protocol.
+When you don’t use connectors, you need to make sure the chain is complete, meaning it starts with a message source, and it ends with a sink.
+In other words, you need to generate messages from within the application (using a method with only `@Outgoing`, or an `Emitter`) and consume the messages
+from within the application (using a method with only `@Incoming` or using an unmanaged stream).

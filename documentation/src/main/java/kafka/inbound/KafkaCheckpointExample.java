@@ -13,7 +13,7 @@ import io.smallrye.reactive.messaging.kafka.commit.CheckpointMetadata;
 @ApplicationScoped
 public class KafkaCheckpointExample {
 
-    // <code>
+    // tag::code[]
     @Incoming("prices")
     public CompletionStage<Void> consume(Message<Double> record) {
         // Get the `CheckpointMetadata` from the incoming message
@@ -27,6 +27,6 @@ public class KafkaCheckpointExample {
         // associated with the latest offset (per partition).
         return record.ack();
     }
-    // </code>
+    // end::code[]
 
 }

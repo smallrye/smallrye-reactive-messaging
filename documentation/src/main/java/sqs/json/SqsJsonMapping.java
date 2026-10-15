@@ -14,7 +14,7 @@ import io.smallrye.mutiny.Multi;
 
 public class SqsJsonMapping {
 
-    // <code>
+    // tag::code[]
     @ApplicationScoped
     public static class Generator {
 
@@ -51,6 +51,6 @@ public class SqsJsonMapping {
             return this;
         }
     }
-    // </code>
+    // end::code[]
 
 }

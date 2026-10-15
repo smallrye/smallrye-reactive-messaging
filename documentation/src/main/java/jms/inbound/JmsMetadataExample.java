@@ -12,14 +12,14 @@ public class JmsMetadataExample {
 
     public void metadata() {
         Message<Double> incoming = Message.of(12.0);
-        // <code>
+        // tag::code[]
         Optional<IncomingJmsMessageMetadata> metadata = incoming.getMetadata(IncomingJmsMessageMetadata.class);
         metadata.ifPresent(meta -> {
             long expiration = meta.getExpiration();
             Destination destination = meta.getDestination();
             String value = meta.getStringProperty("my-property");
         });
-        // </code>
+        // end::code[]
     }
 
 }

@@ -14,7 +14,7 @@ import software.amazon.awssdk.services.sns.model.MessageAttributeValue;
 public class SnsOutboundMetadataExample {
 
     public Message<String> metadata(Message<String> incoming) {
-        // <code>
+        // tag::code[]
         final SnsOutboundMetadata metadata = SnsOutboundMetadata.builder()
                 .messageAttributes(Map.of("my-attribute", MessageAttributeValue.builder()
                         .dataType("String").stringValue("my-value").build()))
@@ -24,6 +24,6 @@ public class SnsOutboundMetadataExample {
 
         // Add `metadata` to the metadata of the outgoing message.
         return Message.of("Hello", Metadata.of(metadata));
-        // </code>
+        // end::code[]
     }
 }

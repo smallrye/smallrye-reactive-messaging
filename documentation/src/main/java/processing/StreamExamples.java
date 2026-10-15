@@ -9,7 +9,7 @@ import io.smallrye.mutiny.Uni;
 
 public class StreamExamples {
 
-    // <processing-stream-message>
+    // tag::processing-stream-message[]
     @Incoming("in")
     @Outgoing("out")
     public Multi<Message<String>> processMessageStream(Multi<Message<Integer>> stream) {
@@ -20,9 +20,9 @@ public class StreamExamples {
                 .concatenate();
 
     }
-    // </processing-stream-message>
+    // end::processing-stream-message[]
 
-    // <processing-stream-payload>
+    // tag::processing-stream-payload[]
     @Incoming("in")
     @Outgoing("out")
     public Multi<String> processPayloadStream(Multi<Integer> stream) {
@@ -32,7 +32,7 @@ public class StreamExamples {
                 .concatenate();
 
     }
-    // </processing-stream-payload>
+    // end::processing-stream-payload[]
 
     private Uni<String> invokeService(int i) {
         return Uni.createFrom().item("ok " + i);

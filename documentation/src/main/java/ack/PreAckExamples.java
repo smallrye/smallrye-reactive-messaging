@@ -6,7 +6,7 @@ import org.eclipse.microprofile.reactive.messaging.Outgoing;
 
 public class PreAckExamples {
 
-    // <pre>
+    // tag::pre[]
     @Incoming("in")
     @Outgoing("out")
     @Acknowledgment(Acknowledgment.Strategy.PRE_PROCESSING)
@@ -16,5 +16,5 @@ public class PreAckExamples {
         // acknowledged
         return input.toUpperCase();
     }
-    // </pre>
+    // end::pre[]
 }

@@ -9,7 +9,7 @@ import io.smallrye.mutiny.subscription.Cancellable;
 import io.smallrye.reactive.messaging.MutinyEmitter;
 
 public class MutinyExamples {
-    // <uni>
+    // tag::uni[]
     @Inject
     @Channel("prices")
     MutinyEmitter<Double> emitter;
@@ -17,17 +17,17 @@ public class MutinyExamples {
     public Uni<Void> send(double d) {
         return emitter.send(d);
     }
-    // </uni>
+    // end::uni[]
 
-    // <uni-await>
+    // tag::uni-await[]
     public void sendAwait(double d) {
         emitter.sendAndAwait(d);
     }
-    // </uni-await>
+    // end::uni-await[]
 
-    // <uni-forget>
+    // tag::uni-forget[]
     public Cancellable sendForget(double d) {
         return emitter.sendAndForget(d);
     }
-    // </uni-forget>
+    // end::uni-forget[]
 }

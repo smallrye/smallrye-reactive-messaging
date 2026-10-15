@@ -9,12 +9,12 @@ public class TopicsTest extends KafkaCompanionTestBase {
 
     @Test
     public void topics() {
-        // <code>
+        // tag::code[]
         companion.topics().create("topic1", 1);
         companion.topics().createAndWait("topic2", 3);
         Assertions.assertEquals(companion.topics().list().size(), 2);
 
         companion.topics().delete("topic1");
-        // </code>
+        // end::code[]
     }
 }

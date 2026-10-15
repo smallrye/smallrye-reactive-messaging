@@ -7,7 +7,7 @@ import io.smallrye.reactive.messaging.annotations.Merge;
 
 public class MergeExamples {
 
-    // <chain>
+    // tag::chain[]
     @Incoming("in1")
     @Outgoing("out")
     public int increment(int i) {
@@ -26,6 +26,6 @@ public class MergeExamples {
         //...
     }
 
-    // </chain>
+    // end::chain[]
 
 }
