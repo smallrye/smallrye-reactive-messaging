@@ -1,0 +1,196 @@
+= Receiving messages from Pulsar
+:version-root: ../
+include::{version-root}_attributes.adoc[]
+
+The Pulsar Connector connects to a Pulsar broker using a Pulsar client and creates consumers to
+receive messages from Pulsar brokers and it maps each of them into Reactive Messaging `Messages`.
+
+== Example
+
+Let’s imagine you have a Pulsar broker running, and accessible
+using the `pulsar:6650` address (by default it would use
+`localhost:6650`). Configure your application to receive Pulsar messages
+on the `prices` channel as follows:
+
+[source,properties]
+----
+mp.messaging.incoming.prices.connector=smallrye-pulsar # <1>
+mp.messaging.incoming.prices.serviceUrl=pulsar://pulsar:6650 # <2>
+mp.messaging.incoming.prices.schema=DOUBLE # <3>
+mp.messaging.incoming.prices.subscriptionInitialPosition=Earliest # <4>
+----
+
+[arabic]
+. Sets the connector for the `prices` channel
+. Configure the Pulsar broker service url.
+. Configure the schema to consume prices as Double.
+. Make sure consumer subscription starts receiving messages from the `Earliest` position.
+
+[NOTE]
+====
+
+You don’t need to set the Pulsar topic, nor the consumer name.
+By default, the connector uses the channel name (`prices`).
+You can configure the `topic` and `consumerName` attributes to override them.
+
+====
+
+[NOTE]
+====
+
+In Pulsar, consumers need to provide a `subscriptionName` for topic subscriptions.
+If not provided the connector is generating a unique *subscription name*.
+
+====
+
+Then, your application can receive the `double` payload directly:
+
+[source,java]
+----
+include::{examples-dir}/pulsar/inbound/PulsarPriceConsumer.java[indent=0]
+----
+
+Or, you can retrieve the `Message++<++Double++>++`:
+
+[source,java]
+----
+include::{examples-dir}/pulsar/inbound/PulsarPriceMessageConsumer.java[indent=0]
+----
+
+== Consumer Configuration
+
+The Pulsar Connector allows flexibly configuring the underlying Pulsar consumer.
+One of the ways is to set consumer properties directly on the channel configuration.
+The list of available configuration properties are listed in xref:#configuration-reference[Configuration Reference].
+
+See the xref:pulsar/client-configuration.adoc[Configuring Pulsar consumers&#44; producers and clients] for more information.
+
+== Deserialization and Pulsar Schema
+
+The Pulsar Connector allows configuring Schema configuration for the underlying Pulsar consumer.
+See the xref:pulsar/schema-configuration.adoc[Configuring the schema used for Pulsar channels] for more information.
+
+== Inbound Metadata
+
+The incoming Pulsar messages include an instance of `PulsarIncomingMessageMetadata` in the metadata.
+It provides the key, topic, partitions, headers and so on:
+
+[source,java]
+----
+include::{examples-dir}/pulsar/inbound/PulsarMetadataExample.java[tags=code,indent=0]
+----
+
+== Acknowledgement
+
+When a message produced from a Pulsar Message is _acknowledged_, the connector sends an https://pulsar.apache.org/docs/3.0.x/concepts-messaging/#acknowledgment[acknowledgement request] to the Pulsar broker.
+All Reactive Messaging messages need to be _acknowledged_, which is handled automatically in most cases.
+Acknowledgement requests can be sent to the Pulsar broker using the following two strategies:
+
+* *Individual acknowledgement* is the default strategy, an acknowledgement request is to the broker for each message.
+* *Cumulative acknowledgement*, configured using `ack-strategy=cumulative`, the consumer only acknowledges the last message it received.
+All messages in the stream up to (and including) the provided message are not redelivered to that consumer.
+
+== Failure Management
+
+If a message produced from a Pulsar message is _nacked_, a failure strategy is applied.
+The Pulsar connector supports 4 strategies:
+
+* `nack` _(default)_ sends https://pulsar.apache.org/docs/3.0.x/concepts-messaging/#negative-acknowledgment[negative acknowledgment] to the broker, triggering the broker to redeliver this message to the consumer.
+The negative acknowledgment can be further configured using `negativeAckRedeliveryDelayMicros` and `negativeAck.redeliveryBackoff` properties.
+* `fail` fail the application, no more messages will be processed.
+* `ignore` the failure is logged, but the acknowledgement strategy will be applied and the processing will continue.
+* `continue` the failure is logged, but processing continues without applying acknowledgement or negative acknowledgement. This strategy can be used with xref:#acknowledgement-timeout[acknowledgement timeout] configuration.
+* `reconsume-later` sends the message to the https://pulsar.apache.org/docs/3.0.x/concepts-messaging/#retry-letter-topic[retry letter topic] using the `reconsumeLater` API to be reconsumed with a delay.
+The delay can be configured using the `reconsumeLater.delay` property and defaults to 3 seconds.
+Custom delay or properties per message can be configured by adding an instance of link:https://javadoc.io/doc/io.smallrye.reactive/smallrye-reactive-messaging-api/{javadoc-version}/io/smallrye/reactive/messaging/pulsar/PulsarReconsumeLaterMetadata.html[`PulsarReconsumeLaterMetadata`] to the failure metadata.
+
+For example the following configuration for the incoming channel `data` uses `reconsumer-later` failure strategy with default delays of 60 seconds:
+
+[source,properties]
+----
+mp.messaging.incoming.data.connector=smallrye-pulsar
+mp.messaging.incoming.data.serviceUrl=pulsar://localhost:6650
+mp.messaging.incoming.data.topic=data
+mp.messaging.incoming.data.schema=INT32
+mp.messaging.incoming.data.failure-strategy=reconsume-later
+mp.messaging.incoming.data.retryEnable=true
+mp.messaging.incoming.data.reconsumeLater.delay=60 // in seconds
+mp.messaging.incoming.data.deadLetterPolicy.retryLetterTopic=data-retry
+mp.messaging.incoming.data.deadLetterPolicy.maxRedeliverCount=2
+----
+
+=== Acknowledgement timeout
+
+Similar to the negative acknowledgement, with the https://pulsar.apache.org/docs/3.0.x/concepts-messaging/#acknowledgment-timeout[acknowledgment timeout] mechanism, the Pulsar client tracks the unacknowledged messages,
+for the given _ackTimeout_ period and sends _redeliver unacknowledged messages request_ to the broker, thus the broker resends the unacknowledged messages to the consumer.
+
+To configure the timeout and redelivery backoff mechanism you can set `ackTimeoutMillis` and `ackTimeout.redeliveryBackoff` properties.
+The `ackTimeout.redeliveryBackoff` value accepts comma separated values of min delay in milliseconds, max delay in milliseconds and multiplier respectively:
+
+[source,properties]
+----
+mp.messaging.incoming.data.connector=smallrye-pulsar
+mp.messaging.incoming.data.failure-strategy=continue
+mp.messaging.incoming.data.ackTimeoutMillis=10000
+mp.messaging.incoming.data.ackTimeout.redeliveryBackoff=1000,60000,2
+----
+
+=== Dead-letter topic
+
+The https://pulsar.apache.org/docs/3.0.x/concepts-messaging/#dead-letter-topic[dead letter topic] pushes messages that are not consumed successfully to a dead letter topic an continue message consumption.
+Note that dead letter topic can be used in different message redelivery methods, such as acknowledgment timeout, negative acknowledgment or retry letter topic.
+
+[source,properties]
+----
+mp.messaging.incoming.data.connector=smallrye-pulsar
+mp.messaging.incoming.data.failure-strategy=nack
+mp.messaging.incoming.data.deadLetterPolicy.maxRedeliverCount=2
+mp.messaging.incoming.data.deadLetterPolicy.deadLetterTopic=my-dead-letter-topic
+mp.messaging.incoming.data.deadLetterPolicy.initialSubscriptionName=my-dlq-subscription
+mp.messaging.incoming.data.subscriptionType=Shared
+----
+
+[IMPORTANT]
+====
+
+_Negative acknowledgment_ or _acknowledgment timeout_ methods for redelivery will redeliver the whole batch of messages containing at least an unprocessed message.
+See xref:pulsar/sending-messages-to-pulsar.adoc#producer-batching[producer batching] for more information.
+
+====
+
+== Receiving Pulsar Messages in Batches
+
+By default, incoming methods receive each Pulsar message individually.
+You can enable batch mode using `batchReceive=true` property, or setting a `batchReceivePolicy` in consumer configuration.
+
+[source,java]
+----
+include::{examples-dir}/pulsar/inbound/PulsarMessageBatchExample.java[tags=code,indent=0]
+----
+
+Or you can directly receive the list of payloads to the consume method:
+
+[source,java]
+----
+include::{examples-dir}/pulsar/inbound/PulsarMessageBatchPayloadExample.java[tags=code,indent=0]
+----
+
+=== Accessing metadata of batch records
+
+When receiving records in batch mode, the metadata of each record is accessible through the `PulsarIncomingBatchMessageMetadata` :
+
+[source,java]
+----
+include::{examples-dir}/pulsar/inbound/PulsarMessageBatchExample.java[tags=batch,indent=0]
+----
+
+Like in this example, this can be useful to propagate the tracing information of each record.
+
+== Configuration Reference
+
+include::{generated-dir}/smallrye-pulsar-incoming.adoc[]
+
+In addition to the configuration properties provided by the connector,
+following Pulsar consumer properties can also be set on the channel:
+
+include::{partialsdir}/pulsar/config/smallrye-pulsar-consumer.adoc[]

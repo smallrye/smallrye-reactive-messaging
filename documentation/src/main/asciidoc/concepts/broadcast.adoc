@@ -1,0 +1,49 @@
+= Broadcast
+:version-root: ../
+include::{version-root}_attributes.adoc[]
+
+[WARNING]
+.Experimental
+====
+
+`@Broadcast` is an experimental feature.
+
+====
+
+By default, messages transiting in a channel are only dispatched to a
+single consumer. Having multiple consumers is considered as an error,
+and is reported at deployment time.
+
+The link:https://javadoc.io/doc/io.smallrye.reactive/smallrye-reactive-messaging-api/{javadoc-version}/io/smallrye/reactive/messaging/annotations/Broadcast.html[`Broadcast`]
+annotation changes this behavior and indicates that messages transiting
+in the channel are dispatched to all the consumers. `@Broadcast` must be
+used with the `@Outgoing` annotation:
+
+[source,java]
+----
+include::{examples-dir}/broadcast/BroadcastExamples.java[tags=chain,indent=0]
+----
+
+In the previous example, both consumers get the messages.
+
+You can also control the number of consumers to wait before starting to
+dispatch the messages. This allows waiting for the complete graph to be
+woven:
+
+[source,java]
+----
+include::{examples-dir}/broadcast/BroadcastWithCountExamples.java[tags=chain,indent=0]
+----
+
+[NOTE]
+====
+
+Inbound connectors also support a `broadcast` attribute that allows
+broadcasting the messages to multiple downstream subscribers.
+
+====
+
+Use with Emitter
+
+For details on how to use `@Broadcast` with `Emitter` see the
+xref:concepts/emitter.adoc#emitter-and-broadcast[documentation].

@@ -11,16 +11,16 @@ import io.smallrye.mutiny.Multi;
 
 public class StreamAckExamples {
 
-    // <message>
+    // tag::message[]
     @Incoming("in")
     @Outgoing("out")
     public Publisher<Message<String>> transform(Multi<Message<String>> stream) {
         return stream
                 .map(message -> message.withPayload(message.getPayload().toUpperCase()));
     }
-    // </message>
+    // end::message[]
 
-    // <payload>
+    // tag::payload[]
     @Incoming("in")
     @Outgoing("out")
     public Publisher<String> transformPayload(Multi<String> stream) {
@@ -28,9 +28,9 @@ public class StreamAckExamples {
                 // The incoming messages are already acknowledged
                 .map(String::toUpperCase);
     }
-    // </payload>
+    // end::payload[]
 
-    // <payload-to-multi>
+    // tag::payload-to-multi[]
     @Incoming("in")
     @Outgoing("out")
     // Defaults to pre-processing, but post-processing is also supported
@@ -38,5 +38,5 @@ public class StreamAckExamples {
     public Multi<String> transformPayload(String one) {
         return Multi.createFrom().items(one, one);
     }
-    // </payload-to-multi>
+    // end::payload-to-multi[]
 }
