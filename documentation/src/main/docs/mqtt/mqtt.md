@@ -38,3 +38,13 @@ mp.messaging.incoming.[channel-name].connector=smallrye-mqtt
 mp.messaging.outgoing.[channel-name].connector=smallrye-mqtt
 ```
 
+## Migration
+
+!!! warning "Breaking change"
+    The `auto-keep-alive` channel property has been removed.
+    Delete `auto-keep-alive` from incoming and outgoing MQTT channel
+    configuration.
+    The MQTT client handles `PINGREQ` automatically.
+    The `keep-alive-seconds` property remains supported and sets the
+    keep-alive interval.
+

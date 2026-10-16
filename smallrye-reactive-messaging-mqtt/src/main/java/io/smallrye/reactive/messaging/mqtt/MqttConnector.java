@@ -32,7 +32,6 @@ import io.vertx.mutiny.core.Vertx;
 @Connector(MqttConnector.CONNECTOR_NAME)
 @ConnectorAttribute(name = "client-id", type = "string", direction = INCOMING_AND_OUTGOING, description = "Set the client identifier")
 @ConnectorAttribute(name = "auto-generated-client-id", type = "boolean", direction = INCOMING_AND_OUTGOING, description = "Set if the MQTT client must generate clientId automatically", defaultValue = "true")
-@ConnectorAttribute(name = "auto-keep-alive", type = "boolean", direction = INCOMING_AND_OUTGOING, description = "Set if the MQTT client must handle `PINGREQ` automatically", defaultValue = "true")
 @ConnectorAttribute(name = "health-enabled", type = "boolean", direction = INCOMING_AND_OUTGOING, description = "Whether health reporting is enabled (default) or disabled", defaultValue = "true")
 @ConnectorAttribute(name = "ssl", type = "boolean", direction = INCOMING_AND_OUTGOING, description = "Set whether SSL/TLS is enabled", defaultValue = "false")
 @ConnectorAttribute(name = "ssl.hostname-verification-algorithm", type = "string", direction = INCOMING_AND_OUTGOING, description = "Set the hostname verifier algorithm for the TLS connection.Accepted values are `HTTPS`, `LDAPS`, and `NONE` (defaults). `NONE` disables the hostname verification.", defaultValue = "NONE")
