@@ -45,6 +45,7 @@ nav:
         - 'Using Protobuf': kafka/protobuf-configuration.md
         - 'Rebalance Listeners': kafka/consumer-rebalance-listener.md
         - 'Kerberos authentication': kafka/kerberos.md
+        - 'Trust store from a base64 value': kafka/truststore-base64.md
         - 'Accessing the client': kafka/client-service.md
         - 'Customizing Default Kafka Configuration': kafka/default-configuration.md
         - 'Test Companion for Kafka': kafka/test-companion.md
