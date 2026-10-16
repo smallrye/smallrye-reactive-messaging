@@ -109,4 +109,13 @@ public interface KafkaExceptions {
     @Message(id = 18029, value = "Transaction not started. Call beginTransaction() first.")
     IllegalStateException transactionNotStarted();
 
+    @Message(id = 18030, value = "Invalid Kafka configuration for channel `%s`: `ssl.truststore.base64` cannot be used together with `%s`")
+    IllegalArgumentException truststoreBase64Conflict(String channel, String configKey);
+
+    @Message(id = 18031, value = "Invalid Kafka configuration for channel `%s`: unable to read the trust store from `ssl.truststore.base64`")
+    IllegalArgumentException truststoreBase64Invalid(String channel, @Cause Throwable cause);
+
+    @Message(id = 18032, value = "Invalid Kafka configuration for channel `%s`: the trust store from `ssl.truststore.base64` contains no certificates")
+    IllegalArgumentException truststoreBase64NoCertificates(String channel);
+
 }

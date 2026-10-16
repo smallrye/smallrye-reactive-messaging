@@ -291,6 +291,7 @@ public class ReactiveKafkaProducer<K, V> implements io.smallrye.reactive.messagi
         }
 
         ConfigurationCleaner.cleanupProducerConfiguration(map);
+        TruststoreBase64.apply(configuration.getChannel(), map);
 
         return ConfigUtils.customize(configuration.config(), configCustomizers, map);
     }

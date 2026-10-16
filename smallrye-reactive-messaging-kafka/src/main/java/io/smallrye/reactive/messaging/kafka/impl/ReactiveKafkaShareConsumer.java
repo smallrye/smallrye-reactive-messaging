@@ -257,6 +257,7 @@ public class ReactiveKafkaShareConsumer<K, V> implements KafkaShareConsumer<K, V
         });
 
         ConfigurationCleaner.cleanupConsumerConfiguration(map);
+        TruststoreBase64.apply(configuration.getChannel(), map);
 
         return ConfigUtils.customize(configuration.config(), configInterceptors, map);
     }

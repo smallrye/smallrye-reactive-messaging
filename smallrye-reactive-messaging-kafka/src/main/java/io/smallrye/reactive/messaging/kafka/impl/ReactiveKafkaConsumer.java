@@ -480,6 +480,7 @@ public class ReactiveKafkaConsumer<K, V> implements io.smallrye.reactive.messagi
         });
 
         ConfigurationCleaner.cleanupConsumerConfiguration(map);
+        TruststoreBase64.apply(configuration.getChannel(), map);
 
         return ConfigUtils.customize(configuration.config(), configInterceptors, map);
     }
