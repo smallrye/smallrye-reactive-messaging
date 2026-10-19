@@ -47,9 +47,9 @@ public class KafkaTrace {
     public static class Builder {
         private String groupId;
         private String clientId;
-        private int partition;
+        private int partition = -1;
         private String topic;
-        private long offset;
+        private long offset = -1;
         private Headers headers;
 
         public Builder withGroupId(final String groupId) {

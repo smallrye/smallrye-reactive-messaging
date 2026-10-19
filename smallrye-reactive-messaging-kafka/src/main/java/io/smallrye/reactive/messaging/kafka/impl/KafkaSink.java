@@ -12,7 +12,6 @@ import java.util.stream.Collectors;
 
 import jakarta.enterprise.inject.Instance;
 
-import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerInterceptor;
 import org.apache.kafka.clients.producer.ProducerRecord;
@@ -24,6 +23,7 @@ import org.apache.kafka.common.serialization.StringSerializer;
 import org.eclipse.microprofile.reactive.messaging.Message;
 
 import io.opentelemetry.api.OpenTelemetry;
+import io.opentelemetry.context.Context;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.ClientCustomizer;
 import io.smallrye.reactive.messaging.OutgoingMessageMetadata;
@@ -180,6 +180,8 @@ public class KafkaSink {
 
     private Function<Message<?>, Uni<Void>> writeMessageToKafka() {
         return message -> {
+            Context spanContext = null;
+            KafkaTrace kafkaTrace = null;
             try {
                 OutgoingKafkaRecordMetadata<?> outgoingMetadata = message.getMetadata(OutgoingKafkaRecordMetadata.class)
                         .orElse(null);
@@ -213,14 +215,13 @@ public class KafkaSink {
                 }
 
                 if (isTracingEnabled) {
-                    KafkaTrace kafkaTrace = new KafkaTrace.Builder()
+                    kafkaTrace = new KafkaTrace.Builder()
                             .withPartition(record.partition() != null ? record.partition() : -1)
                             .withTopic(record.topic())
                             .withHeaders(record.headers())
-                            .withGroupId((String) client.configuration().get(ConsumerConfig.GROUP_ID_CONFIG))
-                            .withClientId((String) client.configuration().get(ConsumerConfig.CLIENT_ID_CONFIG))
+                            .withClientId((String) client.configuration().get(ProducerConfig.CLIENT_ID_CONFIG))
                             .build();
-                    kafkaInstrumenter.traceOutgoing(message, kafkaTrace);
+                    spanContext = kafkaInstrumenter.startOutgoing(message, kafkaTrace);
                 }
 
                 String actualTopic = topic;
@@ -233,28 +234,34 @@ public class KafkaSink {
                         ? scopeMeta.getScope().send((ProducerRecord) record)
                         : client.send((ProducerRecord) record);
 
-                Uni<Void> uni = sendUni.onItem().transformToUni(recordMetadata -> {
-                    OutgoingMessageMetadata.setResultOnMessage(message, recordMetadata);
-                    log.successfullyToTopic(message, channel, recordMetadata.topic(), recordMetadata.partition(),
-                            recordMetadata.offset());
-                    return Uni.createFrom().completionStage(message.ack());
-                });
-
                 if (this.retries == Integer.MAX_VALUE) {
-                    uni = uni.onFailure(this::isRecoverable).retry()
+                    sendUni = sendUni.onFailure(this::isRecoverable).retry()
                             .withBackOff(Duration.ofSeconds(1), Duration.ofSeconds(20)).expireIn(deliveryTimeoutMs);
                 } else if (this.retries > 0) {
-                    uni = uni.onFailure(this::isRecoverable).retry()
+                    sendUni = sendUni.onFailure(this::isRecoverable).retry()
                             .withBackOff(Duration.ofSeconds(1), Duration.ofSeconds(20)).atMost(this.retries);
                 }
 
-                return uni
-                        .onFailure().recoverWithUni(t -> {
-                            // Log and nack the messages on failure.
-                            log.nackingMessage(message, channel, actualTopic, t);
-                            return Uni.createFrom().completionStage(message.nack(t));
-                        });
+                final Context finalSpanContext = spanContext;
+                final KafkaTrace finalKafkaTrace = kafkaTrace;
+                return sendUni.onItemOrFailure().transformToUni((recordMetadata, t) -> {
+                    if (isTracingEnabled) {
+                        kafkaInstrumenter.endOutgoing(finalSpanContext, finalKafkaTrace, recordMetadata, t);
+                    }
+                    if (t != null) {
+                        log.nackingMessage(message, channel, actualTopic, t);
+                        return Uni.createFrom().completionStage(message.nack(t));
+                    } else {
+                        OutgoingMessageMetadata.setResultOnMessage(message, recordMetadata);
+                        log.successfullyToTopic(message, channel, recordMetadata.topic(), recordMetadata.partition(),
+                                recordMetadata.offset());
+                        return Uni.createFrom().completionStage(message.ack());
+                    }
+                });
             } catch (RuntimeException e) {
+                if (isTracingEnabled && spanContext != null) {
+                    kafkaInstrumenter.endOutgoing(spanContext, kafkaTrace, null, e);
+                }
                 log.unableToSendRecord(e);
                 return Uni.createFrom().failure(e);
             }
