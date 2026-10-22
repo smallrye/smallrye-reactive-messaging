@@ -325,8 +325,8 @@ public class ReactiveKafkaProducer<K, V> implements io.smallrye.reactive.messagi
                 }
             }).onItem().invoke(kafkaWorker::shutdown);
 
-            if (Context.isOnEventLoopThread()) {
-                // We can't block, just forget the result
+            if (Context.isOnEventLoopThread() || timeout <= 0) {
+                // We can't block, or a close timeout of 0 asks not to wait: just forget the result
                 uni.subscribeAsCompletionStage();
             } else {
                 uni.await().atMost(Duration.ofMillis(timeout * 2L));
