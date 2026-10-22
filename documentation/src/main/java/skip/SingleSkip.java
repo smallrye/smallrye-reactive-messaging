@@ -8,7 +8,7 @@ import io.smallrye.mutiny.Uni;
 
 public class SingleSkip {
 
-    // <skip>
+    // tag::skip[]
     // Skip when processing payload synchronously - returning `null`
     @Incoming("in")
     @Outgoing("out")
@@ -54,6 +54,6 @@ public class SingleSkip {
         return Uni.createFrom().item(m.withPayload(s.toUpperCase()));
     }
 
-    // </skip>
+    // end::skip[]
 
 }

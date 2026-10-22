@@ -84,9 +84,16 @@ public class ConfigurationDocWriter {
             name += "\n\n[.no-hyphens]#_(" + att.alias() + ")_#";
         }
         out.println(String.format("| %s | %s | %s | %s",
-                name, getDescription(att) + "\n\nType: _" + att.type() + "_", att.mandatory(),
-                getDefaultValueOrEmpty(att)));
+                name, escapeCell(getDescription(att)) + "\n\nType: _" + att.type() + "_", att.mandatory(),
+                escapeCell(getDefaultValueOrEmpty(att))));
         out.println();
+    }
+
+    /**
+     * A {@code |} in a cell would start a new cell and shift the rest of the table.
+     */
+    static String escapeCell(String value) {
+        return value.replace("|", "\\|");
     }
 
     private String getDescription(ConnectorAttribute att) {

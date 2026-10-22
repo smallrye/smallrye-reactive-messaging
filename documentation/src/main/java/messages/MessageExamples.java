@@ -11,15 +11,15 @@ public class MessageExamples {
 
     public void example1() {
         Message<String> message = Message.of("hello", Metadata.of(new MyMetadata()));
-        // <message>
+        // tag::message[]
         String payload = message.getPayload();
         Optional<MyMetadata> metadata = message.getMetadata(MyMetadata.class);
-        // </message>
+        // end::message[]
     }
 
     public void creation() {
         Price price = new Price(20.5);
-        // <creation>
+        // tag::creation[]
         // Create a simple message wrapping a payload
         Message<Price> m1 = Message.of(price);
 
@@ -43,13 +43,13 @@ public class MessageExamples {
                     // Called when the message is acknowledged by the next consumer.
                     return CompletableFuture.completedFuture(null);
                 });
-        // </creation>
+        // end::creation[]
     }
 
     public void copy() {
         Price price = new Price(20.5);
         Message<Price> message = Message.of(price);
-        // <copy>
+        // tag::copy[]
 
         // Create a new message with a new payload but with the same metadata
         Message<Price> m1 = message.withPayload(new Price(12.4));
@@ -68,14 +68,14 @@ public class MessageExamples {
                         .thenAccept(x -> {
                             // do something
                         }));
-        // </copy>
+        // end::copy[]
     }
 
     public void nullPayload() {
-        // <null-payload>
+        // tag::null-payload[]
         // Create a message with null payload
         Message<Price> m6 = Message.of(null, Metadata.of(new PriceMetadata()));
-        // </null-payload>
+        // end::null-payload[]
     }
 
     public static class Price {

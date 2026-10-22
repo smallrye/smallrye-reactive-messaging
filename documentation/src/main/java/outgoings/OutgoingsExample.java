@@ -5,7 +5,7 @@ import org.eclipse.microprofile.reactive.messaging.Outgoing;
 
 public class OutgoingsExample {
 
-    //<code>
+    //tag::code[]
     @Incoming("in")
     @Outgoing("out1")
     @Outgoing("out2")
@@ -13,6 +13,6 @@ public class OutgoingsExample {
         // send messages from channel-in to both channel-out1 and channel-out2
         return s.toUpperCase();
     }
-    //</code>
+    //end::code[]
 
 }

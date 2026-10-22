@@ -1,0 +1,55 @@
+= Generic Payloads
+:version-root: ../
+include::{version-root}_attributes.adoc[]
+
+[WARNING]
+.Experimental
+====
+
+Generic payloads are an experimental feature and the API is subject to change.
+
+====
+
+When using reactive messaging, `Message` flow in your system
+each message has a payload but can also contain _metadata_, as explained in xref:concepts/concepts.adoc#messages-payload-metadata[Messages&#44; Payload&#44; Metadata].
+The metadata can hold information, for example in an outgoing channel, additional properties of the outgoing message to be sent to the broker.
+
+It is sometimes preferable to continue using the xref:concepts/model.adoc#messages-vs-payloads[payload signatures],
+and also being able to attach metadata.
+Using `GenericPayload` allows customizing metadata when handling payloads in SmallRye Reactive Messaging `@Incoming` and `@Outgoing` methods.
+`GenericPayload` is a wrapper type, like the `Message`, containing a payload and metadata,
+without requiring handling acknowledgments manually.
+
+[source,java]
+----
+include::{examples-dir}/genericpayload/GenericPayloadExample.java[tags=code,indent=0]
+----
+
+You can combine generic payloads with xref:concepts/incoming-metadata-injection.adoc[metadata injection] :
+
+[source,java]
+----
+include::{examples-dir}/genericpayload/GenericPayloadExample.java[tags=injection,indent=0]
+----
+
+Note that the metadata provided with the outgoing generic payload is merged with the incoming message metadata.
+
+`GenericPayload` can also be used with emitters to attach metadata without dealing with `Message` directly:
+
+[source,java]
+----
+include::{examples-dir}/genericpayload/GenericPayloadExample.java[tags=emitter,indent=0]
+----
+
+The inner payload is extracted and the metadata from the `GenericPayload` is merged into the outgoing message.
+Note that existing metadata entries are not overwritten by the `GenericPayload` metadata.
+If a metadata entry of the same type already exists, it is preserved unless the metadata class implements `MergeableMetadata`.
+
+[WARNING]
+.Limitations
+====
+
+While `GenericPayload++<++T++>++` can be used as an incoming payload type,
+xref:concepts/converters.adoc[message converters] are not applied to the payload type `T`.
+
+====
