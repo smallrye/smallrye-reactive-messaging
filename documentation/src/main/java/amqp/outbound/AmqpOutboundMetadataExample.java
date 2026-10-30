@@ -8,7 +8,7 @@ public class AmqpOutboundMetadataExample {
 
     public Message<Double> metadata(Message<Double> incoming) {
 
-        // <code>
+        // tag::code[]
         OutgoingAmqpMetadata metadata = OutgoingAmqpMetadata.builder()
                 .withDurable(true)
                 .withSubject("my-subject")
@@ -17,7 +17,7 @@ public class AmqpOutboundMetadataExample {
         // Create a new message from the `incoming` message
         // Add `metadata` to the metadata from the `incoming` message.
         return incoming.addMetadata(metadata);
-        // </code>
+        // end::code[]
     }
 
 }

@@ -9,7 +9,7 @@ import org.eclipse.microprofile.reactive.messaging.Emitter;
 
 public class NackOnEmitter {
 
-    // <emitter>
+    // tag::emitter[]
     @Inject
     @Channel("data")
     Emitter<String> emitter;
@@ -22,6 +22,6 @@ public class NackOnEmitter {
             }
         });
     }
-    // </emitter>
+    // end::emitter[]
 
 }

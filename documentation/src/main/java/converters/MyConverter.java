@@ -8,7 +8,7 @@ import org.eclipse.microprofile.reactive.messaging.Message;
 
 import io.smallrye.reactive.messaging.MessageConverter;
 
-// <code>
+// tag::code[]
 @ApplicationScoped
 public class MyConverter implements MessageConverter {
     @Override
@@ -28,4 +28,4 @@ public class MyConverter implements MessageConverter {
         return in.withPayload(new Person((String) in.getPayload()));
     }
 }
-// </code>
+// end::code[]

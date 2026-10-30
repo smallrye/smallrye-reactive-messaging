@@ -15,7 +15,7 @@ import io.smallrye.reactive.messaging.kafka.api.OutgoingKafkaRecordMetadata;
 @ApplicationScoped
 public class KafkaDeadLetterExample {
 
-    // <code>
+    // tag::code[]
     @Incoming("in")
     public CompletionStage<Void> consume(Message<String> message) {
         return message.nack(new Exception("Failed!"), Metadata.of(
@@ -25,6 +25,6 @@ public class KafkaDeadLetterExample {
                                 .add("my-header", "my-header-value".getBytes(StandardCharsets.UTF_8)))
                         .build()));
     }
-    // </code>
+    // end::code[]
 
 }

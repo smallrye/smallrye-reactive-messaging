@@ -9,7 +9,7 @@ import io.vertx.core.net.PemTrustOptions;
 
 public class ClientProducers {
 
-    // <named>
+    // tag::named[]
     @Produces
     @Identifier("my-options")
     public MqttClientSessionOptions getOptions() {
@@ -27,6 +27,6 @@ public class ClientProducers {
                 .setConnectTimeout(30000)
                 .setReconnectInterval(5000);
     }
-    // </named>
+    // end::named[]
 
 }

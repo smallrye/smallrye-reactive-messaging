@@ -14,15 +14,15 @@ public class OffsetsTest extends KafkaCompanionTestBase {
 
     @Test
     public void offsets() {
-        // <offsets>
+        // tag::offsets[]
         TopicPartition topicPartition = KafkaCompanion.tp("topic", 1);
         long latestOffset = companion.offsets().get(topicPartition, OffsetSpec.latest()).offset();
-        // </offsets>
+        // end::offsets[]
     }
 
     @Test
     public void consumerGroups() {
-        // <consumerGroups>
+        // tag::consumerGroups[]
         Collection<ConsumerGroupListing> consumerGroups = companion.consumerGroups().list();
         for (ConsumerGroupListing consumerGroup : consumerGroups) {
             // check consumer groups
@@ -30,7 +30,7 @@ public class OffsetsTest extends KafkaCompanionTestBase {
 
         TopicPartition topicPartition = KafkaCompanion.tp("topic", 1);
         companion.consumerGroups().resetOffsets("consumer-group", topicPartition);
-        // </consumerGroups>
+        // end::consumerGroups[]
     }
 
 }
