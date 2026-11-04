@@ -29,7 +29,6 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.PartitionInfo;
 import org.apache.kafka.common.TopicPartition;
-import org.apache.kafka.common.record.RecordBatch;
 import org.apache.kafka.common.serialization.Serializer;
 
 import io.smallrye.common.annotation.CheckReturnValue;
@@ -359,7 +358,7 @@ public class ReactiveKafkaProducer<K, V> implements io.smallrye.reactive.messagi
     private static RecordMetadata getRecordMetadataForFailure(ProducerRecord<?, ?> producerRecord) {
         return new RecordMetadata(new TopicPartition(producerRecord.topic(),
                 producerRecord.partition() != null ? producerRecord.partition() : RecordMetadata.UNKNOWN_PARTITION),
-                -1, -1, RecordBatch.NO_TIMESTAMP, -1, -1);
+                -1, -1, -1L, -1, -1);
     }
 
     private void interceptClose() {
