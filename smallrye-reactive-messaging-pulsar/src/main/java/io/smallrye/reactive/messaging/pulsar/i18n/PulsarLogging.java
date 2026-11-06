@@ -100,6 +100,6 @@ public interface PulsarLogging extends BasicLogger {
     void messageFailureNacked(String channel, String reason);
 
     @LogMessage(level = Logger.Level.WARN)
-    @Message(id = 19025, value = "Failed to process a message sent to channel `%s`, tryign to reconsume in %s seconds, failure is: %s.")
+    @Message(id = 19025, value = "Failed to process a message sent to channel `%s`, trying to reconsume in %s seconds, failure is: %s.")
     void messageFailureDelayed(String channel, long delaySeconds, String reason);
 }
