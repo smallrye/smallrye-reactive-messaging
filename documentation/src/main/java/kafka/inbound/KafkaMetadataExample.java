@@ -12,7 +12,7 @@ public class KafkaMetadataExample {
     @SuppressWarnings("unchecked")
     public void metadata() {
         Message<Double> incoming = Message.of(12.0);
-        // <code>
+        // tag::code[]
         IncomingKafkaRecordMetadata<String, Double> metadata = incoming.getMetadata(IncomingKafkaRecordMetadata.class)
                 .orElse(null);
         if (metadata != null) {
@@ -30,7 +30,7 @@ public class KafkaMetadataExample {
 
             // ...
         }
-        // </code>
+        // end::code[]
     }
 
 }

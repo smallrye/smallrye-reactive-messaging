@@ -11,7 +11,7 @@ import io.smallrye.mutiny.Multi;
 
 public class ChannelExamples {
 
-    // <channel>
+    // tag::channel[]
     @Inject
     @Channel("my-channel")
     Multi<String> streamOfPayloads;
@@ -27,5 +27,5 @@ public class ChannelExamples {
     @Inject
     @Channel("my-channel")
     Publisher<Message<String>> publisherOfMessages;
-    // </channel>
+    // end::channel[]
 }

@@ -1,0 +1,20 @@
+= Multiple Incoming Channels
+:version-root: ../
+include::{version-root}_attributes.adoc[]
+
+[WARNING]
+.Experimental
+====
+
+Multiple `@Incomings` is an experimental feature.
+
+====
+
+The `@Incoming` annotation is repeatable. It means that the method
+receives the messages transiting on every listed channels, in no
+specific order:
+
+[source,java]
+----
+include::{examples-dir}/incomings/IncomingsExamples.java[tags=code,indent=0]
+----

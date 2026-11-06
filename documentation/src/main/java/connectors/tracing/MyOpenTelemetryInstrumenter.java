@@ -31,7 +31,7 @@ public class MyOpenTelemetryInstrumenter {
         return new MyOpenTelemetryInstrumenter(createInstrumenter(false));
     }
 
-    // <create-instrumenter>
+    // tag::create-instrumenter[]
     public static Instrumenter<MyTrace, Void> createInstrumenter(boolean incoming) {
         MessageOperation messageOperation = incoming ? MessageOperation.RECEIVE : MessageOperation.PUBLISH;
 
@@ -52,7 +52,7 @@ public class MyOpenTelemetryInstrumenter {
             return builder.buildProducerInstrumenter(MyTraceTextMapSetter.INSTANCE);
         }
     }
-    // </create-instrumener>
+    // end::create-instrumenter[]
 
     public Message<?> traceIncoming(Message<?> message, MyTrace myTrace, boolean makeCurrent) {
         return TracingUtils.traceIncoming(instrumenter, message, myTrace, makeCurrent);

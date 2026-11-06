@@ -3,7 +3,7 @@ package emitter;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
-// <intro>
+// tag::intro[]
 import org.eclipse.microprofile.reactive.messaging.Channel;
 import org.eclipse.microprofile.reactive.messaging.Emitter;
 
@@ -21,4 +21,4 @@ public class MyImperativeBean {
     }
 }
 
-// </intro>
+// end::intro[]

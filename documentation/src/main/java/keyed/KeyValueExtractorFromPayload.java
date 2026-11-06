@@ -6,7 +6,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 
 import org.eclipse.microprofile.reactive.messaging.Message;
 
-// <code>
+// tag::code[]
 import io.smallrye.reactive.messaging.keyed.KeyValueExtractor;
 
 @ApplicationScoped
@@ -32,4 +32,4 @@ public class KeyValueExtractorFromPayload implements KeyValueExtractor {
     }
 
 }
-// </code>
+// end::code[]

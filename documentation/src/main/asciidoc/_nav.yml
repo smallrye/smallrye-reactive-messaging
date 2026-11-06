@@ -1,0 +1,182 @@
+title: SmallRye Reactive Messaging
+nav:
+- title: Home
+  page: index
+- title: Core
+  items:
+  - title: Getting Started
+    page: getting-started
+  - title: Concepts
+    items:
+    - title: Introduction
+      page: concepts/concepts
+    - title: Development Model
+      page: concepts/model
+    - title: Emitters and Channel
+      page: concepts/emitter
+    - title: Connectors
+      page: concepts/connectors
+    - title: Contributing Connectors
+      page: concepts/contributing-connectors
+    - title: Acknowledgement
+      page: concepts/acknowledgement
+    - title: Blocking Processing
+      page: concepts/blocking
+    - title: Method Signatures
+      page: concepts/signatures
+    - title: Skipping Messages
+      page: concepts/skipping
+    - title: Message Converters
+      page: concepts/converters
+    - title: Keyed Streams
+      page: concepts/keyed-multi
+    - title: Channel Decorators and Interceptors
+      page: concepts/decorators
+    - title: Broadcast
+      page: concepts/broadcast
+    - title: Merge channels
+      page: concepts/merge
+    - title: Incoming Channel Concurrency
+      page: concepts/incoming-concurrency
+    - title: '@Incomings'
+      page: concepts/incomings
+    - title: '@Outgoings'
+      page: concepts/outgoings
+    - title: Testing
+      page: concepts/testing
+    - title: Logging
+      page: concepts/logging
+    - title: Observability API
+      page: concepts/observability
+    - title: Advanced Configuration
+      page: concepts/advanced-config
+    - title: Message Context
+      page: concepts/message-context
+    - title: Metadata Injection
+      page: concepts/incoming-metadata-injection
+    - title: Generic Payloads
+      page: concepts/generic-payloads
+    - title: Pausable Channels
+      page: concepts/pausable-channels
+- title: Kafka
+  items:
+  - page: kafka/kafka
+  - title: Receiving records
+    page: kafka/receiving-kafka-records
+  - title: Writing records
+    page: kafka/writing-kafka-records
+  - title: Health Checks
+    page: kafka/health
+  - title: Using Avro
+    page: kafka/avro-configuration
+  - title: Using Protobuf
+    page: kafka/protobuf-configuration
+  - title: Rebalance Listeners
+    page: kafka/consumer-rebalance-listener
+  - title: Kerberos authentication
+    page: kafka/kerberos
+  - title: Accessing the client
+    page: kafka/client-service
+  - title: Customizing Default Kafka Configuration
+    page: kafka/default-configuration
+  - title: Test Companion for Kafka
+    page: kafka/test-companion
+  - title: Kafka Transactions and Exactly-Once Processing
+    page: kafka/transactions
+  - title: Kafka Request/Reply
+    page: kafka/request-reply
+- title: AMQP 1.0
+  items:
+  - page: amqp/amqp
+  - title: Receiving messages
+    page: amqp/receiving-amqp-messages
+  - title: Sending messages
+    page: amqp/sending-amqp-messages
+  - title: AMQP Request/Reply
+    page: amqp/request-reply
+  - title: CBS Authentication
+    page: amqp/cbs-authentication
+  - title: Health Checks
+    page: amqp/health
+  - title: Client Customization
+    page: amqp/client-customization
+  - title: Using RabbitMQ
+    page: amqp/rabbitmq
+- title: RabbitMQ
+  items:
+  - title: RabbitMQ Connector
+    page: rabbitmq/rabbitmq-og
+  - title: Receiving messages
+    page: rabbitmq/receiving-messages-from-rabbitmq
+  - title: Sending messages
+    page: rabbitmq/sending-messages-to-rabbitmq
+  - title: Health Checks
+    page: rabbitmq/rabbitmq-og-health
+  - title: Client Customization
+    page: rabbitmq/rabbitmq-og-client-customization
+  - title: OpenTelemetry Tracing
+    page: rabbitmq/rabbitmq-og-tracing
+  - title: Connecting to managed instances
+    page: rabbitmq/rabbitmq-og-cloud
+  - title: RabbitMQ Request/Reply
+    page: rabbitmq/request-reply
+- title: Pulsar
+  items:
+  - page: pulsar/pulsar
+  - title: Receiving messages
+    page: pulsar/receiving-pulsar-messages
+  - title: Sending messages
+    page: pulsar/sending-messages-to-pulsar
+  - title: Configuring the Schema
+    page: pulsar/schema-configuration
+  - title: Configuring the Pulsar client
+    page: pulsar/client-configuration
+  - title: Health Checks
+    page: pulsar/health
+  - title: Accessing the client
+    page: pulsar/client-service
+  - title: Pulsar Transactions and Exactly-Once Processing
+    page: pulsar/transactions
+- title: Apache Camel
+  items:
+  - page: camel/camel
+  - title: Receiving messages from Camel
+    page: camel/receiving-messages-from-camel
+  - title: Sending messages to Camel
+    page: camel/sending-messages-to-camel
+  - title: Implementing Camel processor
+    page: camel/camel-processor
+  - title: Using existing Camel routes
+    page: camel/using-existing-routes
+- title: JMS
+  items:
+  - page: jms/jms
+  - title: Receiving JMS messages
+    page: jms/receiving-jms-messages
+  - title: Sending JMS messages
+    page: jms/sending-jms-messages
+  - title: JMS Transactions
+    page: jms/jms-transactions
+  - title: Advanced configuration
+    page: jms/advanced-jms
+- title: MQTT
+  items:
+  - page: mqtt/mqtt
+  - title: Receiving MQTT messages
+    page: mqtt/receiving-mqtt-messages
+  - title: Sending MQTT messages
+    page: mqtt/sending-messages-to-mqtt
+  - title: Customizing the MQTT client
+    page: mqtt/client-customization
+- title: AWS SQS
+  items:
+  - page: sqs/sqs
+  - title: Receiving AWS SQS messages
+    page: sqs/receiving-aws-sqs-messages
+  - title: Sending AWS SQS messages
+    page: sqs/sending-aws-sqs-messages
+- title: AWS SNS
+  items:
+  - page: sns/sns
+  - title: Sending AWS SNS messages
+    page: sns/sending-aws-sns-messages

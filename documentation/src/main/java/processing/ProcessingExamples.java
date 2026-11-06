@@ -11,55 +11,55 @@ import io.smallrye.mutiny.Uni;
 
 public class ProcessingExamples {
 
-    // <process-message>
+    // tag::process-message[]
     @Incoming("in")
     @Outgoing("out")
     public Message<String> processMessage(Message<Integer> in) {
         return in.withPayload(Integer.toString(in.getPayload()));
     }
-    // </process-message>
+    // end::process-message[]
 
-    // <process-message-cs>
+    // tag::process-message-cs[]
     @Incoming("in")
     @Outgoing("out")
     public CompletionStage<Message<String>> processMessageCS(Message<Integer> in) {
         CompletionStage<String> cs = invokeService(in.getPayload());
         return cs.thenApply(in::withPayload);
     }
-    // </process-message-cs>
+    // end::process-message-cs[]
 
-    // <process-message-uni>
+    // tag::process-message-uni[]
     @Incoming("in")
     @Outgoing("out")
     public Uni<Message<String>> processMessageUni(Message<String> in) {
         return invokeService(in.getPayload())
                 .map(in::withPayload);
     }
-    // </process-message-uni>
+    // end::process-message-uni[]
 
-    // <process-payload>
+    // tag::process-payload[]
     @Incoming("in")
     @Outgoing("out")
     public String processPayload(int in) {
         return Integer.toString(in);
     }
-    // </process-payload>
+    // end::process-payload[]
 
-    // <process-payload-cs>
+    // tag::process-payload-cs[]
     @Incoming("in")
     @Outgoing("out")
     public CompletionStage<String> processPayloadCS(int in) {
         return invokeService(in);
     }
-    // </process-payload-cs>
+    // end::process-payload-cs[]
 
-    // <process-payload-uni>
+    // tag::process-payload-uni[]
     @Incoming("in")
     @Outgoing("out")
     public Uni<String> processPayload(String in) {
         return invokeService(in);
     }
-    // </process-payload-uni>
+    // end::process-payload-uni[]
 
     private CompletionStage<String> invokeService(int param) {
         return CompletableFuture.completedFuture("ok");

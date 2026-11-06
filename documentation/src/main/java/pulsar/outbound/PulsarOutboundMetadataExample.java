@@ -9,7 +9,7 @@ import io.smallrye.reactive.messaging.pulsar.PulsarOutgoingMessageMetadata;
 public class PulsarOutboundMetadataExample {
 
     public Message<Double> metadata(Message<Double> incoming) {
-        // <code>
+        // tag::code[]
         // Creates an PulsarOutgoingMessageMetadata
         // The type parameter is the type of the record's key
         PulsarOutgoingMessageMetadata metadata = PulsarOutgoingMessageMetadata.builder()
@@ -20,7 +20,7 @@ public class PulsarOutboundMetadataExample {
         // Create a new message from the `incoming` message
         // Add `metadata` to the metadata from the `incoming` message.
         return incoming.addMetadata(metadata);
-        // </code>
+        // end::code[]
     }
 
 }

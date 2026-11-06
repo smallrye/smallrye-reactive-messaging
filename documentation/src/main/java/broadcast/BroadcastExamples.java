@@ -7,7 +7,7 @@ import io.smallrye.reactive.messaging.annotations.Broadcast;
 
 public class BroadcastExamples {
 
-    // <chain>
+    // tag::chain[]
     @Incoming("in")
     @Outgoing("out")
     @Broadcast
@@ -24,6 +24,6 @@ public class BroadcastExamples {
     public void consume2(int i) {
         //...
     }
-    // </chain>
+    // end::chain[]
 
 }

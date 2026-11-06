@@ -14,7 +14,7 @@ import io.smallrye.reactive.messaging.kafka.queues.ShareGroupAcknowledgement;
 @ApplicationScoped
 public class KafkaShareGroupNackExample {
 
-    // <code>
+    // tag::code[]
     @Incoming("queue")
     public CompletionStage<Void> consume(Message<Double> msg) {
         try {
@@ -30,7 +30,7 @@ public class KafkaShareGroupNackExample {
                     Metadata.of(ShareGroupAcknowledgement.from(AcknowledgeType.REJECT)));
         }
     }
-    // </code>
+    // end::code[]
 
     private void process(double price) {
     }

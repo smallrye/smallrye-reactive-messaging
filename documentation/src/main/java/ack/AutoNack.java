@@ -7,7 +7,7 @@ import io.smallrye.mutiny.Uni;
 
 public class AutoNack {
 
-    // <auto-nack>
+    // tag::auto-nack[]
     @Incoming("data")
     @Outgoing("out")
     public String process(String s) {
@@ -50,6 +50,6 @@ public class AutoNack {
         return Uni.createFrom().item(s.toUpperCase());
     }
 
-    // </auto-nack>
+    // end::auto-nack[]
 
 }

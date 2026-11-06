@@ -37,34 +37,20 @@ test-ci:
 # Update Pulsar Connector Configuration Documentation
 update-pulsar-config-docs:
     @echo "📝 Updating Pulsar connector configuration docs"
-    jbang .build/PulsarConfigDoc.java -d documentation/src/main/docs/pulsar/config
+    jbang .build/PulsarConfigDoc.java -d documentation/src/main/asciidoc/_partials/pulsar/config
 
-# Build documentation
+# Build documentation: compiles the examples and unpacks the connectors' attribute tables
 build-docs:
     #!/usr/bin/env bash
     echo "📝 Building documentation"
-    ./mvnw -B -ntp clean compile -pl documentation
-    cd documentation
-    pipenv install
-    pipenv run mkdocs build
+    ./mvnw -B -ntp clean package -DskipTests -pl documentation -am
 
-# Serve documentation
+# Serve documentation the way smallrye.io shows it, and publish it again on every change
 serve-docs:
     #!/usr/bin/env bash
-    echo "📝 Building documentation"
-    ./mvnw -B -ntp clean compile -pl documentation
-    cd documentation
-    pipenv install
-    pipenv run mkdocs serve
-
-# Deploy documentation
-deploy-docs version:
-    #!/usr/bin/env bash
-    echo "📝 Deploying documentation to GitHub"
-    ./mvnw -B -ntp clean compile -pl documentation
-    cd documentation
-    pipenv install
-    pipenv run mike deploy --update-aliases --push --remote origin {{version}} $(git merge-base --is-ancestor HEAD origin/main && echo 'latest' || echo '')
+    echo "📝 Serving documentation on http://localhost:8080/docs/smallrye-reactive-messaging/main/"
+    ./mvnw -B -ntp package -DskipTests -pl documentation -am -q
+    ./mvnw -Pdocs-preview
 
 # Clear RevAPI justifications
 clear-revapi:

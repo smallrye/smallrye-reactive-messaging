@@ -15,20 +15,20 @@ public class GenerationExamples {
 
     AtomicInteger counter = new AtomicInteger();
 
-    // <message-sync>
+    // tag::message-sync[]
     @Outgoing("my-channel")
     public Message<Integer> generateMessagesSynchronously() {
         return Message.of(counter.getAndIncrement());
     }
-    // </message-sync>
+    // end::message-sync[]
 
-    // <message-cs>
+    // tag::message-cs[]
     @Outgoing("my-channel")
     public CompletionStage<Message<Price>> generateMessagesAsCompletionStage() {
         return asyncClient.poll()
                 .thenApply(Message::of);
     }
-    // </message-cs>
+    // end::message-cs[]
 
     public static class Price {
         final double price;
@@ -44,19 +44,19 @@ public class GenerationExamples {
         CompletionStage<T> poll();
     }
 
-    // <message-uni>
+    // tag::message-uni[]
     @Outgoing("my-channel")
     public Uni<Message<Integer>> generateMessagesAsync() {
         return Uni.createFrom().item(() -> Message.of(counter.getAndIncrement()));
     }
-    // </message-uni>
+    // end::message-uni[]
 
-    // <message-stream>
+    // tag::message-stream[]
     public Flow.Publisher<Message<String>> generateMessageStream() {
         Multi<String> multi = reactiveClient.getStream();
         return multi.map(Message::of);
     }
-    // </message-stream>
+    // end::message-stream[]
 
     private ReactiveClient<String> reactiveClient = () -> Multi.createFrom().items("a", "b", "c");
 
@@ -64,32 +64,32 @@ public class GenerationExamples {
         Multi<T> getStream();
     }
 
-    // <payload-sync>
+    // tag::payload-sync[]
     @Outgoing("my-channel")
     public Integer generatePayloadsSynchronously() {
         return counter.getAndIncrement();
     }
-    // </payload-sync>
+    // end::payload-sync[]
 
-    // <payload-cs>
+    // tag::payload-cs[]
     @Outgoing("my-channel")
     public CompletionStage<Price> generatePayloadsAsCompletionStage() {
         return asyncClient.poll();
     }
-    // </payload-cs>
+    // end::payload-cs[]
 
-    // <payload-uni>
+    // tag::payload-uni[]
     @Outgoing("my-channel")
     public Uni<Integer> generatePayloadsAsync() {
         return Uni.createFrom().item(() -> counter.getAndIncrement());
     }
-    // </payload-uni>
+    // end::payload-uni[]
 
-    // <payload-stream>
+    // tag::payload-stream[]
     @Outgoing("my-channel")
     public Multi<String> generatePayloadsStream() {
         Multi<String> multi = reactiveClient.getStream();
         return multi;
     }
-    // </payload-stream>
+    // end::payload-stream[]
 }

@@ -13,7 +13,7 @@ import io.smallrye.common.annotation.Identifier;
 @ApplicationScoped
 public class PulsarKeyValueExample {
 
-    // <code>
+    // tag::code[]
     @Identifier("out")
     @Produces
     Schema<KeyValue<String, Long>> schema = Schema.KeyValue(Schema.STRING, Schema.INT64);
@@ -23,6 +23,6 @@ public class PulsarKeyValueExample {
     public KeyValue<String, Long> process(long in) {
         return new KeyValue<>("my-key", in);
     }
-    // </code>
+    // end::code[]
 
 }

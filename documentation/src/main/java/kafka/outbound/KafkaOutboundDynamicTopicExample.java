@@ -7,7 +7,7 @@ import io.smallrye.reactive.messaging.kafka.api.OutgoingKafkaRecordMetadata;
 public class KafkaOutboundDynamicTopicExample {
 
     public Message<Double> metadata(Message<Double> incoming) {
-        // <code>
+        // tag::code[]
         String topicName = selectTopicFromIncommingMessage(incoming);
         OutgoingKafkaRecordMetadata<String> metadata = OutgoingKafkaRecordMetadata.<String> builder()
                 .withTopic(topicName)
@@ -16,7 +16,7 @@ public class KafkaOutboundDynamicTopicExample {
         // Create a new message from the `incoming` message
         // Add `metadata` to the metadata from the `incoming` message.
         return incoming.addMetadata(metadata);
-        // </code>
+        // end::code[]
     }
 
     private String selectTopicFromIncommingMessage(Message<Double> incoming) {

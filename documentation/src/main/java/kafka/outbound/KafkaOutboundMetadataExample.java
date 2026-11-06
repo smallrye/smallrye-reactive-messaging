@@ -8,7 +8,7 @@ import io.smallrye.reactive.messaging.kafka.api.OutgoingKafkaRecordMetadata;
 public class KafkaOutboundMetadataExample {
 
     public Message<Double> metadata(Message<Double> incoming) {
-        // <code>
+        // tag::code[]
         // Creates an OutgoingKafkaRecordMetadata
         // The type parameter is the type of the record's key
         OutgoingKafkaRecordMetadata<String> metadata = OutgoingKafkaRecordMetadata.<String> builder()
@@ -19,7 +19,7 @@ public class KafkaOutboundMetadataExample {
         // Create a new message from the `incoming` message
         // Add `metadata` to the metadata from the `incoming` message.
         return incoming.addMetadata(metadata);
-        // </code>
+        // end::code[]
     }
 
 }
