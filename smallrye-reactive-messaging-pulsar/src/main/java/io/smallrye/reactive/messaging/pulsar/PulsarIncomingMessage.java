@@ -23,11 +23,26 @@ public class PulsarIncomingMessage<T> implements PulsarMessage<T>, PulsarIdMessa
 
     private final PulsarFailureHandler nackHandler;
 
+    private final T decodedPayload;
+    private final boolean payloadDecoded;
+
     public PulsarIncomingMessage(Message<T> message, PulsarAckHandler ackHandler, PulsarFailureHandler nackHandler) {
+        this(message, ackHandler, nackHandler, null, false);
+    }
+
+    PulsarIncomingMessage(Message<T> message, PulsarAckHandler ackHandler, PulsarFailureHandler nackHandler,
+            T decodedPayload) {
+        this(message, ackHandler, nackHandler, decodedPayload, true);
+    }
+
+    private PulsarIncomingMessage(Message<T> message, PulsarAckHandler ackHandler, PulsarFailureHandler nackHandler,
+            T decodedPayload, boolean payloadDecoded) {
         this.delegate = Objects.requireNonNull(message, msg.isRequired("message"));
         this.ackHandler = Objects.requireNonNull(ackHandler, msg.isRequired("ack"));
         this.nackHandler = Objects.requireNonNull(nackHandler, msg.isRequired("nack"));
         this.metadata = captureContextMetadata(new PulsarIncomingMessageMetadata(message));
+        this.decodedPayload = decodedPayload;
+        this.payloadDecoded = payloadDecoded;
     }
 
     @Override
@@ -37,7 +52,7 @@ public class PulsarIncomingMessage<T> implements PulsarMessage<T>, PulsarIdMessa
 
     @Override
     public T getPayload() {
-        return delegate.getValue();
+        return payloadDecoded ? decodedPayload : delegate.getValue();
     }
 
     @Override

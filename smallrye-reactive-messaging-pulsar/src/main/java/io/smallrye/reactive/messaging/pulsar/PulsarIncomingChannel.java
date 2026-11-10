@@ -14,15 +14,14 @@ import jakarta.enterprise.inject.Instance;
 
 import org.apache.pulsar.client.api.*;
 import org.apache.pulsar.client.impl.conf.ConsumerConfigurationData;
-import org.apache.pulsar.client.impl.schema.AvroSchema;
-import org.apache.pulsar.client.impl.schema.generic.GenericAvroSchema;
-import org.apache.pulsar.client.impl.schema.generic.GenericJsonSchema;
-import org.apache.pulsar.client.impl.schema.generic.GenericProtobufNativeSchema;
 import org.eclipse.microprofile.reactive.messaging.Message;
 
 import io.opentelemetry.api.OpenTelemetry;
 import io.smallrye.mutiny.Multi;
+import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.health.HealthReport;
+import io.smallrye.reactive.messaging.pulsar.ack.PulsarCumulativeAck;
+import io.smallrye.reactive.messaging.pulsar.ack.PulsarMessageAck;
 import io.smallrye.reactive.messaging.pulsar.tracing.PulsarOpenTelemetryInstrumenter;
 import io.smallrye.reactive.messaging.pulsar.tracing.PulsarTrace;
 import io.vertx.core.internal.ContextInternal;
@@ -35,6 +34,11 @@ public class PulsarIncomingChannel<T> {
     private final Flow.Publisher<? extends Message<?>> publisher;
     private final String channel;
     private final PulsarAckHandler ackHandler;
+    /**
+     * Ack handler for messages that failed decoding. Their failure strategy runs before earlier messages
+     * have been processed, so a cumulative ack would also acknowledge those earlier messages.
+     */
+    private final PulsarAckHandler decodingFailureAckHandler;
     private final PulsarFailureHandler failureHandler;
 
     /**
@@ -77,27 +81,23 @@ public class PulsarIncomingChannel<T> {
         this.consumer = builder.subscribe();
         log.createdConsumerWithConfig(channel, SchemaResolver.getSchemaName(schema), configResolver.getConfig(builder));
         this.ackHandler = ackHandlerFactory.create(consumer, ic);
+        this.decodingFailureAckHandler = ackHandler instanceof PulsarCumulativeAck ? new PulsarMessageAck(consumer)
+                : ackHandler;
         this.failureHandler = failureHandlerFactory.create(consumer, ic, this::reportFailure);
         this.context = ((VertxInternal) vertx.getDelegate()).createEventLoopContext();
         if (!ic.getBatchReceive()) {
             Multi<PulsarIncomingMessage<T>> receiveMulti = Multi.createBy().repeating()
                     .completionStage(consumer::receiveAsync)
                     .until(m -> closed.get())
-                    .plug(msgMulti -> {
-                        // Calling getValue on the pulsar-client-internal thread to make sure the SchemaInfo is fetched
-                        if (schemaRequiresBlockingFetch(schema)) {
-                            return msgMulti.onItem().invoke(org.apache.pulsar.client.api.Message::getValue);
-                        } else {
-                            return msgMulti;
-                        }
-                    })
+                    // Decode before switching contexts: fetching schema information may block.
+                    .onItem().transform(this::decode)
                     .emitOn(command -> context.runOnContext(event -> command.run()))
-                    .onItem().transform(message -> new PulsarIncomingMessage<>(message, ackHandler, failureHandler))
                     .onFailure(throwable -> isEndOfStream(client, throwable)).recoverWithCompletion()
                     .onFailure().invoke(failure -> {
                         log.failedToReceiveFromConsumer(channel, failure);
                         reportFailure(failure, false);
-                    });
+                    })
+                    .onItem().transformToUniAndConcatenate(this::toIncoming);
             if (tracingEnabled) {
                 receiveMulti = receiveMulti.onItem().invoke(this::incomingTrace);
             }
@@ -107,21 +107,14 @@ public class PulsarIncomingChannel<T> {
                     .completionStage(consumer::batchReceiveAsync)
                     .until(m -> closed.get())
                     .filter(m -> m.size() > 0)
-                    .plug(msgMulti -> {
-                        // Calling getValue on the pulsar-client-internal thread to make sure the SchemaInfo is fetched
-                        if (schemaRequiresBlockingFetch(schema)) {
-                            return msgMulti.onItem().invoke(msg -> msg.forEach(org.apache.pulsar.client.api.Message::getValue));
-                        } else {
-                            return msgMulti;
-                        }
-                    })
+                    .onItem().transform(this::decodeBatch)
                     .emitOn(command -> context.runOnContext(event -> command.run()))
-                    .onItem().transform(m -> new PulsarIncomingBatchMessage<>(m, ackHandler, failureHandler))
                     .onFailure(throwable -> isEndOfStream(client, throwable)).recoverWithCompletion()
                     .onFailure().invoke(failure -> {
                         log.failedToReceiveFromConsumer(channel, failure);
                         reportFailure(failure, false);
-                    });
+                    })
+                    .onItem().transformToUniAndConcatenate(this::toIncomingBatch);
             if (tracingEnabled) {
                 batchReceiveMulti = batchReceiveMulti.onItem().invoke(this::incomingBatchTrace);
             }
@@ -135,12 +128,44 @@ public class PulsarIncomingChannel<T> {
         }
     }
 
-    private static <T> boolean schemaRequiresBlockingFetch(Schema<T> schema) {
-        return schema.requireFetchingSchemaInfo()
-                || schema instanceof AvroSchema
-                || schema instanceof GenericAvroSchema
-                || schema instanceof GenericJsonSchema
-                || schema instanceof GenericProtobufNativeSchema;
+    private record DecodedMessage<T>(org.apache.pulsar.client.api.Message<T> message, T payload,
+            SchemaSerializationException failure) {
+    }
+
+    private DecodedMessage<T> decode(org.apache.pulsar.client.api.Message<T> message) {
+        try {
+            return new DecodedMessage<>(message, message.getValue(), null);
+        } catch (SchemaSerializationException failure) {
+            return new DecodedMessage<>(message, null, failure);
+        }
+    }
+
+    private List<DecodedMessage<T>> decodeBatch(Messages<T> messages) {
+        List<DecodedMessage<T>> decoded = new ArrayList<>(messages.size());
+        for (org.apache.pulsar.client.api.Message<T> message : messages) {
+            decoded.add(decode(message));
+        }
+        return decoded;
+    }
+
+    private Uni<PulsarIncomingMessage<T>> toIncoming(DecodedMessage<T> decoded) {
+        if (decoded.failure() == null) {
+            return Uni.createFrom().item(new PulsarIncomingMessage<>(decoded.message(), ackHandler, failureHandler,
+                    decoded.payload()));
+        }
+        PulsarIncomingMessage<T> failedMessage = new PulsarIncomingMessage<>(decoded.message(), decodingFailureAckHandler,
+                failureHandler);
+        // Await the configured strategy and omit the invalid message only if handling succeeds.
+        return failureHandler.handle(failedMessage, decoded.failure(), failedMessage.getMetadata())
+                .emitOn(command -> context.runOnContext(event -> command.run()))
+                .onItem().transform(ignored -> (PulsarIncomingMessage<T>) null);
+    }
+
+    private Uni<PulsarIncomingBatchMessage<T>> toIncomingBatch(List<DecodedMessage<T>> decoded) {
+        return Multi.createFrom().iterable(decoded)
+                .onItem().transformToUniAndConcatenate(this::toIncoming)
+                .collect().asList()
+                .onItem().transform(messages -> messages.isEmpty() ? null : new PulsarIncomingBatchMessage<>(messages));
     }
 
     public void incomingTrace(PulsarMessage<T> pulsarMessage) {
