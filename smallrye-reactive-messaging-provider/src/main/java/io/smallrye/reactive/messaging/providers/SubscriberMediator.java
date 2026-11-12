@@ -24,6 +24,7 @@ import io.smallrye.reactive.messaging.Shape;
 import io.smallrye.reactive.messaging.providers.helpers.ClassUtils;
 import io.smallrye.reactive.messaging.providers.helpers.IgnoringSubscriber;
 import io.smallrye.reactive.messaging.providers.helpers.MultiUtils;
+import io.smallrye.reactive.messaging.providers.helpers.OrderedBlockingOperator;
 import mutiny.zero.flow.adapters.AdaptersToFlow;
 
 public class SubscriberMediator extends AbstractMediator {
@@ -154,13 +155,48 @@ public class SubscriberMediator extends AbstractMediator {
         }
     }
 
+    @SuppressWarnings("unchecked")
+    private OrderedBlockingOperator.BlockingPostInvocationHandler subscriberHandler() {
+        boolean postAck = configuration.getAcknowledgment() == Acknowledgment.Strategy.POST_PROCESSING;
+        return (message, result, error) -> {
+            if (error == null && result instanceof CompletionStage) {
+                try {
+                    ((CompletionStage<?>) result).toCompletableFuture().join();
+                } catch (Throwable t) {
+                    error = t;
+                }
+            } else if (error == null && result instanceof Uni) {
+                try {
+                    ((Uni<?>) result).await().indefinitely();
+                } catch (Throwable t) {
+                    error = t;
+                }
+            }
+            if (error != null) {
+                if (postAck) {
+                    return Uni.createFrom().completionStage(message.nack(error).thenApply(x -> (Message<Object>) message));
+                } else {
+                    return Uni.createFrom().failure(error);
+                }
+            }
+            if (postAck) {
+                return Uni.createFrom().completionStage(message.ack().thenApply(x -> (Message<Object>) message));
+            }
+            return Uni.createFrom().item((Message<Object>) message);
+        };
+    }
+
     private void processMethodReturningVoid() {
         this.subscriber = IgnoringSubscriber.INSTANCE;
         if (configuration.isBlocking()) {
             if (configuration.isBlockingExecutionOrdered()) {
                 this.function = upstream -> MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration)
-                        .onItem().transformToUniAndConcatenate(msg -> invokeBlocking(msg, getArguments(msg))
-                                .onItemOrFailure().transformToUni(handleInvocationResult(msg)))
+                        .plug(multi -> new OrderedBlockingOperator<>(multi,
+                                this::invokeWithContext,
+                                subscriberHandler(),
+                                workerPoolRegistry,
+                                configuration.getWorkerPoolName(),
+                                configuration.methodAsString()))
                         .onFailure()
                         .invoke(failure -> health.reportApplicationFailure(configuration.methodAsString(), failure));
             } else {
@@ -207,7 +243,12 @@ public class SubscriberMediator extends AbstractMediator {
         if (configuration.isBlocking()) {
             if (configuration.isBlockingExecutionOrdered()) {
                 this.function = upstream -> MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration)
-                        .onItem().transformToUniAndConcatenate(this::invokeBlockingAndHandleOutcome)
+                        .plug(multi -> new OrderedBlockingOperator<>(multi,
+                                this::invokeWithContext,
+                                subscriberHandler(),
+                                workerPoolRegistry,
+                                configuration.getWorkerPoolName(),
+                                configuration.methodAsString()))
                         .onFailure().invoke(this::reportFailure);
             } else {
                 this.function = upstream -> MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration)
@@ -240,7 +281,12 @@ public class SubscriberMediator extends AbstractMediator {
         if (configuration.isBlocking()) {
             if (configuration.isBlockingExecutionOrdered()) {
                 this.function = upstream -> MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration)
-                        .onItem().transformToUniAndConcatenate(this::invokeBlockingAndHandleOutcome)
+                        .plug(multi -> new OrderedBlockingOperator<>(multi,
+                                this::invokeWithContext,
+                                subscriberHandler(),
+                                workerPoolRegistry,
+                                configuration.getWorkerPoolName(),
+                                configuration.methodAsString()))
                         .onFailure().invoke(this::reportFailure);
             } else {
                 this.function = upstream -> MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration)
