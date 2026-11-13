@@ -62,8 +62,8 @@ public abstract class AbstractEmitter<T> implements MessagePublisherProvider<T> 
     public void complete() {
         lock.lock();
         try {
-            MultiEmitter<? super Message<? extends T>> emitter = verify();
-            if (emitter != null) {
+            MultiEmitter<? super Message<? extends T>> emitter = internal.getAndSet(null);
+            if (emitter != null && !emitter.isCancelled()) {
                 emitter.complete();
             }
         } finally {

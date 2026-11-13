@@ -249,6 +249,41 @@ It is a best practice to also allow the application to return a payload of the c
 Because the Reactive Messaging [chains acknowledgements](acknowledgement.md#chain-of-acknowledgment) from incoming message until the outgoing message,
 it is crucial for the outgoing channel to correctly ack and nack the message.
 
+## Connector Lifecycle
+
+The `ConnectorLifecycle` interface (extended by both `InboundConnector` and `OutboundConnector`) provides per-channel lifecycle hooks called during [graceful shutdown](graceful-shutdown.md).
+These hooks allow the connector to perform ordered cleanup — first while the transport client is still alive, then closing resources.
+
+The per-channel hooks are called in two separate phases:
+
+1. **Prepare-close phase** — Framework drains in-flight messages, then calls `prepareCloseIncoming`/`prepareCloseOutgoing` for connector-specific cleanup while the transport is alive (e.g. flush commits, finalize handlers)
+2. **Close phase** (later, during container teardown) — Calls `closeIncoming`/`closeOutgoing` to close the transport client and release per-channel resources
+
+After all channels have been closed, the `terminate()` method is called **once per connector** to clean up connector-wide resources such as shared clients, admin registries, or connection pools.
+
+Here is an example connector implementing the lifecycle hooks:
+
+``` java
+{{ insert('connectors/MyConnectorLifecycle.java', 'lifecycle') }}
+```
+
+All lifecycle methods have default no-op implementations, so connectors only need to override the hooks relevant to their cleanup requirements.
+
+!!!tip
+    Track incoming and outgoing channel instances by name (e.g. in a `ConcurrentHashMap`) during `getPublisher()` and `getSubscriber()`.
+    This allows the lifecycle hooks to look up the correct channel instance for cleanup.
+
+!!!warning
+    The `prepareClose*` methods are called while the transport client is still alive — use them for cleanup that requires an active connection.
+    The `close*` methods are called later during container teardown — use them to close clients and release resources.
+
+!!!important "Idempotency"
+    `terminate()` acts as a safety net in environments that do not use the `ChannelLifecycleManager`
+    (e.g. WildFly CDI containers). It must be able to close all channels independently.
+    When the lifecycle manager is present, per-channel hooks run first, then `terminate()` runs afterward.
+    Remove channels from the tracking map during per-channel close so that `terminate()`
+    only cleans up channels that were not already closed individually.
+
 ## Smallrye Health Integration
 
 Smallrye Reactive Messaging allows connectors to integrate with Smallrye Health to contribute channel state to the health reports.

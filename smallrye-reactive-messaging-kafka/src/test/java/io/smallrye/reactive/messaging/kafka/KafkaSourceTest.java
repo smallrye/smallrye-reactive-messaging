@@ -64,7 +64,7 @@ public class KafkaSourceTest extends KafkaCompanionTestBase {
             source.closeQuietly();
         }
         if (connector != null) {
-            connector.terminate(new Object());
+            connector.terminate();
         }
     }
 

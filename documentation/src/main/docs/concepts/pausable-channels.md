@@ -53,3 +53,20 @@ and pause or resume the channel as needed:
 
 !!!warning
     Pausable channels only work with back-pressure aware subscribers, with bounded downstream requests.
+
+## Pause and Drain
+
+The `PausableChannel` interface provides a `pauseAndDrain()` method that pauses the channel
+and waits for all in-flight messages (delivered but not yet acked or nacked) to complete.
+
+This is useful for operations that require no in-flight processing,
+such as seeking a Kafka consumer to a new position or coordinating with external systems:
+
+``` java
+{{ insert('shutdown/PauseAndDrainExample.java', 'pause-drain') }}
+```
+
+The drain timeout is configurable via the `graceful-shutdown.drain-timeout` channel property (default: 10 seconds).
+
+`pauseAndDrain()` is also used internally during [graceful shutdown](graceful-shutdown.md)
+to ensure that all in-flight messages are processed before closing connectors.

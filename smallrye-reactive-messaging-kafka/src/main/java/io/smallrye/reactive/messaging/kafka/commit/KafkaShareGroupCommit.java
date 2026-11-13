@@ -153,24 +153,6 @@ public class KafkaShareGroupCommit extends ContextHolder implements KafkaCommitH
     public void terminate(boolean graceful) {
         stopRenewTimer();
         if (graceful) {
-            waitForProcessing();
-        }
-    }
-
-    private void waitForProcessing() {
-        int attempts = renewInterval / 100;
-        for (int i = 0; i < attempts; i++) {
-            long pending = inProgress.values().stream().mapToLong(Map::size).sum();
-            if (pending == 0) {
-                return;
-            }
-            log.shareGroupPendingOffsets("all", pending + " records still in progress");
-            try {
-                Thread.sleep(100);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                break;
-            }
             // commitSyncAndAwait
             try {
                 consumer.commit().await().atMost(Duration.ofMillis(getTimeoutInMillis()));
