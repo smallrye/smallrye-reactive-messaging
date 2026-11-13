@@ -172,7 +172,7 @@ public class PulsarConnector implements InboundConnector, OutboundConnector, Hea
     }
 
     @Override
-    public CompletionStage<Void> shutdownIncoming(String channel) {
+    public CompletionStage<Void> closeIncoming(String channel) {
         PulsarIncomingChannel<?> incoming = incomingChannels.remove(channel);
         if (incoming != null) {
             return Uni.createFrom().completionStage(incoming::closeAsync)
@@ -183,7 +183,7 @@ public class PulsarConnector implements InboundConnector, OutboundConnector, Hea
     }
 
     @Override
-    public CompletionStage<Void> shutdownOutgoing(String channel) {
+    public CompletionStage<Void> closeOutgoing(String channel) {
         PulsarOutgoingChannel<?> outgoing = outgoingChannels.remove(channel);
         if (outgoing != null) {
             return Uni.createFrom().completionStage(outgoing::closeAsync)

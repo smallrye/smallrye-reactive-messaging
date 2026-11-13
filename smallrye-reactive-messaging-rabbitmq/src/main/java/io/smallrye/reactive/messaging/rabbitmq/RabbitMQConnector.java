@@ -234,7 +234,7 @@ public class RabbitMQConnector implements InboundConnector, OutboundConnector, H
     }
 
     @Override
-    public CompletionStage<Void> shutdownIncoming(String channel) {
+    public CompletionStage<Void> closeIncoming(String channel) {
         IncomingRabbitMQChannel incoming = incomingChannels.remove(channel);
         if (incoming != null) {
             incoming.cancel();
@@ -244,7 +244,7 @@ public class RabbitMQConnector implements InboundConnector, OutboundConnector, H
     }
 
     @Override
-    public CompletionStage<Void> shutdownOutgoing(String channel) {
+    public CompletionStage<Void> closeOutgoing(String channel) {
         OutgoingRabbitMQChannel outgoing = outgoingChannels.remove(channel);
         if (outgoing != null) {
             outgoing.closeQuietly();

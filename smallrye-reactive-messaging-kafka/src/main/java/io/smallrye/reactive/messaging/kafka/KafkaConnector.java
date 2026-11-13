@@ -6,6 +6,7 @@ import static io.smallrye.reactive.messaging.kafka.i18n.KafkaLogging.log;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Flow;
 import java.util.concurrent.Flow.Publisher;
@@ -186,9 +187,9 @@ public class KafkaConnector implements InboundConnector, OutboundConnector, Heal
     @Inject
     KafkaCDIEvents kafkaCDIEvents;
 
-    private final List<KafkaSource<?, ?>> sources = new CopyOnWriteArrayList<>();
-    private final List<KafkaShareGroupSource<?, ?>> shareGroupSources = new CopyOnWriteArrayList<>();
-    private final List<KafkaSink> sinks = new CopyOnWriteArrayList<>();
+    private final Map<String, List<KafkaSource<?, ?>>> sources = new ConcurrentHashMap<>();
+    private final Map<String, List<KafkaShareGroupSource<?, ?>>> shareGroupSources = new ConcurrentHashMap<>();
+    private final Map<String, KafkaSink> sinks = new ConcurrentHashMap<>();
 
     @Inject
     KafkaAdminClientRegistry adminClientRegistry;
@@ -200,48 +201,54 @@ public class KafkaConnector implements InboundConnector, OutboundConnector, Heal
     private Vertx vertx;
 
     @Override
-    public CompletionStage<Void> preShutdownIncoming(String channel) {
-        return sources.stream().filter(s -> s.getChannel().equals(channel))
-                .findFirst()
-                .map(KafkaSource::preShutdown)
-                .orElse(CompletableFuture.completedFuture(null));
+    public CompletionStage<Void> prepareCloseIncoming(String channel) {
+        List<KafkaSource<?, ?>> channelSources = sources.get(channel);
+        if (channelSources != null && !channelSources.isEmpty()) {
+            return channelSources.get(0).preShutdown();
+        }
+        return CompletableFuture.completedFuture(null);
     }
 
     @Override
-    public CompletionStage<Void> preShutdownOutgoing(String channel) {
-        return sinks.stream().filter(s -> s.getChannel().equals(channel))
-                .findFirst()
-                .map(KafkaSink::preShutdown)
-                .orElse(CompletableFuture.completedFuture(null));
+    public CompletionStage<Void> prepareCloseOutgoing(String channel) {
+        KafkaSink sink = sinks.get(channel);
+        if (sink != null) {
+            return sink.preShutdown();
+        }
+        return CompletableFuture.completedFuture(null);
     }
 
     @Override
-    public CompletionStage<Void> shutdownIncoming(String channel) {
-        return sources.stream().filter(s -> s.getChannel().equals(channel))
-                .findFirst()
-                .map(KafkaSource::shutdownSource)
-                .or(() -> shareGroupSources.stream().filter(s -> s.getChannel().equals(channel))
-                        .findFirst()
-                        .map(s -> {
-                            s.closeQuietly();
-                            return CompletableFuture.completedFuture(null);
-                        }))
-                .orElse(CompletableFuture.completedFuture(null));
+    public CompletionStage<Void> closeIncoming(String channel) {
+        List<KafkaSource<?, ?>> removed = sources.remove(channel);
+        if (removed != null) {
+            removed.forEach(KafkaSource::closeQuietly);
+            return CompletableFuture.completedFuture(null);
+        }
+        List<KafkaShareGroupSource<?, ?>> removedShare = shareGroupSources.remove(channel);
+        if (removedShare != null) {
+            removedShare.forEach(KafkaShareGroupSource::closeQuietly);
+        }
+        return CompletableFuture.completedFuture(null);
     }
 
     @Override
-    public CompletionStage<Void> shutdownOutgoing(String channel) {
-        return sinks.stream().filter(s -> s.getChannel().equals(channel))
-                .findFirst()
-                .map(KafkaSink::shutdownSink)
-                .orElse(CompletableFuture.completedFuture(null));
+    public CompletionStage<Void> closeOutgoing(String channel) {
+        KafkaSink removed = sinks.remove(channel);
+        if (removed != null) {
+            removed.closeQuietly();
+        }
+        return CompletableFuture.completedFuture(null);
     }
 
     @Override
     public CompletionStage<Void> terminate() {
-        sources.forEach(KafkaSource::closeQuietly);
-        shareGroupSources.forEach(KafkaShareGroupSource::closeQuietly);
-        sinks.forEach(KafkaSink::closeQuietly);
+        sources.values().forEach(list -> list.forEach(KafkaSource::closeQuietly));
+        shareGroupSources.values().forEach(list -> list.forEach(KafkaShareGroupSource::closeQuietly));
+        sinks.values().forEach(KafkaSink::closeQuietly);
+        sources.clear();
+        shareGroupSources.clear();
+        sinks.clear();
         adminClientRegistry.close();
         TopicPartitions.clearCache();
         return CompletableFuture.completedStage(null);
@@ -285,7 +292,7 @@ public class KafkaConnector implements InboundConnector, OutboundConnector, Heal
             KafkaShareGroupSource<Object, Object> source = new KafkaShareGroupSource<>(vertx, group, ic,
                     openTelemetryInstance, kafkaCDIEvents, adminClientRegistry, configCustomizers,
                     deserializationFailureHandlers);
-            shareGroupSources.add(source);
+            shareGroupSources.computeIfAbsent(ic.getChannel(), k -> new CopyOnWriteArrayList<>()).add(source);
             boolean broadcast = ic.getBroadcast();
             Multi<? extends Message<?>> stream;
             if (!ic.getBatch()) {
@@ -305,7 +312,7 @@ public class KafkaConnector implements InboundConnector, OutboundConnector, Heal
                     commitHandlerFactories, failureHandlerFactories,
                     consumerRebalanceListeners,
                     kafkaCDIEvents, adminClientRegistry, configCustomizers, deserializationFailureHandlers, -1);
-            sources.add(source);
+            sources.computeIfAbsent(ic.getChannel(), k -> new CopyOnWriteArrayList<>()).add(source);
             boolean broadcast = ic.getBroadcast();
             Multi<? extends Message<?>> stream;
             if (!ic.getBatch()) {
@@ -327,7 +334,7 @@ public class KafkaConnector implements InboundConnector, OutboundConnector, Heal
                     commitHandlerFactories, failureHandlerFactories,
                     consumerRebalanceListeners,
                     kafkaCDIEvents, adminClientRegistry, configCustomizers, deserializationFailureHandlers, i);
-            sources.add(source);
+            sources.computeIfAbsent(ic.getChannel(), k -> new CopyOnWriteArrayList<>()).add(source);
             if (!ic.getBatch()) {
                 streams.add(source.getStream());
             } else {
@@ -373,96 +380,85 @@ public class KafkaConnector implements InboundConnector, OutboundConnector, Heal
         }
         KafkaSink sink = new KafkaSink(oc, kafkaCDIEvents, adminClientRegistry, openTelemetryInstance,
                 configCustomizers, serializationFailureHandlers, producerInterceptors);
-        sinks.add(sink);
+        sinks.put(oc.getChannel(), sink);
         return sink.getSink();
     }
 
     @Override
     public HealthReport getStartup() {
         HealthReport.HealthReportBuilder builder = HealthReport.builder();
-        for (KafkaSource<?, ?> source : sources) {
-            source.isStarted(builder);
-        }
-        for (KafkaShareGroupSource<?, ?> source : shareGroupSources) {
-            source.isStarted(builder);
-        }
-        for (KafkaSink sink : sinks) {
-            sink.isStarted(builder);
-        }
+        sources.values().forEach(list -> list.forEach(s -> s.isStarted(builder)));
+        shareGroupSources.values().forEach(list -> list.forEach(s -> s.isStarted(builder)));
+        sinks.values().forEach(s -> s.isStarted(builder));
         return builder.build();
     }
 
     @Override
     public HealthReport getReadiness() {
         HealthReport.HealthReportBuilder builder = HealthReport.builder();
-        for (KafkaSource<?, ?> source : sources) {
-            source.isReady(builder);
-        }
-        for (KafkaShareGroupSource<?, ?> source : shareGroupSources) {
-            source.isReady(builder);
-        }
-        for (KafkaSink sink : sinks) {
-            sink.isReady(builder);
-        }
+        sources.values().forEach(list -> list.forEach(s -> s.isReady(builder)));
+        shareGroupSources.values().forEach(list -> list.forEach(s -> s.isReady(builder)));
+        sinks.values().forEach(s -> s.isReady(builder));
         return builder.build();
-
     }
 
     @Override
     public HealthReport getLiveness() {
         HealthReport.HealthReportBuilder builder = HealthReport.builder();
-        for (KafkaSource<?, ?> source : sources) {
-            source.isAlive(builder);
-        }
-        for (KafkaShareGroupSource<?, ?> source : shareGroupSources) {
-            source.isAlive(builder);
-        }
-        for (KafkaSink sink : sinks) {
-            sink.isAlive(builder);
-        }
+        sources.values().forEach(list -> list.forEach(s -> s.isAlive(builder)));
+        shareGroupSources.values().forEach(list -> list.forEach(s -> s.isAlive(builder)));
+        sinks.values().forEach(s -> s.isAlive(builder));
         return builder.build();
     }
 
     @SuppressWarnings("unchecked")
     public <K, V> KafkaConsumer<K, V> getConsumer(String channel) {
-        return (KafkaConsumer<K, V>) sources.stream()
-                .filter(ks -> ks.getChannel().equals(channel))
-                .map(KafkaSource::getConsumer)
-                .findFirst().orElse(null);
+        List<KafkaSource<?, ?>> list = sources.get(channel);
+        if (list != null && !list.isEmpty()) {
+            return (KafkaConsumer<K, V>) list.get(0).getConsumer();
+        }
+        return null;
     }
 
     @SuppressWarnings("unchecked")
     public <K, V> List<KafkaConsumer<K, V>> getConsumers(String channel) {
-        return sources.stream()
-                .filter(ks -> ks.getChannel().equals(channel))
-                .map(kafkaSource -> ((KafkaConsumer<K, V>) kafkaSource.getConsumer()))
+        List<KafkaSource<?, ?>> list = sources.get(channel);
+        if (list == null) {
+            return List.of();
+        }
+        return list.stream()
+                .map(s -> (KafkaConsumer<K, V>) s.getConsumer())
                 .collect(Collectors.toList());
     }
 
     @SuppressWarnings("unchecked")
     public <K, V> KafkaProducer<K, V> getProducer(String channel) {
-        return (KafkaProducer<K, V>) sinks.stream()
-                .filter(ks -> ks.getChannel().equals(channel))
-                .map(KafkaSink::getProducer)
-                .findFirst().orElse(null);
+        KafkaSink sink = sinks.get(channel);
+        if (sink != null) {
+            return (KafkaProducer<K, V>) sink.getProducer();
+        }
+        return null;
     }
 
     public Set<String> getConsumerChannels() {
-        return sources.stream().map(KafkaSource::getChannel).collect(Collectors.toSet());
+        return sources.keySet();
     }
 
     public Set<String> getShareConsumerChannels() {
-        return shareGroupSources.stream().map(KafkaShareGroupSource::getChannel).collect(Collectors.toSet());
+        return shareGroupSources.keySet();
     }
 
     public Set<String> getProducerChannels() {
-        return sinks.stream().map(KafkaSink::getChannel).collect(Collectors.toSet());
+        return sinks.keySet();
     }
 
     @SuppressWarnings("unchecked")
     public <V, K> List<KafkaShareConsumer<K, V>> getShareConsumers(String channel) {
-        return shareGroupSources.stream()
-                .filter(s -> s.getChannel().equals(channel))
+        List<KafkaShareGroupSource<?, ?>> list = shareGroupSources.get(channel);
+        if (list == null) {
+            return List.of();
+        }
+        return list.stream()
                 .map(s -> (KafkaShareConsumer<K, V>) s.getConsumer())
                 .toList();
     }

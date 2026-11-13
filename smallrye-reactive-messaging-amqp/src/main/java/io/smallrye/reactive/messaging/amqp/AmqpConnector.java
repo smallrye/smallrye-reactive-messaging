@@ -187,7 +187,7 @@ public class AmqpConnector implements InboundConnector, OutboundConnector, Healt
     }
 
     @Override
-    public CompletionStage<Void> shutdownIncoming(String channel) {
+    public CompletionStage<Void> closeIncoming(String channel) {
         IncomingAmqpChannel incoming = incomingChannels.remove(channel);
         if (incoming != null) {
             incoming.close();
@@ -196,7 +196,7 @@ public class AmqpConnector implements InboundConnector, OutboundConnector, Healt
     }
 
     @Override
-    public CompletionStage<Void> shutdownOutgoing(String channel) {
+    public CompletionStage<Void> closeOutgoing(String channel) {
         OutgoingAmqpChannel outgoing = outgoingChannels.remove(channel);
         if (outgoing != null) {
             outgoing.close();
