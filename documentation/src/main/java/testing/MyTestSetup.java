@@ -7,7 +7,7 @@ import io.smallrye.reactive.messaging.memory.TestingConnector;
 
 public class MyTestSetup {
 
-    // <code>
+    // tag::code[]
     public Map<String, String> start() {
         Map<String, String> env = new HashMap<>();
         env.putAll(TestingConnector.switchIncomingChannelsToTesting("prices"));
@@ -18,6 +18,6 @@ public class MyTestSetup {
     public void stop() {
         TestingConnector.clear();
     }
-    // </code>
+    // end::code[]
 
 }

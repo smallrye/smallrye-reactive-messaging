@@ -20,19 +20,19 @@ import org.reactivestreams.Subscriber;
 
 public class CamelApi {
 
-    // <reactive>
+    // tag::reactive[]
     @Inject
     CamelReactiveStreamsService reactiveStreamsService;
-    // </reactive>
+    // end::reactive[]
 
-    // <source>
+    // tag::source[]
     @Outgoing("camel")
     public Publisher<Exchange> retrieveDataFromCamelRoute() {
         return reactiveStreamsService.from("seda:camel");
     }
-    // </source>
+    // end::source[]
 
-    // <source-route-builder>
+    // tag::source-route-builder[]
     @Singleton
     static class MyRouteBuilder extends RouteBuilder {
         @Inject
@@ -50,9 +50,9 @@ public class CamelApi {
                     .to("reactive-streams:my-stream");
         }
     }
-    // </source-route-builder>
+    // end::source-route-builder[]
 
-    // <source-lambda-route-builder>
+    // tag::source-lambda-route-builder[]
     @ApplicationScoped
     static class MyLambdaRouteBuilder {
         @Inject
@@ -71,17 +71,17 @@ public class CamelApi {
                     .to("reactive-streams:my-stream");
         }
     }
-    // </source-lambda-route-builder>
+    // end::source-lambda-route-builder[]
 
-    // <sink>
+    // tag::sink[]
     @Incoming("to-camel")
     public Subscriber<String> sendDataToCamelRoute() {
         return reactiveStreamsService.subscriber("file:./target?fileName=values.txt&fileExist=append",
                 String.class);
     }
-    // </sink>
+    // end::sink[]
 
-    // <producer>
+    // tag::producer[]
     @Inject
     CamelContext camel;
 
@@ -90,5 +90,5 @@ public class CamelApi {
         return camel.createProducerTemplate()
                 .asyncSendBody("file:./target?fileName=values.txt&fileExist=append", value).thenApply(x -> null);
     }
-    // </producer>
+    // end::producer[]
 }

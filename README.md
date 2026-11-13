@@ -17,6 +17,11 @@ It also provides a way to inject _streams_ into CDI beans, and so link your [Rea
 into [CDI](http://www.cdi-spec.org/) beans,or [JAX-RS](https://github.com/eclipse-ee4j/jaxrs-api) resources.
 
 
+## Documentation
+
+The documentation is published at https://smallrye.io/docs/smallrye-reactive-messaging/latest/. Its sources
+are in [`documentation`](documentation/README.adoc).
+
 ## Branches
 
 * main - 4.x development stream. Uses Vert.x 4.x, Microprofile 5.x, Mutiny 2.x and Jakarta 9

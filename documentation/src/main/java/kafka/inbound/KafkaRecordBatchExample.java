@@ -17,7 +17,7 @@ import io.smallrye.reactive.messaging.kafka.api.IncomingKafkaRecordBatchMetadata
 @ApplicationScoped
 public class KafkaRecordBatchExample {
 
-    // <code>
+    // tag::code[]
     @Incoming("prices")
     public CompletionStage<Void> consumeMessage(Message<List<Double>> msg) {
         IncomingKafkaRecordBatchMetadata<String, Double> batchMetadata = msg.getMetadata(IncomingKafkaRecordBatchMetadata.class)
@@ -39,9 +39,9 @@ public class KafkaRecordBatchExample {
             }
         }
     }
-    // </code>
+    // end::code[]
 
-    // <batch>
+    // tag::batch[]
     @Incoming("prices")
     public void consumeRecords(ConsumerRecords<String, Double> records,
             IncomingKafkaRecordBatchMetadata<String, Double> metadata) {
@@ -55,6 +55,6 @@ public class KafkaRecordBatchExample {
             }
         }
     }
-    // </batch>
+    // end::batch[]
 
 }

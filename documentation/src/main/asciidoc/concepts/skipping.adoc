@@ -1,0 +1,29 @@
+= Skipping messages
+:version-root: ../
+include::{version-root}_attributes.adoc[]
+
+Sometimes you receive a message and don’t want to produce an output
+message. To handle this, you have several choices:
+
+[arabic]
+. for method processing single message or payload, producing `null`
+would produce an ignored message (not forwarded)
+. for method processing streams, you can generate an _empty_ stream.
+
+== Skipping a single item
+
+To skip a single message or payload, return `null`:
+
+[source,java]
+----
+include::{examples-dir}/skip/SingleSkip.java[tags=skip,indent=0]
+----
+
+== Skipping in a stream
+
+To skip a message or payload when manipulating a stream, emit an _empty_ `Multi` (or `Publisher`):
+
+[source,java]
+----
+include::{examples-dir}/skip/StreamSkip.java[tags=skip,indent=0]
+----

@@ -7,7 +7,7 @@ import io.smallrye.mutiny.Multi;
 
 public class ConverterExample {
 
-    // <code>
+    // tag::code[]
     @Outgoing("persons")
     public Multi<String> source() {
         return Multi.createFrom().items("Neo", "Morpheus", "Trinity");
@@ -19,6 +19,6 @@ public class ConverterExample {
     public void consume(Person p) {
         // ...
     }
-    // </code>
+    // end::code[]
 
 }

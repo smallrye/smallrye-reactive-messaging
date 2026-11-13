@@ -1,0 +1,105 @@
+= Supported signatures
+:version-root: ../
+include::{version-root}_attributes.adoc[]
+
+The following tables list the supported method signatures and indicate
+the various supported features. For instance, they indicate the default
+and available acknowledgement strategies (when applicable).
+
+== Method signatures to generate data
+
+[width="100%",cols="32%,68%",options="header",]
+|===
+|Signature |Invocation time
+|`@Outgoing Publisher++<++Message++<++O++>>++ method()` `{vbar} Called once at ++*++assembly++*++ time                                                                                  {vbar} {vbar}`@Outgoing Publisher method()`` |Called once at _assembly_ time
+|`@Outgoing Multi++<++Message++<++O++>>++ method()` `{vbar} Called once at ++*++assembly++*++ time                                                                                  {vbar} {vbar}`@Outgoing Multi method()`` |Called once at _assembly_ time
+|`@Outgoing Flow.Publisher++<++Message++<++O++>>++ method()` `{vbar} Called once at ++*++assembly++*++ time                                                                                  {vbar} {vbar}`@Outgoing Flow.Publisher method()`` |Called once at _assembly_ time
+|`@Outgoing PublisherBuilder++<++Message++<++O++>>++ method()` `{vbar} Called once at ++*++assembly++*++ time                                                                                  {vbar} {vbar}`@Outgoing PublisherBuilder method()`` |Called once at _assembly_ time
+|`@Outgoing Message++<++O++>++ method()` `{vbar} Called for every downstream request, sequentially                                                               {vbar} {vbar}`@Outgoing O method()`` |Called for every downstream request, sequentially
+|`@Outgoing CompletionStage++<++Message++<++O++>>++ method()` `{vbar} Called for every downstream request, sequentially (After the completion of the last returned CompletionStage)   {vbar} {vbar}`@Outgoing CompletionStage method()`` |Called for every downstream request, , sequentially (After the completion of the last returned CompletionStage)
+|`@Outgoing Uni++<++Message++<++O++>>++ method()` `{vbar} Called for every downstream request, sequentially (After the completion of the last returned Uni)               {vbar} {vbar}`@Outgoing Uni method()`` |Called for every downstream request, , sequentially (After the completion of the last returned Uni)
+|===
+
+== Method signatures to consume data
+
+[width="100%",cols="37%,32%,31%",options="header",]
+|===
+|Signature |Invocation time |Supported Acknowledgement Strategies
+|`@Incoming void method(I p)` |Called for every incoming payload (sequentially) |_POST++_++PROCESSING_, NONE, PRE++_++PROCESSING
+|`@Incoming CompletionStage++<++?++>++ method(Message++<++I++>++ msg)` |Called for every incoming message (sequentially) |_MANUAL_, NONE, PRE++_++PROCESSING
+|`@Incoming CompletionStage++<++?++>++ method(I p)` |Called for every incoming payload (sequentially) |_POST++_++PROCESSING_, PRE++_++PROCESSING, NONE
+|`@Incoming Uni++<++?++>++ method(Message++<++I++>++ msg)` |Called for every incoming message (sequentially) |_MANUAL_, NONE, PRE++_++PROCESSING
+|`@Incoming Uni++<++?++>++ method(I p)` |Called for every incoming payload (sequentially) |_POST++_++PROCESSING_, PRE++_++PROCESSING, NONE
+|`@Incoming Subscriber++<++Message++<++I++>>++ method()` |Called once at _assembly_ time |_MANUAL_, POST++_++PROCESSING, NONE, PRE++_++PROCESSING
+|`@Incoming Subscriber++<++I++>++ method()` |Called once at _assembly_ time |_POST++_++PROCESSING_, NONE, PRE++_++PROCESSING
+|`@Incoming Flow.Subscriber++<++Message++<++I++>>++ method()` |Called once at _assembly_ time |_MANUAL_, POST++_++PROCESSING, NONE, PRE++_++PROCESSING
+|`@Incoming Flow.Subscriber++<++I++>++ method()` |Called once at _assembly_ time |_POST++_++PROCESSING_, NONE, PRE++_++PROCESSING
+|`@Incoming SubscriberBuilder++<++Message++<++I++>++, ?++>++ method()` |Called once at _assembly_ time |_MANUAL_, POST++_++PROCESSING, NONE, PRE++_++PROCESSING
+|`@Incoming SubscriberBuilder++<++I, ?++>++ method()` |Called once at _assembly_ time |_MANUAL_, POST++_++PROCESSING, NONE, PRE++_++PROCESSING
+|===
+
+== Method signatures to process data
+
+[width="99%",cols="37%,23%,30%,10%",options="header",]
+|===
+|Signature |Invocation time |Supported Acknowledgement Strategies |Metadata Propagation
+|`@Outgoing @Incoming Message++<++O++>++ method(Message++<++I++>++ msg)` |Called for every incoming message (sequentially) |POST++_++PROCESSING (Smallrye only), _MANUAL_, NONE, PRE++_++PROCESSING |manual
+|`@Outgoing @Incoming Message++<++O++>++ method(I payload)` |Called for every incoming message (sequentially) |_POST++_++PROCESSING_ (Smallrye only), NONE, PRE++_++PROCESSING |automatic
+|`@Outgoing @Incoming O method(I payload)` |Called for every incoming payload (sequentially) |_POST++_++PROCESSING_, NONE, PRE++_++PROCESSING |automatic
+|`@Outgoing @Incoming CompletionStage++<++Message++<++O++>>++ method(Message++<++I++>++ msg)` |Called for every incoming message (sequentially) |_MANUAL_, NONE, PRE++_++PROCESSING |manual
+|`@Outgoing @Incoming CompletionStage++<++O++>++ method(I payload)` |Called for every incoming payload (sequentially) |_POST++_++PROCESSING_, NONE, PRE++_++PROCESSING |automatic
+|`@Outgoing @Incoming CompletionStage++<++Message++<++O++>>++ method(I payload)` |Called for every incoming payload (sequentially) |_POST++_++PROCESSING_ (Smallrye only), NONE, PRE++_++PROCESSING |automatic
+|`@Outgoing @Incoming Uni++<++Message++<++O++>>++ method(Message++<++I++>++ msg)` |Called for every incoming message (sequentially) |_MANUAL_, NONE, PRE++_++PROCESSING |manual
+|`@Outgoing @Incoming Uni++<++Message++<++O++>>++ method(I payload)` |Called for every incoming payload (sequentially) |_POST++_++PROCESSING_ (Smallrye only), NONE, PRE++_++PROCESSING |automatic
+|`@Outgoing @Incoming Uni++<++O++>++ method(I payload)` |Called for every incoming payload (sequentially) |_POST++_++PROCESSING_, NONE, PRE++_++PROCESSING |automatic
+|`@Outgoing @Incoming Processor++<++Message++<++I++>++, Message++<++O++>>++ method()` |Called once at _assembly_ time |_MANUAL_, PRE++_++PROCESSING, NONE |manual
+|`@Outgoing @Incoming Processor++<++I, O++>++ method()` |Called once at _assembly_ time |_PRE++_++PROCESSING_, NONE |not supported
+|`@Outgoing @Incoming Flow.Processor++<++Message++<++I++>++, Message++<++O++>>++ method()` |Called once at _assembly_ time |_MANUAL_, PRE++_++PROCESSING, NONE |manual
+|`@Outgoing @Incoming Flow.Processor++<++I, O++>++ method()` |Called once at _assembly_ time |_PRE++_++PROCESSING_, NONE |not supported
+|`@Outgoing @Incoming ProcessorBuilder++<++Message++<++I++>++, Message++<++O++>>++ method()` |Called once at _assembly_ time |_MANUAL_, PRE++_++PROCESSING, NONE |manual
+|`@Outgoing @Incoming ProcessorBuilder++<++I, O++>++ method()` |Called once at _assembly_ time |_PRE++_++PROCESSING_, NONE |not supported
+|`@Outgoing @Incoming Publisher++<++Message++<++O++>>++ method(Message++<++I++>++ msg)` |Called for every incoming message (sequentially) |_MANUAL_, PRE++_++PROCESSING, NONE |manual
+|`@Outgoing @Incoming Publisher++<++O++>++ method(I payload)` |Called for every incoming payload (sequentially) |_PRE++_++PROCESSING_, POST++_++PROCESSING, NONE |automatic
+|`@Outgoing @Incoming Multi++<++Message++<++O++>>++ method(Message++<++I++>++ msg)` |Called for every incoming message (sequentially) |_MANUAL_, PRE++_++PROCESSING, NONE |manual
+|`@Outgoing @Incoming Multi++<++O++>++ method(I payload)` |Called for every incoming payload (sequentially) |_PRE++_++PROCESSING_, POST++_++PROCESSING, NONE |automatic
+|`@Outgoing @Incoming Flow.Publisher++<++Message++<++O++>>++ method(Message++<++I++>++ msg)` |Called for every incoming message (sequentially) |_MANUAL_, PRE++_++PROCESSING, NONE |manual
+|`@Outgoing @Incoming Flow.Publisher++<++O++>++ method(I payload)` |Called for every incoming payload (sequentially) |_PRE++_++PROCESSING_, POST++_++PROCESSING, NONE |automatic
+|`@Outgoing @Incoming PublisherBuilder++<++Message++<++O++>>++ method(Message++<++I++>++ msg)` |Called for every incoming message (sequentially) |_MANUAL_, PRE++_++PROCESSING, NONE |manual
+|`@Outgoing @Incoming PublisherBuilder++<++O++>++ method(I payload)` |Called for every incoming payload (sequentially) |_PRE++_++PROCESSING_, POST++_++PROCESSING, NONE |automatic
+|===
+
+Note that in additional to the MicroProfile Reactive Messaging specification,
+SmallRye Reactive Messaging supports the post-processing acknowledgment handling with automatic metadata propagation for the following signatures:
+
+* `@Outgoing @Incoming Message++<++O++>++ method(I payload)`
+* `@Outgoing @Incoming CompletionStage++<++Message++<++O++>>++ method(I payload)`
+* `@Outgoing @Incoming Uni++<++Message++<++O++>>++ method(I payload)`
+* `@Outgoing @Incoming Message++<++O++>++ method(Message++<++I++>++ payload)` : For this signature, the post-processing acknowledgment handling is limited.
+It covers cases for nacking incoming messages on caught exceptions at the method body, acking incoming messages when outgoing message is skipped by returning `null`, and chaining acknowlegment from outgoing message to the incoming.
+However, if the incoming message has already been (n)acked, you will experience duplicate (n)acks.
+
+== Method signatures to manipulate streams
+
+[width="100%",cols="52%,17%,20%,11%",options="header",]
+|===
+|Signature |Invocation time |Supported Acknowledgement Strategies |Metadata Propagation
+|`@Outgoing @Incoming Publisher++<++Message++<++O++>>++ method(Publisher++<++Message++<++I++>>++ pub)` |Called once at _assembly_ time |_MANUAL_, NONE, PRE++_++PROCESSING |manual
+|`@Outgoing @Incoming Publisher++<++O++>++ method(Publisher++<++I++>++ pub)` |Called once at _assembly_ time |_PRE++_++PROCESSING_, NONE |not supported
+|`@Outgoing @Incoming Multi++<++Message++<++O++>>++ method(Multi++<++Message++<++I++>>++ pub)` |Called once at _assembly_ time |_MANUAL_, NONE, PRE++_++PROCESSING |manual
+|`@Outgoing @Incoming Multi++<++O++>++ method(Multi++<++I++>++ pub)` |Called once at _assembly_ time |_PRE++_++PROCESSING_, NONE |not supported
+|`@Outgoing @Incoming Flow.Publisher++<++Message++<++O++>>++ method(Flow.Publisher++<++Message++<++I++>>++ pub)` |Called once at _assembly_ time |_MANUAL_, NONE, PRE++_++PROCESSING |manual
+|`@Outgoing @Incoming Flow.Publisher++<++O++>++ method(Flow.Publisher++<++I++>++ pub)` |Called once at _assembly_ time |_PRE++_++PROCESSING_, NONE |not supported
+|`@Outgoing @Incoming PublisherBuilder++<++Message++<++O++>>++ method(PublisherBuilder++<++Message++<++I++>>++ pub)` |Called once at _assembly_ time |_MANUAL_, NONE, PRE++_++PROCESSING |manual
+|`@Outgoing @Incoming PublisherBuilder++<++O++>++ method(PublisherBuilder++<++I++>++ pub)` |Called once at _assembly_ time |NONE, PRE++_++PROCESSING |not supported
+|===
+
+[IMPORTANT]
+====
+
+When processing `Message`, it is often required to _chain_ the incoming
+`Message` to enable post-processing acknowledgement and metadata
+propagation. Use the `with` (like `withPayload`) methods from the
+incoming message, so it copies the metadata and ack/nack methods. It
+returns a new `Message` with the right content.
+
+====

@@ -1,0 +1,51 @@
+= AMQP 1.0 Connector
+:version-root: ../
+include::{version-root}_attributes.adoc[]
+
+The AMQP Connector adds support for AMQP 1.0 to Reactive Messaging.
+
+Advanced Message Queuing Protocol 1.0 (AMQP 1.0) is an open standard for
+passing business messages between applications or organizations.
+
+With this connector, your application can:
+
+* receive messages from an AMQP Broker or Router.
+* send `Message` to an AMQP _address_
+* implement xref:amqp/request-reply.adoc[request-reply] messaging patterns
+* authenticate using xref:amqp/cbs-authentication.adoc[Claims-Based Security (CBS)] tokens
+
+The AMQP connector is based on the https://vertx.io/docs/vertx-amqp-client/java/[Vert.x AMQP Client].
+
+Using the AMQP connector
+
+To use the AMQP Connector, add the following dependency to your project:
+
+[source,xml,subs="attributes+"]
+----
+<dependency>
+  <groupId>io.smallrye.reactive</groupId>
+  <artifactId>smallrye-reactive-messaging-amqp</artifactId>
+  <version>{project-version}</version>
+</dependency>
+----
+
+The connector name is: `smallrye-amqp`.
+
+So, to indicate that a channel is managed by this connector you need:
+
+[source,properties]
+----
+# Inbound
+mp.messaging.incoming.[channel-name].connector=smallrye-amqp
+
+# Outbound
+mp.messaging.outgoing.[channel-name].connector=smallrye-amqp
+----
+
+[IMPORTANT]
+.RabbitMQ
+====
+
+To use RabbitMQ, refer to xref:#amqp-rabbitmq[Using RabbitMQ].
+
+====

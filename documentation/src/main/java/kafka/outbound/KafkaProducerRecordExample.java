@@ -8,11 +8,11 @@ import org.eclipse.microprofile.reactive.messaging.Outgoing;
 @ApplicationScoped
 public class KafkaProducerRecordExample {
 
-    // <code>
+    // tag::code[]
     @Outgoing("out")
     public ProducerRecord<String, String> generate() {
         return new ProducerRecord<>("my-topic", "key", "value");
     }
-    // </code>
+    // end::code[]
 
 }

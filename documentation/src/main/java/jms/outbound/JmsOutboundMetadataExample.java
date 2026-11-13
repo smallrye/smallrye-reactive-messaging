@@ -9,7 +9,7 @@ public class JmsOutboundMetadataExample {
 
     public Message<Double> metadata(Message<Double> incoming) {
 
-        // <code>
+        // tag::code[]
         OutgoingJmsMessageMetadata metadata = OutgoingJmsMessageMetadata.builder()
                 .withProperties(JmsProperties.builder().with("some-property", "some-value").build())
                 .build();
@@ -17,7 +17,7 @@ public class JmsOutboundMetadataExample {
         // Create a new message from the `incoming` message
         // Add `metadata` to the metadata from the `incoming` message.
         return incoming.addMetadata(metadata);
-        // </code>
+        // end::code[]
     }
 
 }

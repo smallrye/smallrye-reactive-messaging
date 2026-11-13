@@ -17,7 +17,7 @@ import io.smallrye.common.annotation.Identifier;
 
 public class PulsarClientConfigProducers {
 
-    // <consumer>
+    // tag::consumer[]
     @Produces
     @Identifier("my-consumer-options")
     public ConsumerConfigurationData<String> getConsumerConfig() {
@@ -28,9 +28,9 @@ public class PulsarClientConfigProducers {
                 .build());
         return data;
     }
-    // </consumer>
+    // end::consumer[]
 
-    // <client>
+    // tag::client[]
     @Produces
     @Identifier("prices")
     public ClientConfigurationData getClientConfig() {
@@ -41,18 +41,18 @@ public class PulsarClientConfigProducers {
                 .build());
         return data;
     }
-    // </client>
+    // end::client[]
 
-    // <shared-resources>
+    // tag::shared-resources[]
     @Produces
     public PulsarClientSharedResources getSharedResources() {
         return PulsarClientSharedResources.builder()
                 .configureEventLoop(config -> config.numberOfThreads(4))
                 .build();
     }
-    // </shared-resources>
+    // end::shared-resources[]
 
-    // <producer>
+    // tag::producer[]
     @Produces
     @Identifier("prices")
     public Map<String, Object> getProducerconfig() {
@@ -62,5 +62,5 @@ public class PulsarClientConfigProducers {
         map.put("customMessageRouter", new PartialRoundRobinMessageRouterImpl(4));
         return map;
     }
-    // </producer>
+    // end::producer[]
 }
