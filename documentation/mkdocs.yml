@@ -35,6 +35,8 @@ nav:
             - 'Metadata Injection': concepts/incoming-metadata-injection.md
             - 'Generic Payloads': concepts/generic-payloads.md
             - 'Pausable Channels': concepts/pausable-channels.md
+            - 'Graceful Shutdown': concepts/graceful-shutdown.md
+            - 'Channel Factory': concepts/channel-factory.md
 
   - Kafka:
         - kafka/kafka.md
