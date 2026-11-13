@@ -1042,7 +1042,7 @@ public class MqttClientSessionImpl implements MqttClientSession {
             Future<Integer> sendFuture;
             if (pending.properties != null) {
                 sendFuture = this.client.publish(pending.messageId, pending.topic, pending.payload,
-                        pending.qosLevel, true, pending.isRetain /* TODO , pending.properties */ );
+                        pending.qosLevel, true, pending.isRetain, pending.properties);
             } else {
                 sendFuture = this.client.publish(pending.messageId, pending.topic, pending.payload,
                         pending.qosLevel, true, pending.isRetain);
@@ -1085,7 +1085,7 @@ public class MqttClientSessionImpl implements MqttClientSession {
                 // Retry with same message ID and isDup=true
                 if (pending.properties != null) {
                     sendFuture = this.client.publish(pending.messageId, pending.topic, pending.payload,
-                            pending.qosLevel, true, pending.isRetain/* TODO, pending.properties */);
+                            pending.qosLevel, true, pending.isRetain,pending.properties);
                 } else {
                     sendFuture = this.client.publish(pending.messageId, pending.topic, pending.payload,
                             pending.qosLevel, true, pending.isRetain);
