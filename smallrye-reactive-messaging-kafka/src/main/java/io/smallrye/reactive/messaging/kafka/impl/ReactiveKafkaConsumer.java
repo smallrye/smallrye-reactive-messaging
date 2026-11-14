@@ -275,7 +275,10 @@ public class ReactiveKafkaConsumer<K, V> implements io.smallrye.reactive.messagi
     public Uni<Map<TopicPartition, OffsetAndMetadata>> committed(TopicPartition... tps) {
         return runOnPollingThread(c -> {
             return c.committed(new LinkedHashSet<>(Arrays.asList(tps)));
-        });
+        })
+                // The consumer is only woken up by close(), which interrupts a pending committed() call.
+                // The empty map is only seen while closing; it does not mean "no committed offsets" otherwise.
+                .onFailure(WakeupException.class).recoverWithItem(() -> new HashMap<>());
     }
 
     @CheckReturnValue

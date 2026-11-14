@@ -414,4 +414,10 @@ public interface KafkaLogging extends BasicLogger {
     @LogMessage(level = Logger.Level.DEBUG)
     @Message(id = 18298, value = "Remaining manually paused partitions %s after revocation of %s")
     void remainingPausedPartitionsAfterRevocation(Set<TopicPartition> manuallyPaused, Collection<TopicPartition> revoked);
+
+    @LogMessage(level = Logger.Level.WARN)
+    @Message(id = 18299, value = "Restoring the Kafka message type `%s` for a message that lost it when intercepted. "
+            + "Consuming Kafka message types is deprecated and no longer supported: "
+            + "consume `Message<T>` and read the Kafka metadata, or inject the payload and the metadata instead")
+    void restoringKafkaMessageType(String messageType);
 }
