@@ -37,7 +37,7 @@ public class AmqpCreditTest extends AmqpTestBase {
     @AfterEach
     public void cleanup() {
         if (provider != null) {
-            provider.terminate(null);
+            provider.terminate();
         }
 
         if (server != null) {

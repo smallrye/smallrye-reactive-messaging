@@ -5,17 +5,13 @@ import static io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Dire
 import static io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Direction.OUTGOING;
 import static io.smallrye.reactive.messaging.rabbitmq.i18n.RabbitMQExceptions.ex;
 
-import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Flow;
 
-import jakarta.annotation.Priority;
 import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.enterprise.context.BeforeDestroyed;
-import jakarta.enterprise.event.Observes;
-import jakarta.enterprise.event.Reception;
 import jakarta.enterprise.inject.Any;
 import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
@@ -138,6 +134,9 @@ import io.vertx.core.Vertx;
 @ConnectorAttribute(name = "retry-on-fail-attempts", direction = OUTGOING, description = "The number of tentative to retry on failure", type = "int", defaultValue = "6")
 @ConnectorAttribute(name = "retry-on-fail-interval", direction = OUTGOING, description = "The interval (in seconds) between two sending attempts", type = "int", defaultValue = "5")
 
+// Graceful shutdown
+@ConnectorAttribute(name = "graceful-shutdown", type = "boolean", direction = INCOMING, description = "Whether a graceful shutdown should be attempted when the application terminates.", defaultValue = "false")
+
 // Tracing
 @ConnectorAttribute(name = "tracing.enabled", direction = INCOMING_AND_OUTGOING, description = "Whether tracing is enabled (default) or disabled", type = "boolean", defaultValue = "true")
 @ConnectorAttribute(name = "tracing.attribute-headers", direction = INCOMING_AND_OUTGOING, description = "A comma-separated list of headers that should be recorded as span attributes. Relevant only if tracing.enabled=true", type = "string", defaultValue = "")
@@ -168,9 +167,10 @@ public class RabbitMQConnector implements InboundConnector, OutboundConnector, H
     @Inject
     Instance<OpenTelemetry> openTelemetryInstance;
 
-    private final List<IncomingRabbitMQChannel> incomings = new CopyOnWriteArrayList<>();
-    private final List<OutgoingRabbitMQChannel> outgoings = new CopyOnWriteArrayList<>();
+    private final Map<String, IncomingRabbitMQChannel> incomingChannels = new ConcurrentHashMap<>();
+    private final Map<String, OutgoingRabbitMQChannel> outgoingChannels = new ConcurrentHashMap<>();
     private final Map<String, ConnectionHolder> connections = new ConcurrentHashMap<>();
+    private final Map<String, String> channelFingerprints = new ConcurrentHashMap<>();
     private final Map<String, String> connectionFingerprints = new ConcurrentHashMap<>();
 
     RabbitMQConnector() {
@@ -183,13 +183,11 @@ public class RabbitMQConnector implements InboundConnector, OutboundConnector, H
 
         ConnectionHolder holder = getOrCreateConnectionHolder(ic);
 
-        // Create IncomingRabbitMQChannel
         IncomingRabbitMQChannel channel = new IncomingRabbitMQChannel(
                 holder, ic, configMaps, openTelemetryInstance);
 
-        incomings.add(channel);
+        incomingChannels.put(ic.getChannel(), channel);
 
-        // Multi already implements Flow.Publisher
         return channel.getStream();
     }
 
@@ -199,11 +197,10 @@ public class RabbitMQConnector implements InboundConnector, OutboundConnector, H
 
         ConnectionHolder holder = getOrCreateConnectionHolder(oc);
 
-        // Create OutgoingRabbitMQChannel
         OutgoingRabbitMQChannel channel = new OutgoingRabbitMQChannel(
                 holder, oc, configMaps, openTelemetryInstance);
 
-        outgoings.add(channel);
+        outgoingChannels.put(oc.getChannel(), channel);
 
         return channel.getSink();
     }
@@ -211,14 +208,11 @@ public class RabbitMQConnector implements InboundConnector, OutboundConnector, H
     @Override
     public HealthReport getReadiness() {
         HealthReport.HealthReportBuilder builder = HealthReport.builder();
-
-        // Aggregate readiness from all incoming channels
-        for (IncomingRabbitMQChannel incoming : incomings) {
+        for (IncomingRabbitMQChannel incoming : incomingChannels.values()) {
             builder = incoming.isReady(builder);
         }
 
-        // Aggregate readiness from all outgoing channels
-        for (OutgoingRabbitMQChannel outgoing : outgoings) {
+        for (OutgoingRabbitMQChannel outgoing : outgoingChannels.values()) {
             builder = outgoing.isReady(builder);
         }
 
@@ -228,44 +222,60 @@ public class RabbitMQConnector implements InboundConnector, OutboundConnector, H
     @Override
     public HealthReport getLiveness() {
         HealthReport.HealthReportBuilder builder = HealthReport.builder();
-
-        // Aggregate liveness from all incoming channels
-        for (IncomingRabbitMQChannel incoming : incomings) {
+        for (IncomingRabbitMQChannel incoming : incomingChannels.values()) {
             builder = incoming.isAlive(builder);
         }
 
-        // Aggregate liveness from all outgoing channels
-        for (OutgoingRabbitMQChannel outgoing : outgoings) {
+        for (OutgoingRabbitMQChannel outgoing : outgoingChannels.values()) {
             builder = outgoing.isAlive(builder);
         }
 
         return builder.build();
     }
 
-    public void terminate(
-            @SuppressWarnings("unused") @Observes(notifyObserver = Reception.IF_EXISTS) @Priority(50) @BeforeDestroyed(ApplicationScoped.class) Object ignored) {
-        // Clean up all incoming channels
-        for (IncomingRabbitMQChannel incoming : incomings) {
+    @Override
+    public CompletionStage<Void> closeIncoming(String channel) {
+        IncomingRabbitMQChannel incoming = incomingChannels.remove(channel);
+        if (incoming != null) {
+            incoming.cancel();
+        }
+        releaseConnection(channel);
+        return CompletableFuture.completedStage(null);
+    }
+
+    @Override
+    public CompletionStage<Void> closeOutgoing(String channel) {
+        OutgoingRabbitMQChannel outgoing = outgoingChannels.remove(channel);
+        if (outgoing != null) {
+            outgoing.closeQuietly();
+        }
+        releaseConnection(channel);
+        return CompletableFuture.completedStage(null);
+    }
+
+    @Override
+    public CompletionStage<Void> terminate() {
+        for (IncomingRabbitMQChannel incoming : incomingChannels.values()) {
             try {
                 incoming.cancel();
             } catch (Exception e) {
-                // Log but continue cleanup
                 e.printStackTrace();
             }
         }
-        incomings.clear();
+        incomingChannels.clear();
 
-        // Clean up all outgoing channels
-        for (OutgoingRabbitMQChannel outgoing : outgoings) {
+        for (OutgoingRabbitMQChannel outgoing : outgoingChannels.values()) {
             outgoing.closeQuietly();
         }
-        outgoings.clear();
+        outgoingChannels.clear();
 
         for (ConnectionHolder holder : connections.values()) {
             holder.close();
         }
         connections.clear();
+        channelFingerprints.clear();
         connectionFingerprints.clear();
+        return CompletableFuture.completedStage(null);
     }
 
     public ConnectionHolder getOrCreateConnectionHolder(RabbitMQConnectorCommonConfiguration config) {
@@ -278,6 +288,7 @@ public class RabbitMQConnector implements InboundConnector, OutboundConnector, H
         if (existing != null && !existing.equals(fingerprint)) {
             throw ex.illegalStateSharedConnectionConfigMismatch(connectionName);
         }
+        channelFingerprints.put(channel, fingerprint);
         return connections.compute(fingerprint,
                 (key, current) -> {
                     if (current == null) {
@@ -288,17 +299,23 @@ public class RabbitMQConnector implements InboundConnector, OutboundConnector, H
                 });
     }
 
-    public void releaseClient(String channel) {
-        for (var e : connections.entrySet()) {
-            ConnectionHolder holder = e.getValue();
-            if (holder.channels().contains(channel)) {
-                if (connections.computeIfPresent(e.getKey(), (k, c) -> c.release(channel) ? null : c) == null) {
-                    connectionFingerprints.values().remove(e.getKey());
-                    holder.close();
-                }
-                return;
-            }
+    private void releaseConnection(String channel) {
+        String fingerprint = channelFingerprints.remove(channel);
+        if (fingerprint == null) {
+            return;
         }
+        connections.computeIfPresent(fingerprint, (key, holder) -> {
+            if (holder.release(channel)) {
+                connectionFingerprints.values().remove(key);
+                holder.close();
+                return null;
+            }
+            return holder;
+        });
+    }
+
+    public void releaseClient(String channel) {
+        releaseConnection(channel);
     }
 
     public Vertx vertx() {
