@@ -11,6 +11,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.RejectedExecutionException;
 
@@ -146,6 +147,33 @@ public class WorkerPoolRegistry {
             }
             return worker.executeBlocking(() -> uni.await().indefinitely(), ordered);
         }
+    }
+
+    /**
+     * Runs the given {@link Uni} on the given executor, with the message context as the current Vert.x context, and
+     * delivers its result back on the message context, as {@link #executeWork} does for named worker pools.
+     * Without a message context, the {@link Uni} is only subscribed on the executor.
+     * The executor belongs to the caller, so this method does not reject work while the worker pools shut down.
+     *
+     * @param msgContext the message context, may be {@code null}
+     * @param uni the work to run
+     * @param executor the executor to run the work on
+     * @return a {@link Uni} emitting the result of the work, on the message context if there is one
+     */
+    public <T> Uni<T> executeWork(Context msgContext, Uni<T> uni, Executor executor) {
+        Objects.requireNonNull(uni, msg.actionNotProvided());
+        Objects.requireNonNull(executor, "executor");
+        if (msgContext == null) {
+            return uni.runSubscriptionOn(executor);
+        }
+        return uni.runSubscriptionOn(task -> executor.execute(new ContextPreservingRunnable(task, msgContext)))
+                .onItemOrFailure().transformToUni((item, failure) -> Uni.createFrom().emitter(emitter -> {
+                    if (failure != null) {
+                        msgContext.runOnContext(() -> emitter.fail(failure));
+                    } else {
+                        msgContext.runOnContext(() -> emitter.complete(item));
+                    }
+                }));
     }
 
     private static <T> Uni<T> uniOnMessageContext(Uni<T> uni, Context msgContext) {

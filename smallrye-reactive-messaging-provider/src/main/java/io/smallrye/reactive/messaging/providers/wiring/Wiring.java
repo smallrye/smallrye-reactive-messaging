@@ -32,6 +32,7 @@ import io.smallrye.reactive.messaging.providers.AbstractMediator;
 import io.smallrye.reactive.messaging.providers.extension.*;
 import io.smallrye.reactive.messaging.providers.helpers.MultiUtils;
 import io.smallrye.reactive.messaging.providers.i18n.ProviderLogging;
+import io.smallrye.reactive.messaging.providers.impl.Configs;
 import io.smallrye.reactive.messaging.providers.impl.ConnectorConfig;
 import io.smallrye.reactive.messaging.providers.locals.ContextDecorator;
 
@@ -95,9 +96,10 @@ public class Wiring {
             components.add(new InjectedChannelComponent(channel, strictMode));
         }
 
+        Config config = configInstance != null && !configInstance.isUnsatisfied() ? configInstance.get() : null;
         for (EmitterConfiguration emitter : emitters) {
             components.add(new EmitterComponent(emitter, publisherDecorators, emitterFactories, configInstance,
-                    defaultBufferSize, defaultBufferSizeLegacy));
+                    defaultBufferSize, defaultBufferSizeLegacy, config));
         }
 
         // At that point, the registry only contains connectors or managed channels
@@ -509,19 +511,22 @@ public class Wiring {
         private final Set<Component> downstreams = new LinkedHashSet<>();
         private final int defaultBufferSize;
         private final int defaultBufferSizeLegacy;
+        private final Config config;
 
         public EmitterComponent(EmitterConfiguration configuration,
                 Instance<PublisherDecorator> decorators,
                 Instance<EmitterFactory<?>> emitterFactories,
                 Instance<Config> configInstance,
                 int defaultBufferSize,
-                int defaultBufferSizeLegacy) {
+                int defaultBufferSizeLegacy,
+                Config config) {
             this.configuration = configuration;
             this.decorators = decorators;
             this.emitterFactories = emitterFactories;
             this.defaultBufferSize = defaultBufferSize;
             this.defaultBufferSizeLegacy = defaultBufferSizeLegacy;
             this.configInstance = configInstance;
+            this.config = config;
         }
 
         @Override
@@ -570,9 +575,9 @@ public class Wiring {
             Multi<? extends Message<?>> publisher = Multi.createFrom().publisher(emitter.getPublisher());
             for (PublisherDecorator decorator : getSortedInstances(decorators)) {
                 if (!(decorator instanceof ContextDecorator)) {
-                    // Pass null config: emitter channels are not connector channels,
-                    // passing the config would cause decorators to treat them as connectors
-                    publisher = decorator.decorate(publisher, List.of(configuration.name()), null);
+                    // Flag the config: an emitter channel is not a connector's incoming stream.
+                    publisher = decorator.decorate(publisher, List.of(configuration.name()),
+                            Configs.emitterChannel(channelConfig));
                 }
             }
             //noinspection ReactiveStreamsUnusedPublisher
@@ -580,10 +585,9 @@ public class Wiring {
         }
 
         private Config resolveChannelConfig() {
-            if (configInstance == null || configInstance.isUnsatisfied()) {
+            if (config == null) {
                 return null;
             }
-            Config config = configInstance.get();
             String prefix = ConnectorConfig.channelPrefix(ConnectorFactory.OUTGOING_PREFIX, configuration.name());
             boolean hasConnector = config.getOptionalValue(prefix + "connector", String.class).isPresent()
                     || config.getOptionalValue(prefix + "type", String.class).isPresent();

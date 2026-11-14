@@ -25,6 +25,9 @@ and potentially return a new stream of messages.
 
 Note that if a decorator is available it will be called on every channel.
 The `decorate` method receives the channel name and whether the channel is a connector or not as parameters.
+Emitter channels are never connector channels, even when the emitter is bound to an outbound connector.
+Decorators overriding `decorate(Multi, List, Config)` receive the connector configuration of such a channel
+with the `emitter-channel` attribute set to `true`: use `PublisherDecorator.isConnectorChannel(config)` to tell them apart.
 Decorators are called ordered from highest to lowest priority (from the least value to the greatest),
 obtained using the `jakarta.enterprise.inject.spi.Prioritized#getPriority` method.
 

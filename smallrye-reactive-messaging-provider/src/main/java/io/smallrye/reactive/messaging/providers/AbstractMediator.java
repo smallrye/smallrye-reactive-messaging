@@ -49,6 +49,7 @@ public abstract class AbstractMediator {
     private Instance<MessageConverter> converters;
     private Instance<KeyValueExtractor> extractors;
     private int maxConcurrency;
+    private final Class<?> consumedMessageType;
 
     public AbstractMediator(MediatorConfiguration configuration) {
         this.configuration = configuration;
@@ -86,6 +87,27 @@ public abstract class AbstractMediator {
             }
         }
         this.methodArgumentMapper = mapper;
+        this.consumedMessageType = consumedMessageType(configuration);
+        if (consumedMessageType != null) {
+            log.consumingSpecificMessageType(configuration.methodAsString(), consumedMessageType.getName());
+        }
+    }
+
+    /**
+     * @return the specific {@link Message} type consumed by the method, such as a connector message implementation,
+     *         or {@code null} if the method consumes payloads or plain {@link Message}s
+     */
+    private static Class<?> consumedMessageType(MediatorConfiguration configuration) {
+        if (configuration.consumption() != MediatorConfiguration.Consumption.MESSAGE
+                || configuration.getParameterDescriptor() == null
+                || configuration.getParameterDescriptor().getTypes().isEmpty()) {
+            return null;
+        }
+        Class<?> type = configuration.getParameterDescriptor().getTypes().get(0);
+        if (type == null || type.equals(Message.class) || !Message.class.isAssignableFrom(type)) {
+            return null;
+        }
+        return type;
     }
 
     public synchronized void setInvoker(Invoker invoker) {
@@ -319,7 +341,13 @@ public abstract class AbstractMediator {
     }
 
     public Multi<? extends Message<?>> convert(Multi<? extends Message<?>> upstream) {
-        return ConverterUtils.convert(upstream, converters, configuration.getIngestedPayloadType());
+        Multi<? extends Message<?>> converted = ConverterUtils.convert(upstream, converters,
+                configuration.getIngestedPayloadType());
+        if (consumedMessageType != null) {
+            // Messages may have lost their connector-specific type when intercepted: let converters restore it.
+            converted = ConverterUtils.convertMessageType(converted, converters, consumedMessageType);
+        }
+        return converted;
     }
 
     public Instance<KeyValueExtractor> extractors() {

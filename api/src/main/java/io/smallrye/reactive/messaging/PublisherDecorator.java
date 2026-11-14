@@ -27,6 +27,17 @@ public interface PublisherDecorator extends Prioritized {
     int DEFAULT_PRIORITY = 1000;
 
     /**
+     * Name of the attribute set to {@code true} by the framework in the channel configuration passed to
+     * {@link #decorate(Multi, List, Config)} when the decorated publisher feeds an outgoing channel, such as an
+     * emitter (or another upstream publisher) bound to an outbound connector.
+     * <p>
+     * Such a channel has a connector configuration, but it is not a connector's incoming stream: the default
+     * implementation of {@link #decorate(Multi, List, Config)} passes {@code isConnector = false} for it, as for any
+     * emitter channel. See {@link #isConnectorChannel(Config)}.
+     */
+    String EMITTER_CHANNEL_ATTRIBUTE = "emitter-channel";
+
+    /**
      * Decorate a Multi
      *
      * @param publisher the multi to decorate
@@ -61,12 +72,25 @@ public interface PublisherDecorator extends Prioritized {
      *
      * @param publisher the multi to decorate
      * @param channelName the list of channel names from which this publisher publishes
-     * @param channelConfig the channel configuration, or {@code null} if not a connector channel
+     * @param channelConfig the channel configuration, or {@code null} if the channel has no connector configuration.
+     *        For an emitter channel bound to an outbound connector, it carries the
+     *        {@link #EMITTER_CHANNEL_ATTRIBUTE} attribute.
      * @return the extended multi
      */
     default Multi<? extends Message<?>> decorate(Multi<? extends Message<?>> publisher, List<String> channelName,
             Config channelConfig) {
-        return decorate(publisher, channelName, channelConfig != null);
+        return decorate(publisher, channelName, isConnectorChannel(channelConfig));
+    }
+
+    /**
+     * Whether the decorated publisher is a connector's incoming stream.
+     *
+     * @param channelConfig the channel configuration passed to {@link #decorate(Multi, List, Config)}, may be {@code null}
+     * @return {@code true} if a configuration is present and it is not flagged with {@link #EMITTER_CHANNEL_ATTRIBUTE}
+     */
+    static boolean isConnectorChannel(Config channelConfig) {
+        return channelConfig != null
+                && !channelConfig.getOptionalValue(EMITTER_CHANNEL_ATTRIBUTE, Boolean.class).orElse(false);
     }
 
     @Override

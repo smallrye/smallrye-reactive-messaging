@@ -8,6 +8,8 @@ import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.spi.Connector;
 import org.eclipse.microprofile.reactive.messaging.spi.ConnectorFactory;
 
+import io.smallrye.reactive.messaging.PausableChannelConfiguration;
+
 /**
  * SPI used to implement a connector managing a source of messages for a specific <em>transport</em>. For example, to
  * handle the consumption of records from Kafka, the reactive messaging extension would need to implement a {@code bean}
@@ -87,7 +89,7 @@ import org.eclipse.microprofile.reactive.messaging.spi.ConnectorFactory;
  * Instead of a {@link org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder}, it returns a
  * {@link Flow.Publisher}.
  */
-public interface InboundConnector extends ConnectorFactory {
+public interface InboundConnector extends ConnectorFactory, ConnectorLifecycle {
 
     /**
      * Creates a <em>channel</em> for the given configuration. The channel's configuration is associated with a
@@ -105,5 +107,22 @@ public interface InboundConnector extends ConnectorFactory {
      * @throws NoSuchElementException if the configuration does not contain an expected attribute.
      */
     Flow.Publisher<? extends Message<?>> getPublisher(Config config);
+
+    /**
+     * Resolves whether framework-level graceful shutdown (tracking and draining in-flight messages) is enabled for the
+     * incoming channel configured by the given {@link Config}.
+     * <p>
+     * The default implementation reads the
+     * {@link PausableChannelConfiguration#GRACEFUL_SHUTDOWN_PROPERTY graceful-shutdown}
+     * channel property and defaults to {@code false}. Connectors that declare their own default for this attribute
+     * should override this method so that the declared default applies when the property is not set.
+     *
+     * @param config the channel configuration, the same as the one passed to {@link #getPublisher(Config)}
+     * @return {@code true} if in-flight messages must be drained on shutdown
+     */
+    default boolean isGracefulShutdownEnabled(Config config) {
+        return config.getOptionalValue(PausableChannelConfiguration.GRACEFUL_SHUTDOWN_PROPERTY, Boolean.class)
+                .orElse(false);
+    }
 
 }

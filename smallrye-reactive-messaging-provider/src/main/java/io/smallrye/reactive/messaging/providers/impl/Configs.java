@@ -10,6 +10,8 @@ import java.util.stream.Collectors;
 
 import org.eclipse.microprofile.config.Config;
 
+import io.smallrye.reactive.messaging.PublisherDecorator;
+
 public final class Configs {
 
     private Configs() {
@@ -49,6 +51,22 @@ public final class Configs {
 
     public static Config prefix(String prefix, Config config) {
         return new PrefixedConfig(config, prefix);
+    }
+
+    /**
+     * Flags the configuration of a channel fed by an emitter (or another upstream publisher) bound to an outbound
+     * connector, before passing it to the {@link PublisherDecorator}s, so they don't
+     * treat it as a connector's incoming stream.
+     *
+     * @param config the channel configuration, may be {@code null}
+     * @return the flagged configuration, or {@code null} if {@code config} is {@code null}
+     * @see PublisherDecorator#EMITTER_CHANNEL_ATTRIBUTE
+     */
+    public static Config emitterChannel(Config config) {
+        if (config == null) {
+            return null;
+        }
+        return override(config, Map.of(PublisherDecorator.EMITTER_CHANNEL_ATTRIBUTE, true));
     }
 
     public static Config override(Config config, Map<String, Object> overrides) {

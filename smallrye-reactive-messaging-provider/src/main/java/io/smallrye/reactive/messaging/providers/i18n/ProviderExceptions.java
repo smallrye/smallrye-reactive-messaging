@@ -306,4 +306,7 @@ public interface ProviderExceptions {
     @Message(id = 1009, value = "Unable to find a pausable channel with name `%s`")
     DefinitionException pausableChannelNotFound(String name);
 
+    @Message(id = 1010, value = "A channel named `%s` is already registered; close it before creating it again")
+    IllegalStateException channelAlreadyRegistered(String name);
+
 }
