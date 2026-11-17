@@ -52,6 +52,9 @@ public class SnsManager {
 
             log.createClientFromConfig(config.getTopicName());
 
+            if (c.getRegion() == null && c.getEndpointOverride() == null) {
+                throw new DeploymentException("The required configuration property \"region\" is missing");
+            }
             try {
                 final var builder = SnsAsyncClient.builder();
                 if (c.getEndpointOverride() != null) {

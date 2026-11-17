@@ -29,8 +29,7 @@ class SnsClientConfigTest extends SnsTestBase {
 
         // when / then
         Assertions.assertThatThrownBy(() -> runApplication(config, ProducerApp.class))
-                .hasMessageContaining("SnsAsyncClient creation failed")
-                .hasRootCauseInstanceOf(SdkClientException.class);
+                .hasMessageContaining("region");
     }
 
     @Test
