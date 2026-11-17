@@ -44,6 +44,9 @@ public class SqsManager {
             if (clientInstance.isResolvable() && !c.isComplete()) {
                 return clientInstance.get();
             }
+            if (c.getRegion() == null && c.getEndpointOverride() == null) {
+                throw new DeploymentException("The required configuration property \"region\" is missing");
+            }
             try {
                 var builder = SqsAsyncClient.builder();
                 if (c.getEndpointOverride() != null) {

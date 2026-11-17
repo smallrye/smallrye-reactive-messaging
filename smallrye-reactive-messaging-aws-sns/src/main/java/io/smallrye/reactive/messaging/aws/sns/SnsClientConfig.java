@@ -5,7 +5,6 @@ import static io.smallrye.reactive.messaging.aws.sns.i18n.AwsSnsLogging.log;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
-import software.amazon.awssdk.regions.providers.DefaultAwsRegionProviderChain;
 
 public class SnsClientConfig {
 
@@ -36,9 +35,6 @@ public class SnsClientConfig {
     }
 
     public Region getRegion() {
-        if (region == null) {
-            return DefaultAwsRegionProviderChain.builder().build().getRegion();
-        }
         return region;
     }
 
