@@ -9,7 +9,7 @@ public class PulsarMetadataExample {
     @SuppressWarnings("unchecked")
     public void metadata() {
         Message<Double> incoming = Message.of(12.0);
-        // <code>
+        // tag::code[]
         PulsarIncomingMessageMetadata metadata = incoming.getMetadata(PulsarIncomingMessageMetadata.class).orElse(null);
         if (metadata != null) {
             // The topic
@@ -29,7 +29,7 @@ public class PulsarMetadataExample {
 
             // ...
         }
-        // </code>
+        // end::code[]
     }
 
 }

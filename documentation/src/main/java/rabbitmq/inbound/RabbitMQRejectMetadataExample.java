@@ -13,12 +13,12 @@ import io.smallrye.reactive.messaging.rabbitmq.RabbitMQRejectMetadata;
 @ApplicationScoped
 public class RabbitMQRejectMetadataExample {
 
-    // <code>
+    // tag::code[]
     @Incoming("in")
     public CompletionStage<Void> consume(Message<String> message) {
         return message.nack(new Exception("Failed!"), Metadata.of(
                 new RabbitMQRejectMetadata(true)));
     }
-    // </code>
+    // end::code[]
 
 }

@@ -1,0 +1,58 @@
+[cols="<13%,<42%,^17%,^17%,<11%",options="header"]
+|===
+|Attribute |Description |Type |Config file |Default
+|_serviceUrl_ |Pulsar cluster HTTP URL to connect to a broker. |String |true |
+|_serviceUrlProvider_ |The implementation class of ServiceUrlProvider used to generate ServiceUrl. |ServiceUrlProvider |false |
+|_authentication_ |Authentication settings of the client. |Authentication |false |
+|_authPluginClassName_ |Class name of authentication plugin of the client. |String |true |
+|_authParams_ |Authentication parameter of the client. |String |true |
+|_authParamMap_ |Authentication map of the client. |Map |true |
+|_operationTimeoutMs_ |Client operation timeout (in milliseconds). |long |true |30000
+|_lookupTimeoutMs_ |Client lookup timeout (in milliseconds). |long |true |-1
+|_statsIntervalSeconds_ |Interval to print client stats (in seconds). |long |true |60
+|_numIoThreads_ |Number of IO threads. |int |true |16
+|_numListenerThreads_ |Number of consumer listener threads. |int |true |16
+|_connectionsPerBroker_ |Number of connections established between the client and each Broker. A value of 0 means to disable connection pooling. |int |true |1
+|_connectionMaxIdleSeconds_ |Release the connection if it is not used for more than [connectionMaxIdleSeconds] seconds. If  [connectionMaxIdleSeconds] < 0, disabled the feature that auto release the idle connections |int |true |180
+|_useTcpNoDelay_ |Whether to use TCP NoDelay option. |boolean |true |true
+|_useTls_ |Whether to use TLS. |boolean |true |false
+|_tlsKeyFilePath_ |Path to the TLS key file. |String |true |
+|_tlsCertificateFilePath_ |Path to the TLS certificate file. |String |true |
+|_tlsTrustCertsFilePath_ |Path to the trusted TLS certificate file. |String |true |
+|_tlsAllowInsecureConnection_ |Whether the client accepts untrusted TLS certificates from the broker. |boolean |true |false
+|_tlsHostnameVerificationEnable_ |Whether the hostname is validated when the client creates a TLS connection with brokers. |boolean |true |false
+|_concurrentLookupRequest_ |The number of concurrent lookup requests that can be sent on each broker connection. Setting a maximum prevents overloading a broker. |int |true |5000
+|_maxLookupRequest_ |Maximum number of lookup requests allowed on each broker connection to prevent overloading a broker. |int |true |50000
+|_maxLookupRedirects_ |Maximum times of redirected lookup requests. |int |true |20
+|_maxNumberOfRejectedRequestPerConnection_ |Maximum number of rejected requests of a broker in a certain time frame (60 seconds) after the current connection is closed and the client creating a new connection to connect to a different broker. |int |true |50
+|_keepAliveIntervalSeconds_ |Seconds of keeping alive interval for each client broker connection. |int |true |30
+|_connectionTimeoutMs_ |Duration of waiting for a connection to a broker to be established.If the duration passes without a response from a broker, the connection attempt is dropped. |int |true |10000
+|_requestTimeoutMs_ |Maximum duration for completing a request. |int |true |60000
+|_readTimeoutMs_ |Maximum read time of a request. |int |true |60000
+|_autoCertRefreshSeconds_ |Seconds of auto refreshing certificate. |int |true |300
+|_initialBackoffIntervalNanos_ |Initial backoff interval (in nanosecond). |long |true |100000000
+|_maxBackoffIntervalNanos_ |Max backoff interval (in nanosecond). |long |true |60000000000
+|_enableBusyWait_ |Whether to enable BusyWait for EpollEventLoopGroup. |boolean |true |false
+|_listenerName_ |Listener name for lookup. Clients can use listenerName to choose one of the listeners as the service URL to create a connection to the broker as long as the network is accessible."advertisedListeners" must enabled in broker side. |String |true |
+|_useKeyStoreTls_ |Set TLS using KeyStore way. |boolean |true |false
+|_sslProvider_ |The TLS provider used by an internal client to authenticate with other Pulsar brokers. |String |true |
+|_tlsKeyStoreType_ |TLS KeyStore type configuration. |String |true |JKS
+|_tlsKeyStorePath_ |Path of TLS KeyStore. |String |true |
+|_tlsKeyStorePassword_ |Password of TLS KeyStore. |String |true |
+|_tlsTrustStoreType_ |TLS TrustStore type configuration. You need to set this configuration when client authentication is required. |String |true |JKS
+|_tlsTrustStorePath_ |Path of TLS TrustStore. |String |true |
+|_tlsTrustStorePassword_ |Password of TLS TrustStore. |String |true |
+|_tlsCiphers_ |Set of TLS Ciphers. |Set |true |[]
+|_tlsProtocols_ |Protocols of TLS. |Set |true |[]
+|_memoryLimitBytes_ |Limit of client memory usage (in byte). The 64M default can guarantee a high producer throughput. |long |true |67108864
+|_proxyServiceUrl_ |URL of proxy service. proxyServiceUrl and proxyProtocol must be mutually inclusive. |String |true |
+|_proxyProtocol_ |Protocol of proxy service. proxyServiceUrl and proxyProtocol must be mutually inclusive. |ProxyProtocol |true |
+|_enableTransaction_ |Whether to enable transaction. |boolean |true |false
+|_clock_ | |Clock |false |
+|_dnsLookupBindAddress_ |The Pulsar client dns lookup bind address, default behavior is bind on 0.0.0.0 |String |true |
+|_dnsLookupBindPort_ |The Pulsar client dns lookup bind port, takes effect when dnsLookupBindAddress is configured, default value is 0. |int |true |0
+|_socks5ProxyAddress_ |Address of SOCKS5 proxy. |InetSocketAddress |true |
+|_socks5ProxyUsername_ |User name of SOCKS5 proxy. |String |true |
+|_socks5ProxyPassword_ |Password of SOCKS5 proxy. |String |true |
+|_description_ |The extra description of the client version. The length cannot exceed 64. |String |true |
+|===

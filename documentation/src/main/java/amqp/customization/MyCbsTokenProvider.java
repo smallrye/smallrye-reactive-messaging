@@ -10,7 +10,7 @@ import io.smallrye.reactive.messaging.amqp.cbs.CbsToken;
 import io.smallrye.reactive.messaging.amqp.cbs.CbsTokenProvider;
 import io.smallrye.reactive.messaging.amqp.cbs.DefaultCbsToken;
 
-// <provider>
+// tag::provider[]
 @ApplicationScoped
 public class MyCbsTokenProvider implements CbsTokenProvider {
 
@@ -29,4 +29,4 @@ public class MyCbsTokenProvider implements CbsTokenProvider {
         return "my-jwt-token";
     }
 }
-// </provider>
+// end::provider[]

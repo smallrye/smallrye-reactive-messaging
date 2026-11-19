@@ -8,7 +8,7 @@ import io.smallrye.mutiny.Multi;
 
 public class StreamSkip {
 
-    // <skip>
+    // tag::skip[]
     @Incoming("in")
     @Outgoing("out-1")
     public Multi<String> processPayload(String s) {
@@ -43,6 +43,6 @@ public class StreamSkip {
                 .select().where(m -> !m.getPayload().equalsIgnoreCase("skip"))
                 .onItem().transform(m -> m.withPayload(m.getPayload().toUpperCase()));
     }
-    // </skip>
+    // end::skip[]
 
 }

@@ -8,7 +8,7 @@ import io.smallrye.reactive.messaging.amqp.cbs.CbsToken;
 import io.smallrye.reactive.messaging.amqp.cbs.CbsTokenProvider;
 import io.smallrye.reactive.messaging.amqp.cbs.DefaultCbsToken;
 
-// <sas-provider>
+// tag::sas-provider[]
 @ApplicationScoped
 public class MySasTokenProvider implements CbsTokenProvider {
 
@@ -26,4 +26,4 @@ public class MySasTokenProvider implements CbsTokenProvider {
         return "SharedAccessSignature sr=...";
     }
 }
-// </sas-provider>
+// end::sas-provider[]

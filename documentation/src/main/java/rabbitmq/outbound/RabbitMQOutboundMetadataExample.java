@@ -11,7 +11,7 @@ public class RabbitMQOutboundMetadataExample {
 
     public Message<String> metadata(Message<String> incoming) {
 
-        // <code>
+        // tag::code[]
         final OutgoingRabbitMQMetadata metadata = OutgoingRabbitMQMetadata.builder()
                 .withHeader("my-header", "xyzzy")
                 .withRoutingKey("urgent")
@@ -20,7 +20,7 @@ public class RabbitMQOutboundMetadataExample {
 
         // Add `metadata` to the metadata of the outgoing message.
         return Message.of("Hello", Metadata.of(metadata));
-        // </code>
+        // end::code[]
     }
 
 }

@@ -1,0 +1,158 @@
+= Kafka Companion
+:version-root: ../
+include::{version-root}_attributes.adoc[]
+
+[WARNING]
+.Experimental
+====
+
+Kafka Companion is experimental and APIs are subject to change in the future.
+
+====
+
+The *Kafka Companion* is a separate Java library for helping to test Kafka applications.
+It is not intended to mock Kafka, but to the contrary, connect to a Kafka broker and provide high-level features.
+
+It is not limited to the SmallRye Reactive Messaging testing, but intends to improve the testability of applications using Kafka. Some of its features:
+
+* Running In-container Kafka broker for tests via https://github.com/strimzi/test-container[strimzi-test-container].
+* Running the Kafka broker behind a https://github.com/Shopify/toxiproxy[toxiproxy] for simulating network issues.
+* Running embedded Kafka Kraft broker for tests.
+* Base classes for tests to bootstrap tests.
+* Companion classes for easily creating tasks to produce and consume Kafka records.
+* Writing assertions for produce and consume tasks, state of consumers, topics, offsets etc.
+
+== Getting started writing tests
+
+Easiest way of starting to write Kafka tests is to extend `KafkaCompanionTestBase`.
+It starts a single-node Kafka broker for the test suite using testcontainers and creates the `KafkaCompanion` to connect to this broker:
+
+[source,java]
+----
+include::{examples-dir}/kafka/companion/KafkaWithBaseTest.java[tags=code,indent=0]
+----
+
+`KafkaCompanion` can be used on its own to connect to a broker:
+
+[source,java]
+----
+include::{examples-dir}/kafka/companion/KafkaTest.java[tags=companion,indent=0]
+----
+
+There are a couple of things to note on how Kafka companion handles *producers*, *consumers* and *tasks*:
+
+`ProducerBuilder` and `ConsumerBuilder` lazy descriptions of with which configuration to create a producer or a consumer.
+
+`ProducerTask` and `ConsumerTask` run asynchronously on dedicated threads and are started as soon as they are created.
+A task terminates when it is explicitly stopped, when it's predefined duration or number of records has been produced/consumed, or when it encounters an error.
+An exterior thread can await on records processed, or simply on termination of the task.
+At a given time produced or consumed records are accessible through the task.
+
+The actual creation of the producer or consumer happens when a task is started. When the task terminates the producer or the consumer is automatically closed.
+
+For example, in the previous example:
+
+[arabic]
+. We described a producer with a client id `my-producer` and `max.block.ms` of 5 seconds.
+. Then we created a task to produce 100 records using the generator function, without waiting for its completion.
+. We then described a consumer with group id `my-group` and which commits offset synchronously on every received record.
+. Finally, we created a task to consume records for 10 seconds and await its completion.
+
+== Producing records
+
+=== Produce from records
+
+Produce given records:
+
+[source,java]
+----
+include::{examples-dir}/kafka/companion/ProducerTest.java[tags=records,indent=0]
+----
+
+=== Produce from generator function
+
+Produce 10 records using the generator function:
+
+[source,java]
+----
+include::{examples-dir}/kafka/companion/ProducerTest.java[tags=generator,indent=0]
+----
+
+=== Produce from CSV file
+
+Given a comma-separated file `records.csv` with the following content
+
+[source,csv]
+----
+messages,0,a,asdf
+messages,1,b,asdf
+messages,3,c,asdf
+----
+
+Produce records from the file:
+
+[source,java]
+----
+include::{examples-dir}/kafka/companion/ProducerTest.java[tags=csv,indent=0]
+----
+
+== Consuming records
+
+=== Consume from topics
+
+[source,java]
+----
+include::{examples-dir}/kafka/companion/ConsumerTest.java[tags=topics,indent=0]
+----
+
+=== Consume from offsets
+
+[source,java]
+----
+include::{examples-dir}/kafka/companion/ConsumerTest.java[tags=offsets,indent=0]
+----
+
+=== Consumer assignment and offsets
+
+During execution of the consumer task, information about the underlying consumer's topic partition assignment, position or committed offsets can be accessed.
+
+[source,java]
+----
+include::{examples-dir}/kafka/companion/ConsumerTest.java[tags=committed,indent=0]
+----
+
+== Registering Custom Serdes
+
+KafkaCompanion handles Serializers and Deserializers for default types such as primitives, String, ByteBuffer, UUID.
+
+Serdes for custom types can be registered to the companion object, and will be used for producer and consumer tasks:
+
+[source,java]
+----
+include::{examples-dir}/kafka/companion/KafkaTest.java[tags=serdes,indent=0]
+----
+
+== Topics
+
+Create, list, describe and delete topics:
+
+[source,java]
+----
+include::{examples-dir}/kafka/companion/TopicsTest.java[tags=code,indent=0]
+----
+
+== Consumer Groups and Offsets
+
+List topic partition offsets:
+
+[source,java]
+----
+include::{examples-dir}/kafka/companion/OffsetsTest.java[tags=offsets,indent=0]
+----
+
+List, describe, alter consumer groups and their offsets:
+
+[source,java]
+----
+include::{examples-dir}/kafka/companion/OffsetsTest.java[tags=consumerGroups,indent=0]
+----

@@ -10,12 +10,12 @@ import io.smallrye.reactive.messaging.kafka.Record;
 @ApplicationScoped
 public class KafkaRecordExample {
 
-    // <code>
+    // tag::code[]
     @Incoming("in")
     @Outgoing("out")
     public Record<String, String> process(String in) {
         return Record.of("my-key", in);
     }
-    // </code>
+    // end::code[]
 
 }

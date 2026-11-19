@@ -11,7 +11,7 @@ import io.smallrye.common.annotation.Identifier;
 
 public class RabbitMQProducers {
 
-    // <named>
+    // tag::named[]
     @Produces
     @Identifier("my-named-options")
     public ConnectionFactory getNamedOptions() throws NoSuchAlgorithmException, KeyManagementException {
@@ -24,6 +24,6 @@ public class RabbitMQProducers {
         factory.setNetworkRecoveryInterval(5000);
         return factory;
     }
-    // </named>
+    // end::named[]
 
 }

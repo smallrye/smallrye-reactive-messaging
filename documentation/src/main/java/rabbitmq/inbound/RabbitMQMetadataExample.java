@@ -11,7 +11,7 @@ import io.smallrye.reactive.messaging.rabbitmq.IncomingRabbitMQMetadata;
 public class RabbitMQMetadataExample {
 
     public void metadata(final Message<String> incomingMessage) {
-        // <code>
+        // tag::code[]
         final Optional<IncomingRabbitMQMetadata> metadata = incomingMessage.getMetadata(IncomingRabbitMQMetadata.class);
         metadata.ifPresent(meta -> {
             final String contentEncoding = meta.getContentEncoding();
@@ -29,7 +29,7 @@ public class RabbitMQMetadataExample {
             final Map<String, Object> headers = meta.getHeaders();
             // ...
         });
-        // </code>
+        // end::code[]
     }
 
 }

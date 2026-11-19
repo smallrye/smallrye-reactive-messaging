@@ -12,7 +12,7 @@ import io.smallrye.reactive.messaging.kafka.queues.ShareGroupAcknowledgement;
 @ApplicationScoped
 public class KafkaShareGroupBatchAckExample {
 
-    // <code>
+    // tag::code[]
     @Incoming("queue")
     public void consume(ConsumerRecords<String, Double> records,
             IncomingKafkaRecordBatchMetadata<String, Double> batchMetadata) {
@@ -25,6 +25,6 @@ public class KafkaShareGroupBatchAckExample {
             }
         }
     }
-    // </code>
+    // end::code[]
 
 }

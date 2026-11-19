@@ -13,7 +13,7 @@ import messages.MyMetadata;
 
 public class MetadataInjectionExample {
 
-    //<code>
+    //tag::code[]
     @Incoming("in")
     @Outgoing("out")
     public String process(String payload, MyMetadata metadata) {
@@ -39,6 +39,6 @@ public class MetadataInjectionExample {
         // ...
         return CompletableFuture.completedFuture(null);
     }
-    //</code>
+    //end::code[]
 
 }

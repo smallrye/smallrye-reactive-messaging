@@ -11,7 +11,7 @@ import io.smallrye.reactive.messaging.keyed.KeyedMulti;
 
 public class KeyedExample {
 
-    // <code>
+    // tag::code[]
     @Incoming("in")
     @Outgoing("out")
     public Multi<String> reshape(
@@ -21,5 +21,5 @@ public class KeyedExample {
             return i;
         }).map(i -> Integer.toString(i.get()));
     }
-    // </code>
+    // end::code[]
 }

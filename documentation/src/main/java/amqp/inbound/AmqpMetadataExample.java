@@ -11,7 +11,7 @@ public class AmqpMetadataExample {
 
     public void metadata() {
         Message<Double> incoming = Message.of(12.0);
-        // <code>
+        // tag::code[]
         Optional<IncomingAmqpMetadata> metadata = incoming.getMetadata(IncomingAmqpMetadata.class);
         metadata.ifPresent(meta -> {
             String address = meta.getAddress();
@@ -21,7 +21,7 @@ public class AmqpMetadataExample {
             JsonObject properties = meta.getProperties();
             // ...
         });
-        // </code>
+        // end::code[]
     }
 
 }

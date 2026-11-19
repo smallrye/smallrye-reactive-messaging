@@ -16,7 +16,7 @@ import io.smallrye.reactive.messaging.kafka.companion.ProducerBuilder;
 public class KafkaTest {
 
     public void newCompanion() {
-        // <companion>
+        // tag::companion[]
         // Create companion with bootstrap servers and API timeout (default is 10 seconds)
         KafkaCompanion companion = new KafkaCompanion("localhost:9092", Duration.ofSeconds(5));
 
@@ -33,11 +33,11 @@ public class KafkaTest {
         ConsumerTask<String, Integer> records = consumer.fromTopics("topic", Duration.ofSeconds(10));
         // Await completion and assert consumed record count
         Assertions.assertEquals(records.awaitCompletion().count(), 100);
-        // </companion>
+        // end::companion[]
     }
 
     public void serdes() {
-        // <serdes>
+        // tag::serdes[]
         KafkaCompanion companion = new KafkaCompanion("localhost:9092");
 
         // Register serde to the companion
@@ -50,7 +50,7 @@ public class KafkaTest {
         for (ConsumerRecord<Integer, Orders> order : orders) {
             // ... check consumed records
         }
-        // </serdes>
+        // end::serdes[]
     }
 
     public static class Orders {

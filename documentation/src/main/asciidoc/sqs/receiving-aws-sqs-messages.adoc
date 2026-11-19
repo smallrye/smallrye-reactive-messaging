@@ -1,0 +1,140 @@
+= Receiving AWS SQS Messages
+:version-root: ../
+include::{version-root}_attributes.adoc[]
+
+The AWS SQS connector allows you to receive messages from an AWS SQS queue.
+
+== Receiving messages
+
+Before you start, you need to have an AWS account and a SQS queue created.
+To receive messages from an SQS queue, you need to create a method that consumes messages from the queue.
+
+[source,properties]
+----
+mp.messaging.incoming.data.connector=smallrye-sqs
+mp.messaging.incoming.data.queue=my-queue
+----
+
+Then, your application receives `Message++<++String++>++`.
+You can consume the payload directly:
+
+[source,java]
+----
+include::{examples-dir}/sqs/inbound/SqsStringConsumer.java[indent=0]
+----
+
+Or, you can retrieve the `Message++<++String++>++`:
+
+[source,java]
+----
+include::{examples-dir}/sqs/inbound/SqsMessageStringConsumer.java[indent=0]
+----
+
+You also can directly consume the `software.amazon.awssdk.services.sqs.model.Message`:
+
+[source,java]
+----
+include::{examples-dir}/sqs/inbound/SqsSdkMessageConsumer.java[indent=0]
+----
+
+=== Receive message request customizer
+
+The receive message requests sent to AWS SQS can be customized by providing a CDI bean implementation of
+link:https://javadoc.io/doc/io.smallrye.reactive/smallrye-reactive-messaging-aws-sqs/{javadoc-version}/io/smallrye/reactive/messaging/aws/sqs/SqsReceiveMessageRequestCustomizer.html[`SqsReceiveMessageRequestCustomizer`]
+and configuring it's identifier using the `receive.request.customizer` connector attribute.
+
+[source,java]
+----
+include::{examples-dir}/sqs/inbound/SqsReceiveMessageRequestCustomizerExample.java[indent=0]
+----
+
+[source,properties]
+----
+mp.messaging.incoming.data.connector=smallrye-sqs
+mp.messaging.incoming.data.queue=my-queue
+mp.messaging.incoming.data.receive.request.customizer=my-customizer
+----
+
+Receive requests failed with retryable exceptions are retried automatically, by setting the failed request id.
+
+=== Receive message request pause and resume
+
+The AWS SQS connector fetches messages by continuously sending receive message requests.
+If messages are not processed in a timely manner, the connector pauses fetching messages until queued messages are processed.
+
+The pause resume can be disabled using the `receive.request.pause.resume` connector attribute.
+
+[source,properties]
+----
+mp.messaging.incoming.data.receive.request.pause.resume=false
+----
+
+== Deserialization
+
+The connector converts incoming SQS Messages into Reactive Messaging `Message++<++T++>++` instances.
+
+The payload type `T` is determined based on the value of the SQS message attribute `++_++classname`.
+
+If you send messages with the AWS SQS connector (outbound connector),
+the `++_++classname` attribute is automatically added to the message.
+The primitive types are transformed from the string representation to the corresponding Java type.
+For objects, if one of the `JsonMapping` modules is present on the classpath,
+the connector used that JSON module to deserialize the message body to objects.
+
+If the `++_++classname` attribute is not present, the payload is deserialized as a `String`.
+
+[source,java]
+----
+include::{examples-dir}/sqs/json/SqsJsonMapping.java[tags=code,indent=0]
+----
+
+== Inbound Metadata
+
+Messages coming from SQS contain an instance of link:https://javadoc.io/doc/io.smallrye.reactive/smallrye-reactive-messaging-aws-sqs/{javadoc-version}/io/smallrye/reactive/messaging/aws/sqs/SqsIncomingMetadata.html[`SqsIncomingMetadata`]
+in the metadata.
+
+SQS message attributes can be accessed from the metadata either by name or by the `MessageAttributeValue` object.
+
+[source,java]
+----
+include::{examples-dir}/sqs/inbound/SqsMetadataExample.java[indent=0]
+----
+
+== Acknowledgement Strategies
+
+The default strategy for acknowledging AWS SQS Message is to _delete_ the message from the queue.
+You can set the `ack-strategy` attribute to `ignore` if you want to ignore the message.
+
+++[++NOTE++]++ Deprecated
+`ack.delete` attribute is deprecated and will be removed in a future release.
+
+You can implement a custom strategy by implementing the link:https://javadoc.io/doc/io.smallrye.reactive/smallrye-reactive-messaging-aws-sqs/{javadoc-version}/io/smallrye/reactive/messaging/aws/sqs/SqsAckHandler.html[`SqsAckHandler`],
+interface with a `Factory` class and registering it as a CDI bean with an `@Identifier`.
+
+[source,java]
+----
+include::{examples-dir}/sqs/inbound/SqsCustomAckStrategy.java[indent=0]
+----
+
+== Failure Strategies
+
+The default strategy for handling message processing failures is `ignore`.
+It lets the visibility timeout of the message consumer to expire and reconsume the message.
+
+Other possible strategies are:
+
+* `fail`: the failure is logged and the channel fail-stops.
+* `delete`: the message is removed from the queue.
+* `visibility`: the message visibility timeout is reset to 0.
+
+You can implement a custom strategy by implementing the link:https://javadoc.io/doc/io.smallrye.reactive/smallrye-reactive-messaging-aws-sqs/{javadoc-version}/io/smallrye/reactive/messaging/aws/sqs/SqsFailureHandler.html[`SqsFailureHandler`],
+interface with a `Factory` class and registering it as a CDI bean with an `@Identifier`.
+
+[source,java]
+----
+include::{examples-dir}/sqs/inbound/SqsCustomNackStrategy.java[indent=0]
+----
+
+== Configuration Reference
+
+include::{generated-dir}/smallrye-sqs-incoming.adoc[]

@@ -30,7 +30,7 @@ public class MyOutgoingChannelWithPartials {
         this.client = client;
         this.topic = oc.getTopic().orElse(oc.getChannel());
         this.tracingEnabled = true;
-        // <sender-processor>
+        // tag::sender-processor[]
         long requests = oc.getMaxPendingMessages();
         boolean waitForWriteCompletion = oc.getWaitForWriteCompletion();
         if (requests <= 0) {
@@ -40,12 +40,12 @@ public class MyOutgoingChannelWithPartials {
         this.subscriber = MultiUtils.via(processor, m -> m.onFailure().invoke(f -> {
             // log the failure
         }));
-        // </sender-processor>
+        // end::sender-processor[]
         instrumenter = MyOpenTelemetryInstrumenter.createInstrumenter(false);
 
     }
 
-    // <send-message>
+    // tag::send-message[]
     private Uni<Void> publishMessage(BrokerClient client, Message<?> message) {
         // construct the outgoing message
         SendMessage sendMessage;
@@ -66,9 +66,9 @@ public class MyOutgoingChannelWithPartials {
                 .onItem().transformToUni(receipt -> Uni.createFrom().completionStage(message.ack()))
                 .onFailure().recoverWithUni(t -> Uni.createFrom().completionStage(message.nack(t)));
     }
-    // </send-message>
+    // end::send-message[]
 
-    // <outgoing-tracing>
+    // tag::outgoing-tracing[]
     private Uni<Void> publishMessageWithTracing(BrokerClient client, Message<?> message) {
         // construct the outgoing message
         SendMessage sendMessage;
@@ -97,7 +97,7 @@ public class MyOutgoingChannelWithPartials {
                 .onItem().transformToUni(receipt -> Uni.createFrom().completionStage(message.ack()))
                 .onFailure().recoverWithUni(t -> Uni.createFrom().completionStage(message.nack(t)));
     }
-    // </outgoing-tracing>
+    // end::outgoing-tracing[]
 
     public Flow.Subscriber<? extends Message<?>> getSubscriber() {
         return this.subscriber;

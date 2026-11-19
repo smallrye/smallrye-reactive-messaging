@@ -16,7 +16,7 @@ public class KafkaManualPartitionPauseResume {
     @Inject
     KafkaClientService kafkaClientService;
 
-    // <code>
+    // tag::code[]
     public void manualPartitionPauseResume() {
         KafkaConsumer<String, String> consumer = kafkaClientService.getConsumer("my-channel");
         TopicPartition tp = new TopicPartition("my-topic", 0);
@@ -33,5 +33,5 @@ public class KafkaManualPartitionPauseResume {
         // Pause all assigned partitions
         consumer.pauseAssignedPartitions().await().indefinitely();
     }
-    // </code>
+    // end::code[]
 }

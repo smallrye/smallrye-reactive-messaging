@@ -16,30 +16,30 @@ public class ConsumerTest extends KafkaCompanionTestBase {
 
     @Test
     public void fromTopics() {
-        // <topics>
+        // tag::topics[]
         companion.consumeIntegers().fromTopics("topic1", "topic2");
-        // </topics>
+        // end::topics[]
     }
 
     @Test
     public void fromOffset() {
-        // <offsets>
+        // tag::offsets[]
         Map<TopicPartition, Long> offsets = new HashMap<>();
         offsets.put(new TopicPartition("topic1", 0), 100L);
         offsets.put(new TopicPartition("topic2", 0), 100L);
         companion.consumeIntegers().fromOffsets(offsets, Duration.ofSeconds(10));
-        // </offsets>
+        // end::offsets[]
     }
 
     @Test
     public void committed() {
-        // <committed>
+        // tag::committed[]
         ConsumerBuilder<String, Integer> consumer = companion.consumeIntegers()
                 .withAutoCommit();
         consumer.fromTopics("topic");
         // ...
         await().untilAsserted(consumer::waitForAssignment);
         consumer.committed(new TopicPartition("topic", 1));
-        // </committed>
+        // end::committed[]
     }
 }

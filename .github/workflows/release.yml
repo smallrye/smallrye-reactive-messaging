@@ -28,8 +28,3 @@ jobs:
         secrets: inherit
         with:
             version: ${{github.event.inputs.tag || github.ref_name}}
-
-    deploy-site:
-        name: GitHub Pages
-        needs: perform-release
-        uses: ./.github/workflows/push-deploy-docs.yml

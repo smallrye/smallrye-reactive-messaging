@@ -14,7 +14,7 @@ import io.smallrye.reactive.messaging.pulsar.PulsarIncomingBatchMessageMetadata;
 @ApplicationScoped
 public class PulsarMessageBatchExample {
 
-    // <code>
+    // tag::code[]
     @Incoming("prices")
     public CompletionStage<Void> consumeMessage(Message<List<Double>> messages) {
         messages.getMetadata(PulsarIncomingBatchMessageMetadata.class).ifPresent(metadata -> {
@@ -35,9 +35,9 @@ public class PulsarMessageBatchExample {
             //... process messages
         }
     }
-    // </code>
+    // end::code[]
 
-    // <batch>
+    // tag::batch[]
     @Incoming("prices")
     public void consumeMessages(org.apache.pulsar.client.api.Messages<Double> messages,
             PulsarIncomingBatchMessageMetadata metadata) {
@@ -49,6 +49,6 @@ public class PulsarMessageBatchExample {
             //... process messages
         }
     }
-    // </batch>
+    // end::batch[]
 
 }

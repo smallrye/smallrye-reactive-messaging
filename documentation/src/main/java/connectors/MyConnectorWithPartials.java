@@ -20,7 +20,7 @@ import io.smallrye.reactive.messaging.health.HealthReporter;
 import io.smallrye.reactive.messaging.providers.connectors.ExecutionHolder;
 import io.vertx.mutiny.core.Vertx;
 
-// <health-report>
+// tag::health-report[]
 @ApplicationScoped
 @Connector(MyConnectorWithPartials.CONNECTOR_NAME)
 public class MyConnectorWithPartials implements InboundConnector, OutboundConnector, HealthReporter {
@@ -66,7 +66,7 @@ public class MyConnectorWithPartials implements InboundConnector, OutboundConnec
         return builder.build();
     }
 
-    // </health-report>
+    // end::health-report[]
 
     @Inject
     ExecutionHolder executionHolder;

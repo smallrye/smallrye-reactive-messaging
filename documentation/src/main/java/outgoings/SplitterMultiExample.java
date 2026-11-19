@@ -10,7 +10,7 @@ import io.smallrye.mutiny.operators.multi.split.MultiSplitter;
 
 public class SplitterMultiExample {
 
-    // <code>
+    // tag::code[]
     enum Caps {
         ALL_CAPS,
         ALL_LOW,
@@ -32,6 +32,6 @@ public class SplitterMultiExample {
             }
         });
     }
-    // </code>
+    // end::code[]
 
 }

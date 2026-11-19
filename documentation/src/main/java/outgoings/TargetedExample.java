@@ -12,7 +12,7 @@ import io.smallrye.reactive.messaging.TargetedMessages;
 
 public class TargetedExample {
 
-    //<code>
+    //tag::code[]
     @Incoming("in")
     @Outgoing("out1")
     @Outgoing("out2")
@@ -26,9 +26,9 @@ public class TargetedExample {
         }
         return targeted;
     }
-    //</code>
+    //end::code[]
 
-    //<targeted-messages>
+    //tag::targeted-messages[]
     @Incoming("channel-in")
     @Outgoing("channel-out1")
     @Outgoing("channel-out2")
@@ -39,6 +39,6 @@ public class TargetedExample {
                 .with(Map.of("channel-out1", msg.withPayload(msg.getPayload().toUpperCase()),
                         "channel-out2", msg.withPayload(msg.getPayload().toLowerCase())));
     }
-    //</targeted-messages>
+    //end::targeted-messages[]
 
 }

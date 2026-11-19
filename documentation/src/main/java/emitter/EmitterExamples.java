@@ -12,7 +12,7 @@ import messages.MyMetadata;
 
 public class EmitterExamples {
 
-    // <payload>
+    // tag::payload[]
     @Inject
     @Channel("prices")
     Emitter<Double> emitterForPrices;
@@ -20,24 +20,24 @@ public class EmitterExamples {
     public void send(double d) {
         emitterForPrices.send(d);
     }
-    // </payload>
+    // end::payload[]
 
-    // <cs>
+    // tag::cs[]
     public void sendAndAwaitAcknowledgement(double d) {
         CompletionStage<Void> acked = emitterForPrices.send(d);
         // sending a payload returns a CompletionStage completed
         // when the message is acknowledged
         acked.toCompletableFuture().join();
     }
-    // </cs>
+    // end::cs[]
 
-    // <message>
+    // tag::message[]
     public void sendAsMessage(double d) {
         emitterForPrices.send(Message.of(d));
     }
-    // </message>
+    // end::message[]
 
-    // <message-ack>
+    // tag::message-ack[]
     public void sendAsMessageWithAck(double d) {
         emitterForPrices.send(Message.of(d, () -> {
             // Called when the message is acknowledged.
@@ -48,9 +48,9 @@ public class EmitterExamples {
                     return CompletableFuture.completedFuture(null);
                 }));
     }
-    // </message-ack>
+    // end::message-ack[]
 
-    // <message-meta>
+    // tag::message-meta[]
     public void sendAsMessageWithAckAndMetadata(double d) {
         MyMetadata metadata = new MyMetadata();
         emitterForPrices.send(Message.of(d, Metadata.of(metadata),
@@ -63,9 +63,9 @@ public class EmitterExamples {
                     return CompletableFuture.completedFuture(null);
                 }));
     }
-    // </message-meta>
+    // end::message-meta[]
 
-    // <broadcast>
+    // tag::broadcast[]
     @Inject
     @Broadcast
     @Channel("prices")
@@ -84,10 +84,10 @@ public class EmitterExamples {
     public void audit(double d) {
         // Audit the price change
     }
-    // </broadcast>
+    // end::broadcast[]
 
     static class OverflowExample {
-        // <overflow>
+        // tag::overflow[]
 
         // Set the max size to 10 and fail if reached
         @OnOverflow(value = OnOverflow.Strategy.BUFFER, bufferSize = 10)
@@ -113,7 +113,7 @@ public class EmitterExamples {
         @Channel("channel")
         Emitter<String> dropOldMessages;
 
-        // </overflow>
+        // end::overflow[]
     }
 
 }

@@ -56,4 +56,25 @@ public class ConfigurationDocWriterTest {
         assertThat(content).isNotEmpty();
     }
 
+    @Test
+    public void pipesInValuesDoNotSplitCells() throws IOException {
+        ProcessingEnvironment pe = mock(ProcessingEnvironment.class);
+        ConfigurationDocWriter writer = new ConfigurationDocWriter(pe);
+
+        List<ConnectorAttribute> attributes = new ArrayList<>();
+        attributes.add(new ConnectorAttributeLiteral("assign", "In the form `<topic>:|<partition>|:<offset>`", "string",
+                false, ConnectorAttribute.Direction.INCOMING).setDefaultValue("a|b"));
+
+        ByteArrayOutputStream boas = new ByteArrayOutputStream();
+        try (PrintWriter pw = new PrintWriter(boas)) {
+            writer.generateDocumentation(ConnectorLiteral.of("my-connector"), "Incoming", attributes,
+                    Collections.emptyList(), pw);
+            pw.flush();
+        }
+        String content = boas.toString("UTF-8");
+        assertThat(content).contains("`<topic>:\\|<partition>\\|:<offset>`").contains("`a\\|b`");
+        String row = content.substring(content.indexOf("| [.no-hyphens]#*assign*#"), content.lastIndexOf("|==="));
+        assertThat(row.replace("\\|", "").chars().filter(c -> c == '|').count()).isEqualTo(4);
+    }
+
 }

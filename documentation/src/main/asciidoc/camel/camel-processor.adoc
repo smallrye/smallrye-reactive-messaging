@@ -1,0 +1,37 @@
+= The processor pattern using Camel
+:version-root: ../
+include::{version-root}_attributes.adoc[]
+
+Using the processor pattern, you can consume on a channel using a Camel
+component, and produce on a channel using another Camel component. In
+that case, the headers present in the incoming metadata will be
+forwarded in the outgoing metadata.
+
+== Example
+
+Let’s imagine you want to read messages from a Nats subject, process it
+and produce a message on a Kafka topic.
+
+[source,properties]
+----
+mp.messaging.incoming.mynatssubject.connector=smallrye-camel # <1>
+mp.messaging.incoming.mynatssubject.endpoint-uri=nats:mynatssubject # <2>
+mp.messaging.outgoing.mykafkatopic.connector=smallrye-camel # <3>
+mp.messaging.outgoing.mykafkatopic.endpoint-uri=kafka:mykafkatopic# <4>
+
+camel.component.nats.servers=127.0.0.1:5555 # <5>
+camel.component.kafka.brokers=127.0.0.1:9092 # <6>
+----
+
+[arabic]
+. Sets the connector for the `mynatssubject` channel
+. Configures the `endpoint-uri` for nats subject
+. Sets the connector for the `mykafkatopic` channel
+. Configures the `endpoint-uri` for the kafka topic
+. Sets the URL of the nats server to use
+. Sets the URL of a kafka broker to use
+
+[source,java]
+----
+include::{examples-dir}/camel/processor/CamelProcessor.java[indent=0]
+----
