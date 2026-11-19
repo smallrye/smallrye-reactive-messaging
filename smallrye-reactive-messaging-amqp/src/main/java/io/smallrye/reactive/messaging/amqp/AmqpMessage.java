@@ -68,6 +68,7 @@ public class AmqpMessage<T> implements ContextAwareMessage<T>, MetadataInjectabl
 
         ArrayList<Object> meta = new ArrayList<>();
         meta.add(this.amqpMetadata);
+        meta.add(new AmqpAcknowledgement());
         if (cloudEventEnabled) {
             // Cloud Event detection
             AmqpCloudEventHelper.CloudEventMode mode = AmqpCloudEventHelper.getCloudEventMode(msg);
@@ -100,15 +101,22 @@ public class AmqpMessage<T> implements ContextAwareMessage<T>, MetadataInjectabl
         // We must switch to the context having created the message.
         // This context is passed when this instance of message is created.
         // It's more a Vert.x AMQP client issue which should ensure calling `accepted` on the right context.
+        java.util.function.Consumer<io.vertx.mutiny.amqp.AmqpMessage> disposition = getMetadata(AmqpAcknowledgement.class)
+                .map(AmqpAcknowledgement::getDisposition)
+                .orElse(null);
         return VertxContext.runOnContext(context.getDelegate(), f -> {
-            message.accepted();
+            if (disposition != null) {
+                disposition.accept(getAmqpMessage());
+            } else {
+                message.accepted();
+            }
             this.runOnMessageContext(() -> f.complete(null));
         });
     }
 
     @Override
     public CompletionStage<Void> nack(Throwable reason, Metadata metadata) {
-        return onNack.handle(this, context, reason);
+        return onNack.handle(this, context, reason, metadata);
     }
 
     @Override

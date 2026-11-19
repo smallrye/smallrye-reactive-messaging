@@ -27,6 +27,7 @@ import org.eclipse.microprofile.reactive.messaging.spi.Connector;
 import io.opentelemetry.api.OpenTelemetry;
 import io.smallrye.reactive.messaging.ClientCustomizer;
 import io.smallrye.reactive.messaging.amqp.cbs.CbsTokenManager;
+import io.smallrye.reactive.messaging.amqp.fault.AmqpFailureHandler;
 import io.smallrye.reactive.messaging.annotations.ConnectorAttribute;
 import io.smallrye.reactive.messaging.connector.InboundConnector;
 import io.smallrye.reactive.messaging.connector.OutboundConnector;
@@ -117,6 +118,10 @@ public class AmqpConnector implements InboundConnector, OutboundConnector, Healt
     @Any
     private Instance<CbsTokenManager.Factory> cbsTokenManagerInstance;
 
+    @Inject
+    @Any
+    private Instance<AmqpFailureHandler.Factory> failureHandlerFactories;
+
     private final Map<String, AmqpClientHolder> clients = new ConcurrentHashMap<>();
     private final Map<String, String> containerIdFingerprints = new ConcurrentHashMap<>();
 
@@ -136,6 +141,11 @@ public class AmqpConnector implements InboundConnector, OutboundConnector, Healt
         this.executionHolder = executionHolder;
     }
 
+    void setup(ExecutionHolder executionHolder, Instance<AmqpFailureHandler.Factory> failureHandlerFactories) {
+        this.executionHolder = executionHolder;
+        this.failureHandlerFactories = failureHandlerFactories;
+    }
+
     AmqpConnector() {
         // used for proxies
     }
@@ -144,7 +154,7 @@ public class AmqpConnector implements InboundConnector, OutboundConnector, Healt
     public Flow.Publisher<? extends Message<?>> getPublisher(Config config) {
         AmqpConnectorIncomingConfiguration ic = new AmqpConnectorIncomingConfiguration(config);
         IncomingAmqpChannel incoming = new IncomingAmqpChannel(ic, getClientHolder(ic), executionHolder.vertx(),
-                getCbsTokenManager(ic), openTelemetryInstance, this::reportFailure);
+                getCbsTokenManager(ic), openTelemetryInstance, failureHandlerFactories, this::reportFailure);
         incomingChannels.put(ic.getChannel(), incoming);
         return incoming.getPublisher();
     }
