@@ -658,9 +658,9 @@ class RabbitMQTest extends WeldTestBase {
         assertThat(latch.await(3, TimeUnit.MINUTES)).isTrue();
 
         DeliveryTagInterceptor interceptor = get(container, DeliveryTagInterceptor.class);
-        assertThat(interceptor.getDeliveryTags())
+        await().untilAsserted(() -> assertThat(interceptor.getDeliveryTags())
                 .hasSizeGreaterThanOrEqualTo(10)
-                .containsAll(receivedTags);
+                .containsAll(receivedTags));
     }
 
     @ApplicationScoped
