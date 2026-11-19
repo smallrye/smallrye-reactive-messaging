@@ -28,6 +28,12 @@ updates:
   - dependency-name: io.smallrye:smallrye-health
     versions:
     - "<3.0.0"
+  - dependency-name: com.fasterxml.jackson.core:*
+    versions:
+    - ">= 2.22"
+  - dependency-name: com.fasterxml.jackson:jackson-bom
+    versions:
+    - ">= 2.22"
   - dependency-name: io.vertx:vertx-stack-depchain
     versions:
     - "<4.0.0"
