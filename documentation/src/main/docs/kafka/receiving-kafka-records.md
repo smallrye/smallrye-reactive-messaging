@@ -109,16 +109,22 @@ The Kafka connector supports three strategies:
     `throttled.unprocessed-record-max-age.ms` (default: 120000). Indeed,
     this strategy cannot commit the offset as soon as a single record
     processing fails (see failure-strategy to configure what happens on
-    failing processing). If `throttled.unprocessed-record-max-age.ms` is
-    set to less than or equal to 0, it does not perform any health check
-    verification. Such a setting might lead to running out of memory if
-    there are poison pill messages. This strategy is the default if
-    `enable.auto.commit` is not explicitly set to `true`.
-    When processing involves sending to an outgoing Kafka channel, this
-    value must be greater than the producer's `delivery.timeout.ms`
-    (default: 120000ms). Otherwise, the producer may still be retrying a
-    send when the throttled commit handler considers the record as
-    unprocessed for too long, breaking the ack chain.
+    failing processing). When a record exceeds this age, the connector
+    reports a fatal failure: it closes the Kafka consumer, so the channel
+    stops consuming, and the liveness check reports the record. The
+    `failure-strategy` does not apply, as the record has not been nacked.
+    Set this value above the longest processing time of a record,
+    including the timeouts of any calls it makes. When processing
+    involves sending to an outgoing Kafka channel, this value must be
+    greater than the producer's `delivery.timeout.ms` (default:
+    120000ms), otherwise the producer may still be retrying a send when
+    the throttled commit handler considers the record as unprocessed for
+    too long, breaking the ack chain. If
+    `throttled.unprocessed-record-max-age.ms` is set to less than or
+    equal to 0, it does not perform any health check verification. Such
+    a setting might lead to running out of memory if there are poison
+    pill messages. This strategy is the default if `enable.auto.commit`
+    is not explicitly set to `true`.
 
     The `throttled` strategy supports concurrent processing with ordering
     guarantees using the `throttled.ordered` configuration. See
