@@ -307,6 +307,59 @@ public class SourceHealthCheckTest extends KafkaCompanionTestBase {
     }
 
     @Test
+    public void testWithTopicVerificationAndDeadLetterQueue() {
+        String dlqTopic = "dead-letter-topic-input";
+        KafkaMapBasedConfig config = getKafkaSourceConfig(topic)
+                .put("health-topic-verification-enabled", true)
+                .put("failure-strategy", "dead-letter-queue");
+        LazyConsumingBean bean = runApplication(config, LazyConsumingBean.class);
+
+        await().until(() -> !isStarted() && isReady());
+
+        companion.topics().createAndWait(dlqTopic, 1);
+        companion.produceIntegers().usingGenerator(i -> new ProducerRecord<>(topic, "key", i), 10);
+
+        await().until(() -> isStarted() && isReady() && isAlive());
+
+        Multi<Integer> channel = bean.getChannel();
+        channel
+                .select().first(10)
+                .collect().asList()
+                .await().atMost(Duration.ofSeconds(10));
+
+        HealthReport startup = getHealth().getStartup();
+        assertThat(startup.isOk()).isTrue();
+        assertThat(startup.getChannels()).hasSize(1);
+    }
+
+    @Test
+    public void testWithTopicVerificationAndCustomDeadLetterQueueTopic() {
+        String dlqTopic = "my-custom-dlq";
+        KafkaMapBasedConfig config = getKafkaSourceConfig(topic)
+                .put("health-topic-verification-enabled", true)
+                .put("failure-strategy", "dead-letter-queue")
+                .put("dead-letter-queue.topic", dlqTopic);
+        LazyConsumingBean bean = runApplication(config, LazyConsumingBean.class);
+
+        await().until(() -> !isStarted() && isReady());
+
+        companion.topics().createAndWait(dlqTopic, 1);
+        companion.produceIntegers().usingGenerator(i -> new ProducerRecord<>(topic, "key", i), 10);
+
+        await().until(() -> isStarted() && isReady() && isAlive());
+
+        Multi<Integer> channel = bean.getChannel();
+        channel
+                .select().first(10)
+                .collect().asList()
+                .await().atMost(Duration.ofSeconds(10));
+
+        HealthReport startup = getHealth().getStartup();
+        assertThat(startup.isOk()).isTrue();
+        assertThat(startup.getChannels()).hasSize(1);
+    }
+
+    @Test
     public void testWithTopicVerificationStartupDisabled() {
         KafkaMapBasedConfig config = getKafkaSourceConfig(topic)
                 .with("health-topic-verification-enabled", true)

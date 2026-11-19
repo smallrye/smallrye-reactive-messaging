@@ -2,6 +2,7 @@ package io.smallrye.reactive.messaging.kafka.health;
 
 import java.time.Duration;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -18,6 +19,7 @@ import org.apache.kafka.common.TopicPartition;
 import io.smallrye.reactive.messaging.health.HealthReport;
 import io.smallrye.reactive.messaging.kafka.KafkaAdmin;
 import io.smallrye.reactive.messaging.kafka.KafkaConnectorIncomingConfiguration;
+import io.smallrye.reactive.messaging.kafka.fault.KafkaFailureHandler;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaAdminClientRegistry;
 import io.smallrye.reactive.messaging.kafka.impl.KafkaSource;
 import io.smallrye.reactive.messaging.kafka.impl.ReactiveKafkaConsumer;
@@ -45,7 +47,7 @@ public class KafkaSourceHealth extends BaseHealth {
                 config.getHealthReadinessTimeout().orElse(config.getHealthTopicVerificationTimeout()));
         this.source = source;
         this.client = client;
-        this.topics = topics;
+        this.topics = addDeadLetterTopicIfConfigured(config, topics);
         this.pattern = pattern;
         if (config.getHealthReadinessTopicVerification().orElse(config.getHealthTopicVerificationEnabled())) {
             // Do not create the client if the readiness health checks are disabled
@@ -54,6 +56,18 @@ public class KafkaSourceHealth extends BaseHealth {
         } else {
             this.admin = null;
         }
+    }
+
+    private static Set<String> addDeadLetterTopicIfConfigured(KafkaConnectorIncomingConfiguration config,
+            Set<String> topics) {
+        String strategy = config.getFailureStrategy();
+        if (KafkaFailureHandler.Strategy.DEAD_LETTER_QUEUE.equals(strategy)) {
+            String dlqTopic = config.getDeadLetterQueueTopic().orElse("dead-letter-topic-" + config.getChannel());
+            Set<String> extended = new HashSet<>(topics);
+            extended.add(dlqTopic);
+            return extended;
+        }
+        return topics;
     }
 
     @Override
