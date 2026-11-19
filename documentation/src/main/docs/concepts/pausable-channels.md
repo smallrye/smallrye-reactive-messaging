@@ -18,6 +18,11 @@ To use pausable channels, you need to activate it with the configuration propert
 mp.messaging.incoming.my-channel.pausable=true
 ```
 
+When `pausable` is not set, it follows the channel's [`graceful-shutdown`](graceful-shutdown.md) setting:
+a channel with graceful shutdown enabled is pausable, as the shutdown pauses and drains it.
+Graceful shutdown is enabled by default for Kafka incoming channels, so they are pausable by default.
+Set `pausable` explicitly to override it, for example `pausable=false` to opt out.
+
 ### Configuration Options
 
 Pausable channels support the following configuration options:
@@ -53,3 +58,30 @@ and pause or resume the channel as needed:
 
 !!!warning
     Pausable channels only work with back-pressure aware subscribers, with bounded downstream requests.
+
+### Channels with concurrency
+
+An incoming channel configured with `concurrency` is consumed through several indexed channels (`channel$1`, `channel$2`, ...).
+The `PausableChannel` registered under the channel name controls all of them: pausing, resuming or draining it applies to every indexed channel.
+Each indexed channel can still be controlled on its own, using its indexed name.
+
+## Pause and Drain
+
+The `PausableChannel` interface provides a `pauseAndDrain()` method that pauses the channel
+and waits for all in-flight messages (delivered but not yet acked or nacked) to complete.
+
+This is useful for operations that require no in-flight processing,
+such as seeking a Kafka consumer to a new position or coordinating with external systems:
+
+``` java
+{{ insert('shutdown/PauseAndDrainExample.java', 'pause-drain') }}
+```
+
+The drain timeout is configurable via the `graceful-shutdown.drain-timeout` channel property (default: 10 seconds).
+
+!!! note
+    In-flight messages are only tracked when [`graceful-shutdown`](graceful-shutdown.md) is enabled for the channel.
+    Without it, `pauseAndDrain()` pauses the channel and completes immediately, without waiting for in-flight messages.
+
+`pauseAndDrain()` is also used internally during [graceful shutdown](graceful-shutdown.md)
+to ensure that all in-flight messages are processed before closing connectors.

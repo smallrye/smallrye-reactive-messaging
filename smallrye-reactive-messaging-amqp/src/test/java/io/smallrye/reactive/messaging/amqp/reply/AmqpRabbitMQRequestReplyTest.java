@@ -40,7 +40,7 @@ public class AmqpRabbitMQRequestReplyTest extends RabbitMQBrokerTestBase {
         if (container != null) {
             container.getBeanManager().createInstance()
                     .select(AmqpConnector.class, ConnectorLiteral.of(AmqpConnector.CONNECTOR_NAME))
-                    .get().terminate(null);
+                    .get().terminate();
             container.shutdown();
         }
 

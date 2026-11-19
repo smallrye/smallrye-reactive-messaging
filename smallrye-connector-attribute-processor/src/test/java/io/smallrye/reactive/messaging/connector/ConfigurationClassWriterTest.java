@@ -41,6 +41,27 @@ public class ConfigurationClassWriterTest {
         }
         String content = boas.toString("UTF-8");
         assertThat(content).contains("package org.acme;");
+        assertThat(content).contains("implements " + ConnectorConfiguration.class.getSimpleName());
     }
 
+    @Test
+    public void testCommonConfigImplementsConnectorConfiguration() throws UnsupportedEncodingException {
+        ProcessingEnvironment pe = mock(ProcessingEnvironment.class);
+        CommonConfigurationClassWriter writer = new CommonConfigurationClassWriter(pe);
+
+        List<ConnectorAttribute> attributes = new ArrayList<>();
+        attributes.add(new ConnectorAttributeLiteral("host", "the host", "string", true,
+                ConnectorAttribute.Direction.INCOMING_AND_OUTGOING));
+
+        ByteArrayOutputStream boas = new ByteArrayOutputStream();
+        try (PrintWriter pw = new PrintWriter(boas)) {
+            writer.write(attributes, "org.acme", "MyConnectorCommonConfiguration", "test-connector", pw);
+            pw.flush();
+        }
+        String content = boas.toString("UTF-8");
+        assertThat(content)
+                .contains("implements " + ConnectorConfiguration.class.getSimpleName())
+                .contains("public Config config()")
+                .contains("public String getChannel()");
+    }
 }

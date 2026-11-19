@@ -53,6 +53,7 @@ public class CommonConfigurationClassWriter {
 
         writeImportStatements(out);
         out.println("import " + ConfigProvider.class.getName() + ";");
+        out.println("import " + ConnectorConfiguration.class.getName() + ";");
         out.println("import " + ConnectorFactory.class.getName() + ";");
 
         writeClassDeclaration(simpleName, connector, out);
@@ -68,7 +69,8 @@ public class CommonConfigurationClassWriter {
         out.println("/**");
         out.println(String.format(" * Extracts the common configuration for the {@code %s} connector.", connector));
         out.println("*/");
-        out.println(String.format(" public class %s {", simpleName));
+        out.println(
+                String.format("public class %s implements %s {", simpleName, ConnectorConfiguration.class.getSimpleName()));
     }
 
     private void writeConstructorAndConfigAccessor(String simpleName, PrintWriter out) {

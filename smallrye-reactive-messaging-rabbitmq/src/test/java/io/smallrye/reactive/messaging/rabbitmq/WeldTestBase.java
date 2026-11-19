@@ -22,7 +22,9 @@ import io.smallrye.reactive.messaging.providers.extension.HealthCenter;
 import io.smallrye.reactive.messaging.providers.extension.LegacyEmitterFactoryImpl;
 import io.smallrye.reactive.messaging.providers.extension.MediatorManager;
 import io.smallrye.reactive.messaging.providers.extension.MutinyEmitterFactoryImpl;
+import io.smallrye.reactive.messaging.providers.extension.PausableChannelDecorator;
 import io.smallrye.reactive.messaging.providers.extension.ReactiveMessagingExtension;
+import io.smallrye.reactive.messaging.providers.impl.ChannelLifecycleManagerImpl;
 import io.smallrye.reactive.messaging.providers.impl.ConfiguredChannelFactory;
 import io.smallrye.reactive.messaging.providers.impl.ConnectorFactories;
 import io.smallrye.reactive.messaging.providers.impl.InternalChannelRegistry;
@@ -68,6 +70,7 @@ public class WeldTestBase extends RabbitMQBrokerTestBase {
         weld.addBeanClass(InternalChannelRegistry.class);
         weld.addBeanClass(ConnectorFactories.class);
         weld.addBeanClass(ConfiguredChannelFactory.class);
+        weld.addBeanClass(ChannelLifecycleManagerImpl.class);
         weld.addBeanClass(ChannelProducer.class);
         weld.addBeanClass(ExecutionHolder.class);
         weld.addBeanClass(WorkerPoolRegistry.class);
@@ -83,6 +86,7 @@ public class WeldTestBase extends RabbitMQBrokerTestBase {
         weld.addBeanClass(MicrometerDecorator.class);
         weld.addBeanClass(ContextDecorator.class);
         weld.addBeanClass(io.smallrye.reactive.messaging.providers.OutgoingInterceptorDecorator.class);
+        weld.addBeanClass(PausableChannelDecorator.class);
         weld.addBeanClass(RabbitMQAccept.Factory.class);
         weld.addBeanClass(RabbitMQFailStop.Factory.class);
         weld.addBeanClass(RabbitMQReject.Factory.class);
@@ -98,7 +102,7 @@ public class WeldTestBase extends RabbitMQBrokerTestBase {
     public void cleanup() {
         if (container != null) {
             container.select(RabbitMQConnector.class, ConnectorLiteral.of(RabbitMQConnector.CONNECTOR_NAME)).get()
-                    .terminate(null);
+                    .terminate();
             container.shutdown();
         }
     }
