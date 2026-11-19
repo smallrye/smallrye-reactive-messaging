@@ -39,6 +39,36 @@ public class PulsarIncomingBatchMessage<T> implements PulsarBatchMessage<T>, Met
         this.metadata = captureContextMetadata(new PulsarIncomingBatchMessageMetadata(messages, batchedMessages));
     }
 
+    PulsarIncomingBatchMessage(List<PulsarIncomingMessage<T>> messages) {
+        List<PulsarIncomingMessage<T>> copy = List.copyOf(messages);
+        List<Message<T>> rawMessages = new ArrayList<>(copy.size());
+        List<PulsarMessage<T>> wrappedMessages = new ArrayList<>(copy.size());
+        List<T> payloads = new ArrayList<>(copy.size());
+        List<PulsarIncomingMessage<?>> metadataMessages = new ArrayList<>(copy.size());
+        for (PulsarIncomingMessage<T> message : copy) {
+            rawMessages.add(message.unwrap());
+            wrappedMessages.add(message);
+            payloads.add(message.getPayload());
+            metadataMessages.add(message);
+        }
+        List<Message<T>> immutableRawMessages = Collections.unmodifiableList(rawMessages);
+        this.delegate = new Messages<T>() {
+            @Override
+            public int size() {
+                return immutableRawMessages.size();
+            }
+
+            @Override
+            public Iterator<Message<T>> iterator() {
+                return immutableRawMessages.iterator();
+            }
+        };
+        this.incomingMessages = Collections.unmodifiableList(wrappedMessages);
+        this.payload = Collections.unmodifiableList(payloads);
+        this.metadata = captureContextMetadata(new PulsarIncomingBatchMessageMetadata(
+                this.delegate, Collections.unmodifiableList(metadataMessages)));
+    }
+
     @Override
     public List<T> getPayload() {
         return this.payload;
