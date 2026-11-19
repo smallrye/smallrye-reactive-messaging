@@ -165,7 +165,7 @@ public class ConnectionHolder {
             if (connection == null || !connection.isOpen()) {
                 throw ex.illegalStateConnectionClosed();
             }
-            ch = connection.createChannel();
+            ch = createChannelOrFail(name);
             sharedChannels.put(name, ch);
         }
         return ch;
@@ -182,11 +182,25 @@ public class ConnectionHolder {
 
         try {
             log.creatingChannel(channelName);
-            return connection.createChannel();
+            return createChannelOrFail(channelName);
         } catch (IOException e) {
             log.unableToCreateClient(e);
             throw ex.illegalStateUnableToCreateChannel(e);
         }
+    }
+
+    /**
+     * Creates a channel, or fails if the connection has no channel number left.
+     * <p>
+     * Connection#createChannel() returns null once the connection has used all the channel numbers the broker allows.
+     * Storing that null in a ConcurrentHashMap only throws a NullPointerException, so report it here.
+     */
+    private Channel createChannelOrFail(String name) throws IOException {
+        Channel channel = connection.createChannel();
+        if (channel == null) {
+            throw ex.illegalStateUnableToCreateChannelChannelMaxReached(name, connection.getChannelMax());
+        }
+        return channel;
     }
 
     public Connection getConnection() {
