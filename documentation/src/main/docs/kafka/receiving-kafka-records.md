@@ -106,7 +106,7 @@ The Kafka connector supports three strategies:
     (default: 5000)) commits the highest consecutive offset. The
     connector will be marked as unhealthy if a message associated with a
     record is not acknowledged in
-    `throttled.unprocessed-record-max-age.ms` (default: 60000). Indeed,
+    `throttled.unprocessed-record-max-age.ms` (default: 120000). Indeed,
     this strategy cannot commit the offset as soon as a single record
     processing fails (see failure-strategy to configure what happens on
     failing processing). If `throttled.unprocessed-record-max-age.ms` is
@@ -114,6 +114,11 @@ The Kafka connector supports three strategies:
     verification. Such a setting might lead to running out of memory if
     there are poison pill messages. This strategy is the default if
     `enable.auto.commit` is not explicitly set to `true`.
+    When processing involves sending to an outgoing Kafka channel, this
+    value must be greater than the producer's `delivery.timeout.ms`
+    (default: 120000ms). Otherwise, the producer may still be retrying a
+    send when the throttled commit handler considers the record as
+    unprocessed for too long, breaking the ack chain.
 
     The `throttled` strategy supports concurrent processing with ordering
     guarantees using the `throttled.ordered` configuration. See
