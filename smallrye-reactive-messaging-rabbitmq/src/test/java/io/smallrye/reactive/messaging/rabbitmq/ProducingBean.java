@@ -1,6 +1,5 @@
 package io.smallrye.reactive.messaging.rabbitmq;
 
-import java.time.Duration;
 import java.util.concurrent.Flow.Publisher;
 
 import jakarta.enterprise.context.ApplicationScoped;
@@ -28,13 +27,7 @@ public class ProducingBean {
 
     @Outgoing("data")
     public Publisher<Integer> source() {
-        return Multi.createFrom().ticks().every(Duration.ofMillis(100))
-                .map(l -> l.intValue())
-                .onItem().invoke(l -> {
-                    if (l > 9) {
-                        throw new IllegalArgumentException("Done");
-                    }
-                });
+        return Multi.createFrom().range(0, 10);
     }
 
 }
