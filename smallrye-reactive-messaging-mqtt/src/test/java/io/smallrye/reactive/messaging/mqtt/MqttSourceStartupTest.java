@@ -70,8 +70,6 @@ class MqttSourceStartupTest {
         when(holder.getClient()).thenReturn(client);
         when(holder.start()).thenReturn(Future.succeededFuture());
 
-        // Deliver synchronously to exercise the earliest possible broker replay,
-        // including the gap between onSubscribe and BroadcastProcessor registration.
         var replay = (org.mockito.stubbing.Answer<Future<Integer>>) invocation -> {
             for (int i = 0; i < MESSAGE_COUNT; i++) {
                 var message = io.vertx.mqtt.messages.MqttPublishMessage.create(i + 1, MqttQoS.AT_LEAST_ONCE,

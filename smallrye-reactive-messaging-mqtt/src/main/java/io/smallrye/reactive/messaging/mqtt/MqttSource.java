@@ -20,7 +20,6 @@ import io.smallrye.reactive.messaging.mqtt.session.MqttClientSessionOptions;
 import io.smallrye.reactive.messaging.mqtt.session.RequestedQoS;
 import io.smallrye.reactive.messaging.providers.helpers.ConfigUtils;
 import io.smallrye.reactive.messaging.providers.helpers.VertxContext;
-import io.vertx.core.Promise;
 import io.vertx.core.internal.VertxInternal;
 import io.vertx.mutiny.core.Context;
 import io.vertx.mutiny.core.Vertx;
@@ -73,30 +72,28 @@ public class MqttSource {
         holder = Clients.getHolder(vertx, options, sessionCustomizers).retain(channel);
         holder.start().onSuccess(ignore -> started.set(true));
 
-        Promise<Void> subscribed = Promise.promise();
-        if (hasV5SubOptions) {
-            subscribed.future().compose(ignored -> holder.getClient()
-                    .subscribe(topic, RequestedQoS.valueOf(qos), noLocal, retainAsPublished, retainHandling,
-                            subscriptionIdentifier))
-                    .onFailure(outcome -> log.info("Subscription failed!"))
-                    .onSuccess(outcome -> {
-                        log.info("Subscription success on topic " + topic + ", Max QoS " + outcome + ".");
-                        alive.set(true);
-                    });
-        } else {
-            subscribed.future().compose(ignored -> holder.getClient()
-                    .subscribe(topic, RequestedQoS.valueOf(qos)))
-                    .onFailure(outcome -> log.info("Subscription failed!"))
-                    .onSuccess(outcome -> {
-                        log.info("Subscription success on topic " + topic + ", Max QoS " + outcome + ".");
-                        alive.set(true);
-                    });
-        }
-
         this.source = Multi.createFrom().<MqttPublishMessage> publisher(subscriber -> {
-            // BroadcastProcessor registers the consumer after onSubscribe returns.
+            // Attach subscriber first — retained messages arrive immediately on subscribe
             holder.stream().subscribe(subscriber);
-            subscribed.tryComplete();
+            // Subscribe to the MQTT topic after the subscriber is attached
+            if (hasV5SubOptions) {
+                holder.getClient()
+                        .subscribe(topic, RequestedQoS.valueOf(qos), noLocal, retainAsPublished,
+                                retainHandling, subscriptionIdentifier)
+                        .onFailure(outcome -> log.info("Subscription failed!"))
+                        .onSuccess(outcome -> {
+                            log.info("Subscription success on topic " + topic + ", Max QoS " + outcome + ".");
+                            alive.set(true);
+                        });
+            } else {
+                holder.getClient()
+                        .subscribe(topic, RequestedQoS.valueOf(qos))
+                        .onFailure(outcome -> log.info("Subscription failed!"))
+                        .onSuccess(outcome -> {
+                            log.info("Subscription success on topic " + topic + ", Max QoS " + outcome + ".");
+                            alive.set(true);
+                        });
+            }
         })
                 .select().where(m -> MqttTopicHelper.matches(actualTopicFilter, m.topicName()))
                 .onOverflow().buffer(config.getBufferSize())
