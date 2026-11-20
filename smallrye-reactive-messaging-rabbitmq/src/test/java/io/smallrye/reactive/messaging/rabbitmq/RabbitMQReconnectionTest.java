@@ -184,13 +184,13 @@ public class RabbitMQReconnectionTest extends WeldTestBase {
             List<Integer> list = bean.getResults();
             assertThat(list).isEmpty();
 
-            AtomicInteger counter = new AtomicInteger();
-            usage.produceTenIntegers(exchangeName, queueName, routingKey, counter::getAndIncrement);
-
             proxy.disable();
             await().pollDelay(3, SECONDS).until(() -> !isRabbitMQConnectorAvailable(container));
             proxy.enable();
             await().atMost(60, SECONDS).until(() -> isRabbitMQConnectorAvailable(container));
+
+            AtomicInteger counter = new AtomicInteger();
+            usage.produceTenIntegers(exchangeName, queueName, routingKey, counter::getAndIncrement);
 
             await().atMost(60, SECONDS).until(() -> list.size() >= 10);
             assertThat(list).contains(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
