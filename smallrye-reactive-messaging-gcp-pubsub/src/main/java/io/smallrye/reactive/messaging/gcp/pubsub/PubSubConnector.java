@@ -110,7 +110,13 @@ public class PubSubConnector implements InboundConnector, OutboundConnector {
                         createTopic(pubSubConfig);
                     }
                     return await(pubSubManager.publisher(pubSubConfig).publish(buildMessage(message)));
-                }, executorService))));
+                }, executorService))
+                        // A publish failure still fails the stream, as before, after nacking the message. Placed
+                        // before the acknowledgement, so that a failed acknowledgement does not nack the message too.
+                        .onFailure().call(failure -> Uni.createFrom().completionStage(() -> message.nack(failure)))
+                        // Acknowledge the message once published, so the sender and the graceful shutdown drain
+                        // know it was sent.
+                        .onItem().call(id -> Uni.createFrom().completionStage(message::ack))));
     }
 
     private String getProjectId(Config config) {
