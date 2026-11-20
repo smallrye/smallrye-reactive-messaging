@@ -86,7 +86,7 @@ public class PulsarIncomingChannel<T> {
                     .plug(msgMulti -> {
                         // Calling getValue on the pulsar-client-internal thread to make sure the SchemaInfo is fetched
                         if (schemaRequiresBlockingFetch(schema)) {
-                            return msgMulti.onItem().invoke(org.apache.pulsar.client.api.Message::getValue);
+                            return msgMulti.onItem().invoke(PulsarIncomingChannel::prefetchSchemaInfo);
                         } else {
                             return msgMulti;
                         }
@@ -132,6 +132,20 @@ public class PulsarIncomingChannel<T> {
             instrumenter = PulsarOpenTelemetryInstrumenter.createForSource(openTelemetryInstance);
         } else {
             instrumenter = null;
+        }
+    }
+
+    /**
+     * Decodes the message to fetch the schema info on the pulsar-client-internal thread.
+     * A payload that cannot be decoded must not fail the stream here: the failure is raised again when the payload is
+     * read, where the message is nacked and handled by the failure strategy.
+     */
+    private static void prefetchSchemaInfo(org.apache.pulsar.client.api.Message<?> message) {
+        try {
+            message.getValue();
+        } catch (SchemaSerializationException e) {
+            log.debugf(e, "Unable to decode the payload of message %s, the failure is reported when the payload is read",
+                    message.getMessageId());
         }
     }
 
