@@ -73,6 +73,12 @@ public class LocalPropagationAckTest extends MqttTestBase {
         await().until(() -> connector.getReadiness().isOk());
     }
 
+    private void awaitAlive() {
+        MqttConnector connector = container.select(MqttConnector.class,
+                ConnectorLiteral.of(MqttConnector.CONNECTOR_NAME)).get();
+        await().until(() -> connector.getLiveness().isOk());
+    }
+
     @BeforeEach
     public void setupTopicName() {
         topic = UUID.randomUUID().toString();
@@ -92,6 +98,7 @@ public class LocalPropagationAckTest extends MqttTestBase {
         IncomingChannelWithAckOnMessageContext bean = runApplication(dataconfig(),
                 IncomingChannelWithAckOnMessageContext.class);
         bean.process(i -> i + 1);
+        awaitAlive();
         produceIntegers();
 
         await().until(() -> bean.getResults().size() >= 5);
@@ -105,6 +112,7 @@ public class LocalPropagationAckTest extends MqttTestBase {
         bean.process(i -> {
             throw new RuntimeException();
         });
+        awaitAlive();
         produceIntegers();
 
         await().until(() -> bean.getResults().size() >= 5);
@@ -119,6 +127,7 @@ public class LocalPropagationAckTest extends MqttTestBase {
         bean.process(i -> {
             throw new RuntimeException();
         });
+        awaitAlive();
         produceIntegers();
 
         await().until(() -> bean.getResults().size() >= 5);
