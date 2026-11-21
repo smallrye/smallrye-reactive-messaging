@@ -26,6 +26,7 @@ import io.smallrye.reactive.messaging.Shape;
 import io.smallrye.reactive.messaging.providers.helpers.AcknowledgementCoordinator;
 import io.smallrye.reactive.messaging.providers.helpers.ClassUtils;
 import io.smallrye.reactive.messaging.providers.helpers.MultiUtils;
+import io.smallrye.reactive.messaging.providers.helpers.OrderedBlockingOperator;
 import mutiny.zero.flow.adapters.AdaptersToFlow;
 
 @SuppressWarnings("ReactiveStreamsUnusedPublisher")
@@ -377,15 +378,13 @@ public class ProcessorMediator extends AbstractMediator {
         // Item can be a message or a payload
         if (configuration.isBlocking()) {
             if (configuration.isBlockingExecutionOrdered()) {
-                this.mapper = upstream -> {
-                    Multi<? extends Message<?>> multi = MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration);
-                    return multi
-                            .onItem()
-                            .transformToMultiAndConcatenate(message -> invokeBlocking(message, getArguments(message))
-                                    .onItemOrFailure()
-                                    .transformToUni((o, t) -> handlePostInvocationWithMessage(message, (Message<?>) o, t))
-                                    .onItem().transformToMulti(this::handleSkip));
-                };
+                this.mapper = upstream -> MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration)
+                        .plug(multi -> new OrderedBlockingOperator<>(multi,
+                                this::invokeWithContext,
+                                (message, o, t) -> handlePostInvocationWithMessage(message, (Message<?>) o, t),
+                                workerPoolRegistry,
+                                configuration.getWorkerPoolName(),
+                                configuration.methodAsString()));
             } else {
                 this.mapper = upstream -> {
                     Multi<? extends Message<?>> multi = MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration);
@@ -420,10 +419,12 @@ public class ProcessorMediator extends AbstractMediator {
         if (configuration.isBlocking()) {
             if (configuration.isBlockingExecutionOrdered()) {
                 this.mapper = upstream -> MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration)
-                        .onItem()
-                        .transformToMultiAndConcatenate(message -> invokeBlocking(message, getArguments(message))
-                                .onItemOrFailure().transformToUni((r, f) -> handlePostInvocation(message, r, f))
-                                .onItem().transformToMulti(this::handleSkip));
+                        .plug(multi -> new OrderedBlockingOperator<>(multi,
+                                this::invokeWithContext,
+                                this::handlePostInvocation,
+                                workerPoolRegistry,
+                                configuration.getWorkerPoolName(),
+                                configuration.methodAsString()));
             } else {
                 this.mapper = upstream -> MultiUtils.handlePreProcessingAcknowledgement(upstream, configuration)
                         .onItem().transformToMulti(message -> invokeBlocking(message, getArguments(message))
