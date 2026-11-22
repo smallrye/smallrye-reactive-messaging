@@ -166,6 +166,12 @@ public class ConnectionHolder {
                 throw ex.illegalStateConnectionClosed();
             }
             ch = connection.createChannel();
+            if (ch == null) {
+                // Connection#createChannel() returns null when no channel number is available,
+                // i.e. the negotiated channel max has been reached. Fail with a clear error
+                // instead of letting the null hit the map below and surface as an NPE.
+                throw ex.illegalStateChannelMaxReached(connection.getChannelMax());
+            }
             sharedChannels.put(name, ch);
         }
         return ch;
@@ -182,7 +188,13 @@ public class ConnectionHolder {
 
         try {
             log.creatingChannel(channelName);
-            return connection.createChannel();
+            Channel channel = connection.createChannel();
+            if (channel == null) {
+                // Connection#createChannel() returns null when no channel number is available,
+                // i.e. the negotiated channel max has been reached.
+                throw ex.illegalStateChannelMaxReached(connection.getChannelMax());
+            }
+            return channel;
         } catch (IOException e) {
             log.unableToCreateClient(e);
             throw ex.illegalStateUnableToCreateChannel(e);
