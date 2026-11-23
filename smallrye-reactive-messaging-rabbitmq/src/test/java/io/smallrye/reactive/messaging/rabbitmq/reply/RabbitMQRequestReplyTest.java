@@ -30,6 +30,7 @@ import io.smallrye.common.vertx.ContextLocals;
 import io.smallrye.common.vertx.VertxContext;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.helpers.test.UniAssertSubscriber;
+import io.smallrye.reactive.messaging.annotations.Blocking;
 import io.smallrye.reactive.messaging.providers.connectors.ExecutionHolder;
 import io.smallrye.reactive.messaging.rabbitmq.IncomingRabbitMQMessage;
 import io.smallrye.reactive.messaging.rabbitmq.OutgoingRabbitMQMetadata;
@@ -532,6 +533,7 @@ class RabbitMQRequestReplyTest extends WeldTestBase {
 
         @Incoming("req")
         @Outgoing("rep")
+        @Blocking
         public Message<String> replier(Message<String> message) throws InterruptedException {
             String payload = message.getPayload();
             String response = payload + "";
