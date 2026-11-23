@@ -249,7 +249,8 @@ public class MqttClientSessionImpl implements MqttClientSession {
                 closeConnection(new VertxException("Stop requested"));
                 break;
             case DISCONNECTED:
-                // nothing to do
+                // Already disconnected, for example waiting to reconnect: no state change will notify the listeners.
+                notifyStopped();
                 break;
             case DISCONNECTING:
                 // nothing do do
@@ -397,18 +398,21 @@ public class MqttClientSessionImpl implements MqttClientSession {
                 if (this.running) {
                     scheduleReconnect();
                 } else {
-                    // notify listeners
-                    for (Promise<Void> handler : this.notifyConnected) {
-                        handler.handle(Future.failedFuture("Session stopped"));
-                    }
-                    this.notifyConnected.clear();
-                    for (Promise<Void> handler : this.notifyStopped) {
-                        handler.handle(Future.succeededFuture());
-                    }
-                    this.notifyStopped.clear();
+                    notifyStopped();
                 }
                 break;
         }
+    }
+
+    private void notifyStopped() {
+        for (Promise<Void> handler : this.notifyConnected) {
+            handler.handle(Future.failedFuture("Session stopped"));
+        }
+        this.notifyConnected.clear();
+        for (Promise<Void> handler : this.notifyStopped) {
+            handler.handle(Future.succeededFuture());
+        }
+        this.notifyStopped.clear();
     }
 
     private void notifySubscriptionState(final String topic, final SubscriptionState state, final Integer grantedQoS) {
@@ -1086,7 +1090,7 @@ public class MqttClientSessionImpl implements MqttClientSession {
                 // Retry with same message ID and isDup=true
                 if (pending.properties != null) {
                     sendFuture = this.client.publish(pending.messageId, pending.topic, pending.payload,
-                            pending.qosLevel, true, pending.isRetain,pending.properties);
+                            pending.qosLevel, true, pending.isRetain, pending.properties);
                 } else {
                     sendFuture = this.client.publish(pending.messageId, pending.topic, pending.payload,
                             pending.qosLevel, true, pending.isRetain);
