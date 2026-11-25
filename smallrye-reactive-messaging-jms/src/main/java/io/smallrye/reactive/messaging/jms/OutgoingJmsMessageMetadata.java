@@ -9,15 +9,27 @@ public class OutgoingJmsMessageMetadata implements JmsMessageMetadata {
     private final Destination destination;
     private final int deliveryMode;
     private final String type;
+    private final int priority;
+    private final long deliveryDelay;
+    private final long timeToLive;
     private final JmsProperties properties;
 
     public OutgoingJmsMessageMetadata(String correlationId, Destination replyTo, Destination destination,
             int deliveryMode, String type, JmsProperties properties) {
+        this(correlationId, replyTo, destination, deliveryMode, type, -1, -1, -1, properties);
+    }
+
+    public OutgoingJmsMessageMetadata(String correlationId, Destination replyTo, Destination destination,
+            int deliveryMode, String type, int priority, long deliveryDelay, long timeToLive,
+            JmsProperties properties) {
         this.correlationId = correlationId;
         this.replyTo = replyTo;
         this.destination = destination;
         this.deliveryMode = deliveryMode;
         this.type = type;
+        this.priority = priority;
+        this.deliveryDelay = deliveryDelay;
+        this.timeToLive = timeToLive;
         this.properties = properties;
     }
 
@@ -46,6 +58,18 @@ public class OutgoingJmsMessageMetadata implements JmsMessageMetadata {
         return type;
     }
 
+    public int getPriority() {
+        return priority;
+    }
+
+    public long getDeliveryDelay() {
+        return deliveryDelay;
+    }
+
+    public long getTimeToLive() {
+        return timeToLive;
+    }
+
     @Override
     public JmsProperties getProperties() {
         return properties;
@@ -61,6 +85,9 @@ public class OutgoingJmsMessageMetadata implements JmsMessageMetadata {
         private Destination destination;
         private int deliveryMode = -1;
         private String type;
+        private int priority = -1;
+        private long deliveryDelay = -1;
+        private long timeToLive = -1;
         private JmsProperties properties;
 
         public OutgoingJmsMessageMetadataBuilder withCorrelationId(String correlationId) {
@@ -88,13 +115,29 @@ public class OutgoingJmsMessageMetadata implements JmsMessageMetadata {
             return this;
         }
 
+        public OutgoingJmsMessageMetadataBuilder withPriority(int priority) {
+            this.priority = priority;
+            return this;
+        }
+
+        public OutgoingJmsMessageMetadataBuilder withDeliveryDelay(long deliveryDelay) {
+            this.deliveryDelay = deliveryDelay;
+            return this;
+        }
+
+        public OutgoingJmsMessageMetadataBuilder withTimeToLive(long timeToLive) {
+            this.timeToLive = timeToLive;
+            return this;
+        }
+
         public OutgoingJmsMessageMetadataBuilder withProperties(JmsProperties properties) {
             this.properties = properties;
             return this;
         }
 
         public OutgoingJmsMessageMetadata build() {
-            return new OutgoingJmsMessageMetadata(correlationId, replyTo, destination, deliveryMode, type, properties);
+            return new OutgoingJmsMessageMetadata(correlationId, replyTo, destination, deliveryMode, type, priority,
+                    deliveryDelay, timeToLive, properties);
         }
     }
 }

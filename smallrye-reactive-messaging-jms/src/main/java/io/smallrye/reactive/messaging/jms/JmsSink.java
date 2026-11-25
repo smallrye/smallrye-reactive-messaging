@@ -181,6 +181,7 @@ class JmsSink {
                 Destination dest = metadata.getDestination();
                 int deliveryMode = metadata.getDeliveryMode();
                 String type = metadata.getType();
+                int priority = metadata.getPriority();
                 JmsProperties properties = metadata.getProperties();
                 if (correlationId != null) {
                     outgoing.setJMSCorrelationID(correlationId);
@@ -196,6 +197,17 @@ class JmsSink {
                 }
                 if (type != null) {
                     outgoing.setJMSType(type);
+                }
+                if (priority != -1) {
+                    producer.setPriority(priority);
+                }
+                long deliveryDelay = metadata.getDeliveryDelay();
+                if (deliveryDelay != -1) {
+                    producer.setDeliveryDelay(deliveryDelay);
+                }
+                long timeToLive = metadata.getTimeToLive();
+                if (timeToLive != -1) {
+                    producer.setTimeToLive(timeToLive);
                 }
 
                 if (properties != null) {
