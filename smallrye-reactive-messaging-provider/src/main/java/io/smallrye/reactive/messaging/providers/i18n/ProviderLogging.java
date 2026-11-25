@@ -153,4 +153,12 @@ public interface ProviderLogging extends BasicLogger {
     @LogMessage(level = Logger.Level.DEBUG)
     @Message(id = 244, value = "Trying to get Vertx instance using Identifier qualifier: %s.")
     void vertxFromCDIQualifier(String cdiQualifier);
+
+    @LogMessage(level = Logger.Level.DEBUG)
+    @Message(id = 245, value = "Unable to extract the payload of an incoming message to convert it to %s, the message is nacked")
+    void unableToExtractPayload(String targetType, @Cause Throwable cause);
+
+    @LogMessage(level = Logger.Level.DEBUG)
+    @Message(id = 246, value = "The nack of a message whose payload could not be extracted has failed, skipping the message")
+    void nackFailedAfterPayloadExtractionFailure(@Cause Throwable cause);
 }
