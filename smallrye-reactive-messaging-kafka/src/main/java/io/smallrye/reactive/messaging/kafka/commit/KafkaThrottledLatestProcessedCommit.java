@@ -44,7 +44,7 @@ import io.vertx.mutiny.core.Vertx;
  * is `true`.
  * <p>
  * The connector will be marked as unhealthy in the presence of any received record that has gone
- * too long without being processed as defined by `throttled.unprocessed-record-max-age.ms` (default: 60000).
+ * too long without being processed as defined by `throttled.unprocessed-record-max-age.ms` (default: 120000).
  * If `throttled.unprocessed-record-max-age.ms` is set to less than or equal to 0 then will not
  * perform any health check (this might lead to running out of memory).
  * <p>

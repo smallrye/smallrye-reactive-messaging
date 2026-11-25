@@ -36,7 +36,11 @@
     "criticality" : "highlight",
     "minSeverity" : "POTENTIALLY_BREAKING",
     "minCriticality" : "documented",
-    "differences" : [ ]
+    "differences" : [ {
+      "code": "java.annotation.attributeValueChanged",
+      "classQualifiedName": "io.smallrye.reactive.messaging.kafka.KafkaConnector",
+      "justification": "Align throttled.unprocessed-record-max-age.ms default with Kafka delivery.timeout.ms (60000 -> 120000)"
+    } ]
   }
 }, {
   "extension" : "revapi.reporter.json",
