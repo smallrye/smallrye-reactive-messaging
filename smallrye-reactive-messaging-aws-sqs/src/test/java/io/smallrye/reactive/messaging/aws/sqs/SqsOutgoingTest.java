@@ -9,6 +9,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Produces;
 
+import org.eclipse.microprofile.reactive.messaging.Metadata;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.junit.jupiter.api.Test;
 
@@ -75,6 +76,39 @@ class SqsOutgoingTest extends SqsTestBase {
         public Multi<Integer> produce() {
             return Multi.createFrom().range(0, 10)
                     .map(i -> i);
+        }
+    }
+
+    @Test
+    void testProducerIntegerDynamicQueueUrl() {
+        SqsClientProvider.client = getSqsClient();
+        addBeans(SqsClientProvider.class);
+        MapBasedConfig config = new MapBasedConfig()
+                .with("mp.messaging.outgoing.data.connector", SqsConnector.CONNECTOR_NAME)
+                .with("mp.messaging.outgoing.data.queue", queue)
+                .with("mp.messaging.outgoing.data.queue.url", "\"\"");
+
+        String queueUrl = createQueue(queue);
+        ProducerIntegerDynamicQueueApp.queueUrl = queueUrl;
+        var app = runApplication(config, ProducerIntegerDynamicQueueApp.class);
+        int expected = 10;
+        List<Message> messages = receiveMessages(queueUrl, expected, Duration.ofSeconds(10));
+        assertThat(messages).hasSize(expected)
+                .extracting(Message::body)
+                .containsExactly("0", "1", "2", "3", "4", "5", "6", "7", "8", "9");
+    }
+
+    @ApplicationScoped
+    public static class ProducerIntegerDynamicQueueApp {
+
+        static String queueUrl = null;
+
+        @Outgoing("data")
+        public Multi<org.eclipse.microprofile.reactive.messaging.Message<Integer>> produce() {
+            return Multi.createFrom().range(0, 10)
+                    .map(i -> org.eclipse.microprofile.reactive.messaging.Message.of(i,
+                            Metadata.of(SqsOutboundMetadata.builder()
+                                    .queueUrl(queueUrl).build())));
         }
     }
 

@@ -68,7 +68,18 @@ public class SqsManager {
         return getClient(new SqsClientConfig(config));
     }
 
-    public Uni<String> getQueueUrl(SqsConnectorCommonConfiguration config) {
+    public Uni<String> getQueueUrl(SqsConnectorIncomingConfiguration config) {
+        return getQueueUrl((SqsConnectorCommonConfiguration) config);
+    }
+
+    public Uni<String> getQueueUrl(SqsConnectorOutgoingConfiguration config) {
+        if (config.getQueue().isEmpty()) {
+            return Uni.createFrom().nullItem();
+        }
+        return getQueueUrl((SqsConnectorCommonConfiguration) config);
+    }
+
+    private Uni<String> getQueueUrl(SqsConnectorCommonConfiguration config) {
         SqsClientConfig clientConfig = new SqsClientConfig(config);
         if (clientConfig.getQueueUrl() != null || queueUrls.containsKey(clientConfig)) {
             return Uni.createFrom().item(queueUrls.computeIfAbsent(clientConfig, c -> {
