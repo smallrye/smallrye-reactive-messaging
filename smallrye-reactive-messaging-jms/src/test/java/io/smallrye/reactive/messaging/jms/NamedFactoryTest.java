@@ -1,6 +1,6 @@
 package io.smallrye.reactive.messaging.jms;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.awaitility.Awaitility.await;
 
 import java.util.HashMap;
@@ -51,12 +51,10 @@ public class NamedFactoryTest extends JmsTestBase {
         map.put("mp.messaging.incoming.jms.destination", "queue-one");
         MapBasedConfig config = new MapBasedConfig(map);
         addConfig(config);
-        try {
-            deploy(PayloadConsumerBean.class, ProducerBean.class);
-        } catch (DeploymentException de) {
-            assertThat(de).hasCauseInstanceOf(IllegalStateException.class)
-                    .hasMessageContaining("jakarta.jms.ConnectionFactory bean");
-        }
+        assertThatThrownBy(() -> deploy(PayloadConsumerBean.class, ProducerBean.class))
+                .isInstanceOf(DeploymentException.class)
+                .hasCauseInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("jakarta.jms.ConnectionFactory bean");
     }
 
     @Test
@@ -69,12 +67,10 @@ public class NamedFactoryTest extends JmsTestBase {
         map.put("mp.messaging.incoming.jms.destination", "queue-one");
         MapBasedConfig config = new MapBasedConfig(map);
         addConfig(config);
-        try {
-            deploy(PayloadConsumerBean.class, ProducerBean.class);
-        } catch (DeploymentException de) {
-            assertThat(de).hasCauseInstanceOf(IllegalStateException.class)
-                    .hasMessageContaining("jakarta.jms.ConnectionFactory bean named");
-        }
+        assertThatThrownBy(() -> deploy(PayloadConsumerBean.class, ProducerBean.class))
+                .isInstanceOf(DeploymentException.class)
+                .hasCauseInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("jakarta.jms.ConnectionFactory bean named");
     }
 
     @Test
@@ -87,12 +83,10 @@ public class NamedFactoryTest extends JmsTestBase {
         map.put("mp.messaging.incoming.jms.destination", "queue-one");
         MapBasedConfig config = new MapBasedConfig(map);
         addConfig(config);
-        try {
-            deploy(PayloadConsumerBean.class, ProducerBean.class);
-        } catch (DeploymentException de) {
-            assertThat(de).hasCauseInstanceOf(IllegalStateException.class)
-                    .hasMessageContaining("jakarta.jms.ConnectionFactory bean named");
-        }
+        assertThatThrownBy(() -> deploy(PayloadConsumerBean.class, ProducerBean.class))
+                .isInstanceOf(DeploymentException.class)
+                .hasCauseInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("jakarta.jms.ConnectionFactory bean named");
     }
 
     @ApplicationScoped
