@@ -53,4 +53,7 @@ public interface RabbitMQExceptions {
 
     @Message(id = 19013, value = "Shared connection '%s' has mismatched configuration; ensure all channels using the same shared-connection-name have identical connection settings")
     IllegalStateException illegalStateSharedConnectionConfigMismatch(String sharedConnectionName);
+
+    @Message(id = 19014, value = "Unable to create a channel for `%s`, channel max (%d) reached. Increase `requestedChannelMax` on the connection to open more channels")
+    IllegalStateException illegalStateUnableToCreateChannelChannelMaxReached(String channelName, int channelMax);
 }
