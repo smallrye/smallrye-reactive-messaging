@@ -9,6 +9,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import jakarta.enterprise.inject.Instance;
 
 import io.netty.handler.codec.mqtt.MqttSubscriptionOption.RetainedHandlingPolicy;
+import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.ClientCustomizer;
 import io.smallrye.reactive.messaging.health.HealthReport.HealthReportBuilder;
@@ -22,6 +23,7 @@ import io.smallrye.reactive.messaging.providers.helpers.VertxContext;
 import io.vertx.core.internal.VertxInternal;
 import io.vertx.mutiny.core.Context;
 import io.vertx.mutiny.core.Vertx;
+import io.vertx.mutiny.mqtt.messages.MqttPublishMessage;
 
 public class MqttSource {
 
@@ -70,26 +72,29 @@ public class MqttSource {
         holder = Clients.getHolder(vertx, options, sessionCustomizers).retain(channel);
         holder.start().onSuccess(ignore -> started.set(true));
 
-        if (hasV5SubOptions) {
-            holder.getClient()
-                    .subscribe(topic, RequestedQoS.valueOf(qos), noLocal, retainAsPublished, retainHandling,
-                            subscriptionIdentifier)
-                    .onFailure(outcome -> log.info("Subscription failed!"))
-                    .onSuccess(outcome -> {
-                        log.info("Subscription success on topic " + topic + ", Max QoS " + outcome + ".");
-                        alive.set(true);
-                    });
-        } else {
-            holder.getClient()
-                    .subscribe(topic, RequestedQoS.valueOf(qos))
-                    .onFailure(outcome -> log.info("Subscription failed!"))
-                    .onSuccess(outcome -> {
-                        log.info("Subscription success on topic " + topic + ", Max QoS " + outcome + ".");
-                        alive.set(true);
-                    });
-        }
-
-        this.source = holder.stream()
+        this.source = Multi.createFrom().<MqttPublishMessage> publisher(subscriber -> {
+            // Attach subscriber first — retained messages arrive immediately on subscribe
+            holder.stream().subscribe(subscriber);
+            // Subscribe to the MQTT topic after the subscriber is attached
+            if (hasV5SubOptions) {
+                holder.getClient()
+                        .subscribe(topic, RequestedQoS.valueOf(qos), noLocal, retainAsPublished,
+                                retainHandling, subscriptionIdentifier)
+                        .onFailure(outcome -> log.info("Subscription failed!"))
+                        .onSuccess(outcome -> {
+                            log.info("Subscription success on topic " + topic + ", Max QoS " + outcome + ".");
+                            alive.set(true);
+                        });
+            } else {
+                holder.getClient()
+                        .subscribe(topic, RequestedQoS.valueOf(qos))
+                        .onFailure(outcome -> log.info("Subscription failed!"))
+                        .onSuccess(outcome -> {
+                            log.info("Subscription success on topic " + topic + ", Max QoS " + outcome + ".");
+                            alive.set(true);
+                        });
+            }
+        })
                 .select().where(m -> MqttTopicHelper.matches(actualTopicFilter, m.topicName()))
                 .onOverflow().buffer(config.getBufferSize())
                 .emitOn(c -> VertxContext.runOnContext(root.getDelegate(), c))
