@@ -30,6 +30,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 
 import io.smallrye.common.constraint.NotNull;
+import io.smallrye.reactive.messaging.amqp.fault.AmqpDispositionFailureHandler;
+import io.smallrye.reactive.messaging.amqp.fault.AmqpFailureHandler;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonArray;
@@ -42,6 +44,16 @@ public class AmqpSourceTest extends AmqpTestBase {
     private WeldContainer container;
     private AmqpConnector provider;
     private MockServer server;
+
+    private AmqpConnector createConnector() {
+        Weld weld = new Weld().disableDiscovery()
+                .addBeanClass(AmqpDispositionFailureHandler.FailFactory.class);
+        container = weld.initialize();
+        AmqpConnector connector = new AmqpConnector();
+        connector.setup(executionHolder,
+                container.select(AmqpFailureHandler.Factory.class));
+        return connector;
+    }
 
     @AfterEach
     public void cleanup() {
@@ -85,8 +97,7 @@ public class AmqpSourceTest extends AmqpTestBase {
             config = getConfig(topic, server.actualPort());
         }
 
-        provider = new AmqpConnector();
-        provider.setup(executionHolder);
+        provider = createConnector();
         Flow.Publisher<? extends Message<?>> publisher = provider.getPublisher(new MapBasedConfig(config));
 
         List<Message<Integer>> messages = new ArrayList<>();
@@ -167,8 +178,7 @@ public class AmqpSourceTest extends AmqpTestBase {
         config.put("broadcast", true);
         config.put("tracing-enabled", false);
 
-        provider = new AmqpConnector();
-        provider.setup(executionHolder);
+        provider = createConnector();
         Flow.Publisher<? extends Message<?>> publisher = provider.getPublisher(new MapBasedConfig(config));
 
         List<Message<Integer>> messages1 = new ArrayList<>();
@@ -278,8 +288,7 @@ public class AmqpSourceTest extends AmqpTestBase {
 
         String topic = UUID.randomUUID().toString();
         Map<String, Object> config = getConfig(topic, server.actualPort());
-        provider = new AmqpConnector();
-        provider.setup(executionHolder);
+        provider = createConnector();
 
         List<Message<byte[]>> messages = new ArrayList<>();
         Flow.Publisher<? extends Message<?>> publisher = provider.getPublisher(new MapBasedConfig(config));
@@ -320,8 +329,7 @@ public class AmqpSourceTest extends AmqpTestBase {
 
         String topic = UUID.randomUUID().toString();
         Map<String, Object> config = getConfig(topic, server.actualPort());
-        provider = new AmqpConnector();
-        provider.setup(executionHolder);
+        provider = createConnector();
 
         List<Message<byte[]>> messages = new ArrayList<>();
         Flow.Publisher<? extends Message<?>> publisher = provider.getPublisher(new MapBasedConfig(config));
@@ -368,8 +376,7 @@ public class AmqpSourceTest extends AmqpTestBase {
 
         String topic = UUID.randomUUID().toString();
         Map<String, Object> config = getConfig(topic, server.actualPort());
-        provider = new AmqpConnector();
-        provider.setup(executionHolder);
+        provider = createConnector();
 
         List<Message<JsonObject>> messages = new ArrayList<>();
         Flow.Publisher<? extends Message<?>> builder = provider.getPublisher(new MapBasedConfig(config));
@@ -416,8 +423,7 @@ public class AmqpSourceTest extends AmqpTestBase {
 
         String topic = UUID.randomUUID().toString();
         Map<String, Object> config = getConfig(topic, server.actualPort());
-        provider = new AmqpConnector();
-        provider.setup(executionHolder);
+        provider = createConnector();
 
         List<Message<JsonArray>> messages = new ArrayList<>();
         Flow.Publisher<? extends Message<?>> builder = provider.getPublisher(new MapBasedConfig(config));
@@ -463,8 +469,7 @@ public class AmqpSourceTest extends AmqpTestBase {
 
         String topic = UUID.randomUUID().toString();
         Map<String, Object> config = getConfig(topic, server.actualPort());
-        provider = new AmqpConnector();
-        provider.setup(executionHolder);
+        provider = createConnector();
 
         List<Message<List<String>>> messages = new ArrayList<>();
         Flow.Publisher<? extends Message<?>> builder = provider.getPublisher(new MapBasedConfig(config));
@@ -510,8 +515,7 @@ public class AmqpSourceTest extends AmqpTestBase {
 
         String topic = UUID.randomUUID().toString();
         Map<String, Object> config = getConfig(topic, server.actualPort());
-        provider = new AmqpConnector();
-        provider.setup(executionHolder);
+        provider = createConnector();
 
         List<Message<List<String>>> messages = new ArrayList<>();
         Flow.Publisher<? extends Message<?>> builder = provider.getPublisher(new MapBasedConfig(config));

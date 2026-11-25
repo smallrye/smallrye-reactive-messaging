@@ -17,13 +17,8 @@ import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.operators.multi.processors.BroadcastProcessor;
 import io.smallrye.reactive.messaging.amqp.cbs.CbsTokenManager;
-import io.smallrye.reactive.messaging.amqp.fault.AmqpAccept;
-import io.smallrye.reactive.messaging.amqp.fault.AmqpFailStop;
+import io.smallrye.common.annotation.Identifier;
 import io.smallrye.reactive.messaging.amqp.fault.AmqpFailureHandler;
-import io.smallrye.reactive.messaging.amqp.fault.AmqpModifiedFailed;
-import io.smallrye.reactive.messaging.amqp.fault.AmqpModifiedFailedAndUndeliverableHere;
-import io.smallrye.reactive.messaging.amqp.fault.AmqpReject;
-import io.smallrye.reactive.messaging.amqp.fault.AmqpRelease;
 import io.smallrye.reactive.messaging.amqp.tracing.AmqpOpenTelemetryInstrumenter;
 import io.smallrye.reactive.messaging.providers.helpers.VertxContext;
 import io.vertx.amqp.AmqpReceiverOptions;
@@ -37,22 +32,24 @@ public class IncomingAmqpChannel {
     private final AmqpOpenTelemetryInstrumenter amqpInstrumenter;
     private final Multi<? extends Message<?>> multi;
     private final AtomicBoolean opened;
-    private final BiConsumer<String, Throwable> reportFailure;
     private final ConnectionHolder holder;
     private final boolean healthEnabled;
     private volatile String resolvedAddress;
 
     public IncomingAmqpChannel(AmqpConnectorIncomingConfiguration ic, AmqpClientHolder clientHolder, Vertx vertx,
             CbsTokenManager cbsTokenManager,
-            Instance<OpenTelemetry> openTelemetryInstance, BiConsumer<String, Throwable> reportFailure) {
+            Instance<OpenTelemetry> openTelemetryInstance,
+            Instance<AmqpFailureHandler.Factory> failureHandlerFactories,
+            BiConsumer<String, Throwable> reportFailure) {
         this(ic, clientHolder.getOrCreateConnectionHolder(cbsTokenManager, ic, vertx,
                 Context.newInstance(((VertxInternal) vertx.getDelegate()).createEventLoopContext())),
-                openTelemetryInstance, reportFailure);
+                openTelemetryInstance, failureHandlerFactories, reportFailure);
     }
 
     public IncomingAmqpChannel(AmqpConnectorIncomingConfiguration ic, ConnectionHolder holder,
-            Instance<OpenTelemetry> openTelemetryInstance, BiConsumer<String, Throwable> reportFailure) {
-        this.reportFailure = reportFailure;
+            Instance<OpenTelemetry> openTelemetryInstance,
+            Instance<AmqpFailureHandler.Factory> failureHandlerFactories,
+            BiConsumer<String, Throwable> reportFailure) {
         this.opened = new AtomicBoolean(false);
         this.healthEnabled = ic.getHealthEnabled();
 
@@ -82,7 +79,7 @@ public class IncomingAmqpChannel {
             amqpInstrumenter = null;
         }
 
-        AmqpFailureHandler onNack = createFailureHandler(ic);
+        AmqpFailureHandler onNack = createFailureHandler(ic, failureHandlerFactories, reportFailure);
         Integer interval = ic.getRetryOnFailInterval();
         Integer attempts = ic.getRetryOnFailAttempts();
         multi = holder.getOrEstablishConnection()
@@ -159,18 +156,16 @@ public class IncomingAmqpChannel {
                 });
     }
 
-    private AmqpFailureHandler createFailureHandler(AmqpConnectorIncomingConfiguration config) {
+    private AmqpFailureHandler createFailureHandler(AmqpConnectorIncomingConfiguration config,
+            Instance<AmqpFailureHandler.Factory> failureHandlerFactories,
+            BiConsumer<String, Throwable> reportFailure) {
         String strategy = config.getFailureStrategy();
-        AmqpFailureHandler.Strategy actualStrategy = AmqpFailureHandler.Strategy.from(strategy);
-        return switch (actualStrategy) {
-            case FAIL -> new AmqpFailStop(config.getChannel(), reportFailure);
-            case ACCEPT -> new AmqpAccept(config.getChannel());
-            case REJECT -> new AmqpReject(config.getChannel());
-            case RELEASE -> new AmqpRelease(config.getChannel());
-            case MODIFIED_FAILED -> new AmqpModifiedFailed(config.getChannel());
-            case MODIFIED_FAILED_UNDELIVERABLE_HERE -> new AmqpModifiedFailedAndUndeliverableHere(config.getChannel());
-        };
-
+        Instance<AmqpFailureHandler.Factory> instance = failureHandlerFactories
+                .select(Identifier.Literal.of(strategy));
+        if (instance.isResolvable()) {
+            return instance.get().create(config, reportFailure);
+        }
+        throw new IllegalArgumentException("Unknown failure strategy: " + strategy);
     }
 
     public Uni<Boolean> isConnected() {
