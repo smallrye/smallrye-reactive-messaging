@@ -127,7 +127,10 @@ public class DefaultMediatorConfiguration implements MediatorConfiguration {
 
             @Override
             public Class<?> getGenericParameterType(int paramIndex, int genericIndex) {
-                Type type = params[paramIndex].getType(genericIndex);
+                // The raw class of a parameterized or wildcard type argument, such as IncomingRabbitMQMessage for
+                // Multi<IncomingRabbitMQMessage<byte[]>>, as the descriptors built at build time (Quarkus) return:
+                // loading a class by the name of a parameterized type fails.
+                Type type = erasure(params[paramIndex].getType(genericIndex));
                 if (type instanceof Class) {
                     return (Class<?>) type;
                 }
@@ -508,4 +511,16 @@ public class DefaultMediatorConfiguration implements MediatorConfiguration {
         }
     }
 
+    /**
+     * @return the raw type of a parameterized type, the erasure of the upper bound of a wildcard type, or the type
+     */
+    static Type erasure(Type type) {
+        if (type instanceof ParameterizedType parameterized) {
+            return parameterized.getRawType();
+        }
+        if (type instanceof WildcardType wildcard && wildcard.getUpperBounds().length > 0) {
+            return erasure(wildcard.getUpperBounds()[0]);
+        }
+        return type;
+    }
 }

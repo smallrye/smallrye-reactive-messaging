@@ -39,6 +39,23 @@ public class PulsarIncomingBatchMessage<T> implements PulsarBatchMessage<T>, Met
         this.metadata = captureContextMetadata(new PulsarIncomingBatchMessageMetadata(messages, batchedMessages));
     }
 
+    /**
+     * Creates a batch message from the given messages, payload and metadata. Acknowledging it acknowledges the given
+     * messages, unless the subclass overrides {@link #ack(Metadata)} and {@link #nack(Throwable, Metadata)}.
+     *
+     * @param messages the Pulsar messages
+     * @param incomingMessages the incoming messages of the batch
+     * @param payload the payload of the batch
+     * @param metadata the metadata of the batch
+     */
+    PulsarIncomingBatchMessage(Messages<T> messages, List<PulsarMessage<T>> incomingMessages, List<T> payload,
+            Metadata metadata) {
+        this.delegate = Objects.requireNonNull(messages, msg.isRequired("messages"));
+        this.incomingMessages = Collections.unmodifiableList(incomingMessages);
+        this.payload = payload;
+        this.metadata = Objects.requireNonNull(metadata, msg.isRequired("metadata"));
+    }
+
     @Override
     public List<T> getPayload() {
         return this.payload;

@@ -72,4 +72,11 @@ public interface JmsLogging extends BasicLogger {
     @LogMessage(level = Logger.Level.INFO)
     @Message(id = 15812, value = "Outgoing channel `%s`: incoming message carries a JmsSessionContext, using shared session for sending")
     void usingSharedSessionContextForSending(String channel);
+
+    @LogMessage(level = Logger.Level.WARN)
+    @Message(id = 15813, value = "Restoring the JMS message type `%s` for a message that lost it when intercepted "
+            + "(interceptors, observation, graceful shutdown tracking). The restored message acknowledges through the "
+            + "intercepted message: acknowledge the received message, not the unwrapped `jakarta.jms.Message`, "
+            + "or the interception does not see the acknowledgement")
+    void restoringJmsMessageType(String messageType);
 }

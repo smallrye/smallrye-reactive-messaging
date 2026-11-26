@@ -153,4 +153,17 @@ public interface ProviderLogging extends BasicLogger {
     @LogMessage(level = Logger.Level.DEBUG)
     @Message(id = 244, value = "Trying to get Vertx instance using Identifier qualifier: %s.")
     void vertxFromCDIQualifier(String cdiQualifier);
+
+    @LogMessage(level = Logger.Level.WARN)
+    @Message(id = 247, value = "Method '%s' consumes the connector-specific message type '%s', which is deprecated: "
+            + "consume `Message<T>` and read the connector metadata, or inject the payload and the metadata instead")
+    void consumingSpecificMessageType(String method, String messageType);
+
+    @LogMessage(level = Logger.Level.ERROR)
+    @Message(id = 249, value = "Method '%s' consumes the message type '%s', but received a '%s' that no converter "
+            + "converts to it: the messages are negatively acknowledged. Messages lose their connector type when they "
+            + "are intercepted (graceful shutdown tracking, observation, interceptors): the connector must provide a "
+            + "`MessageConverter` restoring it. Consume `Message<T>` and read the connector metadata instead, or disable "
+            + "`graceful-shutdown` on the channel")
+    void messageTypeNotRestored(String method, String messageType, String received);
 }

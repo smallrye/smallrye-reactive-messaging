@@ -102,4 +102,10 @@ public interface PulsarLogging extends BasicLogger {
     @LogMessage(level = Logger.Level.WARN)
     @Message(id = 19025, value = "Failed to process a message sent to channel `%s`, trying to reconsume in %s seconds, failure is: %s.")
     void messageFailureDelayed(String channel, long delaySeconds, String reason);
+
+    @LogMessage(level = Logger.Level.WARN)
+    @Message(id = 19026, value = "Restoring the Pulsar message type `%s` "
+            + "for a message that lost it when intercepted. Consuming Pulsar message types is deprecated: "
+            + "consume `Message<T>` and read the Pulsar metadata, or inject the payload and the metadata instead")
+    void restoringPulsarMessageType(String messageType);
 }

@@ -31,6 +31,20 @@ public class IncomingKafkaRecordBatch<K, T> implements KafkaRecordBatch<K, T> {
     private final List<KafkaRecord<K, T>> incomingRecords;
     private final Map<TopicPartition, KafkaRecord<K, T>> latestOffsetRecords;
 
+    /**
+     * For subclasses built from existing records, which may handle acknowledgement themselves.
+     *
+     * @param metadata the message metadata
+     * @param records the records of the batch
+     * @param latestOffsetRecords the record with the latest offset, per partition
+     */
+    protected IncomingKafkaRecordBatch(Metadata metadata, List<KafkaRecord<K, T>> records,
+            Map<TopicPartition, KafkaRecord<K, T>> latestOffsetRecords) {
+        this.metadata = metadata;
+        this.incomingRecords = Collections.unmodifiableList(records);
+        this.latestOffsetRecords = Collections.unmodifiableMap(latestOffsetRecords);
+    }
+
     public IncomingKafkaRecordBatch(ConsumerRecords<K, T> records, String channel, int index, KafkaCommitHandler commitHandler,
             KafkaFailureHandler onNack, boolean cloudEventEnabled, boolean tracingEnabled) {
         List<IncomingKafkaRecord<K, T>> incomingRecords = new ArrayList<>();

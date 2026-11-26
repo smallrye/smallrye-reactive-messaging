@@ -31,6 +31,18 @@ public class IncomingKafkaRecord<K, T> implements KafkaRecord<K, T>, MetadataInj
         this(that.metadata, that.kafkaMetadata, that.commitHandler, that.onNack, that.payload);
     }
 
+    /**
+     * For subclasses that handle acknowledgement themselves: no commit handler nor failure handler is set, so
+     * {@link #ack(Metadata)} and {@link #nack(Throwable, Metadata)} must be overridden.
+     *
+     * @param metadata the message metadata
+     * @param kafkaMetadata the Kafka record metadata
+     * @param payload the payload
+     */
+    protected IncomingKafkaRecord(Metadata metadata, IncomingKafkaRecordMetadata<K, T> kafkaMetadata, T payload) {
+        this(metadata, kafkaMetadata, null, null, payload);
+    }
+
     private IncomingKafkaRecord(Metadata metadata,
             IncomingKafkaRecordMetadata<K, T> kafkaMetadata,
             KafkaCommitHandler commitHandler,

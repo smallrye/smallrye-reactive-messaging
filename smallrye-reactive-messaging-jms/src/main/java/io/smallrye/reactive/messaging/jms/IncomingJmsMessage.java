@@ -52,6 +52,25 @@ public class IncomingJmsMessage<T> implements ContextAwareMessage<T>, MetadataIn
         this.metadata = captureContextMetadata(this.jmsMetadata);
     }
 
+    /**
+     * Creates a message restored from an intercepted JMS message, see {@link JmsMessageTypeConverter}: the JMS message
+     * comes from the JMS metadata, the metadata is the one of the intercepted message. Subclasses override
+     * {@link #getPayload()}, {@link #ack(Metadata)} and {@link #nack(Throwable, Metadata)}, as there are no commit and
+     * failure handlers.
+     *
+     * @param jmsMetadata the JMS metadata of the intercepted message
+     * @param metadata the metadata of the intercepted message
+     */
+    IncomingJmsMessage(IncomingJmsMessageMetadata jmsMetadata, Metadata metadata) {
+        this.delegate = jmsMetadata.getJmsMessage();
+        this.jsonMapping = null;
+        this.commitHandler = null;
+        this.failureHandler = null;
+        this.clazz = null;
+        this.jmsMetadata = jmsMetadata;
+        this.metadata = metadata;
+    }
+
     @SuppressWarnings("unchecked")
     private Class<T> load(String cn) throws ClassNotFoundException {
         ClassLoader loader = Thread.currentThread().getContextClassLoader();
