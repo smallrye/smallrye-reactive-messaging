@@ -188,18 +188,24 @@ public class PubSubConnector implements InboundConnector, OutboundConnector {
                 .orElse(null);
     }
 
-    private static PubsubMessage buildMessage(final Message<?> message) {
-        if (message instanceof PubSubMessage) {
-            return ((PubSubMessage) message).getMessage();
-        } else if (message.getPayload() instanceof PubSubMessage) {
+    static PubsubMessage buildMessage(final Message<?> message) {
+        // Built from the payload and the metadata only: decorators (graceful shutdown, observation, interceptors) may
+        // have wrapped the message, so its type says nothing.
+        if (message.getPayload() instanceof PubSubMessage) {
             return ((PubSubMessage) message.getPayload()).getMessage();
         } else if (message.getPayload() instanceof PubsubMessage) {
             return ((PubsubMessage) message.getPayload());
-        } else {
-            return PubsubMessage.newBuilder()
-                    .setData(ByteString.copyFromUtf8(message.getPayload().toString()))
-                    .build();
         }
+        PubsubMessage.Builder builder = PubsubMessage.newBuilder()
+                .setData(ByteString.copyFromUtf8(message.getPayload().toString()));
+        // Nothing is taken from the received message: to propagate its attributes, use OutgoingPubSubMetadata.from.
+        message.getMetadata(OutgoingPubSubMetadata.class).ifPresent(metadata -> {
+            builder.putAllAttributes(metadata.getAttributes());
+            if (metadata.getOrderingKey() != null) {
+                builder.setOrderingKey(metadata.getOrderingKey());
+            }
+        });
+        return builder.build();
     }
 
     private static <T> T await(final Future<T> future) {

@@ -182,6 +182,27 @@ public class OutgoingAmqpMetadata {
         return new OutgoingAmqpMetadataBuilder(existing);
     }
 
+    /**
+     * Creates a builder initialized with the properties of a received message, to propagate them to a message to send.
+     * Messages sent are not given the properties of the message they come from otherwise.
+     * <p>
+     * Copies the durability, the priority, the time-to-live, the message annotations, the message id, the subject, the
+     * reply-to and reply-to group id, the correlation id, the content type and encoding, the expiry and creation times,
+     * the group id and sequence, and the application properties. Does not copy:
+     * <ul>
+     * <li>the address the message was received on: the message is sent to the configured address, unless
+     * {@link OutgoingAmqpMetadataBuilder#withAddress(String)} sets one;</li>
+     * <li>the user id: brokers may reject a message whose user id is not the user of the connection;</li>
+     * <li>the delivery annotations, meant for the receiving peer, and the footer, computed for the received body.</li>
+     * </ul>
+     *
+     * @param incoming the metadata of the received message
+     * @return the builder, to override or complete the copied properties
+     */
+    public static OutgoingAmqpMetadataBuilder from(IncomingAmqpMetadata incoming) {
+        return new OutgoingAmqpMetadataBuilder(incoming);
+    }
+
     public static final class OutgoingAmqpMetadataBuilder {
 
         // Header
@@ -212,6 +233,29 @@ public class OutgoingAmqpMetadata {
         private final Map<String, Object> footer = new HashMap<>();
 
         private OutgoingAmqpMetadataBuilder() {
+        }
+
+        private OutgoingAmqpMetadataBuilder(IncomingAmqpMetadata incoming) {
+            this.durable = incoming.isDurable();
+            this.priority = incoming.getPriority();
+            this.ttl = incoming.getTtl();
+
+            this.applicationProperties = incoming.getProperties().copy();
+            if (incoming.getMessageAnnotations() != null) {
+                this.messageAnnotations.putAll(incoming.getMessageAnnotations().getValue());
+            }
+
+            this.id = incoming.getId();
+            this.subject = incoming.getSubject();
+            this.replyTo = incoming.getReplyTo();
+            this.correlationId = incoming.getCorrelationId();
+            this.contentType = incoming.getContentType();
+            this.contentEncoding = incoming.getContentEncoding();
+            this.expiryTime = incoming.getExpiryTime();
+            this.creationTime = incoming.getCreationTime();
+            this.groupId = incoming.getGroupId();
+            this.groupSequence = incoming.getGroupSequence();
+            this.replyToGroupId = incoming.getReplyToGroupId();
         }
 
         private OutgoingAmqpMetadataBuilder(OutgoingAmqpMetadata existing) {

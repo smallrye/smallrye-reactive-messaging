@@ -124,10 +124,13 @@ public class RabbitMQMessageConverterTest {
         RabbitMQMessageConverter.OutgoingRabbitMQMessage converted = RabbitMQMessageConverter.convert(
                 incomingMessage, "default.key", Optional.empty());
 
-        assertThat(converted.getRoutingKey()).isEqualTo("test.key");
-        assertThat(converted.getExchange()).hasValue("test-exchange");
+        // Converted like any other message: neither routed back to the exchange and routing key it was consumed from,
+        // nor given the incoming properties.
+        assertThat(converted.getRoutingKey()).isEqualTo("default.key");
+        assertThat(converted.getExchange()).isEmpty();
         assertThat(converted.getBody()).isEqualTo(body);
-        assertThat(converted.getProperties().getContentType()).isEqualTo("text/plain");
+        assertThat(converted.getProperties().getContentType()).isEqualTo("application/octet-stream");
+        assertThat(converted.getProperties().getDeliveryMode()).isEqualTo(2);
     }
 
     @Test
@@ -281,7 +284,7 @@ public class RabbitMQMessageConverterTest {
     }
 
     @Test
-    void convertWithIncomingRabbitMQMessagePreservesProperties() {
+    void convertWithIncomingRabbitMQMessageKeepsOnlyTheCorrelationId() {
         Map<String, Object> headers = new HashMap<>();
         headers.put("x-custom", "val");
         AMQP.BasicProperties props = new AMQP.BasicProperties.Builder()
@@ -290,6 +293,9 @@ public class RabbitMQMessageConverterTest {
                 .headers(headers)
                 .correlationId("corr-1")
                 .expiration("3000")
+                .messageId("id-1")
+                .type("the-type")
+                .appId("the-app")
                 .build();
         com.rabbitmq.client.Envelope envelope = new com.rabbitmq.client.Envelope(
                 1L, false, "exchange", "incoming-key");
@@ -301,10 +307,57 @@ public class RabbitMQMessageConverterTest {
         RabbitMQMessageConverter.OutgoingRabbitMQMessage result = RabbitMQMessageConverter.convert(
                 incoming, "default-key", Optional.of(9999L));
 
-        assertThat(result.getRoutingKey()).isEqualTo("incoming-key");
-        assertThat(result.getProperties().getContentType()).isEqualTo("text/plain");
-        assertThat(result.getProperties().getExpiration()).isEqualTo("3000");
+        assertThat(result.getRoutingKey()).isEqualTo("default-key");
+        assertThat(result.getExchange()).isEmpty();
+        assertThat(result.getProperties().getContentType()).isEqualTo("application/octet-stream");
+        assertThat(result.getProperties().getContentEncoding()).isNull();
+        assertThat(Optional.ofNullable(result.getProperties().getHeaders()).orElse(Map.of()))
+                .doesNotContainKey("x-custom");
+        assertThat(result.getProperties().getExpiration()).isEqualTo("9999");
         assertThat(result.getProperties().getCorrelationId()).isEqualTo("corr-1");
+        assertThat(result.getProperties().getMessageId()).isNull();
+        assertThat(result.getProperties().getType()).isNull();
+        assertThat(result.getProperties().getAppId()).isNull();
+    }
+
+    @Test
+    void outgoingMetadataFromTheIncomingMetadataPropagatesItsProperties() {
+        Map<String, Object> headers = new HashMap<>();
+        headers.put("kept", "incoming");
+        headers.put("overridden", "incoming");
+        AMQP.BasicProperties props = new AMQP.BasicProperties.Builder()
+                .contentType("text/plain")
+                .headers(headers)
+                .correlationId("corr-1")
+                .messageId("id-1")
+                .userId("other-user")
+                .build();
+        com.rabbitmq.client.Envelope envelope = new com.rabbitmq.client.Envelope(
+                1L, false, "exchange", "incoming-key");
+        IncomingRabbitMQMessage<byte[]> incoming = IncomingRabbitMQMessage.create(
+                envelope, props, "incoming-body".getBytes(StandardCharsets.UTF_8),
+                IncomingRabbitMQMessage.BYTE_ARRAY_CONVERTER);
+
+        Message<?> message = incoming.addMetadata(OutgoingRabbitMQMetadata.from(incoming.getRabbitMQMetadata())
+                .withContentType("application/json")
+                .withHeader("overridden", "outgoing")
+                .withRoutingKey("outgoing-key")
+                .withExchange("outgoing-exchange")
+                .build());
+
+        RabbitMQMessageConverter.OutgoingRabbitMQMessage result = RabbitMQMessageConverter.convert(
+                message, "default-key", Optional.empty());
+
+        assertThat(result.getRoutingKey()).isEqualTo("outgoing-key");
+        assertThat(result.getExchange()).hasValue("outgoing-exchange");
+        assertThat(result.getProperties().getContentType()).isEqualTo("application/json");
+        assertThat(result.getProperties().getHeaders())
+                .containsEntry("kept", "incoming")
+                .containsEntry("overridden", "outgoing");
+        assertThat(result.getProperties().getCorrelationId()).isEqualTo("corr-1");
+        assertThat(result.getProperties().getMessageId()).isEqualTo("id-1");
+        // RabbitMQ rejects a user id that is not the user of the connection.
+        assertThat(result.getProperties().getUserId()).isNull();
     }
 
     @Test
