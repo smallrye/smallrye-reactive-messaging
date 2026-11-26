@@ -19,6 +19,7 @@ import io.smallrye.reactive.messaging.mqtt.session.MqttClientSessionOptions;
 import io.smallrye.reactive.messaging.mqtt.session.RequestedQoS;
 import io.smallrye.reactive.messaging.providers.helpers.ConfigUtils;
 import io.smallrye.reactive.messaging.providers.helpers.VertxContext;
+import io.vertx.core.Future;
 import io.vertx.core.internal.VertxInternal;
 import io.vertx.mutiny.core.Context;
 import io.vertx.mutiny.core.Vertx;
@@ -32,7 +33,10 @@ public class MqttSource {
 
     private final AtomicBoolean started = new AtomicBoolean();
     private final AtomicBoolean alive = new AtomicBoolean();
+    private final AtomicBoolean closed = new AtomicBoolean();
     private final Clients.ClientHolder holder;
+    private final String topic;
+    private final boolean unsubscribeOnDisconnection;
 
     public MqttSource(Vertx vertx, MqttConnectorIncomingConfiguration config,
             Instance<ClientCustomizer<MqttClientSessionOptions>> configCustomizers,
@@ -48,7 +52,8 @@ public class MqttSource {
                 MqttHelpers.createClientOptions(config, instances));
 
         channel = config.getChannel();
-        String topic = config.getTopic().orElse(channel);
+        topic = config.getTopic().orElse(channel);
+        unsubscribeOnDisconnection = config.getUnsubscribeOnDisconnection();
         int qos = config.getQos();
         boolean broadcast = config.getBroadcast();
         healthEnabled = config.getHealthEnabled();
@@ -67,7 +72,7 @@ public class MqttSource {
                 || retainHandling != RetainedHandlingPolicy.SEND_AT_SUBSCRIBE || subscriptionIdentifier != null;
 
         final Context root = Context.newInstance(((VertxInternal) vertx.getDelegate()).createEventLoopContext());
-        holder = Clients.getHolder(vertx, options, sessionCustomizers).retain(channel);
+        holder = Clients.retain(vertx, options, sessionCustomizers, channel);
         holder.start().onSuccess(ignore -> started.set(true));
 
         if (hasV5SubOptions) {
@@ -90,7 +95,8 @@ public class MqttSource {
         }
 
         this.source = holder.stream()
-                .select().where(m -> MqttTopicHelper.matches(actualTopicFilter, m.topicName()))
+                // Once closed, the channel gets nothing more, even if the shared client keeps receiving for others.
+                .select().where(m -> !closed.get() && MqttTopicHelper.matches(actualTopicFilter, m.topicName()))
                 .onOverflow().buffer(config.getBufferSize())
                 .emitOn(c -> VertxContext.runOnContext(root.getDelegate(), c))
                 .onItem().transform(m -> new ReceivingMqttMessage(m, onNack))
@@ -102,7 +108,7 @@ public class MqttSource {
                 })
                 .onCancellation().call(() -> {
                     alive.set(false);
-                    if (config.getUnsubscribeOnDisconnection())
+                    if (unsubscribeOnDisconnection)
                         return Uni
                                 .createFrom()
                                 .completionStage(holder.getClient()
@@ -114,6 +120,23 @@ public class MqttSource {
                     alive.set(false);
                     log.unableToConnectToBroker(e);
                 });
+    }
+
+    /**
+     * Closes this channel: it stops receiving messages, unsubscribes from its topic if
+     * {@code unsubscribe-on-disconnection} is set, and releases the shared client, which is stopped once no channel
+     * uses it anymore.
+     *
+     * @return a future completed when the client is stopped or still used by other channels
+     */
+    public Future<Void> close() {
+        if (!closed.compareAndSet(false, true)) {
+            return Future.succeededFuture();
+        }
+        alive.set(false);
+        Future<Void> unsubscribed = unsubscribeOnDisconnection ? holder.getClient().unsubscribe(topic)
+                : Future.succeededFuture();
+        return unsubscribed.transform(ignored -> Clients.release(holder, channel));
     }
 
     private MqttFailureHandler createFailureHandler(MqttFailureHandler.Strategy strategy, String channel) {

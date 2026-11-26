@@ -328,6 +328,26 @@ mp.messaging.outgoing.[channel].send.retries=2147483647
     The `send.retries` attribute is deprecated and will be removed in a future version.
     Configure the Kafka producer `retries` and `delivery.timeout.ms` properties directly instead.
 
+## Graceful Shutdown
+
+Outgoing Kafka channels are drained by the framework [graceful shutdown](../concepts/graceful-shutdown.md)
+after the incoming channels: emitters are completed, and the shutdown waits, up to the drain timeout
+(`graceful-shutdown.drain-timeout`, 10 seconds by default), until the records sent are acknowledged by the broker.
+Sending through an emitter after it is completed fails.
+Then the producer is closed, waiting up to `close-timeout` for the records it still holds.
+
+The incoming `graceful-shutdown` attribute applies to outgoing Kafka channels too, with the same default (`true`).
+To skip the drain of an outgoing channel:
+
+```properties
+mp.messaging.outgoing.prices.graceful-shutdown=false
+```
+
+Previous versions did not drain outgoing channels: the producer was only closed, with `close-timeout`, and messages
+still buffered by an emitter could be lost.
+
+[Request-reply](request-reply.md) emitters also wait, up to `reply.timeout`, for their pending replies.
+
 ## Configuration Reference
 
 {{ insert('../../../target/connectors/smallrye-kafka-outgoing.md') }}

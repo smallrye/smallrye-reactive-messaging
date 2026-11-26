@@ -4,13 +4,13 @@ import static io.smallrye.reactive.messaging.gcp.pubsub.i18n.PubSubLogging.log;
 
 import java.io.File;
 import java.nio.file.Path;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.*;
 
 import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
 import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.enterprise.context.Destroyed;
-import jakarta.enterprise.event.Observes;
 import jakarta.inject.Inject;
 
 import org.eclipse.microprofile.config.Config;
@@ -31,6 +31,7 @@ import com.google.pubsub.v1.TopicName;
 
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
+import io.smallrye.mutiny.subscription.MultiEmitter;
 import io.smallrye.reactive.messaging.connector.InboundConnector;
 import io.smallrye.reactive.messaging.connector.OutboundConnector;
 import io.smallrye.reactive.messaging.providers.helpers.MultiUtils;
@@ -68,18 +69,56 @@ public class PubSubConnector implements InboundConnector, OutboundConnector {
 
     private ExecutorService executorService;
 
+    // The stream of each incoming channel, completed to close the channel.
+    private final Map<String, IncomingChannel> incomingChannels = new ConcurrentHashMap<>();
+    // The publisher configuration of each outgoing channel: publishers are shared by channels with the same one.
+    private final Map<String, PubSubConfig> outgoingConfigs = new ConcurrentHashMap<>();
+
     @PostConstruct
     public void initialize() {
         executorService = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
     }
 
-    public void destroy(@Observes @Destroyed(ApplicationScoped.class) final Object context) {
+    @Override
+    public CompletionStage<Void> closeIncoming(final String channel) {
+        final IncomingChannel incoming = incomingChannels.remove(channel);
+        if (incoming != null) {
+            incoming.close();
+        }
+        return CompletableFuture.completedStage(null);
+    }
+
+    @Override
+    public CompletionStage<Void> closeOutgoing(final String channel) {
+        final PubSubConfig config = outgoingConfigs.remove(channel);
+        if (config != null && !outgoingConfigs.containsValue(config)) {
+            pubSubManager.releasePublisher(config);
+        }
+        return CompletableFuture.completedStage(null);
+    }
+
+    @Override
+    public CompletionStage<Void> terminate() {
+        // The channels not closed one by one; the remaining clients are shut down by the PubSubManager.
+        incomingChannels.values().forEach(IncomingChannel::close);
+        incomingChannels.clear();
+        outgoingConfigs.clear();
         try {
             executorService.shutdown();
             executorService.awaitTermination(2, TimeUnit.SECONDS);
         } catch (final InterruptedException e) {
             Thread.currentThread().interrupt();
         }
+        return CompletableFuture.completedStage(null);
+    }
+
+    /**
+     * Safety net in case the shutdown phases did not run or timed out: terminate() is idempotent, and the executor
+     * threads must not outlive the application.
+     */
+    @PreDestroy
+    public void destroy() {
+        terminate();
     }
 
     @Override
@@ -87,6 +126,10 @@ public class PubSubConnector implements InboundConnector, OutboundConnector {
         final PubSubConfig pubSubConfig = new PubSubConfig(getProjectId(config), getTopic(config), getCredentialPath(config),
                 getSubscription(config), mockPubSubTopics, host.orElse(null), port.orElse(null), getOtelEnabled(config));
 
+        // Registered now: the subscriber only starts once the stream is subscribed, after the admin calls, and the
+        // channel may be closed before.
+        final IncomingChannel incoming = new IncomingChannel();
+        incomingChannels.put(getChannel(config), incoming);
         return Multi.createFrom().uni(Uni.createFrom().completionStage(CompletableFuture.supplyAsync(() -> {
             if (isUseAdminClient(config)) {
                 log.adminClientEnabled();
@@ -95,13 +138,46 @@ public class PubSubConnector implements InboundConnector, OutboundConnector {
             }
             return pubSubConfig;
         }, executorService))).onItem()
-                .transformToMultiAndConcatenate(cfg -> Multi.createFrom().emitter(new PubSubSource(cfg, pubSubManager)));
+                .transformToMultiAndConcatenate(cfg -> Multi.createFrom().emitter(emitter -> {
+                    incoming.start(emitter, () -> new PubSubSource(cfg, pubSubManager).accept(emitter));
+                }));
+    }
+
+    /**
+     * The subscriber of an incoming channel, which may be closed before it starts.
+     */
+    private final class IncomingChannel {
+
+        private MultiEmitter<? super Message<?>> emitter;
+        private boolean closed;
+
+        /**
+         * Starts the subscriber, unless the channel is already closed, in which case the stream is completed. Runs under
+         * the lock of {@link #close()}, so a concurrent close stops the subscriber once it is started.
+         */
+        synchronized void start(MultiEmitter<? super Message<?>> emitter, Runnable startSubscriber) {
+            if (closed) {
+                emitter.complete();
+                return;
+            }
+            startSubscriber.run();
+            this.emitter = emitter;
+        }
+
+        synchronized void close() {
+            closed = true;
+            if (emitter != null) {
+                pubSubManager.releaseSubscriber(emitter);
+                emitter = null;
+            }
+        }
     }
 
     @Override
     public Flow.Subscriber<? extends Message<?>> getSubscriber(final Config config) {
         final PubSubConfig pubSubConfig = new PubSubConfig(getProjectId(config), getTopic(config), getCredentialPath(config),
                 mockPubSubTopics, host.orElse(null), port.orElse(null), getOtelEnabled(config));
+        outgoingConfigs.put(getChannel(config), pubSubConfig);
 
         return MultiUtils.via(m -> m.onItem()
                 .transformToUniAndConcatenate(message -> Uni.createFrom().completionStage(CompletableFuture.supplyAsync(() -> {
@@ -174,6 +250,10 @@ public class PubSubConnector implements InboundConnector, OutboundConnector {
             return topic;
         }
 
+        return config.getValue(ConnectorFactory.CHANNEL_NAME_ATTRIBUTE, String.class);
+    }
+
+    private static String getChannel(final Config config) {
         return config.getValue(ConnectorFactory.CHANNEL_NAME_ATTRIBUTE, String.class);
     }
 

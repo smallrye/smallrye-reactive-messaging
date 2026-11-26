@@ -14,6 +14,9 @@ import org.junit.jupiter.api.Test;
 
 import com.rabbitmq.client.AMQP;
 
+import io.smallrye.mutiny.subscription.DemandPauser;
+import io.smallrye.reactive.messaging.providers.extension.PausableChannelDecorator;
+
 /**
  * Tests for RabbitMQMessageConverter
  */
@@ -358,6 +361,45 @@ public class RabbitMQMessageConverterTest {
         assertThat(result.getProperties().getMessageId()).isEqualTo("id-1");
         // RabbitMQ rejects a user id that is not the user of the connection.
         assertThat(result.getProperties().getUserId()).isNull();
+    }
+
+    @Test
+    void convertWithIncomingRabbitMQMessageOfTrackingChannelIsTheSame() {
+        Map<String, Object> headers = new HashMap<>();
+        headers.put("x-custom", "val");
+        AMQP.BasicProperties props = new AMQP.BasicProperties.Builder()
+                .contentType("text/plain")
+                .headers(headers)
+                .correlationId("corr-1")
+                .replyTo("reply-key")
+                .build();
+        com.rabbitmq.client.Envelope envelope = new com.rabbitmq.client.Envelope(
+                1L, false, "exchange", "incoming-key");
+        IncomingRabbitMQMessage<byte[]> incoming = IncomingRabbitMQMessage.create(
+                envelope, props, "incoming-body".getBytes(StandardCharsets.UTF_8),
+                IncomingRabbitMQMessage.BYTE_ARRAY_CONVERTER);
+
+        // Channels with graceful shutdown wrap each message: the conversion only reads the payload and the metadata.
+        PausableChannelDecorator.PauserChannel channel = new PausableChannelDecorator.PauserChannel(
+                new DemandPauser(), 10_000, null);
+        Message<?> tracked = channel.trackMessage(incoming);
+        assertThat(tracked).isNotInstanceOf(IncomingRabbitMQMessage.class);
+
+        RabbitMQMessageConverter.OutgoingRabbitMQMessage direct = RabbitMQMessageConverter.convert(
+                incoming, "default-key", Optional.empty());
+        RabbitMQMessageConverter.OutgoingRabbitMQMessage result = RabbitMQMessageConverter.convert(
+                tracked, "default-key", Optional.empty());
+
+        assertThat(result.getRoutingKey()).isEqualTo("reply-key").isEqualTo(direct.getRoutingKey());
+        assertThat(result.getExchange()).isEqualTo(direct.getExchange());
+        assertThat(result.getBody()).isEqualTo("incoming-body".getBytes(StandardCharsets.UTF_8));
+        assertThat(result.getProperties().getCorrelationId()).isEqualTo("corr-1");
+        assertThat(result.getProperties().getContentType()).isEqualTo("application/octet-stream")
+                .isEqualTo(direct.getProperties().getContentType());
+        assertThat(Optional.ofNullable(result.getProperties().getHeaders()).orElse(Map.of()))
+                .doesNotContainKey("x-custom");
+        // The reply-to addressed the reply to the incoming message: it is used for routing, not copied.
+        assertThat(result.getProperties().getReplyTo()).isNull();
     }
 
     @Test

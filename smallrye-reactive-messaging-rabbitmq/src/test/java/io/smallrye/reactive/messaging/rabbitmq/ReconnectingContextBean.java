@@ -29,7 +29,7 @@ public class ReconnectingContextBean {
             eventLoopFlags.add(context.isEventLoopContext());
         });
         latch.countDown();
-        return Uni.createFrom().voidItem();
+        return Uni.createFrom().completionStage(message::ack);
     }
 
     public void setExpectedMessages(int count) {

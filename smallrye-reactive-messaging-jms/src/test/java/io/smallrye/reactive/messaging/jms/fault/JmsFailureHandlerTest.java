@@ -7,8 +7,11 @@ import static io.smallrye.reactive.messaging.jms.fault.JmsDlqFailure.DEAD_LETTER
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.time.Duration;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -24,12 +27,15 @@ import jakarta.jms.TextMessage;
 
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Message;
+import org.eclipse.microprofile.reactive.messaging.spi.ConnectorLiteral;
 import org.jboss.weld.environment.se.WeldContainer;
+import org.jboss.weld.proxy.WeldClientProxy;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
 
 import io.smallrye.mutiny.Uni;
+import io.smallrye.reactive.messaging.ChannelLifecycleManager;
 import io.smallrye.reactive.messaging.health.HealthReport;
 import io.smallrye.reactive.messaging.jms.JmsConnector;
 import io.smallrye.reactive.messaging.providers.extension.HealthCenter;
@@ -140,6 +146,30 @@ public class JmsFailureHandlerTest extends JmsTestBase {
         });
 
         assertThat(isAlive()).isTrue();
+    }
+
+    @Test
+    public void testDeadLetterQueueProducerIsClosedWithItsChannel() throws Exception {
+        MyReceiverBean bean = runApplication(getDeadLetterQueueConfig(destination), MyReceiverBean.class);
+        produceIntegers();
+        await().atMost(2, TimeUnit.MINUTES).until(() -> bean.list().size() >= 10);
+
+        JmsConnector connector = container.getBeanManager().createInstance()
+                .select(JmsConnector.class, ConnectorLiteral.of(JmsConnector.CONNECTOR_NAME)).get();
+        // The producer of the dead letter queue has its own name, distinct from the incoming channel.
+        assertThat(outgoingContexts(connector)).containsOnlyKeys("jms-" + JmsDlqFailure.CHANNEL_DLQ_SUFFIX);
+
+        container.getBeanManager().createInstance().select(ChannelLifecycleManager.class).get()
+                .closeIncoming("jms").await().atMost(Duration.ofSeconds(10));
+        assertThat(outgoingContexts(connector)).isEmpty();
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Map<String, ?> outgoingContexts(JmsConnector connector) throws Exception {
+        Object instance = connector instanceof WeldClientProxy proxy ? proxy.getMetadata().getContextualInstance() : connector;
+        Field field = JmsConnector.class.getDeclaredField("outgoingContexts");
+        field.setAccessible(true);
+        return (Map<String, ?>) field.get(instance);
     }
 
     @Test

@@ -34,9 +34,7 @@ public class AmqpConnectionSharingTest extends AmqpBrokerTestBase {
     @AfterEach
     public void cleanup() {
         if (container != null) {
-            container.getBeanManager().createInstance()
-                    .select(AmqpConnector.class, ConnectorLiteral.of(AmqpConnector.CONNECTOR_NAME))
-                    .get().terminate(null);
+            // The shutdown drains the channels, then closes them and terminates the connector.
             container.shutdown();
         }
 

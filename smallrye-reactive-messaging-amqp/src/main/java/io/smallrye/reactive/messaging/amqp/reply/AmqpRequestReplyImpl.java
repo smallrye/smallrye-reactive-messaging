@@ -16,6 +16,7 @@ import jakarta.enterprise.inject.Instance;
 
 import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.reactive.messaging.Message;
+import org.eclipse.microprofile.reactive.messaging.spi.ConnectorFactory;
 
 import io.smallrye.common.annotation.Experimental;
 import io.smallrye.mutiny.Multi;
@@ -39,7 +40,15 @@ import io.vertx.mutiny.core.Vertx;
 public class AmqpRequestReplyImpl<Req, Rep> extends MutinyEmitterImpl<Req>
         implements AmqpRequestReply<Req, Rep>, MultiSubscriber<AmqpMessage<Rep>> {
 
+    /**
+     * Appended to the name of the outgoing channel to name its reply consumer.
+     */
+    public static final String REPLY_CHANNEL_SUFFIX = "-reply-consumer";
+
     private final String channel;
+    // The reply consumer is an incoming channel of the connector: it needs a name of its own, distinct from the
+    // outgoing channel, so that closing one does not close the other's client.
+    private final String replyChannel;
     private final AmqpConnector connector;
     private final String replyToAddress;
     private final Duration replyTimeout;
@@ -58,6 +67,7 @@ public class AmqpRequestReplyImpl<Req, Rep> extends MutinyEmitterImpl<Req>
             Instance<ReplyFailureHandler> replyFailureHandlers) {
         super(config, defaultBufferSize);
         this.channel = config.name();
+        this.replyChannel = channel + REPLY_CHANNEL_SUFFIX;
         this.connector = connector;
         Config connectorConfig = Configs.outgoing(channelConfig, AmqpConnector.CONNECTOR_NAME, channel);
         this.replyTimeout = connectorConfig.getOptionalValue(REPLY_TIMEOUT_KEY, Long.class)
@@ -81,6 +91,7 @@ public class AmqpRequestReplyImpl<Req, Rep> extends MutinyEmitterImpl<Req>
         this.replyToAddress = connectorConfig.getOptionalValue(REPLY_ADDRESS_KEY, String.class)
                 .orElse(channel + "-reply");
         override.put("address", x -> replyToAddress);
+        override.put(ConnectorFactory.CHANNEL_NAME_ATTRIBUTE, x -> replyChannel);
 
         Config incomingConfig = Configs.prefixOverride(connectorConfig, "reply", override);
         ((Publisher<AmqpMessage<Rep>>) connector.getPublisher(incomingConfig)).subscribe(this);
@@ -101,6 +112,8 @@ public class AmqpRequestReplyImpl<Req, Rep> extends MutinyEmitterImpl<Req>
                 reply.complete();
             }
         }
+        // No more requests: close the reply consumer, and release its client.
+        connector.closeIncoming(replyChannel);
     }
 
     @Override
@@ -126,7 +139,7 @@ public class AmqpRequestReplyImpl<Req, Rep> extends MutinyEmitterImpl<Req>
                 .orElseGet(OutgoingAmqpMetadata::builder);
         CorrelationId correlationId = correlationIdHandler.generate(request);
         // if using direct-reply-to reply-to address is assigned by broker when the receiver attaches
-        String replyTo = DIRECT_REPLY_TO_ADDRESS.equals(replyToAddress) ? connector.getIncomingAddress(channel)
+        String replyTo = DIRECT_REPLY_TO_ADDRESS.equals(replyToAddress) ? connector.getIncomingAddress(replyChannel)
                 : replyToAddress;
         builder.withMessageId(correlationId.toString()).withReplyTo(replyTo);
         OutgoingAmqpMetadata outMetadata = builder.build();

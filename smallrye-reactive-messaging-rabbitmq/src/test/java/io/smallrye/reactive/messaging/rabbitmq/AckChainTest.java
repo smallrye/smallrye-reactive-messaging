@@ -66,11 +66,12 @@ public class AckChainTest extends WeldTestBase {
                     .withAck(() -> {
                         future.complete(null);
                         acked.set(true);
-                        return CompletableFuture.completedFuture(null);
+                        // Propagate the acknowledgement to the incoming message.
+                        return msg.ack();
                     })
                     .withNack(t -> {
                         future.completeExceptionally(t);
-                        return CompletableFuture.completedFuture(null);
+                        return msg.nack(t);
                     });
             emitter.send(output);
             return future;

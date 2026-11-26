@@ -9,6 +9,9 @@ import com.google.cloud.pubsub.v1.AckReplyConsumer;
 import com.google.protobuf.ByteString;
 import com.google.pubsub.v1.PubsubMessage;
 
+import io.smallrye.mutiny.subscription.DemandPauser;
+import io.smallrye.reactive.messaging.providers.extension.PausableChannelDecorator;
+
 /**
  * The conversion of the outgoing messages, without the Pub/Sub emulator.
  */
@@ -58,6 +61,20 @@ class PubSubBuildMessageTest {
                         .withAttribute("key", "outgoing").withOrderingKey("other").build()));
         assertThat(overridden.getAttributesMap()).containsEntry("key", "outgoing");
         assertThat(overridden.getOrderingKey()).isEqualTo("other");
+    }
+
+    @Test
+    void convertsATrackedMessageLikeTheMessageItWraps() {
+        PausableChannelDecorator.PauserChannel channel = new PausableChannelDecorator.PauserChannel(
+                new DemandPauser(), 10_000, null);
+        Message<?> tracked = channel.trackMessage(Message.of("hello")
+                .addMetadata(OutgoingPubSubMetadata.builder()
+                        .withAttribute("key", "value").withOrderingKey("ordering").build()));
+
+        PubsubMessage converted = PubSubConnector.buildMessage(tracked);
+        assertThat(converted.getData().toStringUtf8()).isEqualTo("hello");
+        assertThat(converted.getAttributesMap()).containsEntry("key", "value");
+        assertThat(converted.getOrderingKey()).isEqualTo("ordering");
     }
 
     @Test

@@ -306,6 +306,9 @@ public interface ProviderExceptions {
     @Message(id = 1009, value = "Unable to find a pausable channel with name `%s`")
     DefinitionException pausableChannelNotFound(String name);
 
+    @Message(id = 1010, value = "A channel named `%s` is already registered; close it before creating it again")
+    IllegalStateException channelAlreadyRegistered(String name);
+
     @Message(id = 1011, value = "Method '%s' cannot consume the message: it consumes the message type '%s', and no "
             + "converter converts a '%s' to it")
     IllegalStateException messageTypeNotRestored(String method, String messageType, String received);

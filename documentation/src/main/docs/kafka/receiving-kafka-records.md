@@ -984,6 +984,43 @@ The following configuration attributes are not supported with share groups and w
 
 If any of these are configured alongside `share-group.enabled=true`, a warning is logged at startup.
 
+## Graceful Shutdown
+
+Kafka channels use the framework [graceful shutdown](../concepts/graceful-shutdown.md), enabled by default
+(`graceful-shutdown=true`).
+On shutdown, each incoming channel stops delivering records and waits, up to its drain timeout
+(`graceful-shutdown.drain-timeout`, 10 seconds by default), until the records delivered are acknowledged or nacked.
+Then the connector commits the offsets of the records processed, terminates the failure strategy,
+and, once the outgoing channels are drained too, closes the consumer.
+
+While the channel is paused, the consumer keeps polling, so it stays in the consumer group.
+The records it fetches fill the queue of the channel, up to `max-queue-size-factor` times `max.poll.records`,
+then the partitions are paused (see [Backpressure with Pause/Resume](#backpressure-with-pauseresume)).
+These records are neither delivered nor committed, so they are consumed again after a restart.
+With `pause-if-no-requests=false`, the queue is not bounded: the consumer keeps fetching records into memory
+for the whole drain.
+
+In batch mode, the drain waits for the batch: acknowledge the batch, not the records it contains.
+
+With `graceful-shutdown=false`, the channel is neither paused nor drained, and the offsets of the records
+processed are committed when the channel closes.
+
+### Changes from previous versions
+
+Before the framework graceful shutdown, the Kafka connector handled the shutdown itself, in a
+`@BeforeDestroyed(ApplicationScoped.class)` observer. The behavior changed as follows:
+
+- **What the shutdown waits for.** The connector used to pause the assigned partitions, then wait twice the
+  `poll-timeout` (2 seconds by default), even when no record was in flight. Only the `throttled` commit strategy
+  then waited for the records still being processed, up to `auto.commit.interval.ms` (5 seconds by default).
+  Now, every commit strategy waits until the records delivered are acknowledged, without a fixed wait,
+  up to the drain timeout (10 seconds by default).
+- **Order.** The sources and sinks used to be closed together. Now the incoming channels are drained and their
+  offsets committed first, then the outgoing channels are drained, then the channels and the connector are closed.
+- **Outgoing channels** are drained too, see [Writing Kafka Records](writing-kafka-records.md#graceful-shutdown).
+- **Logs.** `SRMSG18243`, `SRMSG18244` and `SRMSG18245` (records still unprocessed after the closing timeout)
+  are no longer logged. A drain that times out logs `SRMSG00246` with the number of messages still in flight.
+
 ## Configuration Reference
 
 {{ insert('../../../target/connectors/smallrye-kafka-incoming.md') }}

@@ -115,6 +115,21 @@ or [observed](observability.md).
     Instead, you can either use the generic `Message` type and access specific metadata,
     or use the payload with [metadata injection](incoming-metadata-injection.md)
 
+    Consuming custom `Message` types is deprecated, and a warning is logged at startup for each method doing it.
+    When a message has lost its custom type on the way, the framework asks the `MessageConverter`s to restore it:
+    the Kafka connector restores `KafkaRecord`, `IncomingKafkaRecord`, `KafkaRecordBatch` and `IncomingKafkaRecordBatch`,
+    the Pulsar connector restores `PulsarMessage`, `PulsarIncomingMessage`, `PulsarBatchMessage` and `PulsarIncomingBatchMessage`,
+    the JMS connector restores `IncomingJmsMessage`,
+    the Camel connector restores `CamelMessage`,
+    the AMQP connector restores `AmqpMessage`,
+    the RabbitMQ connector restores `IncomingRabbitMQMessage`,
+    the MQTT connector restores `ReceivingMqttMessage` and `MqttMessage`,
+    the Google Cloud Pub/Sub connector restores `PubSubMessage`,
+    and the AWS SQS connector restores `SqsMessage`,
+    so that intercepted messages, and the in-flight tracking of [graceful shutdown](graceful-shutdown.md), keep working.
+    A message that no converter restores to the consumed type is negatively acknowledged, and an error is logged
+    (SRMSG00249).
+
 Since [incoming metadata injection](incoming-metadata-injection.md) and [generic payloads](generic-payloads.md)
 features added to SmallRye Reactive Messaging,
 it is easier to use payload signatures and benefit from acknowledgement handling and still access connector-specific metadata.

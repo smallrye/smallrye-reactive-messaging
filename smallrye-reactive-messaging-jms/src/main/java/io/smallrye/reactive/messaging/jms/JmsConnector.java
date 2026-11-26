@@ -6,8 +6,12 @@ import static io.smallrye.reactive.messaging.jms.i18n.JmsLogging.log;
 
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -148,8 +152,9 @@ public class JmsConnector implements InboundConnector, OutboundConnector {
 
     private ExecutorService executor;
     private JsonMapping jsonMapping;
-    private final List<JmsSource> sources = new CopyOnWriteArrayList<>();
-    private final List<JmsResourceHolder<?>> contexts = new CopyOnWriteArrayList<>();
+    private final Map<String, JmsSource> sources = new ConcurrentHashMap<>();
+    private final Map<String, JmsResourceHolder<?>> incomingContexts = new ConcurrentHashMap<>();
+    private final Map<String, JmsResourceHolder<?>> outgoingContexts = new ConcurrentHashMap<>();
 
     // Parent contexts for reuse, keyed by factory + credentials + session-mode combination
     private final List<ParentContextHolder> parentContexts = new CopyOnWriteArrayList<>();
@@ -171,14 +176,51 @@ public class JmsConnector implements InboundConnector, OutboundConnector {
         }
     }
 
-    @PreDestroy
-    public void cleanup() {
-        sources.forEach(JmsSource::close);
-        contexts.forEach(JmsResourceHolder::close);
-        // Clean up parent contexts
+    @Override
+    public CompletionStage<Void> closeIncoming(String channel) {
+        JmsSource source = sources.remove(channel);
+        if (source != null) {
+            // Completes the channel's stream and stops its poller.
+            source.close();
+        }
+        JmsResourceHolder<?> holder = incomingContexts.remove(channel);
+        if (holder != null) {
+            holder.close();
+        }
+        return CompletableFuture.completedStage(null);
+    }
+
+    @Override
+    public CompletionStage<Void> closeOutgoing(String channel) {
+        JmsResourceHolder<?> holder = outgoingContexts.remove(channel);
+        if (holder != null) {
+            holder.close();
+        }
+        return CompletableFuture.completedStage(null);
+    }
+
+    @Override
+    public CompletionStage<Void> terminate() {
+        // The channels not closed one by one, then the shared parent contexts and the executor.
+        sources.values().forEach(JmsSource::close);
+        sources.clear();
+        incomingContexts.values().forEach(JmsResourceHolder::close);
+        incomingContexts.clear();
+        outgoingContexts.values().forEach(JmsResourceHolder::close);
+        outgoingContexts.clear();
         parentContexts.forEach(ParentContextHolder::close);
         parentContexts.clear();
         this.executor.shutdown();
+        return CompletableFuture.completedStage(null);
+    }
+
+    /**
+     * Safety net in case the shutdown phases did not run or timed out: terminate() is idempotent, and the executor
+     * threads must not outlive the application.
+     */
+    @PreDestroy
+    public void cleanup() {
+        terminate();
     }
 
     @Override
@@ -190,7 +232,7 @@ public class JmsConnector implements InboundConnector, OutboundConnector {
             case LOCAL -> createLocalTransactionSource(ic);
             case NONE -> createNoneTransactionSource(ic);
         };
-        sources.add(source);
+        sources.put(ic.getChannel(), source);
         return source.getSource();
     }
 
@@ -267,7 +309,7 @@ public class JmsConnector implements InboundConnector, OutboundConnector {
                     }
                 });
         holder.getClient();
-        contexts.add(holder);
+        incomingContexts.put(ic.getChannel(), holder);
         return holder;
     }
 
@@ -310,7 +352,7 @@ public class JmsConnector implements InboundConnector, OutboundConnector {
     public Flow.Subscriber<? extends Message<?>> getSubscriber(Config config) {
         JmsConnectorOutgoingConfiguration oc = new JmsConnectorOutgoingConfiguration(config);
         JmsResourceHolder<JMSProducer> holder = new JmsResourceHolder<>(oc.getChannel(), () -> createJmsContext(oc));
-        contexts.add(holder);
+        outgoingContexts.put(oc.getChannel(), holder);
         return new JmsSink(holder, oc, openTelemetryInstance, jsonMapping, executor, oc.getSessionSharing()).getSink();
     }
 

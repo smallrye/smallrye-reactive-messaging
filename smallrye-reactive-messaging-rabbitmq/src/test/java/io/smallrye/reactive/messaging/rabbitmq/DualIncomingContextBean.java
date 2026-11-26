@@ -31,7 +31,7 @@ public class DualIncomingContextBean {
             eventLoop1.set(context.isEventLoopContext());
         });
         latch1.countDown();
-        return Uni.createFrom().voidItem();
+        return Uni.createFrom().completionStage(message::ack);
     }
 
     @Incoming("data2")
@@ -42,7 +42,7 @@ public class DualIncomingContextBean {
             eventLoop2.set(context.isEventLoopContext());
         });
         latch2.countDown();
-        return Uni.createFrom().voidItem();
+        return Uni.createFrom().completionStage(message::ack);
     }
 
     public boolean awaitMessages(long timeout, TimeUnit unit) throws InterruptedException {

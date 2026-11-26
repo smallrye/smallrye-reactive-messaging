@@ -12,7 +12,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
-import org.eclipse.microprofile.reactive.messaging.spi.ConnectorLiteral;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -76,10 +75,7 @@ public class SnsTestBase extends WeldTestBase {
     @AfterEach
     void stopContainer() {
         if (container != null) {
-            final var connector = getBeanManager().createInstance()
-                    .select(SnsConnector.class, ConnectorLiteral.of(SnsConnector.CONNECTOR_NAME))
-                    .get();
-            connector.terminate(null);
+            // The shutdown drains the channels, then closes them and terminates the connector.
             container.close();
         }
         // Release the config objects

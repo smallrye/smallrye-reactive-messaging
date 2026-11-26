@@ -27,6 +27,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 
 import io.smallrye.mutiny.Multi;
+import io.smallrye.mutiny.subscription.DemandPauser;
+import io.smallrye.reactive.messaging.providers.extension.PausableChannelDecorator;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
 import io.smallrye.reactive.messaging.test.common.config.SmallRyeConfigTestUtil;
 import io.vertx.core.buffer.Buffer;
@@ -45,7 +47,7 @@ public class AmqpSinkTest extends AmqpTestBase {
     @AfterEach
     public void cleanup() {
         if (provider != null) {
-            provider.terminate(null);
+            provider.terminate();
         }
 
         if (container != null) {
@@ -786,6 +788,52 @@ public class AmqpSinkTest extends AmqpTestBase {
         });
 
         assertThat(count.get()).isEqualTo(msgCount);
+    }
+
+    @Test
+    @Timeout(30)
+    @SuppressWarnings("deprecation")
+    public void testSinkUsingAmqpMessageOfTrackingChannel() throws Exception {
+        int msgCount = 10;
+        CountDownLatch msgsReceived = new CountDownLatch(msgCount);
+        List<org.apache.qpid.proton.message.Message> messagesReceived = Collections
+                .synchronizedList(new ArrayList<>(msgCount));
+
+        server = setupMockServerForTypeTest(messagesReceived, msgsReceived);
+
+        Flow.Subscriber<? extends Message<?>> sink = createProviderAndSink(UUID.randomUUID().toString(),
+                server.actualPort());
+
+        // Channels with graceful shutdown wrap each message: the sink builds the AMQP message from the payload and
+        // the outgoing metadata the builder fills.
+        PausableChannelDecorator.PauserChannel channel = new PausableChannelDecorator.PauserChannel(
+                new DemandPauser(), 10_000, null);
+        //noinspection unchecked
+        Multi.createFrom().range(0, msgCount)
+                .map(v -> channel.trackMessage(AmqpMessage.<String> builder()
+                        .withBody(HELLO + v)
+                        .withSubject("foo")
+                        .withReplyTo("reply-address")
+                        .build()))
+                .subscribe((Flow.Subscriber<? super Message<?>>) sink);
+
+        assertThat(msgsReceived.await(6, TimeUnit.SECONDS)).isTrue();
+
+        AtomicInteger count = new AtomicInteger();
+        messagesReceived.forEach(msg -> {
+            assertThat(msg.getSubject()).isEqualTo("foo");
+            assertThat(msg.getReplyTo()).isEqualTo("reply-address");
+
+            Section body = msg.getBody();
+            assertThat(body).isInstanceOf(AmqpValue.class);
+            assertThat(((AmqpValue) body).getValue()).isEqualTo(HELLO + count);
+
+            count.incrementAndGet();
+        });
+        assertThat(count.get()).isEqualTo(msgCount);
+
+        // The sink acknowledged the tracked messages, not the AMQP messages they wrap.
+        await().until(() -> channel.getInFlightCount() == 0);
     }
 
     @Test

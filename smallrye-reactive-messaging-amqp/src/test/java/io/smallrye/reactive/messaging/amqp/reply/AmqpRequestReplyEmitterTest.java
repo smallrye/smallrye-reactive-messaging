@@ -19,7 +19,6 @@ import org.eclipse.microprofile.reactive.messaging.Channel;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
-import org.eclipse.microprofile.reactive.messaging.spi.ConnectorLiteral;
 import org.jboss.weld.environment.se.Weld;
 import org.jboss.weld.environment.se.WeldContainer;
 import org.junit.jupiter.api.AfterEach;
@@ -48,9 +47,7 @@ public class AmqpRequestReplyEmitterTest extends AmqpBrokerTestBase {
     @AfterEach
     public void cleanup() {
         if (container != null) {
-            container.getBeanManager().createInstance()
-                    .select(AmqpConnector.class, ConnectorLiteral.of(AmqpConnector.CONNECTOR_NAME))
-                    .get().terminate(null);
+            // The shutdown drains the channels, then closes them and terminates the connector.
             container.shutdown();
         }
 

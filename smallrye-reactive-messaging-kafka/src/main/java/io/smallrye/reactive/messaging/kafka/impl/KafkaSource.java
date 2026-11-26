@@ -7,8 +7,10 @@ import static io.smallrye.reactive.messaging.kafka.i18n.KafkaExceptions.ex;
 import static io.smallrye.reactive.messaging.kafka.i18n.KafkaLogging.log;
 import static io.smallrye.reactive.messaging.kafka.impl.RebalanceListeners.findMatchingListener;
 
-import java.time.Duration;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -55,6 +57,7 @@ public class KafkaSource<K, V> {
     private final boolean isCloudEventEnabled;
     private final String channel;
     private volatile boolean subscribed;
+    private final AtomicBoolean preShutdownDone = new AtomicBoolean();
     private final KafkaSourceHealth health;
 
     private final String group;
@@ -427,50 +430,40 @@ public class KafkaSource<K, V> {
         return batchStream;
     }
 
-    public void closeQuietly() {
+    public CompletionStage<Void> preShutdown() {
+        // Called by the connector's prepareCloseIncoming and again by closeQuietly: terminate the handlers only once.
+        if (!preShutdownDone.compareAndSet(false, true)) {
+            return CompletableFuture.completedStage(null);
+        }
+        // Separately: a failed final commit must not leave the failure handler, and its producer or consumer, open.
         try {
-            if (configuration.getGracefulShutdown()) {
-                Duration pollTimeoutTwice = Duration.ofMillis(configuration.getPollTimeout() * 2L);
-                if (!this.client.isClosed() && this.client.runOnPollingThread(c -> {
-                    Set<TopicPartition> partitions = c.assignment();
-                    if (!partitions.isEmpty()) {
-                        log.pauseAllPartitionOnTermination();
-                        c.pause(partitions);
-                        return true;
-                    }
-                    return false;
-                })
-                        .await().atMost(pollTimeoutTwice)) {
-                    // 2 times the poll timeout - so we are sure that the last (non-empty) poll has completed.
-                    grace(pollTimeoutTwice);
-                }
-
-                // If we don't have assignment, no need to wait.
-            }
-
             this.commitHandler.terminate(configuration.getGracefulShutdown());
+        } catch (Throwable e) {
+            log.exceptionOnClose(e);
+        }
+        try {
             this.failureHandler.terminate();
         } catch (Throwable e) {
             log.exceptionOnClose(e);
         }
+        return CompletableFuture.completedStage(null);
+    }
 
+    public CompletionStage<Void> shutdownSource() {
         try {
             this.client.close();
         } catch (Throwable e) {
             log.exceptionOnClose(e);
         }
-
         if (health != null) {
             health.close();
         }
+        return CompletableFuture.completedStage(null);
     }
 
-    private void grace(Duration duration) {
-        try {
-            Thread.sleep(duration.toMillis());
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
+    public void closeQuietly() {
+        preShutdown();
+        shutdownSource();
     }
 
     public void isAlive(HealthReport.HealthReportBuilder builder) {

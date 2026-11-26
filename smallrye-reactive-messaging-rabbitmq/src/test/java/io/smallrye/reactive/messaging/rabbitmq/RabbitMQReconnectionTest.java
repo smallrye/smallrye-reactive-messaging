@@ -398,6 +398,8 @@ public class RabbitMQReconnectionTest extends WeldTestBase {
                     .put("mp.messaging.incoming.data.tracing.enabled", false)
                     .put("mp.messaging.incoming.data.auto-acknowledgement", false)
                     .put("mp.messaging.incoming.data.max-outstanding-messages", prefetch)
+                    // The test stops acknowledging on purpose: do not wait for these messages at shutdown.
+                    .put("mp.messaging.incoming.data.graceful-shutdown", false)
                     .put("rabbitmq-username", username)
                     .put("rabbitmq-password", password)
                     .put("rabbitmq-reconnect-interval", 1)

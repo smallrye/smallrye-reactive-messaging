@@ -179,7 +179,7 @@ public class LocalPropagationTest extends MqttTestBase {
             ContextLocals.put("uuid", value);
             ContextLocals.put("input", intPayload);
 
-            return Message.of(intPayload + 1, input.getMetadata());
+            return input.withPayload(intPayload + 1);
         }
 
         @Incoming("process")
@@ -241,12 +241,17 @@ public class LocalPropagationTest extends MqttTestBase {
             ContextLocals.put("uuid", value);
             ContextLocals.put("input", intPayload);
 
-            return Message.of(intPayload + 1, input.getMetadata())
+            return input.withPayload(intPayload + 1)
                     .withAck(() -> {
+                        // Acknowledge the incoming message on a custom thread.
                         CompletableFuture<Void> cf = new CompletableFuture<>();
-                        executor.execute(() -> {
-                            cf.complete(null);
-                        });
+                        executor.execute(() -> input.ack().whenComplete((v, t) -> {
+                            if (t != null) {
+                                cf.completeExceptionally(t);
+                            } else {
+                                cf.complete(null);
+                            }
+                        }));
                         return cf;
                     });
         }
@@ -318,7 +323,7 @@ public class LocalPropagationTest extends MqttTestBase {
 
             assertThat(input.getMetadata(LocalContextMetadata.class)).isPresent();
 
-            return Message.of(intPayload + 1, input.getMetadata());
+            return input.withPayload(intPayload + 1);
         }
 
         @Incoming("process")
@@ -381,7 +386,7 @@ public class LocalPropagationTest extends MqttTestBase {
 
             assertThat(input.getMetadata(LocalContextMetadata.class)).isPresent();
 
-            return Message.of(intPayload + 1, input.getMetadata());
+            return input.withPayload(intPayload + 1);
         }
 
         private final Random random = new Random();
@@ -445,7 +450,7 @@ public class LocalPropagationTest extends MqttTestBase {
 
             assertThat(input.getMetadata(LocalContextMetadata.class)).isPresent();
 
-            return Message.of(intPayload + 1, input.getMetadata());
+            return input.withPayload(intPayload + 1);
         }
 
         private final Random random = new Random();
@@ -525,7 +530,7 @@ public class LocalPropagationTest extends MqttTestBase {
 
             assertThat(input.getMetadata(LocalContextMetadata.class)).isPresent();
 
-            return Message.of(intPayload + 1, input.getMetadata());
+            return input.withPayload(intPayload + 1);
         }
 
         private final Random random = new Random();

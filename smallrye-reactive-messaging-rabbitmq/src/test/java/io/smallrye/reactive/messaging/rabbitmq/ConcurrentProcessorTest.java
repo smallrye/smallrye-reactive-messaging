@@ -158,7 +158,7 @@ public class ConcurrentProcessorTest extends WeldTestBase {
         @Incoming("data")
         @Outgoing("sink")
         @Acknowledgment(Acknowledgment.Strategy.MANUAL)
-        public Uni<Message<Integer>> process(IncomingRabbitMQMessage<byte[]> input) {
+        public Uni<Message<Integer>> process(Message<byte[]> input) {
             int value = Integer.parseInt(new String(input.getPayload()));
             int next = value + 1;
             perThread.computeIfAbsent(Thread.currentThread(), t -> new CopyOnWriteArrayList<>()).add(next);
@@ -188,7 +188,7 @@ public class ConcurrentProcessorTest extends WeldTestBase {
 
         @Incoming("data")
         @Outgoing("sink")
-        public Multi<Message<Integer>> process(Multi<IncomingRabbitMQMessage<byte[]>> multi) {
+        public Multi<Message<Integer>> process(Multi<Message<byte[]>> multi) {
             return multi.onItem()
                     .transformToUniAndConcatenate(input -> {
                         int value = Integer.parseInt(new String(input.getPayload()));

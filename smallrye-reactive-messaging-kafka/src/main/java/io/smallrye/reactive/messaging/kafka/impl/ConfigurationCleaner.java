@@ -74,7 +74,6 @@ public class ConfigurationCleaner {
             "key-deserialization-failure-handler",
             "value-deserialization-failure-handler",
             "fail-on-deserialization-failure",
-            "graceful-shutdown",
             "poll-timeout",
             "pause-if-no-requests",
 
@@ -82,8 +81,11 @@ public class ConfigurationCleaner {
             "key.serializer",
             "value.serializer");
 
-    private static final List<String> CONSUMER_PREFIX = Arrays.asList("checkpoint", "share-group", "ordered");
-    private static final List<String> PRODUCER_PREFIX = Arrays.asList("reply", "pooled-producer");
+    // Framework attributes of every channel: graceful-shutdown, graceful-shutdown.drain-timeout, pausable, pausable.*
+    private static final List<String> CONSUMER_PREFIX = Arrays.asList("checkpoint", "share-group", "ordered",
+            "graceful-shutdown", "pausable", "initially-paused");
+    private static final List<String> PRODUCER_PREFIX = Arrays.asList("reply", "pooled-producer",
+            "graceful-shutdown", "pausable", "initially-paused");
 
     private ConfigurationCleaner() {
         // Avoid direct instantiation

@@ -28,7 +28,7 @@ public class IncomingContextBean {
             eventLoopContext.set(context.isEventLoopContext());
         });
         latch.countDown();
-        return Uni.createFrom().voidItem();
+        return Uni.createFrom().completionStage(message::ack);
     }
 
     public boolean awaitMessage(long timeout, TimeUnit unit) throws InterruptedException {
