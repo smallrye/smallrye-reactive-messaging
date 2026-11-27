@@ -82,6 +82,33 @@ public class PubSubManager {
         return topicAdminClients.computeIfAbsent(config, this::buildTopicAdminClient);
     }
 
+    /**
+     * Shuts down the publisher of the given configuration, if any, once no channel uses it anymore.
+     *
+     * @param config the configuration the publisher was created for
+     */
+    public void releasePublisher(final PubSubConfig config) {
+        final Publisher publisher = publishers.remove(config);
+        if (publisher != null) {
+            try {
+                publisher.shutdown();
+                publisher.awaitTermination(2, TimeUnit.SECONDS);
+            } catch (final InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }
+    }
+
+    /**
+     * Completes the stream of a closed channel, which stops its subscriber.
+     *
+     * @param emitter the emitter of the channel
+     */
+    public void releaseSubscriber(final MultiEmitter<? super Message<?>> emitter) {
+        emitters.remove(emitter);
+        emitter.complete();
+    }
+
     @PreDestroy
     public void destroy() {
         topicAdminClients.values().forEach(PubSubManager::shutdown);

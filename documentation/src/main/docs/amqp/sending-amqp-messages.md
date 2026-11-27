@@ -81,6 +81,30 @@ can configure the subjects, properties:
 {{ insert('amqp/outbound/AmqpOutboundMetadataExample.java', 'code') }}
 ```
 
+### Propagating the properties of a received message
+
+By default, a processor method propagates only the id of a request with a reply-to is used, as the correlation id of the reply.
+To propagate the properties of a received message, create the outgoing metadata from its incoming metadata,
+and override what changes:
+
+``` java
+@Incoming("in")
+@Outgoing("out")
+GenericPayload<String> process(String payload, IncomingAmqpMetadata incoming) {
+    return GenericPayload.of(payload.toUpperCase(), Metadata.of(OutgoingAmqpMetadata.from(incoming)
+            .withSubject("upper")
+            .build()));
+}
+```
+
+`OutgoingAmqpMetadata.from(IncomingAmqpMetadata)` copies the header, the message annotations, the properties and
+the application properties, but not the address the message was received on, the user id, which brokers may check
+against the user of the connection, the delivery annotations, nor the footer.
+With a `Message` signature, add the metadata to the message returned (`in.withPayload(...).addMetadata(...)`).
+
+The payload can also be an AMQP message (`io.vertx.mutiny.amqp.AmqpMessage`, `io.vertx.amqp.AmqpMessage` or
+`org.apache.qpid.proton.message.Message`), which is sent as is.
+
 ## Dynamic address names
 
 Sometimes it is desirable to select the destination of a message

@@ -15,4 +15,12 @@ import org.eclipse.microprofile.reactive.messaging.Message;
 public interface MessagePublisherProvider<T> {
 
     Publisher<Message<? extends T>> getPublisher();
+
+    /**
+     * Completes the publisher, flushing any buffered messages downstream.
+     * After completion, subsequent sends should be rejected.
+     */
+    default void complete() {
+        // no-op by default
+    }
 }

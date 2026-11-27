@@ -54,4 +54,10 @@ public interface CamelLogging extends BasicLogger {
     @LogMessage(level = Logger.Level.INFO)
     @Message(id = 17808, value = "The Camel Reactive Stream Service is already defined, skipping configuration")
     void camelReactiveStreamsServiceAlreadyDefined();
+
+    @LogMessage(level = Logger.Level.WARN)
+    @Message(id = 17809, value = "Restoring the Camel message type `%s` for a message that lost it when intercepted "
+            + "(interceptors, observation, graceful shutdown tracking). The restored message acknowledges through the "
+            + "intercepted message")
+    void restoringCamelMessageType(String messageType);
 }

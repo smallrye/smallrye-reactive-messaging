@@ -19,6 +19,13 @@ public class IncomingJmsMessageMetadata implements JmsMessageMetadata, JmsProper
         this.properties = new ImmutableJmsProperties(incoming);
     }
 
+    /**
+     * @return the received JMS message, used to restore an {@link IncomingJmsMessage} from an intercepted message
+     */
+    Message getJmsMessage() {
+        return message;
+    }
+
     public String getMessageId() {
         return wrap(message::getJMSMessageID);
     }

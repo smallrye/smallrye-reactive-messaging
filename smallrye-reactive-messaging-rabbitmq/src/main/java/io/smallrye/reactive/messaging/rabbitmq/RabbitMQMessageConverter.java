@@ -51,11 +51,6 @@ public class RabbitMQMessageConverter {
             final String defaultRoutingKey,
             final Optional<Long> defaultTtl) {
 
-        // Check if message is already an IncomingRabbitMQMessage
-        if (message instanceof IncomingRabbitMQMessage) {
-            return convertFromIncoming((IncomingRabbitMQMessage<?>) message, defaultRoutingKey);
-        }
-
         // Convert payload to bytes
         byte[] body = getBodyFromPayload(message.getPayload());
         String defaultContentType = getDefaultContentTypeForPayload(message.getPayload());
@@ -75,6 +70,8 @@ public class RabbitMQMessageConverter {
                 .withDeliveryMode(2)
                 .withExpiration(defaultTtl.map(String::valueOf).orElse(null)));
 
+        // From the incoming message, only what a reply needs: its correlation id, and its reply-to as routing key.
+        // To propagate more, use OutgoingRabbitMQMetadata.from(IncomingRabbitMQMetadata).
         Optional<IncomingRabbitMQMetadata> incoming = message.getMetadata(IncomingRabbitMQMetadata.class);
         incoming.ifPresent(in -> {
             if (outgoing.map(m -> m.getProperties().getCorrelationId()).isEmpty()) {
@@ -100,52 +97,6 @@ public class RabbitMQMessageConverter {
         Optional<String> exchange = metadata.getExchange();
 
         return new OutgoingRabbitMQMessage(routingKey, exchange, body, metadata.getProperties());
-    }
-
-    /**
-     * Convert from an IncomingRabbitMQMessage (forwarding scenario).
-     */
-    private static OutgoingRabbitMQMessage convertFromIncoming(
-            IncomingRabbitMQMessage<?> incomingMessage,
-            String defaultRoutingKey) {
-
-        IncomingRabbitMQMetadata metadata = incomingMessage.getRabbitMQMetadata();
-
-        // Use original routing key or default
-        String routingKey = metadata.getRoutingKey() != null ? metadata.getRoutingKey() : defaultRoutingKey;
-
-        // Use original exchange
-        Optional<String> exchange = Optional.ofNullable(metadata.getExchange());
-
-        // Get payload as bytes
-        byte[] body;
-        Object payload = incomingMessage.getPayload();
-        if (payload instanceof byte[]) {
-            body = (byte[]) payload;
-        } else if (payload instanceof String) {
-            body = ((String) payload).getBytes(StandardCharsets.UTF_8);
-        } else {
-            body = getBodyFromPayload(payload);
-        }
-
-        // Copy properties from incoming message
-        AMQP.BasicProperties properties = new AMQP.BasicProperties.Builder()
-                .contentType(metadata.getContentType())
-                .contentEncoding(metadata.getContentEncoding())
-                .headers(metadata.getHeaders())
-                .deliveryMode(metadata.getDeliveryMode())
-                .priority(metadata.getPriority())
-                .correlationId(metadata.getCorrelationId())
-                .replyTo(metadata.getReplyTo())
-                .expiration(metadata.getExpiration())
-                .messageId(metadata.getMessageId())
-                .timestamp(metadata.getTimestamp())
-                .type(metadata.getType())
-                .userId(metadata.getUserId())
-                .appId(metadata.getAppId())
-                .build();
-
-        return new OutgoingRabbitMQMessage(routingKey, exchange, body, properties);
     }
 
     /**

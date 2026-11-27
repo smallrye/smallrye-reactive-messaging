@@ -48,4 +48,9 @@ public interface MqttLogging extends BasicLogger {
     @Message(id = 17200, value = "Creating MQTT client from bean named '%s'")
     void createClientFromBean(String optionsBeanName);
 
+    @LogMessage(level = Logger.Level.WARN)
+    @Message(id = 17106, value = "Restoring the MQTT message type `%s` for a message that lost it when intercepted "
+            + "(interceptors, observation, graceful shutdown tracking). The restored message acknowledges through the "
+            + "intercepted message")
+    void restoringMqttMessageType(String messageType);
 }

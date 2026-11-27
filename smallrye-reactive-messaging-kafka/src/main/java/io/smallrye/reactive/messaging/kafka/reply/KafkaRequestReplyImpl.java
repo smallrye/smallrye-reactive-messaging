@@ -170,8 +170,8 @@ public class KafkaRequestReplyImpl<Req, Rep> extends MutinyEmitterImpl<Req>
     @Override
     public void complete() {
         super.complete();
-        Subscriptions.cancel(subscription);
         if (gracefulShutdown) {
+            // Keep consuming the reply topic while waiting: pending replies can only complete through it.
             int waitIteration = 0;
             while (!pendingReplies.isEmpty() && waitIteration < 10) {
                 grace(replyTimeout.dividedBy(10));
@@ -182,6 +182,7 @@ public class KafkaRequestReplyImpl<Req, Rep> extends MutinyEmitterImpl<Req>
                         pendingReplies.size(), pendingReplies.keySet());
             }
         }
+        Subscriptions.cancel(subscription);
         for (CorrelationId correlationId : pendingReplies.keySet()) {
             PendingReplyImpl<Rep> reply = pendingReplies.remove(correlationId);
             if (reply != null) {

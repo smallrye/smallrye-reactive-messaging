@@ -5,10 +5,12 @@ import static io.smallrye.reactive.messaging.kafka.reply.KafkaRequestReply.DEFAU
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -100,6 +102,47 @@ public class KafkaRequestReplyTest extends KafkaCompanionTestBase {
 
         assertThat(companion.consumeStrings().fromTopics(replyTopic, 10).awaitCompletion())
                 .extracting(ConsumerRecord::value).containsExactly("0", "1", "2", "3", "4", "5", "6", "7", "8", "9");
+        assertThat(app.requestReply().getPendingReplies()).isEmpty();
+    }
+
+    @Test
+    void testGracefulShutdownWaitsForPendingReplies() {
+        topic = companion.topics().createAndWait(topic, 1);
+        String replyTopic = topic + "-replies";
+        companion.topics().createAndWait(replyTopic, 1);
+
+        // Graceful shutdown is left to its Kafka default (true). No reply server in the application: the companion
+        // replies, so replying doesn't depend on channels that shut down with the application.
+        KafkaMapBasedConfig config = kafkaConfig()
+                .withPrefix("mp.messaging.outgoing.request-reply")
+                .with("topic", topic)
+                .with("reply.timeout", 10000)
+                .with("key.serializer", StringSerializer.class.getName())
+                .with("value.serializer", IntegerSerializer.class.getName())
+                .with("key.deserializer", StringDeserializer.class.getName())
+                .with("value.deserializer", StringDeserializer.class.getName());
+        RequestReplyProducer app = runApplication(config, RequestReplyProducer.class);
+
+        CompletableFuture<String> reply = app.requestReply().request(1).subscribeAsCompletionStage();
+
+        ConsumerRecord<String, Integer> request = companion.consumeIntegers().fromTopics(topic, 1)
+                .awaitCompletion().getFirstRecord();
+        Header correlationId = request.headers().lastHeader(DEFAULT_REPLY_CORRELATION_ID_HEADER);
+        assertThat(correlationId).isNotNull();
+
+        // Completing the emitter, as graceful shutdown does, waits for the pending reply.
+        CompletableFuture<Void> completion = CompletableFuture.runAsync(() -> app.requestReply().complete());
+        await().during(Duration.ofMillis(500)).atMost(5, TimeUnit.SECONDS).until(() -> !completion.isDone());
+
+        // The reply arrives while complete() waits: the reply topic must still be consumed.
+        Iterable<Header> replyHeaders = List.of(
+                new RecordHeader(DEFAULT_REPLY_CORRELATION_ID_HEADER, correlationId.value()));
+        companion.produceStrings().fromRecords(new ProducerRecord<>(replyTopic, null, null, null, "reply-1", replyHeaders))
+                .awaitCompletion();
+
+        await().atMost(10, TimeUnit.SECONDS).until(reply::isDone);
+        assertThat(reply).isCompletedWithValue("reply-1");
+        await().atMost(10, TimeUnit.SECONDS).until(completion::isDone);
         assertThat(app.requestReply().getPendingReplies()).isEmpty();
     }
 

@@ -100,6 +100,41 @@ can configure the routing key, timestamp and headers:
     metadata (instead of `new OutgoingRabbitMQMetadata.Builder()`). It
     also uses `java.util.Date` for timestamps instead of `ZonedDateTime`.
 
+### Propagating the properties of a received message
+
+By default, only the correlation id, and the reply-to as routing key, are propagated, to send replies.
+To propagate the properties of a received message, create the outgoing metadata from its incoming metadata,
+and override what changes:
+
+``` java
+@Incoming("in")
+@Outgoing("out")
+Message<String> process(Message<byte[]> in) {
+    OutgoingRabbitMQMetadata metadata = in.getMetadata(IncomingRabbitMQMetadata.class)
+            .map(OutgoingRabbitMQMetadata::from)
+            .orElseGet(OutgoingRabbitMQMetadata::builder)
+            .withContentType("application/json")
+            .build();
+    return in.withPayload(toJson(in.getPayload())).addMetadata(metadata);
+}
+```
+
+With a payload signature, inject the incoming metadata and return a [`GenericPayload`](../concepts/generic-payloads.md):
+
+``` java
+@Incoming("in")
+@Outgoing("out")
+GenericPayload<String> process(byte[] payload, IncomingRabbitMQMetadata incoming) {
+    return GenericPayload.of(toJson(payload), Metadata.of(OutgoingRabbitMQMetadata.from(incoming)
+            .withContentType("application/json")
+            .build()));
+}
+```
+
+`OutgoingRabbitMQMetadata.from(IncomingRabbitMQMetadata)` copies the properties and the headers, but neither the
+exchange and routing key the message was received from, nor the user id, which RabbitMQ checks against the user
+of the connection.
+
 ## Publisher Confirms
 
 The OG connector supports [publisher confirms](https://www.rabbitmq.com/docs/confirms#publisher-confirms)

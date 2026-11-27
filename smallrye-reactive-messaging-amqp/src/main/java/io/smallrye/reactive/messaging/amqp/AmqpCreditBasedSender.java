@@ -312,9 +312,9 @@ public class AmqpCreditBasedSender implements Processor<Message<?>, Message<?>>,
         OutgoingCloudEventMetadata<?> ceMetadata = msg.getMetadata(OutgoingCloudEventMetadata.class)
                 .orElse(null);
 
-        if (msg instanceof AmqpMessage) {
-            amqp = ((AmqpMessage<?>) msg).getAmqpMessage();
-        } else if (msg.getPayload() instanceof io.vertx.mutiny.amqp.AmqpMessage) {
+        // Built from the payload and the metadata only: decorators (graceful shutdown, observation, interceptors) may
+        // have wrapped the message, so its type says nothing.
+        if (msg.getPayload() instanceof io.vertx.mutiny.amqp.AmqpMessage) {
             amqp = (io.vertx.mutiny.amqp.AmqpMessage) msg.getPayload();
         } else if (msg.getPayload() instanceof io.vertx.amqp.AmqpMessage) {
             amqp = new io.vertx.mutiny.amqp.AmqpMessage((io.vertx.amqp.AmqpMessage) msg.getPayload());

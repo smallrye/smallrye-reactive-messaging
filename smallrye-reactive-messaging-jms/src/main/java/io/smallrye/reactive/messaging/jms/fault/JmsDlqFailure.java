@@ -17,6 +17,7 @@ import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Metadata;
+import org.eclipse.microprofile.reactive.messaging.spi.ConnectorFactory;
 
 import io.smallrye.common.annotation.Identifier;
 import io.smallrye.mutiny.Uni;
@@ -37,6 +38,7 @@ public class JmsDlqFailure implements JmsFailureHandler {
     private final JmsConnectorIncomingConfiguration config;
     private final String dlqDestination;
     private final UnicastProcessor<Message<?>> dlqSource;
+    private final Runnable closeProducer;
 
     @ApplicationScoped
     @Identifier(Strategy.DEAD_LETTER_QUEUE)
@@ -49,28 +51,30 @@ public class JmsDlqFailure implements JmsFailureHandler {
                 BiConsumer<Throwable, Boolean> reportFailure) {
 
             Optional<String> deadLetterQueueDestination = config.getDeadLetterQueueDestination();
-            Config connectorConfig = Configs.prefixOverride(config.config(), CHANNEL_DLQ_SUFFIX,
-                    Map.of("destination", c -> deadLetterQueueDestination.orElse("dead-letter-queue-" + config.getChannel())));
-
-            JmsConnectorOutgoingConfiguration producerConfig = new JmsConnectorOutgoingConfiguration(connectorConfig);
+            // The dead letter queue producer is a channel of its own for the connector: give it its own name, so that it
+            // is not confused with its incoming channel, and can be closed with it.
+            String dlqChannel = config.getChannel() + "-" + CHANNEL_DLQ_SUFFIX;
+            Config connectorConfig = Configs.override(Configs.prefixOverride(config.config(), CHANNEL_DLQ_SUFFIX,
+                    Map.of("destination", c -> deadLetterQueueDestination.orElse("dead-letter-queue-" + config.getChannel()))),
+                    Map.of(ConnectorFactory.CHANNEL_NAME_ATTRIBUTE, dlqChannel));
 
             String deadQueueDestination = config.getDeadLetterQueueDestination()
                     .orElse("dead-letter-queue-" + config.getChannel());
 
             UnicastProcessor<Message<?>> processor = UnicastProcessor.create();
             Flow.Subscriber<? extends Message<?>> subscriber = connector.getSubscriber(connectorConfig);
-            wireOutgoingConnectorToUpstream(processor, subscriber, subscriberDecorators,
-                    producerConfig.getChannel() + "-" + CHANNEL_DLQ_SUFFIX, connectorConfig);
+            wireOutgoingConnectorToUpstream(processor, subscriber, subscriberDecorators, dlqChannel, connectorConfig);
 
-            return new JmsDlqFailure(config, deadQueueDestination, processor);
+            return new JmsDlqFailure(config, deadQueueDestination, processor, () -> connector.closeOutgoing(dlqChannel));
         }
     }
 
     public JmsDlqFailure(JmsConnectorIncomingConfiguration config, String dlqDestination,
-            UnicastProcessor<Message<?>> dlqSource) {
+            UnicastProcessor<Message<?>> dlqSource, Runnable closeProducer) {
         this.config = config;
         this.dlqDestination = dlqDestination;
         this.dlqSource = dlqSource;
+        this.closeProducer = closeProducer;
     }
 
     @Override
@@ -118,6 +122,8 @@ public class JmsDlqFailure implements JmsFailureHandler {
     @Override
     public void close() {
         dlqSource.cancel();
+        // Closed with its incoming channel: release the JMS context of the producer too.
+        closeProducer.run();
     }
 
     private String getThrowableMessage(Throwable throwable) {

@@ -38,6 +38,7 @@ public class SqsInboundChannel {
     private final SqsAsyncClient client;
     private final Context context;
     private final AtomicBoolean closed = new AtomicBoolean(false);
+    private final SqsAckHandler ackHandler;
     private final Uni<String> queueUrlUni;
     private final Flow.Publisher<? extends Message<?>> stream;
     private final ScheduledExecutorService requestExecutor;
@@ -79,16 +80,20 @@ public class SqsInboundChannel {
             sqsInstrumenter = null;
         }
         SqsAckHandler ackHandler = createAckHandler(ackHandlerFactories, conf, vertx, client, queueUrlUni);
+        this.ackHandler = ackHandler;
         SqsFailureHandler failureHandler = createFailureHandler(failureHandlerFactories, conf, client, queueUrlUni);
         PausablePollingStream<List<software.amazon.awssdk.services.sqs.model.Message>, software.amazon.awssdk.services.sqs.model.Message> pollingStream = new PausablePollingStream<>(
                 channel, request(null, 0), (messages, processor) -> {
+                    if (isClosed()) {
+                        // Received by a long poll still running when the channel closed: not emitted, nor deleted,
+                        // so they are received again once their visibility timeout expires.
+                        processor.cancel();
+                        return;
+                    }
                     if (messages != null) {
                         for (var message : messages) {
                             processor.onNext(message);
                         }
-                    }
-                    if (isClosed()) {
-                        processor.cancel();
                     }
                 }, requestExecutor, maxNumberOfMessages * 2, conf.getReceiveRequestPauseResume());
         this.stream = Multi.createFrom()
@@ -152,7 +157,7 @@ public class SqsInboundChannel {
         failures.add(failure);
 
         if (fatal) {
-            close();
+            close(false);
         }
     }
 
@@ -202,7 +207,14 @@ public class SqsInboundChannel {
     }
 
     public void close() {
-        closed.set(true);
+        // The framework drained the channel before: the acknowledgements in progress are done.
+        close(true);
+    }
+
+    private void close(boolean graceful) {
+        if (closed.compareAndSet(false, true)) {
+            ackHandler.close(graceful);
+        }
     }
 
     public void isAlive(HealthReport.HealthReportBuilder builder) {

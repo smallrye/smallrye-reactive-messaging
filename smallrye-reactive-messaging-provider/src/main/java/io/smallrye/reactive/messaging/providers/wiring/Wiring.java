@@ -15,6 +15,7 @@ import jakarta.inject.Inject;
 
 import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.eclipse.microprofile.reactive.messaging.Acknowledgment;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.spi.ConnectorFactory;
 
@@ -362,7 +363,18 @@ public class Wiring {
 
         @Override
         public void materialize(ChannelRegistry registry) {
-            // We are already registered and created.
+            // We are already registered and created. Nothing is subscribed yet: the downstream components are
+            // materialized after this one.
+            Optional<MediatorComponent> neverAcking = downstreams.stream()
+                    .filter(MediatorComponent.class::isInstance)
+                    .map(MediatorComponent.class::cast)
+                    .filter(c -> c.configuration.getAcknowledgment() == Acknowledgment.Strategy.NONE)
+                    .findFirst();
+            if (neverAcking.isPresent()
+                    && PausableChannelDecorator.disableTracking(registry.getPausable(name))) {
+                // The messages are never acknowledged, so the drain would always wait for its timeout.
+                ProviderLogging.log.inFlightTrackingDisabled(name, neverAcking.get().configuration.methodAsString());
+            }
         }
 
         @Override

@@ -1,5 +1,6 @@
 package io.smallrye.reactive.messaging.mqtt;
 
+import static io.smallrye.reactive.messaging.mqtt.i18n.MqttExceptions.ex;
 import static io.smallrye.reactive.messaging.mqtt.i18n.MqttLogging.log;
 
 import java.util.Map;
@@ -24,6 +25,7 @@ import io.smallrye.reactive.messaging.mqtt.session.MqttClientSession;
 import io.smallrye.reactive.messaging.mqtt.session.MqttClientSessionOptions;
 import io.smallrye.reactive.messaging.providers.helpers.ConfigUtils;
 import io.smallrye.reactive.messaging.providers.helpers.MultiUtils;
+import io.vertx.core.Future;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonArray;
@@ -68,7 +70,7 @@ public class MqttSink {
                 .call(() -> {
                     Clients.ClientHolder client = reference.get();
                     if (client == null) {
-                        client = Clients.getHolder(vertx, options, sessionCustomizers).retain(channel);
+                        client = Clients.retain(vertx, options, sessionCustomizers, channel);
                         reference.set(client);
                     }
                     return AsyncResultUni.<Void> toUni(h -> reference.get().start().onComplete(h))
@@ -78,21 +80,34 @@ public class MqttSink {
                             });
                 })
                 .onItem().transformToUniAndConcatenate(this::send)
-                .onCompletion().invoke(() -> {
-                    Clients.ClientHolder c = reference.getAndSet(null);
-                    if (c != null && c.release(channel)) {
-                        Clients.release(c);
-                    }
-                    alive.set(false);
-                })
+                .onCompletion().invoke(this::close)
                 .onFailure().invoke(e -> {
                     alive.set(false);
                     log.errorWhileSendingMessageToBroker(e);
                 }));
     }
 
+    /**
+     * Closes this channel: releases the shared client, which is stopped once no channel uses it anymore.
+     * Messages sent afterwards are nacked.
+     *
+     * @return a future completed when the client is stopped or still used by other channels
+     */
+    public Future<Void> close() {
+        alive.set(false);
+        Clients.ClientHolder c = reference.getAndSet(null);
+        if (c != null) {
+            return Clients.release(c, channel);
+        }
+        return Future.succeededFuture();
+    }
+
     private Uni<? extends Message<?>> send(Message<?> msg) {
-        final MqttClientSession client = reference.get().getClient();
+        Clients.ClientHolder holder = reference.get();
+        if (holder == null) {
+            return Uni.createFrom().completionStage(msg.nack(ex.channelClosed(channel)).thenApply(x -> msg));
+        }
+        final MqttClientSession client = holder.getClient();
         final String actualTopicToBeUsed;
         final MqttQoS actualQoS;
         final boolean isRetain;

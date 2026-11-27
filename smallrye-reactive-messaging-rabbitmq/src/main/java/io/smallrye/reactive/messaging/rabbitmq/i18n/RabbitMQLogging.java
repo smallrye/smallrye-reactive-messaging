@@ -233,4 +233,10 @@ public interface RabbitMQLogging extends BasicLogger {
     @LogMessage(level = Logger.Level.WARN)
     @Message(id = 18065, value = "Channel closed during message acknowledgement, message will be redelivered after reconnection")
     void ackFailedChannelClosed(@Cause Throwable t);
+
+    @LogMessage(level = Logger.Level.WARN)
+    @Message(id = 18066, value = "Restoring the RabbitMQ message type `%s` for a message that lost it when intercepted "
+            + "(interceptors, observation, graceful shutdown tracking). The restored message acknowledges through the "
+            + "intercepted message")
+    void restoringRabbitMQMessageType(String messageType);
 }

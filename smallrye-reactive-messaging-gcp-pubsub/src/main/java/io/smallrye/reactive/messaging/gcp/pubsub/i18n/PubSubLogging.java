@@ -33,4 +33,10 @@ public interface PubSubLogging extends BasicLogger {
     @LogMessage(level = Logger.Level.INFO)
     @Message(id = 14802, value = "Admin client is enabled. The GCP Connector is trying to create topics / subscriptions")
     void adminClientEnabled();
+
+    @LogMessage(level = Logger.Level.WARN)
+    @Message(id = 14803, value = "Restoring the Pub/Sub message type `%s` for a message that lost it when intercepted "
+            + "(interceptors, observation, graceful shutdown tracking). The restored message acknowledges through the "
+            + "intercepted message")
+    void restoringPubSubMessageType(String messageType);
 }

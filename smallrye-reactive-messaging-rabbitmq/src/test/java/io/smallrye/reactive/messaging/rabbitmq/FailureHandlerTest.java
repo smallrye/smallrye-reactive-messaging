@@ -8,6 +8,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
+import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.reactive.messaging.Metadata;
 import org.junit.jupiter.api.Test;
 
@@ -531,7 +532,7 @@ public class FailureHandlerTest extends RabbitMQBrokerTestBase {
     // Simple test configuration
     static class TestIncomingConfig extends RabbitMQConnectorIncomingConfiguration {
         public TestIncomingConfig() {
-            super(null);
+            super((Config) null);
         }
 
         @Override

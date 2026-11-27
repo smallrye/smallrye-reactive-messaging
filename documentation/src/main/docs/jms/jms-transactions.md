@@ -39,6 +39,14 @@ public class OrderProcessor {
 }
 ```
 
+!!!note
+    With [graceful shutdown](../concepts/graceful-shutdown.md), the channel tracks each message until it is acknowledged, which wraps it.
+    Methods consuming `IncomingJmsMessage` still receive one: the connector restores it with the payload, the metadata
+    (including `JmsSessionContext`) and the JMS message (`unwrap(jakarta.jms.Message.class)`),
+    and its `ack` and `nack` go through the tracking before committing or rolling back the session.
+    Acknowledge the received message rather than the unwrapped `jakarta.jms.Message`:
+    the tracking does not see the latter, and the shutdown waits for the drain timeout.
+
 ### Session Sharing with Outgoing Channels
 
 When `transaction-mode` is `local` or `xa`, messages carry a `JmsSessionContext` metadata.

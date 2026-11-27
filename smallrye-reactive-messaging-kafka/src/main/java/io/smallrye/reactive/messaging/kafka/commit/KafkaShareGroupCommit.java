@@ -40,6 +40,9 @@ public class KafkaShareGroupCommit extends ContextHolder implements KafkaCommitH
     private final Map<TopicPartition, Map<Long, TrackedRecord>> inProgress = new ConcurrentHashMap<>();
 
     private volatile long timerId = -1;
+    // Set by terminate: records already requested can still be received until the consumer closes, but the renew
+    // timer must not start again, as nothing would stop it.
+    private volatile boolean terminated;
 
     public KafkaShareGroupCommit(KafkaShareConsumer<?, ?> consumer, Vertx vertx,
             int defaultTimeout, int autoCommitInterval, int processingTimeout,
@@ -139,6 +142,9 @@ public class KafkaShareGroupCommit extends ContextHolder implements KafkaCommitH
     }
 
     private void startRenewTimer() {
+        if (terminated) {
+            return;
+        }
         timerId = vertx.setTimer(renewInterval, x -> runOnContext(() -> this.renewAndCheckTimeout(x)));
     }
 
@@ -151,26 +157,9 @@ public class KafkaShareGroupCommit extends ContextHolder implements KafkaCommitH
 
     @Override
     public void terminate(boolean graceful) {
+        terminated = true;
         stopRenewTimer();
         if (graceful) {
-            waitForProcessing();
-        }
-    }
-
-    private void waitForProcessing() {
-        int attempts = renewInterval / 100;
-        for (int i = 0; i < attempts; i++) {
-            long pending = inProgress.values().stream().mapToLong(Map::size).sum();
-            if (pending == 0) {
-                return;
-            }
-            log.shareGroupPendingOffsets("all", pending + " records still in progress");
-            try {
-                Thread.sleep(100);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                break;
-            }
             // commitSyncAndAwait
             try {
                 consumer.commit().await().atMost(Duration.ofMillis(getTimeoutInMillis()));

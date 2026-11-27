@@ -154,4 +154,10 @@ public interface AMQPLogging extends BasicLogger {
     @LogMessage(level = Logger.Level.ERROR)
     @Message(id = 16233, value = "Unable to send message on channel `%s`, message has been nacked")
     void sendFailure(String channel, @Cause Throwable reason);
+
+    @LogMessage(level = Logger.Level.WARN)
+    @Message(id = 16234, value = "Restoring the AMQP message type `%s` for a message that lost it when intercepted "
+            + "(interceptors, observation, graceful shutdown tracking). The restored message acknowledges through the "
+            + "intercepted message")
+    void restoringAmqpMessageType(String messageType);
 }

@@ -3,17 +3,15 @@ package io.smallrye.reactive.messaging.aws.sqs;
 import static io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Direction.INCOMING;
 import static io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Direction.INCOMING_AND_OUTGOING;
 
-import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Flow.Publisher;
 import java.util.concurrent.Flow.Subscriber;
 
 import jakarta.annotation.PostConstruct;
-import jakarta.annotation.Priority;
 import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.enterprise.context.BeforeDestroyed;
-import jakarta.enterprise.event.Observes;
-import jakarta.enterprise.event.Reception;
 import jakarta.enterprise.inject.Any;
 import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
@@ -87,8 +85,8 @@ public class SqsConnector implements InboundConnector, OutboundConnector, Health
 
     Vertx vertx;
 
-    private final List<SqsInboundChannel> inboundChannels = new CopyOnWriteArrayList<>();
-    private final List<SqsOutboundChannel> outboundChannels = new CopyOnWriteArrayList<>();
+    private final Map<String, SqsInboundChannel> inboundChannels = new ConcurrentHashMap<>();
+    private final Map<String, SqsOutboundChannel> outboundChannels = new ConcurrentHashMap<>();
 
     public static final String CONNECTOR_NAME = "smallrye-sqs";
     public static final String CLASS_NAME_ATTRIBUTE = "_classname";
@@ -100,10 +98,33 @@ public class SqsConnector implements InboundConnector, OutboundConnector, Health
         this.jsonMapping = jsonMappers.isUnsatisfied() ? new VertxJsonMapping() : jsonMappers.get();
     }
 
-    public void terminate(
-            @Observes(notifyObserver = Reception.IF_EXISTS) @Priority(50) @BeforeDestroyed(ApplicationScoped.class) Object event) {
-        inboundChannels.forEach(SqsInboundChannel::close);
-        outboundChannels.forEach(SqsOutboundChannel::close);
+    @Override
+    public CompletionStage<Void> closeIncoming(String channel) {
+        SqsInboundChannel inbound = inboundChannels.remove(channel);
+        if (inbound != null) {
+            // Stops polling: the stream completes after the current receive request.
+            inbound.close();
+        }
+        return CompletableFuture.completedStage(null);
+    }
+
+    @Override
+    public CompletionStage<Void> closeOutgoing(String channel) {
+        SqsOutboundChannel outbound = outboundChannels.remove(channel);
+        if (outbound != null) {
+            outbound.close();
+        }
+        return CompletableFuture.completedStage(null);
+    }
+
+    @Override
+    public CompletionStage<Void> terminate() {
+        // The channels not closed one by one; the SQS clients are closed by the SqsManager.
+        inboundChannels.values().forEach(SqsInboundChannel::close);
+        outboundChannels.values().forEach(SqsOutboundChannel::close);
+        inboundChannels.clear();
+        outboundChannels.clear();
+        return CompletableFuture.completedStage(null);
     }
 
     @Override
@@ -113,7 +134,7 @@ public class SqsConnector implements InboundConnector, OutboundConnector, Health
                 () -> null);
         var channel = new SqsInboundChannel(conf, vertx, sqsManager, customizer, jsonMapping, openTelemetryInstance,
                 ackHandlerFactories, failureHandlerFactories);
-        inboundChannels.add(channel);
+        inboundChannels.put(conf.getChannel(), channel);
         return channel.getStream();
     }
 
@@ -121,17 +142,17 @@ public class SqsConnector implements InboundConnector, OutboundConnector, Health
     public Subscriber<? extends Message<?>> getSubscriber(Config config) {
         var conf = new SqsConnectorOutgoingConfiguration(config);
         var channel = new SqsOutboundChannel(conf, sqsManager, jsonMapping, openTelemetryInstance);
-        outboundChannels.add(channel);
+        outboundChannels.put(conf.getChannel(), channel);
         return channel.getSubscriber();
     }
 
     @Override
     public HealthReport getLiveness() {
         HealthReport.HealthReportBuilder builder = HealthReport.builder();
-        for (SqsInboundChannel channel : inboundChannels) {
+        for (SqsInboundChannel channel : inboundChannels.values()) {
             channel.isAlive(builder);
         }
-        for (SqsOutboundChannel channel : outboundChannels) {
+        for (SqsOutboundChannel channel : outboundChannels.values()) {
             channel.isAlive(builder);
         }
         return builder.build();

@@ -61,16 +61,34 @@ public class IncomingRabbitMQChannel {
 
     private Multi<? extends Message<?>> stream;
 
+    // The name of the shared AMQP channel this channel consumes on.
+    private final String sharedChannelName;
+
     public IncomingRabbitMQChannel(
             ConnectionHolder connectionHolder,
             RabbitMQConnectorIncomingConfiguration configuration,
             Instance<java.util.Map<String, ?>> configMaps,
             Instance<OpenTelemetry> openTelemetryInstance) {
+        this(connectionHolder, configuration, configMaps, openTelemetryInstance, configuration.getChannel());
+    }
+
+    /**
+     * @param sharedChannelName the name of the shared AMQP channel to consume on: the channel's own name, or, for a
+     *        request-reply consumer, the name of the outgoing channel its requests are published on, as direct reply-to
+     *        is scoped to that AMQP channel
+     */
+    public IncomingRabbitMQChannel(
+            ConnectionHolder connectionHolder,
+            RabbitMQConnectorIncomingConfiguration configuration,
+            Instance<java.util.Map<String, ?>> configMaps,
+            Instance<OpenTelemetry> openTelemetryInstance,
+            String sharedChannelName) {
 
         this.connectionHolder = connectionHolder;
         this.configuration = configuration;
         this.configMaps = configMaps;
-        this.incomingContext = connectionHolder.getOrCreateSharedChannelContext(configuration.getChannel());
+        this.sharedChannelName = sharedChannelName;
+        this.incomingContext = connectionHolder.getOrCreateSharedChannelContext(sharedChannelName);
 
         // Initialize tracing if enabled
         if (configuration.getTracingEnabled()) {
@@ -179,7 +197,7 @@ public class IncomingRabbitMQChannel {
             Runnable onComplete) throws Exception {
 
         // Create channel for consuming
-        Channel channel = connectionHolder.getOrCreateSharedChannel(configuration.getChannel());
+        Channel channel = connectionHolder.getOrCreateSharedChannel(sharedChannelName);
         channelRef.set(channel);
 
         Context context = incomingContext;

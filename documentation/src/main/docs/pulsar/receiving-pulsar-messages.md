@@ -66,6 +66,13 @@ It provides the key, topic, partitions, headers and so on:
 {{ insert('pulsar/inbound/PulsarMetadataExample.java', 'code') }}
 ```
 
+!!! note "Consuming Pulsar message types"
+    Prefer consuming `Message<T>` and reading the `PulsarIncomingMessageMetadata`, or injecting the payload and the metadata.
+    Methods consuming `PulsarMessage`, `PulsarIncomingMessage`, `PulsarBatchMessage` or `PulsarIncomingBatchMessage`
+    still receive them when messages are intercepted, for example by the in-flight tracking of
+    [graceful shutdown](../concepts/graceful-shutdown.md): the connector restores the type, and logs a warning once.
+    Acknowledging the restored message, also inside a [transaction](transactions.md), acknowledges the Pulsar message.
+
 ## Acknowledgement
 
 When a message produced from a Pulsar Message is *acknowledged*, the connector sends an [acknowledgement request](https://pulsar.apache.org/docs/3.0.x/concepts-messaging/#acknowledgment) to the Pulsar broker.

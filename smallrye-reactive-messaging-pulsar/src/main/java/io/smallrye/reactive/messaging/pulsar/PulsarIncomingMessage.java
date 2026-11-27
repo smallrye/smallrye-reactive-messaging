@@ -30,6 +30,20 @@ public class PulsarIncomingMessage<T> implements PulsarMessage<T>, PulsarIdMessa
         this.metadata = captureContextMetadata(new PulsarIncomingMessageMetadata(message));
     }
 
+    /**
+     * Creates a message with the given metadata and no acknowledgement handlers: the subclass must override
+     * {@link #ack(Metadata)} and {@link #nack(Throwable, Metadata)}.
+     *
+     * @param message the Pulsar message
+     * @param metadata the metadata of the message
+     */
+    PulsarIncomingMessage(Message<T> message, Metadata metadata) {
+        this.delegate = Objects.requireNonNull(message, msg.isRequired("message"));
+        this.metadata = Objects.requireNonNull(metadata, msg.isRequired("metadata"));
+        this.ackHandler = null;
+        this.nackHandler = null;
+    }
+
     @Override
     public MessageId getMessageId() {
         return delegate.getMessageId();

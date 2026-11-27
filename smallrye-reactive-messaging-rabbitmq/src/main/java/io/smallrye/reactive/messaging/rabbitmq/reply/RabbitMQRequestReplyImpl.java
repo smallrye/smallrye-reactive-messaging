@@ -15,6 +15,7 @@ import jakarta.enterprise.inject.Instance;
 
 import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.reactive.messaging.Message;
+import org.eclipse.microprofile.reactive.messaging.spi.ConnectorFactory;
 
 import io.smallrye.common.annotation.Experimental;
 import io.smallrye.mutiny.Multi;
@@ -39,8 +40,17 @@ import io.vertx.core.Vertx;
 public class RabbitMQRequestReplyImpl<Req, Rep> extends MutinyEmitterImpl<Req>
         implements RabbitMQRequestReply<Req, Rep>, MultiSubscriber<IncomingRabbitMQMessage<Rep>> {
 
+    /**
+     * Appended to the name of the outgoing channel to name its reply consumer.
+     */
+    public static final String REPLY_CHANNEL_SUFFIX = "-reply-consumer";
+
     private static final String REPLY_TO = "amq.rabbitmq.reply-to";
     private final String channel;
+    // The reply consumer is an incoming channel of the connector: it needs a name of its own, distinct from the
+    // outgoing channel, so that closing one does not release the other's connection.
+    private final String replyChannel;
+    private final RabbitMQConnector connector;
     private final Duration replyTimeout;
 
     private final CorrelationIdHandler correlationIdHandler;
@@ -56,6 +66,8 @@ public class RabbitMQRequestReplyImpl<Req, Rep> extends MutinyEmitterImpl<Req>
             Instance<ReplyFailureHandler> replyFailureHandlers) {
         super(config, defaultBufferSize);
         this.channel = config.name();
+        this.replyChannel = channel + REPLY_CHANNEL_SUFFIX;
+        this.connector = connector;
         Config connectorConfig = Configs.outgoing(channelConfig, RabbitMQConnector.CONNECTOR_NAME,
                 channel);
         this.replyTimeout = connectorConfig.getOptionalValue(REPLY_TIMEOUT_KEY, Long.class)
@@ -79,9 +91,11 @@ public class RabbitMQRequestReplyImpl<Req, Rep> extends MutinyEmitterImpl<Req>
                 RabbitMQClientHelper.resolveConnectionName(new RabbitMQConnectorCommonConfiguration(connectorConfig)),
                 "auto-acknowledgement", true,
                 "queue.declare", false,
-                "queue.name", REPLY_TO));
+                "queue.name", REPLY_TO,
+                ConnectorFactory.CHANNEL_NAME_ATTRIBUTE, replyChannel));
+        // Consumed on the AMQP channel the requests are published on: direct reply-to is scoped to it.
         Publisher<IncomingRabbitMQMessage<Rep>> incomingChannel = (Publisher<IncomingRabbitMQMessage<Rep>>) connector
-                .getPublisher(incomingConfig);
+                .getPublisher(incomingConfig, channel);
         incomingChannel.subscribe(this);
     }
 
@@ -100,6 +114,8 @@ public class RabbitMQRequestReplyImpl<Req, Rep> extends MutinyEmitterImpl<Req>
                 reply.complete();
             }
         }
+        // No more requests: close the reply consumer, and release its connection.
+        connector.closeIncoming(replyChannel);
     }
 
     @Override

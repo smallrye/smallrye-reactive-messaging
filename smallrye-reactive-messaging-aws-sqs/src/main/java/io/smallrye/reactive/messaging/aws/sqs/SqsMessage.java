@@ -50,6 +50,21 @@ public class SqsMessage<T> implements ContextAwareMessage<T>, MetadataInjectable
         this.metadata = captureContextMetadata(new SqsIncomingMetadata(message));
     }
 
+    /**
+     * Creates a message restored from an intercepted SQS message, see {@link SqsMessageTypeConverter}: no payload
+     * conversion and no handlers, the subclass provides the payload and acknowledgement.
+     *
+     * @param message the SQS message
+     * @param metadata the metadata of the intercepted message
+     */
+    protected SqsMessage(Message message, Metadata metadata) {
+        this.message = message;
+        this.ackHandler = null;
+        this.failureHandler = null;
+        this.payload = null;
+        this.metadata = metadata;
+    }
+
     @SuppressWarnings("unchecked")
     private T convert(String value, JsonMapping jsonMapping, Class<T> clazz) {
         if (clazz.equals(Integer.class)) {

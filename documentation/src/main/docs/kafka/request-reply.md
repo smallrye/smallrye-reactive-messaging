@@ -99,6 +99,9 @@ This timeout is configurable with the channel attribute `reply.timeout`.
 
 A snapshot of the list of pending replies is available through the `KafkaRequestReply#getPendingReplies` method.
 
+On [graceful shutdown](../concepts/graceful-shutdown.md), completing the request-reply emitter waits, up to `reply.timeout`,
+for the pending replies, and keeps consuming the reply topic while it waits.
+
 ## Waiting for topic-partition assignment
 
 The requestor can be found in a position where a request is sent, and it's reply is already published to the reply topic,

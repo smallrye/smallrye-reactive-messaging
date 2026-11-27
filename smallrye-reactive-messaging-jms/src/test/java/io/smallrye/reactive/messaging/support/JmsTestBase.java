@@ -17,6 +17,7 @@ import org.junit.jupiter.api.BeforeEach;
 import io.smallrye.config.inject.ConfigExtension;
 import io.smallrye.mutiny.infrastructure.Infrastructure;
 import io.smallrye.reactive.messaging.jms.JmsConnector;
+import io.smallrye.reactive.messaging.jms.JmsMessageTypeConverter;
 import io.smallrye.reactive.messaging.jms.TestMapping;
 import io.smallrye.reactive.messaging.jms.fault.JmsDlqFailure;
 import io.smallrye.reactive.messaging.jms.fault.JmsFailStop;
@@ -32,6 +33,7 @@ import io.smallrye.reactive.messaging.providers.extension.LegacyEmitterFactoryIm
 import io.smallrye.reactive.messaging.providers.extension.MediatorManager;
 import io.smallrye.reactive.messaging.providers.extension.MutinyEmitterFactoryImpl;
 import io.smallrye.reactive.messaging.providers.extension.ReactiveMessagingExtension;
+import io.smallrye.reactive.messaging.providers.impl.ChannelLifecycleManagerImpl;
 import io.smallrye.reactive.messaging.providers.impl.ConfiguredChannelFactory;
 import io.smallrye.reactive.messaging.providers.impl.ConnectorFactories;
 import io.smallrye.reactive.messaging.providers.impl.InternalChannelRegistry;
@@ -112,6 +114,7 @@ public class JmsTestBase {
         weld.addBeanClass(InternalChannelRegistry.class);
         weld.addBeanClass(ConnectorFactories.class);
         weld.addBeanClass(ConfiguredChannelFactory.class);
+        weld.addBeanClass(ChannelLifecycleManagerImpl.class);
         weld.addBeanClass(ChannelProducer.class);
         weld.addBeanClass(ExecutionHolder.class);
         weld.addBeanClass(WorkerPoolRegistry.class);
@@ -123,6 +126,8 @@ public class JmsTestBase {
         weld.addBeanClass(LegacyEmitterFactoryImpl.class);
 
         weld.addBeanClass(JmsConnector.class);
+        // Discovered with the connector in applications: restores IncomingJmsMessage for tracked channels.
+        weld.addBeanClass(JmsMessageTypeConverter.class);
         weld.addBeanClass(JmsFailStop.Factory.class);
         weld.addBeanClass(JmsIgnoreFailure.Factory.class);
         weld.addBeanClass(JmsDlqFailure.Factory.class);

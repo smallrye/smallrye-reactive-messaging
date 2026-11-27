@@ -31,4 +31,7 @@ public interface MqttExceptions {
     @Message(id = 17005, value = "Invalid 'retain-handling' value on channel '%s': %d. It must be 0 (send the retained messages at subscribe), 1 (send them only if the subscription does not exist yet) or 2 (never send them)")
     IllegalArgumentException illegalArgumentInvalidRetainHandling(String channel, int value);
 
+    @Message(id = 17006, value = "The channel %s is closed")
+    IllegalStateException channelClosed(String channel);
+
 }

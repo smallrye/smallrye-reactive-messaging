@@ -4,6 +4,10 @@ import static io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Dire
 import static io.smallrye.reactive.messaging.camel.i18n.CamelExceptions.ex;
 import static io.smallrye.reactive.messaging.camel.i18n.CamelLogging.log;
 
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Flow;
 
 import jakarta.enterprise.context.ApplicationScoped;
@@ -45,6 +49,11 @@ public class CamelConnector implements InboundConnector, OutboundConnector {
     private CamelContext camel;
 
     private CamelReactiveStreamsService reactive;
+
+    // The subscription of each channel to its Camel stream, cancelled to close the channel. The CamelContext itself
+    // belongs to the application, so the connector has nothing else to release.
+    private final Map<String, Flow.Subscription> incomingSubscriptions = new ConcurrentHashMap<>();
+    private final Map<String, Flow.Subscription> outgoingSubscriptions = new ConcurrentHashMap<>();
 
     @Produces
     @ApplicationScoped
@@ -101,30 +110,63 @@ public class CamelConnector implements InboundConnector, OutboundConnector {
             publisher = AdaptersToFlow.publisher(getCamelReactive().from(name));
         }
 
-        return Multi.createFrom().publisher(publisher).map(ex -> new CamelMessage<>(ex, onNack));
+        String channel = ic.getChannel();
+        return Multi.createFrom().publisher(publisher)
+                .onSubscription().invoke(subscription -> incomingSubscriptions.put(channel, subscription))
+                .map(ex -> new CamelMessage<>(ex, onNack));
     }
 
     @Override
     public Flow.Subscriber<? extends Message<?>> getSubscriber(Config config) {
-        String name = new CamelConnectorOutgoingConfiguration(config).getEndpointUri();
+        CamelConnectorOutgoingConfiguration oc = new CamelConnectorOutgoingConfiguration(config);
+        String name = oc.getEndpointUri();
 
         Flow.Subscriber<? extends Message<?>> subscriber;
         if (name.startsWith(REACTIVE_STREAMS_SCHEME)) {
             // The endpoint is a reactive streams.
             name = name.substring(REACTIVE_STREAMS_SCHEME.length());
             log.creatingSubscriberFromStream(name);
-            subscriber = getMessageSubscriber(getCamelReactive().streamSubscriber(name));
+            subscriber = getMessageSubscriber(oc.getChannel(), getCamelReactive().streamSubscriber(name));
         } else {
             log.creatingSubscriberFromEndpoint(name);
-            subscriber = getMessageSubscriber(getCamelReactive().subscriber(name));
+            subscriber = getMessageSubscriber(oc.getChannel(), getCamelReactive().subscriber(name));
         }
         return subscriber;
     }
 
-    private Flow.Subscriber<Message<?>> getMessageSubscriber(Subscriber<Exchange> s) {
+    @Override
+    public CompletionStage<Void> closeIncoming(String channel) {
+        cancel(incomingSubscriptions.remove(channel));
+        return CompletableFuture.completedStage(null);
+    }
+
+    @Override
+    public CompletionStage<Void> closeOutgoing(String channel) {
+        // With a graceful shutdown the stream has already completed; otherwise stop requesting messages.
+        cancel(outgoingSubscriptions.remove(channel));
+        return CompletableFuture.completedStage(null);
+    }
+
+    @Override
+    public CompletionStage<Void> terminate() {
+        incomingSubscriptions.values().forEach(CamelConnector::cancel);
+        outgoingSubscriptions.values().forEach(CamelConnector::cancel);
+        incomingSubscriptions.clear();
+        outgoingSubscriptions.clear();
+        return CompletableFuture.completedStage(null);
+    }
+
+    private static void cancel(Flow.Subscription subscription) {
+        if (subscription != null) {
+            subscription.cancel();
+        }
+    }
+
+    private Flow.Subscriber<Message<?>> getMessageSubscriber(String channel, Subscriber<Exchange> s) {
         return new Flow.Subscriber<>() {
             @Override
             public void onSubscribe(Flow.Subscription subscription) {
+                outgoingSubscriptions.put(channel, subscription);
                 s.onSubscribe(AdaptersToReactiveStreams.subscription(subscription));
             }
 

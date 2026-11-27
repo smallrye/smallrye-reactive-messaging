@@ -2,16 +2,14 @@ package io.smallrye.reactive.messaging.aws.sns;
 
 import static io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Direction.OUTGOING;
 
-import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Flow;
 
 import jakarta.annotation.PostConstruct;
-import jakarta.annotation.Priority;
 import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.enterprise.context.BeforeDestroyed;
-import jakarta.enterprise.event.Observes;
-import jakarta.enterprise.event.Reception;
 import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
 
@@ -67,7 +65,7 @@ public class SnsConnector implements OutboundConnector, HealthReporter {
 
     private JsonMapping jsonMapping;
 
-    private final List<SnsOutboundChannel> outboundChannels = new CopyOnWriteArrayList<>();
+    private final Map<String, SnsOutboundChannel> outboundChannels = new ConcurrentHashMap<>();
 
     @PostConstruct
     void init() {
@@ -75,23 +73,35 @@ public class SnsConnector implements OutboundConnector, HealthReporter {
         this.jsonMapping = jsonMappers.isUnsatisfied() ? new VertxJsonMapping() : jsonMappers.get();
     }
 
-    public void terminate(
-            @Observes(notifyObserver = Reception.IF_EXISTS) @Priority(50) @BeforeDestroyed(ApplicationScoped.class) final Object event) {
-        outboundChannels.forEach(SnsOutboundChannel::close);
+    @Override
+    public CompletionStage<Void> closeOutgoing(String channel) {
+        SnsOutboundChannel outbound = outboundChannels.remove(channel);
+        if (outbound != null) {
+            outbound.close();
+        }
+        return CompletableFuture.completedStage(null);
+    }
+
+    @Override
+    public CompletionStage<Void> terminate() {
+        // The channels not closed one by one; the SNS clients are closed by the SnsManager.
+        outboundChannels.values().forEach(SnsOutboundChannel::close);
+        outboundChannels.clear();
+        return CompletableFuture.completedStage(null);
     }
 
     @Override
     public Flow.Subscriber<? extends Message<?>> getSubscriber(final Config config) {
         var conf = new SnsConnectorOutgoingConfiguration(config);
         var channel = new SnsOutboundChannel(conf, snsManager, jsonMapping);
-        outboundChannels.add(channel);
+        outboundChannels.put(conf.getChannel(), channel);
         return channel.getSubscriber();
     }
 
     @Override
     public HealthReport getLiveness() {
         var builder = HealthReport.builder();
-        for (SnsOutboundChannel channel : outboundChannels) {
+        for (SnsOutboundChannel channel : outboundChannels.values()) {
             channel.isAlive(builder);
         }
         return builder.build();

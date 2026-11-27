@@ -92,8 +92,9 @@ public class KafkaFailureHandlerTracingTest extends KafkaCompanionTestBase {
                         .containsOnlyOnce(0, 1, 2, 4, 5, 7, 8)
                         .contains(0, 1, 2, 3, 4, 5, 6, 7, 8, 9));
 
+        // The last spans may finish just after the records are received.
+        await().untilAsserted(() -> assertThat(spanExporter.getFinishedSpanItems()).hasSize(25));
         List<SpanData> spans = spanExporter.getFinishedSpanItems();
-        assertThat(spans).hasSize(25);
 
         List<SpanData> producerSpans = verifyProducerSpans(spans, delayedRetryTopics);
 

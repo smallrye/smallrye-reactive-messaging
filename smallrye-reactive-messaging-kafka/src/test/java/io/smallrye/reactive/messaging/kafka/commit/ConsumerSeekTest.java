@@ -5,6 +5,7 @@ import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
+import java.time.Duration;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -14,7 +15,6 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -224,22 +224,15 @@ public class ConsumerSeekTest extends KafkaCompanionTestBase {
         KafkaClientService clientService;
 
         private final List<Integer> received = new CopyOnWriteArrayList<>();
-        private final AtomicInteger wip = new AtomicInteger();
 
         @Incoming("data")
         @Blocking
         public void consume(int payload) {
-            wip.incrementAndGet();
-            try {
-                received.add(payload);
-            } finally {
-                wip.decrementAndGet();
-            }
+            received.add(payload);
         }
 
         public void seekToBeginning(Collection<TopicPartition> partitions) {
-            pausable.pause();
-            await().until(() -> wip.get() == 0);
+            pausable.pauseAndDrain().await().atMost(Duration.ofSeconds(30));
             clientService.<String, Integer> getConsumer("data")
                     .seekToBeginning(partitions).await().indefinitely();
             pausable.clearBuffer();

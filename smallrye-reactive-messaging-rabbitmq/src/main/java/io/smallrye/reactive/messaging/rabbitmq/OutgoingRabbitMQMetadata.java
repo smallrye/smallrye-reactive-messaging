@@ -45,6 +45,43 @@ public class OutgoingRabbitMQMetadata {
         return new Builder();
     }
 
+    /**
+     * Creates a builder initialized with the properties of a received message, to propagate them to a message to send.
+     * Messages sent are not given the properties of the message they come from otherwise.
+     * <p>
+     * Copies the content type and encoding, the headers, the delivery mode, the priority, the correlation id, the
+     * reply-to, the expiration, the message id, the timestamp, the type and the app id. Does not copy:
+     * <ul>
+     * <li>the exchange and the routing key the message was received from: the message is sent to the configured
+     * destination, unless {@link Builder#withExchange(String)} or {@link Builder#withRoutingKey(String)} set one;</li>
+     * <li>the user id: RabbitMQ rejects a message whose user id is not the user of the connection.</li>
+     * </ul>
+     *
+     * @param incoming the metadata of the received message
+     * @return the builder, to override or complete the copied properties
+     */
+    public static Builder from(IncomingRabbitMQMetadata incoming) {
+        Builder b = builder();
+        AMQP.BasicProperties p = incoming.getProperties();
+        if (p != null) {
+            b.contentType = p.getContentType();
+            b.contentEncoding = p.getContentEncoding();
+            if (p.getHeaders() != null) {
+                b.headers.putAll(p.getHeaders());
+            }
+            b.deliveryMode = p.getDeliveryMode();
+            b.priority = p.getPriority();
+            b.correlationId = p.getCorrelationId();
+            b.replyTo = p.getReplyTo();
+            b.expiration = p.getExpiration();
+            b.messageId = p.getMessageId();
+            b.timestamp = p.getTimestamp();
+            b.type = p.getType();
+            b.appId = p.getAppId();
+        }
+        return b;
+    }
+
     public static Builder from(OutgoingRabbitMQMetadata other) {
         Builder b = builder();
         b.routingKey = other.routingKey;

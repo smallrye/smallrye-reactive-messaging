@@ -49,6 +49,7 @@ public abstract class AbstractMediator {
     private Instance<MessageConverter> converters;
     private Instance<KeyValueExtractor> extractors;
     private int maxConcurrency;
+    private final Class<?> consumedMessageType;
 
     public AbstractMediator(MediatorConfiguration configuration) {
         this.configuration = configuration;
@@ -86,6 +87,47 @@ public abstract class AbstractMediator {
             }
         }
         this.methodArgumentMapper = mapper;
+        this.consumedMessageType = consumedMessageType(configuration);
+        if (consumedMessageType != null) {
+            log.consumingSpecificMessageType(configuration.methodAsString(), consumedMessageType.getName());
+        }
+    }
+
+    /**
+     * @return the specific {@link Message} type consumed by the method, alone or as a stream, such as a connector
+     *         message implementation, or {@code null} if the method consumes payloads or plain {@link Message}s
+     */
+    private static Class<?> consumedMessageType(MediatorConfiguration configuration) {
+        MediatorConfiguration.Consumption consumption = configuration.consumption();
+        if ((consumption != MediatorConfiguration.Consumption.MESSAGE
+                && consumption != MediatorConfiguration.Consumption.STREAM_OF_MESSAGE)
+                || configuration.getParameterDescriptor() == null
+                || configuration.getParameterDescriptor().getTypes().isEmpty()) {
+            return null;
+        }
+        // A message, or the element type of a stream of messages (Multi<IncomingRabbitMQMessage<T>>...).
+        Class<?> type = consumption == MediatorConfiguration.Consumption.MESSAGE
+                ? configuration.getParameterDescriptor().getTypes().get(0)
+                : streamElementType(configuration);
+        if (type == null || type.equals(Message.class) || !Message.class.isAssignableFrom(type)) {
+            return null;
+        }
+        return type;
+    }
+
+    /**
+     * @return the raw class of the element type of the stream consumed by the method, such as
+     *         {@code IncomingRabbitMQMessage} for {@code Multi<IncomingRabbitMQMessage<byte[]>>}, or {@code null}
+     */
+    private static Class<?> streamElementType(MediatorConfiguration configuration) {
+        // Read from the parameter descriptor, not from the method: the configurations built at build time (Quarkus) do
+        // not give access to it.
+        try {
+            return configuration.getParameterDescriptor().getGenericParameterType(0, 0);
+        } catch (RuntimeException e) {
+            // No resolvable element type, such as a raw stream or a type variable: not a specific message type.
+            return null;
+        }
     }
 
     public synchronized void setInvoker(Invoker invoker) {
@@ -319,7 +361,14 @@ public abstract class AbstractMediator {
     }
 
     public Multi<? extends Message<?>> convert(Multi<? extends Message<?>> upstream) {
-        return ConverterUtils.convert(upstream, converters, configuration.getIngestedPayloadType());
+        Multi<? extends Message<?>> converted = ConverterUtils.convert(upstream, converters,
+                configuration.getIngestedPayloadType());
+        if (consumedMessageType != null) {
+            // Messages may have lost their connector-specific type when intercepted: let converters restore it.
+            converted = ConverterUtils.convertMessageType(converted, converters, consumedMessageType,
+                    configuration.methodAsString());
+        }
+        return converted;
     }
 
     public Instance<KeyValueExtractor> extractors() {

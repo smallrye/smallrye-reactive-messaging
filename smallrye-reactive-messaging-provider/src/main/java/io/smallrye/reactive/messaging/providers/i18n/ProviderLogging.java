@@ -1,6 +1,7 @@
 package io.smallrye.reactive.messaging.providers.i18n;
 
 import java.lang.invoke.MethodHandles;
+import java.time.Duration;
 import java.util.Set;
 
 import jakarta.enterprise.inject.spi.Bean;
@@ -153,4 +154,62 @@ public interface ProviderLogging extends BasicLogger {
     @LogMessage(level = Logger.Level.DEBUG)
     @Message(id = 244, value = "Trying to get Vertx instance using Identifier qualifier: %s.")
     void vertxFromCDIQualifier(String cdiQualifier);
+
+    @LogMessage(level = Logger.Level.ERROR)
+    @Message(id = 245, value = "Error in channel binding subscription")
+    void channelBindingSubscriptionError(@Cause Throwable t);
+
+    @LogMessage(level = Logger.Level.WARN)
+    @Message(id = 246, value = "Draining channel '%s' timed out after %s, shutting down with in-flight messages (in flight: %s)")
+    void drainTimedOut(String channel, Duration timeout, String inFlight);
+
+    @LogMessage(level = Logger.Level.WARN)
+    @Message(id = 247, value = "Method '%s' consumes the connector-specific message type '%s', which is deprecated: "
+            + "consume `Message<T>` and read the connector metadata, or inject the payload and the metadata instead")
+    void consumingSpecificMessageType(String method, String messageType);
+
+    @LogMessage(level = Logger.Level.INFO)
+    @Message(id = 248, value = "Graceful shutdown of channel '%s' does not wait for in-flight messages: method '%s' never "
+            + "acknowledges them (Acknowledgment.Strategy.NONE). The channel is still paused on shutdown")
+    void inFlightTrackingDisabled(String channel, String method);
+
+    @LogMessage(level = Logger.Level.ERROR)
+    @Message(id = 249, value = "Method '%s' consumes the message type '%s', but received a '%s' that no converter "
+            + "converts to it: the messages are negatively acknowledged. Messages lose their connector type when they "
+            + "are intercepted (graceful shutdown tracking, observation, interceptors): the connector must provide a "
+            + "`MessageConverter` restoring it. Consume `Message<T>` and read the connector metadata instead, or disable "
+            + "`graceful-shutdown` on the channel")
+    void messageTypeNotRestored(String method, String messageType, String received);
+
+    @LogMessage(level = Logger.Level.WARN)
+    @Message(id = 250, value = "Error preparing close of incoming channels")
+    void prepareCloseIncomingFailed(@Cause Throwable cause);
+
+    @LogMessage(level = Logger.Level.WARN)
+    @Message(id = 251, value = "Error preparing close of outgoing channels")
+    void prepareCloseOutgoingFailed(@Cause Throwable cause);
+
+    @LogMessage(level = Logger.Level.WARN)
+    @Message(id = 252, value = "Error closing incoming channels")
+    void closeIncomingFailed(@Cause Throwable cause);
+
+    @LogMessage(level = Logger.Level.WARN)
+    @Message(id = 253, value = "Error closing outgoing channels")
+    void closeOutgoingFailed(@Cause Throwable cause);
+
+    @LogMessage(level = Logger.Level.WARN)
+    @Message(id = 254, value = "Error terminating connectors")
+    void terminateConnectorsFailed(@Cause Throwable cause);
+
+    @LogMessage(level = Logger.Level.WARN)
+    @Message(id = 255, value = "Failed to drain channel '%s'")
+    void drainFailed(String channel, @Cause Throwable cause);
+
+    @LogMessage(level = Logger.Level.DEBUG)
+    @Message(id = 256, value = "Draining channel '%s' (in flight: %s, timeout: %s)")
+    void drainingChannel(String channel, String inFlight, Duration timeout);
+
+    @LogMessage(level = Logger.Level.DEBUG)
+    @Message(id = 257, value = "Channel '%s' drained in %d ms")
+    void channelDrained(String channel, long millis);
 }

@@ -14,7 +14,6 @@ import org.junit.jupiter.api.Test;
 
 import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.test.common.config.MapBasedConfig;
-import software.amazon.awssdk.core.exception.SdkClientException;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class SnsClientConfigTest extends SnsTestBase {

@@ -2,6 +2,7 @@ package io.smallrye.reactive.messaging.kafka.commit;
 
 import static io.smallrye.reactive.messaging.kafka.i18n.KafkaLogging.log;
 
+import java.time.Duration;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
@@ -80,12 +81,36 @@ public class KafkaLatestCommit extends ContextHolder implements KafkaCommitHandl
     }
 
     @Override
+    public void terminate(boolean graceful) {
+        if (graceful) {
+            Map<TopicPartition, OffsetAndMetadata> toCommit = runOnContextAndAwait(() -> {
+                Map<TopicPartition, OffsetAndMetadata> map = new HashMap<>();
+                for (Map.Entry<TopicPartition, Long> entry : offsets.entrySet()) {
+                    map.put(entry.getKey(), new OffsetAndMetadata(entry.getValue()));
+                }
+                offsets.clear();
+                return map;
+            });
+            if (!toCommit.isEmpty()) {
+                try {
+                    // Commit on the polling thread: the Kafka consumer is not thread-safe and the poll loop is still running.
+                    consumer.commit(toCommit)
+                            .await().atMost(Duration.ofMillis(getTimeoutInMillis()));
+                } catch (Exception e) {
+                    log.failedToCommit(toCommit, e);
+                }
+            }
+        }
+    }
+
+    @Override
     public <K, V> Uni<Void> handle(IncomingKafkaRecord<K, V> record) {
-        runOnContext(() -> {
+        // Update the offsets on the captured context (the only one accessing the map, see terminate),
+        // then complete on the message context.
+        return Uni.createFrom().voidItem().runSubscriptionOn(this::runOnContext).invoke(() -> {
             Map<TopicPartition, OffsetAndMetadata> map = new HashMap<>();
             TopicPartition key = TopicPartitions.getTopicPartition(record);
             Long last = offsets.get(key);
-            // Verify that the latest committed offset before this one.
             if (last == null || last < record.getOffset() + 1) {
                 offsets.put(key, record.getOffset() + 1);
                 map.put(key, new OffsetAndMetadata(record.getOffset() + 1, null));
@@ -93,7 +118,6 @@ public class KafkaLatestCommit extends ContextHolder implements KafkaCommitHandl
                         .subscribe().with(ignored -> {
                         }, throwable -> log.failedToCommitAsync(key, record.getOffset() + 1, throwable));
             }
-        });
-        return Uni.createFrom().voidItem().runSubscriptionOn(record::runOnMessageContext);
+        }).emitOn(record::runOnMessageContext);
     }
 }

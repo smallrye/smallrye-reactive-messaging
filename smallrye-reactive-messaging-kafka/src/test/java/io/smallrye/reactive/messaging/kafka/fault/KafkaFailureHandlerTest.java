@@ -1080,7 +1080,7 @@ public class KafkaFailureHandlerTest extends KafkaCompanionTestBase {
         }
 
         @Incoming("kafka")
-        public CompletionStage<Void> process(KafkaRecord<String, Integer> record) {
+        public CompletionStage<Void> process(Message<Integer> record) {
             Integer payload = record.getPayload();
             received.add(payload);
             if (payload != 0 && payload % 3 == 0) {

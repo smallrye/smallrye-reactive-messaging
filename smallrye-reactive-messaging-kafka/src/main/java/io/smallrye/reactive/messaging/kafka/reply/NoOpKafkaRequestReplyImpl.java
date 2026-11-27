@@ -95,6 +95,7 @@ public class NoOpKafkaRequestReplyImpl<Req, Rep> extends MutinyEmitterImpl<Req>
 
     @Override
     public void complete() {
-        // no-op
+        // No replies are pending: complete the requests stream, so the channel can drain and close.
+        super.complete();
     }
 }

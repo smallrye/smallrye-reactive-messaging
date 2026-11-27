@@ -230,7 +230,7 @@ public class SharedGroupConsumerTest extends KafkaCompanionTestBase {
 
         getBeanManager().createInstance()
                 .select(KafkaConnector.class, ConnectorLiteral.of("smallrye-kafka")).get()
-                .terminate(new Object());
+                .terminate();
 
         // Verify that all offsets were committed by checking share group offsets
         //        await().untilAsserted(() -> {

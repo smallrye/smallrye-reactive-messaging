@@ -2,14 +2,16 @@ package io.smallrye.reactive.messaging.mqtt;
 
 import static io.smallrye.reactive.messaging.annotations.ConnectorAttribute.Direction.*;
 
+import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Flow;
 
 import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.enterprise.context.Destroyed;
-import jakarta.enterprise.event.Observes;
 import jakarta.enterprise.inject.Any;
 import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
@@ -99,8 +101,8 @@ public class MqttConnector implements InboundConnector, OutboundConnector, Healt
     Instance<MqttClientSessionCustomizer> sessionCustomizers;
 
     private Vertx vertx;
-    private final List<MqttSource> sources = new CopyOnWriteArrayList<>();
-    private final List<MqttSink> sinks = new CopyOnWriteArrayList<>();
+    private final Map<String, MqttSource> sources = new ConcurrentHashMap<>();
+    private final Map<String, MqttSink> sinks = new ConcurrentHashMap<>();
 
     @PostConstruct
     void init() {
@@ -109,27 +111,27 @@ public class MqttConnector implements InboundConnector, OutboundConnector, Healt
 
     @Override
     public Flow.Publisher<? extends Message<?>> getPublisher(Config config) {
-        MqttSource source = new MqttSource(vertx, new MqttConnectorIncomingConfiguration(config), configCustomizers,
-                instances, sessionCustomizers);
-        sources.add(source);
+        MqttConnectorIncomingConfiguration ic = new MqttConnectorIncomingConfiguration(config);
+        MqttSource source = new MqttSource(vertx, ic, configCustomizers, instances, sessionCustomizers);
+        sources.put(ic.getChannel(), source);
         return source.getSource();
     }
 
     @Override
     public Flow.Subscriber<? extends Message<?>> getSubscriber(Config config) {
-        MqttSink sink = new MqttSink(vertx, new MqttConnectorOutgoingConfiguration(config), configCustomizers, instances,
-                sessionCustomizers);
-        sinks.add(sink);
+        MqttConnectorOutgoingConfiguration oc = new MqttConnectorOutgoingConfiguration(config);
+        MqttSink sink = new MqttSink(vertx, oc, configCustomizers, instances, sessionCustomizers);
+        sinks.put(oc.getChannel(), sink);
         return sink.getSink();
     }
 
     @Override
     public HealthReport getStartup() {
         HealthReport.HealthReportBuilder builder = HealthReport.builder();
-        for (MqttSource source : sources) {
+        for (MqttSource source : sources.values()) {
             source.isStarted(builder);
         }
-        for (MqttSink sink : sinks) {
+        for (MqttSink sink : sinks.values()) {
             sink.isStarted(builder);
         }
         return builder.build();
@@ -138,10 +140,10 @@ public class MqttConnector implements InboundConnector, OutboundConnector, Healt
     @Override
     public HealthReport getReadiness() {
         HealthReport.HealthReportBuilder builder = HealthReport.builder();
-        for (MqttSource source : sources) {
+        for (MqttSource source : sources.values()) {
             source.isReady(builder);
         }
-        for (MqttSink sink : sinks) {
+        for (MqttSink sink : sinks.values()) {
             sink.isReady(builder);
         }
         return builder.build();
@@ -151,17 +153,46 @@ public class MqttConnector implements InboundConnector, OutboundConnector, Healt
     @Override
     public HealthReport getLiveness() {
         HealthReport.HealthReportBuilder builder = HealthReport.builder();
-        for (MqttSource source : sources) {
+        for (MqttSource source : sources.values()) {
             source.isAlive(builder);
         }
-        for (MqttSink sink : sinks) {
+        for (MqttSink sink : sinks.values()) {
             sink.isAlive(builder);
         }
         return builder.build();
     }
 
-    public void destroy(@Observes @Destroyed(ApplicationScoped.class) final Object context) {
-        Clients.clear();
+    @Override
+    public CompletionStage<Void> closeIncoming(String channel) {
+        MqttSource source = sources.remove(channel);
+        if (source == null) {
+            return CompletableFuture.completedStage(null);
+        }
+        return source.close().toCompletionStage();
+    }
+
+    @Override
+    public CompletionStage<Void> closeOutgoing(String channel) {
+        MqttSink sink = sinks.remove(channel);
+        if (sink == null) {
+            return CompletableFuture.completedStage(null);
+        }
+        return sink.close().toCompletionStage();
+    }
+
+    @Override
+    public CompletionStage<Void> terminate() {
+        // Close the channels not closed one by one, then stop the clients still left.
+        List<CompletableFuture<Void>> closing = new ArrayList<>();
+        sources.values().forEach(source -> closing.add(source.close().toCompletionStage().toCompletableFuture()));
+        sinks.values().forEach(sink -> closing.add(sink.close().toCompletionStage().toCompletableFuture()));
+        sources.clear();
+        sinks.clear();
+        // Completed once the clients are stopped, so that nothing still uses them afterwards.
+        return CompletableFuture.allOf(closing.toArray(CompletableFuture[]::new))
+                .handle((ignored, failure) -> null)
+                .thenCompose(ignored -> Clients.stopAll().toCompletionStage())
+                .handle((ignored, failure) -> null);
     }
 
 }

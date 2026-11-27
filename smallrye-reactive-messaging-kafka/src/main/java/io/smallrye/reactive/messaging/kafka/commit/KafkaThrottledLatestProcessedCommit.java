@@ -64,6 +64,9 @@ public class KafkaThrottledLatestProcessedCommit extends ContextHolder implement
     private final int unprocessedRecordMaxAge;
     private final int autoCommitInterval;
     private volatile long timerId = -1;
+    // Set by terminate: records already requested, or a rebalance, can still reach the handler until the consumer
+    // closes, but the flush timer must not start again.
+    private volatile boolean terminated;
     private final Collection<TopicPartition> assignments = Collections.newSetFromMap(new ConcurrentHashMap<>());
 
     @ApplicationScoped
@@ -203,6 +206,9 @@ public class KafkaThrottledLatestProcessedCommit extends ContextHolder implement
      * Must be called form the event loop.
      */
     private void startFlushAndCheckHealthTimer() {
+        if (terminated) {
+            return;
+        }
         timerId = vertx.setTimer(autoCommitInterval, x -> runOnContext(() -> this.flushAndCheckHealth(x)));
     }
 
@@ -485,39 +491,13 @@ public class KafkaThrottledLatestProcessedCommit extends ContextHolder implement
 
     @Override
     public void terminate(boolean graceful) {
-        if (graceful) {
-            long stillUnprocessed = waitForProcessing();
-            if (stillUnprocessed > 0) {
-                log.messageStillUnprocessedAfterTimeout(stillUnprocessed);
-            }
-        }
-
         commitAllAndAwait();
         runOnContextAndAwait(() -> {
+            terminated = true;
             offsetStores.clear();
             stopFlushAndCheckHealthTimer();
             return null;
         });
-    }
-
-    private long waitForProcessing() {
-        int attempt = autoCommitInterval / 100;
-        for (int i = 0; i < attempt; i++) {
-            long sum = offsetStores.values().stream().map(OffsetStore::getUnprocessedCount).mapToLong(l -> l).sum();
-            if (sum == 0) {
-                return sum;
-            }
-            log.waitingForMessageProcessing(sum);
-            try {
-                Thread.sleep(100);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                break;
-            }
-        }
-
-        return offsetStores.values().stream().map(OffsetStore::getUnprocessedCount).mapToLong(l -> l).sum();
-
     }
 
     private void commitAllAndAwait() {

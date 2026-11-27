@@ -12,7 +12,6 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
-import org.eclipse.microprofile.reactive.messaging.spi.ConnectorLiteral;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -59,10 +58,7 @@ public class SqsTestBase extends WeldTestBase {
     @AfterEach
     public void stopContainer() {
         if (container != null) {
-            var connector = getBeanManager().createInstance()
-                    .select(SqsConnector.class, ConnectorLiteral.of(SqsConnector.CONNECTOR_NAME))
-                    .get();
-            connector.terminate(null);
+            // The shutdown drains the channels, then closes them and terminates the connector.
             container.close();
         }
         // Release the config objects

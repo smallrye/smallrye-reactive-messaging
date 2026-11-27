@@ -175,6 +175,13 @@ public class AmqpMessageBuilder<T> {
         if (delegate.contentEncoding() != null) {
             amqpMetadataBuilder.withContentEncoding(delegate.contentEncoding());
         }
+        if (delegate.replyTo() != null) {
+            amqpMetadataBuilder.withReplyTo(delegate.replyTo());
+        }
+        String replyToGroupId = delegate.getDelegate().unwrap().getReplyToGroupId();
+        if (replyToGroupId != null) {
+            amqpMetadataBuilder.withReplyToGroupId(replyToGroupId);
+        }
         if (delegate.correlationId() != null) {
             amqpMetadataBuilder.withCorrelationId(delegate.correlationId());
         }

@@ -12,6 +12,9 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 import jakarta.enterprise.inject.Instance;
@@ -63,6 +66,7 @@ public class KafkaShareGroupSource<K, V> {
     private final boolean isCloudEventEnabled;
     private final String channel;
     private volatile boolean subscribed;
+    private final AtomicBoolean preShutdownDone = new AtomicBoolean();
     private final KafkaShareGroupSourceHealth health;
 
     private final String group;
@@ -327,13 +331,27 @@ public class KafkaShareGroupSource<K, V> {
         return batchStream;
     }
 
-    public void closeQuietly() {
+    public CompletionStage<Void> preShutdown() {
+        // Called by the connector's prepareCloseIncoming and again by closeQuietly: terminate the handlers only once.
+        if (!preShutdownDone.compareAndSet(false, true)) {
+            return CompletableFuture.completedStage(null);
+        }
+        // Separately: a failed final commit must not leave the failure handler, and its producer or consumer, open.
         try {
             this.commitHandler.terminate(configuration.getGracefulShutdown());
+        } catch (Throwable e) {
+            log.exceptionOnClose(e);
+        }
+        try {
             this.failureHandler.terminate();
         } catch (Throwable e) {
             log.exceptionOnClose(e);
         }
+        return CompletableFuture.completedStage(null);
+    }
+
+    public void closeQuietly() {
+        preShutdown();
 
         try {
             this.client.close();

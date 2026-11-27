@@ -51,4 +51,10 @@ public interface AwsSqsLogging extends BasicLogger {
     @LogMessage(level = Level.ERROR)
     @Message(id = 19307, value = "A message sent to channel `%s` has been nacked, fail-stop")
     void messageNackedFailStop(String channel);
+
+    @LogMessage(level = Logger.Level.WARN)
+    @Message(id = 19308, value = "Restoring the SQS message type `%s` for a message that lost it when intercepted "
+            + "(interceptors, observation, graceful shutdown tracking). The restored message acknowledges through the "
+            + "intercepted message")
+    void restoringSqsMessageType(String messageType);
 }

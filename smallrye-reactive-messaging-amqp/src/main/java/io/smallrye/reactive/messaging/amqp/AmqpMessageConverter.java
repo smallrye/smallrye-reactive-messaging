@@ -99,11 +99,6 @@ public class AmqpMessageConverter {
             if (output.getContentType() == null) {
                 output.setContentType(BINARY_CONTENT_TYPE);
             }
-        } else if (payload instanceof io.vertx.core.buffer.Buffer) {
-            output.setBody(new Data(new Binary(((io.vertx.core.buffer.Buffer) payload).getBytes())));
-            if (output.getContentType() == null) {
-                output.setContentType(BINARY_CONTENT_TYPE);
-            }
         } else if (payload instanceof Instant) {
             output.setBody(new AmqpValue(Date.from((Instant) payload)));
         } else if (payload instanceof JsonArray) {

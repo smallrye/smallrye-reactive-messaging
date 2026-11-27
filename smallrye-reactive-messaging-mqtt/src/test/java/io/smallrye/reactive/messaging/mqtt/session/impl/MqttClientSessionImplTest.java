@@ -107,6 +107,27 @@ class MqttClientSessionImplTest {
     }
 
     @Test
+    void stopCompletesWhileWaitingToReconnect() throws Exception {
+        MqttClientSessionOptions options = defaultOptions();
+        // Nothing listens on this port: the session keeps reconnecting.
+        try (java.net.ServerSocket socket = new java.net.ServerSocket(0)) {
+            options.setPort(socket.getLocalPort());
+        }
+        MqttClientSession session = MqttClientSession.create(vertx.getDelegate(), options);
+        List<SessionState> states = new CopyOnWriteArrayList<>();
+        session.sessionStateHandler(e -> states.add(e.getSessionState()));
+
+        session.start();
+        // A connection attempt failed: the session is disconnected, waiting to reconnect.
+        await().atMost(10, TimeUnit.SECONDS)
+                .until(() -> states.contains(SessionState.CONNECTING)
+                        && session.getState() == SessionState.DISCONNECTED);
+
+        session.stop().toCompletionStage().toCompletableFuture().get(5, TimeUnit.SECONDS);
+        assertThat(session.getState()).isEqualTo(SessionState.DISCONNECTED);
+    }
+
+    @Test
     void startTwiceIsNoOp() throws Exception {
         MqttClientSession session = MqttClientSession.create(vertx.getDelegate(), defaultOptions());
 

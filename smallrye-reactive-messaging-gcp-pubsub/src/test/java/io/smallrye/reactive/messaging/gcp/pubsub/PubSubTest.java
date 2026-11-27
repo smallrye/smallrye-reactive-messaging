@@ -9,6 +9,7 @@ import java.util.concurrent.Flow;
 
 import org.eclipse.microprofile.config.ConfigProvider;
 import org.eclipse.microprofile.reactive.messaging.Message;
+import org.eclipse.microprofile.reactive.messaging.spi.ConnectorFactory;
 import org.eclipse.microprofile.reactive.messaging.spi.ConnectorLiteral;
 import org.jboss.weld.environment.se.Weld;
 import org.jboss.weld.environment.se.WeldContainer;
@@ -87,6 +88,8 @@ public class PubSubTest extends PubSubTestBase {
     private Flow.Subscriber<? extends Message<?>> createSinkSubscriber(final String topic) {
         final MapBasedConfig config = createSourceConfig(topic, null, PUBSUB_CONTAINER.getFirstMappedPort());
         config.put("topic", topic);
+        // Set by the framework when it creates the subscriber of a channel.
+        config.put(ConnectorFactory.CHANNEL_NAME_ATTRIBUTE, topic);
         config.write();
 
         return getConnector().getSubscriber(config);

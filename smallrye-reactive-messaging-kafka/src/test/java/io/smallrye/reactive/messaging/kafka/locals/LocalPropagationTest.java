@@ -178,10 +178,15 @@ public class LocalPropagationTest extends KafkaCompanionTestBase {
 
             return input.withPayload(input.getPayload() + 1)
                     .withAck(() -> {
+                        // Acknowledge the incoming message on a custom thread.
                         CompletableFuture<Void> cf = new CompletableFuture<>();
-                        executor.execute(() -> {
-                            cf.complete(null);
-                        });
+                        executor.execute(() -> input.ack().whenComplete((v, t) -> {
+                            if (t != null) {
+                                cf.completeExceptionally(t);
+                            } else {
+                                cf.complete(null);
+                            }
+                        }));
                         return cf;
                     });
         }
